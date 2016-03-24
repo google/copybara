@@ -25,7 +25,7 @@ public class Main {
   public static void main(String[] args) {
     if (args.length < 2) {
       System.err.println("ERROR: Insufficient parameters\n" + usage());
-      System.exit(1);
+      System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
     }
     String configPath = args[0];
     String repoRef = args[1];
