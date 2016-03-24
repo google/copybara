@@ -5,7 +5,7 @@ java_test(
     size = "small",
     srcs = ["ExampleTest.java"],
     deps = [
-        "//third_party:junit4",
+        "@bazel_tools//third_party:junit4",
         "//java/com/google/copybara:copybara_lib",
     ],
 )
