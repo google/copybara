@@ -1,11 +1,14 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.copybara.config.Config;
+
 import org.junit.Test;
 
 public class ExampleTest {
-    @Test
-    public void doNothing() {
-        new Copybara().doYourMagic();
-    }
+
+  @Test
+  public void doNothing() {
+    new Copybara().runForRef(new Config("test", "http://www.example.com"), "some_sha1");
+  }
 }

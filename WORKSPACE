@@ -1,0 +1,14 @@
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "guava",
+    artifact = "com.google.guava:guava:19.0",
+    sha1 = "6ce200f6b23222af3d8abb6b6459e6c44f4bb0e9",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "snakeyaml",
+    artifact = "org.yaml:snakeyaml:1.17",
+    sha1 = "7a27ea250c5130b2922b86dea63cbb1cc10a660c",
+)

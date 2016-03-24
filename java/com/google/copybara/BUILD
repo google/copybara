@@ -13,6 +13,10 @@ java_binary(
 java_library(
     name = "copybara_lib",
     srcs = glob(["**/*.java"], exclude = ["Main.java"]),
+    deps = [
+       "@guava//jar",
+       "@snakeyaml//jar",
+    ],
     visibility = [
       "//javatests/com/google/copybara:__pkg__",
     ]

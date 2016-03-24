@@ -1,16 +1,20 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.copybara.config.Config;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Entry point for Copybara library.
  */
-public class Copybara {
-    private static final Logger logger = Logger.getLogger(Copybara.class.getName());
+class Copybara {
 
-    public void doYourMagic() {
-        logger.log(Level.INFO, "Best transformer is the identity transformer!");
-    }
+  private static final Logger logger = Logger.getLogger(Copybara.class.getName());
+
+  void runForRef(Config config, String repoRef) {
+    logger.log(Level.INFO, "Running Copybara for " + config.getName()
+        + " [" + config.getRepository() + " ref:" + repoRef + "]");
+  }
 }
