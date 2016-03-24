@@ -4,7 +4,10 @@ java_binary(
     name = "copybara",
     srcs = ["Main.java"],
     main_class= "com.google.copybara.Main",
-    deps = [":copybara_lib"],
+    deps = [
+        ":copybara_lib",
+        "@jcommander//jar",
+    ],
     visibility = [
       "//copybara/integration:__pkg__",
     ]

@@ -9,6 +9,6 @@ public class ExampleTest {
 
   @Test
   public void doNothing() {
-    new Copybara().runForRef(new Config("test", "http://www.example.com"), "some_sha1");
+    new Copybara().runForSourceRef(new Config("test", "http://www.example.com"), "some_sha1");
   }
 }

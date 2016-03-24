@@ -13,8 +13,8 @@ class Copybara {
 
   private static final Logger logger = Logger.getLogger(Copybara.class.getName());
 
-  void runForRef(Config config, String repoRef) {
+  void runForSourceRef(Config config, String sourceRef) {
     logger.log(Level.INFO, "Running Copybara for " + config.getName()
-        + " [" + config.getRepository() + " ref:" + repoRef + "]");
+        + " [" + config.getRepository() + " ref:" + sourceRef + "]");
   }
 }
