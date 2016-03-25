@@ -2,6 +2,7 @@
 package com.google.copybara;
 
 import com.google.copybara.config.Config;
+import com.google.copybara.config.Transformation;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,5 +17,8 @@ class Copybara {
   void runForSourceRef(Config config, String sourceRef) {
     logger.log(Level.INFO, "Running Copybara for " + config.getName()
         + " [" + config.getRepository() + " ref:" + sourceRef + "]");
+    for (Transformation transformation : config.getTransformations()) {
+      logger.log(Level.INFO, " transforming: " + transformation.toString());
+    }
   }
 }
