@@ -11,5 +11,5 @@
 
 ### Optional tips
 
-  * If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your ~/.bazelrc *test --test_output=streamed*.
+  * If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your ~/.bazelrc: *test --test_output=streamed*.
 
