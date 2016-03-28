@@ -10,7 +10,20 @@ java_test(
     ],
 )
 
+java_test(
+    name = "CommandTest",
+    size = "small",
+    srcs = ["CommandTest.java"],
+    deps = [
+        "@bazel_tools//third_party:junit4",
+        "//third_party/bazel:shell",
+    ],
+)
+
 test_suite(
     name = "all_tests",
-    tests = [":ExampleTest"]
+    tests = [
+      ":CommandTest",
+      ":ExampleTest",
+    ]
 )
