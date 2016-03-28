@@ -1,7 +1,6 @@
 package com.google.copybara;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -20,7 +19,7 @@ public class CommandTest {
   public void testCommand() throws CommandException {
     Command command = new Command(new String[]{"echo", "hello", "world"});
     CommandResult result = command.execute();
-    assertTrue(result.getTerminationStatus().success());
-    assertEquals("hello world\n", new String(result.getStdout(), StandardCharsets.UTF_8));
+    assertThat(result.getTerminationStatus().success()).isTrue();
+    assertThat(new String(result.getStdout(), StandardCharsets.UTF_8)).isEqualTo("hello world\n");
   }
 }

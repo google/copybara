@@ -19,3 +19,10 @@ maven_jar(
     artifact = "com.beust:jcommander:1.48",
     sha1 = "bfcb96281ea3b59d626704f74bc6d625ff51cbce",
 )
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "truth",
+    artifact = "com.google.truth:truth:0.28",
+    sha1 = "0a388c7877c845ff4b8e19689dda5ac9d34622c4",
+)

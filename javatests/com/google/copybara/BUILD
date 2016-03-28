@@ -17,6 +17,7 @@ java_test(
     deps = [
         "@bazel_tools//third_party:junit4",
         "//third_party/bazel:shell",
+        "@truth//jar",
     ],
 )
 
