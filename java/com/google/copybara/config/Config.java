@@ -10,10 +10,12 @@ public final class Config {
 
   private final String name;
   private final String repository;
+  private final String destinationPath;
 
-  public Config(String name, String repository) {
+  public Config(String name, String repository, String destinationPath) {
     this.name = name;
     this.repository = repository;
+    this.destinationPath = destinationPath;
   }
 
   public String getName() {
@@ -24,20 +26,28 @@ public final class Config {
     return repository;
   }
 
-  @Override
-  public String toString() {
-    return "Config{" +
-        "name='" + name + '\'' +
-        ", repository='" + repository + '\'' +
-        '}';
+  public String getDestinationPath() {
+    return destinationPath;
   }
 
-  // Public needed by YAML parser
+  @Override
+  public String toString() {
+    return "Config {"
+        + "name='" + name + '\''
+        + ", repository='" + repository + '\''
+        + ", destinationPath='" + destinationPath + '\''
+        + '}';
+  }
+
+  /**
+   * Config builder. YAML parser needs this to be public.
+   */
   @SuppressWarnings("WeakerAccess")
   public static final class Builder {
 
     private String name;
     private String repository;
+    private String destinationPath;
 
     public Builder() {
     }
@@ -50,8 +60,12 @@ public final class Config {
       this.repository = repository;
     }
 
+    public void setDestinationPath(String destinationPath) {
+      this.destinationPath = destinationPath;
+    }
+
     Config build() {
-      return new Config(name, repository);
+      return new Config(name, repository, destinationPath);
     }
   }
 }
