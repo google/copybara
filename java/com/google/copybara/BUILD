@@ -19,6 +19,7 @@ java_library(
     deps = [
        "@guava//jar",
        "@snakeyaml//jar",
+       "//third_party/bazel:shell",
     ],
     visibility = [
       "//javatests/com/google/copybara:__pkg__",
