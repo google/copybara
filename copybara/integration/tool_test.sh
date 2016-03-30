@@ -4,19 +4,32 @@ source $TEST_SRCDIR/third_party/bazel/bashunit/unittest.bash
 
 readonly copybara=$TEST_SRCDIR/java/com/google/copybara/copybara
 
-function test_command() {
-  cat > test.copybara <<EOF
-name: "cbtest"
-repository: "http://www.example.com"
-EOF
-  $copybara test.copybara master > $TEST_log 2>&1
-  expect_log 'Running Copybara for cbtest \[http://www.example.com ref:master\]'
+function run_git() {
+   git "$@" > $TEST_log 2>&1 || fail "Error running git"
 }
 
-function test_transformations_in_config() {
+function set_up() {
+   # An early check to avoid confusing test failures
+   git version || fail "Git doesn't seem to be installed. Cannot test without git command."
+}
+
+function test_git_tracking() {
+  remote=$(mktemp -d)
+  repo_storage=$(mktemp -d)
+  workdir=$(mktemp -d)
+
+  ( cd $remote
+    run_git init .
+    echo "first version" > test.txt
+    run_git add test.txt
+    run_git commit -m "first commit"
+  )
+
   cat > test.copybara <<EOF
 name: "cbtest"
-repository: "http://www.example.com"
+sourceOfTruth: !GitRepository
+  url: "file://$remote"
+  defaultTrackingRef: "origin/master"
 transformations:
   - !ReplaceRegex
     regex:       food
@@ -25,19 +38,37 @@ transformations:
     regex:       f(o+)o
     replacement: bar\1
 EOF
-  $copybara test.copybara master > $TEST_log 2>&1
-  expect_log 'Running Copybara for cbtest \[http://www.example.com ref:master\]'
+  $copybara test.copybara --git_repo_storage "$repo_storage" \
+    --work-dir $workdir > $TEST_log 2>&1
+  expect_log "Running Copybara for cbtest \[.*file://$remote.*\]"
   expect_log 'transforming:.*ReplaceRegex.*drink'
   expect_log 'transforming:.*ReplaceRegex.*bar'
+
+  [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
+  cat $workdir/test.txt > $TEST_log
+  expect_log "first version"
+
+  # Do a new modification and check that we are tracking the changes to the branch
+  ( cd $remote
+    echo "second version" > test.txt
+    run_git add test.txt
+    run_git commit -m "second commit"
+  )
+
+  $copybara test.copybara --git_repo_storage "$repo_storage" \
+    --work-dir $workdir > $TEST_log 2>&1
+
+  [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
+  cat $workdir/test.txt > $TEST_log
+  expect_log "second version"
 }
 
 function test_invalid_transformations_in_config() {
   cat > test.copybara <<EOF
 name: "cbtest-invalid-xform"
-repository: "http://www.example.com"
 transformations: [42]
 EOF
-  $copybara test.copybara master > $TEST_log 2>&1 && fail "Should fail"
+  $copybara test.copybara origin/master > $TEST_log 2>&1 && fail "Should fail"
   expect_log 'Object parsed from Yaml is not a recognized Transformation: 42'
 }
 
@@ -48,19 +79,19 @@ function test_command_help_flag() {
 }
 
 function test_command_too_few_args() {
-  $copybara master > $TEST_log 2>&1 && fail "Should fail"
-  expect_log 'Expect exactly two arguments.'
-  expect_log 'Usage: copybara \[options\] CONFIG_PATH SOURCE_REF'
+  $copybara > $TEST_log 2>&1 && fail "Should fail"
+  expect_log 'Expected at least a configuration file.'
+  expect_log 'Usage: copybara \[options\] CONFIG_PATH \[SOURCE_REF\]'
 }
 
 function test_command_too_many_args() {
-  $copybara config master unexpected > $TEST_log 2>&1 && fail "Should fail"
-  expect_log 'Expect exactly two arguments.'
-  expect_log 'Usage: copybara \[options\] CONFIG_PATH SOURCE_REF'
+  $copybara config origin/master unexpected > $TEST_log 2>&1 && fail "Should fail"
+  expect_log "Expect at most two arguments."
+  expect_log 'Usage: copybara \[options\] CONFIG_PATH \[SOURCE_REF\]'
 }
 
 function test_config_not_found() {
-  $copybara not_existent_file master > $TEST_log 2>&1 && fail "Should fail"
+  $copybara not_existent_file origin/master > $TEST_log 2>&1 && fail "Should fail"
   expect_log "Config file 'not_existent_file' cannot be found."
 }
 

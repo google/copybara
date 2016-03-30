@@ -9,7 +9,7 @@ import java.util.Map;
  * Interface implemented by all source code transformations.
  */
 public interface Transformation {
-  public interface Builder {
+  interface Yaml {
     Transformation build();
   }
 }

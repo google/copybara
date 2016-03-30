@@ -6,6 +6,7 @@ java_binary(
     main_class= "com.google.copybara.Main",
     deps = [
         ":copybara_lib",
+        "@guava//jar",
         "@jcommander//jar",
     ],
     visibility = [
@@ -18,6 +19,7 @@ java_library(
     srcs = glob(["**/*.java"], exclude = ["Main.java"]),
     deps = [
        "@guava//jar",
+       "@jcommander//jar",
        "@snakeyaml//jar",
        "//third_party/bazel:shell",
     ],

@@ -3,6 +3,7 @@ package com.google.copybara;
 
 import com.google.copybara.config.Config;
 import com.google.copybara.config.YamlParser;
+import com.google.copybara.git.GitOptions;
 import com.google.copybara.util.ExitCode;
 
 import com.beust.jcommander.JCommander;
@@ -11,7 +12,6 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -29,7 +29,8 @@ public class Main {
 
   @Parameters(separators = "=")
   private static final class Arguments {
-    @Parameter(description = "CONFIG_PATH SOURCE_REF")
+
+    @Parameter(description = "CONFIG_PATH [SOURCE_REF]")
     List<String> mainArgs = new ArrayList<>();
 
     @Parameter(names = "--help", help = true, description = "Shows this help text")
@@ -39,28 +40,38 @@ public class Main {
   private static final Logger logger = Logger.getLogger(Main.class.getName());
 
   public static void main(String[] args) {
-    Arguments arguments = new Arguments();
-    JCommander jcommander = new JCommander(arguments);
+    Arguments generalArgs = new Arguments();
+    GeneralOptions generalOptions = new GeneralOptions();
+    GitOptions gitOptions = new GitOptions();
+
+    Object[] options = {generalArgs, generalOptions, gitOptions};
+    JCommander jcommander = new JCommander(options);
     jcommander.setProgramName("copybara");
 
     FileSystem fs = FileSystems.getDefault();
 
     try {
       jcommander.parse(args);
-      if (arguments.help) {
+      if (generalArgs.help) {
         System.out.print(usage(jcommander));
-      } else if (arguments.mainArgs.size() != 2) {
-        throw new CommandLineException("Expect exactly two arguments.");
+      } else if (generalArgs.mainArgs.size() < 1) {
+        throw new CommandLineException("Expected at least a configuration file.");
+      } else if (generalArgs.mainArgs.size() > 2) {
+        throw new CommandLineException("Expect at most two arguments.");
       } else {
-        String configPath = arguments.mainArgs.get(0);
-        String sourceRef = arguments.mainArgs.get(1);
-        Config config = loadConfig(fs.getPath(configPath));
-        new Copybara().runForSourceRef(config, sourceRef);
+        String configPath = generalArgs.mainArgs.get(0);
+        String sourceRef = generalArgs.mainArgs.size() > 1 ? generalArgs.mainArgs.get(1) : null;
+        Config config = loadConfig(fs.getPath(configPath), new Options(options));
+        Path workdir = generalOptions.getWorkdir();
+        new Copybara(workdir).runForSourceRef(config, sourceRef);
       }
     } catch (CommandLineException | ParameterException e) {
       System.err.println("ERROR: " + e.getMessage());
       System.err.print(usage(jcommander));
       System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
+    } catch (RepoException e) {
+      System.err.println("ERROR: " + e.getMessage());
+      System.exit(ExitCode.REPOSITORY_ERROR.getCode());
     } catch (IOException e) {
       handleUnexpectedError(ExitCode.ENVIRONMENT_ERROR, "ERROR:" + e.getMessage(), e);
     } catch (RuntimeException e) {
@@ -74,10 +85,10 @@ public class Main {
     System.exit(errorType.getCode());
   }
 
-  private static Config loadConfig(Path path) throws IOException, CommandLineException {
+  private static Config loadConfig(Path path, Options options)
+      throws IOException, CommandLineException {
     try {
-      String configContent = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-      return new YamlParser().parse(configContent);
+      return YamlParser.createParser().loadConfig(path, options);
     } catch (NoSuchFileException e) {
       throw new CommandLineException("Config file '" + path + "' cannot be found.");
     }

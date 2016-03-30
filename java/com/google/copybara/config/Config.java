@@ -2,11 +2,11 @@
 package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Options;
+import com.google.copybara.Repository;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Configuration for a Copybara project.
@@ -16,23 +16,30 @@ import java.util.Map;
 public final class Config {
 
   private final String name;
-  private final String repository;
+  private final Repository sourceOfTruth;
   private final String destinationPath;
   private final List<Transformation> transformations;
 
-  private Config(Builder builder) {
-    this.name = builder.name;
-    this.repository = builder.repository;
-    this.destinationPath = builder.destinationPath;
-    this.transformations = ImmutableList.copyOf(builder.transformations);
+  private Config(String name, String destinationPath, Repository sourceOfTruth,
+      ImmutableList<Transformation> transformations) {
+    this.name = name;
+    this.sourceOfTruth = sourceOfTruth;
+    this.destinationPath = destinationPath;
+    this.transformations = transformations;
   }
 
+  /**
+   * The name of the configuration. The recommended value is to use the project name.
+   */
   public String getName() {
     return name;
   }
 
-  public String getRepository() {
-    return repository;
+  /**
+   * The repository that represents the source of truth
+   */
+  public Repository getSourceOfTruth() {
+    return sourceOfTruth;
   }
 
   public String getDestinationPath() {
@@ -45,54 +52,57 @@ public final class Config {
 
   @Override
   public String toString() {
-    return "Config {"
-        + "name='" + name + '\''
-        + ", repository='" + repository + '\''
-        + ", destinationPath='" + destinationPath + '\''
-        + ", transformations=" + transformations +
-        + '}';
+    return "Config{" +
+        "name='" + name + '\'' +
+        ", sourceOfTruth=" + sourceOfTruth +
+        ", destinationPath='" + destinationPath + '\'' +
+        ", transformations=" + transformations +
+        '}';
   }
 
   /**
    * Config builder. YAML parser needs this to be public.
    */
-  public static final class Builder {
+  public static final class Yaml {
 
     private String name;
-    private String repository;
     private String destinationPath;
-    private List<Transformation> transformations = new ArrayList<>();
-
-    public Builder() {
-    }
+    private Repository.Yaml sourceOfTruth;
+    private List<Transformation.Yaml> transformations = new ArrayList<>();
 
     public void setName(String name) {
       this.name = name;
-    }
-
-    public void setRepository(String repository) {
-      this.repository = repository;
     }
 
     public void setDestinationPath(String destinationPath) {
       this.destinationPath = destinationPath;
     }
 
-    public void setTransformations(List<? extends Transformation.Builder> transformations) {
+    public void setSourceOfTruth(Repository.Yaml sourceOfTruth) {
+
+      this.sourceOfTruth = sourceOfTruth;
+    }
+
+    public void setTransformations(List<? extends Transformation.Yaml> transformations) {
       this.transformations.clear();
       for (Object transformation : transformations) {
         // The instanceof check is necessary when parsing Yaml because this method is invoked using
         // reflection and generic constraints are ignored.
-        if (!(transformation instanceof Transformation.Builder)) {
+        if (!(transformation instanceof Transformation.Yaml)) {
           throw new ConfigValidationException(
               "Object parsed from Yaml is not a recognized Transformation: " + transformation);
         }
-        this.transformations.add(((Transformation.Builder) transformation).build());
+        this.transformations.add(((Transformation.Yaml) transformation));
       }
     }
 
-    public Config build() {
-      return new Config(this);
+    public Config withOptions(Options options) {
+      ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
+      for (Transformation.Yaml yaml : this.transformations) {
+        transformations.add(yaml.build());
+      }
+      return new Config(this.name, this.destinationPath, this.sourceOfTruth.withOptions(options),
+          transformations.build());
     }
   }
 }

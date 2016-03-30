@@ -8,7 +8,7 @@ public final class ReplaceRegex implements Transformation {
   private final String regex;
   private final String replacement;
 
-  private ReplaceRegex(Builder builder) {
+  private ReplaceRegex(Yaml builder) {
     // TODO(matvore): Make sure regex is a valid pattern.
     this.regex = builder.regex;
     this.replacement = builder.replacement;
@@ -19,7 +19,7 @@ public final class ReplaceRegex implements Transformation {
     return String.format("ReplaceRegex{regex: %s, replacement: %s}", regex, replacement);
   }
 
-  public final static class Builder implements Transformation.Builder {
+  public final static class Yaml implements Transformation.Yaml {
     private String regex;
     private String replacement;
 
