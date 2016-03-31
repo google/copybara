@@ -42,6 +42,7 @@ java_test(
     deps = [
         "@bazel_tools//third_party:junit4",
         "//java/com/google/copybara:copybara_lib",
+        "@jimfs//jar",
         "@truth//jar",
     ],
 )

@@ -1,6 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -13,6 +15,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -44,8 +47,13 @@ public final class ReplaceRegex implements Transformation {
         if (Files.isSymbolicLink(file)) {
           return FileVisitResult.CONTINUE;
         }
-        // TODO(matvore): Replace regex in file.
         logger.log(Level.INFO, String.format("apply s/%s/%s/ to %s", regex, replacement, file));
+        String original = new String(Files.readAllBytes(file), UTF_8);
+        Matcher matcher = regex.matcher(original);
+        String replacement = matcher.replaceAll(ReplaceRegex.this.replacement);
+        if (!original.equals(replacement)) {
+          Files.write(file, replacement.getBytes());
+        }
         return FileVisitResult.CONTINUE;
       }
     });

@@ -20,7 +20,7 @@ function test_git_tracking() {
 
   ( cd $remote
     run_git init .
-    echo "first version" > test.txt
+    echo "first version for food and foooooo" > test.txt
     mkdir subdir
     echo "first version" > subdir/test.txt
     run_git add test.txt subdir/test.txt
@@ -38,7 +38,7 @@ transformations:
     replacement: drink
   - !ReplaceRegex
     regex:       f(o+)o
-    replacement: bar\1
+    replacement: bar\$1
 EOF
   $copybara test.copybara --git_repo_storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
@@ -51,11 +51,11 @@ EOF
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   cat $workdir/test.txt > $TEST_log
-  expect_log "first version"
+  expect_log "first version for drink and barooooo"
 
   # Do a new modification and check that we are tracking the changes to the branch
   ( cd $remote
-    echo "second version" > test.txt
+    echo "second version for food and foooooo" > test.txt
     run_git add test.txt
     run_git commit -m "second commit"
   )
@@ -65,7 +65,7 @@ EOF
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   cat $workdir/test.txt > $TEST_log
-  expect_log "second version"
+  expect_log "second version for drink and barooooo"
 }
 
 function test_invalid_transformations_in_config() {
