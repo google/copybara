@@ -1,11 +1,12 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
-package com.google.copybara.config;
+package com.google.copybara.transform;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.config.ConfigValidationException;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;

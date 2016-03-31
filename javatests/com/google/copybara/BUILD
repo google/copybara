@@ -38,7 +38,7 @@ java_test(
 java_test(
     name = "ReplaceRegexTest",
     size = "small",
-    srcs = ["config/ReplaceRegexTest.java"],
+    srcs = ["transform/ReplaceRegexTest.java"],
     deps = [
         "@bazel_tools//third_party:junit4",
         "//java/com/google/copybara:copybara_lib",

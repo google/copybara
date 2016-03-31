@@ -2,7 +2,7 @@
 package com.google.copybara;
 
 import com.google.copybara.config.Config;
-import com.google.copybara.config.Transformation;
+import com.google.copybara.transform.Transformation;
 
 import java.io.IOException;
 import java.nio.file.Path;

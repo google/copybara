@@ -1,5 +1,5 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
-package com.google.copybara.config;
+package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.config.ConfigValidationException;
 
 import org.junit.Before;
 import org.junit.Test;

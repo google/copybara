@@ -4,6 +4,7 @@ package com.google.copybara.config;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
 import com.google.copybara.Repository;
+import com.google.copybara.transform.Transformation;
 
 import java.util.ArrayList;
 import java.util.List;

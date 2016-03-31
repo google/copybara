@@ -1,5 +1,5 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
-package com.google.copybara.config;
+package com.google.copybara.transform;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Options;

@@ -4,6 +4,7 @@ package com.google.copybara.config;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.transform.ReplaceRegex;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.TypeDescription;
