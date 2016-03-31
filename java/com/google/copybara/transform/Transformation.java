@@ -18,6 +18,7 @@ public interface Transformation {
 
   /**
    * Transforms the files inside {@code workdir}
+   * TODO(malcon,matvore): Think if we want to remove workdir from this interface
    *
    * @throws IOException if an error occur during the access to the files
    */

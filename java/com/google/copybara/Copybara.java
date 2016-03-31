@@ -21,7 +21,7 @@ class Copybara {
     this.workdir = workdir;
   }
 
-  void runForSourceRef(Config config, String sourceRef) throws RepoException {
+  void runForSourceRef(Config config, String sourceRef) throws RepoException, IOException {
     logger.log(Level.INFO, "Running Copybara for " + config.getName()
         + " [" + config.getSourceOfTruth() + " ref:" + sourceRef + "]");
 

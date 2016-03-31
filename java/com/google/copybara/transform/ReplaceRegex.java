@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.logging.Level;
@@ -27,10 +28,19 @@ public final class ReplaceRegex implements Transformation {
 
   private static final Logger logger = Logger.getLogger(ReplaceRegex.class.getName());
 
+  private static final PathMatcher ALL_FILES = new PathMatcher() {
+    @Override
+    public boolean matches(Path path) {
+      return true;
+    }
+  };
+
   private final Pattern regex;
   private final String replacement;
+  private final PathMatcher fileMatcher;
 
-  private ReplaceRegex(Pattern regex, String replacement) {
+  private ReplaceRegex(PathMatcher fileMatcher, Pattern regex, String replacement) {
+    this.fileMatcher = fileMatcher;
     this.regex = Preconditions.checkNotNull(regex);
     this.replacement = Preconditions.checkNotNull(replacement);
   }
@@ -42,18 +52,18 @@ public final class ReplaceRegex implements Transformation {
 
   @Override
   public void transform(Path workdir) throws IOException {
+
     Files.walkFileTree(workdir, new SimpleFileVisitor<Path>() {
       @Override
       public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        if (Files.isSymbolicLink(file)) {
-          return FileVisitResult.CONTINUE;
-        }
-        logger.log(Level.INFO, String.format("apply s/%s/%s/ to %s", regex, replacement, file));
-        String original = new String(Files.readAllBytes(file), UTF_8);
-        Matcher matcher = regex.matcher(original);
-        String replacement = matcher.replaceAll(ReplaceRegex.this.replacement);
-        if (!original.equals(replacement)) {
-          Files.write(file, replacement.getBytes());
+        if (Files.isRegularFile(file) && fileMatcher.matches(file)) {
+          logger.log(Level.INFO, String.format("apply s/%s/%s/ to %s", regex, replacement, file));
+          String original = new String(Files.readAllBytes(file), UTF_8);
+          Matcher matcher = regex.matcher(original);
+          String replacement = matcher.replaceAll(ReplaceRegex.this.replacement);
+          if (!original.equals(replacement)) {
+            Files.write(file, replacement.getBytes());
+          }
         }
         return FileVisitResult.CONTINUE;
       }
@@ -61,8 +71,14 @@ public final class ReplaceRegex implements Transformation {
   }
 
   public final static class Yaml implements Transformation.Yaml {
+
+    private String glob;
     private String regex;
     private String replacement;
+
+    public void setGlob(String glob) {
+      this.glob = glob;
+    }
 
     public void setRegex(String regex) {
       this.regex = regex;
@@ -82,7 +98,13 @@ public final class ReplaceRegex implements Transformation {
         throw new ConfigValidationException("'regex' field is not a valid regex: " + regex, e);
       }
 
-      return new ReplaceRegex(
+      PathMatcher pathMatcher = ALL_FILES;
+      if (glob != null) {
+        Path workdir = options.getOption(GeneralOptions.class).getWorkdir();
+        pathMatcher = workdir.getFileSystem().getPathMatcher("glob:" + workdir.resolve(glob));
+      }
+
+      return new ReplaceRegex(pathMatcher,
           compiledRegex, ConfigValidationException.checkNotMissing(replacement, "replacement"));
     }
   }
