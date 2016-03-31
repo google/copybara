@@ -99,7 +99,7 @@ public final class Config {
     public Config withOptions(Options options) {
       ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
       for (Transformation.Yaml yaml : this.transformations) {
-        transformations.add(yaml.build());
+        transformations.add(yaml.withOptions(options));
       }
       return new Config(this.name, this.destinationPath, this.sourceOfTruth.withOptions(options),
           transformations.build());

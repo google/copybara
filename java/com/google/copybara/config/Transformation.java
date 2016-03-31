@@ -2,7 +2,10 @@
 package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.Options;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -10,6 +13,13 @@ import java.util.Map;
  */
 public interface Transformation {
   interface Yaml {
-    Transformation build();
+    Transformation withOptions(Options options);
   }
+
+  /**
+   * Transforms the files inside {@code workdir}
+   *
+   * @throws IOException if an error occur during the access to the files
+   */
+  void transform(Path workdir) throws IOException;
 }

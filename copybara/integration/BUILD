@@ -7,8 +7,3 @@ sh_test(
             "//java/com/google/copybara:copybara",
             "//third_party/bazel/bashunit",
     ])
-
-test_suite(
-    name = "all_tests",
-    visibility = ["//visibility:public"],
-)

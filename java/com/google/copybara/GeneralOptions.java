@@ -23,9 +23,10 @@ public final class GeneralOptions {
   }
 
   public Path getWorkdir() throws IOException {
-    return workdir == null
-        ? Files.createTempDirectory("workdir")
-        : FileSystems.getDefault().getPath(workdir);
+    if (workdir == null) {
+      workdir = Files.createTempDirectory("workdir").toString();
+    }
+    return FileSystems.getDefault().getPath(workdir);
   }
 
 }

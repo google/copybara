@@ -21,7 +21,9 @@ function test_git_tracking() {
   ( cd $remote
     run_git init .
     echo "first version" > test.txt
-    run_git add test.txt
+    mkdir subdir
+    echo "first version" > subdir/test.txt
+    run_git add test.txt subdir/test.txt
     run_git commit -m "first commit"
   )
 
@@ -42,6 +44,9 @@ EOF
     --work-dir $workdir > $TEST_log 2>&1
   expect_log "Running Copybara for cbtest \[.*file://$remote.*\]"
   expect_log 'transforming:.*ReplaceRegex.*drink'
+  expect_log 'apply s/food/drink/ to .*/test.txt$'
+  expect_log 'apply s/food/drink/ to .*/subdir/test.txt$'
+  expect_not_log 'apply .* to .*/subdir$'
   expect_log 'transforming:.*ReplaceRegex.*bar'
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"

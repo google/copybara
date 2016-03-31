@@ -4,6 +4,7 @@ package com.google.copybara;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.Transformation;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,6 +29,11 @@ class Copybara {
 
     for (Transformation transformation : config.getTransformations()) {
       logger.log(Level.INFO, " transforming: " + transformation.toString());
+      try {
+        transformation.transform(workdir);
+      } catch (IOException e) {
+        throw new RepoException("Error applying transformation: " + transformation, e);
+      }
     }
   }
 }

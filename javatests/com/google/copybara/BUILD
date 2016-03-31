@@ -35,10 +35,13 @@ java_test(
     ],
 )
 
-test_suite(
-    name = "all_tests",
-    tests = [
-      ":CommandTest",
-      ":CopybaraTest",
-    ]
+java_test(
+    name = "ReplaceRegexTest",
+    size = "small",
+    srcs = ["config/ReplaceRegexTest.java"],
+    deps = [
+        "@bazel_tools//third_party:junit4",
+        "//java/com/google/copybara:copybara_lib",
+        "@truth//jar",
+    ],
 )
