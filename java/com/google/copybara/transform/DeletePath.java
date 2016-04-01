@@ -37,7 +37,7 @@ public final class DeletePath implements Transformation {
   public void transform(Path workdir) throws IOException {
     Preconditions.checkState(path.startsWith(workdir),
         "Should not happen. Already checked on YAML code.");
-    AtomicBoolean deleted = new AtomicBoolean(false);
+    final AtomicBoolean deleted = new AtomicBoolean(false);
     Files.walkFileTree(workdir, new SimpleFileVisitor<Path>() {
       @Override
       public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
