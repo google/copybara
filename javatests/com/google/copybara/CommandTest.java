@@ -7,12 +7,15 @@ import com.google.devtools.build.lib.shell.CommandException;
 import com.google.devtools.build.lib.shell.CommandResult;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.nio.charset.StandardCharsets;
 
 /**
  * Tests that we can execute commands with Bazel shell library.
  */
+@RunWith(JUnit4.class)
 public class CommandTest {
 
   @Test

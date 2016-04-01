@@ -8,14 +8,14 @@ import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 
-/**
- * Tests for GeneralOptions
- */
+@RunWith(JUnit4.class)
 public class GeneralOptionsTest {
 
   private FileSystem fs;

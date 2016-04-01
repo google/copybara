@@ -7,12 +7,15 @@ import com.google.copybara.config.Config;
 import com.beust.jcommander.internal.Nullable;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+@RunWith(JUnit4.class)
 public class CopybaraTest {
 
   @Test

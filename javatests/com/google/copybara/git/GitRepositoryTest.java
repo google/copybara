@@ -10,14 +10,14 @@ import com.google.copybara.git.GitRepository.Yaml;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Test class for {@link GitRepository}
- */
+@RunWith(JUnit4.class)
 public class GitRepositoryTest {
 
   private GitRepository repo;

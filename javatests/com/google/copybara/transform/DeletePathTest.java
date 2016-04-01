@@ -10,15 +10,15 @@ import com.google.copybara.config.ConfigValidationException;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Test for {@link DeletePath}
- */
+@RunWith(JUnit4.class)
 public class DeletePathTest {
 
   private DeletePath.Yaml yaml;
