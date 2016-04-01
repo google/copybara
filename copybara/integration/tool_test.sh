@@ -68,6 +68,36 @@ EOF
   expect_log "second version for drink and barooooo"
 }
 
+function test_git_delete() {
+  remote=$(mktemp -d)
+  repo_storage=$(mktemp -d)
+  workdir=$(mktemp -d)
+
+  ( cd $remote
+    run_git init .
+    echo "first version for food and foooooo" > test.txt
+    mkdir subdir
+    echo "first version" > subdir/test.txt
+    run_git add test.txt subdir/test.txt
+    run_git commit -m "first commit"
+  )
+
+  cat > test.copybara <<EOF
+name: "cbtest"
+sourceOfTruth: !GitRepository
+  url: "file://$remote"
+  defaultTrackingRef: "origin/master"
+transformations:
+  - !DeletePath
+    path: subdir
+EOF
+  $copybara test.copybara --git_repo_storage "$repo_storage" \
+    --work-dir $workdir > $TEST_log 2>&1
+
+  [[ -f $workdir/test.txt ]] || fail "/test.txt should not be deleted"
+  [[ ! -d $workdir/subdir ]] || fail "/subdir should be deleted"
+}
+
 function test_invalid_transformations_in_config() {
   cat > test.copybara <<EOF
 name: "cbtest-invalid-xform"

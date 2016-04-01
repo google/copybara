@@ -4,6 +4,7 @@ package com.google.copybara.config;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.transform.DeletePath;
 import com.google.copybara.transform.ReplaceRegex;
 
 import org.yaml.snakeyaml.DumperOptions;
@@ -59,7 +60,10 @@ public final class YamlParser {
    */
   public static YamlParser createParser() {
     ImmutableList<TypeDescription> types = ImmutableList.of(
+        // Transformations
+        new TypeDescription(DeletePath.Yaml.class, "!DeletePath"),
         new TypeDescription(ReplaceRegex.Yaml.class, "!ReplaceRegex"),
+        // Repositories
         new TypeDescription(GitRepository.Yaml.class, "!GitRepository"));
     return new YamlParser(types);
   }

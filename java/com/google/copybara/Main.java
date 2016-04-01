@@ -59,6 +59,7 @@ public class Main {
       } else if (generalArgs.mainArgs.size() > 2) {
         throw new CommandLineException("Expect at most two arguments.");
       } else {
+        generalOptions.init();
         String configPath = generalArgs.mainArgs.get(0);
         String sourceRef = generalArgs.mainArgs.size() > 1 ? generalArgs.mainArgs.get(1) : null;
         Config config = loadConfig(fs.getPath(configPath), new Options(options));

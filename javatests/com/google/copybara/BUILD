@@ -36,6 +36,18 @@ java_test(
 )
 
 java_test(
+    name = "DeletePathTest",
+    size = "small",
+    srcs = ["transform/DeletePathTest.java"],
+    deps = [
+        "@bazel_tools//third_party:junit4",
+        "//java/com/google/copybara:copybara_lib",
+        "@jimfs//jar",
+        "@truth//jar",
+    ],
+)
+
+java_test(
     name = "ReplaceRegexTest",
     size = "small",
     srcs = ["transform/ReplaceRegexTest.java"],
