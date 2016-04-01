@@ -35,6 +35,7 @@ java_test(
         "//third_party/bazel:shell",
         "@truth//jar",
     ],
+    tags = ["local"],
 )
 
 java_test(
