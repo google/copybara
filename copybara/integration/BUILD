@@ -8,4 +8,6 @@ sh_test(
     data = [
             "//java/com/google/copybara:copybara",
             "//third_party/bazel/bashunit",
-    ])
+    ],
+    tags = ["local"],
+)

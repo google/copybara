@@ -9,6 +9,9 @@ function run_git() {
 }
 
 function set_up() {
+   # Avoid reusing the same directory for each tests so that we don't
+   # share state between tests.
+   cd "$(mktemp -d)"
    # An early check to avoid confusing test failures
    git version || fail "Git doesn't seem to be installed. Cannot test without git command."
 }
