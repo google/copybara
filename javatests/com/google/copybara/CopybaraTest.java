@@ -3,13 +3,13 @@ package com.google.copybara;
 
 import com.google.common.truth.Truth;
 import com.google.copybara.config.Config;
-import com.google.copybara.config.Config.Yaml;
 
 import com.beust.jcommander.internal.Nullable;
 
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -39,6 +39,7 @@ public class CopybaraTest {
     config.setDestinationPath("src/copybara");
     Path workdir = Files.createTempDirectory("workdir");
     new Copybara(workdir).runForSourceRef(config.withOptions(new Options()), "some_sha1");
-    Truth.assertThat(Files.readAllLines(workdir.resolve("file.txt"))).contains("some_sha1");
+    Truth.assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
+        .contains("some_sha1");
   }
 }
