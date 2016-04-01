@@ -1,5 +1,7 @@
 # Copyright 2016 Google Inc. All Rights Reserved.
 
+licenses(["unencumbered"])  # Owned by Google. No external contributions
+
 java_test(
     name = "CopybaraTest",
     size = "small",
