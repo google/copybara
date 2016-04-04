@@ -172,5 +172,4 @@ public final class ReplaceRegexTest {
   private Path writeFile(Path path, String text) throws IOException {
     return Files.write(path, text.getBytes());
   }
-
 }

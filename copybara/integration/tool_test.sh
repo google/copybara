@@ -130,7 +130,10 @@ function test_git_delete() {
     echo "first version for food and foooooo" > test.txt
     mkdir subdir
     echo "first version" > subdir/test.txt
-    run_git add test.txt subdir/test.txt
+    mkdir subdir2
+    echo "first version" > subdir2/test.java
+    echo "first version" > subdir2/test.txt
+    run_git add -A
     run_git commit -m "first commit"
   )
 
@@ -141,13 +144,20 @@ sourceOfTruth: !GitRepository
   defaultTrackingRef: "origin/master"
 transformations:
   - !DeletePath
-    path: subdir
+    path: subdir/**
+  - !DeletePath
+    path: "**/*.java"
 EOF
   $copybara test.copybara --git_repo_storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
 
+  [[ ! -f $workdir/subdir/test.txt ]] || fail "/subdir/test.txt should be deleted"
+  [[ ! -f $workdir/subdir2/test.java ]] || fail "/subdir2/test.java should be deleted"
+
   [[ -f $workdir/test.txt ]] || fail "/test.txt should not be deleted"
-  [[ ! -d $workdir/subdir ]] || fail "/subdir should be deleted"
+  [[ -d $workdir/subdir ]] || fail "/subdir should not be deleted"
+  [[ -d $workdir/subdir2 ]] || fail "/subdir2 should not be deleted"
+  [[ -f $workdir/subdir2/test.txt ]] || fail "/subdir2/test.txt should not be deleted"
 }
 
 function test_invalid_transformations_in_config() {

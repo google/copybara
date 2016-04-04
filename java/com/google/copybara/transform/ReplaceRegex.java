@@ -7,6 +7,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.util.FileUtil;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -27,13 +28,6 @@ import java.util.regex.PatternSyntaxException;
 public final class ReplaceRegex implements Transformation {
 
   private static final Logger logger = Logger.getLogger(ReplaceRegex.class.getName());
-
-  private static final PathMatcher ALL_FILES = new PathMatcher() {
-    @Override
-    public boolean matches(Path path) {
-      return true;
-    }
-  };
 
   private final Pattern regex;
   private final String replacement;
@@ -98,7 +92,7 @@ public final class ReplaceRegex implements Transformation {
         throw new ConfigValidationException("'regex' field is not a valid regex: " + regex, e);
       }
 
-      PathMatcher pathMatcher = ALL_FILES;
+      PathMatcher pathMatcher = FileUtil.ALL_FILES_MATCHER;
       if (path != null) {
         Path workdir = options.getOption(GeneralOptions.class).getWorkdir();
         pathMatcher = workdir.getFileSystem().getPathMatcher("glob:" + workdir.resolve(path));

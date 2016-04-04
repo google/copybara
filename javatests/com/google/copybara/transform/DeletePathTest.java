@@ -6,7 +6,6 @@ import static org.junit.Assert.fail;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.config.ConfigValidationException;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -32,32 +31,80 @@ public class DeletePathTest {
     generalOptions = new GeneralOptions(fs);
     generalOptions.init();
     workdir = generalOptions.getWorkdir();
+
+    Path folder = workdir.resolve("folder");
+    Files.createDirectory(folder);
+    touchFile("folder/file.txt");
+    touchFile("folder/subfolder/file.txt");
+    touchFile("folder/subfolder/file.java");
+    touchFile("folder2/file.txt");
+    touchFile("folder2/subfolder/file.txt");
+    touchFile("folder2/subfolder/file.java");
   }
 
   @Test
-  public void invalidPath() {
-    yaml.setPath("../../../folder");
+  public void invalidPath() throws IOException {
+    String outsideFolder = "../../../file";
+    Files.createDirectories(workdir.resolve(outsideFolder));
+    yaml.setPath(outsideFolder);
     try {
-      yaml.withOptions(new Options(generalOptions));
+      Transformation delete = yaml.withOptions(new Options(generalOptions));
+      delete.transform(workdir);
       fail("should have thrown");
-    } catch (ConfigValidationException e) {
+    } catch (IllegalStateException e) {
       // Expected.
-      assertThat(e.getMessage()).contains("Only relative paths to workdir are allowed");
+      assertThat(e.getMessage()).contains("Nothing was deleted");
+    }
+    assertFilesExist(outsideFolder);
+  }
+
+  @Test
+  public void deleteDoesntDeleteDirectories() throws IOException {
+    yaml.setPath("folder");
+    Transformation delete = yaml.withOptions(new Options(generalOptions));
+    try {
+      delete.transform(workdir);
+      fail("Should fail because it could not delete anything.");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage()).contains("Nothing was deleted. Did you mean 'folder/**'?");
+    }
+    assertFilesExist("folder", "folder2");
+  }
+
+  @Test
+  public void recursiveDeleteNoFolder() throws IOException {
+    yaml.setPath("folder/**");
+    Transformation delete = yaml.withOptions(new Options(generalOptions));
+    delete.transform(workdir);
+    assertFilesExist("folder", "folder2");
+    assertFilesDontExist("folder/file.txt", "folder/subfolder/file.txt",
+        "folder/subfolder/file.java");
+  }
+
+
+  @Test
+  public void recursiveByType() throws IOException {
+    yaml.setPath("folder/**/*.java");
+    Transformation delete = yaml.withOptions(new Options(generalOptions));
+    delete.transform(workdir);
+    assertFilesExist("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt");
+    assertFilesDontExist("folder/subfolder/file.java");
+  }
+
+  private Path touchFile(String path) throws IOException {
+    Files.createDirectories(workdir.resolve(path).getParent());
+    return Files.write(workdir.resolve(path), new byte[]{});
+  }
+
+  private void assertFilesExist(String... paths) {
+    for (String path : paths) {
+      assertThat(Files.exists(workdir.resolve(path))).named(path).isTrue();
     }
   }
 
-  @Test
-  public void deletePath() throws IOException {
-    yaml.setPath("folder");
-    Path folder = workdir.resolve("folder");
-    Files.createDirectory(folder);
-    Files.write(folder.resolve("file.txt"), "hello this is dog".getBytes());
-    Files.createDirectory(folder.resolve("subfolder"));
-    Files.write(folder.resolve("subfolder/file2.txt"), "hello this is cat".getBytes());
-
-    Transformation delete = yaml.withOptions(new Options(generalOptions));
-    delete.transform(workdir);
-
-    assertThat(Files.exists(folder)).isFalse();
+  private void assertFilesDontExist(String... paths) {
+    for (String path : paths) {
+      assertThat(Files.exists(workdir.resolve(path))).named(path).isFalse();
+    }
   }
 }
