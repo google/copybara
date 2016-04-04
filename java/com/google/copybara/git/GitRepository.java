@@ -72,6 +72,7 @@ public final class GitRepository implements Repository {
    *
    * <p>Any content in the workdir is removed/overwritten.
    */
+  @Override
   public void checkoutReference(@Nullable String reference, Path workdir) throws RepoException {
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
@@ -123,7 +124,7 @@ public final class GitRepository implements Repository {
     System.arraycopy(params, 0, cmd, 1, params.length);
     try {
       CommandResult result = executeCommand(
-          new Command(cmd, ImmutableMap.of(), cwd.toFile()), verbose);
+          new Command(cmd, ImmutableMap.<String, String>of(), cwd.toFile()), verbose);
       if (result.getTerminationStatus().success()) {
         return result;
       }
