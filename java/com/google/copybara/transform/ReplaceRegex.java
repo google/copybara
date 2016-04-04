@@ -72,12 +72,12 @@ public final class ReplaceRegex implements Transformation {
 
   public final static class Yaml implements Transformation.Yaml {
 
-    private String glob;
+    private String path;
     private String regex;
     private String replacement;
 
-    public void setGlob(String glob) {
-      this.glob = glob;
+    public void setPath(String path) {
+      this.path = path;
     }
 
     public void setRegex(String regex) {
@@ -99,9 +99,9 @@ public final class ReplaceRegex implements Transformation {
       }
 
       PathMatcher pathMatcher = ALL_FILES;
-      if (glob != null) {
+      if (path != null) {
         Path workdir = options.getOption(GeneralOptions.class).getWorkdir();
-        pathMatcher = workdir.getFileSystem().getPathMatcher("glob:" + workdir.resolve(glob));
+        pathMatcher = workdir.getFileSystem().getPathMatcher("glob:" + workdir.resolve(path));
       }
 
       return new ReplaceRegex(pathMatcher,

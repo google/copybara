@@ -16,6 +16,13 @@ function set_up() {
    git version || fail "Git doesn't seem to be installed. Cannot test without git command."
 }
 
+function expect_in_file() {
+  local regex="$1"
+  local file="$2"
+  cat "$file" > $TEST_log || fail "'$file' not found"
+  expect_log "$regex" || fail "Cannot find '$regex' in '$file'"
+}
+
 function test_git_tracking() {
   remote=$(mktemp -d)
   repo_storage=$(mktemp -d)
@@ -67,8 +74,50 @@ EOF
     --work-dir $workdir > $TEST_log 2>&1
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
-  cat $workdir/test.txt > $TEST_log
-  expect_log "second version for drink and barooooo"
+  expect_in_file "second version for drink and barooooo" $workdir/test.txt
+}
+
+function prepare_glob_tree() {
+  remote=$(mktemp -d)
+  repo_storage=$(mktemp -d)
+  workdir=$(mktemp -d)
+
+  ( cd $remote
+    run_git init .
+    echo "foo" > test.txt
+    echo "foo" > test.java
+    mkdir -p folder/subfolder
+    echo "foo" > folder/test.txt
+    echo "foo" > folder/test.java
+    echo "foo" > folder/subfolder/test.txt
+    echo "foo" > folder/subfolder/test.java
+    run_git add -A
+    run_git commit -m "first commit"
+  )
+}
+
+function test_regex_with_path() {
+  prepare_glob_tree
+
+  cat > test.copybara <<EOF
+name: "cbtest"
+sourceOfTruth: !GitRepository
+  url: "file://$remote"
+  defaultTrackingRef: "origin/master"
+transformations:
+  - !ReplaceRegex
+    path :       "**.java"
+    regex:       foo
+    replacement: bar
+EOF
+  $copybara test.copybara --git_repo_storage "$repo_storage" \
+    --work-dir $workdir > $TEST_log 2>&1
+  expect_in_file "foo" $workdir/test.txt
+  expect_in_file "bar" $workdir/test.java
+  expect_in_file "foo" $workdir/folder/test.txt
+  expect_in_file "bar" $workdir/folder/test.java
+  expect_in_file "foo" $workdir/folder/subfolder/test.txt
+  expect_in_file "bar" $workdir/folder/subfolder/test.java
 }
 
 function test_git_delete() {

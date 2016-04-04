@@ -103,7 +103,7 @@ public final class ReplaceRegexTest {
   public void testWithGlob() throws IOException {
     yaml.setRegex("foo");
     yaml.setReplacement("bar");
-    yaml.setGlob("**.java");
+    yaml.setPath("**.java");
     Transformation transformation = yaml.withOptions(options);
 
     prepareGlobTree();
@@ -122,7 +122,7 @@ public final class ReplaceRegexTest {
   public void testWithGlobFolderPrefix() throws IOException {
     yaml.setRegex("foo");
     yaml.setReplacement("bar");
-    yaml.setGlob("folder/**.java");
+    yaml.setPath("folder/**.java");
     Transformation transformation = yaml.withOptions(options);
 
     prepareGlobTree();
@@ -140,7 +140,7 @@ public final class ReplaceRegexTest {
   public void testWithGlobFolderPrefixUnlikeBash() throws IOException {
     yaml.setRegex("foo");
     yaml.setReplacement("bar");
-    yaml.setGlob("folder/**/*.java");
+    yaml.setPath("folder/**/*.java");
     Transformation transformation = yaml.withOptions(options);
 
     prepareGlobTree();
