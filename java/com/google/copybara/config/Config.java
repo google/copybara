@@ -4,7 +4,7 @@ package com.google.copybara.config;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
 import com.google.copybara.Options;
-import com.google.copybara.Repository;
+import com.google.copybara.Origin;
 import com.google.copybara.transform.Transformation;
 
 import java.util.ArrayList;
@@ -18,11 +18,11 @@ import java.util.List;
 public final class Config {
 
   private final String name;
-  private final Repository origin;
+  private final Origin origin;
   private final Destination destination;
   private final List<Transformation> transformations;
 
-  private Config(String name, Destination destination, Repository origin,
+  private Config(String name, Destination destination, Origin origin,
       ImmutableList<Transformation> transformations) {
     this.name = name;
     this.destination = destination;
@@ -47,7 +47,7 @@ public final class Config {
   /**
    * The repository that represents the source of truth
    */
-  public Repository getOrigin() {
+  public Origin getOrigin() {
     return origin;
   }
 
@@ -72,7 +72,7 @@ public final class Config {
 
     private String name;
     private Destination.Yaml destination;
-    private Repository.Yaml origin;
+    private Origin.Yaml origin;
     private List<Transformation.Yaml> transformations = new ArrayList<>();
 
     public void setName(String name) {
@@ -83,7 +83,7 @@ public final class Config {
       this.destination = destination;
     }
 
-    public void setOrigin(Repository.Yaml origin) {
+    public void setOrigin(Origin.Yaml origin) {
       this.origin = origin;
     }
 

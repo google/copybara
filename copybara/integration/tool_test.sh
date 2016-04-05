@@ -39,12 +39,12 @@ function test_git_tracking() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-origin: !GitRepository
+origin: !GitOrigin
   url: "file://$remote"
   defaultTrackingRef: "origin/master"
 destination: !GitDestination
   url: "file://destination"
-  defaultTrackingRef: "origin/master"
+  pullFromRef: "origin/master"
   pushToRef: "refs/to/master"
 transformations:
   - !ReplaceRegex
@@ -106,12 +106,12 @@ function test_regex_with_path() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-origin: !GitRepository
+origin: !GitOrigin
   url: "file://$remote"
   defaultTrackingRef: "origin/master"
 destination: !GitDestination
   url: "file://$remote"
-  defaultTrackingRef: "origin/master"
+  pullFromRef: "origin/master"
   pushToRef: "refs/to/master"
 transformations:
   - !ReplaceRegex
@@ -148,12 +148,12 @@ function test_git_delete() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-origin: !GitRepository
+origin: !GitOrigin
   url: "file://$remote"
   defaultTrackingRef: "origin/master"
 destination: !GitDestination
   url: "file://$remote"
-  defaultTrackingRef: "origin/master"
+  pullFromRef: "origin/master"
   pushToRef: "refs/to/master"
 transformations:
   - !DeletePath

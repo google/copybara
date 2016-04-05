@@ -16,6 +16,7 @@ public class GitDestinationTest {
   @Test
   public void errorIfPushToRefMissing() {
     GitDestination.Yaml yaml = new GitDestination.Yaml();
+    yaml.setPullFromRef("master");
     yaml.setUrl("file:///foo");
     try {
       yaml.withOptions(new Options(new GitOptions(), new GeneralOptions()));

@@ -24,10 +24,10 @@ public class CopybaraTest {
   public void doNothing() throws IOException, RepoException {
     Config.Yaml config = new Config.Yaml();
     config.setName("name");
-    config.setOrigin(new Repository.Yaml() {
+    config.setOrigin(new Origin.Yaml() {
       @Override
-      public Repository withOptions(Options options) {
-        return new Repository() {
+      public Origin withOptions(Options options) {
+        return new Origin() {
           @Override
           public void checkoutReference(@Nullable String reference, Path workdir)
               throws RepoException {
@@ -43,7 +43,8 @@ public class CopybaraTest {
     });
     GitDestination.Yaml destination = new GitDestination.Yaml();
     destination.setUrl("file:///repos/foo");
-    destination.setPushToRef("refs/to/master");
+    destination.setPullFromRef("master");
+    destination.setPushToRef("refs/for/master");
     config.setDestination(destination);
     Path workdir = Files.createTempDirectory("workdir");
     Options options = new Options(new GitOptions(), new GeneralOptions());

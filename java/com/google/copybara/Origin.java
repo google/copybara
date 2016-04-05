@@ -5,13 +5,13 @@ import com.beust.jcommander.internal.Nullable;
 import java.nio.file.Path;
 
 /**
- * A {@code Repository} represents a source control repository
+ * A {@code Origin} represents a source control repository from which source is copied.
  */
-public interface Repository {
+public interface Origin {
 
   interface Yaml {
 
-    Repository withOptions(Options options);
+    Origin withOptions(Options options);
   }
 
   /**

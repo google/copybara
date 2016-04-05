@@ -42,10 +42,10 @@ java_test(
 )
 
 java_test(
-    name = "GitRepositoryTest",
+    name = "GitOriginTest",
     size = "small",
-    srcs = ["git/GitRepositoryTest.java"],
-    test_class = "com.google.copybara.git.GitRepositoryTest",
+    srcs = ["git/GitOriginTest.java"],
+    test_class = "com.google.copybara.git.GitOriginTest",
     deps = [
         "@bazel_tools//third_party:junit4",
         "//java/com/google/copybara:copybara_lib",

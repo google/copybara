@@ -19,16 +19,19 @@ public final class GitDestination implements Destination {
   private static final Logger logger = Logger.getLogger(GitDestination.class.getName());
 
   private final GitRepository repository;
+  private final String pullFromRef;
   private final String pushToRef;
 
-  private GitDestination(GitRepository repository, String pushToRef) {
+  private GitDestination(GitRepository repository, String pullFromRef, String pushToRef) {
     this.repository = Preconditions.checkNotNull(repository);
+    this.pullFromRef = Preconditions.checkNotNull(pullFromRef);
     this.pushToRef = Preconditions.checkNotNull(pushToRef);
   }
 
   @Override
   public String toString() {
-    return String.format("{repository: %s, pushToRef: %s}", repository, pushToRef);
+    return String.format("{repository: %s, pullFromRef: %s, pushToRef: %s}",
+        repository, pullFromRef, pushToRef);
   }
 
   @Override
@@ -39,21 +42,22 @@ public final class GitDestination implements Destination {
   }
 
   public static final class Yaml implements Destination.Yaml {
-    private GitRepository.Yaml repositoryYaml = new GitRepository.Yaml();
+    private String url;
+    private String pullFromRef;
     private String pushToRef;
 
     /**
      * Indicates the URL to push to as well as the URL from which to get the parent commit.
      */
     public void setUrl(String url) {
-      repositoryYaml.setUrl(url);
+      this.url = url;
     }
 
     /**
      * Indicates the ref from which to get the parent commit.
      */
-    public void setDefaultTrackingRef(String defaultTrackingRef) {
-      repositoryYaml.setDefaultTrackingRef(defaultTrackingRef);
+    public void setPullFromRef(String pullFromRef) {
+      this.pullFromRef = pullFromRef;
     }
 
     /**
@@ -67,8 +71,11 @@ public final class GitDestination implements Destination {
 
     @Override
     public GitDestination withOptions(Options options) {
+      ConfigValidationException.checkNotMissing(url, "url");
+
       return new GitDestination(
-          repositoryYaml.withOptions(options),
+          GitRepository.withRepoUrl(url, options),
+          ConfigValidationException.checkNotMissing(pullFromRef, "pullFromRef"),
           ConfigValidationException.checkNotMissing(pushToRef, "pushToRef"));
     }
   }
