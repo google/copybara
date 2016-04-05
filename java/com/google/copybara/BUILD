@@ -5,27 +5,30 @@ licenses(["unencumbered"])  # Owned by Google. No external contributions
 java_binary(
     name = "copybara",
     srcs = ["Main.java"],
-    main_class= "com.google.copybara.Main",
+    main_class = "com.google.copybara.Main",
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
-        ":copybara_lib",
         "@guava//jar",
         "@jcommander//jar",
+        ":copybara_lib",
     ],
-    visibility = [
-      "//copybara/integration:__pkg__",
-    ]
 )
 
 java_library(
     name = "copybara_lib",
-    srcs = glob(["**/*.java"], exclude = ["Main.java"]),
-    deps = [
-       "@guava//jar",
-       "@jcommander//jar",
-       "@snakeyaml//jar",
-       "//third_party/bazel:shell",
-    ],
+    srcs = glob(
+        ["**/*.java"],
+        exclude = ["Main.java"],
+    ),
     visibility = [
-      "//visibility:public",
-    ]
+        "//visibility:public",
+    ],
+    deps = [
+        "@guava//jar",
+        "@jcommander//jar",
+        "@snakeyaml//jar",
+        "//third_party/bazel:shell",
+    ],
 )

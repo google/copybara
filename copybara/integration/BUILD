@@ -6,8 +6,8 @@ sh_test(
     name = "tool_test",
     srcs = ["tool_test.sh"],
     data = [
-            "//java/com/google/copybara:copybara",
-            "//third_party/bazel/bashunit",
+        "//java/com/google/copybara",
+        "//third_party/bazel/bashunit",
     ],
     tags = ["local"],
 )
