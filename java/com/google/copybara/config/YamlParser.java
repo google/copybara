@@ -3,6 +3,7 @@ package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
+import com.google.copybara.git.GitDestination;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.transform.DeletePath;
 import com.google.copybara.transform.ReplaceRegex;
@@ -64,7 +65,11 @@ public final class YamlParser {
         new TypeDescription(DeletePath.Yaml.class, "!DeletePath"),
         new TypeDescription(ReplaceRegex.Yaml.class, "!ReplaceRegex"),
         // Repositories
-        new TypeDescription(GitRepository.Yaml.class, "!GitRepository"));
+        // TODO(matvore): Put an object called GitOrigin in YAML rather than GitRepository so it is
+        // symmetric with GitDestination.
+        new TypeDescription(GitRepository.Yaml.class, "!GitRepository"),
+        // Destinations
+        new TypeDescription(GitDestination.Yaml.class, "!GitDestination"));
     return new YamlParser(types);
   }
 }

@@ -39,9 +39,13 @@ function test_git_tracking() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-sourceOfTruth: !GitRepository
+origin: !GitRepository
   url: "file://$remote"
   defaultTrackingRef: "origin/master"
+destination: !GitDestination
+  url: "file://destination"
+  defaultTrackingRef: "origin/master"
+  pushToRef: "refs/to/master"
 transformations:
   - !ReplaceRegex
     regex:       food
@@ -58,6 +62,7 @@ EOF
   expect_log 'apply s/food/drink/ to .*/subdir/test.txt$'
   expect_not_log 'apply .* to .*/subdir$'
   expect_log 'transforming:.*ReplaceRegex.*bar'
+  expect_log 'Exporting .* to: .*file://destination'
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   cat $workdir/test.txt > $TEST_log
@@ -101,9 +106,13 @@ function test_regex_with_path() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-sourceOfTruth: !GitRepository
+origin: !GitRepository
   url: "file://$remote"
   defaultTrackingRef: "origin/master"
+destination: !GitDestination
+  url: "file://$remote"
+  defaultTrackingRef: "origin/master"
+  pushToRef: "refs/to/master"
 transformations:
   - !ReplaceRegex
     path :       "**.java"
@@ -139,9 +148,13 @@ function test_git_delete() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-sourceOfTruth: !GitRepository
+origin: !GitRepository
   url: "file://$remote"
   defaultTrackingRef: "origin/master"
+destination: !GitDestination
+  url: "file://$remote"
+  defaultTrackingRef: "origin/master"
+  pushToRef: "refs/to/master"
 transformations:
   - !DeletePath
     path: subdir/**

@@ -2,6 +2,7 @@
 package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Destination;
 import com.google.copybara.Options;
 import com.google.copybara.Repository;
 import com.google.copybara.transform.Transformation;
@@ -17,15 +18,15 @@ import java.util.List;
 public final class Config {
 
   private final String name;
-  private final Repository sourceOfTruth;
-  private final String destinationPath;
+  private final Repository origin;
+  private final Destination destination;
   private final List<Transformation> transformations;
 
-  private Config(String name, String destinationPath, Repository sourceOfTruth,
+  private Config(String name, Destination destination, Repository origin,
       ImmutableList<Transformation> transformations) {
     this.name = name;
-    this.sourceOfTruth = sourceOfTruth;
-    this.destinationPath = destinationPath;
+    this.destination = destination;
+    this.origin = origin;
     this.transformations = transformations;
   }
 
@@ -37,14 +38,17 @@ public final class Config {
   }
 
   /**
-   * The repository that represents the source of truth
+   * The destination repository to copy to.
    */
-  public Repository getSourceOfTruth() {
-    return sourceOfTruth;
+  public Destination getDestination() {
+    return destination;
   }
 
-  public String getDestinationPath() {
-    return destinationPath;
+  /**
+   * The repository that represents the source of truth
+   */
+  public Repository getOrigin() {
+    return origin;
   }
 
   public List<Transformation> getTransformations() {
@@ -55,8 +59,8 @@ public final class Config {
   public String toString() {
     return "Config{" +
         "name='" + name + '\'' +
-        ", sourceOfTruth=" + sourceOfTruth +
-        ", destinationPath='" + destinationPath + '\'' +
+        ", destination=" + destination +
+        ", origin=" + origin +
         ", transformations=" + transformations +
         '}';
   }
@@ -67,21 +71,20 @@ public final class Config {
   public static final class Yaml {
 
     private String name;
-    private String destinationPath;
-    private Repository.Yaml sourceOfTruth;
+    private Destination.Yaml destination;
+    private Repository.Yaml origin;
     private List<Transformation.Yaml> transformations = new ArrayList<>();
 
     public void setName(String name) {
       this.name = name;
     }
 
-    public void setDestinationPath(String destinationPath) {
-      this.destinationPath = destinationPath;
+    public void setDestination(Destination.Yaml destination) {
+      this.destination = destination;
     }
 
-    public void setSourceOfTruth(Repository.Yaml sourceOfTruth) {
-
-      this.sourceOfTruth = sourceOfTruth;
+    public void setOrigin(Repository.Yaml origin) {
+      this.origin = origin;
     }
 
     public void setTransformations(List<? extends Transformation.Yaml> transformations) {
@@ -98,12 +101,15 @@ public final class Config {
     }
 
     public Config withOptions(Options options) {
+      ConfigValidationException.checkNotMissing(origin, "origin");
+      ConfigValidationException.checkNotMissing(destination, "destination");
+
       ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
       for (Transformation.Yaml yaml : this.transformations) {
         transformations.add(yaml.withOptions(options));
       }
-      return new Config(this.name, this.destinationPath, this.sourceOfTruth.withOptions(options),
-          transformations.build());
+      return new Config(this.name, this.destination.withOptions(options),
+          this.origin.withOptions(options), transformations.build());
     }
   }
 }

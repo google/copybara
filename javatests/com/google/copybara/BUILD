@@ -28,6 +28,20 @@ java_test(
 )
 
 java_test(
+    name = "GitDestinationTest",
+    size = "small",
+    srcs = ["git/GitDestinationTest.java"],
+    test_class = "com.google.copybara.git.GitDestinationTest",
+    deps = [
+        "@bazel_tools//third_party:junit4",
+        "//java/com/google/copybara:copybara_lib",
+        "//third_party/bazel:shell",
+        "@truth//jar",
+    ],
+    tags = ["local"],
+)
+
+java_test(
     name = "GitRepositoryTest",
     size = "small",
     srcs = ["git/GitRepositoryTest.java"],

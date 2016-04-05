@@ -3,6 +3,8 @@ package com.google.copybara;
 
 import com.google.common.truth.Truth;
 import com.google.copybara.config.Config;
+import com.google.copybara.git.GitDestination;
+import com.google.copybara.git.GitOptions;
 
 import com.beust.jcommander.internal.Nullable;
 
@@ -22,7 +24,7 @@ public class CopybaraTest {
   public void doNothing() throws IOException, RepoException {
     Config.Yaml config = new Config.Yaml();
     config.setName("name");
-    config.setSourceOfTruth(new Repository.Yaml() {
+    config.setOrigin(new Repository.Yaml() {
       @Override
       public Repository withOptions(Options options) {
         return new Repository() {
@@ -39,9 +41,13 @@ public class CopybaraTest {
         };
       }
     });
-    config.setDestinationPath("src/copybara");
+    GitDestination.Yaml destination = new GitDestination.Yaml();
+    destination.setUrl("file:///repos/foo");
+    destination.setPushToRef("refs/to/master");
+    config.setDestination(destination);
     Path workdir = Files.createTempDirectory("workdir");
-    new Copybara(workdir).runForSourceRef(config.withOptions(new Options()), "some_sha1");
+    Options options = new Options(new GitOptions(), new GeneralOptions());
+    new Copybara(workdir).runForSourceRef(config.withOptions(options), "some_sha1");
     Truth.assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
         .contains("some_sha1");
   }

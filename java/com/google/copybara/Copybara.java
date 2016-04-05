@@ -23,9 +23,9 @@ class Copybara {
 
   void runForSourceRef(Config config, String sourceRef) throws RepoException, IOException {
     logger.log(Level.INFO, "Running Copybara for " + config.getName()
-        + " [" + config.getSourceOfTruth() + " ref:" + sourceRef + "]");
+        + " [" + config.getOrigin() + " ref:" + sourceRef + "]");
 
-    config.getSourceOfTruth().checkoutReference(sourceRef, workdir);
+    config.getOrigin().checkoutReference(sourceRef, workdir);
 
     for (Transformation transformation : config.getTransformations()) {
       logger.log(Level.INFO, " transforming: " + transformation.toString());
@@ -35,5 +35,7 @@ class Copybara {
         throw new RepoException("Error applying transformation: " + transformation, e);
       }
     }
+
+    config.getDestination().process(workdir);
   }
 }
