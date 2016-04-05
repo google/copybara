@@ -47,13 +47,18 @@ public final class GitRepository {
    */
   private final String repoUrl;
 
-  GitRepository(Path baseReposDir, String gitExecPath, String repoUrl, boolean verbose) {
+  private GitRepository(Path baseReposDir, String gitExecPath, String repoUrl, boolean verbose) {
     this.baseReposDir = Preconditions.checkNotNull(baseReposDir);
     this.gitExecPath = Preconditions.checkNotNull(gitExecPath);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.verbose = verbose;
   }
 
+  /**
+   * Constructs a new instance which represents a clone of some repository.
+   *
+   * @param repoUrl the URL of the repository which this one is a clone of
+   */
   public static GitRepository withRepoUrl(String repoUrl, Options options) {
     GitOptions gitConfig = options.getOption(GitOptions.class);
 
@@ -106,7 +111,12 @@ public final class GitRepository {
     }
   }
 
-  //TODO(malcon): Move this method and gitExecPath to its own class and inject it.
+  /**
+   * Invokes {@code git} in the directory given by {@code cwd} against this repository.
+   *
+   * @param cwd the directory in which to execute the command
+   * @param params the argv to pass to Git, excluding the initial {@code git}
+   */
   public CommandResult git(Path cwd, String... params) throws RepoException {
     String[] cmd = new String[params.length + 1];
     cmd[0] = gitExecPath;
