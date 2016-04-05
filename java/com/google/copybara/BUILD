@@ -26,6 +26,6 @@ java_library(
        "//third_party/bazel:shell",
     ],
     visibility = [
-      "//javatests/com/google/copybara:__pkg__",
+      "//visibility:public",
     ]
 )
