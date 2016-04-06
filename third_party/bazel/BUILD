@@ -2,8 +2,7 @@ licenses(["notice"])  # Apache 2.0
 
 package(
     default_visibility = [
-        "//java/com/google/copybara:__pkg__",
-        "//javatests/com/google/copybara:__pkg__",
+        "//visibility:public",
     ],
 )
 

@@ -8,10 +8,10 @@ java_test(
     srcs = ["CopybaraTest.java"],
     test_class = "com.google.copybara.CopybaraTest",
     deps = [
-        "@bazel_tools//third_party:junit4",
-        "@jcommander//jar",
-        "@truth//jar",
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:jcommander",
+        "//third_party:junit4",
+        "//third_party:truth",
     ],
 )
 
@@ -21,9 +21,9 @@ java_test(
     srcs = ["CommandTest.java"],
     test_class = "com.google.copybara.CommandTest",
     deps = [
-        "@bazel_tools//third_party:junit4",
-        "@truth//jar",
-        "//third_party/bazel:shell",
+        "//third_party:junit4",
+        "//third_party:shell",
+        "//third_party:truth",
     ],
 )
 
@@ -34,10 +34,10 @@ java_test(
     tags = ["local"],
     test_class = "com.google.copybara.git.GitDestinationTest",
     deps = [
-        "@bazel_tools//third_party:junit4",
-        "@truth//jar",
         "//java/com/google/copybara:copybara_lib",
-        "//third_party/bazel:shell",
+        "//third_party:junit4",
+        "//third_party:shell",
+        "//third_party:truth",
     ],
 )
 
@@ -48,10 +48,10 @@ java_test(
     tags = ["local"],
     test_class = "com.google.copybara.git.GitOriginTest",
     deps = [
-        "@bazel_tools//third_party:junit4",
-        "@truth//jar",
         "//java/com/google/copybara:copybara_lib",
-        "//third_party/bazel:shell",
+        "//third_party:junit4",
+        "//third_party:shell",
+        "//third_party:truth",
     ],
 )
 
@@ -61,10 +61,10 @@ java_test(
     srcs = ["transform/DeletePathTest.java"],
     test_class = "com.google.copybara.transform.DeletePathTest",
     deps = [
-        "@bazel_tools//third_party:junit4",
-        "@jimfs//jar",
-        "@truth//jar",
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:jimfs",
+        "//third_party:junit4",
+        "//third_party:truth",
     ],
 )
 
@@ -74,9 +74,9 @@ java_test(
     srcs = ["transform/ReplaceRegexTest.java"],
     test_class = "com.google.copybara.transform.ReplaceRegexTest",
     deps = [
-        "@bazel_tools//third_party:junit4",
-        "@jimfs//jar",
-        "@truth//jar",
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:jimfs",
+        "//third_party:junit4",
+        "//third_party:truth",
     ],
 )

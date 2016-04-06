@@ -10,9 +10,9 @@ java_binary(
         "//visibility:public",
     ],
     deps = [
-        "@guava//jar",
-        "@jcommander//jar",
         ":copybara_lib",
+        "//third_party:guava",
+        "//third_party:jcommander",
     ],
 )
 
@@ -26,9 +26,9 @@ java_library(
         "//visibility:public",
     ],
     deps = [
-        "@guava//jar",
-        "@jcommander//jar",
-        "@snakeyaml//jar",
+        "//third_party:guava",
+        "//third_party:jcommander",
+        "//third_party:snakeyaml",
         "//third_party/bazel:shell",
     ],
 )
