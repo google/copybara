@@ -54,7 +54,7 @@ transformations:
     regex:       f(o+)o
     replacement: bar\$1
 EOF
-  $copybara test.copybara --git_repo_storage "$repo_storage" \
+  $copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
   expect_log "Running Copybara for cbtest \[.*file://$remote.*\]"
   expect_log 'transforming:.*ReplaceRegex.*drink'
@@ -75,7 +75,7 @@ EOF
     run_git commit -m "second commit"
   )
 
-  $copybara test.copybara --git_repo_storage "$repo_storage" \
+  $copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
@@ -119,7 +119,7 @@ transformations:
     regex:       foo
     replacement: bar
 EOF
-  $copybara test.copybara --git_repo_storage "$repo_storage" \
+  $copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
   expect_in_file "foo" $workdir/test.txt
   expect_in_file "bar" $workdir/test.java
@@ -161,7 +161,7 @@ transformations:
   - !DeletePath
     path: "**/*.java"
 EOF
-  $copybara test.copybara --git_repo_storage "$repo_storage" \
+  $copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
 
   [[ ! -f $workdir/subdir/test.txt ]] || fail "/subdir/test.txt should be deleted"

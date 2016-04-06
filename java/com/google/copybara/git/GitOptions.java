@@ -9,10 +9,10 @@ import com.beust.jcommander.Parameters;
 @Parameters(separators = "=")
 public final class GitOptions {
 
-  @Parameter(names = "--git_executable", description = "Location of the git executable")
+  @Parameter(names = "--git-executable", description = "Location of the git executable")
   String gitExecutable = "git";
 
-  @Parameter(names = "--git_repo_storage",
+  @Parameter(names = "--git-repo-storage",
       description = "Location of the storage path for git repositories")
   String gitRepoStorage = System.getProperty("user.home") + "/.copybara/repos";
 }
