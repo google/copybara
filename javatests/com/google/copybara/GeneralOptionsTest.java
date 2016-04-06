@@ -1,13 +1,13 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.*;
 
 import com.google.common.jimfs.Jimfs;
-import com.google.common.truth.Truth;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -18,6 +18,9 @@ import java.nio.file.Files;
 @RunWith(JUnit4.class)
 public class GeneralOptionsTest {
 
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
+
   private FileSystem fs;
   private GeneralOptions generalOptions;
 
@@ -26,6 +29,7 @@ public class GeneralOptionsTest {
     fs = Jimfs.newFileSystem();
     generalOptions = new GeneralOptions(fs);
   }
+
   @Test
   public void getWorkdirNormalized() throws Exception {
     generalOptions.workdir = "/some/../path/..";
@@ -38,11 +42,8 @@ public class GeneralOptionsTest {
     Files.write(fs.getPath("file"), "hello".getBytes());
 
     generalOptions.workdir = "file";
-    try {
-      generalOptions.init();
-      fail("Should fail because file is not a directory");
-    } catch (IOException e) {
-      assertThat(e).hasMessage("'file' exists and is not a directory");
-    }
+    thrown.expect(IOException.class);
+    thrown.expectMessage("'file' exists and is not a directory");
+    generalOptions.init();
   }
 }

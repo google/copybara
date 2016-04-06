@@ -17,12 +17,6 @@ import java.util.regex.Pattern;
  */
 public final class GitOrigin implements Origin {
 
-  private static final Pattern RefNotFoundError =
-      Pattern.compile("pathspec '(.+)' did not match any file");
-
-  private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
-      "-_", /*plusForSpace=*/ true);
-
   private final GitRepository repository;
 
   /**

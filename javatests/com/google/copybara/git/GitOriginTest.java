@@ -1,14 +1,15 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
 
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -22,6 +23,9 @@ public class GitOriginTest {
   private GitOrigin origin;
   private Path remote;
   private Path workdir;
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException, RepoException {
@@ -92,11 +96,8 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutLocalBranch() throws IOException, RepoException {
-    try {
-      origin.checkoutReference("master", workdir);
-      fail("Trying to checkout local (non-existent) refs should fail");
-    } catch (RepoException e) {
-      assertThat(e.getMessage()).contains("Ref 'master' does not exist");
-    }
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("Ref 'master' does not exist");
+    origin.checkoutReference("master", workdir);
   }
 }
