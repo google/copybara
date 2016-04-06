@@ -43,7 +43,7 @@ public class FolderDestination implements Destination {
       // workdir after the destination is executed.
       CommandUtil.executeCommand(
           new Command(new String[]{"/bin/sh", "-cxv",
-              "mv * " + ShellUtils.shellEscape(localFolder.toString())},
+              "cp -aR * " + ShellUtils.shellEscape(localFolder.toString())},
               ImmutableMap.<String, String>of(), workdir.toFile()), verbose);
     } catch (CommandException e) {
       throw new RepoException("Cannot copy contents of " + workdir + " to " + localFolder, e);
