@@ -57,11 +57,9 @@ public final class DeletePath implements Transformation {
 
     @Override
     public Transformation withOptions(Options options) {
-      Path workdir = options.getOption(GeneralOptions.class).getWorkdir();
-
-      PathMatcher pathMatcher = workdir.getFileSystem().getPathMatcher(
-          "glob:" + workdir.resolve(ConfigValidationException.checkNotMissing(this.path, "path")));
-
+      PathMatcher pathMatcher = FileUtil.relativeGlob(
+          options.getOption(GeneralOptions.class).getWorkdir(),
+          ConfigValidationException.checkNotMissing(this.path, "path"));
       return new DeletePath(pathMatcher, path);
     }
   }

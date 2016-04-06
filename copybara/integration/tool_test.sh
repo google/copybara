@@ -173,6 +173,46 @@ EOF
   [[ -f $workdir/subdir2/test.txt ]] || fail "/subdir2/test.txt should not be deleted"
 }
 
+function test_local_dir_destination() {
+  remote=$(mktemp -d)
+  repo_storage=$(mktemp -d)
+  workdir=$(mktemp -d)
+
+  ( cd $remote
+    run_git init .
+    echo "first version for food and foooooo" > test.txt
+    echo "first version" > test.txt
+    run_git add test.txt
+    run_git commit -m "first commit"
+  )
+  mkdir destination
+
+  cat > destination/test.copybara <<EOF
+name: "cbtest"
+origin: !GitOrigin
+  url: "file://$remote"
+  defaultTrackingRef: "origin/master"
+destination: !FolderDestination
+  excludePathsForDeletion:
+    - "test.copybara"
+    - "**.keep"
+EOF
+
+  touch destination/keepme.keep
+  mkdir -p destination/folder
+  touch destination/folder/keepme.keep
+  touch destination/dontkeep.txt
+
+  $copybara destination/test.copybara --git-repo-storage "$repo_storage" \
+    --work-dir $workdir --folder-dir destination> $TEST_log 2>&1
+
+  [[ -f destination/test.txt ]] || fail "test.txt should exist"
+  [[ -f destination/test.copybara ]] || fail "test.copybara should exist"
+  [[ -f destination/keepme.keep ]] || fail "keepme.keep should exist"
+  [[ -f destination/folder/keepme.keep ]] || fail "folder/keepme.keep should exist"
+  [[ ! -f destination/dontkeep.txt ]] || fail "dontkeep.txt should be deleted"
+}
+
 function test_invalid_transformations_in_config() {
   cat > test.copybara <<EOF
 name: "cbtest-invalid-xform"

@@ -4,6 +4,7 @@ package com.google.copybara;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.YamlParser;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.util.ExitCode;
 
 import com.beust.jcommander.JCommander;
@@ -14,7 +15,6 @@ import com.beust.jcommander.Parameters;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -43,8 +43,9 @@ public class Main {
     Arguments generalArgs = new Arguments();
     GeneralOptions generalOptions = new GeneralOptions();
     GitOptions gitOptions = new GitOptions();
+    LocalDestinationOptions localDestinationOptions = new LocalDestinationOptions();
 
-    Object[] options = {generalArgs, generalOptions, gitOptions};
+    Object[] options = {generalArgs, generalOptions, gitOptions, localDestinationOptions};
     JCommander jcommander = new JCommander(options);
     jcommander.setProgramName("copybara");
 

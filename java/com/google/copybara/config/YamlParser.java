@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
 import com.google.copybara.git.GitDestination;
 import com.google.copybara.git.GitOrigin;
+import com.google.copybara.localdir.FolderDestination;
 import com.google.copybara.transform.DeletePath;
 import com.google.copybara.transform.ReplaceRegex;
 
@@ -67,7 +68,8 @@ public final class YamlParser {
         // Origins
         new TypeDescription(GitOrigin.Yaml.class, "!GitOrigin"),
         // Destinations
-        new TypeDescription(GitDestination.Yaml.class, "!GitDestination"));
+        new TypeDescription(GitDestination.Yaml.class, "!GitDestination"),
+        new TypeDescription(FolderDestination.Yaml.class, "!FolderDestination"));
     return new YamlParser(types);
   }
 }
