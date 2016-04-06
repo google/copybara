@@ -32,24 +32,26 @@ public final class GitRepository {
       "-_", /*plusForSpace=*/ true);
 
   /**
-   * Base directory where all the repositories will be stored. Note that this is only for storing
-   * the repositories, not the work trees.
-   */
-  private final Path baseReposDir;
-  /**
    * Git tool path. A String on pourpose so that we can use the 'git' on PATH.
    */
   private final String gitExecPath;
 
-  private final boolean verbose;
+  /**
+   * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
+   * flag.
+   */
+  private final Path gitDir;
+
   /**
    * Url of the repository
    */
   private final String repoUrl;
 
-  private GitRepository(Path baseReposDir, String gitExecPath, String repoUrl, boolean verbose) {
-    this.baseReposDir = Preconditions.checkNotNull(baseReposDir);
+  private final boolean verbose;
+
+  private GitRepository(String gitExecPath, Path gitDir, String repoUrl, boolean verbose) {
     this.gitExecPath = Preconditions.checkNotNull(gitExecPath);
+    this.gitDir = Preconditions.checkNotNull(gitDir);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.verbose = verbose;
   }
@@ -62,9 +64,12 @@ public final class GitRepository {
   public static GitRepository withRepoUrl(String repoUrl, Options options) {
     GitOptions gitConfig = options.getOption(GitOptions.class);
 
+    Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
+    Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(repoUrl));
+
     return new GitRepository(
-        FileSystems.getDefault().getPath(gitConfig.gitRepoStorage),
         gitConfig.gitExecutable,
+        gitDir,
         repoUrl,
         options.getOption(GeneralOptions.class).isVerbose());
   }
@@ -79,29 +84,27 @@ public final class GitRepository {
    * <p>Any content in the workdir is removed/overwritten.
    */
   public void checkoutReference(String ref, Path workdir) throws RepoException {
-    String dirName = PERCENT_ESCAPER.escape(repoUrl);
-    try {
-      Files.createDirectories(baseReposDir);
-    } catch (IOException e) {
-      throw new RepoException(
-          "Cannot create repository storage '" + baseReposDir + "': " + e.getMessage(), e);
-    }
-    Path repoDir = baseReposDir.resolve(dirName);
-    if (!Files.exists(repoDir)) {
-      git(baseReposDir, "init", "--bare", repoDir.toString());
-      git(repoDir, "remote", "add", "origin", repoUrl);
+    if (!Files.exists(gitDir)) {
+      try {
+        Files.createDirectories(gitDir);
+      } catch (IOException e) {
+        throw new RepoException("Cannot create git directory '" + gitDir + "': " + e.getMessage(), e);
+      }
+
+      git(gitDir, "init", "--bare");
+      git(gitDir, "remote", "add", "origin", repoUrl);
     }
 
-    git(repoDir, "fetch", "-f", "origin");
+    git(gitDir, "fetch", "-f", "origin");
     // We don't allow creating local branches tracking remotes. This doesn't work without
     // merging.
-    checkRefExists(repoDir, ref);
-    git(workdir, "--git-dir=" + repoDir, "--work-tree=" + workdir, "checkout", "-f", ref);
+    checkRefExists(ref);
+    git(workdir, "--git-dir=" + gitDir, "--work-tree=" + workdir, "checkout", "-f", ref);
   }
 
-  private void checkRefExists(Path repoDir, String ref) throws RepoException {
+  private void checkRefExists(String ref) throws RepoException {
     try {
-      git(repoDir, "rev-parse", "--verify", ref);
+      git(gitDir, "rev-parse", "--verify", ref);
     } catch (RepoException e) {
       if (e.getMessage().contains("Needed a single revision")) {
         throw new RepoException("Ref '" + ref + "' does not exist."
@@ -143,8 +146,8 @@ public final class GitRepository {
   @Override
   public String toString() {
     return "GitRepository{" +
-        "baseReposDir=" + baseReposDir +
-        ", gitExecPath='" + gitExecPath + '\'' +
+        "gitExecPath='" + gitExecPath + '\'' +
+        ", gitDir='" + gitDir + '\'' +
         ", verbose=" + verbose +
         ", repoUrl='" + repoUrl + '\'' +
         '}';
