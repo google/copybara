@@ -1,11 +1,13 @@
 package com.google.copybara.localdir;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
+import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.shell.Command;
@@ -14,6 +16,7 @@ import com.google.devtools.build.lib.shell.ShellUtils;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.List;
@@ -36,6 +39,7 @@ public class FolderDestination implements Destination {
 
   @Override
   public void process(Path workdir) throws RepoException, IOException {
+    Files.createDirectories(localFolder);
     FileUtil.deleteFilesRecursively(localFolder, FileUtil.notPathMatcher(excludeFromDeletion));
     try {
       // Life is too short to implement a recursive copy in Java... Let's wait until
@@ -64,7 +68,12 @@ public class FolderDestination implements Destination {
       GeneralOptions generalOptions = options.getOption(GeneralOptions.class);
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getWorkdir().getFileSystem();
-      Path localFolder = fs.getPath(options.getOption(LocalDestinationOptions.class).localFolder);
+      String localFolderOption = options.getOption(LocalDestinationOptions.class).localFolder;
+      if (Strings.isNullOrEmpty(localFolderOption)) {
+        throw new ConfigValidationException(
+            "--folder-dir is required with FolderDestination destination");
+      }
+      Path localFolder = fs.getPath(localFolderOption);
       if (!localFolder.isAbsolute()) {
         localFolder = fs.getPath(System.getProperty("user.dir")).resolve(localFolder);
       }

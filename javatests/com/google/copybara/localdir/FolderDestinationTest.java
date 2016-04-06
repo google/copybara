@@ -6,12 +6,15 @@ import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
+import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.localdir.FolderDestination.Yaml;
 
 import com.beust.jcommander.internal.Lists;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,6 +25,9 @@ public class FolderDestinationTest {
   private LocalDestinationOptions localOptions;
   private Yaml yaml;
   private GeneralOptions generalOptions;
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException, RepoException {
@@ -54,6 +60,13 @@ public class FolderDestinationTest {
     assertFilesExist(localFolder, "one", "two", "root_file",
         "one/file.java", "two/file.java", "test.txt", "dir/file.txt");
     assertFilesDontExist(localFolder, "root_file2", "one/file.txt");
+  }
+
+  @Test
+  public void testFolderDirRequired() throws IOException, RepoException {
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("--folder-dir is required");
+    yaml.withOptions(new Options(localOptions, generalOptions));
   }
 
   private void assertFilesExist(Path base, String... paths) {
