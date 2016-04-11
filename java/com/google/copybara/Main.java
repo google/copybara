@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.YamlParser;
 import com.google.copybara.git.GitOptions;
@@ -28,7 +29,7 @@ import java.util.logging.Logger;
 public class Main {
 
   @Parameters(separators = "=")
-  private static final class Arguments {
+  private static final class Arguments implements Option {
 
     @Parameter(description = "CONFIG_PATH [SOURCE_REF]")
     List<String> mainArgs = new ArrayList<>();
@@ -45,7 +46,8 @@ public class Main {
     GitOptions gitOptions = new GitOptions();
     LocalDestinationOptions localDestinationOptions = new LocalDestinationOptions();
 
-    Object[] options = {generalArgs, generalOptions, gitOptions, localDestinationOptions};
+    ImmutableList<Option> options =
+        ImmutableList.of(generalArgs, generalOptions, gitOptions, localDestinationOptions);
     JCommander jcommander = new JCommander(options);
     jcommander.setProgramName("copybara");
 

@@ -15,7 +15,7 @@ import java.nio.file.Path;
 /**
  * General options available for all the program classes.
  */
-public final class GeneralOptions {
+public final class GeneralOptions implements Option {
 
   private final FileSystem fs;
   private Path workdirPath;

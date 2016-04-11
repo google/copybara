@@ -1,5 +1,7 @@
 package com.google.copybara.git;
 
+import com.google.copybara.Option;
+
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
@@ -7,7 +9,7 @@ import com.beust.jcommander.Parameters;
  * Arguments for GitRepository
  */
 @Parameters(separators = "=")
-public final class GitOptions {
+public final class GitOptions implements Option {
 
   @Parameter(names = "--git-executable", description = "Location of the git executable")
   String gitExecutable = "git";

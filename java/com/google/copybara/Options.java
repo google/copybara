@@ -1,6 +1,9 @@
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import java.util.Arrays;
 
 /**
  * A class that groups all the options used in the program
@@ -9,7 +12,11 @@ public class Options {
 
   private final ImmutableMap<Class<?>, Object> config;
 
-  public Options(Object... options) {
+  public Options(Option... options) {
+    this(ImmutableList.copyOf(options));
+  }
+
+  public Options(ImmutableList<Option> options) {
     ImmutableMap.Builder<Class<?>, Object> builder = ImmutableMap.builder();
     for (Object option : options) {
       builder.put(option.getClass(), option);
