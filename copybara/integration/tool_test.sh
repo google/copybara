@@ -27,7 +27,7 @@ function test_git_tracking() {
   remote=$(mktemp -d)
   repo_storage=$(mktemp -d)
   workdir=$(mktemp -d)
-  destination=$(mktemp -d)
+  destination=$(empty_git_bare_repo)
 
   ( cd $remote
     run_git init .
@@ -38,10 +38,6 @@ function test_git_tracking() {
     run_git commit -m "first commit"
   )
 
-  ( cd $destination
-    run_git init --bare .
-  )
-
   cat > test.copybara <<EOF
 name: "cbtest"
 origin: !GitOrigin
@@ -49,8 +45,8 @@ origin: !GitOrigin
   defaultTrackingRef: "master"
 destination: !GitDestination
   url: "file://$destination"
-  pullFromRef: "exportRef"
-  pushToRef: "exportRef"
+  pullFromRef: "master"
+  pushToRef: "master"
 transformations:
   - !ReplaceRegex
     regex:       food
@@ -87,15 +83,25 @@ EOF
   expect_in_file "second version for drink and barooooo" $workdir/test.txt
 
   ( cd $destination
-    run_git show exportRef > $TEST_log
+    run_git show master > $TEST_log
   )
 
   expect_log "-first version for drink"
   expect_log "+second version for drink and barooooo"
 }
 
+function empty_git_bare_repo() {
+  repo=$(mktemp -d)
+  cd $repo
+  run_git init . --bare > $TEST_log 2>&1 || fail "Cannot create repo"
+  run_git --work-tree=$(mktemp -d) commit --allow-empty -m "Empty repo" \
+    > $TEST_log 2>&1 || fail "Cannot commit to empty repo"
+  echo $repo
+}
+
 function prepare_glob_tree() {
   remote=$(mktemp -d)
+  destination=$(empty_git_bare_repo)
 
   ( cd $remote
     run_git init .
@@ -120,9 +126,9 @@ origin: !GitOrigin
   url: "file://$remote"
   defaultTrackingRef: "master"
 destination: !GitDestination
-  url: "file://$remote"
-  pullFromRef: exportRef
-  pushToRef: exportRef
+  url: "file://$destination"
+  pullFromRef: master
+  pushToRef: master
 transformations:
   - !ReplaceRegex
     path :       "**.java"
@@ -130,8 +136,8 @@ transformations:
     replacement: bar
 EOF
   $copybara test.copybara > $TEST_log 2>&1
-  ( cd $remote
-    run_git checkout exportRef
+  ( cd $(mktemp -d)
+    run_git clone $destination .
     expect_in_file "foo" test.txt
     expect_in_file "bar" test.java
     expect_in_file "foo" folder/test.txt
@@ -143,6 +149,7 @@ EOF
 
 function test_git_delete() {
   remote=$(mktemp -d)
+  destination=$(empty_git_bare_repo)
 
   ( cd $remote
     run_git init .
@@ -162,9 +169,9 @@ origin: !GitOrigin
   url: "file://$remote"
   defaultTrackingRef: "master"
 destination: !GitDestination
-  url: "file://$remote"
-  pullFromRef: exportRef
-  pushToRef: exportRef
+  url: "file://$destination"
+  pullFromRef: master
+  pushToRef: master
 transformations:
   - !DeletePath
     path: subdir/**
@@ -173,8 +180,8 @@ transformations:
 EOF
   $copybara test.copybara > $TEST_log 2>&1
 
-  ( cd $remote
-    run_git checkout exportRef
+  ( cd $(mktemp -d)
+    run_git clone $destination .
     [[ ! -f subdir/test.txt ]] || fail "/subdir/test.txt should be deleted"
     [[ ! -f subdir2/test.java ]] || fail "/subdir2/test.java should be deleted"
 

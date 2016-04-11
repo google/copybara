@@ -15,4 +15,8 @@ public final class GitOptions {
   @Parameter(names = "--git-repo-storage",
       description = "Location of the storage path for git repositories")
   String gitRepoStorage = System.getProperty("user.home") + "/.copybara/repos";
+
+  @Parameter(names = "--git-first-commit",
+      description = "Ignore that the fetch reference doesn't exist when pushing to destination")
+  boolean gitFirstCommit = false;
 }

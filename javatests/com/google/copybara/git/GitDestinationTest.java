@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
 import com.google.devtools.build.lib.shell.Command;
@@ -68,7 +69,13 @@ public class GitDestinationTest {
     yaml.setUrl("file:///foo");
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("pushToRef");
-    destination();
+    destinationFirstCommit();
+  }
+
+  private GitDestination destinationFirstCommit() {
+    GitOptions gitOptions = new GitOptions();
+    gitOptions.gitFirstCommit = true;
+    return yaml.withOptions(new Options(gitOptions, new GeneralOptions()));
   }
 
   private GitDestination destination() {
@@ -92,7 +99,7 @@ public class GitDestinationTest {
     yaml.setPullFromRef("testPullFromRef");
     yaml.setPushToRef("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    destination().process(workdir);
+    destinationFirstCommit().process(workdir);
 
     // Make sure commit adds new text
     String showResult =
@@ -104,12 +111,23 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void processFetchRefDoesntExist() throws Exception {
+    yaml.setPullFromRef("testPullFromRef");
+    yaml.setPushToRef("testPushToRef");
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("'testPullFromRef' doesn't exist");
+    destination().process(workdir);
+  }
+
+  @Test
   public void processCommitDeletesAndAddsFiles() throws Exception {
     yaml.setPullFromRef("pullFromBar");
     yaml.setPushToRef("pushToFoo");
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
-    destination().process(workdir);
+    destinationFirstCommit().process(workdir);
     execv("git", "--git-dir", repoGitDir.toString(), "branch", "pullFromBar", "pushToFoo");
 
     workdir = Files.createTempDirectory("processCommitDeletesAndAddsFiles-workdir");

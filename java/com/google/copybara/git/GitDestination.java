@@ -48,9 +48,15 @@ public final class GitDestination implements Destination {
     GitRepository scratchClone = GitRepository.initScratchRepo(gitOptions, verbose);
     try {
       scratchClone.simpleCommand("fetch", repoUrl, pullFromRef);
+      if (gitOptions.gitFirstCommit) {
+        throw new RepoException("'" + pullFromRef + "' already exists in '" + repoUrl + "'.");
+      }
       scratchClone.simpleCommand("checkout", "FETCH_HEAD");
     } catch (CannotFindReferenceException e) {
-      logger.log(Level.INFO, "pullFromRef doesn't exist", e);
+      if (!gitOptions.gitFirstCommit) {
+        throw new RepoException("'" + pullFromRef + "' doesn't exist in '" + repoUrl
+            + "'. Use --git-first-commit flag if you want to push anyway");
+      }
     }
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
