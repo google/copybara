@@ -45,7 +45,7 @@ public final class GitDestination implements Destination {
   public void process(Path workdir) throws RepoException {
     logger.log(Level.INFO, "Exporting " + workdir + " to: " + this);
 
-    GitRepository scratchClone = GitRepository.initScratchRepo(repoUrl, gitOptions, verbose);
+    GitRepository scratchClone = GitRepository.initScratchRepo(gitOptions, verbose);
     try {
       scratchClone.simpleCommand("fetch", repoUrl, pullFromRef);
       scratchClone.simpleCommand("checkout", "FETCH_HEAD");

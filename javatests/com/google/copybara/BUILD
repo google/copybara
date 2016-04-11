@@ -56,6 +56,19 @@ java_test(
 )
 
 java_test(
+    name = "GitRepositoryTest",
+    size = "small",
+    srcs = ["git/GitRepositoryTest.java"],
+    tags = ["local"],
+    test_class = "com.google.copybara.git.GitRepositoryTest",
+    deps = [
+        "//java/com/google/copybara:copybara_lib",
+        "//third_party:junit4",
+        "//third_party:truth",
+    ],
+)
+
+java_test(
     name = "DeletePathTest",
     size = "small",
     srcs = ["transform/DeletePathTest.java"],

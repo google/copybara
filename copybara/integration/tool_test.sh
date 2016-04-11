@@ -46,7 +46,7 @@ function test_git_tracking() {
 name: "cbtest"
 origin: !GitOrigin
   url: "file://$remote"
-  defaultTrackingRef: "origin/master"
+  defaultTrackingRef: "master"
 destination: !GitDestination
   url: "file://$destination"
   pullFromRef: "exportRef"
@@ -118,7 +118,7 @@ function test_regex_with_path() {
 name: "cbtest"
 origin: !GitOrigin
   url: "file://$remote"
-  defaultTrackingRef: "origin/master"
+  defaultTrackingRef: "master"
 destination: !GitDestination
   url: "file://$remote"
   pullFromRef: exportRef
@@ -160,7 +160,7 @@ function test_git_delete() {
 name: "cbtest"
 origin: !GitOrigin
   url: "file://$remote"
-  defaultTrackingRef: "origin/master"
+  defaultTrackingRef: "master"
 destination: !GitDestination
   url: "file://$remote"
   pullFromRef: exportRef
@@ -203,7 +203,7 @@ function test_local_dir_destination() {
 name: "cbtest"
 origin: !GitOrigin
   url: "file://$remote"
-  defaultTrackingRef: "origin/master"
+  defaultTrackingRef: "master"
 destination: !FolderDestination
   excludePathsForDeletion:
     - "test.copybara"

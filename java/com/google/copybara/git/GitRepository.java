@@ -36,9 +36,6 @@ public final class GitRepository {
           Pattern.compile("pathspec '(.+)' did not match any file"),
           Pattern.compile("fatal: Couldn't find remote ref ([^\n]+)\n"));
 
-  private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
-      "-_", /*plusForSpace=*/ true);
-
   /**
    * Git tool path. A String on pourpose so that we can use the 'git' on PATH.
    */
@@ -52,38 +49,22 @@ public final class GitRepository {
 
   private final @Nullable Path workTree;
 
-  /**
-   * Url of the repository
-   */
-  private final String repoUrl;
-
   private final boolean verbose;
 
-  private GitRepository(
-      String gitExecPath, Path gitDir, @Nullable Path workTree, String repoUrl, boolean verbose) {
+  private GitRepository(String gitExecPath, Path gitDir, @Nullable Path workTree, boolean verbose) {
     this.gitExecPath = Preconditions.checkNotNull(gitExecPath);
     this.gitDir = Preconditions.checkNotNull(gitDir);
     this.workTree = workTree;
-    this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.verbose = verbose;
   }
 
-  /**
-   * Constructs a new instance which represents a clone of some repository.
-   *
-   * @param repoUrl the URL of the repository which this one is a clone of
-   */
-  public static GitRepository withRepoUrl(String repoUrl, Options options) {
+  public static GitRepository bareRepo(Path gitDir, Options options) {
     GitOptions gitConfig = options.getOption(GitOptions.class);
-
-    Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
-    Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(repoUrl));
 
     return new GitRepository(
         gitConfig.gitExecutable,
         gitDir,
         /*workTree=*/null,
-        repoUrl,
         options.getOption(GeneralOptions.class).isVerbose());
   }
 
@@ -91,30 +72,26 @@ public final class GitRepository {
    * Initializes a new repository in a temporary directory. The new repo is not bare.
    */
   public static GitRepository initScratchRepo(
-      String repoUrl, GitOptions gitOptions, boolean verbose) throws RepoException {
+      GitOptions gitOptions, boolean verbose) throws RepoException {
     Path scratchWorkTree;
     try {
       scratchWorkTree = Files.createTempDirectory("copybara-makeScratchClone");
     } catch (IOException e) {
-      throw new RepoException("Could not make temporary directory for scratch repo: " + repoUrl, e);
+      throw new RepoException("Could not make temporary directory for scratch repo", e);
     }
 
-    GitRepository repository = new GitRepository(gitOptions.gitExecutable,
-        scratchWorkTree.resolve(".git"), scratchWorkTree, repoUrl, verbose);
+    GitRepository repository = new GitRepository(
+        gitOptions.gitExecutable, scratchWorkTree.resolve(".git"), scratchWorkTree, verbose);
     repository.git(scratchWorkTree, "init", ".");
     return repository;
-  }
-
-  public String getRepoUrl() {
-    return repoUrl;
   }
 
   /**
    * Returns an instance equivalent to this one but with a different work tree. This does not
    * initialize or alter the given work tree.
    */
-  public GitRepository withWorkTree(Path workTree) {
-    return new GitRepository(gitExecPath, gitDir, workTree, repoUrl, verbose);
+  public GitRepository withWorkTree(Path newWorkTree) {
+    return new GitRepository(this.gitExecPath, this.gitDir, newWorkTree, this.verbose);
   }
 
   /**
@@ -139,39 +116,17 @@ public final class GitRepository {
   }
 
   /**
-   * Creates a worktree with the contents of the ref {@code ref} for the repository {@code repoUrl}
-   *
-   * <p>Any content in the workdir is removed/overwritten.
+   * Initializes the {@code .git} directory of this repository as a new repository with zero
+   * commits.
    */
-  public void checkoutReference(String ref, Path workdir) throws RepoException {
-    if (!Files.exists(gitDir)) {
-      try {
-        Files.createDirectories(gitDir);
-      } catch (IOException e) {
-        throw new RepoException("Cannot create git directory '" + gitDir + "': " + e.getMessage(), e);
-      }
-
-      git(gitDir, "init", "--bare");
-      git(gitDir, "remote", "add", "origin", repoUrl);
-    }
-
-    git(gitDir, "fetch", "-f", "origin");
-    // We don't allow creating local branches tracking remotes. This doesn't work without
-    // merging.
-    checkRefExists(ref);
-    git(workdir, "--git-dir=" + gitDir, "--work-tree=" + workdir, "checkout", "-f", ref);
-  }
-
-  private void checkRefExists(String ref) throws RepoException {
+  public void initGitDir() throws RepoException {
     try {
-      simpleCommand("rev-parse", "--verify", ref);
-    } catch (RepoException e) {
-      if (e.getMessage().contains("Needed a single revision")) {
-        throw new CannotFindReferenceException("Ref '" + ref + "' does not exist."
-            + " If you used a ref like 'master' you should be using 'origin/master' instead");
-      }
-      throw e;
+      Files.createDirectories(gitDir);
+    } catch (IOException e) {
+      throw new RepoException("Cannot create git directory '" + gitDir + "': " + e.getMessage(), e);
     }
+
+    git(gitDir, "init", "--bare");
   }
 
   /**
@@ -228,7 +183,6 @@ public final class GitRepository {
         ", gitDir='" + gitDir + '\'' +
         ", workTree='" + workTree + '\'' +
         ", verbose=" + verbose +
-        ", repoUrl='" + repoUrl + '\'' +
         '}';
   }
 }

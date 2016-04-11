@@ -1,3 +1,4 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -7,9 +8,7 @@ import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -23,9 +22,6 @@ public class GitOriginTest {
   private GitOrigin origin;
   private Path remote;
   private Path workdir;
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException, RepoException {
@@ -54,7 +50,7 @@ public class GitOriginTest {
   @Test
   public void testCheckout() throws IOException, RepoException {
     // Check that we get can checkout a branch
-    origin.checkoutReference("origin/master", workdir);
+    origin.checkoutReference("master", workdir);
     Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
@@ -64,7 +60,7 @@ public class GitOriginTest {
     git("add", "test.txt");
     git("commit", "-m", "second commit");
 
-    origin.checkoutReference("origin/master", workdir);
+    origin.checkoutReference("master", workdir);
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("new content");
 
@@ -73,31 +69,24 @@ public class GitOriginTest {
     git("rm", "test.txt");
     git("commit", "-m", "third commit");
 
-    origin.checkoutReference("origin/master", workdir);
+    origin.checkoutReference("master", workdir);
 
     assertThat(Files.exists(testFile)).isFalse();
   }
 
   @Test
   public void testCheckoutWithLocalModifications() throws IOException, RepoException {
-    origin.checkoutReference("origin/master", workdir);
+    origin.checkoutReference("master", workdir);
     Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
     Files.delete(testFile);
 
-    origin.checkoutReference("origin/master", workdir);
+    origin.checkoutReference("master", workdir);
 
     // The deletion in the workdir should not matter, since we should override in the next
     // checkout
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
-  }
-
-  @Test
-  public void testCheckoutLocalBranch() throws IOException, RepoException {
-    thrown.expect(RepoException.class);
-    thrown.expectMessage("Ref 'master' does not exist");
-    origin.checkoutReference("master", workdir);
   }
 }
