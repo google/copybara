@@ -3,6 +3,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
@@ -34,7 +35,7 @@ public class GitOriginTest {
     GitOptions gitOptions = new GitOptions();
     gitOptions.gitRepoStorage = reposDir.toString();
 
-    origin = yaml.withOptions(new Options(gitOptions, new GeneralOptions()));
+    origin = yaml.withOptions(new Options(ImmutableList.of(gitOptions, new GeneralOptions())));
     workdir = Files.createTempDirectory("workdir");
 
     git("init");

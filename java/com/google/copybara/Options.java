@@ -12,10 +12,6 @@ public class Options {
 
   private final ImmutableMap<Class<?>, Object> config;
 
-  public Options(Option... options) {
-    this(ImmutableList.copyOf(options));
-  }
-
   public Options(ImmutableList<Option> options) {
     ImmutableMap.Builder<Class<?>, Object> builder = ImmutableMap.builder();
     for (Object option : options) {

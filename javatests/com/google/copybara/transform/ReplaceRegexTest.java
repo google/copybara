@@ -4,6 +4,7 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -33,7 +34,7 @@ public final class ReplaceRegexTest {
     yaml = new ReplaceRegex.Yaml();
     GeneralOptions generalOptions = new GeneralOptions(fs);
     generalOptions.init();
-    options = new Options(generalOptions);
+    options = new Options(ImmutableList.of(generalOptions));
     root = generalOptions.getWorkdir();
   }
 

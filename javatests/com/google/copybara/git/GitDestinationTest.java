@@ -4,6 +4,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -75,11 +76,11 @@ public class GitDestinationTest {
   private GitDestination destinationFirstCommit() {
     GitOptions gitOptions = new GitOptions();
     gitOptions.gitFirstCommit = true;
-    return yaml.withOptions(new Options(gitOptions, new GeneralOptions()));
+    return yaml.withOptions(new Options(ImmutableList.of(gitOptions, new GeneralOptions())));
   }
 
   private GitDestination destination() {
-    return yaml.withOptions(new Options(new GitOptions(), new GeneralOptions()));
+    return yaml.withOptions(new Options(ImmutableList.of(new GitOptions(), new GeneralOptions())));
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {

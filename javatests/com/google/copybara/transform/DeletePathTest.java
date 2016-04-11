@@ -3,8 +3,10 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.Option;
 import com.google.copybara.Options;
 
 import org.junit.Before;
@@ -48,7 +50,7 @@ public class DeletePathTest {
     Files.createDirectories(workdir.resolve(outsideFolder));
     yaml.setPath(outsideFolder);
     try {
-      Transformation delete = yaml.withOptions(new Options(generalOptions));
+      Transformation delete = yaml.withOptions(new Options(ImmutableList.of(generalOptions)));
       delete.transform(workdir);
       fail("should have thrown");
     } catch (IllegalStateException e) {
@@ -61,7 +63,7 @@ public class DeletePathTest {
   @Test
   public void deleteDoesntDeleteDirectories() throws IOException {
     yaml.setPath("folder");
-    Transformation delete = yaml.withOptions(new Options(generalOptions));
+    Transformation delete = yaml.withOptions(new Options(ImmutableList.of(generalOptions)));
     try {
       delete.transform(workdir);
       fail("Should fail because it could not delete anything.");
@@ -74,7 +76,7 @@ public class DeletePathTest {
   @Test
   public void recursiveDeleteNoFolder() throws IOException {
     yaml.setPath("folder/**");
-    Transformation delete = yaml.withOptions(new Options(generalOptions));
+    Transformation delete = yaml.withOptions(new Options(ImmutableList.of(generalOptions)));
     delete.transform(workdir);
     assertFilesExist("folder", "folder2");
     assertFilesDontExist("folder/file.txt", "folder/subfolder/file.txt",
@@ -85,7 +87,7 @@ public class DeletePathTest {
   @Test
   public void recursiveByType() throws IOException {
     yaml.setPath("folder/**/*.java");
-    Transformation delete = yaml.withOptions(new Options(generalOptions));
+    Transformation delete = yaml.withOptions(new Options(ImmutableList.of(generalOptions)));
     delete.transform(workdir);
     assertFilesExist("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt");
     assertFilesDontExist("folder/subfolder/file.java");
