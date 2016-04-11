@@ -47,8 +47,9 @@ public class Main {
     LocalDestinationOptions localDestinationOptions = new LocalDestinationOptions();
 
     ImmutableList<Option> options =
-        ImmutableList.of(generalArgs, generalOptions, gitOptions, localDestinationOptions);
-    JCommander jcommander = new JCommander(options);
+        ImmutableList.of(generalOptions, gitOptions, localDestinationOptions);
+    JCommander jcommander =
+        new JCommander(ImmutableList.builder().addAll(options).add(generalArgs).build());
     jcommander.setProgramName("copybara");
 
     FileSystem fs = FileSystems.getDefault();
