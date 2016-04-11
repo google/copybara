@@ -3,10 +3,11 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.Destination;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,27 +19,43 @@ public final class GitDestination implements Destination {
 
   private static final Logger logger = Logger.getLogger(GitDestination.class.getName());
 
-  private final GitRepository repository;
+  private final String repoUrl;
   private final String pullFromRef;
   private final String pushToRef;
+  private final GitOptions gitOptions;
+  private final boolean verbose;
 
-  private GitDestination(GitRepository repository, String pullFromRef, String pushToRef) {
-    this.repository = Preconditions.checkNotNull(repository);
+  private GitDestination(String repoUrl, String pullFromRef, String pushToRef, GitOptions gitOptions,
+      boolean verbose) {
+    this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.pullFromRef = Preconditions.checkNotNull(pullFromRef);
     this.pushToRef = Preconditions.checkNotNull(pushToRef);
+    this.gitOptions = Preconditions.checkNotNull(gitOptions);
+    this.verbose = verbose;
   }
 
   @Override
   public String toString() {
-    return String.format("{repository: %s, pullFromRef: %s, pushToRef: %s}",
-        repository, pullFromRef, pushToRef);
+    return String.format(
+        "{repoUrl: %s, pullFromRef: %s, pushToRef: %s, gitOptions: %s, verbose: %s}",
+        repoUrl, pullFromRef, pushToRef, gitOptions, verbose);
   }
 
   @Override
-  public void process(Path workdir) {
+  public void process(Path workdir) throws RepoException {
     logger.log(Level.INFO, "Exporting " + workdir + " to: " + this);
 
-    // TODO(matvore): Implement.
+    GitRepository scratchClone = GitRepository.initScratchRepo(repoUrl, gitOptions, verbose);
+    try {
+      scratchClone.simpleCommand("fetch", repoUrl, pullFromRef);
+      scratchClone.simpleCommand("checkout", "FETCH_HEAD");
+    } catch (CannotFindReferenceException e) {
+      logger.log(Level.INFO, "pullFromRef doesn't exist", e);
+    }
+    GitRepository alternate = scratchClone.withWorkTree(workdir);
+    alternate.simpleCommand("add", "--all");
+    alternate.simpleCommand("commit", "-m", "Copybara commit");
+    alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
   }
 
   public static final class Yaml implements Destination.Yaml {
@@ -74,9 +91,11 @@ public final class GitDestination implements Destination {
       ConfigValidationException.checkNotMissing(url, "url");
 
       return new GitDestination(
-          GitRepository.withRepoUrl(url, options),
+          url,
           ConfigValidationException.checkNotMissing(pullFromRef, "pullFromRef"),
-          ConfigValidationException.checkNotMissing(pushToRef, "pushToRef"));
+          ConfigValidationException.checkNotMissing(pushToRef, "pushToRef"),
+          options.getOption(GitOptions.class),
+          options.getOption(GeneralOptions.class).isVerbose());
     }
   }
 }

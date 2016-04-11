@@ -3,7 +3,6 @@ package com.google.copybara;
 
 import com.google.common.truth.Truth;
 import com.google.copybara.config.Config;
-import com.google.copybara.git.GitDestination;
 import com.google.copybara.git.GitOptions;
 
 import com.beust.jcommander.internal.Nullable;
@@ -19,6 +18,20 @@ import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
 public class CopybaraTest {
+
+  private final static class CountTimesProcessedDestination implements Destination.Yaml {
+    int timesProcessed;
+
+    @Override
+    public Destination withOptions(Options options) {
+      return new Destination() {
+        @Override
+        public void process(Path workdir) {
+          timesProcessed++;
+        }
+      };
+    }
+  }
 
   @Test
   public void doNothing() throws IOException, RepoException {
@@ -41,15 +54,15 @@ public class CopybaraTest {
         };
       }
     });
-    GitDestination.Yaml destination = new GitDestination.Yaml();
-    destination.setUrl("file:///repos/foo");
-    destination.setPullFromRef("master");
-    destination.setPushToRef("refs/for/master");
+
+    // Use a destination that only increments a counter when it is written.
+    CountTimesProcessedDestination destination = new CountTimesProcessedDestination();
     config.setDestination(destination);
     Path workdir = Files.createTempDirectory("workdir");
     Options options = new Options(new GitOptions(), new GeneralOptions());
     new Copybara(workdir).runForSourceRef(config.withOptions(options), "some_sha1");
     Truth.assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
         .contains("some_sha1");
+    Truth.assertThat(destination.timesProcessed).isEqualTo(1);
   }
 }

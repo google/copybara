@@ -27,6 +27,7 @@ function test_git_tracking() {
   remote=$(mktemp -d)
   repo_storage=$(mktemp -d)
   workdir=$(mktemp -d)
+  destination=$(mktemp -d)
 
   ( cd $remote
     run_git init .
@@ -37,15 +38,19 @@ function test_git_tracking() {
     run_git commit -m "first commit"
   )
 
+  ( cd $destination
+    run_git init --bare .
+  )
+
   cat > test.copybara <<EOF
 name: "cbtest"
 origin: !GitOrigin
   url: "file://$remote"
   defaultTrackingRef: "origin/master"
 destination: !GitDestination
-  url: "file://destination"
-  pullFromRef: "origin/master"
-  pushToRef: "refs/to/master"
+  url: "file://$destination"
+  pullFromRef: "exportRef"
+  pushToRef: "exportRef"
 transformations:
   - !ReplaceRegex
     regex:       food
@@ -62,7 +67,7 @@ EOF
   expect_log 'apply s/food/drink/ to .*/subdir/test.txt$'
   expect_not_log 'apply .* to .*/subdir$'
   expect_log 'transforming:.*ReplaceRegex.*bar'
-  expect_log 'Exporting .* to: .*file://destination'
+  expect_log 'Exporting .* to:'
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   cat $workdir/test.txt > $TEST_log
@@ -80,12 +85,17 @@ EOF
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   expect_in_file "second version for drink and barooooo" $workdir/test.txt
+
+  ( cd $destination
+    run_git show exportRef > $TEST_log
+  )
+
+  expect_log "-first version for drink"
+  expect_log "+second version for drink and barooooo"
 }
 
 function prepare_glob_tree() {
   remote=$(mktemp -d)
-  repo_storage=$(mktemp -d)
-  workdir=$(mktemp -d)
 
   ( cd $remote
     run_git init .
@@ -111,28 +121,28 @@ origin: !GitOrigin
   defaultTrackingRef: "origin/master"
 destination: !GitDestination
   url: "file://$remote"
-  pullFromRef: "origin/master"
-  pushToRef: "refs/to/master"
+  pullFromRef: exportRef
+  pushToRef: exportRef
 transformations:
   - !ReplaceRegex
     path :       "**.java"
     regex:       foo
     replacement: bar
 EOF
-  $copybara test.copybara --git-repo-storage "$repo_storage" \
-    --work-dir $workdir > $TEST_log 2>&1
-  expect_in_file "foo" $workdir/test.txt
-  expect_in_file "bar" $workdir/test.java
-  expect_in_file "foo" $workdir/folder/test.txt
-  expect_in_file "bar" $workdir/folder/test.java
-  expect_in_file "foo" $workdir/folder/subfolder/test.txt
-  expect_in_file "bar" $workdir/folder/subfolder/test.java
+  $copybara test.copybara > $TEST_log 2>&1
+  ( cd $remote
+    run_git checkout exportRef
+    expect_in_file "foo" test.txt
+    expect_in_file "bar" test.java
+    expect_in_file "foo" folder/test.txt
+    expect_in_file "bar" folder/test.java
+    expect_in_file "foo" folder/subfolder/test.txt
+    expect_in_file "bar" folder/subfolder/test.java
+  )
 }
 
 function test_git_delete() {
   remote=$(mktemp -d)
-  repo_storage=$(mktemp -d)
-  workdir=$(mktemp -d)
 
   ( cd $remote
     run_git init .
@@ -153,24 +163,26 @@ origin: !GitOrigin
   defaultTrackingRef: "origin/master"
 destination: !GitDestination
   url: "file://$remote"
-  pullFromRef: "origin/master"
-  pushToRef: "refs/to/master"
+  pullFromRef: exportRef
+  pushToRef: exportRef
 transformations:
   - !DeletePath
     path: subdir/**
   - !DeletePath
     path: "**/*.java"
 EOF
-  $copybara test.copybara --git-repo-storage "$repo_storage" \
-    --work-dir $workdir > $TEST_log 2>&1
+  $copybara test.copybara > $TEST_log 2>&1
 
-  [[ ! -f $workdir/subdir/test.txt ]] || fail "/subdir/test.txt should be deleted"
-  [[ ! -f $workdir/subdir2/test.java ]] || fail "/subdir2/test.java should be deleted"
+  ( cd $remote
+    run_git checkout exportRef
+    [[ ! -f subdir/test.txt ]] || fail "/subdir/test.txt should be deleted"
+    [[ ! -f subdir2/test.java ]] || fail "/subdir2/test.java should be deleted"
 
-  [[ -f $workdir/test.txt ]] || fail "/test.txt should not be deleted"
-  [[ -d $workdir/subdir ]] || fail "/subdir should not be deleted"
-  [[ -d $workdir/subdir2 ]] || fail "/subdir2 should not be deleted"
-  [[ -f $workdir/subdir2/test.txt ]] || fail "/subdir2/test.txt should not be deleted"
+    [[ -f test.txt ]] || fail "/test.txt should not be deleted"
+    [[ ! -d subdir ]] || fail "/subdir should be deleted"
+    [[ -d subdir2 ]] || fail "/subdir2 should not be deleted"
+    [[ -f subdir2/test.txt ]] || fail "/subdir2/test.txt should not be deleted"
+  )
 }
 
 function test_local_dir_destination() {
