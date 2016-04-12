@@ -16,6 +16,8 @@ import org.junit.runners.JUnit4;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
@@ -51,7 +53,7 @@ public class GerritDestinationTest {
   }
 
   private String lastCommitChangeIdLine() throws Exception {
-    String logOutput = git("--git-dir", repoGitDir.toString(), "log", "-n1", "refs/for/master");
+    String logOutput = git("log", "-n1", "refs/for/master");
     String logLines[] = logOutput.split("\n");
     String changeIdLine = logLines[logLines.length - 1];
     assertThat(changeIdLine).matches("    Change-Id: I[0-9a-f]{40}$");
@@ -59,7 +61,7 @@ public class GerritDestinationTest {
   }
 
   @Test
-  public void includeGerritChangeId() throws Exception {
+  public void gerritChangeIdChangesBetweenCommits() throws Exception {
     yaml.setPullFromRef("master");
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
@@ -68,11 +70,50 @@ public class GerritDestinationTest {
     String firstChangeIdLine = lastCommitChangeIdLine();
 
     Files.write(workdir.resolve("file2"), "some more content".getBytes());
-    git("--git-dir", repoGitDir.toString(), "branch", "master", "refs/for/master");
+    git("branch", "master", "refs/for/master");
     destination().process(workdir);
 
     assertThat(firstChangeIdLine)
         .isNotEqualTo(lastCommitChangeIdLine());
   }
-}
 
+  @Test
+  public void changeIdIsDeterministicForFirstCommit() throws Exception {
+    Set<String> changeIds = new HashSet<>();
+    for (int i = 0; i < 3; i++) {
+      setup();
+      yaml.setPullFromRef("master");
+      Files.write(workdir.resolve("file"), "some content".getBytes());
+      destinationFirstCommit().process(workdir);
+      changeIds.add(lastCommitChangeIdLine());
+    }
+    assertThat(changeIds).hasSize(1);
+
+    // Changing the file content causes a different changeId to be generated.
+    for (int i = 0; i < 3; i++) {
+      setup();
+      yaml.setPullFromRef("master");
+      Files.write(workdir.resolve("file"), "content different from before".getBytes());
+      destinationFirstCommit().process(workdir);
+      changeIds.add(lastCommitChangeIdLine());
+    }
+    assertThat(changeIds).hasSize(2);
+  }
+
+  @Test
+  public void changeIdIsDeterministicForSecondCommit() throws Exception {
+    yaml.setPullFromRef("master");
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+    destinationFirstCommit().process(workdir);
+
+    git("branch", "master", "refs/for/master");
+    Files.write(workdir.resolve("file"), "some more content".getBytes());
+    Set<String> changeIds = new HashSet<>();
+    for (int i = 0; i < 3; i++) {
+      destination().process(workdir);
+      changeIds.add(lastCommitChangeIdLine());
+    }
+
+    assertThat(changeIds).hasSize(1);
+  }
+}

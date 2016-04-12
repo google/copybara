@@ -62,11 +62,11 @@ public abstract class AbstractGitDestination implements Destination {
     }
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
-    alternate.simpleCommand("commit", "-m", commitMessage());
+    alternate.simpleCommand("commit", "-m", commitMessage(alternate));
     alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
   }
 
-  protected String commitMessage() throws RepoException {
+  protected String commitMessage(GitRepository repo) throws RepoException {
     return "Copybara commit";
   }
 

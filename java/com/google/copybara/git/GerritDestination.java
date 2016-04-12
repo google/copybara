@@ -17,15 +17,25 @@ public final class GerritDestination extends AbstractGitDestination {
     super(repoUrl, pullFromRef, "refs/for/master", gitOptions, verbose);
   }
 
+  private String maybeParentHash(GitRepository repo) {
+    try {
+      return repo.simpleCommand("rev-parse", "HEAD^0").getStdout();
+    } catch (RepoException e) {
+      return "";
+    }
+  }
+
   @Override
-  protected String commitMessage() throws RepoException {
-    StringBuilder message = new StringBuilder(super.commitMessage());
+  protected String commitMessage(GitRepository repo) throws RepoException {
+    StringBuilder message = new StringBuilder(super.commitMessage(repo));
 
     message.append("\n\nChange-Id: I");
 
     Hasher changeIdHasher = Hashing.sha1().newHasher()
-        .putString(toString(), Charsets.UTF_8)
-        .putLong(System.nanoTime());
+        .putString(repo.simpleCommand("write-tree").getStdout(), Charsets.UTF_8)
+        .putString(maybeParentHash(repo), Charsets.UTF_8)
+        .putString(repo.simpleCommand("var", "GIT_AUTHOR_IDENT").getStdout(), Charsets.UTF_8)
+        .putString(repo.simpleCommand("var", "GIT_COMMITTER_IDENT").getStdout(), Charsets.UTF_8);
     return message
         .append(changeIdHasher.hash())
         .append("\n")

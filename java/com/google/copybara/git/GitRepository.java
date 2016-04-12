@@ -99,7 +99,7 @@ public final class GitRepository {
    *
    * @param argv the arguments to pass to {@code git}, starting with the sub-command name
    */
-  public void simpleCommand(String... argv) throws RepoException {
+  public CommandOutput simpleCommand(String... argv) throws RepoException {
     List<String> allArgv = new ArrayList<String>();
 
     allArgv.add("--git-dir=" + gitDir);
@@ -111,7 +111,7 @@ public final class GitRepository {
 
     allArgv.addAll(Arrays.asList(argv));
 
-    git(cwd, allArgv);
+    return git(cwd, allArgv);
   }
 
   /**
