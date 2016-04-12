@@ -6,7 +6,7 @@ import com.google.common.truth.Truth;
 import com.google.copybara.config.Config;
 import com.google.copybara.git.GitOptions;
 
-import com.beust.jcommander.internal.Nullable;
+import javax.annotation.Nullable;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

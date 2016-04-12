@@ -1,6 +1,6 @@
 package com.google.copybara;
 
-import com.beust.jcommander.internal.Nullable;
+import javax.annotation.Nullable;
 
 import java.nio.file.Path;
 

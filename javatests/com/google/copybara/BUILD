@@ -9,7 +9,7 @@ java_test(
     test_class = "com.google.copybara.CopybaraTest",
     deps = [
         "//java/com/google/copybara:copybara_lib",
-        "//third_party:jcommander",
+        "//third_party:jsr305",
         "//third_party:junit4",
         "//third_party:truth",
     ],

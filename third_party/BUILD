@@ -57,3 +57,10 @@ java_library(
         "@truth//jar",
     ],
 )
+
+java_library(
+    name = "jsr305",
+    exports = [
+        "@jsr305//jar",
+    ],
+)

@@ -33,3 +33,10 @@ maven_jar(
     artifact = "com.google.jimfs:jimfs:1.0",
     sha1 = "edd65a2b792755f58f11134e76485a928aab4c97",
 )
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "jsr305",
+    artifact = "com.google.code.findbugs:jsr305:3.0.1",
+    sha1 = "f7be08ec23c21485b9b5a1cf1654c2ec8c58168d",
+)

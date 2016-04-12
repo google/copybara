@@ -8,7 +8,7 @@ import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 
-import com.beust.jcommander.internal.Nullable;
+import javax.annotation.Nullable;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;

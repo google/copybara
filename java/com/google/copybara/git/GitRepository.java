@@ -14,7 +14,7 @@ import com.google.copybara.util.CommandOutput;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 
-import com.beust.jcommander.internal.Nullable;
+import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;

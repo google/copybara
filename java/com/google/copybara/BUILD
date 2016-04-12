@@ -28,6 +28,7 @@ java_library(
     deps = [
         "//third_party:guava",
         "//third_party:jcommander",
+        "//third_party:jsr305",
         "//third_party:shell",
         "//third_party:snakeyaml",
     ],
