@@ -1,6 +1,5 @@
 package com.google.copybara;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Arrays;
@@ -12,7 +11,7 @@ public class Options {
 
   private final ImmutableMap<Class<?>, Object> config;
 
-  public Options(ImmutableList<Option> options) {
+  public Options(Iterable<Option> options) {
     ImmutableMap.Builder<Class<?>, Object> builder = ImmutableMap.builder();
     for (Object option : options) {
       builder.put(option.getClass(), option);
