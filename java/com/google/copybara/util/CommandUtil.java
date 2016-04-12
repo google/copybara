@@ -32,7 +32,7 @@ public final class CommandUtil {
    * Executes a {@link Command} and writes to the console and the log depending on the exit code of
    * the command and the verbose flag.
    */
-  public static CommandResult executeCommand(Command cmd, boolean verbose)
+  public static CommandOutput executeCommand(Command cmd, boolean verbose)
       throws CommandException {
     Stopwatch stopwatch = Stopwatch.createStarted();
     String startMsg = "Executing ["
@@ -54,7 +54,10 @@ public final class CommandUtil {
           verbose ? new DemultiplexOutputStream(System.err, stderrCollector) : stderrCollector,
           true);
       exitStatus = cmdResult.getTerminationStatus();
-      return cmdResult;
+      return new CommandOutput(
+          cmdResult.getTerminationStatus(),
+          stdoutCollector.toByteArray(),
+          stderrCollector.toByteArray());
     } catch (BadExitStatusException e) {
       exitStatus = e.getResult().getTerminationStatus();
       throw new BadExitStatusWithOutputException(e.getCommand(), e.getResult(), e.getMessage(),

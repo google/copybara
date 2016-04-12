@@ -5,19 +5,17 @@ import static com.google.copybara.util.CommandUtil.executeCommand;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.net.PercentEscaper;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
+import com.google.copybara.util.CommandOutput;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.shell.CommandResult;
 
 import com.beust.jcommander.internal.Nullable;
 
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -135,7 +133,7 @@ public final class GitRepository {
    * @param cwd the directory in which to execute the command
    * @param params the argv to pass to Git, excluding the initial {@code git}
    */
-  public CommandResult git(Path cwd, String... params) throws RepoException {
+  public CommandOutput git(Path cwd, String... params) throws RepoException {
     return git(cwd, Arrays.asList(params));
   }
 
@@ -143,12 +141,12 @@ public final class GitRepository {
    * Invokes {@code git} in the directory given by {@code cwd} against this repository. See also
    * {@link #git(Path, String[])}.
    */
-  public CommandResult git(Path cwd, List<String> params) throws RepoException {
+  public CommandOutput git(Path cwd, List<String> params) throws RepoException {
     List<String> allParams = new ArrayList<>();
     allParams.add(gitExecPath);
     allParams.addAll(params);
     try {
-      CommandResult result = executeCommand(
+      CommandOutput result = executeCommand(
           new Command(
               allParams.toArray(new String[0]),
               ImmutableMap.<String, String>of(),

@@ -21,6 +21,7 @@ java_test(
     srcs = ["CommandTest.java"],
     test_class = "com.google.copybara.CommandTest",
     deps = [
+        "//java/com/google/copybara:copybara_lib",
         "//third_party:junit4",
         "//third_party:shell",
         "//third_party:truth",
