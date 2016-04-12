@@ -40,6 +40,10 @@ public class Main {
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
 
+  protected Iterable<Option> getAllOptions() {
+    return ImmutableList.of(new LocalDestinationOptions(), new GitOptions());
+  }
+
   public static void main(String[] args) {
     new Main().run(args);
   }
@@ -47,11 +51,8 @@ public class Main {
   protected void run(String[] args) {
     Arguments generalArgs = new Arguments();
     GeneralOptions generalOptions = new GeneralOptions();
-    GitOptions gitOptions = new GitOptions();
-    LocalDestinationOptions localDestinationOptions = new LocalDestinationOptions();
-
     ImmutableList<Option> options =
-        ImmutableList.of(generalOptions, gitOptions, localDestinationOptions);
+        ImmutableList.<Option>builder().add(generalOptions).addAll(getAllOptions()).build();
     JCommander jcommander =
         new JCommander(ImmutableList.builder().addAll(options).add(generalArgs).build());
     jcommander.setProgramName("copybara");
