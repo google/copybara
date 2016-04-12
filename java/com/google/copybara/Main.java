@@ -41,6 +41,10 @@ public class Main {
   private static final Logger logger = Logger.getLogger(Main.class.getName());
 
   public static void main(String[] args) {
+    new Main().run(args);
+  }
+
+  protected void run(String[] args) {
     Arguments generalArgs = new Arguments();
     GeneralOptions generalOptions = new GeneralOptions();
     GitOptions gitOptions = new GitOptions();
