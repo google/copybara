@@ -1,14 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.config;
 
-import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
-import com.google.copybara.git.GerritDestination;
-import com.google.copybara.git.GitDestination;
-import com.google.copybara.git.GitOrigin;
-import com.google.copybara.localdir.FolderDestination;
-import com.google.copybara.transform.DeletePath;
-import com.google.copybara.transform.ReplaceRegex;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.TypeDescription;
@@ -56,22 +49,5 @@ public final class YamlParser {
     // It can include a long stack trace plus a nested cause. Find a way to make the error output
     // more digestable.
     return ((Config.Yaml) yaml.load(configContent)).withOptions(options);
-  }
-
-  /**
-   * The transformations, repository types, etc. allowed in the configuration.
-   */
-  public static YamlParser createParser() {
-    ImmutableList<TypeDescription> types = ImmutableList.of(
-        // Transformations
-        new TypeDescription(DeletePath.Yaml.class, "!DeletePath"),
-        new TypeDescription(ReplaceRegex.Yaml.class, "!ReplaceRegex"),
-        // Origins
-        new TypeDescription(GitOrigin.Yaml.class, "!GitOrigin"),
-        // Destinations
-        new TypeDescription(GerritDestination.Yaml.class, "!GerritDestination"),
-        new TypeDescription(GitDestination.Yaml.class, "!GitDestination"),
-        new TypeDescription(FolderDestination.Yaml.class, "!FolderDestination"));
-    return new YamlParser(types);
   }
 }

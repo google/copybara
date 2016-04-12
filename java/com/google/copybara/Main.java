@@ -4,14 +4,22 @@ package com.google.copybara;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.YamlParser;
+import com.google.copybara.git.GerritDestination;
+import com.google.copybara.git.GitDestination;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.git.GitOrigin;
+import com.google.copybara.localdir.FolderDestination;
 import com.google.copybara.localdir.LocalDestinationOptions;
+import com.google.copybara.transform.DeletePath;
+import com.google.copybara.transform.ReplaceRegex;
 import com.google.copybara.util.ExitCode;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+
+import org.yaml.snakeyaml.TypeDescription;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -42,6 +50,19 @@ public class Main {
 
   protected Iterable<Option> getAllOptions() {
     return ImmutableList.of(new LocalDestinationOptions(), new GitOptions());
+  }
+
+  protected Iterable<TypeDescription> getYamlTypeDescriptions() {
+    return ImmutableList.of(
+        // Transformations
+        new TypeDescription(DeletePath.Yaml.class, "!DeletePath"),
+        new TypeDescription(ReplaceRegex.Yaml.class, "!ReplaceRegex"),
+        // Origins
+        new TypeDescription(GitOrigin.Yaml.class, "!GitOrigin"),
+        // Destinations
+        new TypeDescription(GerritDestination.Yaml.class, "!GerritDestination"),
+        new TypeDescription(GitDestination.Yaml.class, "!GitDestination"),
+        new TypeDescription(FolderDestination.Yaml.class, "!FolderDestination"));
   }
 
   public static void main(String[] args) {
@@ -95,10 +116,9 @@ public class Main {
     System.exit(errorType.getCode());
   }
 
-  private static Config loadConfig(Path path, Options options)
-      throws IOException, CommandLineException {
+  private Config loadConfig(Path path, Options options) throws IOException, CommandLineException {
     try {
-      return YamlParser.createParser().loadConfig(path, options);
+      return new YamlParser(getYamlTypeDescriptions()).loadConfig(path, options);
     } catch (NoSuchFileException e) {
       throw new CommandLineException("Config file '" + path + "' cannot be found.");
     }
