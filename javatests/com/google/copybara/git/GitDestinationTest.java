@@ -9,8 +9,6 @@ import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
-import com.google.copybara.util.CommandUtil;
-import com.google.devtools.build.lib.shell.CommandException;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -21,9 +19,6 @@ import org.junit.runners.JUnit4;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 @RunWith(JUnit4.class)
 public class GitDestinationTest {
@@ -45,11 +40,10 @@ public class GitDestinationTest {
     workdir = Files.createTempDirectory("GitDestinationTest-workdir");
   }
 
-  private String git(String... argv) throws CommandException {
-    List<String> allArgs = new ArrayList<>();
-    allArgs.add("git");
-    allArgs.addAll(Arrays.asList(argv));
-    return CommandUtil.execv(repoGitDir, allArgs);
+  private String git(String... argv) throws RepoException {
+    return new GitRepository("git", repoGitDir, /*workTree=*/null, /*verbose=*/true)
+        .git(repoGitDir, argv)
+        .getStdout();
   }
 
   @Test

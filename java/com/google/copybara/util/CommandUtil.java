@@ -85,26 +85,6 @@ public final class CommandUtil {
   }
 
   /**
-   * Executes some command given argv and returns the stdout as a {@code String}.
-   */
-  public static String execv(Path cwd, Iterable<String> argv) throws CommandException {
-    ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-    ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-
-    Command command = new Command(
-        ImmutableList.copyOf(argv).toArray(new String[0]),
-        ImmutableMap.<String, String>of(),
-        cwd.toFile());
-    CommandResult result =
-        command.execute(new byte[0], new SimpleKillableObserver(), stdout, stderr, true);
-    try {
-      return stdout.toString("UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException("This shouldn't happen", e);
-    }
-  }
-
-  /**
    * Log to the appropiate log level the output of the command
    */
   private static void logOutput(Level level, Command cmd, final String outputType,

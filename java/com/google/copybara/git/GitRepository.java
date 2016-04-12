@@ -5,6 +5,7 @@ import static com.google.copybara.util.CommandUtil.executeCommand;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
@@ -49,7 +50,7 @@ public final class GitRepository {
 
   private final boolean verbose;
 
-  private GitRepository(String gitExecPath, Path gitDir, @Nullable Path workTree, boolean verbose) {
+  public GitRepository(String gitExecPath, Path gitDir, @Nullable Path workTree, boolean verbose) {
     this.gitExecPath = Preconditions.checkNotNull(gitExecPath);
     this.gitDir = Preconditions.checkNotNull(gitDir);
     this.workTree = workTree;
@@ -141,10 +142,10 @@ public final class GitRepository {
    * Invokes {@code git} in the directory given by {@code cwd} against this repository. See also
    * {@link #git(Path, String[])}.
    */
-  public CommandOutput git(Path cwd, List<String> params) throws RepoException {
+  public CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
     List<String> allParams = new ArrayList<>();
     allParams.add(gitExecPath);
-    allParams.addAll(params);
+    Iterables.addAll(allParams, params);
     try {
       CommandOutput result = executeCommand(
           new Command(
