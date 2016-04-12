@@ -1,6 +1,8 @@
 package com.google.copybara.util;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.shell.BadExitStatusException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -12,7 +14,9 @@ import com.google.devtools.build.lib.shell.TerminationStatus;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -77,6 +81,26 @@ public final class CommandUtil {
       if (verbose) {
         System.err.println(finishMsg);
       }
+    }
+  }
+
+  /**
+   * Executes some command given argv and returns the stdout as a {@code String}.
+   */
+  public static String execv(Path cwd, Iterable<String> argv) throws CommandException {
+    ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+    ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+
+    Command command = new Command(
+        ImmutableList.copyOf(argv).toArray(new String[0]),
+        ImmutableMap.<String, String>of(),
+        cwd.toFile());
+    CommandResult result =
+        command.execute(new byte[0], new SimpleKillableObserver(), stdout, stderr, true);
+    try {
+      return stdout.toString("UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException("This shouldn't happen", e);
     }
   }
 

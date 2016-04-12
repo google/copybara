@@ -43,6 +43,20 @@ java_test(
 )
 
 java_test(
+    name = "GerritDestinationTest",
+    size = "small",
+    srcs = ["git/GerritDestinationTest.java"],
+    tags = ["local"],
+    test_class = "com.google.copybara.git.GerritDestinationTest",
+    deps = [
+        "//java/com/google/copybara:copybara_lib",
+        "//third_party:junit4",
+        "//third_party:shell",
+        "//third_party:truth",
+    ],
+)
+
+java_test(
     name = "GitOriginTest",
     size = "small",
     srcs = ["git/GitOriginTest.java"],

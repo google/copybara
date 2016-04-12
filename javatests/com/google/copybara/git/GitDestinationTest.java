@@ -2,19 +2,15 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
-import com.google.devtools.build.lib.shell.Command;
+import com.google.copybara.util.CommandUtil;
 import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.shell.CommandResult;
-import com.google.devtools.build.lib.shell.SimpleKillableObserver;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,10 +19,11 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @RunWith(JUnit4.class)
 public class GitDestinationTest {
@@ -43,25 +40,16 @@ public class GitDestinationTest {
     yaml = new Yaml();
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     yaml.setUrl("file://" + repoGitDir);
-    execv("git", "init", "--bare", repoGitDir.toString());
+    git("init", "--bare", repoGitDir.toString());
 
     workdir = Files.createTempDirectory("GitDestinationTest-workdir");
   }
 
-  private String execv(String... argv) throws CommandException, UnsupportedEncodingException {
-    ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-    ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-
-    Command command = new Command(
-        argv,
-        ImmutableMap.<String, String>of(),
-        repoGitDir.toFile());
-    CommandResult result =
-        command.execute(new byte[0], new SimpleKillableObserver(), stdout, stderr, true);
-    if (!result.getTerminationStatus().success()) {
-      fail(result.toString());
-    }
-    return stdout.toString("UTF-8");
+  private String git(String... argv) throws CommandException {
+    List<String> allArgs = new ArrayList<>();
+    allArgs.add("git");
+    allArgs.addAll(Arrays.asList(argv));
+    return CommandUtil.execv(repoGitDir, allArgs);
   }
 
   @Test
@@ -84,14 +72,12 @@ public class GitDestinationTest {
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {
-    String lsResult =
-        execv("git", "--git-dir", repoGitDir.toString(), "ls-tree", ref, path);
+    String lsResult = git("--git-dir", repoGitDir.toString(), "ls-tree", ref, path);
     assertThat(lsResult.split("\n")).hasLength(expected);
   }
 
   private void assertCommitCount(int expected, String ref) throws Exception {
-    String logResult =
-        execv("git", "--git-dir", repoGitDir.toString(), "log", "--oneline", ref);
+    String logResult = git("--git-dir", repoGitDir.toString(), "log", "--oneline", ref);
     assertThat(logResult.split("\n")).hasLength(expected);
   }
 
@@ -103,8 +89,7 @@ public class GitDestinationTest {
     destinationFirstCommit().process(workdir);
 
     // Make sure commit adds new text
-    String showResult =
-        execv("git", "--git-dir", repoGitDir.toString(), "show", "testPushToRef");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", "testPushToRef");
     assertThat(showResult).contains("some content");
 
     assertFilesInDir(1, "testPushToRef", ".");
@@ -129,7 +114,7 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
     destinationFirstCommit().process(workdir);
-    execv("git", "--git-dir", repoGitDir.toString(), "branch", "pullFromBar", "pushToFoo");
+    git("--git-dir", repoGitDir.toString(), "branch", "pullFromBar", "pushToFoo");
 
     workdir = Files.createTempDirectory("processCommitDeletesAndAddsFiles-workdir");
     Files.write(workdir.resolve("1.txt"), "content 1".getBytes());

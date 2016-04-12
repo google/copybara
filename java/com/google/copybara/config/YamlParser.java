@@ -3,6 +3,7 @@ package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
+import com.google.copybara.git.GerritDestination;
 import com.google.copybara.git.GitDestination;
 import com.google.copybara.git.GitOrigin;
 import com.google.copybara.localdir.FolderDestination;
@@ -68,6 +69,7 @@ public final class YamlParser {
         // Origins
         new TypeDescription(GitOrigin.Yaml.class, "!GitOrigin"),
         // Destinations
+        new TypeDescription(GerritDestination.Yaml.class, "!GerritDestination"),
         new TypeDescription(GitDestination.Yaml.class, "!GitDestination"),
         new TypeDescription(FolderDestination.Yaml.class, "!FolderDestination"));
     return new YamlParser(types);
