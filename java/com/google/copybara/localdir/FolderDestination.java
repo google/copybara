@@ -21,6 +21,8 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 /**
  * Writes the output tree to a local destination. Any file that is not excluded in the configuration
  * gets deleted before writing the new files.
@@ -52,6 +54,13 @@ public class FolderDestination implements Destination {
     } catch (CommandException e) {
       throw new RepoException("Cannot copy contents of " + workdir + " to " + localFolder, e);
     }
+  }
+
+  @Nullable
+  @Override
+  public String getPreviousRef() {
+    // Not supported
+    return null;
   }
 
   public static class Yaml implements Destination.Yaml {

@@ -2,17 +2,19 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.net.PercentEscaper;
+import com.google.copybara.CannotComputeChangesException;
+import com.google.copybara.Change;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 
-import javax.annotation.Nullable;
-
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 /**
  * A class for manipulating Git repositories
@@ -66,6 +68,12 @@ public final class GitOrigin implements Origin {
     }
     repository.simpleCommand("fetch", "-f", repoUrl, ref);
     repository.withWorkTree(workdir).simpleCommand("checkout", "-f", "FETCH_HEAD");
+  }
+
+  @Override
+  public ImmutableList<Change> changes(@Nullable String previousRef,
+      @Nullable String reference) throws RepoException {
+    throw new CannotComputeChangesException("not supported");
   }
 
   @Override

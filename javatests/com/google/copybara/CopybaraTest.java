@@ -6,8 +6,6 @@ import com.google.common.truth.Truth;
 import com.google.copybara.config.Config;
 import com.google.copybara.git.GitOptions;
 
-import javax.annotation.Nullable;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -16,6 +14,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import javax.annotation.Nullable;
 
 @RunWith(JUnit4.class)
 public class CopybaraTest {
@@ -29,6 +29,12 @@ public class CopybaraTest {
         @Override
         public void process(Path workdir) {
           timesProcessed++;
+        }
+
+        @Nullable
+        @Override
+        public String getPreviousRef() {
+          return null;
         }
       };
     }
@@ -51,6 +57,12 @@ public class CopybaraTest {
             } catch (IOException e) {
               throw new RepoException("Unexpected error", e);
             }
+          }
+
+          @Override
+          public ImmutableList<Change> changes(String oldRef, @Nullable String newRef)
+              throws RepoException {
+            throw new CannotComputeChangesException("not supported");
           }
         };
       }

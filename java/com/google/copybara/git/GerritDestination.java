@@ -8,6 +8,8 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 
+import javax.annotation.Nullable;
+
 /**
  * Gerrit repository destination.
  */
@@ -40,6 +42,14 @@ public final class GerritDestination extends AbstractGitDestination {
         .append(changeIdHasher.hash())
         .append("\n")
         .toString();
+  }
+
+  @Nullable
+  @Override
+  public String getPreviousRef() throws RepoException {
+    // This doesn't make sense for Gerrit since we do not plan to use previous ref for
+    // pull requests.
+    return null;
   }
 
   public static final class Yaml extends AbstractYaml {
