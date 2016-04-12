@@ -32,14 +32,14 @@ public final class CommandOutput {
   /**
    * Returns stdout as a UTF-8 String.
    */
-  public String getStdoutAsString() {
+  public String getStdout() {
     return new String(stdout, StandardCharsets.UTF_8);
   }
 
   /**
    * Returns stderr as a UTF-8 String.
    */
-  public String getStderrAsString() {
+  public String getStderr() {
     return new String(stderr, StandardCharsets.UTF_8);
   }
 
@@ -47,8 +47,8 @@ public final class CommandOutput {
   public String toString() {
     return "CommandOutput{" +
         "terminationStatus=" + terminationStatus +
-        ", stdout=" + getStdoutAsString() +
-        ", stderr=" + getStderrAsString() +
+        ", stdout=" + getStdout() +
+        ", stderr=" + getStderr() +
         '}';
   }
 }

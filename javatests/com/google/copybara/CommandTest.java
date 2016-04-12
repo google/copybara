@@ -22,6 +22,6 @@ public class CommandTest {
     Command command = new Command(new String[]{"echo", "hello", "world"});
     CommandOutput result = CommandUtil.executeCommand(command, /*verbose=*/false);
     assertThat(result.getTerminationStatus().success()).isTrue();
-    assertThat(result.getStdoutAsString()).isEqualTo("hello world\n");
+    assertThat(result.getStdout()).isEqualTo("hello world\n");
   }
 }

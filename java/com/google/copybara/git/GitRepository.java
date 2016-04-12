@@ -155,7 +155,7 @@ public final class GitRepository {
       if (result.getTerminationStatus().success()) {
         return result;
       }
-      throw new RepoException("Error on git command: " + result.getStderrAsString());
+      throw new RepoException("Error on git command: " + result.getStderr());
     } catch (BadExitStatusWithOutputException e) {
       String stderr = e.getStdErr();
 
