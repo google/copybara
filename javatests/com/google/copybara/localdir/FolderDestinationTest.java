@@ -2,14 +2,14 @@ package com.google.copybara.localdir;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.localdir.FolderDestination.Yaml;
-
-import com.beust.jcommander.internal.Lists;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,7 +55,8 @@ public class FolderDestinationTest {
 
     localOptions.localFolder = localFolder.toString();
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
-    Destination destination = yaml.withOptions(new Options(localOptions, generalOptions));
+    Destination destination = yaml.withOptions(
+        new Options(ImmutableList.of(localOptions, generalOptions)));
     destination.process(generalOptions.getWorkdir());
     assertFilesExist(localFolder, "one", "two", "root_file",
         "one/file.java", "two/file.java", "test.txt", "dir/file.txt");
@@ -66,7 +67,7 @@ public class FolderDestinationTest {
   public void testFolderDirRequired() throws IOException, RepoException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("--folder-dir is required");
-    yaml.withOptions(new Options(localOptions, generalOptions));
+    yaml.withOptions(new Options(ImmutableList.of(localOptions, generalOptions)));
   }
 
   private void assertFilesExist(Path base, String... paths) {

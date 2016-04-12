@@ -93,3 +93,15 @@ java_test(
         "//third_party:truth",
     ],
 )
+
+java_test(
+    name = "FolderDestinationTest",
+    size = "small",
+    srcs = ["localdir/FolderDestinationTest.java"],
+    test_class = "com.google.copybara.localdir.FolderDestinationTest",
+    deps = [
+        "//java/com/google/copybara:copybara_lib",
+        "//third_party:junit4",
+        "//third_party:truth",
+    ],
+)
