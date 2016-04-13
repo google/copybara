@@ -9,6 +9,8 @@ import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.Nullable;
+
 /**
  * Entry point for Copybara library.
  */
@@ -21,11 +23,12 @@ class Copybara {
     this.workdir = workdir;
   }
 
-  void runForSourceRef(Config config, String sourceRef) throws RepoException, IOException {
+  void runForSourceRef(Config config, @Nullable String sourceRef)
+      throws RepoException, IOException {
     logger.log(Level.INFO, "Running Copybara for " + config.getName()
         + " [" + config.getOrigin() + " ref:" + sourceRef + "]");
-
-    config.getOrigin().checkoutReference(sourceRef, workdir);
+    String resolvedRef = config.getOrigin().resolveReference(sourceRef);
+    config.getOrigin().checkoutReference(resolvedRef, workdir);
 
     for (Transformation transformation : config.getTransformations()) {
       logger.log(Level.INFO, " transforming: " + transformation.toString());

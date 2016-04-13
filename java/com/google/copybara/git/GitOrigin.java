@@ -1,5 +1,7 @@
 package com.google.copybara.git;
 
+import static com.google.copybara.git.GitRepository.isSha1Reference;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -47,15 +49,10 @@ public final class GitOrigin implements Origin {
     return repository;
   }
 
-  /**
-   * Creates a worktree with the contents of the ref {@code ref} for the repository {@code repoUrl}
-   *
-   * <p>Any content in the workdir is removed/overwritten.
-   */
+  // TODO(malcon): Refactor reference to return a Reference object.
   @Override
-  public void checkoutReference(@Nullable String reference, Path workdir) throws RepoException {
+  public String resolveReference(@Nullable String reference) throws RepoException {
     repository.initGitDir();
-
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
       if (defaultTrackingRef == null) {
@@ -67,12 +64,31 @@ public final class GitOrigin implements Origin {
       ref = reference;
     }
     repository.simpleCommand("fetch", "-f", repoUrl, ref);
-    repository.withWorkTree(workdir).simpleCommand("checkout", "-f", "FETCH_HEAD");
+    return repository.revParse("FETCH_HEAD");
+  }
+
+  /**
+   * Creates a worktree with the contents of the ref {@code ref} for the repository {@code repoUrl}
+   *
+   * <p>Any content in the workdir is removed/overwritten.
+   */
+  @Override
+  public void checkoutReference(String reference, Path workdir) throws RepoException {
+    repository.initGitDir();
+    Preconditions.checkArgument(
+        isSha1Reference(reference), "'%s' should be already resolved", reference);
+    String resolved = repository.revParse(reference);
+    // Should never happen unless a shortened ref is passed.
+    Preconditions.checkArgument(resolved.equals(reference),
+        "'%s' should resolve to the same ref. But was resolved to '%s'", reference, resolved);
+
+    repository.withWorkTree(workdir).simpleCommand("checkout", "-f", resolved);
   }
 
   @Override
-  public ImmutableList<Change> changes(@Nullable String previousRef,
-      @Nullable String reference) throws RepoException {
+  public ImmutableList<Change> changes(@Nullable String previousRef, String reference)
+      throws RepoException {
+    repository.initGitDir();
     throw new CannotComputeChangesException("not supported");
   }
 

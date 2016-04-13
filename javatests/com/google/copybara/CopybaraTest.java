@@ -49,6 +49,11 @@ public class CopybaraTest {
       public Origin withOptions(Options options) {
         return new Origin() {
           @Override
+          public String resolveReference(@Nullable String reference) {
+            return reference;
+          }
+
+          @Override
           public void checkoutReference(@Nullable String reference, Path workdir)
               throws RepoException {
             try {

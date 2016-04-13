@@ -9,7 +9,9 @@ import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -23,6 +25,9 @@ public class GitOriginTest {
   private GitOrigin origin;
   private Path remote;
   private Path workdir;
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException, RepoException {
@@ -52,7 +57,7 @@ public class GitOriginTest {
   @Test
   public void testCheckout() throws IOException, RepoException {
     // Check that we get can checkout a branch
-    origin.checkoutReference("master", workdir);
+    origin.checkoutReference(origin.resolveReference("master"), workdir);
     Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
@@ -62,7 +67,7 @@ public class GitOriginTest {
     git("add", "test.txt");
     git("commit", "-m", "second commit");
 
-    origin.checkoutReference("master", workdir);
+    origin.checkoutReference(origin.resolveReference("master"), workdir);
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("new content");
 
@@ -70,25 +75,42 @@ public class GitOriginTest {
     Files.delete(remote.resolve("test.txt"));
     git("rm", "test.txt");
     git("commit", "-m", "third commit");
-
-    origin.checkoutReference("master", workdir);
+    origin.checkoutReference(origin.resolveReference("master"), workdir);
 
     assertThat(Files.exists(testFile)).isFalse();
   }
 
   @Test
   public void testCheckoutWithLocalModifications() throws IOException, RepoException {
-    origin.checkoutReference("master", workdir);
+    String master = origin.resolveReference("master");
+    origin.checkoutReference(master, workdir);
     Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
     Files.delete(testFile);
 
-    origin.checkoutReference("master", workdir);
+    origin.checkoutReference(master, workdir);
 
     // The deletion in the workdir should not matter, since we should override in the next
     // checkout
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+  }
+
+  @Test
+  public void testUnresolvedReference() throws IOException, RepoException {
+    thrown.expect(IllegalArgumentException.class);
+    thrown.expectMessage("'master' should be already resolved");
+    origin.checkoutReference("master", workdir);
+  }
+
+  @Test
+  public void testUnresolvedShortSha1() throws IOException, RepoException {
+    String ref = origin.resolveReference("master");
+    String shortRef = ref.substring(0, 8);
+    thrown.expect(IllegalArgumentException.class);
+    thrown.expectMessage(
+        "'" + shortRef + "' should resolve to the same ref. But was resolved to '" + ref + "'");
+    origin.checkoutReference(shortRef, workdir);
   }
 }

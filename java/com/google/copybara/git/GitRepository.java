@@ -29,10 +29,13 @@ import java.util.regex.Pattern;
  * A class for manipulating Git repositories
  */
 public final class GitRepository {
-
+  // We allow shorter git sha1 prefixes, as does git.
+  private static final Pattern SHA1_REFERENCE = Pattern.compile("[0-9a-f]{7,40}");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
       ImmutableList.of(
           Pattern.compile("pathspec '(.+)' did not match any file"),
+          Pattern.compile(
+              "ambiguous argument '(.+)': unknown revision or path not in the working tree"),
           Pattern.compile("fatal: Couldn't find remote ref ([^\n]+)\n"));
 
   /**
@@ -91,6 +94,21 @@ public final class GitRepository {
    */
   public GitRepository withWorkTree(Path newWorkTree) {
     return new GitRepository(this.gitExecPath, this.gitDir, newWorkTree, this.verbose);
+  }
+
+  /**
+   * Resolves a git reference to the SHA-1 reference
+   */
+  public String revParse(String ref) throws RepoException {
+    // Runs rev-parse on the reference and remove the extra newline from the output.
+    return simpleCommand("rev-parse", ref).getStdout().trim();
+  }
+
+  /**
+   * Checks if a reference is a SHA-1 short or long reference
+   */
+  public static boolean isSha1Reference(String ref) {
+    return SHA1_REFERENCE.matcher(ref).matches();
   }
 
   /**
