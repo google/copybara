@@ -100,6 +100,9 @@ public final class GitRepository {
    * @param argv the arguments to pass to {@code git}, starting with the sub-command name
    */
   public CommandOutput simpleCommand(String... argv) throws RepoException {
+    Preconditions.checkState(Files.isDirectory(gitDir),
+        "git repository dir '%s' doesn't exist or is not a directory", gitDir);
+
     List<String> allArgv = new ArrayList<String>();
 
     allArgv.add("--git-dir=" + gitDir);
