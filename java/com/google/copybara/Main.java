@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.YamlParser;
 import com.google.copybara.git.GerritDestination;
+import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitDestination;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOrigin;
@@ -49,7 +50,7 @@ public class Main {
   private static final Logger logger = Logger.getLogger(Main.class.getName());
 
   protected Iterable<Option> getAllOptions() {
-    return ImmutableList.of(new LocalDestinationOptions(), new GitOptions());
+    return ImmutableList.of(new LocalDestinationOptions(), new GitOptions(), new GerritOptions());
   }
 
   protected Iterable<TypeDescription> getYamlTypeDescriptions() {

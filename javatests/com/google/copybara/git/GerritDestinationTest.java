@@ -3,6 +3,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -23,6 +24,8 @@ public class GerritDestinationTest {
   private Yaml yaml;
   private Path repoGitDir;
   private Path workdir;
+  private GerritOptions gerritOptions;
+  private GitOptions gitOptions;
 
   @Before
   public void setup() throws Exception {
@@ -32,6 +35,8 @@ public class GerritDestinationTest {
     git("init", "--bare", repoGitDir.toString());
 
     workdir = Files.createTempDirectory("GitDestinationTest-workdir");
+    gerritOptions = new GerritOptions();
+    gitOptions = new GitOptions();
   }
 
   private String git(String... argv) throws RepoException {
@@ -40,14 +45,9 @@ public class GerritDestinationTest {
         .getStdout();
   }
 
-  private GerritDestination destinationFirstCommit() {
-    GitOptions gitOptions = new GitOptions();
-    gitOptions.gitFirstCommit = true;
-    return yaml.withOptions(new Options(ImmutableList.of(gitOptions, new GeneralOptions())));
-  }
-
   private GerritDestination destination() {
-    return yaml.withOptions(new Options(ImmutableList.of(new GitOptions(), new GeneralOptions())));
+    return yaml.withOptions(
+        new Options(ImmutableList.of(gitOptions, gerritOptions, new GeneralOptions())));
   }
 
   private String lastCommitChangeIdLine() throws Exception {
@@ -63,15 +63,42 @@ public class GerritDestinationTest {
     yaml.setPullFromRef("master");
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
-    destinationFirstCommit().process(workdir);
+    gitOptions.gitFirstCommit = true;
+    destination().process(workdir);
 
     String firstChangeIdLine = lastCommitChangeIdLine();
 
     Files.write(workdir.resolve("file2"), "some more content".getBytes());
     git("branch", "master", "refs/for/master");
+    gitOptions.gitFirstCommit = false;
     destination().process(workdir);
 
     assertThat(firstChangeIdLine)
         .isNotEqualTo(lastCommitChangeIdLine());
+  }
+
+  @Test
+  public void specifyChangeId() throws Exception {
+    yaml.setPullFromRef("master");
+
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+
+    String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
+    gitOptions.gitFirstCommit = true;
+    gerritOptions.gerritChangeId = changeId;
+    destination().process(workdir);
+    assertThat(lastCommitChangeIdLine())
+        .isEqualTo("    Change-Id: " + changeId);
+
+    git("branch", "master", "refs/for/master");
+
+    Files.write(workdir.resolve("file"), "some different content".getBytes());
+
+    changeId = "Ibbbbbbbbbbccccccccccddddddddddeeeeeeeeee";
+    gitOptions.gitFirstCommit = false;
+    gerritOptions.gerritChangeId = changeId;
+    destination().process(workdir);
+    assertThat(lastCommitChangeIdLine())
+        .isEqualTo("    Change-Id: " + changeId);
   }
 }

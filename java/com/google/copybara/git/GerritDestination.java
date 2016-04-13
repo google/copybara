@@ -2,7 +2,8 @@
 package com.google.copybara.git;
 
 import com.google.common.base.Charsets;
-import com.google.common.hash.Hasher;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.hash.Hashing;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -14,9 +15,13 @@ import javax.annotation.Nullable;
  * Gerrit repository destination.
  */
 public final class GerritDestination extends AbstractGitDestination {
+
+  private final GerritOptions gerritOptions;
+
   private GerritDestination(String repoUrl, String pullFromRef,
-      GitOptions gitOptions, boolean verbose) {
+      GitOptions gitOptions, GerritOptions gerritOptions, boolean verbose) {
     super(repoUrl, pullFromRef, "refs/for/master", gitOptions, verbose);
+    this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
   }
 
   private String maybeParentHash(GitRepository repo) {
@@ -27,21 +32,22 @@ public final class GerritDestination extends AbstractGitDestination {
     }
   }
 
-  @Override
-  protected String commitMessage(GitRepository repo) throws RepoException {
-    StringBuilder message = new StringBuilder(super.commitMessage(repo));
+  private String changeId(GitRepository repo) throws RepoException {
+    if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
+      return gerritOptions.gerritChangeId;
+    }
 
-    message.append("\n\nChange-Id: I");
-
-    Hasher changeIdHasher = Hashing.sha1().newHasher()
+    return "I" + Hashing.sha1().newHasher()
         .putString(repo.simpleCommand("write-tree").getStdout(), Charsets.UTF_8)
         .putString(maybeParentHash(repo), Charsets.UTF_8)
         .putString(repo.simpleCommand("var", "GIT_AUTHOR_IDENT").getStdout(), Charsets.UTF_8)
-        .putString(repo.simpleCommand("var", "GIT_COMMITTER_IDENT").getStdout(), Charsets.UTF_8);
-    return message
-        .append(changeIdHasher.hash())
-        .append("\n")
-        .toString();
+        .putString(repo.simpleCommand("var", "GIT_COMMITTER_IDENT").getStdout(), Charsets.UTF_8)
+        .hash();
+  }
+
+  @Override
+  protected String commitMessage(GitRepository repo) throws RepoException {
+    return String.format("%s\n\nChange-Id: %s\n", super.commitMessage(repo), changeId(repo));
   }
 
   @Nullable
@@ -55,7 +61,9 @@ public final class GerritDestination extends AbstractGitDestination {
   public static final class Yaml extends AbstractYaml {
     @Override
     public GerritDestination withOptions(Options options) {
-      return new GerritDestination(url, pullFromRef, options.get(GitOptions.class),
+      return new GerritDestination(url, pullFromRef,
+          options.get(GitOptions.class),
+          options.get(GerritOptions.class),
           options.get(GeneralOptions.class).isVerbose());
     }
   }
