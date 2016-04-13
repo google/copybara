@@ -35,8 +35,9 @@ public class GitOriginTest {
     GitOptions gitOptions = new GitOptions();
     gitOptions.gitRepoStorage = reposDir.toString();
 
-    origin = yaml.withOptions(new Options(ImmutableList.of(gitOptions, new GeneralOptions())));
     workdir = Files.createTempDirectory("workdir");
+    origin = yaml.withOptions(
+        new Options(ImmutableList.of(gitOptions, new GeneralOptions(workdir, /*verbose=*/true))));
 
     git("init");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());

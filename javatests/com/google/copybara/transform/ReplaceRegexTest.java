@@ -32,8 +32,7 @@ public final class ReplaceRegexTest {
   public void setup() throws IOException {
     FileSystem fs = Jimfs.newFileSystem();
     yaml = new ReplaceRegex.Yaml();
-    GeneralOptions generalOptions = new GeneralOptions(fs);
-    generalOptions.init();
+    GeneralOptions generalOptions = new GeneralOptions(fs.getPath("/"), /*verbose=*/true);
     options = new Options(ImmutableList.of(generalOptions));
     root = generalOptions.getWorkdir();
   }

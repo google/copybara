@@ -72,7 +72,8 @@ public class CopybaraTest {
     CountTimesProcessedDestination destination = new CountTimesProcessedDestination();
     config.setDestination(destination);
     Path workdir = Files.createTempDirectory("workdir");
-    Options options = new Options(ImmutableList.of(new GitOptions(), new GeneralOptions()));
+    Options options = new Options(
+        ImmutableList.of(new GitOptions(), new GeneralOptions(workdir, /*verbose=*/true)));
     new Copybara(workdir).runForSourceRef(config.withOptions(options), "some_sha1");
     Truth.assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
         .contains("some_sha1");

@@ -38,10 +38,10 @@ import java.util.logging.Logger;
 public class Main {
 
   @Parameters(separators = "=")
-  private static final class Arguments implements Option {
+  private static final class Arguments {
 
     @Parameter(description = "CONFIG_PATH [SOURCE_REF]")
-    List<String> mainArgs = new ArrayList<>();
+    List<String> unnamed = new ArrayList<>();
 
     @Parameter(names = "--help", help = true, description = "Shows this help text")
     boolean help;
@@ -49,7 +49,7 @@ public class Main {
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
 
-  protected Iterable<Option> getAllOptions() {
+  protected List<Option> getAllOptions() {
     return ImmutableList.of(new LocalDestinationOptions(), new GitOptions(), new GerritOptions());
   }
 
@@ -71,28 +71,31 @@ public class Main {
   }
 
   protected void run(String[] args) {
-    Arguments generalArgs = new Arguments();
-    GeneralOptions generalOptions = new GeneralOptions();
-    ImmutableList<Option> options =
-        ImmutableList.<Option>builder().add(generalOptions).addAll(getAllOptions()).build();
-    JCommander jcommander =
-        new JCommander(ImmutableList.builder().addAll(options).add(generalArgs).build());
+    Arguments mainArgs = new Arguments();
+    GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
+    List<Option> options = new ArrayList<Option>(getAllOptions());
+    JCommander jcommander = new JCommander(ImmutableList.builder()
+        .addAll(options)
+        .add(mainArgs)
+        .add(generalOptionsArgs)
+        .build());
     jcommander.setProgramName("copybara");
 
     FileSystem fs = FileSystems.getDefault();
 
     try {
       jcommander.parse(args);
-      if (generalArgs.help) {
+      if (mainArgs.help) {
         System.out.print(usage(jcommander));
-      } else if (generalArgs.mainArgs.size() < 1) {
+      } else if (mainArgs.unnamed.size() < 1) {
         throw new CommandLineException("Expected at least a configuration file.");
-      } else if (generalArgs.mainArgs.size() > 2) {
+      } else if (mainArgs.unnamed.size() > 2) {
         throw new CommandLineException("Expect at most two arguments.");
       } else {
-        generalOptions.init();
-        String configPath = generalArgs.mainArgs.get(0);
-        String sourceRef = generalArgs.mainArgs.size() > 1 ? generalArgs.mainArgs.get(1) : null;
+        GeneralOptions generalOptions = generalOptionsArgs.init(FileSystems.getDefault());
+        options.add(generalOptions);
+        String configPath = mainArgs.unnamed.get(0);
+        String sourceRef = mainArgs.unnamed.size() > 1 ? mainArgs.unnamed.get(1) : null;
         Config config = loadConfig(fs.getPath(configPath), new Options(options));
         Path workdir = generalOptions.getWorkdir();
         new Copybara(workdir).runForSourceRef(config, sourceRef);

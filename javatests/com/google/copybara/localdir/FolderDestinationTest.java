@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -36,8 +37,7 @@ public class FolderDestinationTest {
   public void setup() throws IOException, RepoException {
     localOptions = new LocalDestinationOptions();
     yaml = new Yaml();
-    generalOptions = new GeneralOptions();
-    generalOptions.init();
+    generalOptions = new GeneralOptions.Args().init(FileSystems.getDefault());
     Path workdir = generalOptions.getWorkdir();
     Files.createDirectory(workdir.resolve("dir"));
     Files.write(workdir.resolve("test.txt"), new byte[]{});

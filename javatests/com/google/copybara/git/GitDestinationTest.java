@@ -58,11 +58,13 @@ public class GitDestinationTest {
   private GitDestination destinationFirstCommit() {
     GitOptions gitOptions = new GitOptions();
     gitOptions.gitFirstCommit = true;
-    return yaml.withOptions(new Options(ImmutableList.of(gitOptions, new GeneralOptions())));
+    return yaml.withOptions(
+        new Options(ImmutableList.of(gitOptions, new GeneralOptions(workdir, /*verbose=*/true))));
   }
 
   private GitDestination destination() {
-    return yaml.withOptions(new Options(ImmutableList.of(new GitOptions(), new GeneralOptions())));
+    return yaml.withOptions(new Options(
+        ImmutableList.of(new GitOptions(), new GeneralOptions(workdir, /*verbose=*/true))));
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {

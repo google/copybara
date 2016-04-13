@@ -46,8 +46,8 @@ public class GerritDestinationTest {
   }
 
   private GerritDestination destination() {
-    return yaml.withOptions(
-        new Options(ImmutableList.of(gitOptions, gerritOptions, new GeneralOptions())));
+    return yaml.withOptions(new Options(ImmutableList.of(
+        gitOptions, gerritOptions, new GeneralOptions(workdir, /*verbose=*/true))));
   }
 
   private String lastCommitChangeIdLine() throws Exception {
