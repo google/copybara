@@ -95,8 +95,7 @@ public final class ReplaceRegex implements Transformation {
       PathMatcher pathMatcher = FileUtil.ALL_FILES_MATCHER;
       if (path != null) {
         pathMatcher = FileUtil.relativeGlob(
-            options.getOption(GeneralOptions.class).getWorkdir(), path);
-        ;
+            options.get(GeneralOptions.class).getWorkdir(), path);
       }
 
       return new ReplaceRegex(pathMatcher,

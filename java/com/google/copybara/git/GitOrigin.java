@@ -94,7 +94,7 @@ public final class GitOrigin implements Origin {
     public GitOrigin withOptions(Options options) {
       ConfigValidationException.checkNotMissing(url, "url");
 
-      GitOptions gitConfig = options.getOption(GitOptions.class);
+      GitOptions gitConfig = options.get(GitOptions.class);
 
       Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
       Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));

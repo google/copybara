@@ -65,10 +65,10 @@ public class FolderDestination implements Destination {
     @Override
     public Destination withOptions(Options options) {
       ImmutableList.Builder<PathMatcher> pathMatchers = ImmutableList.builder();
-      GeneralOptions generalOptions = options.getOption(GeneralOptions.class);
+      GeneralOptions generalOptions = options.get(GeneralOptions.class);
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getWorkdir().getFileSystem();
-      String localFolderOption = options.getOption(LocalDestinationOptions.class).localFolder;
+      String localFolderOption = options.get(LocalDestinationOptions.class).localFolder;
       if (Strings.isNullOrEmpty(localFolderOption)) {
         throw new ConfigValidationException(
             "--folder-dir is required with FolderDestination destination");

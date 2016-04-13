@@ -45,8 +45,8 @@ public final class GerritDestination extends AbstractGitDestination {
   public static final class Yaml extends AbstractYaml {
     @Override
     public GerritDestination withOptions(Options options) {
-      return new GerritDestination(url, pullFromRef, options.getOption(GitOptions.class),
-          options.getOption(GeneralOptions.class).isVerbose());
+      return new GerritDestination(url, pullFromRef, options.get(GitOptions.class),
+          options.get(GeneralOptions.class).isVerbose());
     }
   }
 }

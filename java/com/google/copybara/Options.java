@@ -23,7 +23,7 @@ public class Options {
    * @throws IllegalStateException if the configuration cannot be found
    */
   @SuppressWarnings("unchecked")
-  public <T extends Option> T getOption(Class<? extends T> optionClass) {
+  public <T extends Option> T get(Class<? extends T> optionClass) {
     Option config = this.config.get(optionClass);
     if (config == null) {
       throw new IllegalStateException("No option type found for " + optionClass);

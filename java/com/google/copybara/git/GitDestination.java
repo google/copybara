@@ -39,8 +39,8 @@ public final class GitDestination extends AbstractGitDestination {
           url,
           ConfigValidationException.checkNotMissing(pullFromRef, "pullFromRef"),
           ConfigValidationException.checkNotMissing(pushToRef, "pushToRef"),
-          options.getOption(GitOptions.class),
-          options.getOption(GeneralOptions.class).isVerbose());
+          options.get(GitOptions.class),
+          options.get(GeneralOptions.class).isVerbose());
     }
   }
 }

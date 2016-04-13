@@ -58,13 +58,13 @@ public final class GitRepository {
   }
 
   public static GitRepository bareRepo(Path gitDir, Options options) {
-    GitOptions gitConfig = options.getOption(GitOptions.class);
+    GitOptions gitConfig = options.get(GitOptions.class);
 
     return new GitRepository(
         gitConfig.gitExecutable,
         gitDir,
         /*workTree=*/null,
-        options.getOption(GeneralOptions.class).isVerbose());
+        options.get(GeneralOptions.class).isVerbose());
   }
 
   /**
