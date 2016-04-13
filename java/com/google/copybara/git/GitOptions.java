@@ -6,7 +6,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
 /**
- * Arguments for GitRepository
+ * Arguments for {@link GitDestination}, {@link GitOrigin}, and other Git components.
  */
 @Parameters(separators = "=")
 public final class GitOptions implements Option {
