@@ -9,6 +9,7 @@ java_test(
     test_class = "com.google.copybara.CopybaraTest",
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:junit4",
         "//third_party:truth",
@@ -36,6 +37,7 @@ java_test(
     test_class = "com.google.copybara.git.GitDestinationTest",
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:guava",
         "//third_party:junit4",
         "//third_party:shell",
         "//third_party:truth",
@@ -50,6 +52,7 @@ java_test(
     test_class = "com.google.copybara.git.GerritDestinationTest",
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:guava",
         "//third_party:junit4",
         "//third_party:shell",
         "//third_party:truth",
@@ -64,6 +67,7 @@ java_test(
     test_class = "com.google.copybara.git.GitOriginTest",
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:guava",
         "//third_party:junit4",
         "//third_party:shell",
         "//third_party:truth",
@@ -90,6 +94,7 @@ java_test(
     test_class = "com.google.copybara.transform.DeletePathTest",
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:guava",
         "//third_party:jimfs",
         "//third_party:junit4",
         "//third_party:truth",
@@ -103,6 +108,7 @@ java_test(
     test_class = "com.google.copybara.transform.ReplaceRegexTest",
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:guava",
         "//third_party:jimfs",
         "//third_party:junit4",
         "//third_party:truth",
@@ -116,6 +122,7 @@ java_test(
     test_class = "com.google.copybara.localdir.FolderDestinationTest",
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//third_party:guava",
         "//third_party:junit4",
         "//third_party:truth",
     ],
