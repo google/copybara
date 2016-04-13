@@ -13,7 +13,7 @@ java_binary(
         ":copybara_lib",
         "//third_party:guava",
         "//third_party:jcommander",
-        "@snakeyaml//jar",
+        "//third-party:snakeyaml",
     ],
 )
 
