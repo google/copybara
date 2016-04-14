@@ -1,7 +1,5 @@
 package com.google.copybara.git;
 
-import static com.google.copybara.git.GitRepository.isSha1Reference;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -21,7 +19,7 @@ import javax.annotation.Nullable;
 /**
  * A class for manipulating Git repositories
  */
-public final class GitOrigin implements Origin {
+public final class GitOrigin implements Origin<GitOrigin> {
 
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
@@ -51,7 +49,7 @@ public final class GitOrigin implements Origin {
 
   // TODO(malcon): Refactor reference to return a Reference object.
   @Override
-  public String resolveReference(@Nullable String reference) throws RepoException {
+  public Reference<GitOrigin> resolve(@Nullable String reference) throws RepoException {
     repository.initGitDir();
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
@@ -64,31 +62,12 @@ public final class GitOrigin implements Origin {
       ref = reference;
     }
     repository.simpleCommand("fetch", "-f", repoUrl, ref);
-    return repository.revParse("FETCH_HEAD");
-  }
-
-  /**
-   * Creates a worktree with the contents of the ref {@code ref} for the repository {@code repoUrl}
-   *
-   * <p>Any content in the workdir is removed/overwritten.
-   */
-  @Override
-  public void checkoutReference(String reference, Path workdir) throws RepoException {
-    repository.initGitDir();
-    Preconditions.checkArgument(
-        isSha1Reference(reference), "'%s' should be already resolved", reference);
-    String resolved = repository.revParse(reference);
-    // Should never happen unless a shortened ref is passed.
-    Preconditions.checkArgument(resolved.equals(reference),
-        "'%s' should resolve to the same ref. But was resolved to '%s'", reference, resolved);
-
-    repository.withWorkTree(workdir).simpleCommand("checkout", "-f", resolved);
+    return new GitReference(repository.revParse("FETCH_HEAD"));
   }
 
   @Override
-  public ImmutableList<Change> changes(@Nullable String previousRef, String reference)
-      throws RepoException {
-    repository.initGitDir();
+  public ImmutableList<Change<GitOrigin>> changes(@Nullable Reference<GitOrigin> fromRef,
+      Reference<GitOrigin> toRef) throws RepoException {
     throw new CannotComputeChangesException("not supported");
   }
 
@@ -101,7 +80,36 @@ public final class GitOrigin implements Origin {
         '}';
   }
 
-  public final static class Yaml implements Origin.Yaml {
+  private final class GitReference implements Reference<GitOrigin> {
+
+    private final String reference;
+
+    private GitReference(String reference) {
+      this.reference = reference;
+    }
+
+    /**
+     * Creates a worktree with the contents of the git reference
+     *
+     * <p>Any content in the workdir is removed/overwritten.
+     */
+    @Override
+    public void checkout(Path workdir) throws RepoException {
+      repository.withWorkTree(workdir).simpleCommand("checkout", "-f", reference);
+    }
+
+    @Override
+    public String asString() {
+      return reference;
+    }
+
+    @Override
+    public String toString() {
+      return "GitReference{reference='" + reference + "', repoUrl=" + repoUrl + '}';
+    }
+  }
+
+  public final static class Yaml implements Origin.Yaml<GitOrigin> {
 
     private String url;
     private String defaultTrackingRef;

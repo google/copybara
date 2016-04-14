@@ -14,8 +14,6 @@ import com.google.copybara.util.CommandOutput;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,12 +23,13 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 /**
  * A class for manipulating Git repositories
  */
 public final class GitRepository {
-  // We allow shorter git sha1 prefixes, as does git.
-  private static final Pattern SHA1_REFERENCE = Pattern.compile("[0-9a-f]{7,40}");
+
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
       ImmutableList.of(
           Pattern.compile("pathspec '(.+)' did not match any file"),
@@ -102,13 +101,6 @@ public final class GitRepository {
   public String revParse(String ref) throws RepoException {
     // Runs rev-parse on the reference and remove the extra newline from the output.
     return simpleCommand("rev-parse", ref).getStdout().trim();
-  }
-
-  /**
-   * Checks if a reference is a SHA-1 short or long reference
-   */
-  public static boolean isSha1Reference(String ref) {
-    return SHA1_REFERENCE.matcher(ref).matches();
   }
 
   /**

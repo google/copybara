@@ -9,11 +9,34 @@ import javax.annotation.Nullable;
 /**
  * A {@code Origin} represents a source control repository from which source is copied.
  */
-public interface Origin {
+public interface Origin<O extends Origin<O>> {
 
-  interface Yaml {
+  interface Yaml<O extends Origin<O>> {
 
-    Origin withOptions(Options options);
+    Origin<O> withOptions(Options options);
+  }
+
+  /**
+   * A reference of Origin. For example in Git it would be a referenc to a commit SHA-1.
+   *
+   * @param <O> the origin type of the reference
+   */
+  interface Reference<O extends Origin<O>> {
+
+    /**
+     * Checks out the reference from the repository into {@code workdir} directory.
+     *
+     * @throws RepoException if any error happens during the checkout or workdir preparation.
+     */
+    void checkout(Path workdir) throws RepoException;
+
+    /**
+     * String representation of the reference that can be parsed by {@link Origin#resolve(String)}.
+     *
+     * <p> Unlike {@link #toString()} method, this method is guaranteed to be stable.
+     */
+    String asString();
+
   }
 
   /**
@@ -23,24 +46,17 @@ public interface Origin {
    * Origin.
    * @throws RepoException if any error happens during the resolve.
    */
-  String resolveReference(@Nullable String reference) throws RepoException;
+  Reference<O> resolve(@Nullable String reference) throws RepoException;
 
   /**
-   * Checks out {@code reference} from the repository into {@code workdir} directory.
+   * Returns the changes that happen in the interval (fromRef, toRef].
    *
-   * @throws RepoException if any error happens during the checkout or workdir preparation.
-   */
-  void checkoutReference(String reference, Path workdir) throws RepoException;
-
-  /**
-   * Returns the changes that happen in the interval (previousRef, reference].
-   *
-   * @param previousRef the reference used in the latest invocation. If null it means that no
+   * @param fromRef the reference used in the latest invocation. If null it means that no
    * previous ref could be found or that the destination didn't store the ref.
-   * @param reference current reference to transform.
+   * @param toRef current reference to transform.
    * @throws CannotComputeChangesException if the change list cannot be computed.
    * @throws RepoException if any error happens during the computation of the diff.
    */
-  ImmutableList<Change> changes(@Nullable String previousRef, String reference)
+  ImmutableList<Change<O>> changes(@Nullable Reference<O> fromRef, Reference<O> toRef)
       throws RepoException;
 }

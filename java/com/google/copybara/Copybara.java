@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.Config;
 import com.google.copybara.transform.Transformation;
 
@@ -27,8 +28,8 @@ class Copybara {
       throws RepoException, IOException {
     logger.log(Level.INFO, "Running Copybara for " + config.getName()
         + " [" + config.getOrigin() + " ref:" + sourceRef + "]");
-    String resolvedRef = config.getOrigin().resolveReference(sourceRef);
-    config.getOrigin().checkoutReference(resolvedRef, workdir);
+    Reference<?> resolvedRef = config.getOrigin().resolve(sourceRef);
+    resolvedRef.checkout(workdir);
 
     for (Transformation transformation : config.getTransformations()) {
       logger.log(Level.INFO, " transforming: " + transformation.toString());

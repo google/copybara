@@ -44,32 +44,10 @@ public class CopybaraTest {
   public void doNothing() throws IOException, RepoException {
     Config.Yaml config = new Config.Yaml();
     config.setName("name");
-    config.setOrigin(new Origin.Yaml() {
+    config.setOrigin(new Origin.Yaml<DummyOrigin>() {
       @Override
-      public Origin withOptions(Options options) {
-        return new Origin() {
-          @Override
-          public String resolveReference(@Nullable String reference) {
-            return reference;
-          }
-
-          @Override
-          public void checkoutReference(@Nullable String reference, Path workdir)
-              throws RepoException {
-            try {
-              Files.createDirectories(workdir);
-              Files.write(workdir.resolve("file.txt"), reference.getBytes());
-            } catch (IOException e) {
-              throw new RepoException("Unexpected error", e);
-            }
-          }
-
-          @Override
-          public ImmutableList<Change> changes(String oldRef, @Nullable String newRef)
-              throws RepoException {
-            throw new CannotComputeChangesException("not supported");
-          }
-        };
+      public DummyOrigin withOptions(Options options) {
+        return new DummyOrigin();
       }
     });
 
@@ -83,5 +61,34 @@ public class CopybaraTest {
     Truth.assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
         .contains("some_sha1");
     Truth.assertThat(destination.timesProcessed).isEqualTo(1);
+  }
+
+  private static class DummyOrigin implements Origin<DummyOrigin> {
+
+    @Override
+    public Reference<DummyOrigin> resolve(@Nullable final String reference) {
+      return new Reference<DummyOrigin>() {
+        @Override
+        public void checkout(Path workdir) throws RepoException {
+          try {
+            Files.createDirectories(workdir);
+            Files.write(workdir.resolve("file.txt"), reference.getBytes());
+          } catch (IOException e) {
+            throw new RepoException("Unexpected error", e);
+          }
+        }
+
+        @Override
+        public String asString() {
+          return reference;
+        }
+      };
+    }
+
+    @Override
+    public ImmutableList<Change<DummyOrigin>> changes(Reference<DummyOrigin> oldRef,
+        @Nullable Reference<DummyOrigin> newRef) throws RepoException {
+      throw new CannotComputeChangesException("not supported");
+    }
   }
 }
