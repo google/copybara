@@ -21,29 +21,33 @@ public class GeneralOptionsTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
+  private GeneralOptions.Args generalOptionsArgs;
   private FileSystem fs;
-  private GeneralOptions generalOptions;
 
   @Before
   public void setup() {
+    generalOptionsArgs = new GeneralOptions.Args();
     fs = Jimfs.newFileSystem();
-    generalOptions = new GeneralOptions(fs);
+  }
+
+  private GeneralOptions init() throws IOException {
+    return generalOptionsArgs.init(fs);
   }
 
   @Test
   public void getWorkdirNormalized() throws Exception {
-    generalOptions.workdir = "/some/../path/..";
-    generalOptions.init();
-    assertThat(generalOptions.getWorkdir().toString()).isEqualTo("/");
+    generalOptionsArgs.workdir = "/some/../path/..";
+    assertThat(init().getWorkdir().toString())
+        .isEqualTo("/");
   }
 
   @Test
   public void getWorkdirIsNotDirectory() throws Exception {
     Files.write(fs.getPath("file"), "hello".getBytes());
 
-    generalOptions.workdir = "file";
+    generalOptionsArgs.workdir = "file";
     thrown.expect(IOException.class);
     thrown.expectMessage("'file' exists and is not a directory");
-    generalOptions.init();
+    init();
   }
 }
