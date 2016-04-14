@@ -5,49 +5,75 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.hash.Hashing;
+import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
+
+import java.nio.file.Path;
 
 import javax.annotation.Nullable;
 
 /**
  * Gerrit repository destination.
  */
-public final class GerritDestination extends AbstractGitDestination {
+public final class GerritDestination implements Destination {
 
-  private final GerritOptions gerritOptions;
+  private static final class CommitGenerator implements GitDestination.CommitGenerator {
 
-  private GerritDestination(String repoUrl, String pullFromRef,
-      GitOptions gitOptions, GerritOptions gerritOptions, boolean verbose) {
-    super(repoUrl, pullFromRef, "refs/for/master", gitOptions, verbose);
-    this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
-  }
+    private final GerritOptions gerritOptions;
 
-  private String maybeParentHash(GitRepository repo) {
-    try {
-      return repo.simpleCommand("rev-parse", "HEAD^0").getStdout();
-    } catch (RepoException e) {
-      return "";
-    }
-  }
-
-  private String changeId(GitRepository repo) throws RepoException {
-    if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
-      return gerritOptions.gerritChangeId;
+    CommitGenerator(GerritOptions gerritOptions) {
+      this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
     }
 
-    return "I" + Hashing.sha1().newHasher()
-        .putString(repo.simpleCommand("write-tree").getStdout(), Charsets.UTF_8)
-        .putString(maybeParentHash(repo), Charsets.UTF_8)
-        .putString(repo.simpleCommand("var", "GIT_AUTHOR_IDENT").getStdout(), Charsets.UTF_8)
-        .putString(repo.simpleCommand("var", "GIT_COMMITTER_IDENT").getStdout(), Charsets.UTF_8)
-        .hash();
+    /**
+     * Generates a message with a trailing Gerrit change id in the form:
+     *
+     * <pre>
+     * Change-Id: I{SHA1 hash}
+     * </pre>
+     *
+     * Where the hash is generated from the data in the current tree and other data, including the
+     * values of the git variables {@code GIT_AUTHOR_IDENT} and {@code GIT_COMMITTER_IDENT}.
+     */
+    @Override
+    public String message(GitRepository repo) throws RepoException {
+      return String.format("Copybara commit\n\nChange-Id: %s\n", changeId(repo));
+    }
+
+    private String maybeParentHash(GitRepository repo) {
+      try {
+        return repo.simpleCommand("rev-parse", "HEAD^0").getStdout();
+      } catch (RepoException e) {
+        return "";
+      }
+    }
+
+    private String changeId(GitRepository repo) throws RepoException {
+      if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
+        return gerritOptions.gerritChangeId;
+      }
+
+      return "I" + Hashing.sha1().newHasher()
+          .putString(repo.simpleCommand("write-tree").getStdout(), Charsets.UTF_8)
+          .putString(maybeParentHash(repo), Charsets.UTF_8)
+          .putString(repo.simpleCommand("var", "GIT_AUTHOR_IDENT").getStdout(), Charsets.UTF_8)
+          .putString(repo.simpleCommand("var", "GIT_COMMITTER_IDENT").getStdout(), Charsets.UTF_8)
+          .hash();
+    }
+
+  }
+
+  private final GitDestination gitDestination;
+
+  private GerritDestination(GitDestination gitDestination) {
+    this.gitDestination = Preconditions.checkNotNull(gitDestination);
   }
 
   @Override
-  protected String commitMessage(GitRepository repo) throws RepoException {
-    return String.format("%s\n\nChange-Id: %s\n", super.commitMessage(repo), changeId(repo));
+  public void process(Path workdir) throws RepoException {
+    gitDestination.process(workdir);
   }
 
   @Nullable
@@ -58,13 +84,15 @@ public final class GerritDestination extends AbstractGitDestination {
     return null;
   }
 
-  public static final class Yaml extends AbstractYaml {
+  public static final class Yaml extends GitDestination.AbstractYaml {
     @Override
     public GerritDestination withOptions(Options options) {
-      return new GerritDestination(url, pullFromRef,
-          options.get(GitOptions.class),
-          options.get(GerritOptions.class),
-          options.get(GeneralOptions.class).isVerbose());
+      return new GerritDestination(
+          new GitDestination(
+              url, pullFromRef, "refs/for/master",
+              options.get(GitOptions.class),
+              options.get(GeneralOptions.class).isVerbose(),
+              new CommitGenerator(options.get(GerritOptions.class))));
     }
   }
 }
