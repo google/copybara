@@ -1,4 +1,4 @@
-def all_tests(tests, deps):
+def all_tests(tests, deps, tags=[]):
   for file in tests:
     relative_target = file[:-5]
     suffix = relative_target.replace("/", ".")
@@ -9,4 +9,5 @@ def all_tests(tests, deps):
       srcs = [file],
       test_class = test_class,
       deps = deps,
+      tags = tags,
     )
