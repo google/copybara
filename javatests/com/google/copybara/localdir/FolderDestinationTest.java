@@ -37,7 +37,8 @@ public class FolderDestinationTest {
   public void setup() throws IOException, RepoException {
     localOptions = new LocalDestinationOptions();
     yaml = new Yaml();
-    generalOptions = new GeneralOptions.Args().init(FileSystems.getDefault());
+    generalOptions = new GeneralOptions(
+        Files.createTempDirectory("FolderDestinationTest"), /*verbose=*/true);
     Path workdir = generalOptions.getWorkdir();
     Files.createDirectory(workdir.resolve("dir"));
     Files.write(workdir.resolve("test.txt"), new byte[]{});

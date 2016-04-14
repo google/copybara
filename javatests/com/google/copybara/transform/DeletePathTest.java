@@ -30,11 +30,11 @@ public class DeletePathTest {
   public void setup() throws IOException {
     FileSystem fs = Jimfs.newFileSystem();
     yaml = new DeletePath.Yaml();
-    generalOptions = new GeneralOptions.Args().init(fs);
+    generalOptions = new GeneralOptions(fs.getPath("/workdir"), /*verbose=*/true);
     workdir = generalOptions.getWorkdir();
 
     Path folder = workdir.resolve("folder");
-    Files.createDirectory(folder);
+    Files.createDirectories(folder);
     touchFile("folder/file.txt");
     touchFile("folder/subfolder/file.txt");
     touchFile("folder/subfolder/file.java");
