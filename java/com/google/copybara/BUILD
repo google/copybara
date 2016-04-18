@@ -27,6 +27,7 @@ java_library(
         "//visibility:public",
     ],
     deps = [
+        "//java/com/google/copybara/doc:annotations",
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",

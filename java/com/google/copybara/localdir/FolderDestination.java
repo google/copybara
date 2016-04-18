@@ -8,6 +8,8 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.shell.Command;
@@ -63,10 +65,13 @@ public class FolderDestination implements Destination {
     return null;
   }
 
+  @DocElement(yamlName = "!FolderDestination", elementKind = Destination.class,
+      description = "A folder destination is a destination that puts the output in a folder.")
   public static class Yaml implements Destination.Yaml {
 
     List<String> excludePathsForDeletion = ImmutableList.of();
 
+    @DocField(description = "Exclude the following paths from deletion if the destination folder exist.", required = false, defaultValue = "[]")
     public void setExcludePathsForDeletion(List<String> excludePathsForDeletion) {
       this.excludePathsForDeletion = excludePathsForDeletion;
     }

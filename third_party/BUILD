@@ -1,16 +1,28 @@
 licenses(["notice"])  # Apache 2.0
 
+package_group(
+    name = "copybara_pkgs",
+        packages = [
+        "//java/com/google/copybara/...",
+        "//javatests/com/google/copybara/...",
+        ],
+)
+
 package(
-    default_visibility = [
-        "//java/com/google/copybara:__pkg__",
-        "//javatests/com/google/copybara:__pkg__",
-    ],
+    default_visibility = [":copybara_pkgs"],
 )
 
 java_library(
     name = "guava",
     exports = [
         "@guava//jar",
+    ],
+)
+
+java_library(
+    name = "autocommon",
+    exports = [
+        "@autocommon//jar",
     ],
 )
 
