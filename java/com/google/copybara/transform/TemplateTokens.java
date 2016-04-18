@@ -3,10 +3,15 @@ package com.google.copybara.transform;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.google.copybara.config.ConfigValidationException;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * A string which is interpolated with named variables. The string is composed of interpolated and
@@ -35,20 +40,76 @@ public final class TemplateTokens {
     }
   }
 
-  private final ImmutableList<Token> components;
+  private final String template;
+  private final ImmutableList<Token> tokens;
 
-  private TemplateTokens(ImmutableList<Token> components) {
-    this.components = Preconditions.checkNotNull(components);
+  private TemplateTokens(String template, ImmutableList<Token> tokens) {
+    this.template = Preconditions.checkNotNull(template);
+    this.tokens = Preconditions.checkNotNull(tokens);
   }
 
   @Override
   public String toString() {
-    return components.toString();
+    return tokens.toString();
   }
 
-  private static void addLiteralIfNotEmpty(List<Token> components, String literal) {
+  /**
+   * Returns the original string from which this sequence of tokens was parsed.
+   */
+  public String template() {
+    return template;
+  }
+
+  /**
+   * Converts this sequence of tokens into a regex which can be used to search a string. It
+   * automatically quotes literals and represents interpolations as named groups.
+   */
+  public Pattern toRegex(ImmutableMap<String, Pattern> regexesByInterpolationName) {
+    StringBuilder fullPattern = new StringBuilder();
+    for (Token token : tokens) {
+      switch (token.type) {
+        case INTERPOLATION:
+          fullPattern.append(String.format("(?<%s>%s)",
+              token.value, regexesByInterpolationName.get(token.value).pattern()));
+          break;
+        case LITERAL:
+          fullPattern.append(Pattern.quote(token.value));
+          break;
+        default:
+          throw new IllegalStateException(token.type.toString());
+      }
+    }
+    return Pattern.compile(fullPattern.toString());
+  }
+
+  /**
+   * Checks that the set of interpolated tokens matches {@code definedInterpolations}.
+   *
+   * @throws ConfigValidationException if the set of interpolations in this does not match the set
+   * passed
+   */
+  public void validateInterpolations(Set<String> definedInterpolations) {
+    Set<String> used = new HashSet<>();
+    for (Token token : tokens) {
+      if (token.type == TokenType.INTERPOLATION) {
+        used.add(token.value);
+      }
+    }
+    Set<String> undefined = Sets.difference(used, definedInterpolations);
+    if (!undefined.isEmpty()) {
+      throw new ConfigValidationException(
+          "Following interpolations are used but not defined: " + undefined);
+    }
+    Set<String> unused = Sets.difference(definedInterpolations, used);
+    if (!unused.isEmpty()) {
+      throw new ConfigValidationException(
+          "Following interpolations are defined but not used: " + unused);
+    }
+  }
+
+  private static void addLiteralIfNotEmpty(List<Token> tokens, String literal) {
     if (!literal.isEmpty()) {
-      components.add(new Token(literal, TokenType.LITERAL));
+      tokens.add(new Token(literal, TokenType.LITERAL));
     }
   }
 
@@ -60,7 +121,7 @@ public final class TemplateTokens {
    */
   public static TemplateTokens parse(String template) {
     StringBuilder currentLiteral = new StringBuilder();
-    List<Token> components = new ArrayList<>();
+    List<Token> tokens = new ArrayList<>();
     int c = 0;
     while (c < template.length()) {
       char thisChar = template.charAt(c);
@@ -76,7 +137,7 @@ public final class TemplateTokens {
           currentLiteral.append('$');
           break;
         case '{':
-          addLiteralIfNotEmpty(components, currentLiteral.toString());
+          addLiteralIfNotEmpty(tokens, currentLiteral.toString());
           currentLiteral = new StringBuilder();
           int terminating = template.indexOf('}', c);
           if (terminating == -1) {
@@ -86,7 +147,7 @@ public final class TemplateTokens {
             throw new ConfigValidationException(
                 "Expect non-empty interpolated value name: " + template);
           }
-          components.add(
+          tokens.add(
               new Token(template.substring(c, terminating), TokenType.INTERPOLATION));
           c = terminating + 1;
           break;
@@ -94,7 +155,7 @@ public final class TemplateTokens {
           throw new ConfigValidationException("Expect $ or { after every $ in string: " + template);
       }
     }
-    addLiteralIfNotEmpty(components, currentLiteral.toString());
-    return new TemplateTokens(ImmutableList.copyOf(components));
+    addLiteralIfNotEmpty(tokens, currentLiteral.toString());
+    return new TemplateTokens(template, ImmutableList.copyOf(tokens));
   }
 }

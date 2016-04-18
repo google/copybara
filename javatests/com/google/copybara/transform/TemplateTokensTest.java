@@ -18,8 +18,9 @@ public final class TemplateTokensTest {
   public ExpectedException thrown = ExpectedException.none();
 
   private void assertParse(String raw, String toStringValue) {
-    assertThat(TemplateTokens.parse(raw).toString())
-        .isEqualTo(toStringValue);
+    TemplateTokens tokens = TemplateTokens.parse(raw);
+    assertThat(tokens.toString()).isEqualTo(toStringValue);
+    assertThat(tokens.template()).isEqualTo(raw);
   }
 
   @Test

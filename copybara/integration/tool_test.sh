@@ -48,21 +48,23 @@ destination: !GitDestination
   pullFromRef: "master"
   pushToRef: "master"
 transformations:
-  - !ReplaceRegex
-    regex:       food
-    replacement: drink
-  - !ReplaceRegex
-    regex:       f(o+)o
-    replacement: bar\$1
+  - !Replace
+    before:       food
+    after:        drink
+  - !Replace
+    before:       f\${os}o
+    after:        bar\${os}
+    regexGroups:
+      os: "o+"
 EOF
   $copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
   expect_log "Running Copybara for cbtest \[.*file://$remote.*\]"
-  expect_log 'transforming:.*ReplaceRegex.*drink'
-  expect_log 'apply s/food/drink/ to .*/test.txt$'
-  expect_log 'apply s/food/drink/ to .*/subdir/test.txt$'
+  expect_log 'transforming:.*Replace.*drink'
+  expect_log 'apply s/\\Qfood\\E/drink/ to .*/test.txt$'
+  expect_log 'apply s/\\Qfood\\E/drink/ to .*/subdir/test.txt$'
   expect_not_log 'apply .* to .*/subdir$'
-  expect_log 'transforming:.*ReplaceRegex.*bar'
+  expect_log 'transforming:.*Replace.*bar'
   expect_log 'Exporting .* to:'
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"

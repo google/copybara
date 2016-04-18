@@ -12,6 +12,7 @@ import com.google.copybara.git.GitOrigin;
 import com.google.copybara.localdir.FolderDestination;
 import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.transform.DeletePath;
+import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.ReplaceRegex;
 import com.google.copybara.util.ExitCode;
 
@@ -57,6 +58,7 @@ public class Main {
     return ImmutableList.of(
         // Transformations
         new TypeDescription(DeletePath.Yaml.class, "!DeletePath"),
+        new TypeDescription(Replace.Yaml.class, "!Replace"),
         new TypeDescription(ReplaceRegex.Yaml.class, "!ReplaceRegex"),
         // Origins
         new TypeDescription(GitOrigin.Yaml.class, "!GitOrigin"),
