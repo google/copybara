@@ -103,17 +103,26 @@ public class Main {
         new Copybara(workdir).runForSourceRef(config, sourceRef);
       }
     } catch (CommandLineException | ParameterException e) {
-      System.err.println("ERROR: " + e.getMessage());
+      printCauseChain(e);
       System.err.print(usage(jcommander));
       System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
     } catch (RepoException e) {
-      System.err.println("ERROR: " + e.getMessage());
+      printCauseChain(e);
       System.exit(ExitCode.REPOSITORY_ERROR.getCode());
     } catch (IOException e) {
       handleUnexpectedError(ExitCode.ENVIRONMENT_ERROR, "ERROR:" + e.getMessage(), e);
     } catch (RuntimeException e) {
       handleUnexpectedError(ExitCode.INTERNAL_ERROR, "Unexpected error: " + e.getMessage(), e);
     }
+  }
+
+  private static void printCauseChain(Throwable e) {
+    String prefix = "ERROR: ";
+    do {
+      System.err.println(prefix + e.getMessage());
+      prefix = "  CAUSED BY: ";
+      e = e.getCause();
+    } while (e != null);
   }
 
   private static void handleUnexpectedError(ExitCode errorType, String msg, Throwable e) {

@@ -94,8 +94,8 @@ public final class Replace implements Transformation {
       String roundTrippedLine = matcher.replaceAll(before.template());
       if (!roundTrippedLine.equals(originalLine)) {
         throw new NotRoundtrippableException(String.format(
-            "Text '%s' is not round-trippable with transform: %s",
-            originalLine, Replace.this));
+            "Text '%s' reverse-transforms to different string: '%s'",
+            originalLine, roundTrippedLine));
       }
       return newLine;
     }
