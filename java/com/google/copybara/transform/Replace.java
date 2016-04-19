@@ -81,6 +81,24 @@ public final class Replace implements Transformation {
 
   private final class TransformVisitor extends SimpleFileVisitor<Path> {
     final Pattern beforeRegex = before.toRegex(regexGroups);
+    final Pattern afterRegex = after.toRegex(regexGroups);
+
+    /**
+     * Transforms a single line which confirming that the current transformation can be applied in
+     * reverse to get the original line back.
+     */
+    private String transformLine(String originalLine) throws NotRoundtrippableException {
+      Matcher matcher = beforeRegex.matcher(originalLine);
+      String newLine = matcher.replaceAll(after.template());
+      matcher = afterRegex.matcher(newLine);
+      String roundTrippedLine = matcher.replaceAll(before.template());
+      if (!roundTrippedLine.equals(originalLine)) {
+        throw new NotRoundtrippableException(String.format(
+            "Text '%s' is not round-trippable with transform: %s",
+            originalLine, Replace.this));
+      }
+      return newLine;
+    }
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -94,8 +112,7 @@ public final class Replace implements Transformation {
           Splitter.on('\n').split(new String(Files.readAllBytes(file), UTF_8)));
       List<String> newLines = new ArrayList<>(originalLines.size());
       for (String line : originalLines) {
-        Matcher matcher = beforeRegex.matcher(line);
-        newLines.add(matcher.replaceAll(after.template()));
+        newLines.add(transformLine(line));
       }
       if (!originalLines.equals(newLines)) {
         try (Writer writer = new OutputStreamWriter(Files.newOutputStream(file), UTF_8)) {

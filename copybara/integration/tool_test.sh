@@ -147,10 +147,10 @@ destination: !GitDestination
   pullFromRef: master
   pushToRef: master
 transformations:
-  - !ReplaceRegex
-    path :       "**.java"
-    regex:       foo
-    replacement: bar
+  - !Replace
+    path:   "**.java"
+    before: foo
+    after:  bar
 EOF
   $copybara test.copybara > $TEST_log 2>&1
   ( cd $(mktemp -d)

@@ -249,6 +249,18 @@ public final class ReplaceTest {
     assertFileContents("before_and_after", "after ... still after");
   }
 
+  @Test
+  public void errorIfNotRoundTrippable() throws IOException {
+    yaml.setBefore("before");
+    yaml.setAfter("after");
+    writeFile(root.resolve("before_and_after"), "before_and_after");
+
+    thrown.expect(NotRoundtrippableException.class);
+    thrown.expectMessage("before_and_after");
+
+    yaml.withOptions(options).transform(root);
+  }
+
   private void prepareGlobTree() throws IOException {
     writeFile(root.resolve("file1.txt"), "foo");
     writeFile(root.resolve("file1.java"), "foo");
