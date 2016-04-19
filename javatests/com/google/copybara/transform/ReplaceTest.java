@@ -261,6 +261,16 @@ public final class ReplaceTest {
     yaml.withOptions(options).transform(root);
   }
 
+  @Test
+  public void showOriginalTemplateInToString() {
+    yaml.setBefore("a${b}c");
+    yaml.setAfter("c${b}a");
+    yaml.setRegexGroups(ImmutableMap.of("b", ".*"));
+    String string = yaml.withOptions(options).toString();
+    assertThat(string).contains("before=a${b}c");
+    assertThat(string).contains("after=c${b}a");
+  }
+
   private void prepareGlobTree() throws IOException {
     writeFile(root.resolve("file1.txt"), "foo");
     writeFile(root.resolve("file1.java"), "foo");

@@ -72,8 +72,8 @@ public final class Replace implements Transformation {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("before", before)
-        .add("after", after)
+        .add("before", before.template())
+        .add("after", after.template())
         .add("regexGroup", regexGroups)
         .add("fileMatcher", fileMatcher)
         .toString();
