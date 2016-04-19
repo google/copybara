@@ -67,7 +67,8 @@ public class FolderDestination implements Destination {
   }
 
   @DocElement(yamlName = "!FolderDestination", elementKind = Destination.class,
-      description = "A folder destination is a destination that puts the output in a folder.")
+      description = "A folder destination is a destination that puts the output in a folder.",
+      flags = LocalDestinationOptions.class)
   public static class Yaml implements Destination.Yaml {
 
     List<String> excludePathsForDeletion = ImmutableList.of();

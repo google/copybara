@@ -26,4 +26,9 @@ public @interface DocElement {
    * Kind of the element, can be Origin, Destination, etc.
    */
   Class<?> elementKind();
+
+  /**
+   * An associated flags class annotated with {@code Parameter}
+   */
+  Class<?> flags() default Object.class;
 }

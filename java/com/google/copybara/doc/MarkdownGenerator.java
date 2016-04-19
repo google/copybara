@@ -1,6 +1,7 @@
 package com.google.copybara.doc;
 
 import com.google.auto.common.BasicAnnotationProcessor;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -8,6 +9,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+
+import com.beust.jcommander.Parameter;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -23,6 +26,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.tools.Diagnostic.Kind;
@@ -98,6 +102,28 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         }
       }
       Element elementKind = getAnnotationTypeParam(classElement, "elementKind").asElement();
+      Element flags = getAnnotationTypeParam(classElement, "flags").asElement();
+      StringBuilder flagsString = new StringBuilder();
+      for (Element member : flags.getEnclosedElements()) {
+        Parameter flagAnnotation = member.getAnnotation(Parameter.class);
+        if (flagAnnotation != null && member instanceof VariableElement) {
+          VariableElement field = (VariableElement) member;
+          flagsString.append(Joiner.on(", ").join(flagAnnotation.names()));
+          flagsString.append(" | *");
+          flagsString.append(simplerJavaTypes(field));
+          flagsString.append("* | ");
+          flagsString.append(flagAnnotation.description());
+          flagsString.append("\n");
+        }
+      }
+
+      if (flagsString.length() > 0) {
+        sb.append("\n\n**Command line flags:**\n");
+        sb.append("Name | Type | Description\n");
+        sb.append("---- | ----------- | -----------\n");
+        sb.append(flagsString);
+      }
+
       docByElementType.put(elementKind, sb.toString());
     }
 
@@ -114,12 +140,25 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     }
   }
 
+
+  private String simplerJavaTypes(VariableElement field) {
+    String s = field.asType().toString();
+    if (s.startsWith("java.lang.")) {
+      return deCapitalize(s.substring("java.lang.".length()));
+    }
+    return s;
+  }
+
   /**
    * Extracts a YAML configuration field name from a Java setter. For example, for 'setField'
    * method, 'field' is returned.
    */
   private String setterToField(ExecutableElement setter) {
     String substring = setter.getSimpleName().toString().substring(3);
+    return deCapitalize(substring);
+  }
+
+  private String deCapitalize(String substring) {
     return Character.toLowerCase(substring.charAt(0)) + substring.substring(1);
   }
 

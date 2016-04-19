@@ -12,6 +12,7 @@ java_plugin(
 
     deps = [
         "//third_party:autocommon",
+        "//third_party:jcommander",
         "//third_party:guava",
     ],
 )
