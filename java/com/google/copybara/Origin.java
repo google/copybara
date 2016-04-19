@@ -11,6 +11,11 @@ import javax.annotation.Nullable;
  */
 public interface Origin<O extends Origin<O>> {
 
+  /**
+   * Field name used in commits messages to refer to the origin revision imported.
+   */
+  String COMMIT_ORIGIN_REFERENCE_FIELD = "Copybara-RevId";
+
   interface Yaml<O extends Origin<O>> {
 
     Origin<O> withOptions(Options options);

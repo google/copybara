@@ -23,20 +23,30 @@ function expect_in_file() {
   expect_log "$regex" || fail "Cannot find '$regex' in '$file'"
 }
 
+function check_copybara_rev_id() {
+   local repo="$1"
+   local origin_id="$2"
+   ( cd $repo
+     run_git log master -1 > $TEST_log
+     expect_log "Copybara-RevId: $origin_id"
+   )
+}
+
 function test_git_tracking() {
   remote=$(mktemp -d)
   repo_storage=$(mktemp -d)
   workdir=$(mktemp -d)
   destination=$(empty_git_bare_repo)
 
-  ( cd $remote
-    run_git init .
-    echo "first version for food and foooooo" > test.txt
-    mkdir subdir
-    echo "first version" > subdir/test.txt
-    run_git add test.txt subdir/test.txt
-    run_git commit -m "first commit"
-  )
+  pushd $remote
+  run_git init .
+  echo "first version for food and foooooo" > test.txt
+  mkdir subdir
+  echo "first version" > subdir/test.txt
+  run_git add test.txt subdir/test.txt
+  run_git commit -m "first commit"
+  first_commit=$(run_git rev-parse HEAD)
+  popd
 
   cat > test.copybara <<EOF
 name: "cbtest"
@@ -71,18 +81,23 @@ EOF
   cat $workdir/test.txt > $TEST_log
   expect_log "first version for drink and barooooo"
 
+  check_copybara_rev_id "$destination" "$first_commit"
+
   # Do a new modification and check that we are tracking the changes to the branch
-  ( cd $remote
-    echo "second version for food and foooooo" > test.txt
-    run_git add test.txt
-    run_git commit -m "second commit"
-  )
+  pushd $remote
+  echo "second version for food and foooooo" > test.txt
+  run_git add test.txt
+  run_git commit -m "second commit"
+  second_commit=$(run_git rev-parse HEAD)
+  popd
 
   $copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   expect_in_file "second version for drink and barooooo" $workdir/test.txt
+
+  check_copybara_rev_id "$destination" "$second_commit"
 
   ( cd $destination
     run_git show master > $TEST_log

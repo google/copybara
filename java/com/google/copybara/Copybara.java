@@ -40,6 +40,6 @@ class Copybara {
       }
     }
 
-    config.getDestination().process(workdir);
+    config.getDestination().process(workdir, resolvedRef.asString());
   }
 }

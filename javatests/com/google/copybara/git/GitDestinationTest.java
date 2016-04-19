@@ -6,6 +6,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
@@ -77,12 +78,17 @@ public class GitDestinationTest {
     assertThat(logResult.split("\n")).hasLength(expected);
   }
 
+  private void assertCommitHasOrigin(String branch) throws RepoException {
+    assertThat(git("--git-dir", repoGitDir.toString(), "log", "-n1", branch))
+        .contains("\n    " + Origin.COMMIT_ORIGIN_REFERENCE_FIELD + ": origin_ref\n");
+  }
+
   @Test
   public void processFirstCommit() throws Exception {
     yaml.setPullFromRef("testPullFromRef");
     yaml.setPushToRef("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    destinationFirstCommit().process(workdir);
+    destinationFirstCommit().process(workdir, "origin_ref");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "testPushToRef");
@@ -90,6 +96,8 @@ public class GitDestinationTest {
 
     assertFilesInDir(1, "testPushToRef", ".");
     assertCommitCount(1, "testPushToRef");
+
+    assertCommitHasOrigin("testPushToRef");
   }
 
   @Test
@@ -100,7 +108,7 @@ public class GitDestinationTest {
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'testPullFromRef' doesn't exist");
-    destination().process(workdir);
+    destination().process(workdir, "origin_ref");
   }
 
   @Test
@@ -109,19 +117,21 @@ public class GitDestinationTest {
     yaml.setPushToRef("pushToFoo");
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
-    destinationFirstCommit().process(workdir);
+    destinationFirstCommit().process(workdir, "origin_ref");
     git("--git-dir", repoGitDir.toString(), "branch", "pullFromBar", "pushToFoo");
 
     workdir = Files.createTempDirectory("processCommitDeletesAndAddsFiles-workdir");
     Files.write(workdir.resolve("1.txt"), "content 1".getBytes());
     Files.createDirectories(workdir.resolve("subdir"));
     Files.write(workdir.resolve("subdir/2.txt"), "content 2".getBytes());
-    destination().process(workdir);
+    destination().process(workdir, "origin_ref");
 
     // Make sure original file was deleted.
     assertFilesInDir(2, "pushToFoo", ".");
     assertFilesInDir(1, "pushToFoo", "subdir");
     // Make sure both commits are present.
     assertCommitCount(2, "pushToFoo");
+
+    assertCommitHasOrigin("pushToFoo");
   }
 }

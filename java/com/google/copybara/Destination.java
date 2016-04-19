@@ -18,8 +18,11 @@ public interface Destination {
 
   /**
    * Writes the fully-transformed repository stored at {@code workdir} to this destination.
+   *
+   * @param workdir directory containing the tree of files to put in destination
+   * @param originRef reference to the origin revision being moved
    */
-  void process(Path workdir) throws RepoException, IOException;
+  void process(Path workdir, String originRef) throws RepoException, IOException;
 
   /**
    * Returns the latest origin ref that was pushed to this destination.

@@ -3,10 +3,10 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GerritDestination.Yaml;
 
@@ -52,6 +52,8 @@ public class GerritDestinationTest {
 
   private String lastCommitChangeIdLine() throws Exception {
     String logOutput = git("log", "-n1", "refs/for/master");
+    assertThat(logOutput)
+        .contains("\n    " + Origin.COMMIT_ORIGIN_REFERENCE_FIELD + ": " + "origin_ref\n");
     String logLines[] = logOutput.split("\n");
     String changeIdLine = logLines[logLines.length - 1];
     assertThat(changeIdLine).matches("    Change-Id: I[0-9a-f]{40}$");
@@ -64,14 +66,14 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
     gitOptions.gitFirstCommit = true;
-    destination().process(workdir);
+    destination().process(workdir, "origin_ref");
 
     String firstChangeIdLine = lastCommitChangeIdLine();
 
     Files.write(workdir.resolve("file2"), "some more content".getBytes());
     git("branch", "master", "refs/for/master");
     gitOptions.gitFirstCommit = false;
-    destination().process(workdir);
+    destination().process(workdir, "origin_ref");
 
     assertThat(firstChangeIdLine)
         .isNotEqualTo(lastCommitChangeIdLine());
@@ -86,7 +88,7 @@ public class GerritDestinationTest {
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
     gitOptions.gitFirstCommit = true;
     gerritOptions.gerritChangeId = changeId;
-    destination().process(workdir);
+    destination().process(workdir, "origin_ref");
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
 
@@ -97,7 +99,7 @@ public class GerritDestinationTest {
     changeId = "Ibbbbbbbbbbccccccccccddddddddddeeeeeeeeee";
     gitOptions.gitFirstCommit = false;
     gerritOptions.gerritChangeId = changeId;
-    destination().process(workdir);
+    destination().process(workdir, "origin_ref");
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
   }

@@ -27,7 +27,7 @@ public class CopybaraTest {
     public Destination withOptions(Options options) {
       return new Destination() {
         @Override
-        public void process(Path workdir) {
+        public void process(Path workdir, String originRef) {
           timesProcessed++;
         }
 

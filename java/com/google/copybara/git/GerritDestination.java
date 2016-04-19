@@ -8,6 +8,7 @@ import com.google.common.hash.Hashing;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 
 import java.nio.file.Path;
@@ -38,8 +39,12 @@ public final class GerritDestination implements Destination {
      * values of the git variables {@code GIT_AUTHOR_IDENT} and {@code GIT_COMMITTER_IDENT}.
      */
     @Override
-    public String message(GitRepository repo) throws RepoException {
-      return String.format("Copybara commit\n\nChange-Id: %s\n", changeId(repo));
+    public String message(GitRepository repo, String originRef) throws RepoException {
+      return String.format("Copybara commit\n\n%s: %s\nChange-Id: %s\n",
+          Origin.COMMIT_ORIGIN_REFERENCE_FIELD,
+          originRef,
+          changeId(repo)
+      );
     }
 
     private String maybeParentHash(GitRepository repo) {
@@ -72,8 +77,8 @@ public final class GerritDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir) throws RepoException {
-    gitDestination.process(workdir);
+  public void process(Path workdir, String originRef) throws RepoException {
+    gitDestination.process(workdir, originRef);
   }
 
   @Nullable

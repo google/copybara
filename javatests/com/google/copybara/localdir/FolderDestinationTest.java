@@ -19,7 +19,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -61,7 +60,7 @@ public class FolderDestinationTest {
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
     Destination destination = yaml.withOptions(
         new Options(ImmutableList.of(localOptions, generalOptions)));
-    destination.process(generalOptions.getWorkdir());
+    destination.process(generalOptions.getWorkdir(), "origin_ref");
     assertFilesExist(localFolder, "one", "two", "root_file",
         "one/file.java", "two/file.java", "test.txt", "dir/file.txt");
     assertFilesDontExist(localFolder, "root_file2", "one/file.txt");

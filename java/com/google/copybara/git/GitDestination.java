@@ -7,6 +7,7 @@ import com.google.common.base.Strings;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 
@@ -27,13 +28,16 @@ public final class GitDestination implements Destination {
     /**
      * Generates a commit message based on the uncommitted index stored in the given repository.
      */
-    String message(GitRepository repo) throws RepoException;
+    String message(GitRepository repo, String originRef) throws RepoException;
   }
 
   private static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
-    public String message(GitRepository repo) {
-      return "Copybara commit";
+    public String message(GitRepository repo, String originRef) {
+      return String.format("Copybara commit\n\n%s: %s\n",
+          Origin.COMMIT_ORIGIN_REFERENCE_FIELD,
+          originRef
+      );
     }
   }
 
@@ -60,7 +64,7 @@ public final class GitDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir) throws RepoException {
+  public void process(Path workdir, String originRef) throws RepoException {
     logger.log(Level.INFO, "Exporting " + workdir + " to: " + this);
 
     GitRepository scratchClone = GitRepository.initScratchRepo(gitOptions, verbose);
@@ -78,7 +82,7 @@ public final class GitDestination implements Destination {
     }
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
-    alternate.simpleCommand("commit", "-m", commitGenerator.message(alternate));
+    alternate.simpleCommand("commit", "-m", commitGenerator.message(alternate, originRef));
     alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
   }
 
