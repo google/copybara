@@ -67,18 +67,9 @@ public final class GitDestination implements Destination {
   public void process(Path workdir, String originRef) throws RepoException {
     logger.log(Level.INFO, "Exporting " + workdir + " to: " + this);
 
-    GitRepository scratchClone = GitRepository.initScratchRepo(gitOptions, verbose);
-    try {
-      scratchClone.simpleCommand("fetch", repoUrl, pullFromRef);
-      if (gitOptions.gitFirstCommit) {
-        throw new RepoException("'" + pullFromRef + "' already exists in '" + repoUrl + "'.");
-      }
+    GitRepository scratchClone = cloneBaseline();
+    if (!gitOptions.gitFirstCommit) {
       scratchClone.simpleCommand("checkout", "FETCH_HEAD");
-    } catch (CannotFindReferenceException e) {
-      if (!gitOptions.gitFirstCommit) {
-        throw new RepoException("'" + pullFromRef + "' doesn't exist in '" + repoUrl
-            + "'. Use --git-first-commit flag if you want to push anyway");
-      }
     }
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
@@ -86,18 +77,47 @@ public final class GitDestination implements Destination {
     alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
   }
 
+  private GitRepository cloneBaseline() throws RepoException {
+    GitRepository scratchClone = GitRepository.initScratchRepo(gitOptions, verbose);
+    try {
+      scratchClone.simpleCommand("fetch", repoUrl, pullFromRef);
+      if (gitOptions.gitFirstCommit) {
+        throw new RepoException("'" + pullFromRef + "' already exists in '" + repoUrl + "'.");
+      }
+    } catch (CannotFindReferenceException e) {
+      if (!gitOptions.gitFirstCommit) {
+        throw new RepoException("'" + pullFromRef + "' doesn't exist in '" + repoUrl
+            + "'. Use --git-first-commit flag if you want to push anyway");
+      }
+    }
+    return scratchClone;
+  }
+
   @Nullable
   @Override
   public String getPreviousRef() throws RepoException {
     // For now we only rely on users using the flag
-    if (Strings.isNullOrEmpty(gitOptions.gitPreviousRef)) {
+    if (!Strings.isNullOrEmpty(gitOptions.gitPreviousRef)) {
+      Matcher matcher = GIT_SHA1_PATTERN.matcher(gitOptions.gitPreviousRef);
+      if (matcher.matches()) {
+        return gitOptions.gitPreviousRef;
+      }
+      throw new RepoException("Invalid git SHA-1 reference " + gitOptions.gitPreviousRef);
+    }
+    if (gitOptions.gitFirstCommit) {
       return null;
     }
-    Matcher matcher = GIT_SHA1_PATTERN.matcher(gitOptions.gitPreviousRef);
-    if (matcher.matches()) {
-      return gitOptions.gitPreviousRef;
+    GitRepository gitRepository = cloneBaseline();
+    String commit = gitRepository.revParse("FETCH_HEAD");
+    String log = gitRepository.simpleCommand("log", commit, "-1").getStdout();
+    String prefix = "    " + Origin.COMMIT_ORIGIN_REFERENCE_FIELD + ": ";
+    for (String line : log.split("\n")) {
+      if (line.startsWith(prefix)) {
+        return line.substring(prefix.length());
+      }
+
     }
-    throw new RepoException("Invalid git SHA-1 reference " + gitOptions.gitPreviousRef);
+    return null;
   }
 
   @Override

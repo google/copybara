@@ -78,9 +78,9 @@ public class GitDestinationTest {
     assertThat(logResult.split("\n")).hasLength(expected);
   }
 
-  private void assertCommitHasOrigin(String branch) throws RepoException {
+  private void assertCommitHasOrigin(String branch, String originRef) throws RepoException {
     assertThat(git("--git-dir", repoGitDir.toString(), "log", "-n1", branch))
-        .contains("\n    " + Origin.COMMIT_ORIGIN_REFERENCE_FIELD + ": origin_ref\n");
+        .contains("\n    " + Origin.COMMIT_ORIGIN_REFERENCE_FIELD + ": " + originRef + "\n");
   }
 
   @Test
@@ -97,7 +97,7 @@ public class GitDestinationTest {
     assertFilesInDir(1, "testPushToRef", ".");
     assertCommitCount(1, "testPushToRef");
 
-    assertCommitHasOrigin("testPushToRef");
+    assertCommitHasOrigin("testPushToRef", "origin_ref");
   }
 
   @Test
@@ -132,6 +132,32 @@ public class GitDestinationTest {
     // Make sure both commits are present.
     assertCommitCount(2, "pushToFoo");
 
-    assertCommitHasOrigin("pushToFoo");
+    assertCommitHasOrigin("pushToFoo", "origin_ref");
+  }
+
+  @Test
+  public void previousImportReference() throws Exception {
+    yaml.setPullFromRef("master");
+    yaml.setPushToRef("master");
+
+    Path file = workdir.resolve("test.txt");
+
+    Files.write(file, "some content".getBytes());
+    GitDestination destination1 = destinationFirstCommit();
+    assertThat(destination1.getPreviousRef()).isNull();
+    destination1.process(workdir, "first_commit");
+    assertCommitHasOrigin("master", "first_commit");
+
+    Files.write(file, "some other content".getBytes());
+    GitDestination destination2 = destination();
+    assertThat(destination2.getPreviousRef()).isEqualTo("first_commit");
+    destination2.process(workdir, "second_commit");
+    assertCommitHasOrigin("master", "second_commit");
+
+    Files.write(file, "just more text".getBytes());
+    GitDestination destination3 = destination();
+    assertThat(destination3.getPreviousRef()).isEqualTo("second_commit");
+    destination3.process(workdir, "third_commit");
+    assertCommitHasOrigin("master", "third_commit");
   }
 }
