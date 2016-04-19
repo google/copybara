@@ -271,6 +271,23 @@ public final class ReplaceTest {
     assertThat(string).contains("after=c${b}a");
   }
 
+  @Test
+  public void showOriginalGlobInToString() {
+    yaml.setBefore("before");
+    yaml.setAfter("after");
+    yaml.setPath("foo/**/bar.htm");
+    String string = yaml.withOptions(options).toString();
+    assertThat(string).contains("path=foo/**/bar.htm");
+  }
+
+  @Test
+  public void showReasonableDefaultGlobInToString() {
+    yaml.setBefore("before");
+    yaml.setAfter("after");
+    String string = yaml.withOptions(options).toString();
+    assertThat(string).contains("path=**");
+  }
+
   private void prepareGlobTree() throws IOException {
     writeFile(root.resolve("file1.txt"), "foo");
     writeFile(root.resolve("file1.java"), "foo");

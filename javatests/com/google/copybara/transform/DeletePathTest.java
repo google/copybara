@@ -92,6 +92,13 @@ public class DeletePathTest {
     assertFilesDontExist("folder/subfolder/file.java");
   }
 
+  @Test
+  public void testToString() {
+    yaml.setPath("foo/**/bar.htm");
+    String string = yaml.withOptions(new Options(ImmutableList.of(generalOptions))).toString();
+    assertThat(string).contains("path=foo/**/bar.htm");
+  }
+
   private Path touchFile(String path) throws IOException {
     Files.createDirectories(workdir.resolve(path).getParent());
     return Files.write(workdir.resolve(path), new byte[]{});

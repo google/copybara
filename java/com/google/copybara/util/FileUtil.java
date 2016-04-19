@@ -14,13 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class FileUtil {
 
-  public static final PathMatcher ALL_FILES_MATCHER = new PathMatcher() {
-    @Override
-    public boolean matches(Path path) {
-      return true;
-    }
-  };
-
   private FileUtil() {
   }
 
@@ -78,14 +71,5 @@ public final class FileUtil {
         return !pathMatcher.matches(path);
       }
     };
-  }
-
-  /**
-   * Creates a {@link PathMatcher} based on a glob relative to {@code path}.
-   *
-   * For example a glob "dir/**.java" would match any java file inside {@code path}/dir directory.
-   */
-  public static PathMatcher relativeGlob(Path path, String glob) {
-    return path.getFileSystem().getPathMatcher("glob:" + path.resolve(glob));
   }
 }

@@ -12,6 +12,7 @@ import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.ReadablePathMatcher;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 import com.google.devtools.build.lib.shell.ShellUtils;
@@ -92,7 +93,7 @@ public class FolderDestination implements Destination {
         localFolder = fs.getPath(System.getProperty("user.dir")).resolve(localFolder);
       }
       for (String path : excludePathsForDeletion) {
-        pathMatchers.add(FileUtil.relativeGlob(localFolder, path));
+        pathMatchers.add(ReadablePathMatcher.relativeGlob(localFolder, path));
       }
       return new FolderDestination(FileUtil.anyPathMatcher(pathMatchers.build()), localFolder,
           generalOptions.isVerbose());

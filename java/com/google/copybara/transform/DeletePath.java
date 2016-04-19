@@ -5,6 +5,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.ReadablePathMatcher;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -19,11 +20,9 @@ public final class DeletePath implements Transformation {
 
   private static final Logger logger = Logger.getLogger(DeletePath.class.getName());
   private final PathMatcher pathMatcher;
-  private final String description;
 
-  private DeletePath(PathMatcher pathMatcher, String description) {
+  private DeletePath(PathMatcher pathMatcher) {
     this.pathMatcher = pathMatcher;
-    this.description = description;
   }
 
   @Override
@@ -33,8 +32,8 @@ public final class DeletePath implements Transformation {
         String.format("Rule %s: deleted %s files under %s", this, result, workdir));
     if (result == 0) {
       String suffix = "";
-      if (!description.endsWith("/**")) {
-        suffix = " Did you mean '" + description + "/**'?";
+      if (!pathMatcher.toString().endsWith("/**")) {
+        suffix = " Did you mean '" + pathMatcher + "/**'?";
       }
       //TODO(malcon): Better exception.
       throw new IllegalStateException(
@@ -44,7 +43,7 @@ public final class DeletePath implements Transformation {
 
   @Override
   public String toString() {
-    return "DeletePath{path=" + description + "}";
+    return "DeletePath{path=" + pathMatcher + "}";
   }
 
   public final static class Yaml implements Transformation.Yaml {
@@ -57,10 +56,10 @@ public final class DeletePath implements Transformation {
 
     @Override
     public Transformation withOptions(Options options) {
-      PathMatcher pathMatcher = FileUtil.relativeGlob(
+      PathMatcher pathMatcher = ReadablePathMatcher.relativeGlob(
           options.get(GeneralOptions.class).getWorkdir(),
           ConfigValidationException.checkNotMissing(this.path, "path"));
-      return new DeletePath(pathMatcher, path);
+      return new DeletePath(pathMatcher);
     }
   }
 }

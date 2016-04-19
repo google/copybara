@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.ReadablePathMatcher;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -75,7 +75,7 @@ public final class Replace implements Transformation {
         .add("before", before.template())
         .add("after", after.template())
         .add("regexGroup", regexGroups)
-        .add("fileMatcher", fileMatcher)
+        .add("path", fileMatcher)
         .toString();
   }
 
@@ -134,7 +134,7 @@ public final class Replace implements Transformation {
     private TemplateTokens before;
     private TemplateTokens after;
     private ImmutableMap<String, Pattern> regexGroups = ImmutableMap.of();
-    private String path;
+    private String path = "**";
 
     public void setBefore(String before) {
       this.before = TemplateTokens.parse(before);
@@ -170,11 +170,8 @@ public final class Replace implements Transformation {
       before.validateInterpolations(regexGroups.keySet());
       after.validateInterpolations(regexGroups.keySet());
 
-      PathMatcher pathMatcher = FileUtil.ALL_FILES_MATCHER;
-      if (path != null) {
-        pathMatcher = FileUtil.relativeGlob(
-            options.get(GeneralOptions.class).getWorkdir(), path);
-      }
+      PathMatcher pathMatcher = ReadablePathMatcher.relativeGlob(
+          options.get(GeneralOptions.class).getWorkdir(), path);
 
       return new Replace(before, after, regexGroups, pathMatcher);
     }
