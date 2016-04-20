@@ -10,4 +10,5 @@ sh_test(
         "//third_party/bazel/bashunit",
     ],
     tags = ["local"],
+    visibility = ["//visibility:public"],
 )
