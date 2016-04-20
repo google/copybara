@@ -33,9 +33,9 @@ function check_copybara_rev_id() {
 }
 
 function test_git_tracking() {
-  remote=$(mktemp -d)
-  repo_storage=$(mktemp -d)
-  workdir=$(mktemp -d)
+  remote=$(mktemp -d --tmpdir remote.XXXXXXXXXX)
+  repo_storage=$(mktemp -d --tmpdir storage.XXXXXXXXXX)
+  workdir=$(mktemp -d --tmpdir workdir.XXXXXXXXXX)
   destination=$(empty_git_bare_repo)
 
   pushd $remote
@@ -108,7 +108,7 @@ EOF
 }
 
 function empty_git_bare_repo() {
-  repo=$(mktemp -d)
+  repo=$(mktemp -d --tmpdir repo.XXXXXXXXXX)
   cd $repo
   run_git init . --bare > $TEST_log 2>&1 || fail "Cannot create repo"
   run_git --work-tree=$(mktemp -d) commit --allow-empty -m "Empty repo" \
@@ -117,7 +117,7 @@ function empty_git_bare_repo() {
 }
 
 function prepare_glob_tree() {
-  remote=$(mktemp -d)
+  remote=$(mktemp -d --tmpdir remote.XXXXXXXXXX)
   destination=$(empty_git_bare_repo)
 
   ( cd $remote
@@ -165,7 +165,7 @@ EOF
 }
 
 function test_git_delete() {
-  remote=$(mktemp -d)
+  remote=$(mktemp -d --tmpdir remote.XXXXXXXXXX)
   destination=$(empty_git_bare_repo)
 
   ( cd $remote
@@ -210,9 +210,9 @@ EOF
 }
 
 function test_local_dir_destination() {
-  remote=$(mktemp -d)
-  repo_storage=$(mktemp -d)
-  workdir=$(mktemp -d)
+  remote=$(mktemp -d --tmpdir remote.XXXXXXXXXX)
+  repo_storage=$(mktemp -d --tmpdir storage.XXXXXXXXXX)
+  workdir=$(mktemp -d --tmpdir workdir.XXXXXXXXXX)
 
   ( cd $remote
     run_git init .
