@@ -6,9 +6,6 @@
       --gerrit-change-id
          ChangeId to use in the generated commit message
          Default: <empty string>
-      --git-executable
-         Location of the git executable
-         Default: git
       --git-first-commit
          Ignore that the fetch reference doesn't exist when pushing to destination
          Default: false

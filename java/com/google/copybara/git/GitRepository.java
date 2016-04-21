@@ -63,7 +63,7 @@ public final class GitRepository {
     GitOptions gitConfig = options.get(GitOptions.class);
 
     return new GitRepository(
-        gitConfig.gitExecutable,
+        "git",
         gitDir,
         /*workTree=*/null,
         options.get(GeneralOptions.class).isVerbose());
@@ -82,7 +82,7 @@ public final class GitRepository {
     }
 
     GitRepository repository = new GitRepository(
-        gitOptions.gitExecutable, scratchWorkTree.resolve(".git"), scratchWorkTree, verbose);
+        "git", scratchWorkTree.resolve(".git"), scratchWorkTree, verbose);
     repository.git(scratchWorkTree, "init", ".");
     return repository;
   }

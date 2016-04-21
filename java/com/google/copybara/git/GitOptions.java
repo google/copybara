@@ -11,9 +11,6 @@ import com.beust.jcommander.Parameters;
 @Parameters(separators = "=")
 public final class GitOptions implements Option {
 
-  @Parameter(names = "--git-executable", description = "Location of the git executable")
-  String gitExecutable = "git";
-
   @Parameter(names = "--git-repo-storage",
       description = "Location of the storage path for git repositories")
   String gitRepoStorage = System.getProperty("user.home") + "/.copybara/repos";
