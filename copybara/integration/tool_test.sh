@@ -16,6 +16,10 @@ function set_up() {
    git version || fail "Git doesn't seem to be installed. Cannot test without git command."
 }
 
+function temp_dir() {
+  echo "$PWD/$(mktemp -d $1.XXXXXXXXXX)"
+}
+
 function expect_in_file() {
   local regex="$1"
   local file="$2"
@@ -33,9 +37,9 @@ function check_copybara_rev_id() {
 }
 
 function test_git_tracking() {
-  remote=$(mktemp -d --tmpdir remote.XXXXXXXXXX)
-  repo_storage=$(mktemp -d --tmpdir storage.XXXXXXXXXX)
-  workdir=$(mktemp -d --tmpdir workdir.XXXXXXXXXX)
+  remote=$(temp_dir remote)
+  repo_storage=$(temp_dir storage)
+  workdir=$(temp_dir workdir)
   destination=$(empty_git_bare_repo)
 
   pushd $remote
@@ -108,7 +112,7 @@ EOF
 }
 
 function empty_git_bare_repo() {
-  repo=$(mktemp -d --tmpdir repo.XXXXXXXXXX)
+  repo=$(temp_dir repo)
   cd $repo
   run_git init . --bare > $TEST_log 2>&1 || fail "Cannot create repo"
   run_git --work-tree=$(mktemp -d) commit --allow-empty -m "Empty repo" \
@@ -117,7 +121,7 @@ function empty_git_bare_repo() {
 }
 
 function prepare_glob_tree() {
-  remote=$(mktemp -d --tmpdir remote.XXXXXXXXXX)
+  remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
   ( cd $remote
@@ -165,7 +169,7 @@ EOF
 }
 
 function test_git_delete() {
-  remote=$(mktemp -d --tmpdir remote.XXXXXXXXXX)
+  remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
   ( cd $remote
@@ -210,9 +214,9 @@ EOF
 }
 
 function test_local_dir_destination() {
-  remote=$(mktemp -d --tmpdir remote.XXXXXXXXXX)
-  repo_storage=$(mktemp -d --tmpdir storage.XXXXXXXXXX)
-  workdir=$(mktemp -d --tmpdir workdir.XXXXXXXXXX)
+  remote=$(temp_dir remote)
+  repo_storage=$(temp_dir storage)
+  workdir=$(temp_dir workdir)
 
   ( cd $remote
     run_git init .
