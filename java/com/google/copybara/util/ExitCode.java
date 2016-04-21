@@ -6,7 +6,8 @@ package com.google.copybara.util;
 public enum ExitCode {
   SUCCESS(0),
   COMMAND_LINE_ERROR(1),
-  REPOSITORY_ERROR(2),
+  CONFIG_LOADING_ERROR(2),
+  REPOSITORY_ERROR(3),
   ENVIRONMENT_ERROR(30),
   INTERNAL_ERROR(31);
 

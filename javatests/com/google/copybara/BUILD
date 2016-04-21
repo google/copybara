@@ -14,6 +14,7 @@ all_tests(
      "//third_party:jsr305",
      "//third_party:junit4",
      "//third_party:shell",
+     "//third_party:snakeyaml",
      "//third_party:truth",
   ],
 )

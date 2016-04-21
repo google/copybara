@@ -43,11 +43,15 @@ public final class YamlParser {
    * @throws IOException if the config file cannot be load
    */
   public Config loadConfig(Path path, Options options)
-      throws IOException, NoSuchFileException {
+      throws IOException, NoSuchFileException, ConfigParserException {
     String configContent = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
     // TODO(matvore): The exceptions printed as a result of a bad configuration are hard to read.
     // It can include a long stack trace plus a nested cause. Find a way to make the error output
     // more digestable.
-    return ((Config.Yaml) yaml.load(configContent)).withOptions(options);
+    Config.Yaml load = (Config.Yaml) yaml.load(configContent);
+    if (load == null) {
+      throw new ConfigParserException("Configuration file '" + path + "' is empty");
+    }
+    return load.withOptions(options);
   }
 }

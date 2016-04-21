@@ -3,6 +3,7 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.Config;
+import com.google.copybara.config.ConfigParserException;
 import com.google.copybara.config.YamlParser;
 import com.google.copybara.git.GerritDestination;
 import com.google.copybara.git.GerritOptions;
@@ -104,7 +105,7 @@ public class Main {
       printCauseChain(e);
       System.err.print(usage(jcommander));
       System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
-    } catch (RepoException e) {
+    } catch (RepoException | ConfigParserException e) {
       printCauseChain(e);
       System.exit(ExitCode.REPOSITORY_ERROR.getCode());
     } catch (IOException e) {
@@ -129,7 +130,8 @@ public class Main {
     System.exit(errorType.getCode());
   }
 
-  private Config loadConfig(Path path, Options options) throws IOException, CommandLineException {
+  private Config loadConfig(Path path, Options options)
+      throws IOException, CommandLineException, ConfigParserException {
     try {
       return new YamlParser(getYamlTypeDescriptions()).loadConfig(path, options);
     } catch (NoSuchFileException e) {
