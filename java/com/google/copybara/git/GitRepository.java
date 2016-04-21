@@ -153,12 +153,11 @@ public final class GitRepository {
     allParams.add("git");
     Iterables.addAll(allParams, params);
     try {
-      CommandOutput result = executeCommand(
-          new Command(
-              allParams.toArray(new String[0]),
-              ImmutableMap.<String, String>of(),
-              cwd.toFile()),
-          verbose);
+      CommandOutput result =
+          executeCommand(
+              new Command(
+                  allParams.toArray(new String[0]), /*environmentVariables=*/ null, cwd.toFile()),
+              verbose);
       if (result.getTerminationStatus().success()) {
         return result;
       }
