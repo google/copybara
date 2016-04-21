@@ -66,7 +66,7 @@ public final class GitDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, String originRef) throws RepoException {
+  public void process(Path workdir, String originRef, long timestamp) throws RepoException {
     logger.log(Level.INFO, "Exporting " + workdir + " to: " + this);
 
     GitRepository scratchClone = cloneBaseline();
@@ -75,8 +75,10 @@ public final class GitDestination implements Destination {
     }
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
-    alternate.simpleCommand(
-        "commit", "--author", author, "-m", commitGenerator.message(alternate, originRef));
+    alternate.simpleCommand("commit",
+        "--author", author,
+        "--date", timestamp + " +0000",
+        "-m", commitGenerator.message(alternate, originRef));
     alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
   }
 

@@ -88,6 +88,13 @@ public final class GitOrigin implements Origin<GitOrigin> {
       this.reference = reference;
     }
 
+    @Override
+    public Long readTimestamp() {
+      // TODO(matvore): Actually read the timestamp from the commit. Returning null causes the
+      // migrated commit to have the timestamp set to the current time.
+      return null;
+    }
+
     /**
      * Creates a worktree with the contents of the git reference
      *

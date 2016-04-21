@@ -22,13 +22,16 @@ public class CopybaraTest {
 
   private final static class CountTimesProcessedDestination implements Destination.Yaml {
     int timesProcessed;
+    long beginTime = System.currentTimeMillis() / 1000;
 
     @Override
     public Destination withOptions(Options options) {
       return new Destination() {
         @Override
-        public void process(Path workdir, String originRef) {
+        public void process(Path workdir, String originRef, long timestamp) {
           timesProcessed++;
+          Truth.assertThat(timestamp).isAtLeast(beginTime);
+          Truth.assertThat(timestamp).isAtMost(System.currentTimeMillis() / 1000);
         }
 
         @Nullable
@@ -68,6 +71,11 @@ public class CopybaraTest {
     @Override
     public Reference<DummyOrigin> resolve(@Nullable final String reference) {
       return new Reference<DummyOrigin>() {
+        @Override
+        public Long readTimestamp() {
+          return null;
+        }
+
         @Override
         public void checkout(Path workdir) throws RepoException {
           try {

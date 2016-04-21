@@ -27,6 +27,13 @@ public interface Origin<O extends Origin<O>> {
    * @param <O> the origin type of the reference
    */
   interface Reference<O extends Origin<O>> {
+    /**
+     * Reads the timestamp of this reference from the repository, or {@code null} if this repo type
+     * does not support it. This is the number of seconds from the UNIX epoch when the reference was
+     * submitted to the source repository.
+     */
+    @Nullable
+    Long readTimestamp() throws RepoException;
 
     /**
      * Checks out the reference from the repository into {@code workdir} directory.

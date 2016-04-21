@@ -77,8 +77,8 @@ public final class GerritDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, String originRef) throws RepoException {
-    gitDestination.process(workdir, originRef);
+  public void process(Path workdir, String originRef, long timestamp) throws RepoException {
+    gitDestination.process(workdir, originRef, timestamp);
   }
 
   @Nullable

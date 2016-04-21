@@ -21,8 +21,10 @@ public interface Destination {
    *
    * @param workdir directory containing the tree of files to put in destination
    * @param originRef reference to the origin revision being moved
+   * @param timestamp when the code was submitted to the origin repository, expressed as seconds
+   * since the UNIX epoch
    */
-  void process(Path workdir, String originRef) throws RepoException, IOException;
+  void process(Path workdir, String originRef, long timestamp) throws RepoException, IOException;
 
   /**
    * Returns the latest origin ref that was pushed to this destination.

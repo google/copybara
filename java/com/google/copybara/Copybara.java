@@ -40,6 +40,10 @@ class Copybara {
       }
     }
 
-    config.getDestination().process(workdir, resolvedRef.asString());
+    Long timestamp = resolvedRef.readTimestamp();
+    if (timestamp == null) {
+      timestamp = System.currentTimeMillis() / 1000;
+    }
+    config.getDestination().process(workdir, resolvedRef.asString(), timestamp);
   }
 }
