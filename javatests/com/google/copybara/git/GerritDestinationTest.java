@@ -8,10 +8,13 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GerritDestination.Yaml;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -26,6 +29,9 @@ public class GerritDestinationTest {
   private Path workdir;
   private GerritOptions gerritOptions;
   private GitOptions gitOptions;
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws Exception {
@@ -102,5 +108,46 @@ public class GerritDestinationTest {
     destination().process(workdir, "origin_ref");
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
+  }
+
+  private void verifySpecifyAuthorField(String expected) throws Exception {
+    yaml.setPullFromRef("master");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+
+    gitOptions.gitFirstCommit = true;
+    destination().process(workdir, "first_commit");
+
+    String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1", "refs/for/master")
+        .split("\n");
+    assertThat(commitLines[1]).isEqualTo("Author: " + expected);
+  }
+
+  @Test
+  public void specifyAuthorField() throws Exception {
+    String author = "Copybara Unit Tester <noreply@foo.bar>";
+    yaml.setAuthor(author);
+    verifySpecifyAuthorField(author);
+  }
+
+  @Test
+  public void defaultAuthorFieldIsCopybara() throws Exception {
+    verifySpecifyAuthorField("Copybara <noreply@google.com>");
+  }
+
+  private void checkAuthorFormatIsBad(String author) {
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("author field must be in the form of 'Name <email@domain>'");
+    yaml.setAuthor(author);
+  }
+
+  @Test
+  public void validatesAuthorFieldFormat1() {
+    checkAuthorFormatIsBad("foo");
+  }
+
+  @Test
+  public void validatesAuthorFieldFormat2() {
+    checkAuthorFormatIsBad("foo <a@>");
   }
 }

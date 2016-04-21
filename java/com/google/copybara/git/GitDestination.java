@@ -49,15 +49,17 @@ public final class GitDestination implements Destination {
   private final String repoUrl;
   private final String pullFromRef;
   private final String pushToRef;
+  private final String author;
   private final GitOptions gitOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
 
-  GitDestination(String repoUrl, String pullFromRef, String pushToRef, GitOptions gitOptions,
-      boolean verbose, CommitGenerator commitGenerator) {
+  GitDestination(String repoUrl, String pullFromRef, String pushToRef, String author,
+      GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.pullFromRef = Preconditions.checkNotNull(pullFromRef);
     this.pushToRef = Preconditions.checkNotNull(pushToRef);
+    this.author = Preconditions.checkNotNull(author);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
@@ -73,7 +75,8 @@ public final class GitDestination implements Destination {
     }
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
-    alternate.simpleCommand("commit", "-m", commitGenerator.message(alternate, originRef));
+    alternate.simpleCommand(
+        "commit", "--author", author, "-m", commitGenerator.message(alternate, originRef));
     alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
   }
 
@@ -132,26 +135,7 @@ public final class GitDestination implements Destination {
         .toString();
   }
 
-  static abstract class AbstractYaml implements Destination.Yaml {
-    protected String url;
-    protected String pullFromRef;
-
-    /**
-     * Indicates the URL to push to as well as the URL from which to get the parent commit.
-     */
-    public void setUrl(String url) {
-      this.url = url;
-    }
-
-    /**
-     * Indicates the ref from which to get the parent commit.
-     */
-    public void setPullFromRef(String pullFromRef) {
-      this.pullFromRef = pullFromRef;
-    }
-  }
-
-  public static final class Yaml extends AbstractYaml {
+  public static final class Yaml extends AbstractDestinationYaml {
     private String pushToRef;
 
     /**
@@ -171,6 +155,7 @@ public final class GitDestination implements Destination {
           url,
           ConfigValidationException.checkNotMissing(pullFromRef, "pullFromRef"),
           ConfigValidationException.checkNotMissing(pushToRef, "pushToRef"),
+          author,
           options.get(GitOptions.class),
           options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator());

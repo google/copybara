@@ -160,4 +160,60 @@ public class GitDestinationTest {
     destination3.process(workdir, "third_commit");
     assertCommitHasOrigin("master", "third_commit");
   }
+
+  private void verifySpecifyAuthorField(String expected) throws Exception {
+    yaml.setPullFromRef("master");
+    yaml.setPushToRef("master");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+
+    GitDestination destination = destinationFirstCommit();
+    destination.process(workdir, "first_commit");
+
+    String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1").split("\n");
+    assertThat(commitLines[1]).isEqualTo("Author: " + expected);
+  }
+
+  @Test
+  public void specifyAuthorField() throws Exception {
+    String author = "Copybara Unit Tester <noreply@foo.bar>";
+    yaml.setAuthor(author);
+    verifySpecifyAuthorField(author);
+  }
+
+  @Test
+  public void defaultAuthorFieldIsCopybara() throws Exception {
+    verifySpecifyAuthorField("Copybara <noreply@google.com>");
+  }
+
+  private void checkAuthorFormatIsBad(String author) {
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("author field must be in the form of 'Name <email@domain>'");
+    yaml.setAuthor(author);
+  }
+
+  @Test
+  public void validatesAuthorFieldFormat1() {
+    checkAuthorFormatIsBad("foo");
+  }
+
+  @Test
+  public void validatesAuthorFieldFormat2() {
+    checkAuthorFormatIsBad("foo <a@>");
+  }
+
+  @Test
+  public void validatesAuthorFieldFormat3() {
+    checkAuthorFormatIsBad("foo <@b>");
+  }
+
+  @Test
+  public void validatesAuthorFieldFormat4() {
+    checkAuthorFormatIsBad("foo <a@b> foo");
+  }
+
+  @Test
+  public void validatesAuthorFieldFormat5() {
+    checkAuthorFormatIsBad(" <a@b>");
+  }
 }
