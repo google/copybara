@@ -38,11 +38,6 @@ public final class GitRepository {
           Pattern.compile("fatal: Couldn't find remote ref ([^\n]+)\n"));
 
   /**
-   * Git tool path. A String on pourpose so that we can use the 'git' on PATH.
-   */
-  private final String gitExecPath;
-
-  /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
    * flag.
    */
@@ -52,8 +47,7 @@ public final class GitRepository {
 
   private final boolean verbose;
 
-  public GitRepository(String gitExecPath, Path gitDir, @Nullable Path workTree, boolean verbose) {
-    this.gitExecPath = Preconditions.checkNotNull(gitExecPath);
+  public GitRepository(Path gitDir, @Nullable Path workTree, boolean verbose) {
     this.gitDir = Preconditions.checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
@@ -63,7 +57,6 @@ public final class GitRepository {
     GitOptions gitConfig = options.get(GitOptions.class);
 
     return new GitRepository(
-        "git",
         gitDir,
         /*workTree=*/null,
         options.get(GeneralOptions.class).isVerbose());
@@ -81,8 +74,8 @@ public final class GitRepository {
       throw new RepoException("Could not make temporary directory for scratch repo", e);
     }
 
-    GitRepository repository = new GitRepository(
-        "git", scratchWorkTree.resolve(".git"), scratchWorkTree, verbose);
+    GitRepository repository =
+        new GitRepository(scratchWorkTree.resolve(".git"), scratchWorkTree, verbose);
     repository.git(scratchWorkTree, "init", ".");
     return repository;
   }
@@ -92,7 +85,7 @@ public final class GitRepository {
    * initialize or alter the given work tree.
    */
   public GitRepository withWorkTree(Path newWorkTree) {
-    return new GitRepository(this.gitExecPath, this.gitDir, newWorkTree, this.verbose);
+    return new GitRepository(this.gitDir, newWorkTree, this.verbose);
   }
 
   /**
@@ -157,7 +150,7 @@ public final class GitRepository {
    */
   public CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
     List<String> allParams = new ArrayList<>();
-    allParams.add(gitExecPath);
+    allParams.add("git");
     Iterables.addAll(allParams, params);
     try {
       CommandOutput result = executeCommand(
@@ -181,18 +174,17 @@ public final class GitRepository {
         }
       }
 
-      throw new RepoException("Error executing '" + gitExecPath + "': " + e.getMessage()
-          + ". Stderr: \n" + e.getStdErr(), e);
+      throw new RepoException(
+          "Error executing 'git': " + e.getMessage() + ". Stderr: \n" + e.getStdErr(), e);
     } catch (CommandException e) {
-      throw new RepoException("Error executing '" + gitExecPath + "': " + e.getMessage(), e);
+      throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }
   }
 
   @Override
   public String toString() {
     return "GitRepository{" +
-        "gitExecPath='" + gitExecPath + '\'' +
-        ", gitDir='" + gitDir + '\'' +
+        "gitDir='" + gitDir + '\'' +
         ", workTree='" + workTree + '\'' +
         ", verbose=" + verbose +
         '}';

@@ -48,7 +48,7 @@ public class GerritDestinationTest {
   }
 
   private GitRepository repo() {
-    return new GitRepository("git", repoGitDir, /*workTree=*/null, /*verbose=*/true);
+    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true);
   }
 
   private String git(String... argv) throws RepoException {
