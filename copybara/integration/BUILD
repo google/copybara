@@ -12,3 +12,9 @@ sh_test(
     tags = ["local"],
     visibility = ["//visibility:public"],
 )
+
+py_binary(
+    name = "cram",
+    srcs = ["cram.py"],
+    deps = ["@cram//:cramlib"],
+)

@@ -1,0 +1,15 @@
+py_library(
+    name = "cramlib",
+    srcs = glob(["cram/*.py"]),
+    visibility = ["//visibility:public"],
+)
+
+# TODO(augie): in a perfect world we could build cram right here, but
+# the imports end up all wrong.
+#
+# py_binary(
+#     name = "cram-bin",
+#     srcs = ["cram/_main.py"],
+#     main = "cram/_main.py",
+#     deps = [":cramlib"],
+# )

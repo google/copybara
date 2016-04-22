@@ -1,4 +1,3 @@
-
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava",
@@ -46,4 +45,12 @@ maven_jar(
     name = "jsr305",
     artifact = "com.google.code.findbugs:jsr305:3.0.1",
     sha1 = "f7be08ec23c21485b9b5a1cf1654c2ec8c58168d",
+)
+
+new_http_archive(
+    name = "cram",
+    build_file = "BUILD.cram",
+    sha256 = "7da7445af2ce15b90aad5ec4792f857cef5786d71f14377e9eb994d8b8337f2f",
+    strip_prefix = "cram-0.7/",
+    url = "https://pypi.python.org/packages/source/c/cram/cram-0.7.tar.gz",
 )
