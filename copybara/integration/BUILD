@@ -18,3 +18,10 @@ py_binary(
     srcs = ["cram.py"],
     deps = ["@cram//:cramlib"],
 )
+
+load("//copybara/integration:cram.bzl", "cram_test")
+
+cram_test(
+    name = "hello",
+    srcs = ["hello.t"],
+)
