@@ -2,10 +2,19 @@
 
 source $TEST_SRCDIR/third_party/bazel/bashunit/unittest.bash
 
-readonly copybara=$TEST_SRCDIR/java/com/google/copybara/copybara
-
 function run_git() {
    git "$@" > $TEST_log 2>&1 || fail "Error running git"
+}
+
+# A log configuration that outputs to the console, so that we can check the log easier
+log_config=$PWD/log.config
+cat > $log_config <<EOF
+handlers=java.util.logging.ConsoleHandler
+EOF
+
+function copybara() {
+  $TEST_SRCDIR/java/com/google/copybara/copybara \
+    --jvm_flag=-Djava.util.logging.config.file=$log_config "$@"
 }
 
 function set_up() {
@@ -71,7 +80,7 @@ transformations:
     regexGroups:
       os: "o+"
 EOF
-  $copybara test.copybara --git-repo-storage "$repo_storage" \
+  copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
   expect_log "Running Copybara for cbtest \[.*file://$remote.*\]"
   expect_log 'transforming:.*Replace.*drink'
@@ -95,7 +104,7 @@ EOF
   second_commit=$(run_git rev-parse HEAD)
   popd
 
-  $copybara test.copybara --git-repo-storage "$repo_storage" \
+  copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
@@ -156,7 +165,7 @@ transformations:
     before: foo
     after:  bar
 EOF
-  $copybara test.copybara > $TEST_log 2>&1
+  copybara test.copybara > $TEST_log 2>&1
   ( cd $(mktemp -d)
     run_git clone $destination .
     expect_in_file "foo" test.txt
@@ -199,7 +208,7 @@ transformations:
   - !DeletePath
     path: "**/*.java"
 EOF
-  $copybara test.copybara > $TEST_log 2>&1
+  copybara test.copybara > $TEST_log 2>&1
 
   ( cd $(mktemp -d)
     run_git clone $destination .
@@ -243,7 +252,7 @@ EOF
   touch destination/folder/keepme.keep
   touch destination/dontkeep.txt
 
-  $copybara destination/test.copybara --git-repo-storage "$repo_storage" \
+  copybara destination/test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir --folder-dir destination> $TEST_log 2>&1
 
   [[ -f destination/test.txt ]] || fail "test.txt should exist"
@@ -258,30 +267,30 @@ function test_invalid_transformations_in_config() {
 name: "cbtest-invalid-xform"
 transformations: [42]
 EOF
-  $copybara test.copybara origin/master > $TEST_log 2>&1 && fail "Should fail"
+  copybara test.copybara origin/master > $TEST_log 2>&1 && fail "Should fail"
   expect_log 'Object parsed from Yaml is not a recognized Transformation: 42'
 }
 
 function test_command_help_flag() {
-  $copybara --help > $TEST_log 2>&1
+  copybara --help > $TEST_log 2>&1
   expect_log 'Usage: copybara \[options\]'
   expect_log 'Example:'
 }
 
 function test_command_too_few_args() {
-  $copybara > $TEST_log 2>&1 && fail "Should fail"
+  copybara > $TEST_log 2>&1 && fail "Should fail"
   expect_log 'Expected at least a configuration file.'
   expect_log 'Usage: copybara \[options\] CONFIG_PATH \[SOURCE_REF\]'
 }
 
 function test_command_too_many_args() {
-  $copybara config origin/master unexpected > $TEST_log 2>&1 && fail "Should fail"
+  copybara config origin/master unexpected > $TEST_log 2>&1 && fail "Should fail"
   expect_log "Expect at most two arguments."
   expect_log 'Usage: copybara \[options\] CONFIG_PATH \[SOURCE_REF\]'
 }
 
 function test_config_not_found() {
-  $copybara not_existent_file origin/master > $TEST_log 2>&1 && fail "Should fail"
+  copybara not_existent_file origin/master > $TEST_log 2>&1 && fail "Should fail"
   expect_log "Config file 'not_existent_file' cannot be found."
 }
 

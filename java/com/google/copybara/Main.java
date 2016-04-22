@@ -1,6 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.base.StandardSystemProperty;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigParserException;
@@ -23,20 +25,25 @@ import com.beust.jcommander.Parameters;
 
 import org.yaml.snakeyaml.TypeDescription;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 /**
  * Main class for Copybara
  */
 public class Main {
+
+  private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
   @Parameters(separators = "=")
   private static final class Arguments {
@@ -74,7 +81,7 @@ public class Main {
   protected void run(String[] args) {
     Arguments mainArgs = new Arguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-    List<Option> options = new ArrayList<Option>(getAllOptions());
+    List<Option> options = new ArrayList<>(getAllOptions());
     JCommander jcommander = new JCommander(ImmutableList.builder()
         .addAll(options)
         .add(mainArgs)
@@ -85,6 +92,7 @@ public class Main {
     FileSystem fs = FileSystems.getDefault();
 
     try {
+      configureLog(fs);
       jcommander.parse(args);
       if (mainArgs.help) {
         System.out.print(usage(jcommander));
@@ -112,6 +120,46 @@ public class Main {
       handleUnexpectedError(ExitCode.ENVIRONMENT_ERROR, "ERROR:" + e.getMessage(), e);
     } catch (RuntimeException e) {
       handleUnexpectedError(ExitCode.INTERNAL_ERROR, "Unexpected error: " + e.getMessage(), e);
+    }
+  }
+
+  protected void configureLog(FileSystem fs) throws IOException {
+    String baseDir = getBaseExecDir();
+    Files.createDirectories(fs.getPath(baseDir));
+    if (System.getProperty("java.util.logging.config.file") == null) {
+      LogManager.getLogManager().readConfiguration(new ByteArrayInputStream((
+          "handlers=java.util.logging.FileHandler\n"
+              + ".level=INFO\n"
+              + "java.util.logging.FileHandler.level=INFO\n"
+              + "java.util.logging.FileHandler.pattern="
+              + baseDir + "/copybara-%g.log\n"
+              + "java.util.logging.FileHandler.count=10\n"
+              + "java.util.logging.FileHandler.formatter=java.util.logging.SimpleFormatter\n"
+              + "java.util.logging.SimpleFormatter.format="
+              + "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %2$s %5$s%6$s%n")
+          .getBytes()
+      ));
+    }
+
+  }
+
+  /**
+   * Returns the base directory to be used by Copybara to write execution related files (Like
+   * logs).
+   */
+  protected String getBaseExecDir() {
+    String userHome = StandardSystemProperty.USER_HOME.value();
+
+    switch (StandardSystemProperty.OS_NAME.value()) {
+      case "Linux":
+        String xdgCacheHome = System.getenv("XDG_CACHE_HOME");
+        return Strings.isNullOrEmpty(xdgCacheHome)
+            ? userHome + "/.cache/" + COPYBARA_NAMESPACE
+            : xdgCacheHome + COPYBARA_NAMESPACE;
+      case "Mac OS X":
+        return userHome + "/Library/Logs/" + COPYBARA_NAMESPACE;
+      default:
+        return "/var/tmp/" + COPYBARA_NAMESPACE;
     }
   }
 
