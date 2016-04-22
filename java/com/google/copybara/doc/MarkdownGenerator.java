@@ -200,7 +200,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       }
     }
     throw new ElementException(element,
-        "Cannot find type field" + name + " in class " + element.getSimpleName());
+        "Cannot find type field " + name + " in class " + element.getSimpleName());
   }
 
   /**
