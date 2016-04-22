@@ -7,6 +7,9 @@ import com.google.copybara.transform.Transformation;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.text.MessageFormat;
+import java.util.Formatter;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,8 +34,13 @@ class Copybara {
     Reference<?> resolvedRef = config.getOrigin().resolve(sourceRef);
     resolvedRef.checkout(workdir);
 
-    for (Transformation transformation : config.getTransformations()) {
-      logger.log(Level.INFO, " transforming: " + transformation.toString());
+    List<Transformation> transformations = config.getTransformations();
+    for (int i = 0; i < transformations.size(); i++) {
+      Transformation transformation = transformations.get(i);
+      String transformMsg = String.format("[%2d/%d] Running transformation: %s",
+          i + 1, transformations.size(), transformation);
+      logger.log(Level.INFO, transformMsg);
+      System.err.println(transformMsg);
       try {
         transformation.transform(workdir);
       } catch (IOException e) {

@@ -8,8 +8,9 @@ function run_git() {
 
 # A log configuration that outputs to the console, so that we can check the log easier
 log_config=$PWD/log.config
-cat > $log_config <<EOF
+cat > $log_config <<'EOF'
 handlers=java.util.logging.ConsoleHandler
+java.util.logging.SimpleFormatter.format=%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %2$s %5$s%6$s%n
 EOF
 
 function copybara() {
@@ -83,11 +84,11 @@ EOF
   copybara test.copybara --git-repo-storage "$repo_storage" \
     --work-dir $workdir > $TEST_log 2>&1
   expect_log "Running Copybara for cbtest \[.*file://$remote.*\]"
-  expect_log 'transforming:.*Replace.*drink'
+  expect_log 'Running transformation:.*Replace.*drink'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/test.txt$'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/subdir/test.txt$'
   expect_not_log 'apply .* to .*/subdir$'
-  expect_log 'transforming:.*Replace.*bar'
+  expect_log 'Running transformation:.*Replace.*bar'
   expect_log 'Exporting .* to:'
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
