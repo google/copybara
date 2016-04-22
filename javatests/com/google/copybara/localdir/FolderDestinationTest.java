@@ -45,7 +45,7 @@ public class FolderDestinationTest {
   }
 
   @Test
-  public void testCopyWithExcludes() throws IOException, RepoException {
+  public void testCopyWithExcludes() throws Exception {
     Path localFolder = Files.createTempDirectory("local_folder");
 
     Files.createDirectory(localFolder.resolve("one"));
@@ -67,7 +67,7 @@ public class FolderDestinationTest {
   }
 
   @Test
-  public void testFolderDirRequired() throws IOException, RepoException {
+  public void testFolderDirRequired() throws Exception {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("--folder-dir is required");
     yaml.withOptions(new Options(ImmutableList.of(localOptions, generalOptions)));

@@ -136,15 +136,15 @@ public final class Replace implements Transformation {
     private ImmutableMap<String, Pattern> regexGroups = ImmutableMap.of();
     private String path = "**";
 
-    public void setBefore(String before) {
+    public void setBefore(String before) throws ConfigValidationException {
       this.before = TemplateTokens.parse(before);
     }
 
-    public void setAfter(String after) {
+    public void setAfter(String after) throws ConfigValidationException {
       this.after = TemplateTokens.parse(after);
     }
 
-    public void setRegexGroups(Map<String, String> regexGroups) {
+    public void setRegexGroups(Map<String, String> regexGroups) throws ConfigValidationException {
       ImmutableMap.Builder<String, Pattern> parsed = new ImmutableMap.Builder<>();
       for (Map.Entry<String, String> group : regexGroups.entrySet()) {
         try {
@@ -163,7 +163,7 @@ public final class Replace implements Transformation {
     }
 
     @Override
-    public Transformation withOptions(Options options) {
+    public Transformation withOptions(Options options) throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(before, "before");
       ConfigValidationException.checkNotMissing(after, "after");
 

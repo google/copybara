@@ -3,6 +3,7 @@ package com.google.copybara.transform;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Options;
+import com.google.copybara.config.ConfigValidationException;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -13,7 +14,7 @@ import java.util.Map;
  */
 public interface Transformation {
   interface Yaml {
-    Transformation withOptions(Options options);
+    Transformation withOptions(Options options) throws ConfigValidationException;
   }
 
   /**

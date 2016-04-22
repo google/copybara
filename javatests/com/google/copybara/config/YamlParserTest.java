@@ -35,17 +35,17 @@ public class YamlParserTest {
   }
 
   @Test
-  public void testEmptyFile() throws IOException, ConfigParserException {
+  public void testEmptyFile() throws IOException, ConfigValidationException {
     Files.write(fs.getPath("test"), "".getBytes());
-    thrown.expect(ConfigParserException.class);
+    thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("'test' is empty");
     yamlParser.loadConfig(fs.getPath("test"), options);
   }
 
   @Test
-  public void testEmptyFileWithSpaces() throws IOException, ConfigParserException {
+  public void testEmptyFileWithSpaces() throws IOException, ConfigValidationException {
     Files.write(fs.getPath("test"), "  ".getBytes());
-    thrown.expect(ConfigParserException.class);
+    thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("'test' is empty");
     yamlParser.loadConfig(fs.getPath("test"), options);
   }

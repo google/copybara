@@ -36,7 +36,7 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
    * Sets the author line to use for the generated commit. Should be in the form
    * {@code Full Name <email@foo.com>}.
    */
-  public void setAuthor(String author) {
+  public void setAuthor(String author) throws ConfigValidationException {
     // The author line is validated by git commit, but it is nicer to validate early so the user
     // can see the source of the error a little more clearly and he doesn't have to wait until
     // after the transformations are finished.

@@ -1,6 +1,7 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.config.ConfigValidationException;
 
 import java.nio.file.Path;
 
@@ -18,7 +19,7 @@ public interface Origin<O extends Origin<O>> {
 
   interface Yaml<O extends Origin<O>> {
 
-    Origin<O> withOptions(Options options);
+    Origin<O> withOptions(Options options) throws ConfigValidationException;
   }
 
   /**

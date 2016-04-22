@@ -17,61 +17,61 @@ public final class TemplateTokensTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  private void assertParse(String raw, String toStringValue) {
+  private void assertParse(String raw, String toStringValue) throws ConfigValidationException {
     TemplateTokens tokens = TemplateTokens.parse(raw);
     assertThat(tokens.toString()).isEqualTo(toStringValue);
     assertThat(tokens.template()).isEqualTo(raw);
   }
 
   @Test
-  public void empty() {
+  public void empty() throws ConfigValidationException {
     assertParse("", "[]");
   }
 
   @Test
-  public void simpleLiteral() {
+  public void simpleLiteral() throws ConfigValidationException {
     assertParse("asdf", "[{asdf, LITERAL}]");
   }
 
   @Test
-  public void interpolationOnly() {
+  public void interpolationOnly() throws ConfigValidationException {
     assertParse("${asdf}", "[{asdf, INTERPOLATION}]");
   }
 
   @Test
-  public void interpolationsAndLiterals() {
+  public void interpolationsAndLiterals() throws ConfigValidationException {
     assertParse("${foo}bar${baz}iru",
         "[{foo, INTERPOLATION}, {bar, LITERAL}, {baz, INTERPOLATION}, {iru, LITERAL}]");
   }
 
   @Test
-  public void consecutiveInterpolations() {
+  public void consecutiveInterpolations() throws ConfigValidationException {
     assertParse("${foo}${bar}${baz}",
         "[{foo, INTERPOLATION}, {bar, INTERPOLATION}, {baz, INTERPOLATION}]");
   }
 
   @Test
-  public void literalDollarSigns() {
+  public void literalDollarSigns() throws ConfigValidationException {
     assertParse("a$$b$$c$$d${foo}bar$$",
         "[{a$b$c$d, LITERAL}, {foo, INTERPOLATION}, {bar$, LITERAL}]");
   }
 
   @Test
-  public void emptyInterpolatedName() {
+  public void emptyInterpolatedName() throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("Expect non-empty interpolated value name");
     TemplateTokens.parse("foo${}bar");
   }
 
   @Test
-  public void unterminatedInterpolation() {
+  public void unterminatedInterpolation() throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("Unterminated '${'");
     TemplateTokens.parse("foo${bar");
   }
 
   @Test
-  public void badCharacterFollowingDollar() {
+  public void badCharacterFollowingDollar() throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("Expect $ or { after every $");
     TemplateTokens.parse("foo$bar");

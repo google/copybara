@@ -53,7 +53,7 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void errorIfPushToRefMissing() {
+  public void errorIfPushToRefMissing() throws ConfigValidationException {
     yaml.setPullFromRef("master");
     yaml.setUrl("file:///foo");
     thrown.expect(ConfigValidationException.class);
@@ -61,14 +61,14 @@ public class GitDestinationTest {
     destinationFirstCommit();
   }
 
-  private GitDestination destinationFirstCommit() {
+  private GitDestination destinationFirstCommit() throws ConfigValidationException {
     GitOptions gitOptions = new GitOptions();
     gitOptions.gitFirstCommit = true;
     return yaml.withOptions(
         new Options(ImmutableList.of(gitOptions, new GeneralOptions(workdir, /*verbose=*/true))));
   }
 
-  private GitDestination destination() {
+  private GitDestination destination() throws ConfigValidationException {
     return yaml.withOptions(new Options(
         ImmutableList.of(new GitOptions(), new GeneralOptions(workdir, /*verbose=*/true))));
   }
@@ -191,34 +191,34 @@ public class GitDestinationTest {
     verifySpecifyAuthorField("Copybara <noreply@google.com>");
   }
 
-  private void checkAuthorFormatIsBad(String author) {
+  private void checkAuthorFormatIsBad(String author) throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("author field must be in the form of 'Name <email@domain>'");
     yaml.setAuthor(author);
   }
 
   @Test
-  public void validatesAuthorFieldFormat1() {
+  public void validatesAuthorFieldFormat1() throws ConfigValidationException {
     checkAuthorFormatIsBad("foo");
   }
 
   @Test
-  public void validatesAuthorFieldFormat2() {
+  public void validatesAuthorFieldFormat2() throws ConfigValidationException {
     checkAuthorFormatIsBad("foo <a@>");
   }
 
   @Test
-  public void validatesAuthorFieldFormat3() {
+  public void validatesAuthorFieldFormat3() throws ConfigValidationException {
     checkAuthorFormatIsBad("foo <@b>");
   }
 
   @Test
-  public void validatesAuthorFieldFormat4() {
+  public void validatesAuthorFieldFormat4() throws ConfigValidationException {
     checkAuthorFormatIsBad("foo <a@b> foo");
   }
 
   @Test
-  public void validatesAuthorFieldFormat5() {
+  public void validatesAuthorFieldFormat5() throws ConfigValidationException {
     checkAuthorFormatIsBad(" <a@b>");
   }
 

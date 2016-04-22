@@ -150,7 +150,7 @@ public final class GitDestination implements Destination {
     }
 
     @Override
-    public GitDestination withOptions(Options options) {
+    public GitDestination withOptions(Options options) throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(url, "url");
 
       return new GitDestination(

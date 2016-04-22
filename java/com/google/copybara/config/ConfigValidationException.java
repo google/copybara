@@ -2,10 +2,11 @@
 package com.google.copybara.config;
 
 /**
- * Indicates that a configuration is not valid or some error occurred during configuration
- * validation or parsing.
+ * Indicates that the data in the configuration is not valid or some error occurred during
+ * configuration validation or parsing. For instance, this exception is thrownif a field is missing
+ * or is not formatted correctly.
  */
-public class ConfigValidationException extends RuntimeException {
+public class ConfigValidationException extends Exception {
   public ConfigValidationException(String message) {
     super(message);
   }
@@ -22,7 +23,7 @@ public class ConfigValidationException extends RuntimeException {
    * @param fieldName the name of the field to use in the exception message
    * @throws ConfigValidationException if {@code value} is {@code null}
    */
-  public static <T> T checkNotMissing(T value, String fieldName) {
+  public static <T> T checkNotMissing(T value, String fieldName) throws ConfigValidationException {
     if (value == null) {
       throw new ConfigValidationException(String.format("missing required field '%s'", fieldName));
     }

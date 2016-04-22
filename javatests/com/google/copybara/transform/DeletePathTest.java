@@ -44,7 +44,7 @@ public class DeletePathTest {
   }
 
   @Test
-  public void invalidPath() throws IOException {
+  public void invalidPath() throws Exception {
     String outsideFolder = "../../../file";
     Files.createDirectories(workdir.resolve(outsideFolder));
     yaml.setPath(outsideFolder);
@@ -60,7 +60,7 @@ public class DeletePathTest {
   }
 
   @Test
-  public void deleteDoesntDeleteDirectories() throws IOException {
+  public void deleteDoesntDeleteDirectories() throws Exception {
     yaml.setPath("folder");
     Transformation delete = yaml.withOptions(new Options(ImmutableList.of(generalOptions)));
     try {
@@ -73,7 +73,7 @@ public class DeletePathTest {
   }
 
   @Test
-  public void recursiveDeleteNoFolder() throws IOException {
+  public void recursiveDeleteNoFolder() throws Exception {
     yaml.setPath("folder/**");
     Transformation delete = yaml.withOptions(new Options(ImmutableList.of(generalOptions)));
     delete.transform(workdir);
@@ -84,7 +84,7 @@ public class DeletePathTest {
 
 
   @Test
-  public void recursiveByType() throws IOException {
+  public void recursiveByType() throws Exception {
     yaml.setPath("folder/**/*.java");
     Transformation delete = yaml.withOptions(new Options(ImmutableList.of(generalOptions)));
     delete.transform(workdir);
@@ -93,7 +93,7 @@ public class DeletePathTest {
   }
 
   @Test
-  public void testToString() {
+  public void testToString() throws Exception {
     yaml.setPath("foo/**/bar.htm");
     String string = yaml.withOptions(new Options(ImmutableList.of(generalOptions))).toString();
     assertThat(string).contains("path=foo/**/bar.htm");

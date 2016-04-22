@@ -44,7 +44,7 @@ public class CopybaraTest {
   }
 
   @Test
-  public void doNothing() throws IOException, RepoException {
+  public void doNothing() throws Exception {
     Config.Yaml config = new Config.Yaml();
     config.setName("name");
     config.setOrigin(new Origin.Yaml<DummyOrigin>() {

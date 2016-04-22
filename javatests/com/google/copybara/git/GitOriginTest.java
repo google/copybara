@@ -31,7 +31,7 @@ public class GitOriginTest {
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
-  public void setup() throws IOException, RepoException {
+  public void setup() throws Exception {
     Path reposDir = Files.createTempDirectory("repos_repo");
     remote = Files.createTempDirectory("remote");
     GitOrigin.Yaml yaml = new GitOrigin.Yaml();

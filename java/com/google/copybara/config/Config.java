@@ -87,7 +87,8 @@ public final class Config {
       this.origin = origin;
     }
 
-    public void setTransformations(List<? extends Transformation.Yaml> transformations) {
+    public void setTransformations(List<? extends Transformation.Yaml> transformations)
+        throws ConfigValidationException {
       this.transformations.clear();
       for (Object transformation : transformations) {
         // The instanceof check is necessary when parsing Yaml because this method is invoked using
@@ -100,7 +101,7 @@ public final class Config {
       }
     }
 
-    public Config withOptions(Options options) {
+    public Config withOptions(Options options) throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(origin, "origin");
       ConfigValidationException.checkNotMissing(destination, "destination");
 

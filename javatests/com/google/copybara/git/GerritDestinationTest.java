@@ -141,19 +141,19 @@ public class GerritDestinationTest {
     verifySpecifyAuthorField("Copybara <noreply@google.com>");
   }
 
-  private void checkAuthorFormatIsBad(String author) {
+  private void checkAuthorFormatIsBad(String author) throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("author field must be in the form of 'Name <email@domain>'");
     yaml.setAuthor(author);
   }
 
   @Test
-  public void validatesAuthorFieldFormat1() {
+  public void validatesAuthorFieldFormat1() throws ConfigValidationException {
     checkAuthorFormatIsBad("foo");
   }
 
   @Test
-  public void validatesAuthorFieldFormat2() {
+  public void validatesAuthorFieldFormat2() throws ConfigValidationException {
     checkAuthorFormatIsBad("foo <a@>");
   }
 

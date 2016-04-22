@@ -88,7 +88,8 @@ public final class TemplateTokens {
    * @throws ConfigValidationException if the set of interpolations in this does not match the set
    * passed
    */
-  public void validateInterpolations(Set<String> definedInterpolations) {
+  public void validateInterpolations(Set<String> definedInterpolations)
+      throws ConfigValidationException {
     Set<String> used = new HashSet<>();
     for (Token token : tokens) {
       if (token.type == TokenType.INTERPOLATION) {
@@ -119,7 +120,7 @@ public final class TemplateTokens {
    *
    * @throws ConfigValidationException if the template is malformed
    */
-  public static TemplateTokens parse(String template) {
+  public static TemplateTokens parse(String template) throws ConfigValidationException {
     StringBuilder currentLiteral = new StringBuilder();
     List<Token> tokens = new ArrayList<>();
     int c = 0;

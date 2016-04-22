@@ -130,7 +130,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
     }
 
     @Override
-    public GitOrigin withOptions(Options options) {
+    public GitOrigin withOptions(Options options) throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(url, "url");
 
       GitOptions gitConfig = options.get(GitOptions.class);

@@ -1,6 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.copybara.config.ConfigValidationException;
+
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -13,7 +15,7 @@ public interface Destination {
 
   interface Yaml {
 
-    Destination withOptions(Options options);
+    Destination withOptions(Options options) throws ConfigValidationException;
   }
 
   /**

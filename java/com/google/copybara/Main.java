@@ -5,7 +5,7 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.Config;
-import com.google.copybara.config.ConfigParserException;
+import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.YamlParser;
 import com.google.copybara.git.GerritDestination;
 import com.google.copybara.git.GerritOptions;
@@ -113,7 +113,7 @@ public class Main {
       printCauseChain(e);
       System.err.print(usage(jcommander));
       System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
-    } catch (RepoException | ConfigParserException e) {
+    } catch (RepoException | ConfigValidationException e) {
       printCauseChain(e);
       System.exit(ExitCode.REPOSITORY_ERROR.getCode());
     } catch (IOException e) {
@@ -179,7 +179,7 @@ public class Main {
   }
 
   private Config loadConfig(Path path, Options options)
-      throws IOException, CommandLineException, ConfigParserException {
+      throws IOException, CommandLineException, ConfigValidationException {
     try {
       return new YamlParser(getYamlTypeDescriptions()).loadConfig(path, options);
     } catch (NoSuchFileException e) {

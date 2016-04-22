@@ -43,14 +43,14 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void invalidRegex() {
+  public void invalidRegex() throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("'regexGroups' includes invalid regex for key foo");
     yaml.setRegexGroups(ImmutableMap.of("foo", "(unfinished group"));
   }
 
   @Test
-  public void missingReplacement() {
+  public void missingReplacement() throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("missing required field 'after'");
     yaml.setBefore("asdf");
@@ -58,7 +58,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void testSimpleReplaceWithoutGroups() throws IOException {
+  public void testSimpleReplaceWithoutGroups() throws Exception {
     yaml.setBefore("foo");
     yaml.setAfter("bar");
     Transformation transformation = yaml.withOptions(options);
@@ -82,7 +82,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void testWithGroups() throws IOException {
+  public void testWithGroups() throws Exception {
     yaml.setBefore("foo${middle}bar");
     yaml.setAfter("bar${middle}foo");
     yaml.setRegexGroups(ImmutableMap.of("middle", ".*"));
@@ -96,7 +96,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void testWithGlob() throws IOException {
+  public void testWithGlob() throws Exception {
     yaml.setBefore("foo");
     yaml.setAfter("bar");
     yaml.setPath("**.java");
@@ -115,7 +115,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void testWithGlobFolderPrefix() throws IOException {
+  public void testWithGlobFolderPrefix() throws Exception {
     yaml.setBefore("foo");
     yaml.setAfter("bar");
     yaml.setPath("folder/**.java");
@@ -133,7 +133,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void testWithGlobFolderPrefixUnlikeBash() throws IOException {
+  public void testWithGlobFolderPrefixUnlikeBash() throws Exception {
     yaml.setBefore("foo");
     yaml.setAfter("bar");
     yaml.setPath("folder/**/*.java");
@@ -153,7 +153,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void testUsesTwoDifferentGroups() throws IOException {
+  public void testUsesTwoDifferentGroups() throws Exception {
     yaml.setBefore("bef${a}ore${b}");
     yaml.setAfter("af${b}ter${a}");
     yaml.setRegexGroups(ImmutableMap.of(
@@ -172,7 +172,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void beforeUsesUndeclaredGroup() {
+  public void beforeUsesUndeclaredGroup() throws ConfigValidationException {
     yaml.setBefore("foo${bar}${baz}");
     yaml.setAfter("foo${baz}");
     yaml.setRegexGroups(ImmutableMap.of("baz", ".*"));
@@ -183,7 +183,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void afterUsesUndeclaredGroup() {
+  public void afterUsesUndeclaredGroup() throws ConfigValidationException {
     yaml.setBefore("foo${bar}${iru}");
     yaml.setAfter("foo${bar}");
     yaml.setRegexGroups(ImmutableMap.of("bar", ".*"));
@@ -194,7 +194,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void beforeDoesNotUseADeclaredGroup() {
+  public void beforeDoesNotUseADeclaredGroup() throws ConfigValidationException {
     yaml.setBefore("foo${baz}");
     yaml.setAfter("foo${baz}${bar}");
     yaml.setRegexGroups(ImmutableMap.of(
@@ -207,7 +207,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void afterDoesNotUseADeclaredGroup() {
+  public void afterDoesNotUseADeclaredGroup() throws ConfigValidationException {
     yaml.setBefore("foo${baz}${bar}");
     yaml.setAfter("foo${baz}");
     yaml.setRegexGroups(ImmutableMap.of(
@@ -220,7 +220,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void categoryComplementDoesNotSpanLine() throws IOException {
+  public void categoryComplementDoesNotSpanLine() throws Exception {
     yaml.setBefore("bef${a}ore");
     yaml.setAfter("aft${a}er");
     yaml.setRegexGroups(ImmutableMap.of("a", "[^/]+"));
@@ -239,7 +239,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void multipleMatchesPerLine() throws IOException {
+  public void multipleMatchesPerLine() throws Exception {
     yaml.setBefore("before");
     yaml.setAfter("after");
     writeFile(root.resolve("before_and_after"), "before ... still before");
@@ -250,7 +250,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void errorIfNotRoundTrippable() throws IOException {
+  public void errorIfNotRoundTrippable() throws Exception {
     yaml.setBefore("before");
     yaml.setAfter("after");
     writeFile(root.resolve("before_and_after"), "before_and_after");
@@ -262,7 +262,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void showOriginalTemplateInToString() {
+  public void showOriginalTemplateInToString() throws ConfigValidationException {
     yaml.setBefore("a${b}c");
     yaml.setAfter("c${b}a");
     yaml.setRegexGroups(ImmutableMap.of("b", ".*"));
@@ -272,7 +272,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void showOriginalGlobInToString() {
+  public void showOriginalGlobInToString() throws ConfigValidationException {
     yaml.setBefore("before");
     yaml.setAfter("after");
     yaml.setPath("foo/**/bar.htm");
@@ -281,7 +281,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void showReasonableDefaultGlobInToString() {
+  public void showReasonableDefaultGlobInToString() throws ConfigValidationException {
     yaml.setBefore("before");
     yaml.setAfter("after");
     String string = yaml.withOptions(options).toString();
