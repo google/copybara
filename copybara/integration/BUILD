@@ -31,3 +31,9 @@ cram_test(
     srcs = ["test-preserve-env.t"],
     deps = ["//java/com/google/copybara"],
 )
+
+cram_test(
+    name = "test-help.t",
+    srcs = ["test-help.t"],
+    deps = ["//java/com/google/copybara"],
+)
