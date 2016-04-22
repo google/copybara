@@ -15,6 +15,7 @@ import com.beust.jcommander.Parameter;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -192,9 +193,11 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
   private DeclaredType getAnnotationTypeParam(Element element, String name)
       throws ElementException {
-    for (Entry<? extends ExecutableElement, ? extends AnnotationValue> entry :
-        getAnnotationMirror(element, DocElement.class)
-            .getElementValues().entrySet()) {
+    Map<? extends ExecutableElement, ? extends AnnotationValue> members =
+        processingEnv.getElementUtils()
+            .getElementValuesWithDefaults(getAnnotationMirror(element, DocElement.class));
+
+    for (Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : members.entrySet()) {
       if (entry.getKey().getSimpleName().toString().equals(name)) {
         return (DeclaredType) entry.getValue().getValue();
       }
