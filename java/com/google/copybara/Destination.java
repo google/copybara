@@ -25,8 +25,11 @@ public interface Destination {
    * @param originRef reference to the origin revision being moved
    * @param timestamp when the code was submitted to the origin repository, expressed as seconds
    * since the UNIX epoch
+   * @param changesSummary commit message to use for destination. Note that the destination can
+   * modify the message for the commit or add more information.
    */
-  void process(Path workdir, String originRef, long timestamp) throws RepoException, IOException;
+  void process(Path workdir, String originRef, long timestamp,
+      String changesSummary) throws RepoException, IOException;
 
   /**
    * Returns the latest origin ref that was pushed to this destination.

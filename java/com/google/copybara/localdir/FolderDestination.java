@@ -43,7 +43,7 @@ public class FolderDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, String originRef, long timestamp)
+  public void process(Path workdir, String originRef, long timestamp, String changesSummary)
       throws RepoException, IOException {
     Files.createDirectories(localFolder);
     FileUtil.deleteFilesRecursively(localFolder, FileUtil.notPathMatcher(excludeFromDeletion));

@@ -28,13 +28,14 @@ public final class GitDestination implements Destination {
     /**
      * Generates a commit message based on the uncommitted index stored in the given repository.
      */
-    String message(GitRepository repo, String originRef) throws RepoException;
+    String message(String commitMsg, GitRepository repo, String originRef) throws RepoException;
   }
 
   private static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
-    public String message(GitRepository repo, String originRef) {
-      return String.format("Copybara commit\n\n%s: %s\n",
+    public String message(String commitMsg, GitRepository repo, String originRef) {
+      return String.format("%s\n%s: %s\n",
+          commitMsg,
           Origin.COMMIT_ORIGIN_REFERENCE_FIELD,
           originRef
       );
@@ -66,7 +67,8 @@ public final class GitDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, String originRef, long timestamp) throws RepoException {
+  public void process(Path workdir, String originRef, long timestamp,
+      String changesSummary) throws RepoException {
     logger.log(Level.INFO, "Exporting " + workdir + " to: " + this);
 
     GitRepository scratchClone = cloneBaseline();
@@ -78,7 +80,7 @@ public final class GitDestination implements Destination {
     alternate.simpleCommand("commit",
         "--author", author,
         "--date", timestamp + " +0000",
-        "-m", commitGenerator.message(alternate, originRef));
+        "-m", commitGenerator.message(changesSummary, alternate, originRef));
     alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
   }
 

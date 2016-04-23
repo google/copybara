@@ -39,8 +39,10 @@ public final class GerritDestination implements Destination {
      * values of the git variables {@code GIT_AUTHOR_IDENT} and {@code GIT_COMMITTER_IDENT}.
      */
     @Override
-    public String message(GitRepository repo, String originRef) throws RepoException {
-      return String.format("Copybara commit\n\n%s: %s\nChange-Id: %s\n",
+    public String message(String commitMsg, GitRepository repo, String originRef)
+        throws RepoException {
+      return String.format("%s\n%s: %s\nChange-Id: %s\n",
+          commitMsg,
           Origin.COMMIT_ORIGIN_REFERENCE_FIELD,
           originRef,
           changeId(repo)
@@ -77,8 +79,9 @@ public final class GerritDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, String originRef, long timestamp) throws RepoException {
-    gitDestination.process(workdir, originRef, timestamp);
+  public void process(Path workdir, String originRef, long timestamp,
+      String changesSummary) throws RepoException {
+    gitDestination.process(workdir, originRef, timestamp, changesSummary);
   }
 
   @Nullable

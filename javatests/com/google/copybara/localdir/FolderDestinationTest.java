@@ -60,7 +60,8 @@ public class FolderDestinationTest {
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
     Destination destination = yaml.withOptions(
         new Options(ImmutableList.of(localOptions, generalOptions)));
-    destination.process(generalOptions.getWorkdir(), "origin_ref", /*timestamp=*/424242420);
+    destination.process(generalOptions.getWorkdir(), "origin_ref", /*timestamp=*/424242420,
+        "Not relevant");
     assertFilesExist(localFolder, "one", "two", "root_file",
         "one/file.java", "two/file.java", "test.txt", "dir/file.txt");
     assertFilesDontExist(localFolder, "root_file2", "one/file.txt");

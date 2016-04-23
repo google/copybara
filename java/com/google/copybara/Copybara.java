@@ -52,6 +52,7 @@ class Copybara {
     if (timestamp == null) {
       timestamp = System.currentTimeMillis() / 1000;
     }
-    config.getDestination().process(workdir, resolvedRef.asString(), timestamp);
+    config.getDestination().process(workdir, resolvedRef.asString(), timestamp,
+        "Copybara commit\n");
   }
 }

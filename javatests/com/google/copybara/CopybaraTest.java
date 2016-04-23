@@ -28,7 +28,7 @@ public class CopybaraTest {
     public Destination withOptions(Options options) {
       return new Destination() {
         @Override
-        public void process(Path workdir, String originRef, long timestamp) {
+        public void process(Path workdir, String originRef, long timestamp, String changesSummary) {
           timesProcessed++;
           Truth.assertThat(timestamp).isAtLeast(beginTime);
           Truth.assertThat(timestamp).isAtMost(System.currentTimeMillis() / 1000);

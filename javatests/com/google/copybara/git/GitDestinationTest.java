@@ -25,6 +25,7 @@ import java.nio.file.Path;
 @RunWith(JUnit4.class)
 public class GitDestinationTest {
 
+  private static final String COMMIT_MSG = "A commit!\n";
   private Yaml yaml;
   private Path repoGitDir;
   private Path workdir;
@@ -93,7 +94,7 @@ public class GitDestinationTest {
     yaml.setPullFromRef("testPullFromRef");
     yaml.setPushToRef("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    destinationFirstCommit().process(workdir, "origin_ref", /*timestamp=*/424242420);
+    destinationFirstCommit().process(workdir, "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "testPushToRef");
@@ -113,7 +114,7 @@ public class GitDestinationTest {
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'testPullFromRef' doesn't exist");
-    destination().process(workdir, "origin_ref", /*timestamp=*/424242420);
+    destination().process(workdir, "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
   }
 
   @Test
@@ -122,14 +123,14 @@ public class GitDestinationTest {
     yaml.setPushToRef("pushToFoo");
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
-    destinationFirstCommit().process(workdir, "origin_ref", /*timestamp=*/424242420);
+    destinationFirstCommit().process(workdir, "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
     git("--git-dir", repoGitDir.toString(), "branch", "pullFromBar", "pushToFoo");
 
     workdir = Files.createTempDirectory("processCommitDeletesAndAddsFiles-workdir");
     Files.write(workdir.resolve("1.txt"), "content 1".getBytes());
     Files.createDirectories(workdir.resolve("subdir"));
     Files.write(workdir.resolve("subdir/2.txt"), "content 2".getBytes());
-    destination().process(workdir, "origin_ref", /*timestamp=*/424242420);
+    destination().process(workdir, "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
 
     // Make sure original file was deleted.
     assertFilesInDir(2, "pushToFoo", ".");
@@ -150,19 +151,19 @@ public class GitDestinationTest {
     Files.write(file, "some content".getBytes());
     GitDestination destination1 = destinationFirstCommit();
     assertThat(destination1.getPreviousRef()).isNull();
-    destination1.process(workdir, "first_commit", /*timestamp=*/424242420);
+    destination1.process(workdir, "first_commit", /*timestamp=*/424242420, COMMIT_MSG);
     assertCommitHasOrigin("master", "first_commit");
 
     Files.write(file, "some other content".getBytes());
     GitDestination destination2 = destination();
     assertThat(destination2.getPreviousRef()).isEqualTo("first_commit");
-    destination2.process(workdir, "second_commit", /*timestamp=*/424242420);
+    destination2.process(workdir, "second_commit", /*timestamp=*/424242420, COMMIT_MSG);
     assertCommitHasOrigin("master", "second_commit");
 
     Files.write(file, "just more text".getBytes());
     GitDestination destination3 = destination();
     assertThat(destination3.getPreviousRef()).isEqualTo("second_commit");
-    destination3.process(workdir, "third_commit", /*timestamp=*/424242420);
+    destination3.process(workdir, "third_commit", /*timestamp=*/424242420, COMMIT_MSG);
     assertCommitHasOrigin("master", "third_commit");
   }
 
@@ -173,7 +174,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     GitDestination destination = destinationFirstCommit();
-    destination.process(workdir, "first_commit", /*timestamp=*/424242420);
+    destination.process(workdir, "first_commit", /*timestamp=*/424242420, COMMIT_MSG);
 
     String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1").split("\n");
     assertThat(commitLines[1]).isEqualTo("Author: " + expected);
@@ -228,11 +229,11 @@ public class GitDestinationTest {
     yaml.setPushToRef("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    destinationFirstCommit().process(workdir, "first_commit", /*timestamp=*/1414141414);
+    destinationFirstCommit().process(workdir, "first_commit", /*timestamp=*/1414141414, COMMIT_MSG);
     GitTesting.assertAuthorTimestamp(repo(), "master", 1414141414);
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
-    destination().process(workdir, "second_commit", /*timestamp=*/1515151515);
+    destination().process(workdir, "second_commit", /*timestamp=*/1515151515, COMMIT_MSG);
     GitTesting.assertAuthorTimestamp(repo(), "master", 1515151515);
   }
 }
