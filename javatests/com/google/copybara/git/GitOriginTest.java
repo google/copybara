@@ -97,4 +97,13 @@ public class GitOriginTest {
     // checkout
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
   }
+
+  @Test
+  public void canReadTimestamp() throws IOException, RepoException {
+    Files.write(remote.resolve("test2.txt"), "some more content".getBytes());
+    git("add", "test2.txt");
+    git("commit", "-m", "second file", "--date=1400110011");
+    Reference<GitOrigin> master = origin.resolve("master");
+    assertThat(master.readTimestamp()).isEqualTo(1400110011L);
+  }
 }

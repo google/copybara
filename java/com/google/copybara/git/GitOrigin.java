@@ -89,10 +89,15 @@ public final class GitOrigin implements Origin<GitOrigin> {
     }
 
     @Override
-    public Long readTimestamp() {
-      // TODO(matvore): Actually read the timestamp from the commit. Returning null causes the
-      // migrated commit to have the timestamp set to the current time.
-      return null;
+    public Long readTimestamp() throws RepoException {
+      // -s suppresses diff output
+      // --format=%at indicates show the author timestamp as the number of seconds from UNIX epoch
+      String stdout = repository.simpleCommand("show", "-s", "--format=%at", reference).getStdout();
+      try {
+        return Long.parseLong(stdout.trim());
+      } catch (NumberFormatException e) {
+        throw new RepoException("Output of git show not a valid long", e);
+      }
     }
 
     /**
