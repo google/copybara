@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.transform.Transformation;
 
 import java.util.ArrayList;
@@ -111,6 +112,16 @@ public final class Config {
       }
       return new Config(this.name, this.destination.withOptions(options),
           this.origin.withOptions(options), transformations.build());
+    }
+
+    /**
+     * We ignore the global values. This is only a placeholder so that the user can define in one
+     * place all its global values. Snakeyaml replaces while parsing the references with the
+     * values.
+     */
+    @DocField(description = "Global values for the scope of the file. Values are defined and referenced using standard YAML notation (& and * prefixes)", required = false)
+    public void setGlobal(List<Object> global) {
+
     }
   }
 }
