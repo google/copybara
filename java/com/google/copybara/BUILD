@@ -34,4 +34,5 @@ java_library(
         "//third_party:shell",
         "//third_party:snakeyaml",
     ],
+    javacopts = ["-Xlint:unchecked"],
 )
