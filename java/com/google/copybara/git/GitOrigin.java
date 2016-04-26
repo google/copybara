@@ -107,7 +107,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
      */
     @Override
     public void checkout(Path workdir) throws RepoException {
-      repository.withWorkTree(workdir).simpleCommand("checkout", "-f", reference);
+      repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", reference);
     }
 
     @Override

@@ -73,7 +73,7 @@ public final class GitDestination implements Destination {
 
     GitRepository scratchClone = cloneBaseline();
     if (!gitOptions.gitFirstCommit) {
-      scratchClone.simpleCommand("checkout", "FETCH_HEAD");
+      scratchClone.simpleCommand("checkout", "-q", "FETCH_HEAD");
     }
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
