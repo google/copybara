@@ -14,7 +14,7 @@
          Default: <empty string>
       --git-repo-storage
          Location of the storage path for git repositories
-         Default: /nonexistent/.copybara/repos
+         Default: */.copybara/repos (glob)
       --help
          Shows this help text
          Default: false
