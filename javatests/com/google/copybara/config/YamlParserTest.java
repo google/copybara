@@ -12,6 +12,8 @@ import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.transform.Transformation;
 
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -19,6 +21,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.yaml.snakeyaml.TypeDescription;
+import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -111,6 +114,53 @@ public class YamlParserTest {
     assertThat(transformation2.field2).isEqualTo("bee");
   }
 
+  @Test
+  public void testGenericOfSimpleTypes() throws IOException, ConfigValidationException {
+    String configContent = "name: \"mytest\"\n"
+        + "origin: !MockOrigin\n"
+        + "  url: 'blabla'\n"
+        + "  branch: \"master\"\n"
+        + "destination: !MockDestination\n"
+        + "  folder: \"some folder\"\n"
+        + "transformations:\n"
+        + "  - !MockTransform\n"
+        + "    list:\n"
+        + "      - \"some text\"\n"
+        + "      - !!bool true\n";
+
+    Files.write(fs.getPath("test"), configContent.getBytes());
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectCause(new CauseMatcher(ConstructorException.class,
+        "sequence field 'list' expects elements of type 'string',"
+            + " but list[1] is of type 'boolean' (value = true)"));
+    thrown.expectMessage("Error loading 'test' configuration file");
+
+    yamlParser.loadConfig(fs.getPath("test"), options);
+  }
+
+  @Test
+  public void testGenericOfWildcard() throws IOException, ConfigValidationException {
+    String configContent = "name: \"mytest\"\n"
+        + "origin: !MockOrigin\n"
+        + "  url: 'blabla'\n"
+        + "  branch: \"master\"\n"
+        + "destination: !MockDestination\n"
+        + "  folder: \"some folder\"\n"
+        + "transformations:\n"
+        + "  - 42\n";
+
+    Files.write(fs.getPath("test"), configContent.getBytes());
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectCause(new CauseMatcher(ConstructorException.class,
+        "sequence field 'transformations' expects elements of type"
+            + " 'Transformation', but transformations[0] is of type 'integer' (value = 42)"));
+    thrown.expectMessage("Error loading 'test' configuration file");
+
+    yamlParser.loadConfig(fs.getPath("test"), options);
+  }
+
   public static class MockOrigin implements Origin.Yaml<MockOrigin>, Origin<MockOrigin> {
 
     private String url;
@@ -174,6 +224,7 @@ public class YamlParserTest {
 
     private String field1;
     private String field2;
+    private List<String> list;
 
     public MockTransform() {
     }
@@ -186,6 +237,14 @@ public class YamlParserTest {
       this.field2 = field2;
     }
 
+    public void setList(List<String> list) {
+      for (Object s : list) {
+        System.out.println(s + ":");
+        System.out.println("  " + ((String) s));
+      }
+      this.list = list;
+    }
+
     @Override
     public void transform(Path workdir) throws IOException {
       throw new UnsupportedOperationException();
@@ -194,6 +253,34 @@ public class YamlParserTest {
     @Override
     public Transformation withOptions(Options options) throws ConfigValidationException {
       return this;
+    }
+  }
+
+  /**
+   * A matcher for exception causes types and messages
+   */
+  private static class CauseMatcher extends TypeSafeMatcher<Throwable> {
+
+    private final Class<? extends Throwable> type;
+    private final String expectedMessage;
+
+    private CauseMatcher(Class<? extends Throwable> type, String expectedMessage) {
+      this.type = type;
+      this.expectedMessage = expectedMessage;
+    }
+
+    @Override
+    protected boolean matchesSafely(Throwable item) {
+      return item.getClass().isAssignableFrom(type)
+          && item.getMessage().contains(expectedMessage);
+    }
+
+    @Override
+    public void describeTo(Description description) {
+      description.appendText("expects type ")
+          .appendValue(type)
+          .appendText(" and a message ")
+          .appendValue(expectedMessage);
     }
   }
 }

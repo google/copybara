@@ -272,7 +272,7 @@ name: "cbtest-invalid-xform"
 transformations: [42]
 EOF
   copybara test.copybara origin/master > $TEST_log 2>&1 && fail "Should fail"
-  expect_log 'Object parsed from Yaml is not a recognized Transformation: 42'
+  expect_log "sequence field 'transformations' expects elements of type 'Transformation', but transformations\[0\] is of type 'integer' (value = 42)"
 }
 
 function test_command_help_flag() {
