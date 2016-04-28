@@ -21,19 +21,19 @@ py_binary(
 
 load("//copybara/integration:cram.bzl", "cram_test")
 
-#cram_test(
-#    name = "hello",
-#    srcs = ["hello.t"],
-#)
+cram_test(
+    name = "hello",
+    srcs = ["hello.t"],
+)
 
-#cram_test(
-#    name = "test-preserve-env.t",
-#    srcs = ["test-preserve-env.t"],
-#    deps = ["//java/com/google/copybara"],
-#)
+cram_test(
+    name = "test-preserve-env.t",
+    srcs = ["test-preserve-env.t"],
+    deps = ["//java/com/google/copybara"],
+)
 
-#cram_test(
-#    name = "test-help.t",
-#    srcs = ["test-help.t"],
-#    deps = ["//java/com/google/copybara"],
-#)
+cram_test(
+    name = "test-help.t",
+    srcs = ["test-help.t"],
+    deps = ["//java/com/google/copybara"],
+)
