@@ -5,10 +5,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.Workflow;
+import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.transform.Transformation;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -69,49 +71,55 @@ public final class Config {
   /**
    * Config builder. YAML parser needs this to be public.
    */
+  @DocElement(yamlName = "!Config",
+      description = "The single top level object of the configuration file.",
+      elementKind = Config.class)
   public static final class Yaml {
 
     private String name;
-    private Destination.Yaml destination;
-    private Origin.Yaml origin;
-    private List<Transformation.Yaml> transformations = new ArrayList<>();
 
+    // TODO(matvore): remove this field once all tests and exispting configs have been converted to
+    // using explicit workflows
+    private ImmutableList<Workflow.Yaml> workflows = ImmutableList.of(new Workflow.Yaml());
+
+    @DocField(description = "Name of the project", required = true)
     public void setName(String name) {
       this.name = name;
     }
 
+    // TODO(matvore): Remove this field once everyone is using explicit workflows.
+    @DocField(description = "Use workflows field instead", required = false)
     public void setDestination(Destination.Yaml destination) {
-      this.destination = destination;
+      this.workflows.get(0).setDestination(destination);
     }
 
+    // TODO(matvore): Remove this field once everyone is using explicit workflows.
+    @DocField(description = "Use workflows field instead", required = false)
     public void setOrigin(Origin.Yaml origin) {
-      this.origin = origin;
+      this.workflows.get(0).setOrigin(origin);
     }
 
+    // TODO(matvore): Remove this field once everyone is using explicit workflows.
+    @DocField(description = "Use workflows field instead", required = false)
     public void setTransformations(List<? extends Transformation.Yaml> transformations)
         throws ConfigValidationException {
-      this.transformations.clear();
-      for (Object transformation : transformations) {
-        // The instanceof check is necessary when parsing Yaml because this method is invoked using
-        // reflection and generic constraints are ignored.
-        if (!(transformation instanceof Transformation.Yaml)) {
-          throw new ConfigValidationException(
-              "Object parsed from Yaml is not a recognized Transformation: " + transformation);
-        }
-        this.transformations.add(((Transformation.Yaml) transformation));
-      }
+      this.workflows.get(0).setTransformations(transformations);
+    }
+
+    @DocField(description = "All workflows (migration operations) associated with this project.",
+        required = true)
+    public void setWorkflows(List<? extends Workflow.Yaml> workflows)
+        throws ConfigValidationException {
+      this.workflows = ImmutableList.copyOf(workflows);
     }
 
     public Config withOptions(Options options) throws ConfigValidationException {
-      ConfigValidationException.checkNotMissing(origin, "origin");
-      ConfigValidationException.checkNotMissing(destination, "destination");
-
-      ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
-      for (Transformation.Yaml yaml : this.transformations) {
-        transformations.add(yaml.withOptions(options));
+      if (workflows.isEmpty()) {
+        throw new ConfigValidationException("At least one element in 'workflows' is required.");
       }
-      return new Config(this.name, this.destination.withOptions(options),
-          this.origin.withOptions(options), transformations.build());
+      Workflow workflow = workflows.get(0).withOptions(options);
+      return new Config(this.name, workflow.getDestination(), workflow.getOrigin(),
+          ImmutableList.copyOf(workflow.getTransformations()));
     }
 
     /**

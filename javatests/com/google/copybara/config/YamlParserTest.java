@@ -161,6 +161,18 @@ public class YamlParserTest {
     yamlParser.loadConfig(fs.getPath("test"), options);
   }
 
+  @Test
+  public void requireAtLeastOneWorkflow() throws ConfigValidationException {
+    Config.Yaml yaml = new Config.Yaml();
+    yaml.setOrigin(new MockOrigin());
+    yaml.setDestination(new MockDestination());
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("At least one element in 'workflows' is required.");
+    yaml.setWorkflows(ImmutableList.of());
+    yaml.withOptions(options);
+  }
+
   public static class MockOrigin implements Origin.Yaml<MockOrigin>, Origin<MockOrigin> {
 
     private String url;

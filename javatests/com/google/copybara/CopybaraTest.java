@@ -1,10 +1,12 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
-import com.google.common.truth.Truth;
 import com.google.copybara.config.Config;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.transform.Transformation;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +86,27 @@ public class CopybaraTest {
     }
   }
 
+  private class DummyOriginYaml implements Origin.Yaml<DummyOrigin> {
+    @Override
+    public DummyOrigin withOptions(Options options) {
+      return new DummyOrigin();
+    }
+  }
+
+  private class RecordsInvocationTransformation implements Transformation.Yaml {
+    int timesInvoked = 0;
+
+    @Override
+    public Transformation withOptions(Options options) {
+      return new Transformation() {
+        @Override
+        public void transform(Path workdir) throws IOException {
+          timesInvoked++;
+        }
+      };
+    }
+  }
+
   private Map<String, Long> referenceToTimestamp;
   private RecordsProcessCallDestination destination;
   private Config.Yaml yaml;
@@ -95,14 +118,7 @@ public class CopybaraTest {
     destination = new RecordsProcessCallDestination();
     yaml = new Config.Yaml();
     yaml.setName("name");
-    yaml.setOrigin(new Origin.Yaml<DummyOrigin>() {
-      @Override
-      public DummyOrigin withOptions(Options options) {
-        return new DummyOrigin();
-      }
-    });
 
-    yaml.setDestination(destination);
     workdir = Files.createTempDirectory("workdir");
   }
 
@@ -111,30 +127,48 @@ public class CopybaraTest {
         ImmutableList.of(new GitOptions(), new GeneralOptions(workdir, /*verbose=*/true)));
   }
 
-
   @Test
   public void processIsCalledWithCurrentTimeIfTimestampNotInOrigin() throws Exception {
+    yaml.setDestination(destination);
+    yaml.setOrigin(new DummyOriginYaml());
     long beginTime = System.currentTimeMillis() / 1000;
 
     new Copybara(workdir).runForSourceRef(yaml.withOptions(options()), "some_sha1");
 
     long timestamp = destination.processTimestamps.get(0);
-    Truth.assertThat(timestamp).isAtLeast(beginTime);
-    Truth.assertThat(timestamp).isAtMost(System.currentTimeMillis() / 1000);
+    assertThat(timestamp).isAtLeast(beginTime);
+    assertThat(timestamp).isAtMost(System.currentTimeMillis() / 1000);
   }
 
   @Test
   public void processIsCalledWithCorrectWorkdir() throws Exception {
+    yaml.setDestination(destination);
+    yaml.setOrigin(new DummyOriginYaml());
     new Copybara(workdir).runForSourceRef(yaml.withOptions(options()), "some_sha1");
-    Truth.assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
+    assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
         .contains("some_sha1");
   }
 
   @Test
   public void sendsOriginTimestampToDest() throws Exception {
+    yaml.setDestination(destination);
+    yaml.setOrigin(new DummyOriginYaml());
     referenceToTimestamp.put("refname", (long) 42918273);
     new Copybara(workdir).runForSourceRef(yaml.withOptions(options()), "refname");
-    Truth.assertThat(destination.processTimestamps.get(0))
+    assertThat(destination.processTimestamps.get(0))
         .isEqualTo(42918273);
+  }
+
+  @Test
+  public void runsOnlyWorkflowByDefault() throws Exception {
+    Workflow.Yaml workflow = new Workflow.Yaml();
+    workflow.setDestination(destination);
+    RecordsInvocationTransformation transformation = new RecordsInvocationTransformation();
+    workflow.setTransformations(ImmutableList.of(transformation));
+    workflow.setOrigin(new DummyOriginYaml());
+    yaml.setWorkflows(ImmutableList.of(workflow));
+    new Copybara(workdir).runForSourceRef(yaml.withOptions(options()), "some_sha1");
+    assertThat(destination.processTimestamps).hasSize(1);
+    assertThat(transformation.timesInvoked).isEqualTo(1);
   }
 }
