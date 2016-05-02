@@ -10,6 +10,8 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -139,6 +141,9 @@ public final class GitDestination implements Destination {
         .toString();
   }
 
+  @DocElement(yamlName = "!GitDestination",
+      description = "Creates a commit in a git repository using the transformed worktree",
+      elementKind = Destination.class, flags = {GitOptions.class})
   public static final class Yaml extends AbstractDestinationYaml {
     private String pushToRef;
 
@@ -147,6 +152,7 @@ public final class GitDestination implements Destination {
      * Gerrit review, this can be {@code refs/for/master}. This can also be set to the same value as
      * {@code defaultTrackingRef}.
      */
+    @DocField(description = "Reference to use for pushing the change, for example 'master'")
     public void setPushToRef(String pushToRef) {
       this.pushToRef = pushToRef;
     }

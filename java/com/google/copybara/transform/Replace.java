@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.ReadablePathMatcher;
 
 import java.io.IOException;
@@ -129,6 +131,7 @@ public final class Replace implements Transformation {
     Files.walkFileTree(workdir, new TransformVisitor());
   }
 
+  @DocElement(yamlName = "!Replace", description = "Replace a text with another text using optional regex groups. This tranformer is designed so that it can be reversible (Used in another workflow in the other direction).", elementKind = Transformation.class)
   public final static class Yaml implements Transformation.Yaml {
 
     private TemplateTokens before;
@@ -136,14 +139,17 @@ public final class Replace implements Transformation {
     private ImmutableMap<String, Pattern> regexGroups = ImmutableMap.of();
     private String path = "**";
 
+    @DocField(description = "The text before the transformation. Can contain references to regex groups. For example \"foo${x}text\"")
     public void setBefore(String before) throws ConfigValidationException {
       this.before = TemplateTokens.parse(before);
     }
 
+    @DocField(description = "The text after the transformation. Should contain the same references to regex groups than the before field. For example \"bar${x}text\"")
     public void setAfter(String after) throws ConfigValidationException {
       this.after = TemplateTokens.parse(after);
     }
 
+    @DocField(description = "A set of named regexes that can be used to match part of the replaced text. For example x: \"[A-Za-z]+\"", required = false)
     public void setRegexGroups(Map<String, String> regexGroups) throws ConfigValidationException {
       ImmutableMap.Builder<String, Pattern> parsed = new ImmutableMap.Builder<>();
       for (Map.Entry<String, String> group : regexGroups.entrySet()) {
@@ -158,6 +164,8 @@ public final class Replace implements Transformation {
       this.regexGroups = parsed.build();
     }
 
+    @DocField(description = "A glob expression relative to the workdir representing the files to apply the transformation. For example \"**.java\", all java files recursively",
+        required = false, defaultValue = "** (All the files)")
     public void setPath(String path) {
       this.path = path;
     }

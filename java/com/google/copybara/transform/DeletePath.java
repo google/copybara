@@ -4,6 +4,8 @@ package com.google.copybara.transform;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.ReadablePathMatcher;
 
@@ -46,10 +48,12 @@ public final class DeletePath implements Transformation {
     return "DeletePath{path=" + pathMatcher + "}";
   }
 
+  @DocElement(yamlName = "!DeletePath", description = "Deletes the paths from the workdir that match the path glob", elementKind = Transformation.class)
   public final static class Yaml implements Transformation.Yaml {
 
     private String path;
 
+    @DocField(description = "An expression representing a glob to the path relative to the workdir. For example \"**.java\", all java files, recursively.")
     public void setPath(String path) {
       this.path = path;
     }

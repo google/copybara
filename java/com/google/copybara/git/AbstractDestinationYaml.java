@@ -3,6 +3,7 @@ package com.google.copybara.git;
 
 import com.google.copybara.Destination;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.doc.annotations.DocField;
 
 import java.util.regex.Pattern;
 
@@ -13,14 +14,16 @@ import java.util.regex.Pattern;
 abstract class AbstractDestinationYaml implements Destination.Yaml {
 
   private static final Pattern AUTHOR_PATTERN = Pattern.compile(".+ <.+@.+>");
+  private static final String DEFAULT_AUTHOR = "Copybara <noreply@google.com>";
 
   protected String url;
   protected String pullFromRef;
-  protected String author = "Copybara <noreply@google.com>";
+  protected String author = DEFAULT_AUTHOR;
 
   /**
    * Indicates the URL to push to as well as the URL from which to get the parent commit.
    */
+  @DocField(description = "Indicates the URL to push to as well as the URL from which to get the parent commit")
   public void setUrl(String url) {
     this.url = url;
   }
@@ -28,6 +31,7 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
   /**
    * Indicates the ref from which to get the parent commit.
    */
+  @DocField(description = "Indicates the ref from which to get the parent commit")
   public void setPullFromRef(String pullFromRef) {
     this.pullFromRef = pullFromRef;
   }
@@ -36,6 +40,8 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
    * Sets the author line to use for the generated commit. Should be in the form
    * {@code Full Name <email@foo.com>}.
    */
+  @DocField(description = "Sets the author line to use for the generated commit. Should be in the form: Full Name <email@foo.com>",
+      required = false, defaultValue = DEFAULT_AUTHOR)
   public void setAuthor(String author) throws ConfigValidationException {
     // The author line is validated by git commit, but it is nicer to validate early so the user
     // can see the source of the error a little more clearly and he doesn't have to wait until

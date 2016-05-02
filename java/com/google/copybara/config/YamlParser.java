@@ -1,7 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.config;
 
+import com.google.common.base.Preconditions;
 import com.google.copybara.Options;
+import com.google.copybara.doc.annotations.DocElement;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.TypeDescription;
@@ -48,6 +50,18 @@ public final class YamlParser {
       constructor.addTypeDescription(typeDescription);
     }
     this.yaml = new Yaml(constructor, new Representer(), new DumperOptions(), new Resolver());
+  }
+
+  /**
+   * Creates a TypeDescription that extracts the Yaml name to be used from the {@link DocElement}
+   * annotation so that it doesn't need to be repeated.
+   */
+  public static TypeDescription docTypeDescription(Class<?> clazz) {
+    DocElement annotation = Preconditions
+        .checkNotNull(clazz.getAnnotation(DocElement.class),
+            "%s class is not annotated with @%s",
+            clazz.getName(), DocElement.class.getName());
+    return new TypeDescription(clazz, annotation.yamlName());
   }
 
   /**

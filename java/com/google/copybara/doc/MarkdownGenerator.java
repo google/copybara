@@ -15,6 +15,9 @@ import com.beust.jcommander.Parameter;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,6 +33,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
@@ -88,36 +92,35 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       sb.append("Name | Description\n");
       sb.append("---- | -----------\n");
 
-      for (Element subElement : classElement.getEnclosedElements()) {
-        if (isSetter(subElement)) {
-          ExecutableElement setter = (ExecutableElement) subElement;
-          DocField fieldAnnotation = getFieldAnnotationOrFail(classElement, setter);
-          sb.append(setterToField(setter));
-          sb.append(" | ");
-          sb.append(fieldAnnotation.required() ? "*required;* " : "*optional;* ");
-          sb.append(fieldAnnotation.defaultValue().equals("none") ? ""
-              : " *default:" + fieldAnnotation.defaultValue() + ";*");
-          sb.append("<br/>");
-          sb.append(fieldAnnotation.description());
-          sb.append("\n");
-        }
+      for (Entry<String, ExecutableElement> entry : getDeclaredSetters(classElement).entrySet()) {
+        DocField fieldAnnotation = getFieldAnnotationOrFail(classElement, entry.getValue());
+        sb.append(entry.getKey());
+        sb.append(" | ");
+        sb.append(fieldAnnotation.required() ? "*required;* " : "*optional;* ");
+        sb.append(fieldAnnotation.defaultValue().equals("none") ? ""
+            : " *default:" + fieldAnnotation.defaultValue() + ";*");
+        sb.append("<br/>");
+        sb.append(fieldAnnotation.description());
+        sb.append("\n");
       }
-      Element elementKind = getAnnotationTypeParam(classElement, "elementKind").asElement();
-      Element flags = getAnnotationTypeParam(classElement, "flags").asElement();
-      StringBuilder flagsString = new StringBuilder();
-      for (Element member : flags.getEnclosedElements()) {
-        Parameter flagAnnotation = member.getAnnotation(Parameter.class);
-        if (flagAnnotation != null && member instanceof VariableElement) {
-          VariableElement field = (VariableElement) member;
-          flagsString.append(Joiner.on(", ").join(flagAnnotation.names()));
-          flagsString.append(" | *");
-          flagsString.append(simplerJavaTypes(field));
-          flagsString.append("* | ");
-          flagsString.append(flagAnnotation.description());
-          flagsString.append("\n");
-        }
-      }
+      Element elementKind = getAnnotationSingleClassField(classElement, "elementKind").asElement();
 
+      StringBuilder flagsString = new StringBuilder();
+      for (DeclaredType flag : getAnnotationListClassField(classElement, "flags")) {
+        Element flagClass = flag.asElement();
+        for (Element member : flagClass.getEnclosedElements()) {
+          Parameter flagAnnotation = member.getAnnotation(Parameter.class);
+          if (flagAnnotation != null && member instanceof VariableElement) {
+            VariableElement field = (VariableElement) member;
+            flagsString.append(Joiner.on(", ").join(flagAnnotation.names()));
+            flagsString.append(" | *");
+            flagsString.append(simplerJavaTypes(field));
+            flagsString.append("* | ");
+            flagsString.append(flagAnnotation.description());
+            flagsString.append("\n");
+          }
+        }
+      }
       if (flagsString.length() > 0) {
         sb.append("\n\n**Command line flags:**\n");
         sb.append("Name | Type | Description\n");
@@ -139,6 +142,22 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         }
       }
     }
+  }
+
+  private Map<String, ExecutableElement> getDeclaredSetters(TypeElement classElement) {
+    Map<String, ExecutableElement> result = new LinkedHashMap<>();
+    TypeMirror superclass = classElement.getSuperclass();
+    if (superclass.getKind() != TypeKind.NONE) {
+      TypeElement typeElement = processingEnv.getElementUtils()
+          .getTypeElement(superclass.toString());
+      result.putAll(getDeclaredSetters(typeElement));
+    }
+    for (Element element : classElement.getEnclosedElements()) {
+      if (isSetter(element)) {
+        result.put(setterToField((ExecutableElement) element), (ExecutableElement) element);
+      }
+    }
+    return result;
   }
 
 
@@ -191,7 +210,22 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     return annotation;
   }
 
-  private DeclaredType getAnnotationTypeParam(Element element, String name)
+  private DeclaredType getAnnotationSingleClassField(Element element, String name)
+      throws ElementException {
+    return (DeclaredType) getAnnotationValue(element, name).getValue();
+  }
+
+  private List<DeclaredType> getAnnotationListClassField(Element element, String name)
+      throws ElementException {
+    List<DeclaredType> result = new ArrayList<>();
+    for (AnnotationValue val :
+        (List<AnnotationValue>) getAnnotationValue(element, name).getValue()) {
+      result.add((DeclaredType) val.getValue());
+    }
+    return result;
+  }
+
+  private AnnotationValue getAnnotationValue(Element element, String name)
       throws ElementException {
     Map<? extends ExecutableElement, ? extends AnnotationValue> members =
         processingEnv.getElementUtils()
@@ -199,7 +233,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
     for (Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : members.entrySet()) {
       if (entry.getKey().getSimpleName().toString().equals(name)) {
-        return (DeclaredType) entry.getValue().getValue();
+        return entry.getValue();
       }
     }
     throw new ElementException(element,

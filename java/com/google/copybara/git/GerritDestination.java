@@ -10,6 +10,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.doc.annotations.DocElement;
 
 import java.nio.file.Path;
 
@@ -92,6 +93,9 @@ public final class GerritDestination implements Destination {
     return null;
   }
 
+  @DocElement(yamlName = "!GerritDestination",
+      description = "Creates a change in Gerrit using the transformed worktree",
+      elementKind = Destination.class, flags = {GerritOptions.class, GitOptions.class})
   public static final class Yaml extends AbstractDestinationYaml {
     @Override
     public GerritDestination withOptions(Options options) {

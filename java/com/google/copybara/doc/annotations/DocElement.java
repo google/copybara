@@ -30,5 +30,5 @@ public @interface DocElement {
   /**
    * An associated flags class annotated with {@code Parameter}
    */
-  Class<?> flags() default Object.class;
+  Class<?>[] flags() default Object.class;
 }

@@ -64,14 +64,14 @@ public class Main {
   protected Iterable<TypeDescription> getYamlTypeDescriptions() {
     return ImmutableList.of(
         // Transformations
-        new TypeDescription(DeletePath.Yaml.class, "!DeletePath"),
-        new TypeDescription(Replace.Yaml.class, "!Replace"),
+        YamlParser.docTypeDescription(DeletePath.Yaml.class),
+        YamlParser.docTypeDescription(Replace.Yaml.class),
         // Origins
-        new TypeDescription(GitOrigin.Yaml.class, "!GitOrigin"),
+        YamlParser.docTypeDescription(GitOrigin.Yaml.class),
         // Destinations
-        new TypeDescription(GerritDestination.Yaml.class, "!GerritDestination"),
-        new TypeDescription(GitDestination.Yaml.class, "!GitDestination"),
-        new TypeDescription(FolderDestination.Yaml.class, "!FolderDestination"));
+        YamlParser.docTypeDescription(GerritDestination.Yaml.class),
+        YamlParser.docTypeDescription(GitDestination.Yaml.class),
+        YamlParser.docTypeDescription(FolderDestination.Yaml.class));
   }
 
   public static void main(String[] args) {

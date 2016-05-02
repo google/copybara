@@ -11,6 +11,8 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -122,15 +124,19 @@ public final class GitOrigin implements Origin<GitOrigin> {
     }
   }
 
+  @DocElement(yamlName = "!GitOrigin", description = "A origin that represents a git repository",
+      elementKind = Origin.class, flags = GitOptions.class)
   public final static class Yaml implements Origin.Yaml<GitOrigin> {
 
     private String url;
     private String defaultTrackingRef;
 
+    @DocField(description = "Indicates the URL of the git repository")
     public void setUrl(String url) {
       this.url = url;
     }
 
+    @DocField(description = "Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'", required = false)
     public void setDefaultTrackingRef(String defaultTrackingRef) {
       this.defaultTrackingRef = defaultTrackingRef;
     }
