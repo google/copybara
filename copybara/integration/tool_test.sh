@@ -15,7 +15,13 @@ EOF
 
 function copybara() {
   $TEST_SRCDIR/java/com/google/copybara/copybara \
-    --jvm_flag=-Djava.util.logging.config.file=$log_config "$@"
+      --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" > $TEST_log 2>&1 \
+      && return
+
+  res=$?
+  printf 'Copybara process returned error %d:\n' $res
+  cat $TEST_log
+  return $res
 }
 
 function set_up() {
@@ -82,7 +88,7 @@ transformations:
       os: "o+"
 EOF
   copybara test.copybara --git-repo-storage "$repo_storage" \
-    --work-dir $workdir > $TEST_log 2>&1
+    --work-dir $workdir
   expect_log "Running Copybara for cbtest \[.*file://$remote.*\]"
   expect_log 'Running transformation:.*Replace.*drink'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/test.txt$'
@@ -109,7 +115,7 @@ EOF
   popd
 
   copybara test.copybara --git-repo-storage "$repo_storage" \
-    --work-dir $workdir > $TEST_log 2>&1
+    --work-dir $workdir
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   expect_in_file "second version for drink and barooooo" $workdir/test.txt
@@ -169,7 +175,7 @@ transformations:
     before: foo
     after:  bar
 EOF
-  copybara test.copybara > $TEST_log 2>&1
+  copybara test.copybara
   ( cd $(mktemp -d)
     run_git clone $destination .
     expect_in_file "foo" test.txt
@@ -212,7 +218,7 @@ transformations:
   - !DeletePath
     path: "**/*.java"
 EOF
-  copybara test.copybara > $TEST_log 2>&1
+  copybara test.copybara
 
   ( cd $(mktemp -d)
     run_git clone $destination .
@@ -257,7 +263,7 @@ EOF
   touch destination/dontkeep.txt
 
   copybara destination/test.copybara --git-repo-storage "$repo_storage" \
-    --work-dir $workdir --folder-dir destination> $TEST_log 2>&1
+    --work-dir $workdir --folder-dir destination
 
   [[ -f destination/test.txt ]] || fail "test.txt should exist"
   [[ -f destination/test.copybara ]] || fail "test.copybara should exist"
@@ -271,30 +277,30 @@ function test_invalid_transformations_in_config() {
 name: "cbtest-invalid-xform"
 transformations: [42]
 EOF
-  copybara test.copybara origin/master > $TEST_log 2>&1 && fail "Should fail"
+  copybara test.copybara origin/master && fail "Should fail"
   expect_log "sequence field 'transformations' expects elements of type 'Transformation', but transformations\[0\] is of type 'integer' (value = 42)"
 }
 
 function test_command_help_flag() {
-  copybara --help > $TEST_log 2>&1
+  copybara --help
   expect_log 'Usage: copybara \[options\]'
   expect_log 'Example:'
 }
 
 function test_command_too_few_args() {
-  copybara > $TEST_log 2>&1 && fail "Should fail"
+  copybara && fail "Should fail"
   expect_log 'Expected at least a configuration file.'
   expect_log 'Usage: copybara \[options\] CONFIG_PATH \[SOURCE_REF\]'
 }
 
 function test_command_too_many_args() {
-  copybara config origin/master unexpected > $TEST_log 2>&1 && fail "Should fail"
+  copybara config origin/master unexpected && fail "Should fail"
   expect_log "Expect at most two arguments."
   expect_log 'Usage: copybara \[options\] CONFIG_PATH \[SOURCE_REF\]'
 }
 
 function test_config_not_found() {
-  copybara not_existent_file origin/master > $TEST_log 2>&1 && fail "Should fail"
+  copybara not_existent_file origin/master && fail "Should fail"
   expect_log "Config file 'not_existent_file' cannot be found."
 }
 
