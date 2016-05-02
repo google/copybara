@@ -4,6 +4,7 @@ package com.google.copybara.config;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Options;
 import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.Workflow;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.TypeDescription;
@@ -42,8 +43,10 @@ public final class YamlParser {
   private final Yaml yaml;
 
   public YamlParser(Iterable<TypeDescription> typeDescriptions) {
+    TypeDescription top = new TypeDescription(Config.Yaml.class);
+    top.putListPropertyType("workflows", Workflow.Yaml.class);
 
-    Constructor constructor = new Constructor(Config.Yaml.class);
+    Constructor constructor = new Constructor(top);
     constructor.setPropertyUtils(new CopybaraPropertyUtils());
 
     for (TypeDescription typeDescription : typeDescriptions) {

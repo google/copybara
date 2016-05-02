@@ -73,8 +73,7 @@ public class YamlParserTest {
    * all the features of the structure of the config file. Apart from that we include some testing
    * coverage on global values.
    */
-  @Test
-  public void testParseConfigFile() throws IOException, ConfigValidationException {
+  @Test  public void testParseConfigFile() throws IOException, ConfigValidationException {
     String configContent = "name: \"mytest\"\n"
         + "global:\n"
         + "  - &some_url \"https://so.me/random/url\"\n"
@@ -85,26 +84,27 @@ public class YamlParserTest {
         + "    - !MockTransform\n"
         + "      field1: \"baz\"\n"
         + "      field2:  \"bee\"\n"
-        + "origin: !MockOrigin\n"
-        + "  url: *some_url\n"
-        + "  branch: \"master\"\n"
-        + "destination: !MockDestination\n"
-        + "  folder: \"some folder\"\n"
-        + "transformations: *transform_reference\n";
+        + "workflows:\n"
+        + "  - origin: !MockOrigin\n"
+        + "      url: *some_url\n"
+        + "      branch: \"master\"\n"
+        + "    destination: !MockDestination\n"
+        + "      folder: \"some folder\"\n"
+        + "    transformations: *transform_reference\n";
 
     Files.write(fs.getPath("test"), configContent.getBytes());
 
     Config config = yamlParser.loadConfig(fs.getPath("test"), options);
 
     assertThat(config.getName()).isEqualTo("mytest");
-    MockOrigin origin = (MockOrigin) config.getOrigin();
+    MockOrigin origin = (MockOrigin) config.getActiveWorkflow().getOrigin();
     assertThat(origin.url).isEqualTo("https://so.me/random/url");
     assertThat(origin.branch).isEqualTo("master");
 
-    MockDestination destination = (MockDestination) config.getDestination();
+    MockDestination destination = (MockDestination) config.getActiveWorkflow().getDestination();
     assertThat(destination.folder).isEqualTo("some folder");
 
-    List<Transformation> transformations = config.getTransformations();
+    List<Transformation> transformations = config.getActiveWorkflow().getTransformations();
     assertThat(transformations).hasSize(2);
     MockTransform transformation1 = (MockTransform) transformations.get(0);
     assertThat(transformation1.field1).isEqualTo("foo");
@@ -117,16 +117,17 @@ public class YamlParserTest {
   @Test
   public void testGenericOfSimpleTypes() throws IOException, ConfigValidationException {
     String configContent = "name: \"mytest\"\n"
-        + "origin: !MockOrigin\n"
-        + "  url: 'blabla'\n"
-        + "  branch: \"master\"\n"
-        + "destination: !MockDestination\n"
-        + "  folder: \"some folder\"\n"
-        + "transformations:\n"
-        + "  - !MockTransform\n"
-        + "    list:\n"
-        + "      - \"some text\"\n"
-        + "      - !!bool true\n";
+        + "workflows:\n"
+        + "  - origin: !MockOrigin\n"
+        + "      url: 'blabla'\n"
+        + "      branch: \"master\"\n"
+        + "    destination: !MockDestination\n"
+        + "      folder: \"some folder\"\n"
+        + "    transformations:\n"
+        + "      - !MockTransform\n"
+        + "        list:\n"
+        + "          - \"some text\"\n"
+        + "          - !!bool true\n";
 
     Files.write(fs.getPath("test"), configContent.getBytes());
 
@@ -142,13 +143,14 @@ public class YamlParserTest {
   @Test
   public void testGenericOfWildcard() throws IOException, ConfigValidationException {
     String configContent = "name: \"mytest\"\n"
-        + "origin: !MockOrigin\n"
-        + "  url: 'blabla'\n"
-        + "  branch: \"master\"\n"
-        + "destination: !MockDestination\n"
-        + "  folder: \"some folder\"\n"
-        + "transformations:\n"
-        + "  - 42\n";
+        + "workflows:\n"
+        + "  - origin: !MockOrigin\n"
+        + "      url: 'blabla'\n"
+        + "      branch: \"master\"\n"
+        + "    destination: !MockDestination\n"
+        + "      folder: \"some folder\"\n"
+        + "    transformations:\n"
+        + "      - 42\n";
 
     Files.write(fs.getPath("test"), configContent.getBytes());
 
@@ -164,8 +166,6 @@ public class YamlParserTest {
   @Test
   public void requireAtLeastOneWorkflow() throws ConfigValidationException {
     Config.Yaml yaml = new Config.Yaml();
-    yaml.setOrigin(new MockOrigin());
-    yaml.setDestination(new MockDestination());
 
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("At least one element in 'workflows' is required.");

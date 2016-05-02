@@ -29,12 +29,12 @@ class Copybara {
 
   void runForSourceRef(Config config, @Nullable String sourceRef)
       throws RepoException, IOException {
-    logger.log(Level.INFO, "Running Copybara for " + config.getName()
-        + " [" + config.getOrigin() + " ref:" + sourceRef + "]");
-    Reference<?> resolvedRef = config.getOrigin().resolve(sourceRef);
+    Workflow workflow = config.getActiveWorkflow();
+    logger.log(Level.INFO, "Running Copybara for " + config.getName() + " " + workflow);
+    Reference<?> resolvedRef = workflow.getOrigin().resolve(sourceRef);
     resolvedRef.checkout(workdir);
 
-    List<Transformation> transformations = config.getTransformations();
+    List<Transformation> transformations = workflow.getTransformations();
     for (int i = 0; i < transformations.size(); i++) {
       Transformation transformation = transformations.get(i);
       String transformMsg = String.format("[%2d/%d] Running transformation: %s",
@@ -52,7 +52,7 @@ class Copybara {
     if (timestamp == null) {
       timestamp = System.currentTimeMillis() / 1000;
     }
-    config.getDestination().process(workdir, resolvedRef.asString(), timestamp,
+    workflow.getDestination().process(workdir, resolvedRef.asString(), timestamp,
         "Copybara commit\n");
   }
 }

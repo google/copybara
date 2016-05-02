@@ -1,6 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.config;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
 import com.google.copybara.Options;
@@ -21,16 +23,11 @@ import java.util.List;
 public final class Config {
 
   private final String name;
-  private final Origin<?> origin;
-  private final Destination destination;
-  private final List<Transformation> transformations;
+  private final Workflow activeWorkflow;
 
-  private Config(String name, Destination destination, Origin<?> origin,
-      ImmutableList<Transformation> transformations) {
-    this.name = name;
-    this.destination = destination;
-    this.origin = origin;
-    this.transformations = transformations;
+  private Config(String name, Workflow activeWorkflow) {
+    this.name = Preconditions.checkNotNull(name);
+    this.activeWorkflow = Preconditions.checkNotNull(activeWorkflow);
   }
 
   /**
@@ -41,31 +38,18 @@ public final class Config {
   }
 
   /**
-   * The destination repository to copy to.
+   * Returns the currently use
    */
-  public Destination getDestination() {
-    return destination;
-  }
-
-  /**
-   * The repository that represents the source of truth
-   */
-  public Origin<?> getOrigin() {
-    return origin;
-  }
-
-  public List<Transformation> getTransformations() {
-    return transformations;
+  public Workflow getActiveWorkflow() {
+    return activeWorkflow;
   }
 
   @Override
   public String toString() {
-    return "Config{" +
-        "name='" + name + '\'' +
-        ", destination=" + destination +
-        ", origin=" + origin +
-        ", transformations=" + transformations +
-        '}';
+    return MoreObjects.toStringHelper(this)
+        .add("name", name)
+        .add("activeWorkflow", activeWorkflow)
+        .toString();
   }
 
   /**
@@ -77,33 +61,11 @@ public final class Config {
   public static final class Yaml {
 
     private String name;
-
-    // TODO(matvore): remove this field once all tests and exispting configs have been converted to
-    // using explicit workflows
-    private ImmutableList<Workflow.Yaml> workflows = ImmutableList.of(new Workflow.Yaml());
+    private ImmutableList<Workflow.Yaml> workflows = ImmutableList.of();
 
     @DocField(description = "Name of the project", required = true)
     public void setName(String name) {
       this.name = name;
-    }
-
-    // TODO(matvore): Remove this field once everyone is using explicit workflows.
-    @DocField(description = "Use workflows field instead", required = false)
-    public void setDestination(Destination.Yaml destination) {
-      this.workflows.get(0).setDestination(destination);
-    }
-
-    // TODO(matvore): Remove this field once everyone is using explicit workflows.
-    @DocField(description = "Use workflows field instead", required = false)
-    public void setOrigin(Origin.Yaml origin) {
-      this.workflows.get(0).setOrigin(origin);
-    }
-
-    // TODO(matvore): Remove this field once everyone is using explicit workflows.
-    @DocField(description = "Use workflows field instead", required = false)
-    public void setTransformations(List<? extends Transformation.Yaml> transformations)
-        throws ConfigValidationException {
-      this.workflows.get(0).setTransformations(transformations);
     }
 
     @DocField(description = "All workflows (migration operations) associated with this project.",
@@ -117,9 +79,7 @@ public final class Config {
       if (workflows.isEmpty()) {
         throw new ConfigValidationException("At least one element in 'workflows' is required.");
       }
-      Workflow workflow = workflows.get(0).withOptions(options);
-      return new Config(this.name, workflow.getDestination(), workflow.getOrigin(),
-          ImmutableList.copyOf(workflow.getTransformations()));
+      return new Config(this.name, workflows.get(0).withOptions(options));
     }
 
     /**

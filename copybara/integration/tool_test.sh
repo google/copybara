@@ -72,26 +72,27 @@ function test_git_tracking() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-origin: !GitOrigin
-  url: "file://$remote"
-  defaultTrackingRef: "master"
-destination: !GitDestination
-  url: "file://$destination"
-  pullFromRef: "master"
-  pushToRef: "master"
-transformations:
-  - !Replace
-    before:       food
-    after:        drink
-  - !Replace
-    before:       f\${os}o
-    after:        bar\${os}
-    regexGroups:
-      os: "o+"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      pullFromRef: "master"
+      pushToRef: "master"
+    transformations:
+      - !Replace
+        before:       food
+        after:        drink
+      - !Replace
+        before:       f\${os}o
+        after:        bar\${os}
+        regexGroups:
+          os: "o+"
 EOF
   copybara test.copybara --git-repo-storage "$repo_storage" \
-    --work-dir $workdir
-  expect_log "Running Copybara for cbtest \[.*file://$remote.*\]"
+      --work-dir $workdir
+  expect_log "Running Copybara for cbtest .*repoUrl=file://$remote"
   expect_log 'Running transformation:.*Replace.*drink'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/test.txt$'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/subdir/test.txt$'
@@ -164,18 +165,19 @@ function test_regex_with_path() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-origin: !GitOrigin
-  url: "file://$remote"
-  defaultTrackingRef: "master"
-destination: !GitDestination
-  url: "file://$destination"
-  pullFromRef: master
-  pushToRef: master
-transformations:
-  - !Replace
-    path:   "**.java"
-    before: foo
-    after:  bar
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      pullFromRef: master
+      pushToRef: master
+    transformations:
+      - !Replace
+        path:   "**.java"
+        before: foo
+        after:  bar
 EOF
   copybara test.copybara
   ( cd $(mktemp -d)
@@ -207,18 +209,19 @@ function test_git_delete() {
 
   cat > test.copybara <<EOF
 name: "cbtest"
-origin: !GitOrigin
-  url: "file://$remote"
-  defaultTrackingRef: "master"
-destination: !GitDestination
-  url: "file://$destination"
-  pullFromRef: master
-  pushToRef: master
-transformations:
-  - !DeletePath
-    path: subdir/**
-  - !DeletePath
-    path: "**/*.java"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      pullFromRef: master
+      pushToRef: master
+    transformations:
+      - !DeletePath
+        path: subdir/**
+      - !DeletePath
+        path: "**/*.java"
 EOF
   copybara test.copybara
 
@@ -250,13 +253,14 @@ function test_local_dir_destination() {
 
   cat > destination/test.copybara <<EOF
 name: "cbtest"
-origin: !GitOrigin
-  url: "file://$remote"
-  defaultTrackingRef: "master"
-destination: !FolderDestination
-  excludePathsForDeletion:
-    - "test.copybara"
-    - "**.keep"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !FolderDestination
+      excludePathsForDeletion:
+        - "test.copybara"
+        - "**.keep"
 EOF
 
   touch destination/keepme.keep
@@ -277,7 +281,8 @@ EOF
 function test_invalid_transformations_in_config() {
   cat > test.copybara <<EOF
 name: "cbtest-invalid-xform"
-transformations: [42]
+workflows:
+  - transformations: [42]
 EOF
   copybara test.copybara origin/master && fail "Should fail"
   expect_log "sequence field 'transformations' expects elements of type 'Transformation', but transformations\[0\] is of type 'integer' (value = 42)"

@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigValidationException;
@@ -45,6 +46,15 @@ public final class Workflow {
    */
   public List<Transformation> getTransformations() {
     return transformations;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("origin", origin)
+        .add("destination", destination)
+        .add("transformations", transformations)
+        .toString();
   }
 
   /**
