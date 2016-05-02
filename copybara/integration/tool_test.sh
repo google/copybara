@@ -7,7 +7,7 @@ function run_git() {
 }
 
 # A log configuration that outputs to the console, so that we can check the log easier
-log_config=$PWD/log.config
+log_config=$(mktemp)
 cat > $log_config <<'EOF'
 handlers=java.util.logging.ConsoleHandler
 java.util.logging.SimpleFormatter.format=%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %2$s %5$s%6$s%n
