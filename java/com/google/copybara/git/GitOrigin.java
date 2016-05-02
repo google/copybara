@@ -1,5 +1,6 @@
 package com.google.copybara.git;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -73,11 +74,11 @@ public final class GitOrigin implements Origin<GitOrigin> {
 
   @Override
   public String toString() {
-    return "GitOrigin{" +
-        "repository=" + repository +
-        "repoUrl=" + repoUrl +
-        ", defaultTrackingRef='" + defaultTrackingRef + '\'' +
-        '}';
+    return MoreObjects.toStringHelper(this)
+        .add("repository", repository)
+        .add("repoUrl", repoUrl)
+        .add("defaultTrackingRef", defaultTrackingRef)
+        .toString();
   }
 
   private final class GitReference implements Reference<GitOrigin> {
