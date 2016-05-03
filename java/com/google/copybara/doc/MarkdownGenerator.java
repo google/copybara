@@ -88,7 +88,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
       sb.append("## ").append(annotation.yamlName()).append("\n");
       sb.append(annotation.description());
-      sb.append("\n\n**Fields:**\n");
+      sb.append("\n\n**Fields:**\n\n");
       sb.append("Name | Description\n");
       sb.append("---- | -----------\n");
 
@@ -122,7 +122,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         }
       }
       if (flagsString.length() > 0) {
-        sb.append("\n\n**Command line flags:**\n");
+        sb.append("\n\n**Command line flags:**\n\n");
         sb.append("Name | Type | Description\n");
         sb.append("---- | ----------- | -----------\n");
         sb.append(flagsString);
