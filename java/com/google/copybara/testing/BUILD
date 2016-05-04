@@ -12,6 +12,6 @@ java_library(
         "//third_party:jsr305",
     ],
     visibility = [
-        "//javatests:__subpackages__",
+        "//visibility:public",
     ],
 )
