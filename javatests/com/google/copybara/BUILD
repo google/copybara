@@ -8,6 +8,7 @@ all_tests(
   tests = glob(["**/*Test.java"], exclude = ["git/*.java"]),
   deps = [
      "//java/com/google/copybara:copybara_lib",
+     "//java/com/google/copybara/testing",
      "//third_party:guava",
      "//third_party:jcommander",
      "//third_party:jimfs",
