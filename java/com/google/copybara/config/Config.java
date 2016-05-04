@@ -4,6 +4,7 @@ package com.google.copybara.config;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -13,6 +14,7 @@ import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.transform.Transformation;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -61,7 +63,7 @@ public final class Config {
   public static final class Yaml {
 
     private String name;
-    private ImmutableList<Workflow.Yaml> workflows = ImmutableList.of();
+    private ImmutableMap<String, Workflow.Yaml> workflows = ImmutableMap.of();
 
     @DocField(description = "Name of the project", required = true)
     public void setName(String name) {
@@ -72,14 +74,34 @@ public final class Config {
         required = true)
     public void setWorkflows(List<? extends Workflow.Yaml> workflows)
         throws ConfigValidationException {
-      this.workflows = ImmutableList.copyOf(workflows);
+      HashMap<String, Workflow.Yaml> map = new HashMap<>();
+      for (Workflow.Yaml workflow : workflows) {
+        if (map.put(workflow.getName(), workflow) != null) {
+          String nameFieldHint = "";
+          if (workflow.getName().equals("default")) {
+            nameFieldHint =
+                ". Multiple workflows in the same config file require giving a name to the"
+                + " workflow. Use 'name: myName' in one of the workflows.";
+          }
+
+          throw new ConfigValidationException(
+              "More than one workflow with name: " + workflow.getName() + nameFieldHint);
+        }
+      }
+      this.workflows = ImmutableMap.copyOf(map);
     }
 
     public Config withOptions(Options options) throws ConfigValidationException {
       if (workflows.isEmpty()) {
         throw new ConfigValidationException("At least one element in 'workflows' is required.");
       }
-      return new Config(this.name, workflows.get(0).withOptions(options));
+      // TODO(matvore): Add a flag to make this configurable.
+      String workflowName = "default";
+      Workflow.Yaml workflow = workflows.get(workflowName);
+      if (workflow == null) {
+        throw new ConfigValidationException("No workflow with this name exists: " + workflowName);
+      }
+      return new Config(this.name, workflow.withOptions(options));
     }
 
     /**

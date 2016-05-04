@@ -16,15 +16,21 @@ import java.util.List;
  * multiple workflows. Each workflow has a particular origin and destination.
  */
 public final class Workflow {
+  private final String name;
   private final Origin<?> origin;
   private final Destination destination;
   private final List<Transformation> transformations;
 
-  private Workflow(
+  private Workflow(String name,
       Origin<?> origin, Destination destination, ImmutableList<Transformation> transformations) {
+    this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.transformations = Preconditions.checkNotNull(transformations);
+  }
+
+  public String getName() {
+    return name;
   }
 
   /**
@@ -51,6 +57,7 @@ public final class Workflow {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
+        .add("name", name)
         .add("origin", origin)
         .add("destination", destination)
         .add("transformations", transformations)
@@ -64,9 +71,19 @@ public final class Workflow {
       description = "Defines a migration pipeline which can be invoked via the Copybara command.",
       elementKind = Workflow.class)
   public static final class Yaml {
+    private String name = "default";
     private Origin.Yaml<?> origin;
     private Destination.Yaml destination;
     private ImmutableList<Transformation.Yaml> transformations = ImmutableList.of();
+
+    public String getName() {
+      return name;
+    }
+
+    @DocField(description = "The name of the workflow.", required = false, defaultValue = "default")
+    public void setName(String name) {
+      this.name = name;
+    }
 
     @DocField(description = "Where to read the migration code from.", required = true)
     public void setOrigin(Origin.Yaml<?> origin) {
@@ -91,7 +108,7 @@ public final class Workflow {
       for (Transformation.Yaml transformation : this.transformations) {
         transformations.add(transformation.withOptions(options));
       }
-      return new Workflow(
+      return new Workflow(name,
           origin.withOptions(options), destination.withOptions(options), transformations.build());
     }
   }
