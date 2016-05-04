@@ -3,14 +3,12 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableList;
-import com.google.copybara.GeneralOptions;
-import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GerritDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
+import com.google.copybara.testing.OptionsBuilder;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -29,8 +27,7 @@ public class GerritDestinationTest {
   private Yaml yaml;
   private Path repoGitDir;
   private Path workdir;
-  private GerritOptions gerritOptions;
-  private GitOptions gitOptions;
+  private OptionsBuilder options;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -42,9 +39,12 @@ public class GerritDestinationTest {
     yaml.setUrl("file://" + repoGitDir);
     git("init", "--bare", repoGitDir.toString());
 
-    workdir = Files.createTempDirectory("GitDestinationTest-workdir");
-    gerritOptions = new GerritOptions();
-    gitOptions = new GitOptions();
+    options = new OptionsBuilder()
+        .setWorkdirToRealTempDir();
+  }
+
+  private Path workdir() {
+    return options.general.getWorkdir();
   }
 
   private GitRepository repo() {
@@ -58,8 +58,7 @@ public class GerritDestinationTest {
   }
 
   private GerritDestination destination() {
-    return yaml.withOptions(new Options(ImmutableList.of(
-        gitOptions, gerritOptions, new GeneralOptions(workdir, /*verbose=*/true))));
+    return yaml.withOptions(options.build());
   }
 
   private String lastCommitChangeIdLine() throws Exception {
@@ -76,16 +75,16 @@ public class GerritDestinationTest {
   public void gerritChangeIdChangesBetweenCommits() throws Exception {
     yaml.setPullFromRef("master");
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
-    gitOptions.gitFirstCommit = true;
-    destination().process(workdir, "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
+    Files.write(workdir().resolve("file"), "some content".getBytes());
+    options.git.gitFirstCommit = true;
+    destination().process(workdir(), "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
 
     String firstChangeIdLine = lastCommitChangeIdLine();
 
-    Files.write(workdir.resolve("file2"), "some more content".getBytes());
+    Files.write(workdir().resolve("file2"), "some more content".getBytes());
     git("branch", "master", "refs/for/master");
-    gitOptions.gitFirstCommit = false;
-    destination().process(workdir, "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
+    options.git.gitFirstCommit = false;
+    destination().process(workdir(), "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
 
     assertThat(firstChangeIdLine)
         .isNotEqualTo(lastCommitChangeIdLine());
@@ -95,23 +94,23 @@ public class GerritDestinationTest {
   public void specifyChangeId() throws Exception {
     yaml.setPullFromRef("master");
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    Files.write(workdir().resolve("file"), "some content".getBytes());
 
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
-    gitOptions.gitFirstCommit = true;
-    gerritOptions.gerritChangeId = changeId;
-    destination().process(workdir, "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
+    options.git.gitFirstCommit = true;
+    options.gerrit.gerritChangeId = changeId;
+    destination().process(workdir(), "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
 
     git("branch", "master", "refs/for/master");
 
-    Files.write(workdir.resolve("file"), "some different content".getBytes());
+    Files.write(workdir().resolve("file"), "some different content".getBytes());
 
     changeId = "Ibbbbbbbbbbccccccccccddddddddddeeeeeeeeee";
-    gitOptions.gitFirstCommit = false;
-    gerritOptions.gerritChangeId = changeId;
-    destination().process(workdir, "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
+    options.git.gitFirstCommit = false;
+    options.gerrit.gerritChangeId = changeId;
+    destination().process(workdir(), "origin_ref", /*timestamp=*/424242420, COMMIT_MSG);
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
   }
@@ -119,10 +118,10 @@ public class GerritDestinationTest {
   private void verifySpecifyAuthorField(String expected) throws Exception {
     yaml.setPullFromRef("master");
 
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir().resolve("test.txt"), "some content".getBytes());
 
-    gitOptions.gitFirstCommit = true;
-    destination().process(workdir, "first_commit", /*timestamp=*/424242420, COMMIT_MSG);
+    options.git.gitFirstCommit = true;
+    destination().process(workdir(), "first_commit", /*timestamp=*/424242420, COMMIT_MSG);
 
     String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1", "refs/for/master")
         .split("\n");
@@ -161,16 +160,16 @@ public class GerritDestinationTest {
   public void writesOriginTimestampToAuthorField() throws Exception {
     yaml.setPullFromRef("master");
 
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    gitOptions.gitFirstCommit = true;
-    destination().process(workdir, "first_commit", /*timestamp=*/355558888, COMMIT_MSG);
+    Files.write(workdir().resolve("test.txt"), "some content".getBytes());
+    options.git.gitFirstCommit = true;
+    destination().process(workdir(), "first_commit", /*timestamp=*/355558888, COMMIT_MSG);
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 355558888);
 
     git("branch", "master", "refs/for/master");
 
-    Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
-    gitOptions.gitFirstCommit = false;
-    destination().process(workdir, "first_commit", /*timestamp=*/424242420, COMMIT_MSG);
+    Files.write(workdir().resolve("test2.txt"), "some more content".getBytes());
+    options.git.gitFirstCommit = false;
+    destination().process(workdir(), "first_commit", /*timestamp=*/424242420, COMMIT_MSG);
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 424242420);
   }
 }

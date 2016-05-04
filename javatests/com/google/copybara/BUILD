@@ -24,6 +24,7 @@ all_tests(
   tests = glob(["git/*Test.java"]),
   deps = [
      "//java/com/google/copybara:copybara_lib",
+     "//java/com/google/copybara/testing",
      "//java/com/google/copybara/git/testing",
      "//third_party:guava",
      "//third_party:jcommander",

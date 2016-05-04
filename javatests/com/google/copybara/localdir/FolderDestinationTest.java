@@ -2,14 +2,12 @@ package com.google.copybara.localdir;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.copybara.Destination;
-import com.google.copybara.GeneralOptions;
-import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.localdir.FolderDestination.Yaml;
+import com.google.copybara.testing.OptionsBuilder;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -25,23 +23,24 @@ import java.nio.file.Path;
 @RunWith(JUnit4.class)
 public class FolderDestinationTest {
 
-  private LocalDestinationOptions localOptions;
   private Yaml yaml;
-  private GeneralOptions generalOptions;
+  private OptionsBuilder options;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException, RepoException {
-    localOptions = new LocalDestinationOptions();
     yaml = new Yaml();
-    generalOptions = new GeneralOptions(
-        Files.createTempDirectory("FolderDestinationTest"), /*verbose=*/true);
-    Path workdir = generalOptions.getWorkdir();
-    Files.createDirectory(workdir.resolve("dir"));
-    Files.write(workdir.resolve("test.txt"), new byte[]{});
-    Files.write(workdir.resolve("dir/file.txt"), new byte[]{});
+    options = new OptionsBuilder()
+        .setWorkdirToRealTempDir();
+    Files.createDirectory(workdir().resolve("dir"));
+    Files.write(workdir().resolve("test.txt"), new byte[]{});
+    Files.write(workdir().resolve("dir/file.txt"), new byte[]{});
+  }
+
+  private Path workdir() {
+    return options.general.getWorkdir();
   }
 
   @Test
@@ -56,12 +55,10 @@ public class FolderDestinationTest {
     Files.write(localFolder.resolve("one/file.java"), new byte[]{});
     Files.write(localFolder.resolve("two/file.java"), new byte[]{});
 
-    localOptions.localFolder = localFolder.toString();
+    options.localDestination.localFolder = localFolder.toString();
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
-    Destination destination = yaml.withOptions(
-        new Options(ImmutableList.of(localOptions, generalOptions)));
-    destination.process(generalOptions.getWorkdir(), "origin_ref", /*timestamp=*/424242420,
-        "Not relevant");
+    Destination destination = yaml.withOptions(options.build());
+    destination.process(workdir(), "origin_ref", /*timestamp=*/424242420, "Not relevant");
     assertFilesExist(localFolder, "one", "two", "root_file",
         "one/file.java", "two/file.java", "test.txt", "dir/file.txt");
     assertFilesDontExist(localFolder, "root_file2", "one/file.txt");
@@ -71,7 +68,7 @@ public class FolderDestinationTest {
   public void testFolderDirRequired() throws Exception {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("--folder-dir is required");
-    yaml.withOptions(new Options(ImmutableList.of(localOptions, generalOptions)));
+    yaml.withOptions(options.build());
   }
 
   private void assertFilesExist(Path base, String... paths) {

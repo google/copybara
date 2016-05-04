@@ -8,6 +8,7 @@ java_library(
     deps = [
         "//java/com/google/copybara:copybara_lib",
         "//third_party:guava",
+        "//third_party:jimfs",
         "//third_party:jsr305",
     ],
     visibility = [

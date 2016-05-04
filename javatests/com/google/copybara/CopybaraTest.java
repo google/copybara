@@ -6,8 +6,8 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.git.GitOptions;
 import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsInvocationTransformation;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.transform.Transformation;
@@ -27,7 +27,7 @@ public class CopybaraTest {
   private DummyOrigin origin;
   private RecordsProcessCallDestination destination;
   private Config.Yaml yaml;
-  private Path workdir;
+  private OptionsBuilder options;
 
   @Before
   public void setup() throws Exception {
@@ -36,12 +36,12 @@ public class CopybaraTest {
     yaml = new Config.Yaml();
     yaml.setName("name");
 
-    workdir = Files.createTempDirectory("workdir");
+    options = new OptionsBuilder()
+        .setWorkdirToRealTempDir();
   }
 
-  private Options options() {
-    return new Options(
-        ImmutableList.of(new GitOptions(), new GeneralOptions(workdir, /*verbose=*/true)));
+  private Path workdir() {
+    return options.general.getWorkdir();
   }
 
   private void setWorkflow(Transformation.Yaml... transformations)
@@ -58,7 +58,7 @@ public class CopybaraTest {
     setWorkflow();
     long beginTime = System.currentTimeMillis() / 1000;
 
-    new Copybara(workdir).runForSourceRef(yaml.withOptions(options()), "some_sha1");
+    new Copybara(workdir()).runForSourceRef(yaml.withOptions(options.build()), "some_sha1");
 
     long timestamp = destination.processTimestamps.get(0);
     assertThat(timestamp).isAtLeast(beginTime);
@@ -68,8 +68,8 @@ public class CopybaraTest {
   @Test
   public void processIsCalledWithCorrectWorkdir() throws Exception {
     setWorkflow();
-    new Copybara(workdir).runForSourceRef(yaml.withOptions(options()), "some_sha1");
-    assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
+    new Copybara(workdir()).runForSourceRef(yaml.withOptions(options.build()), "some_sha1");
+    assertThat(Files.readAllLines(workdir().resolve("file.txt"), StandardCharsets.UTF_8))
         .contains("some_sha1");
   }
 
@@ -77,7 +77,7 @@ public class CopybaraTest {
   public void sendsOriginTimestampToDest() throws Exception {
     setWorkflow();
     origin.referenceToTimestamp.put("refname", (long) 42918273);
-    new Copybara(workdir).runForSourceRef(yaml.withOptions(options()), "refname");
+    new Copybara(workdir()).runForSourceRef(yaml.withOptions(options.build()), "refname");
     assertThat(destination.processTimestamps.get(0))
         .isEqualTo(42918273);
   }
@@ -86,7 +86,7 @@ public class CopybaraTest {
   public void runsTransformations() throws Exception {
     RecordsInvocationTransformation transformation = new RecordsInvocationTransformation();
     setWorkflow(transformation);
-    new Copybara(workdir).runForSourceRef(yaml.withOptions(options()), "some_sha1");
+    new Copybara(workdir()).runForSourceRef(yaml.withOptions(options.build()), "some_sha1");
     assertThat(destination.processTimestamps).hasSize(1);
     assertThat(transformation.timesInvoked).isEqualTo(1);
   }
