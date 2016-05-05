@@ -18,14 +18,16 @@ import java.nio.file.Files;
 public final class OptionsBuilder {
 
   public GeneralOptions general =
-      new GeneralOptions(Jimfs.newFileSystem().getPath("/"), /*verbose=*/true);
+      new GeneralOptions(Jimfs.newFileSystem().getPath("/"), /*verbose=*/true, /*lastRevision=*/
+          null);
   public LocalDestinationOptions localDestination =
       new LocalDestinationOptions();
   public GitOptions git = new GitOptions();
   public GerritOptions gerrit = new GerritOptions();
 
   public OptionsBuilder setWorkdirToRealTempDir() throws IOException {
-    general = new GeneralOptions(Files.createTempDirectory("OptionsBuilder"), /*verbose=*/true);
+    general = new GeneralOptions(Files.createTempDirectory("OptionsBuilder"), /*verbose=*/true,
+        /*lastRevision=*/null);
     return this;
   }
 

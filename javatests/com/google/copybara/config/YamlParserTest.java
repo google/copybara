@@ -10,6 +10,7 @@ import com.google.copybara.Option;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.Workflow;
 import com.google.copybara.transform.Transformation;
 
 import org.hamcrest.Description;
@@ -169,7 +170,7 @@ public class YamlParserTest {
 
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("At least one element in 'workflows' is required.");
-    yaml.setWorkflows(ImmutableList.of());
+    yaml.setWorkflows(ImmutableList.<Workflow.Yaml>of());
     yaml.withOptions(options);
   }
 

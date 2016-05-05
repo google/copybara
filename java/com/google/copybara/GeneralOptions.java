@@ -1,6 +1,5 @@
 package com.google.copybara;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import com.beust.jcommander.Parameter;
@@ -11,6 +10,8 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import javax.annotation.Nullable;
+
 /**
  * General options available for all the program classes.
  */
@@ -18,10 +19,13 @@ public final class GeneralOptions implements Option {
 
   private final Path workdir;
   private final boolean verbose;
+  @Nullable
+  private final String lastRevision;
 
-  public GeneralOptions(Path workdir, boolean verbose) {
+  public GeneralOptions(Path workdir, boolean verbose, @Nullable String lastRevision) {
     this.workdir = Preconditions.checkNotNull(workdir);
     this.verbose = verbose;
+    this.lastRevision = lastRevision;
   }
 
   public boolean isVerbose() {
@@ -51,6 +55,9 @@ public final class GeneralOptions implements Option {
         + " will be performed. By default a temporary directory.")
     String workdir;
 
+    @Parameter(names = "--last-rev", description = "Last revision that was migrated to the destination")
+    String lastRevision;
+
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
@@ -76,7 +83,7 @@ public final class GeneralOptions implements Option {
         System.err.println("WARNING: " + workdirPath + " is not empty");
       }
 
-      return new GeneralOptions(workdirPath, verbose);
+      return new GeneralOptions(workdirPath, verbose, lastRevision);
     }
   }
 }

@@ -3,7 +3,6 @@ package com.google.copybara.git;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -16,8 +15,6 @@ import com.google.copybara.doc.annotations.DocField;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -43,9 +40,6 @@ public final class GitDestination implements Destination {
       );
     }
   }
-
-  // We allow shorter git sha1 prefixes, as does git.
-  private static final Pattern GIT_SHA1_PATTERN = Pattern.compile("[0-9a-f]{7,40}");
 
   private static final Logger logger = Logger.getLogger(GitDestination.class.getName());
 
@@ -111,14 +105,6 @@ public final class GitDestination implements Destination {
   @Nullable
   @Override
   public String getPreviousRef() throws RepoException {
-    // For now we only rely on users using the flag
-    if (!Strings.isNullOrEmpty(gitOptions.gitPreviousRef)) {
-      Matcher matcher = GIT_SHA1_PATTERN.matcher(gitOptions.gitPreviousRef);
-      if (matcher.matches()) {
-        return gitOptions.gitPreviousRef;
-      }
-      throw new RepoException("Invalid git SHA-1 reference " + gitOptions.gitPreviousRef);
-    }
     if (gitOptions.gitFirstCommit) {
       return null;
     }
