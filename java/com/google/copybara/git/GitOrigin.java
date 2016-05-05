@@ -7,12 +7,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.CannotComputeChangesException;
 import com.google.copybara.Change;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.util.console.Console;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -39,8 +41,11 @@ public final class GitOrigin implements Origin<GitOrigin> {
    */
   @Nullable
   private final String defaultTrackingRef;
+  private final Console console;
 
-  GitOrigin(GitRepository repository, String repoUrl, @Nullable String defaultTrackingRef) {
+  GitOrigin(Console console, GitRepository repository, String repoUrl,
+      @Nullable String defaultTrackingRef) {
+    this.console = console;
     this.repository = Preconditions.checkNotNull(repository);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.defaultTrackingRef = Preconditions.checkNotNull(defaultTrackingRef);
@@ -53,6 +58,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
   // TODO(malcon): Refactor reference to return a Reference object.
   @Override
   public Reference<GitOrigin> resolve(@Nullable String reference) throws RepoException {
+    console.progress("Git Origin: Initializing local repo");
     repository.initGitDir();
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
@@ -64,6 +70,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
     } else {
       ref = reference;
     }
+    console.progress("Git Origin: Fetching from " + repoUrl);
     repository.simpleCommand("fetch", "-f", repoUrl, ref);
     return new GitReference(repository.revParse("FETCH_HEAD"));
   }
@@ -149,8 +156,9 @@ public final class GitOrigin implements Origin<GitOrigin> {
 
       Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
       Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
-
-      return new GitOrigin(GitRepository.bareRepo(gitDir, options), url, defaultTrackingRef);
+      Console console = options.get(GeneralOptions.class).console();
+      return new GitOrigin(console, GitRepository.bareRepo(gitDir, options), url,
+          defaultTrackingRef);
     }
   }
 }

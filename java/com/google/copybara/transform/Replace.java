@@ -97,7 +97,9 @@ public final class Replace implements Transformation {
       String roundTrippedLine = matcher.replaceAll(before.template());
       if (!roundTrippedLine.equals(originalLine)) {
         throw new NotRoundtrippableException(String.format(
-            "Text '%s' reverse-transforms to different string: '%s'",
+            "Reverse-transform didn't generate the original text:\n"
+                + "    Expected : %s\n"
+                + "    Actual   : %s\n",
             originalLine, roundTrippedLine));
       }
       return newLine;
@@ -133,7 +135,8 @@ public final class Replace implements Transformation {
     TransformVisitor visitor = new TransformVisitor();
     Files.walkFileTree(workdir, visitor);
     if (!visitor.somethingWasChanged) {
-      throw new TransformationDoesNothingException(toString());
+      throw new TransformationDoesNothingException(
+          "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");
     }
   }
 

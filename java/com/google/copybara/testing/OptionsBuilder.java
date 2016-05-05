@@ -8,6 +8,7 @@ import com.google.copybara.Options;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.localdir.LocalDestinationOptions;
+import com.google.copybara.util.console.LogConsole;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,7 +20,7 @@ public final class OptionsBuilder {
 
   public GeneralOptions general =
       new GeneralOptions(Jimfs.newFileSystem().getPath("/"), /*verbose=*/true, /*lastRevision=*/
-          null);
+          null, new LogConsole(System.out));
   public LocalDestinationOptions localDestination =
       new LocalDestinationOptions();
   public GitOptions git = new GitOptions();
@@ -27,7 +28,7 @@ public final class OptionsBuilder {
 
   public OptionsBuilder setWorkdirToRealTempDir() throws IOException {
     general = new GeneralOptions(Files.createTempDirectory("OptionsBuilder"), /*verbose=*/true,
-        /*lastRevision=*/null);
+        /*lastRevision=*/null, new LogConsole(System.out));
     return this;
   }
 

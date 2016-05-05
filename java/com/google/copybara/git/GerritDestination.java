@@ -99,13 +99,14 @@ public final class GerritDestination implements Destination {
   public static final class Yaml extends AbstractDestinationYaml {
     @Override
     public GerritDestination withOptions(Options options, String configName) {
+      GeneralOptions generalOptions = options.get(GeneralOptions.class);
       return new GerritDestination(
           new GitDestination(
               configName,
               url, pullFromRef, "refs/for/master", author,
               options.get(GitOptions.class),
-              options.get(GeneralOptions.class).isVerbose(),
-              new CommitGenerator(options.get(GerritOptions.class))));
+              generalOptions.isVerbose(),
+              new CommitGenerator(options.get(GerritOptions.class)), generalOptions.console()));
     }
   }
 }

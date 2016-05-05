@@ -17,6 +17,9 @@ import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.transform.DeletePath;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.util.ExitCode;
+import com.google.copybara.util.console.AnsiConsole;
+import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.LogConsole;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -91,9 +94,14 @@ public class Main {
 
     FileSystem fs = FileSystems.getDefault();
 
+    // We need a console before parsing the args because it could fail with wrong
+    // arguments and we need to show the error.
+    Console console = getConsole(args);
     try {
       configureLog(fs);
       jcommander.parse(args);
+      GeneralOptions generalOptions = generalOptionsArgs.init(FileSystems.getDefault(), console);
+
       if (mainArgs.help) {
         System.out.print(usage(jcommander));
       } else if (mainArgs.unnamed.size() < 1) {
@@ -101,26 +109,42 @@ public class Main {
       } else if (mainArgs.unnamed.size() > 2) {
         throw new CommandLineException("Expect at most two arguments.");
       } else {
-        GeneralOptions generalOptions = generalOptionsArgs.init(FileSystems.getDefault());
         options.add(generalOptions);
         String configPath = mainArgs.unnamed.get(0);
         String sourceRef = mainArgs.unnamed.size() > 1 ? mainArgs.unnamed.get(1) : null;
         Config config = loadConfig(fs.getPath(configPath), new Options(options));
         Path workdir = generalOptions.getWorkdir();
-        new Copybara(workdir).runForSourceRef(config, sourceRef);
+        new Copybara(workdir, console)
+            .runForSourceRef(config, sourceRef);
       }
     } catch (CommandLineException | ParameterException e) {
-      printCauseChain(e);
+      printCauseChain(console, e);
       System.err.print(usage(jcommander));
       System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
     } catch (RepoException | ConfigValidationException e) {
-      printCauseChain(e);
+      printCauseChain(console, e);
       System.exit(ExitCode.REPOSITORY_ERROR.getCode());
     } catch (IOException e) {
-      handleUnexpectedError(ExitCode.ENVIRONMENT_ERROR, "ERROR:" + e.getMessage(), e);
+      handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
     } catch (RuntimeException e) {
-      handleUnexpectedError(ExitCode.INTERNAL_ERROR, "Unexpected error: " + e.getMessage(), e);
+      handleUnexpectedError(console, ExitCode.INTERNAL_ERROR, "Unexpected error: " + e.getMessage(),
+          e);
     }
+  }
+
+  protected Console getConsole(String[] args) {
+    boolean ansi = true;
+    for (String arg : args) {
+      if (arg.equals(GeneralOptions.NOANSI)) {
+        ansi = false;
+        break;
+      }
+    }
+    // The System.console doesn't detect redirects/pipes, but at least we have
+    // jobs covered.
+    return ansi && System.console() != null
+        ? new AnsiConsole(System.err)
+        : new LogConsole(System.err);
   }
 
   protected void configureLog(FileSystem fs) throws IOException {
@@ -163,18 +187,25 @@ public class Main {
     }
   }
 
-  private static void printCauseChain(Throwable e) {
-    String prefix = "ERROR: ";
-    do {
-      System.err.println(prefix + e.getMessage());
-      prefix = "  CAUSED BY: ";
-      e = e.getCause();
-    } while (e != null);
+  private void printCauseChain(Console console, Throwable e) {
+    StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
+    Throwable cause = e.getCause();
+    while (cause != null) {
+      error.append("  CAUSED BY: ").append(cause.getMessage()).append("\n");
+      cause = cause.getCause();
+    }
+    if (console != null) {
+      console.error(error.toString());
+    } else {
+      // When options are incorrect we don't have a console.
+      // We should fix this. But not for now.
+      System.err.println("ERROR: " + error.toString());
+    }
   }
 
-  private static void handleUnexpectedError(ExitCode errorType, String msg, Throwable e) {
+  private void handleUnexpectedError(Console console, ExitCode errorType, String msg, Throwable e) {
     logger.log(Level.SEVERE, msg, e);
-    System.err.println(msg + ":" + e.getMessage());
+    console.error(msg + " (" + e + ")");
     System.exit(errorType.getCode());
   }
 

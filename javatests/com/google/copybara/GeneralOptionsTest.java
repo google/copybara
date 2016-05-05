@@ -3,6 +3,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.util.console.LogConsole;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -31,7 +32,7 @@ public class GeneralOptionsTest {
   }
 
   private GeneralOptions init() throws IOException {
-    return generalOptionsArgs.init(fs);
+    return generalOptionsArgs.init(fs, new LogConsole(System.err));
   }
 
   @Test

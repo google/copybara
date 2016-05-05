@@ -93,11 +93,11 @@ EOF
   copybara test.copybara --git-repo-storage "$repo_storage" \
       --work-dir $workdir
   expect_log "Running Copybara for cbtest .*repoUrl=file://$remote"
-  expect_log 'Running transformation:.*Replace.*drink'
+  expect_log 'Transformation .*Replace.*drink'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/test.txt$'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/subdir/test.txt$'
   expect_not_log 'apply .* to .*/subdir$'
-  expect_log 'Running transformation:.*Replace.*bar'
+  expect_log 'Transformation .*Replace.*bar'
   expect_log 'Exporting .* to:'
 
   # Make sure we don't get detached head warnings polluting the log.

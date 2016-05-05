@@ -13,11 +13,13 @@ import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.ReadablePathMatcher;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 import com.google.devtools.build.lib.shell.ShellUtils;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,11 +34,14 @@ import javax.annotation.Nullable;
  */
 public class FolderDestination implements Destination {
 
+  private final Console console;
   private final PathMatcher excludeFromDeletion;
   private final Path localFolder;
   private final boolean verbose;
 
-  private FolderDestination(PathMatcher excludeFromDeletion, Path localFolder, boolean verbose) {
+  private FolderDestination(Console console, PathMatcher excludeFromDeletion,
+      Path localFolder, boolean verbose) {
+    this.console = console;
     this.excludeFromDeletion = excludeFromDeletion;
     this.localFolder = localFolder;
     this.verbose = verbose;
@@ -45,8 +50,18 @@ public class FolderDestination implements Destination {
   @Override
   public void process(Path workdir, String originRef, long timestamp, String changesSummary)
       throws RepoException, IOException {
-    Files.createDirectories(localFolder);
+    console.progress("FolderDestination: creating " + localFolder);
+    try {
+      Files.createDirectories(localFolder);
+    } catch (FileAlreadyExistsException e) {
+      // This exception message is particularly bad and we don't want to treat it as unhandled
+      throw new RepoException("Cannot create '" + localFolder + "' because '" + e.getFile()
+          + "' already exists and is not a directory");
+    }
+    console.progress("FolderDestination: deleting previous data from " + localFolder);
     FileUtil.deleteFilesRecursively(localFolder, FileUtil.notPathMatcher(excludeFromDeletion));
+    console.progress(
+        "FolderDestination: Copying contents of the workdir to " + localFolder);
     try {
       // Life is too short to implement a recursive copy in Java... Let's wait until
       // we need Windows support. This also should be faster than copy and we don't need the
@@ -97,8 +112,9 @@ public class FolderDestination implements Destination {
       for (String path : excludePathsForDeletion) {
         pathMatchers.add(ReadablePathMatcher.relativeGlob(localFolder, path));
       }
-      return new FolderDestination(FileUtil.anyPathMatcher(pathMatchers.build()), localFolder,
-          generalOptions.isVerbose());
+      return new FolderDestination(generalOptions.console(),
+          FileUtil.anyPathMatcher(pathMatchers.build()),
+          localFolder, generalOptions.isVerbose());
     }
   }
 }

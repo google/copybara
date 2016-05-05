@@ -1,6 +1,9 @@
 package com.google.copybara;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.LogConsole;
 
 import com.beust.jcommander.Parameter;
 
@@ -17,19 +20,42 @@ import javax.annotation.Nullable;
  */
 public final class GeneralOptions implements Option {
 
+  public static final String NOANSI = "--noansi";
   private final Path workdir;
   private final boolean verbose;
   @Nullable
   private final String lastRevision;
+  private Console console = null;
 
-  public GeneralOptions(Path workdir, boolean verbose, @Nullable String lastRevision) {
+  public GeneralOptions(Path workdir, boolean verbose, @Nullable String lastRevision,
+      Console console) {
+    this.console = console;
     this.workdir = Preconditions.checkNotNull(workdir);
     this.verbose = verbose;
     this.lastRevision = lastRevision;
   }
 
+  /**
+   * TODO(matvore): Remove this method once internal code is fixed
+   * This method should disappear once the code is more settled. We want to avoid breaking the
+   * import tests constantly.
+   */
+  @VisibleForTesting
+  public GeneralOptions(Path workdir, boolean verbose, @Nullable String lastRevision) {
+    this(workdir, verbose, lastRevision, new LogConsole(System.out));
+  }
+
   public boolean isVerbose() {
     return verbose;
+  }
+
+  public Console console() {
+    return console;
+  }
+
+  @Nullable
+  public String getLastRevision() {
+    return lastRevision;
   }
 
   /**
@@ -58,10 +84,16 @@ public final class GeneralOptions implements Option {
     @Parameter(names = "--last-rev", description = "Last revision that was migrated to the destination")
     String lastRevision;
 
+    // We don't use JCommander for parsing this flag but we do it manually since
+    // the parsing could fail and we need to report errors using one console
+    @SuppressWarnings("unused")
+    @Parameter(names = NOANSI, description = "Don't use ANSI output for messages")
+    boolean noansi = false;
+
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
-    public GeneralOptions init(FileSystem fs) throws IOException {
+    public GeneralOptions init(FileSystem fs, Console console) throws IOException {
       Path workdirPath;
 
       if (workdir == null) {
@@ -83,7 +115,7 @@ public final class GeneralOptions implements Option {
         System.err.println("WARNING: " + workdirPath + " is not empty");
       }
 
-      return new GeneralOptions(workdirPath, verbose, lastRevision);
+      return new GeneralOptions(workdirPath, verbose, lastRevision, console);
     }
   }
 }

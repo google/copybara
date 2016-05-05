@@ -12,6 +12,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.util.console.Console;
 
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -23,6 +24,8 @@ import javax.annotation.Nullable;
  * A Git repository destination.
  */
 public final class GitDestination implements Destination {
+
+  private final Console console;
 
   interface CommitGenerator {
     /**
@@ -54,7 +57,8 @@ public final class GitDestination implements Destination {
   private final CommitGenerator commitGenerator;
 
   GitDestination(String configName, String repoUrl, String pullFromRef, String pushToRef,
-      String author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator) {
+      String author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
+      Console console) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.pullFromRef = Preconditions.checkNotNull(pullFromRef);
@@ -63,6 +67,7 @@ public final class GitDestination implements Destination {
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
+    this.console = Preconditions.checkNotNull(console);
   }
 
   @Override
@@ -70,8 +75,10 @@ public final class GitDestination implements Destination {
       String changesSummary) throws RepoException {
     logger.log(Level.INFO, "Exporting " + configName + " from " + workdir + " to: " + this);
 
+    console.progress("Git Destination: Fetching " + repoUrl);
     GitRepository scratchClone = cloneBaseline();
     if (!gitOptions.gitFirstCommit) {
+      console.progress("Git Destination: Checking out " + pullFromRef);
       scratchClone.simpleCommand("checkout", "-q", "FETCH_HEAD");
     }
     if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
@@ -80,12 +87,14 @@ public final class GitDestination implements Destination {
     if (!Strings.isNullOrEmpty(gitOptions.gitCommitterEmail)) {
       scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
     }
+    console.progress("Git Destination: Adding files for push");
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
     alternate.simpleCommand("commit",
         "--author", author,
         "--date", timestamp + " +0000",
         "-m", commitGenerator.message(changesSummary, alternate, originRef));
+    console.progress("Git Destination: Pushing to " + repoUrl);
     alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
   }
 
@@ -156,6 +165,8 @@ public final class GitDestination implements Destination {
     @Override
     public GitDestination withOptions(Options options, String configName) throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(url, "url");
+
+      GeneralOptions generalOptions = options.get(GeneralOptions.class);
       return new GitDestination(
           configName,
           url,
@@ -163,8 +174,9 @@ public final class GitDestination implements Destination {
           ConfigValidationException.checkNotMissing(pushToRef, "pushToRef"),
           author,
           options.get(GitOptions.class),
-          options.get(GeneralOptions.class).isVerbose(),
-          new DefaultCommitGenerator());
+          generalOptions.isVerbose(),
+          new DefaultCommitGenerator(),
+          generalOptions.console());
     }
   }
 }
