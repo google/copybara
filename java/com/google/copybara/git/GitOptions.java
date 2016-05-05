@@ -11,6 +11,14 @@ import com.beust.jcommander.Parameters;
 @Parameters(separators = "=")
 public final class GitOptions implements Option {
 
+  @Parameter(names = "--git-committer-name",
+      description = "If set, overrides the committer name for the generated commits.")
+  String gitCommitterName = "";
+
+  @Parameter(names = "--git-committer-email",
+      description = "If set, overrides the committer e-mail for the generated commits.")
+  String gitCommitterEmail = "";
+
   @Parameter(names = "--git-repo-storage",
       description = "Location of the storage path for git repositories")
   String gitRepoStorage = System.getProperty("user.home") + "/.copybara/repos";

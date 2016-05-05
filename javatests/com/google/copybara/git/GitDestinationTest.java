@@ -239,4 +239,42 @@ public class GitDestinationTest {
     destination().process(workdir(), "second_commit", /*timestamp=*/1515151515, COMMIT_MSG);
     GitTesting.assertAuthorTimestamp(repo(), "master", 1515151515);
   }
+
+  @Test
+  public void canOverrideCommitterName() throws Exception {
+    yaml.setPullFromRef("master");
+    yaml.setPushToRef("master");
+
+    options.git.gitCommitterName = "Bara Kopi";
+    Files.write(workdir().resolve("test.txt"), "some content".getBytes());
+    destinationFirstCommit()
+        .process(workdir(), "first_commit", /*timestamp=*/1414141414, COMMIT_MSG);
+    GitTesting.assertCommitterLineMatches(repo(), "master", "Bara Kopi <.*> [-+ 0-9]+");
+
+    options.git.gitCommitterName = "Piko Raba";
+    Files.write(workdir().resolve("test.txt"), "some more content".getBytes());
+    destination()
+        .process(workdir(), "second_commit", /*timestamp=*/1414141490, COMMIT_MSG);
+    GitTesting.assertCommitterLineMatches(repo(), "master", "Piko Raba <.*> [-+ 0-9+]+");
+  }
+
+  @Test
+  public void canOverrideCommitterEmail() throws Exception {
+    yaml.setPullFromRef("master");
+    yaml.setPushToRef("master");
+
+    options.git.gitCommitterEmail = "bara.bara@gocha.gocha";
+    Files.write(workdir().resolve("test.txt"), "some content".getBytes());
+    destinationFirstCommit()
+        .process(workdir(), "first_commit", /*timestamp=*/1414141414, COMMIT_MSG);
+    GitTesting.assertCommitterLineMatches(
+        repo(), "master", ".* <bara[.]bara@gocha[.]gocha> [-+ 0-9]+");
+
+    options.git.gitCommitterEmail = "kupo.kupo@tan.kou";
+    Files.write(workdir().resolve("test.txt"), "some more content".getBytes());
+    destination()
+        .process(workdir(), "second_commit", /*timestamp=*/1414141490, COMMIT_MSG);
+    GitTesting.assertCommitterLineMatches(
+        repo(), "master", ".* <kupo[.]kupo@tan[.]kou> [-+ 0-9]+");
+  }
 }

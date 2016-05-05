@@ -77,6 +77,12 @@ public final class GitDestination implements Destination {
     if (!gitOptions.gitFirstCommit) {
       scratchClone.simpleCommand("checkout", "-q", "FETCH_HEAD");
     }
+    if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
+      scratchClone.simpleCommand("config", "user.name", gitOptions.gitCommitterName);
+    }
+    if (!Strings.isNullOrEmpty(gitOptions.gitCommitterEmail)) {
+      scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
+    }
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
     alternate.simpleCommand("commit",
