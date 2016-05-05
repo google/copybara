@@ -96,7 +96,8 @@ workflows:
 EOF
   copybara test.copybara --git-repo-storage "$repo_storage" \
       --work-dir $workdir
-  expect_log "Running Copybara for cbtest .*repoUrl=file://$remote"
+
+  expect_log "Running Copybara for config 'cbtest', workflow 'default' (SQUASH).*repoUrl=file://$remote"
   expect_log 'Transform: Replace food'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/test.txt$'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/subdir/test.txt$'

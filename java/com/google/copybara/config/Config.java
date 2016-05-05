@@ -72,7 +72,7 @@ public final class Config {
 
     @DocField(description = "All workflows (migration operations) associated with this project.",
         required = true)
-    public void setWorkflows(List<? extends Workflow.Yaml> workflows)
+    public void setWorkflows(List<Workflow.Yaml> workflows)
         throws ConfigValidationException {
       HashMap<String, Workflow.Yaml> map = new HashMap<>();
       for (Workflow.Yaml workflow : workflows) {

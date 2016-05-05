@@ -115,7 +115,7 @@ public class Main {
         String sourceRef = mainArgs.unnamed.size() > 1 ? mainArgs.unnamed.get(1) : null;
         Config config = loadConfig(fs.getPath(configPath), new Options(options));
         Path workdir = generalOptions.getWorkdir();
-        new Copybara(workdir, console)
+        new Copybara(workdir)
             .runForSourceRef(config, sourceRef);
       }
     } catch (CommandLineException | ParameterException e) {

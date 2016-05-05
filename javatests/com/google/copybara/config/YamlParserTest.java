@@ -11,6 +11,7 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.Workflow;
+import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.Transformation;
 
 import org.hamcrest.Description;
@@ -50,7 +51,7 @@ public class YamlParserTest {
         new TypeDescription(MockTransform.class, "!MockTransform")
     ));
     fs = Jimfs.newFileSystem();
-    options = new Options(ImmutableList.<Option>of());
+    options = new OptionsBuilder().build();
   }
 
   @Test

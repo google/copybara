@@ -3,8 +3,8 @@ package com.google.copybara.config;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.Options;
-import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.Workflow;
+import com.google.copybara.doc.annotations.DocElement;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.TypeDescription;

@@ -11,7 +11,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsInvocationTransformation;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.transform.Transformation;
-import com.google.copybara.util.console.LogConsole;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +46,7 @@ public class CopybaraTest {
 
   private void setWorkflow(Transformation.Yaml... transformations)
       throws ConfigValidationException {
-    Workflow.Yaml workflow = new Workflow.Yaml();
+    Workflow.Yaml workflow = new SquashWorkflow.Yaml();
     workflow.setDestination(destination);
     workflow.setOrigin(origin);
     workflow.setTransformations(ImmutableList.copyOf(transformations));
@@ -93,6 +92,6 @@ public class CopybaraTest {
   }
 
   private Copybara createCopybara() {
-    return new Copybara(workdir(), new LogConsole(System.err));
+    return new Copybara(workdir());
   }
 }
