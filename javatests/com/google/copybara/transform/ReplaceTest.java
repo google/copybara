@@ -288,6 +288,14 @@ public final class ReplaceTest {
     assertThat(string).contains("path=**");
   }
 
+  @Test
+  public void nopReplaceShouldThrowException() throws Exception {
+    yaml.setBefore("this string doesn't appear anywhere in source");
+    yaml.setAfter("lulz");
+    thrown.expect(TransformationDoesNothingException.class);
+    yaml.withOptions(options.build()).transform(workdir());
+  }
+
   private void prepareGlobTree() throws IOException {
     writeFile(workdir().resolve("file1.txt"), "foo");
     writeFile(workdir().resolve("file1.java"), "foo");

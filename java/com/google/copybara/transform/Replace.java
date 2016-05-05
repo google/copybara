@@ -84,6 +84,7 @@ public final class Replace implements Transformation {
   private final class TransformVisitor extends SimpleFileVisitor<Path> {
     final Pattern beforeRegex = before.toRegex(regexGroups);
     final Pattern afterRegex = after.toRegex(regexGroups);
+    boolean somethingWasChanged;
 
     /**
      * Transforms a single line which confirming that the current transformation can be applied in
@@ -117,6 +118,7 @@ public final class Replace implements Transformation {
         newLines.add(transformLine(line));
       }
       if (!originalLines.equals(newLines)) {
+        somethingWasChanged = true;
         try (Writer writer = new OutputStreamWriter(Files.newOutputStream(file), UTF_8)) {
           Joiner.on('\n').appendTo(writer, newLines);
         }
@@ -128,7 +130,11 @@ public final class Replace implements Transformation {
 
   @Override
   public void transform(Path workdir) throws IOException {
-    Files.walkFileTree(workdir, new TransformVisitor());
+    TransformVisitor visitor = new TransformVisitor();
+    Files.walkFileTree(workdir, visitor);
+    if (!visitor.somethingWasChanged) {
+      throw new TransformationDoesNothingException(toString());
+    }
   }
 
   @DocElement(yamlName = "!Replace", description = "Replace a text with another text using optional regex groups. This tranformer is designed so that it can be reversible (Used in another workflow in the other direction).", elementKind = Transformation.class)
