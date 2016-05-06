@@ -40,6 +40,8 @@ public class GitDestinationTest {
     git("init", "--bare", repoGitDir.toString());
     options = new OptionsBuilder()
         .setWorkdirToRealTempDir();
+    options.git.gitCommitterEmail = "commiter@email";
+    options.git.gitCommitterName = "Bara Kopi";
   }
 
   private Path workdir() {
@@ -274,5 +276,31 @@ public class GitDestinationTest {
         .process(workdir(), "second_commit", /*timestamp=*/1414141490, COMMIT_MSG);
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <kupo[.]kupo@tan[.]kou> [-+ 0-9]+");
+  }
+
+  @Test
+  public void gitUserNameMustBeConfigured() throws Exception {
+    options.git.gitCommitterName = "";
+    options.git.gitCommitterEmail = "foo@bara";
+    yaml.setPullFromRef("master");
+    yaml.setPushToRef("master");
+
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
+    destinationFirstCommit()
+        .process(workdir(), "first_commit", /*timestamp=*/1414141414, COMMIT_MSG);
+  }
+
+  @Test
+  public void gitUserEmailMustBeConfigured() throws Exception {
+    options.git.gitCommitterName = "Foo Bara";
+    options.git.gitCommitterEmail = "";
+    yaml.setPullFromRef("master");
+    yaml.setPushToRef("master");
+
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
+    destinationFirstCommit()
+        .process(workdir(), "first_commit", /*timestamp=*/1414141414, COMMIT_MSG);
   }
 }

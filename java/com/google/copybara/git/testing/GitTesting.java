@@ -6,8 +6,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GitRepository;
 
-import java.nio.file.Path;
-
 /**
  * Utility methods for testing related to Git.
  */

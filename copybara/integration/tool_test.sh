@@ -32,6 +32,10 @@ function set_up() {
    export XDG_CACHE_HOME="$(mktemp -d)"
    # An early check to avoid confusing test failures
    git version || fail "Git doesn't seem to be installed. Cannot test without git command."
+
+   export HOME="$(mktemp -d)"
+   git config --global user.name 'Bara Kopi'
+   git config --global user.email 'bara@kopi.com'
 }
 
 function temp_dir() {

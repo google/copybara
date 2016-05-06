@@ -42,6 +42,8 @@ public class GerritDestinationTest {
 
     options = new OptionsBuilder()
         .setWorkdirToRealTempDir();
+    options.git.gitCommitterEmail = "commiter@email";
+    options.git.gitCommitterName = "Bara Kopi";
   }
 
   private Path workdir() {

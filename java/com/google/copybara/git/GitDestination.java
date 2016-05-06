@@ -70,6 +70,27 @@ public final class GitDestination implements Destination {
     this.console = Preconditions.checkNotNull(console);
   }
 
+  /**
+   * Throws an exception if the user.email or user.name Git configuration settings are not set. This
+   * helps ensure that the committer field of generated commits is correct.
+   */
+  private void verifyUserInfoConfigured(GitRepository repo) throws RepoException {
+    String output = repo.simpleCommand("config", "-l").getStdout();
+    boolean nameConfigured = false;
+    boolean emailConfigured = false;
+    for (String line : output.split("\n")) {
+      if (line.startsWith("user.name=")) {
+        nameConfigured = true;
+      } else if (line.startsWith("user.email=")) {
+        emailConfigured = true;
+      }
+    }
+    if (!nameConfigured || !emailConfigured) {
+      throw new RepoException("'user.name' and/or 'user.email' are not configured. Please run "
+          + "`git config --global SETTING VALUE` to set them");
+    }
+  }
+
   @Override
   public void process(Path workdir, String originRef, long timestamp,
       String changesSummary) throws RepoException {
@@ -87,6 +108,7 @@ public final class GitDestination implements Destination {
     if (!Strings.isNullOrEmpty(gitOptions.gitCommitterEmail)) {
       scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
     }
+    verifyUserInfoConfigured(scratchClone);
     console.progress("Git Destination: Adding files for push");
     GitRepository alternate = scratchClone.withWorkTree(workdir);
     alternate.simpleCommand("add", "--all");
