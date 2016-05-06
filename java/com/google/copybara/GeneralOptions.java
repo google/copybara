@@ -3,7 +3,6 @@ package com.google.copybara;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.util.console.LogConsole;
 
 import com.beust.jcommander.Parameter;
 
@@ -27,22 +26,13 @@ public final class GeneralOptions implements Option {
   private final String lastRevision;
   private Console console = null;
 
+  @VisibleForTesting
   public GeneralOptions(Path workdir, boolean verbose, @Nullable String lastRevision,
       Console console) {
     this.console = console;
     this.workdir = Preconditions.checkNotNull(workdir);
     this.verbose = verbose;
     this.lastRevision = lastRevision;
-  }
-
-  /**
-   * TODO(matvore): Remove this method once internal code is fixed
-   * This method should disappear once the code is more settled. We want to avoid breaking the
-   * import tests constantly.
-   */
-  @VisibleForTesting
-  public GeneralOptions(Path workdir, boolean verbose, @Nullable String lastRevision) {
-    this(workdir, verbose, lastRevision, new LogConsole(System.out));
   }
 
   public boolean isVerbose() {
