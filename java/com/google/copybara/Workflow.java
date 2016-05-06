@@ -103,13 +103,15 @@ public final class Workflow {
       this.transformations = ImmutableList.copyOf(transformations);
     }
 
-    public Workflow withOptions(Options options) throws ConfigValidationException {
+    public Workflow withOptions(Options options, String configName) throws ConfigValidationException {
       ImmutableList.Builder<Transformation> transformations = new ImmutableList.Builder<>();
       for (Transformation.Yaml transformation : this.transformations) {
         transformations.add(transformation.withOptions(options));
       }
       return new Workflow(name,
-          origin.withOptions(options), destination.withOptions(options), transformations.build());
+          origin.withOptions(options),
+          destination.withOptions(options, configName),
+          transformations.build());
     }
   }
 }

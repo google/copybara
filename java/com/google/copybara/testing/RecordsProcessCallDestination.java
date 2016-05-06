@@ -30,7 +30,7 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
   }
 
   @Override
-  public Destination withOptions(Options options) {
+  public Destination withOptions(Options options, String configName) {
     return this;
   }
 }

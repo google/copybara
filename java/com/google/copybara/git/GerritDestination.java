@@ -98,9 +98,10 @@ public final class GerritDestination implements Destination {
       elementKind = Destination.class, flags = {GerritOptions.class, GitOptions.class})
   public static final class Yaml extends AbstractDestinationYaml {
     @Override
-    public GerritDestination withOptions(Options options) {
+    public GerritDestination withOptions(Options options, String configName) {
       return new GerritDestination(
           new GitDestination(
+              configName,
               url, pullFromRef, "refs/for/master", author,
               options.get(GitOptions.class),
               options.get(GeneralOptions.class).isVerbose(),

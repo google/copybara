@@ -23,6 +23,7 @@ import java.nio.file.Path;
 @RunWith(JUnit4.class)
 public class GitDestinationTest {
 
+  private static final String CONFIG_NAME = "copybara_project";
   private static final String COMMIT_MSG = "A commit!\n";
   private Yaml yaml;
   private Path repoGitDir;
@@ -66,12 +67,12 @@ public class GitDestinationTest {
 
   private GitDestination destinationFirstCommit() throws ConfigValidationException {
     options.git.gitFirstCommit = true;
-    return yaml.withOptions(options.build());
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private GitDestination destination() throws ConfigValidationException {
     options.git.gitFirstCommit = false;
-    return yaml.withOptions(options.build());
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {

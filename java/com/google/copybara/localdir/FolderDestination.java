@@ -80,7 +80,7 @@ public class FolderDestination implements Destination {
     }
 
     @Override
-    public Destination withOptions(Options options) throws ConfigValidationException {
+    public Destination withOptions(Options options, String configName) throws ConfigValidationException {
       ImmutableList.Builder<PathMatcher> pathMatchers = ImmutableList.builder();
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       // Lets assume we are in the same filesystem for now...

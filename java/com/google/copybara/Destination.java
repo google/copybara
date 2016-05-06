@@ -15,7 +15,7 @@ public interface Destination {
 
   interface Yaml {
 
-    Destination withOptions(Options options) throws ConfigValidationException;
+    Destination withOptions(Options options, String configName) throws ConfigValidationException;
   }
 
   /**

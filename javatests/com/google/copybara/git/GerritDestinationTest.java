@@ -23,6 +23,7 @@ import java.nio.file.Path;
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
 
+  private static final String CONFIG_NAME = "copybara_project";
   private static final String COMMIT_MSG = "Commit!\n";
   private Yaml yaml;
   private Path repoGitDir;
@@ -58,7 +59,7 @@ public class GerritDestinationTest {
   }
 
   private GerritDestination destination() {
-    return yaml.withOptions(options.build());
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private String lastCommitChangeIdLine() throws Exception {

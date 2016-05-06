@@ -44,6 +44,7 @@ public final class GitDestination implements Destination {
 
   private static final Logger logger = Logger.getLogger(GitDestination.class.getName());
 
+  private final String configName;
   private final String repoUrl;
   private final String pullFromRef;
   private final String pushToRef;
@@ -52,8 +53,9 @@ public final class GitDestination implements Destination {
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
 
-  GitDestination(String repoUrl, String pullFromRef, String pushToRef, String author,
-      GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator) {
+  GitDestination(String configName, String repoUrl, String pullFromRef, String pushToRef,
+      String author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator) {
+    this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.pullFromRef = Preconditions.checkNotNull(pullFromRef);
     this.pushToRef = Preconditions.checkNotNull(pushToRef);
@@ -66,7 +68,7 @@ public final class GitDestination implements Destination {
   @Override
   public void process(Path workdir, String originRef, long timestamp,
       String changesSummary) throws RepoException {
-    logger.log(Level.INFO, "Exporting " + workdir + " to: " + this);
+    logger.log(Level.INFO, "Exporting " + configName + " from " + workdir + " to: " + this);
 
     GitRepository scratchClone = cloneBaseline();
     if (!gitOptions.gitFirstCommit) {
@@ -125,6 +127,7 @@ public final class GitDestination implements Destination {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
+        .add("configName", configName)
         .add("repoUrl", repoUrl)
         .add("pullFromRef", pullFromRef)
         .add("pushToRef", pushToRef)
@@ -151,10 +154,10 @@ public final class GitDestination implements Destination {
     }
 
     @Override
-    public GitDestination withOptions(Options options) throws ConfigValidationException {
+    public GitDestination withOptions(Options options, String configName) throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(url, "url");
-
       return new GitDestination(
+          configName,
           url,
           ConfigValidationException.checkNotMissing(pullFromRef, "pullFromRef"),
           ConfigValidationException.checkNotMissing(pushToRef, "pushToRef"),

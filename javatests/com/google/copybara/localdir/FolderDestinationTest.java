@@ -23,6 +23,8 @@ import java.nio.file.Path;
 @RunWith(JUnit4.class)
 public class FolderDestinationTest {
 
+  private static final String CONFIG_NAME = "copybara_project";
+
   private Yaml yaml;
   private OptionsBuilder options;
 
@@ -57,7 +59,7 @@ public class FolderDestinationTest {
 
     options.localDestination.localFolder = localFolder.toString();
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
-    Destination destination = yaml.withOptions(options.build());
+    Destination destination = yaml.withOptions(options.build(), CONFIG_NAME);
     destination.process(workdir(), "origin_ref", /*timestamp=*/424242420, "Not relevant");
     assertFilesExist(localFolder, "one", "two", "root_file",
         "one/file.java", "two/file.java", "test.txt", "dir/file.txt");
@@ -68,7 +70,7 @@ public class FolderDestinationTest {
   public void testFolderDirRequired() throws Exception {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("--folder-dir is required");
-    yaml.withOptions(options.build());
+    yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private void assertFilesExist(Path base, String... paths) {

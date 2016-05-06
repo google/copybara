@@ -101,7 +101,7 @@ public final class Config {
       if (workflow == null) {
         throw new ConfigValidationException("No workflow with this name exists: " + workflowName);
       }
-      return new Config(this.name, workflow.withOptions(options));
+      return new Config(this.name, workflow.withOptions(options, this.name));
     }
 
     /**

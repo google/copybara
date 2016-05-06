@@ -21,6 +21,8 @@ import java.io.IOException;
 @RunWith(JUnit4.class)
 public class WorkflowTest {
 
+  private static final String CONFIG_NAME = "copybara_project";
+
   private Yaml yaml;
 
   @Rule
@@ -34,7 +36,7 @@ public class WorkflowTest {
   private Workflow workflow() throws ConfigValidationException {
     yaml.setOrigin(new DummyOrigin());
     yaml.setDestination(new RecordsProcessCallDestination());
-    return yaml.withOptions(new OptionsBuilder().build());
+    return yaml.withOptions(new OptionsBuilder().build(), CONFIG_NAME);
   }
 
   @Test
