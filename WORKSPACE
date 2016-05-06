@@ -1,3 +1,5 @@
+workspace(name = "copybara")
+
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava",

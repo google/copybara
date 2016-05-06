@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source $TEST_SRCDIR/third_party/bazel/bashunit/unittest.bash
+source third_party/bazel/bashunit/unittest.bash
 
 function run_git() {
    git "$@" > $TEST_log 2>&1 || fail "Error running git"
@@ -14,7 +14,7 @@ java.util.logging.SimpleFormatter.format=%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$
 EOF
 
 function copybara() {
-  $TEST_SRCDIR/java/com/google/copybara/copybara \
+  $TEST_SRCDIR/copybara/java/com/google/copybara/copybara \
       --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" > $TEST_log 2>&1 \
       && return
 
