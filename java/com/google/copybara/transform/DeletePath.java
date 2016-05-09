@@ -44,6 +44,11 @@ public final class DeletePath implements Transformation {
   }
 
   @Override
+  public String describe() {
+    return "Deleting " + pathMatcher;
+  }
+
+  @Override
   public String toString() {
     return "DeletePath{path=" + pathMatcher + "}";
   }

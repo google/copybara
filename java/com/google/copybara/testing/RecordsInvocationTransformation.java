@@ -21,6 +21,11 @@ public class RecordsInvocationTransformation implements Transformation, Transfor
   }
 
   @Override
+  public String describe() {
+    return "Invocation recorder";
+  }
+
+  @Override
   public Transformation withOptions(Options options) {
     return this;
   }

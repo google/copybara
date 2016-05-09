@@ -140,6 +140,13 @@ public final class Replace implements Transformation {
     }
   }
 
+  @Override
+  public String describe() {
+    // before should be almost always unique so it is good enough for identifying the
+    // transform.
+    return "Replace " + before.template();
+  }
+
   @DocElement(yamlName = "!Replace", description = "Replace a text with another text using optional regex groups. This tranformer is designed so that it can be reversible (Used in another workflow in the other direction).", elementKind = Transformation.class)
   public final static class Yaml implements Transformation.Yaml {
 

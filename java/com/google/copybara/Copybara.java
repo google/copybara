@@ -39,7 +39,7 @@ class Copybara {
     for (int i = 0; i < transformations.size(); i++) {
       Transformation transformation = transformations.get(i);
       String transformMsg = String.format(
-          "[%2d/%d] Transformation %s", i + 1, transformations.size(), transformation);
+          "[%2d/%d] Transform: %s", i + 1, transformations.size(), transformation.describe());
       logger.log(Level.INFO, transformMsg);
 
       console.progress(transformMsg);

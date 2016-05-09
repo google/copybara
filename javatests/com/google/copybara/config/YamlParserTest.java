@@ -265,6 +265,11 @@ public class YamlParserTest {
     }
 
     @Override
+    public String describe() {
+      return "A mock translation";
+    }
+
+    @Override
     public Transformation withOptions(Options options) throws ConfigValidationException {
       return this;
     }
