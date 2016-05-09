@@ -24,7 +24,7 @@ public final class GeneralOptions implements Option {
   private final boolean verbose;
   @Nullable
   private final String lastRevision;
-  private Console console = null;
+  private final Console console;
 
   @VisibleForTesting
   public GeneralOptions(Path workdir, boolean verbose, @Nullable String lastRevision,

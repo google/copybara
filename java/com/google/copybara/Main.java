@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -133,18 +134,11 @@ public class Main {
   }
 
   protected Console getConsole(String[] args) {
-    boolean ansi = true;
-    for (String arg : args) {
-      if (arg.equals(GeneralOptions.NOANSI)) {
-        ansi = false;
-        break;
-      }
-    }
     // The System.console doesn't detect redirects/pipes, but at least we have
     // jobs covered.
-    return ansi && System.console() != null
-        ? new AnsiConsole(System.err)
-        : new LogConsole(System.err);
+    return Arrays.asList(args).contains(GeneralOptions.NOANSI) || System.console() == null
+        ? new LogConsole(System.err)
+        : new AnsiConsole(System.err);
   }
 
   protected void configureLog(FileSystem fs) throws IOException {
