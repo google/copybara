@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -43,8 +44,8 @@ public final class TemplateTokens {
   private final String template;
   private final ImmutableList<Token> tokens;
 
-  private TemplateTokens(String template, ImmutableList<Token> tokens) {
-    this.template = Preconditions.checkNotNull(template);
+  private TemplateTokens(ImmutableList<Token> tokens) {
+    this.template = escapeLiterals(tokens);
     this.tokens = Preconditions.checkNotNull(tokens);
   }
 
@@ -54,10 +55,40 @@ public final class TemplateTokens {
   }
 
   /**
-   * Returns the original string from which this sequence of tokens was parsed.
+   * Returns the template as a string which can be used as replacement text. The literals are
+   * escaped where necessary to disambiguate them from interpolations. The returned string can be
+   * used with {@link Matcher#replaceAll(String)}.
    */
   public String template() {
     return template;
+  }
+
+  /**
+   * Returns a template in which the literals are escaped if necessary and the interpolations appear
+   * as {@code ${NAME}}. It particular the backslashes and {@code $} are each escaped with a
+   * backslash. This causes them to not be interpreted as capture references.
+   */
+  private static String escapeLiterals(Iterable<Token> tokens) {
+    StringBuilder template = new StringBuilder();
+    for (Token token : tokens) {
+      switch (token.type) {
+        case INTERPOLATION:
+          template.append(String.format("${%s}", token.value));
+          break;
+        case LITERAL:
+          for (int c = 0; c < token.value.length(); c++) {
+            char thisChar = token.value.charAt(c);
+            if (thisChar == '$' || thisChar == '\\') {
+              template.append('\\');
+            }
+            template.append(thisChar);
+          }
+          break;
+        default:
+          throw new IllegalStateException(token.type.toString());
+      }
+    }
+    return template.toString();
   }
 
   /**
@@ -157,6 +188,6 @@ public final class TemplateTokens {
       }
     }
     addLiteralIfNotEmpty(tokens, currentLiteral.toString());
-    return new TemplateTokens(template, ImmutableList.copyOf(tokens));
+    return new TemplateTokens(ImmutableList.copyOf(tokens));
   }
 }

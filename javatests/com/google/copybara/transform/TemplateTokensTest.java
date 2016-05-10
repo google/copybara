@@ -17,42 +17,49 @@ public final class TemplateTokensTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  private void assertParse(String raw, String toStringValue) throws ConfigValidationException {
+  private void assertParse(String raw, String templateValue, String toStringValue)
+      throws ConfigValidationException {
     TemplateTokens tokens = TemplateTokens.parse(raw);
     assertThat(tokens.toString()).isEqualTo(toStringValue);
-    assertThat(tokens.template()).isEqualTo(raw);
+    assertThat(tokens.template()).isEqualTo(templateValue);
   }
 
   @Test
   public void empty() throws ConfigValidationException {
-    assertParse("", "[]");
+    assertParse("", "", "[]");
   }
 
   @Test
   public void simpleLiteral() throws ConfigValidationException {
-    assertParse("asdf", "[{asdf, LITERAL}]");
+    assertParse("asdf", "asdf", "[{asdf, LITERAL}]");
   }
 
   @Test
   public void interpolationOnly() throws ConfigValidationException {
-    assertParse("${asdf}", "[{asdf, INTERPOLATION}]");
+    assertParse("${asdf}", "${asdf}", "[{asdf, INTERPOLATION}]");
   }
 
   @Test
   public void interpolationsAndLiterals() throws ConfigValidationException {
-    assertParse("${foo}bar${baz}iru",
+    assertParse(
+        "${foo}bar${baz}iru",
+        "${foo}bar${baz}iru",
         "[{foo, INTERPOLATION}, {bar, LITERAL}, {baz, INTERPOLATION}, {iru, LITERAL}]");
   }
 
   @Test
   public void consecutiveInterpolations() throws ConfigValidationException {
-    assertParse("${foo}${bar}${baz}",
+    assertParse(
+        "${foo}${bar}${baz}",
+        "${foo}${bar}${baz}",
         "[{foo, INTERPOLATION}, {bar, INTERPOLATION}, {baz, INTERPOLATION}]");
   }
 
   @Test
   public void literalDollarSigns() throws ConfigValidationException {
-    assertParse("a$$b$$c$$d${foo}bar$$",
+    assertParse(
+        "a$$b$$c$$d${foo}bar$$",
+        "a\\$b\\$c\\$d${foo}bar\\$",
         "[{a$b$c$d, LITERAL}, {foo, INTERPOLATION}, {bar$, LITERAL}]");
   }
 

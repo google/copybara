@@ -296,6 +296,42 @@ public final class ReplaceTest {
     yaml.withOptions(options.build()).transform(workdir());
   }
 
+  @Test
+  public void useDollarSignInAfter() throws Exception {
+    yaml.setBefore("before");
+    yaml.setAfter("after$$");
+    writeFile(workdir().resolve("before_and_after"), "before ... still before");
+    yaml.withOptions(options.build()).transform(workdir());
+    assertFileContents("before_and_after", "after$ ... still after$");
+  }
+
+  @Test
+  public void useBackslashInAfter() throws Exception {
+    yaml.setBefore("before");
+    yaml.setAfter("after\\");
+    writeFile(workdir().resolve("before_and_after"), "before ... still before");
+    yaml.withOptions(options.build()).transform(workdir());
+    assertFileContents("before_and_after", "after\\ ... still after\\");
+  }
+
+  @Test
+  public void useEscapedDollarInBeforeAndAfter() throws Exception {
+    yaml.setBefore("be$$ore");
+    yaml.setAfter("after$$");
+    writeFile(workdir().resolve("before_and_after"), "be$ore ... still be$ore");
+    yaml.withOptions(options.build()).transform(workdir());
+    assertFileContents("before_and_after", "after$ ... still after$");
+  }
+
+  @Test
+  public void useBackslashInBeforeAndAfter() throws Exception {
+    yaml.setBefore("be\\ore");
+    yaml.setAfter("after\\");
+    writeFile(workdir().resolve("before_and_after"), "be\\ore ... still be\\ore");
+    yaml.withOptions(options.build()).transform(workdir());
+    assertFileContents("before_and_after", "after\\ ... still after\\");
+  }
+
   private void prepareGlobTree() throws IOException {
     writeFile(workdir().resolve("file1.txt"), "foo");
     writeFile(workdir().resolve("file1.java"), "foo");
