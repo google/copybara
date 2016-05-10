@@ -15,7 +15,9 @@ EOF
 
 function copybara() {
   $TEST_SRCDIR/copybara/java/com/google/copybara/copybara \
-      --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" > $TEST_log 2>&1 \
+      --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" \
+      --git-repo-storage "$repo_storage" \
+      --work-dir "$workdir" > $TEST_log 2>&1 \
       && return
 
   res=$?
@@ -34,6 +36,8 @@ function set_up() {
    git version || fail "Git doesn't seem to be installed. Cannot test without git command."
 
    export HOME="$(mktemp -d)"
+   export repo_storage=$(temp_dir storage)
+   export workdir=$(temp_dir workdir)
    git config --global user.name 'Bara Kopi'
    git config --global user.email 'bara@kopi.com'
 }
@@ -60,8 +64,6 @@ function check_copybara_rev_id() {
 
 function test_git_tracking() {
   remote=$(temp_dir remote)
-  repo_storage=$(temp_dir storage)
-  workdir=$(temp_dir workdir)
   destination=$(empty_git_bare_repo)
 
   pushd $remote
@@ -94,8 +96,7 @@ workflows:
         regexGroups:
           os: "o+"
 EOF
-  copybara test.copybara --git-repo-storage "$repo_storage" \
-      --work-dir $workdir
+  copybara test.copybara
 
   expect_log "Running Copybara for config 'cbtest', workflow 'default' (SQUASH).*repoUrl=file://$remote"
   expect_log 'Transform: Replace food'
@@ -122,8 +123,7 @@ EOF
   second_commit=$(run_git rev-parse HEAD)
   popd
 
-  copybara test.copybara --git-repo-storage "$repo_storage" \
-    --work-dir $workdir
+  copybara test.copybara
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   expect_in_file "second version for drink and barooooo" $workdir/test.txt
@@ -244,8 +244,6 @@ EOF
 
 function test_local_dir_destination() {
   remote=$(temp_dir remote)
-  repo_storage=$(temp_dir storage)
-  workdir=$(temp_dir workdir)
 
   ( cd $remote
     run_git init .
@@ -273,8 +271,7 @@ EOF
   touch destination/folder/keepme.keep
   touch destination/dontkeep.txt
 
-  copybara destination/test.copybara --git-repo-storage "$repo_storage" \
-    --work-dir $workdir --folder-dir destination
+  copybara destination/test.copybara --folder-dir destination
 
   [[ -f destination/test.txt ]] || fail "test.txt should exist"
   [[ -f destination/test.copybara ]] || fail "test.copybara should exist"
@@ -285,8 +282,6 @@ EOF
 
 function test_choose_non_default_workflow() {
   remote=$(temp_dir remote)
-  repo_storage=$(temp_dir storage)
-  workdir=$(temp_dir workdir)
 
   ( cd $remote
     run_git init .
