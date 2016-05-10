@@ -72,6 +72,7 @@ public class ConfigTest {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("No workflow with this name exists: default");
     yaml.setWorkflows(ImmutableList.of(workflow("foo")));
+    yaml.setName("ConfigTest");
     yaml.withOptions(new OptionsBuilder().build());
   }
 
@@ -88,5 +89,13 @@ public class ConfigTest {
     Config config = yaml.withOptions(options.build());
     assertThat(config.getActiveWorkflow().getDestination())
         .isSameAs(destination);
+  }
+
+  @Test
+  public void requireProjectName() throws Exception {
+    yaml.setWorkflows(ImmutableList.of(workflow("default")));
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'name'");
+    yaml.withOptions(new OptionsBuilder().build());
   }
 }

@@ -168,6 +168,7 @@ public class YamlParserTest {
   @Test
   public void requireAtLeastOneWorkflow() throws ConfigValidationException {
     Config.Yaml yaml = new Config.Yaml();
+    yaml.setName("YamlParserTest");
 
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("At least one element in 'workflows' is required.");

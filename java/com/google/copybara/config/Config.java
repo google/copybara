@@ -93,9 +93,11 @@ public final class Config {
     }
 
     public Config withOptions(Options options) throws ConfigValidationException {
+      ConfigValidationException.checkNotMissing(name, "name");
       if (workflows.isEmpty()) {
         throw new ConfigValidationException("At least one element in 'workflows' is required.");
       }
+
       String workflowName = options.get(WorkflowNameOptions.class).get();
       Workflow.Yaml workflow = workflows.get(workflowName);
       if (workflow == null) {
