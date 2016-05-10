@@ -17,6 +17,7 @@ import com.google.copybara.transform.Transformation;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Configuration for a Copybara project.
@@ -24,6 +25,9 @@ import java.util.List;
  * <p> Object of this class represents a parsed Copybara configuration.
  */
 public final class Config {
+
+  private static final String NAME_REGEX = "[-_0-9a-zA-Z]+";
+  private static final Pattern NAME_PATTERN = Pattern.compile(NAME_REGEX);
 
   private final String name;
   private final Workflow activeWorkflow;
@@ -67,7 +71,11 @@ public final class Config {
     private ImmutableMap<String, Workflow.Yaml> workflows = ImmutableMap.of();
 
     @DocField(description = "Name of the project", required = true)
-    public void setName(String name) {
+    public void setName(String name) throws ConfigValidationException {
+      if (!NAME_PATTERN.matcher(name).matches()) {
+        throw new ConfigValidationException(
+            String.format("name '%s' does not match regex %s", name, NAME_REGEX));
+      }
       this.name = name;
     }
 

@@ -98,4 +98,19 @@ public class ConfigTest {
     thrown.expectMessage("missing required field 'name'");
     yaml.withOptions(new OptionsBuilder().build());
   }
+
+  @Test
+  public void projectNameContainsInvalidChar() throws Exception {
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("does not match regex [-_0-9a-zA-Z]+");
+    yaml.setName("foo+bar");
+  }
+
+  @Test
+  public void projectNameCanHaveUnderscoreDashOrAlphanumericChars() throws Exception {
+    yaml.setName("foo_BAR-09");
+    yaml.setWorkflows(ImmutableList.of(workflow("default")));
+    Config config = yaml.withOptions(new OptionsBuilder().build());
+    assertThat(config.getName()).isEqualTo("foo_BAR-09");
+  }
 }
