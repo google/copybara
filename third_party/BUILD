@@ -41,6 +41,13 @@ java_library(
 )
 
 java_library(
+    name = "jodatime",
+    exports = [
+        "@jodatime//jar",
+    ],
+)
+
+java_library(
     name = "junit4",
     testonly = 1,
     exports = [

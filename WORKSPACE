@@ -49,6 +49,13 @@ maven_jar(
     sha1 = "f7be08ec23c21485b9b5a1cf1654c2ec8c58168d",
 )
 
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "jodatime",
+    artifact = "joda-time:joda-time:2.9.3",
+    sha1 = "9e46be514a4ed60bcfbaaba88a3c668cf30476ab",
+)
+
 new_http_archive(
     name = "cram",
     build_file = "BUILD.cram",

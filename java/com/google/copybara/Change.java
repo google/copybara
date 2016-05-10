@@ -2,6 +2,9 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
+import com.google.copybara.git.GitOrigin;
+
+import org.joda.time.DateTime;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -15,9 +18,9 @@ public final class Change<T extends Origin<T>> {
   private final Reference<T> reference;
   private final String author;
   private final String message;
-  private final long date;
+  private final DateTime date;
 
-  public Change(Reference<T> reference, String author, String message, long date) {
+  public Change(Reference<T> reference, String author, String message, DateTime date) {
     this.reference = Preconditions.checkNotNull(reference);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
@@ -39,16 +42,15 @@ public final class Change<T extends Origin<T>> {
     return message;
   }
 
-  public long getDate() {
+  public DateTime getDate() {
     return date;
   }
 
   @Override
   public String toString() {
-    DateFormat format = SimpleDateFormat.getDateTimeInstance();
     return "Reference: " + reference.asString()
         + "\nAuthor: " + author
-        + "\nDate: " + format.format(new Date(date))
+        + "\nDate: " + date
         + "\n" + message;
   }
 }

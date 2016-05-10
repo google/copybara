@@ -2,10 +2,10 @@ package com.google.copybara.git;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.PercentEscaper;
-import com.google.copybara.CannotComputeChangesException;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -16,8 +16,15 @@ import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -29,6 +36,10 @@ public final class GitOrigin implements Origin<GitOrigin> {
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
 
+  private static final DateTimeFormatter dateFormatter = DateTimeFormat.forPattern(
+      "yyyy-MM-dd'T'HH:mm:ssZ");
+
+  private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
   private final GitRepository repository;
 
   /**
@@ -71,6 +82,13 @@ public final class GitOrigin implements Origin<GitOrigin> {
       ref = reference;
     }
     console.progress("Git Origin: Fetching from " + repoUrl);
+    Matcher sha1Matcher = SHA1_PATTERN.matcher(ref);
+    if (sha1Matcher.matches()) {
+      // TODO(malcon): For now we get the default refspec, but we should make this
+      // configurable. Otherwise it is not going to work with Gerrit.
+      repository.simpleCommand("fetch", "-f", repoUrl);
+      return new GitReference(repository.revParse(ref));
+    }
     repository.simpleCommand("fetch", "-f", repoUrl, ref);
     return new GitReference(repository.revParse("FETCH_HEAD"));
   }
@@ -78,7 +96,51 @@ public final class GitOrigin implements Origin<GitOrigin> {
   @Override
   public ImmutableList<Change<GitOrigin>> changes(@Nullable Reference<GitOrigin> fromRef,
       Reference<GitOrigin> toRef) throws RepoException {
-    throw new CannotComputeChangesException("not supported");
+
+    String log;
+    if (fromRef == null) {
+      log = repository.simpleCommand("log", "--date=iso-strict", "--first-parent", toRef.asString())
+          .getStdout();
+    } else {
+      log = repository.simpleCommand("log", "--date=iso-strict", "--first-parent",
+          fromRef.asString() + ".." + toRef.asString()).getStdout();
+    }
+    Iterator<String> rawLines = Splitter.on("\n").split(log).iterator();
+    ImmutableList.Builder<Change<GitOrigin>> builder = ImmutableList.builder();
+
+    while (rawLines.hasNext()) {
+      String rawCommit = rawLines.next();
+      String commit = removePrefix(log, rawCommit, "commit ");
+      String line = rawLines.next();
+      String author = null;
+      DateTime date = null;
+      while (!line.equals("")) {
+        if (line.startsWith("Author: ")) {
+          author = line.substring("Author: ".length()).trim();
+        } else if (line.startsWith("Date: ")) {
+          date = dateFormatter.parseDateTime(line.substring("Date: ".length()).trim());
+        }
+        line = rawLines.next();
+      }
+      Preconditions.checkState(author != null || date != null,
+          "Could not find author and/or date for commit %s in log\n:%s", rawCommit, log);
+      StringBuilder message = new StringBuilder();
+      while (rawLines.hasNext()) {
+        String s = rawLines.next();
+        if (!s.startsWith("    ")) {
+          break;
+        }
+        message.append(s.substring(4)).append("\n");
+      }
+      builder.add(new Change<>(new GitReference(commit), author, message.toString(), date));
+    }
+    // Return older commit first. This operation is O(1)
+    return builder.build().reverse();
+  }
+
+  private String removePrefix(String log, String line, String prefix) {
+    Preconditions.checkState(line.startsWith(prefix), "Cannot find '%s' in:\n%s", prefix, log);
+    return line.substring(prefix.length()).trim();
   }
 
   @Override

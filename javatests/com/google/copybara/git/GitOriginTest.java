@@ -3,10 +3,13 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.copybara.Change;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
 
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,6 +27,7 @@ public class GitOriginTest {
   private GitOrigin origin;
   private Path remote;
   private OptionsBuilder options;
+  private String firstCommitRef;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -45,14 +49,17 @@ public class GitOriginTest {
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
     git("add", "test.txt");
     git("commit", "-m", "first file");
+    String head = git("rev-parse", "HEAD");
+    // Remove new line
+    firstCommitRef = head.substring(0, head.length() -1);
   }
 
   private Path workdir() {
     return options.general.getWorkdir();
   }
 
-  private void git(String... params) throws RepoException {
-    origin.getRepository().git(remote, params);
+  private String git(String... params) throws RepoException {
+    return origin.getRepository().git(remote, params).getStdout();
   }
 
   @Test
@@ -96,6 +103,75 @@ public class GitOriginTest {
     // The deletion in the workdir should not matter, since we should override in the next
     // checkout
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+  }
+
+  @Test
+  public void testCheckoutOfARef() throws IOException, RepoException {
+    Reference<GitOrigin> reference = origin.resolve(firstCommitRef);
+    reference.checkout(workdir());
+    Path testFile = workdir().resolve("test.txt");
+
+    assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+  }
+
+  @Test
+  public void testChanges() throws IOException, RepoException {
+    // Need to "round" it since git doesn't store the milliseconds
+    DateTime beforeTime = DateTime.now().minusSeconds(1);
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "change2", "test.txt", "some content2");
+    singleFileCommit(author, "change3", "test.txt", "some content3");
+    singleFileCommit(author, "change4", "test.txt", "some content4");
+
+    ImmutableList<Change<GitOrigin>> changes = origin
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
+
+    assertThat(changes).hasSize(3);
+    assertThat(changes.get(0).getMessage()).isEqualTo("change2\n");
+    assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
+    assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
+    for (Change<GitOrigin> change : changes) {
+      assertThat(change.getAuthor()).isEqualTo(author);
+      assertThat(change.getDate()).isAtLeast(beforeTime);
+      assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
+    }
+  }
+
+  private void singleFileCommit(String author, String commitMessage, String fileName,
+      String fileContent) throws IOException, RepoException {
+    Files.write(remote.resolve(fileName), fileContent.getBytes());
+    git("add", fileName);
+    git("commit", "-m", commitMessage, "--author=" + author);
+  }
+
+  @Test
+  public void testChangesMerge() throws IOException, RepoException {
+    // Need to "round" it since git doesn't store the milliseconds
+    DateTime beforeTime = DateTime.now().minusSeconds(1);
+    git("branch", "feature");
+    git("checkout", "feature");
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "change2", "test2.txt", "some content2");
+    singleFileCommit(author, "change3", "test2.txt", "some content3");
+    git("checkout", "master");
+    singleFileCommit(author, "master1", "test.txt", "some content2");
+    singleFileCommit(author, "master2", "test.txt", "some content3");
+    git("merge", "master", "feature");
+    // Change merge author
+    git("commit", "--amend", "--author=" + author, "--no-edit");
+
+    ImmutableList<Change<GitOrigin>> changes = origin
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
+
+    assertThat(changes).hasSize(3);
+    assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
+    assertThat(changes.get(1).getMessage()).isEqualTo("master2\n");
+    assertThat(changes.get(2).getMessage()).isEqualTo("Merge branch 'feature'\n");
+    for (Change<GitOrigin> change : changes) {
+      assertThat(change.getAuthor()).isEqualTo(author);
+      assertThat(change.getDate()).isAtLeast(beforeTime);
+      assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
+    }
   }
 
   @Test
