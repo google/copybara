@@ -9,6 +9,7 @@ import com.google.copybara.Destination;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Workflow;
+import com.google.copybara.WorkflowNameOptions;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.doc.annotations.DocField;
@@ -95,8 +96,7 @@ public final class Config {
       if (workflows.isEmpty()) {
         throw new ConfigValidationException("At least one element in 'workflows' is required.");
       }
-      // TODO(matvore): Add a flag to make this configurable.
-      String workflowName = "default";
+      String workflowName = options.get(WorkflowNameOptions.class).get();
       Workflow.Yaml workflow = workflows.get(workflowName);
       if (workflow == null) {
         throw new ConfigValidationException("No workflow with this name exists: " + workflowName);

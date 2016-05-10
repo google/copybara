@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.WorkflowNameOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.localdir.LocalDestinationOptions;
@@ -25,6 +26,7 @@ public final class OptionsBuilder {
       new LocalDestinationOptions();
   public GitOptions git = new GitOptions();
   public GerritOptions gerrit = new GerritOptions();
+  public WorkflowNameOptions workflowName = new WorkflowNameOptions("default");
 
   public OptionsBuilder setWorkdirToRealTempDir() throws IOException {
     general = new GeneralOptions(Files.createTempDirectory("OptionsBuilder"), /*verbose=*/true,
@@ -33,6 +35,6 @@ public final class OptionsBuilder {
   }
 
   public Options build() {
-    return new Options(ImmutableList.of(general, localDestination, git, gerrit));
+    return new Options(ImmutableList.of(general, localDestination, git, gerrit, workflowName));
   }
 }

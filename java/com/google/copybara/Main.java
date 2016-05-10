@@ -22,9 +22,7 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 
 import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
-import com.beust.jcommander.Parameters;
 
 import org.yaml.snakeyaml.TypeDescription;
 
@@ -48,16 +46,6 @@ import java.util.logging.Logger;
 public class Main {
 
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
-
-  @Parameters(separators = "=")
-  private static final class Arguments {
-
-    @Parameter(description = "CONFIG_PATH [SOURCE_REF]")
-    List<String> unnamed = new ArrayList<>();
-
-    @Parameter(names = "--help", help = true, description = "Shows this help text")
-    boolean help;
-  }
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
 
@@ -83,7 +71,7 @@ public class Main {
   }
 
   protected void run(String[] args) {
-    Arguments mainArgs = new Arguments();
+    MainArguments mainArgs = new MainArguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
     List<Option> options = new ArrayList<>(getAllOptions());
     JCommander jcommander = new JCommander(ImmutableList.builder()
@@ -105,19 +93,15 @@ public class Main {
 
       if (mainArgs.help) {
         System.out.print(usage(jcommander));
-      } else if (mainArgs.unnamed.size() < 1) {
-        throw new CommandLineException("Expected at least a configuration file.");
-      } else if (mainArgs.unnamed.size() > 2) {
-        throw new CommandLineException("Expect at most two arguments.");
-      } else {
-        options.add(generalOptions);
-        String configPath = mainArgs.unnamed.get(0);
-        String sourceRef = mainArgs.unnamed.size() > 1 ? mainArgs.unnamed.get(1) : null;
-        Config config = loadConfig(fs.getPath(configPath), new Options(options));
-        Path workdir = generalOptions.getWorkdir();
-        new Copybara(workdir)
-            .runForSourceRef(config, sourceRef);
+        return;
       }
+      mainArgs.validateUnnamedArgs();
+      options.add(generalOptions);
+      options.add(new WorkflowNameOptions(mainArgs.getWorkflowName()));
+      Config config = loadConfig(fs.getPath(mainArgs.getConfigPath()), new Options(options));
+      Path workdir = generalOptions.getWorkdir();
+      new Copybara(workdir)
+          .runForSourceRef(config, mainArgs.getSourceRef());
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
       System.err.print(usage(jcommander));

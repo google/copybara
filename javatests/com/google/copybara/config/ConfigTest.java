@@ -1,10 +1,13 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.config;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Destination;
 import com.google.copybara.Workflow;
+import com.google.copybara.WorkflowNameOptions;
 import com.google.copybara.config.Config.Yaml;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
@@ -33,12 +36,16 @@ public class ConfigTest {
   }
 
   private Workflow.Yaml workflow(String name) {
+    return workflow(name, new RecordsProcessCallDestination());
+  }
+
+  private Workflow.Yaml workflow(String name, Destination.Yaml destination) {
     Workflow.Yaml yaml = new Workflow.Yaml();
     if (name != null) {
       yaml.setName(name);
     }
     yaml.setOrigin(new DummyOrigin());
-    yaml.setDestination(new RecordsProcessCallDestination());
+    yaml.setDestination(destination);
     return yaml;
   }
 
@@ -66,5 +73,20 @@ public class ConfigTest {
     thrown.expectMessage("No workflow with this name exists: default");
     yaml.setWorkflows(ImmutableList.of(workflow("foo")));
     yaml.withOptions(new OptionsBuilder().build());
+  }
+
+  @Test
+  public void chooseWorkflowByName() throws Exception {
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    Workflow.Yaml chosen = workflow("chosen", destination);
+
+    OptionsBuilder options = new OptionsBuilder();
+    options.workflowName = new WorkflowNameOptions("chosen");
+
+    yaml.setName("ConfigTest");
+    yaml.setWorkflows(ImmutableList.of(workflow("default"), chosen, workflow("other")));
+    Config config = yaml.withOptions(options.build());
+    assertThat(config.getActiveWorkflow().getDestination())
+        .isSameAs(destination);
   }
 }

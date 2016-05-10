@@ -283,6 +283,42 @@ EOF
   [[ ! -f destination/dontkeep.txt ]] || fail "dontkeep.txt should be deleted"
 }
 
+function test_choose_non_default_workflow() {
+  remote=$(temp_dir remote)
+  repo_storage=$(temp_dir storage)
+  workdir=$(temp_dir workdir)
+
+  ( cd $remote
+    run_git init .
+    echo "foo" > test.txt
+    run_git add test.txt
+    run_git commit -m "first commit"
+  )
+  mkdir destination
+
+  cat > destination/test.copybara <<EOF
+name: "cbtest"
+workflows:
+  - name: "default"
+    origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !FolderDestination {}
+  - name: "choochoochoose_me"
+    origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !FolderDestination {}
+    transformations:
+      - !Replace
+        before: foo
+        after: bar
+EOF
+
+  copybara destination/test.copybara choochoochoose_me --folder-dir destination
+  expect_in_file "bar" destination/test.txt
+}
+
 function test_invalid_transformations_in_config() {
   cat > test.copybara <<EOF
 name: "cbtest-invalid-xform"
@@ -302,13 +338,13 @@ function test_command_help_flag() {
 function test_command_too_few_args() {
   copybara && fail "Should fail"
   expect_log 'Expected at least a configuration file.'
-  expect_log 'Usage: copybara \[options\] CONFIG_PATH \[SOURCE_REF\]'
+  expect_log 'Usage: copybara \[options\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
 }
 
 function test_command_too_many_args() {
-  copybara config origin/master unexpected && fail "Should fail"
-  expect_log "Expect at most two arguments."
-  expect_log 'Usage: copybara \[options\] CONFIG_PATH \[SOURCE_REF\]'
+  copybara config workflow_name origin/master unexpected && fail "Should fail"
+  expect_log "Expect at most three arguments."
+  expect_log 'Usage: copybara \[options\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
 }
 
 function test_config_not_found() {
