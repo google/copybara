@@ -41,9 +41,9 @@ java_library(
 )
 
 java_library(
-    name = "jodatime",
+    name = "joda_time",
     exports = [
-        "@jodatime//jar",
+        "@joda_time//jar",
     ],
 )
 

@@ -51,7 +51,7 @@ maven_jar(
 
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
-    name = "jodatime",
+    name = "joda_time",
     artifact = "joda-time:joda-time:2.9.3",
     sha1 = "9e46be514a4ed60bcfbaaba88a3c668cf30476ab",
 )
