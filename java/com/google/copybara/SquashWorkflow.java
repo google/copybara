@@ -25,7 +25,7 @@ public class SquashWorkflow extends Workflow {
   }
 
   @Override
-  void run(Path workdir, @Nullable String sourceRef)
+  public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException {
     console.progress("Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
     Reference<?> resolvedRef = getOrigin().resolve(sourceRef);

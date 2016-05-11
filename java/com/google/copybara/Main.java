@@ -100,8 +100,7 @@ public class Main {
       options.add(new WorkflowNameOptions(mainArgs.getWorkflowName()));
       Config config = loadConfig(fs.getPath(mainArgs.getConfigPath()), new Options(options));
       Path workdir = generalOptions.getWorkdir();
-      new Copybara(workdir)
-          .runForSourceRef(config, mainArgs.getSourceRef());
+      config.getActiveWorkflow().run(workdir, mainArgs.getSourceRef());
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
       System.err.print(usage(jcommander));

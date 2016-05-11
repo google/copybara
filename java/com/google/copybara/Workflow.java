@@ -67,7 +67,7 @@ public abstract class Workflow {
     return transformations;
   }
 
-  abstract void run(Path workdir, @Nullable String sourceRef)
+  public abstract void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException;
 
   void runTransformations(Path workdir) throws RepoException {
