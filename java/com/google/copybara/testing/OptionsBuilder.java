@@ -4,6 +4,7 @@ package com.google.copybara.testing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.Option;
 import com.google.copybara.Options;
 import com.google.copybara.WorkflowNameOptions;
 import com.google.copybara.git.GerritOptions;
@@ -13,11 +14,13 @@ import com.google.copybara.util.console.LogConsole;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Allows building complete and sane {@link Options} instances succinctly.
  */
-public final class OptionsBuilder {
+public class OptionsBuilder {
 
   public GeneralOptions general =
       new GeneralOptions(Jimfs.newFileSystem().getPath("/"), /*verbose=*/true, /*lastRevision=*/
@@ -28,13 +31,21 @@ public final class OptionsBuilder {
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowNameOptions workflowName = new WorkflowNameOptions("default");
 
-  public OptionsBuilder setWorkdirToRealTempDir() throws IOException {
+  public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
     general = new GeneralOptions(Files.createTempDirectory("OptionsBuilder"), /*verbose=*/true,
         /*lastRevision=*/null, new LogConsole(System.out));
     return this;
   }
 
-  public Options build() {
-    return new Options(ImmutableList.of(general, localDestination, git, gerrit, workflowName));
+  /**
+   * Returns all options to include in the built {@link Options} instance. This can be overridden by
+   * child classes, in which case it should also include the superclass' instances.
+   */
+  protected Iterable<Option> allOptions() {
+    return ImmutableList.of(general, localDestination, git, gerrit, workflowName);
+  }
+
+  public final Options build() {
+    return new Options(ImmutableList.copyOf(allOptions()));
   }
 }
