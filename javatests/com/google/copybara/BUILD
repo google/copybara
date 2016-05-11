@@ -29,6 +29,7 @@ all_tests(
      "//third_party:guava",
      "//third_party:jcommander",
      "//third_party:jsr305",
+     "//third_party:joda_time",
      "//third_party:junit4",
      "//third_party:shell",
      "//third_party:truth",
