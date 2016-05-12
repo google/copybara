@@ -105,7 +105,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
       log = repository.simpleCommand("log", "--date=iso-strict", "--first-parent",
           fromRef.asString() + ".." + toRef.asString()).getStdout();
     }
-    Iterator<String> rawLines = Splitter.on("\n").split(log).iterator();
+    Iterator<String> rawLines = Splitter.on('\n').split(log).iterator();
     ImmutableList.Builder<Change<GitOrigin>> builder = ImmutableList.builder();
 
     while (rawLines.hasNext()) {
@@ -114,7 +114,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
       String line = rawLines.next();
       String author = null;
       DateTime date = null;
-      while (!line.equals("")) {
+      while (!line.isEmpty()) {
         if (line.startsWith("Author: ")) {
           author = line.substring("Author: ".length()).trim();
         } else if (line.startsWith("Date: ")) {
@@ -130,7 +130,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
         if (!s.startsWith("    ")) {
           break;
         }
-        message.append(s.substring(4)).append("\n");
+        message.append(s, 4, s.length()).append("\n");
       }
       builder.add(new Change<>(new GitReference(commit), author, message.toString(), date));
     }
