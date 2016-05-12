@@ -1,5 +1,6 @@
 package com.google.copybara.localdir;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.copybara.Option;
 
 import com.beust.jcommander.Parameter;
@@ -13,5 +14,6 @@ public final class LocalDestinationOptions implements Option {
 
   @Parameter(names = "--folder-dir",
       description = "Local directory to put the output of the transformation")
-  String localFolder = null;
+  @VisibleForTesting
+  public String localFolder = null;
 }
