@@ -8,7 +8,7 @@ import com.google.common.hash.Hashing;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.Origin;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocElement;
 
@@ -40,12 +40,12 @@ public final class GerritDestination implements Destination {
      * values of the git variables {@code GIT_AUTHOR_IDENT} and {@code GIT_COMMITTER_IDENT}.
      */
     @Override
-    public String message(String commitMsg, GitRepository repo, String originRef)
+    public String message(String commitMsg, GitRepository repo, Reference<?> originRef)
         throws RepoException {
       return String.format("%s\n%s: %s\nChange-Id: %s\n",
           commitMsg,
-          Origin.COMMIT_ORIGIN_REFERENCE_FIELD,
-          originRef,
+          originRef.getLabelName(),
+          originRef.asString(),
           changeId(repo)
       );
     }
@@ -80,14 +80,14 @@ public final class GerritDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, String originRef, long timestamp,
+  public void process(Path workdir, Reference<?> originRef, long timestamp,
       String changesSummary) throws RepoException {
     gitDestination.process(workdir, originRef, timestamp, changesSummary);
   }
 
   @Nullable
   @Override
-  public String getPreviousRef() throws RepoException {
+  public String getPreviousRef(String labelName) throws RepoException {
     // This doesn't make sense for Gerrit since we do not plan to use previous ref for
     // pull requests.
     return null;

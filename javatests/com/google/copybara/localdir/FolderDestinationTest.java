@@ -7,6 +7,7 @@ import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.localdir.FolderDestination.Yaml;
+import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
 
 import org.junit.Before;
@@ -60,7 +61,8 @@ public class FolderDestinationTest {
     options.localDestination.localFolder = localFolder.toString();
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
     Destination destination = yaml.withOptions(options.build(), CONFIG_NAME);
-    destination.process(workdir(), "origin_ref", /*timestamp=*/424242420, "Not relevant");
+    destination.process(workdir(), new MockReference("origin_ref"),
+        /*timestamp=*/424242420, "Not relevant");
     assertFilesExist(localFolder, "one", "two", "root_file",
         "one/file.java", "two/file.java", "test.txt", "dir/file.txt");
     assertFilesDontExist(localFolder, "root_file2", "one/file.txt");

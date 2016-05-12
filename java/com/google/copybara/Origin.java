@@ -12,11 +12,6 @@ import javax.annotation.Nullable;
  */
 public interface Origin<O extends Origin<O>> {
 
-  /**
-   * Field name used in commits messages to refer to the origin revision imported.
-   */
-  String COMMIT_ORIGIN_REFERENCE_FIELD = "Copybara-RevId";
-
   interface Yaml<O extends Origin<O>> {
 
     Origin<O> withOptions(Options options) throws ConfigValidationException;
@@ -28,6 +23,7 @@ public interface Origin<O extends Origin<O>> {
    * @param <O> the origin type of the reference
    */
   interface Reference<O extends Origin<O>> {
+
     /**
      * Reads the timestamp of this reference from the repository, or {@code null} if this repo type
      * does not support it. This is the number of seconds from the UNIX epoch when the reference was
@@ -37,19 +33,32 @@ public interface Origin<O extends Origin<O>> {
     Long readTimestamp() throws RepoException;
 
     /**
-     * Checks out the reference from the repository into {@code workdir} directory.
-     *
-     * @throws RepoException if any error happens during the checkout or workdir preparation.
-     */
-    void checkout(Path workdir) throws RepoException;
-
-    /**
      * String representation of the reference that can be parsed by {@link Origin#resolve(String)}.
      *
      * <p> Unlike {@link #toString()} method, this method is guaranteed to be stable.
      */
     String asString();
 
+    /**
+     * Label name to be used in when creating a commit message in the destination to refer to a
+     * reference. For example "Git-RevId".
+     */
+    String getLabelName();
+  }
+
+  /**
+   * A reference of origin that allows checkouts.
+   *
+   * @param <O> the origin type of the reference
+   */
+  interface ReferenceFiles<O extends Origin<O>> extends Reference<O> {
+
+    /**
+     * Checks out the reference from the repository into {@code workdir} directory.
+     *
+     * @throws RepoException if any error happens during the checkout or workdir preparation.
+     */
+    void checkout(Path workdir) throws RepoException;
   }
 
   /**
@@ -59,7 +68,7 @@ public interface Origin<O extends Origin<O>> {
    * Origin.
    * @throws RepoException if any error happens during the resolve.
    */
-  Reference<O> resolve(@Nullable String reference) throws RepoException;
+  ReferenceFiles<O> resolve(@Nullable String reference) throws RepoException;
 
   /**
    * Returns the changes that happen in the interval (fromRef, toRef].
@@ -72,4 +81,10 @@ public interface Origin<O extends Origin<O>> {
    */
   ImmutableList<Change<O>> changes(@Nullable Reference<O> fromRef, Reference<O> toRef)
       throws RepoException;
+
+  /**
+   * Label name to be used in when creating a commit message in the destination to refer to a
+   * reference. For example "Git-RevId".
+   */
+  String getLabelName();
 }

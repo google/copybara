@@ -4,6 +4,7 @@ licenses(["unencumbered"])  # Owned by Google. No external contributions
 
 java_library(
     name = "testing",
+    testonly = 1,
     srcs = glob(["**/*.java"]),
     deps = [
         "//java/com/google/copybara:copybara_lib",

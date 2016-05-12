@@ -22,18 +22,18 @@ import javax.annotation.Nullable;
  * Represents a particular migration operation that can occur for a project. Each project can have
  * multiple workflows. Each workflow has a particular origin and destination.
  */
-public abstract class Workflow {
+public abstract class Workflow<T extends Origin<T>> {
 
   protected final Logger logger = Logger.getLogger(this.getClass().getName());
 
   private final String name;
-  private final Origin<?> origin;
+  private final Origin<T> origin;
   private final Destination destination;
   private final List<Transformation> transformations;
   protected final Console console;
 
   Workflow(String name,
-      Origin<?> origin, Destination destination, ImmutableList<Transformation> transformations,
+      Origin<T> origin, Destination destination, ImmutableList<Transformation> transformations,
       Console console) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
@@ -49,7 +49,7 @@ public abstract class Workflow {
   /**
    * The repository that represents the source of truth
    */
-  public Origin<?> getOrigin() {
+  public Origin<T> getOrigin() {
     return origin;
   }
 
@@ -107,6 +107,7 @@ public abstract class Workflow {
     private Origin.Yaml<?> origin;
     private Destination.Yaml destination;
     private WorkflowMode mode = WorkflowMode.SQUASH;
+    private boolean includeChangeListNotes = false;
     private ImmutableList<Transformation.Yaml> transformations = ImmutableList.of();
 
     public String getName() {
@@ -136,6 +137,12 @@ public abstract class Workflow {
       this.transformations = ImmutableList.copyOf(transformations);
     }
 
+    @DocField(description = "Include a list of change list messages that were imported",
+        required = false, defaultValue = "false")
+    public void setIncludeChangeListNotes(boolean includeChangeListNotes) {
+      this.includeChangeListNotes = includeChangeListNotes;
+    }
+
     @DocField(description = "Import/export mode of the changes. For example if the changes should be imported by squashing all the pending changes or imported individually",
         required = false, defaultValue = "SQUASH")
     public void setMode(WorkflowMode mode) {
@@ -149,12 +156,15 @@ public abstract class Workflow {
       }
       switch (mode) {
         case SQUASH:
-          return new SquashWorkflow(configName,
+          GeneralOptions generalOptions = options.get(GeneralOptions.class);
+          return new SquashWorkflow<>(configName,
               name,
               origin.withOptions(options),
               destination.withOptions(options, configName),
               transformations.build(),
-              options.get(GeneralOptions.class).console()
+              generalOptions.console(),
+              generalOptions.getLastRevision(),
+              includeChangeListNotes
           );
         default:
           throw new UnsupportedOperationException(mode + " still not implemented");

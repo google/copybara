@@ -6,9 +6,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Change;
 import com.google.copybara.Destination;
-import com.google.copybara.Option;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.Workflow;
 import com.google.copybara.testing.OptionsBuilder;
@@ -195,7 +195,7 @@ public class YamlParserTest {
     }
 
     @Override
-    public Reference<MockOrigin> resolve(@Nullable String reference) throws RepoException {
+    public ReferenceFiles<MockOrigin> resolve(@Nullable String reference) throws RepoException {
       throw new UnsupportedOperationException();
     }
 
@@ -203,6 +203,11 @@ public class YamlParserTest {
     public ImmutableList<Change<MockOrigin>> changes(@Nullable Reference<MockOrigin> fromRef,
         Reference<MockOrigin> toRef) throws RepoException {
       throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String getLabelName() {
+      return "Mock-RevId";
     }
   }
 
@@ -224,14 +229,14 @@ public class YamlParserTest {
     }
 
     @Override
-    public void process(Path workdir, String originRef, long timestamp, String changesSummary)
-        throws RepoException, IOException {
+    public void process(Path workdir, Reference<?> originRef, long timestamp,
+        String changesSummary) throws RepoException, IOException {
       throw new UnsupportedOperationException();
     }
 
     @Nullable
     @Override
-    public String getPreviousRef() throws RepoException {
+    public String getPreviousRef(String labelName) throws RepoException {
       throw new UnsupportedOperationException();
     }
   }

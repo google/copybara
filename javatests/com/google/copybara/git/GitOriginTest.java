@@ -5,7 +5,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Change;
-import com.google.copybara.Origin.Reference;
+import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
 
@@ -90,7 +90,7 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutWithLocalModifications() throws IOException, RepoException {
-    Reference<GitOrigin> master = origin.resolve("master");
+    ReferenceFiles<GitOrigin> master = origin.resolve("master");
     master.checkout(workdir());
     Path testFile = workdir().resolve("test.txt");
 
@@ -107,7 +107,7 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutOfARef() throws IOException, RepoException {
-    Reference<GitOrigin> reference = origin.resolve(firstCommitRef);
+    ReferenceFiles<GitOrigin> reference = origin.resolve(firstCommitRef);
     reference.checkout(workdir());
     Path testFile = workdir().resolve("test.txt");
 
@@ -135,6 +135,14 @@ public class GitOriginTest {
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
     }
+  }
+
+  @Test
+  public void testNoChanges() throws IOException, RepoException {
+    ImmutableList<Change<GitOrigin>> changes = origin
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
+
+    assertThat(changes).isEmpty();
   }
 
   private void singleFileCommit(String author, String commitMessage, String fileName,
@@ -179,7 +187,7 @@ public class GitOriginTest {
     Files.write(remote.resolve("test2.txt"), "some more content".getBytes());
     git("add", "test2.txt");
     git("commit", "-m", "second file", "--date=1400110011");
-    Reference<GitOrigin> master = origin.resolve("master");
+    ReferenceFiles<GitOrigin> master = origin.resolve("master");
     assertThat(master.readTimestamp()).isEqualTo(1400110011L);
   }
 }

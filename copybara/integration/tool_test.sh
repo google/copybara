@@ -58,7 +58,7 @@ function check_copybara_rev_id() {
    local origin_id="$2"
    ( cd $repo
      run_git log master -1 > $TEST_log
-     expect_log "Copybara-RevId: $origin_id"
+     expect_log "GitOrigin-RevId: $origin_id"
    )
 }
 
@@ -76,7 +76,7 @@ function test_git_tracking() {
   first_commit=$(run_git rev-parse HEAD)
   popd
 
-  cat > test.copybara <<EOF
+    cat > test.copybara <<EOF
 name: "cbtest"
 workflows:
   - origin: !GitOrigin
@@ -96,6 +96,7 @@ workflows:
         regexGroups:
           os: "o+"
 EOF
+
   copybara test.copybara
 
   expect_log "Running Copybara for config 'cbtest', workflow 'default' (SQUASH).*repoUrl=file://$remote"
@@ -136,6 +137,82 @@ EOF
 
   expect_log "-first version for drink"
   expect_log "+second version for drink and barooooo"
+}
+
+function single_file_commit() {
+  message=$1
+  file=$2
+  content=$3
+  echo $content > $file
+  run_git add $file
+  run_git commit -m "$message"
+  git rev-parse HEAD
+}
+
+function test_get_git_changes() {
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  pushd $remote
+  run_git init .
+  commit_one=$(single_file_commit "commit one" file.txt "food fooooo content1")
+  commit_two=$(single_file_commit "commit two" file.txt "food fooooo content2")
+  commit_three=$(single_file_commit "commit three" file.txt "food fooooo content3")
+  commit_four=$(single_file_commit "commit four" file.txt "food fooooo content4")
+  commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
+  popd
+
+    cat > test.copybara <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      pullFromRef: "master"
+      pushToRef: "master"
+    includeChangeListNotes: true
+EOF
+
+  copybara test.copybara default $commit_one
+
+  check_copybara_rev_id "$destination" "$commit_one"
+
+  ( cd $destination
+    run_git log master~1..master > $TEST_log
+  )
+  # We only record changes when we know the previous version
+  expect_not_log "commit one"
+
+  copybara test.copybara default $commit_four
+
+  check_copybara_rev_id "$destination" "$commit_four"
+
+  ( cd $destination
+    run_git log master~1..master > $TEST_log
+  )
+  # "commit one" should not be included because it was migrated before
+  expect_not_log "commit one"
+  expect_log "$commit_two.*commit two"
+  expect_log "$commit_three.*commit three"
+  expect_log "$commit_four.*commit four"
+  expect_not_log "commit five"
+
+  copybara test.copybara default $commit_five --last-rev $commit_three
+
+  check_copybara_rev_id "$destination" "$commit_five"
+
+  ( cd $destination
+    run_git log master~1..master > $TEST_log
+  )
+  # We are forcing to use commit_three as the last migration. This has
+  # no effect in squash workflow but it changes the release notes.
+  expect_not_log "commit one"
+  expect_not_log "commit two"
+  expect_not_log "commit three"
+  expect_log "$commit_four.*commit four"
+  expect_log "$commit_five.*commit five"
 }
 
 function empty_git_bare_repo() {

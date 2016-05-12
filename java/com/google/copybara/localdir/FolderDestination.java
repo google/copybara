@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -48,7 +49,7 @@ public class FolderDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, String originRef, long timestamp, String changesSummary)
+  public void process(Path workdir, Reference<?> originRef, long timestamp, String changesSummary)
       throws RepoException, IOException {
     console.progress("FolderDestination: creating " + localFolder);
     try {
@@ -77,7 +78,7 @@ public class FolderDestination implements Destination {
 
   @Nullable
   @Override
-  public String getPreviousRef() {
+  public String getPreviousRef(String labelName) {
     // Not supported
     return null;
   }

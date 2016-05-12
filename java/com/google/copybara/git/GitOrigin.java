@@ -66,9 +66,8 @@ public final class GitOrigin implements Origin<GitOrigin> {
     return repository;
   }
 
-  // TODO(malcon): Refactor reference to return a Reference object.
   @Override
-  public Reference<GitOrigin> resolve(@Nullable String reference) throws RepoException {
+  public ReferenceFiles<GitOrigin> resolve(@Nullable String reference) throws RepoException {
     console.progress("Git Origin: Initializing local repo");
     repository.initGitDir();
     String ref;
@@ -108,6 +107,11 @@ public final class GitOrigin implements Origin<GitOrigin> {
     Iterator<String> rawLines = Splitter.on('\n').split(log).iterator();
     ImmutableList.Builder<Change<GitOrigin>> builder = ImmutableList.builder();
 
+    // No changes. We cannot know until we run git log since fromRef can be null (HEAD)
+    if (log.isEmpty()) {
+      return ImmutableList.of();
+    }
+
     while (rawLines.hasNext()) {
       String rawCommit = rawLines.next();
       String commit = removePrefix(log, rawCommit, "commit ");
@@ -138,6 +142,11 @@ public final class GitOrigin implements Origin<GitOrigin> {
     return builder.build().reverse();
   }
 
+  @Override
+  public String getLabelName() {
+    return "GitOrigin-RevId";
+  }
+
   private String removePrefix(String log, String line, String prefix) {
     Preconditions.checkState(line.startsWith(prefix), "Cannot find '%s' in:\n%s", prefix, log);
     return line.substring(prefix.length()).trim();
@@ -152,7 +161,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
         .toString();
   }
 
-  private final class GitReference implements Reference<GitOrigin> {
+  private final class GitReference implements ReferenceFiles<GitOrigin> {
 
     private final String reference;
 
@@ -185,6 +194,11 @@ public final class GitOrigin implements Origin<GitOrigin> {
     @Override
     public String asString() {
       return reference;
+    }
+
+    @Override
+    public String getLabelName() {
+      return GitOrigin.this.getLabelName();
     }
 
     @Override

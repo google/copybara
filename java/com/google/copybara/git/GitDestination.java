@@ -7,7 +7,7 @@ import com.google.common.base.Strings;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.Origin;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -31,16 +31,17 @@ public final class GitDestination implements Destination {
     /**
      * Generates a commit message based on the uncommitted index stored in the given repository.
      */
-    String message(String commitMsg, GitRepository repo, String originRef) throws RepoException;
+    String message(String commitMsg, GitRepository repo, Reference<?> originRef)
+        throws RepoException;
   }
 
   private static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
-    public String message(String commitMsg, GitRepository repo, String originRef) {
+    public String message(String commitMsg, GitRepository repo, Reference<?> originRef) {
       return String.format("%s\n%s: %s\n",
           commitMsg,
-          Origin.COMMIT_ORIGIN_REFERENCE_FIELD,
-          originRef
+          originRef.getLabelName(),
+          originRef.asString()
       );
     }
   }
@@ -92,7 +93,7 @@ public final class GitDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, String originRef, long timestamp,
+  public void process(Path workdir, Reference<?> originRef, long timestamp,
       String changesSummary) throws RepoException {
     logger.log(Level.INFO, "Exporting " + configName + " from " + workdir + " to: " + this);
 
@@ -138,14 +139,14 @@ public final class GitDestination implements Destination {
 
   @Nullable
   @Override
-  public String getPreviousRef() throws RepoException {
+  public String getPreviousRef(String labelName) throws RepoException {
     if (gitOptions.gitFirstCommit) {
       return null;
     }
     GitRepository gitRepository = cloneBaseline();
     String commit = gitRepository.revParse("FETCH_HEAD");
     String log = gitRepository.simpleCommand("log", commit, "-1").getStdout();
-    String prefix = "    " + Origin.COMMIT_ORIGIN_REFERENCE_FIELD + ": ";
+    String prefix = "    " + labelName + ": ";
     for (String line : log.split("\n")) {
       if (line.startsWith(prefix)) {
         return line.substring(prefix.length());
