@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Change;
 import com.google.copybara.Destination;
+import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
@@ -55,7 +56,7 @@ public class YamlParserTest {
   }
 
   @Test
-  public void testEmptyFile() throws IOException, ConfigValidationException {
+  public void testEmptyFile() throws IOException, ConfigValidationException, EnvironmentException {
     Files.write(fs.getPath("test"), "".getBytes());
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("'test' is empty");
@@ -63,7 +64,8 @@ public class YamlParserTest {
   }
 
   @Test
-  public void testEmptyFileWithSpaces() throws IOException, ConfigValidationException {
+  public void testEmptyFileWithSpaces()
+      throws IOException, ConfigValidationException, EnvironmentException {
     Files.write(fs.getPath("test"), "  ".getBytes());
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("'test' is empty");
@@ -75,7 +77,9 @@ public class YamlParserTest {
    * all the features of the structure of the config file. Apart from that we include some testing
    * coverage on global values.
    */
-  @Test  public void testParseConfigFile() throws IOException, ConfigValidationException {
+  @Test
+  public void testParseConfigFile()
+      throws IOException, ConfigValidationException, EnvironmentException {
     String configContent = "name: \"mytest\"\n"
         + "global:\n"
         + "  - &some_url \"https://so.me/random/url\"\n"
@@ -117,7 +121,8 @@ public class YamlParserTest {
   }
 
   @Test
-  public void testGenericOfSimpleTypes() throws IOException, ConfigValidationException {
+  public void testGenericOfSimpleTypes()
+      throws IOException, ConfigValidationException, EnvironmentException {
     String configContent = "name: \"mytest\"\n"
         + "workflows:\n"
         + "  - origin: !MockOrigin\n"
@@ -143,7 +148,8 @@ public class YamlParserTest {
   }
 
   @Test
-  public void testGenericOfWildcard() throws IOException, ConfigValidationException {
+  public void testGenericOfWildcard()
+      throws IOException, ConfigValidationException, EnvironmentException {
     String configContent = "name: \"mytest\"\n"
         + "workflows:\n"
         + "  - origin: !MockOrigin\n"
@@ -166,7 +172,7 @@ public class YamlParserTest {
   }
 
   @Test
-  public void requireAtLeastOneWorkflow() throws ConfigValidationException {
+  public void requireAtLeastOneWorkflow() throws ConfigValidationException, EnvironmentException {
     Config.Yaml yaml = new Config.Yaml();
     yaml.setName("YamlParserTest");
 

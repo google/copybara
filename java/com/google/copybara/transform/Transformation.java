@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
+import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 
@@ -12,7 +13,8 @@ import java.nio.file.Path;
  */
 public interface Transformation {
   interface Yaml {
-    Transformation withOptions(Options options) throws ConfigValidationException;
+    Transformation withOptions(Options options)
+        throws ConfigValidationException, EnvironmentException;
   }
 
   /**

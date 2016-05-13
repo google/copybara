@@ -106,7 +106,7 @@ public class Main {
     } catch (RepoException | ConfigValidationException e) {
       printCauseChain(console, e);
       System.exit(ExitCode.REPOSITORY_ERROR.getCode());
-    } catch (IOException e) {
+    } catch (EnvironmentException | IOException e) {
       handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
     } catch (RuntimeException e) {
       handleUnexpectedError(console, ExitCode.INTERNAL_ERROR, "Unexpected error: " + e.getMessage(),
@@ -185,7 +185,7 @@ public class Main {
   }
 
   private Config loadConfig(Path path, Options options)
-      throws IOException, CommandLineException, ConfigValidationException {
+      throws IOException, CommandLineException, ConfigValidationException, EnvironmentException {
     try {
       return new YamlParser(getYamlTypeDescriptions()).loadConfig(path, options);
     } catch (NoSuchFileException e) {

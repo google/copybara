@@ -6,6 +6,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
+import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Workflow;
@@ -100,7 +101,8 @@ public final class Config {
       this.workflows = ImmutableMap.copyOf(map);
     }
 
-    public Config withOptions(Options options) throws ConfigValidationException {
+    public Config withOptions(Options options)
+        throws ConfigValidationException, EnvironmentException {
       ConfigValidationException.checkNotMissing(name, "name");
       if (workflows.isEmpty()) {
         throw new ConfigValidationException("At least one element in 'workflows' is required.");

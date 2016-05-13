@@ -188,7 +188,8 @@ public abstract class Workflow<O extends Origin<O>> {
       this.mode = mode;
     }
 
-    public Workflow withOptions(Options options, String configName) throws ConfigValidationException {
+    public Workflow withOptions(Options options, String configName)
+        throws ConfigValidationException, EnvironmentException {
       ImmutableList.Builder<Transformation> transformations = new ImmutableList.Builder<>();
       for (Transformation.Yaml transformation : this.transformations) {
         transformations.add(transformation.withOptions(options));

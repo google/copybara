@@ -2,6 +2,7 @@
 package com.google.copybara.config;
 
 import com.google.common.base.Preconditions;
+import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.Workflow;
 import com.google.copybara.doc.annotations.DocElement;
@@ -77,7 +78,7 @@ public final class YamlParser {
    * @throws IOException if the config file cannot be load
    */
   public Config loadConfig(Path path, Options options)
-      throws IOException, NoSuchFileException, ConfigValidationException {
+      throws IOException, NoSuchFileException, ConfigValidationException, EnvironmentException {
     String configContent = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
     // TODO(matvore): The exceptions printed as a result of a bad configuration are hard to read.
     // It can include a long stack trace plus a nested cause. Find a way to make the error output

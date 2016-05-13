@@ -60,7 +60,7 @@ public class WorkflowTest {
     replace.setRegexGroups(ImmutableMap.of("line", ".+"));
   }
 
-  private Workflow workflow() throws ConfigValidationException, IOException {
+    private Workflow workflow() throws ConfigValidationException, IOException, EnvironmentException {
     yaml.setOrigin(origin);
     yaml.setDestination(destination);
     yaml.setTransformations(transformations);
@@ -69,7 +69,7 @@ public class WorkflowTest {
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
-      throws ConfigValidationException {
+      throws ConfigValidationException, EnvironmentException {
     yaml.setOrigin(origin);
     yaml.setDestination(destination);
     yaml.setMode(WorkflowMode.ITERATIVE);
