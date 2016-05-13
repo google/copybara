@@ -22,18 +22,18 @@ import javax.annotation.Nullable;
  * Represents a particular migration operation that can occur for a project. Each project can have
  * multiple workflows. Each workflow has a particular origin and destination.
  */
-public abstract class Workflow<T extends Origin<T>> {
+public abstract class Workflow<O extends Origin<O>> {
 
   protected final Logger logger = Logger.getLogger(this.getClass().getName());
 
   private final String name;
-  private final Origin<T> origin;
+  private final Origin<O> origin;
   private final Destination destination;
   private final List<Transformation> transformations;
   protected final Console console;
 
   Workflow(String name,
-      Origin<T> origin, Destination destination, ImmutableList<Transformation> transformations,
+      Origin<O> origin, Destination destination, ImmutableList<Transformation> transformations,
       Console console) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
@@ -49,7 +49,7 @@ public abstract class Workflow<T extends Origin<T>> {
   /**
    * The repository that represents the source of truth
    */
-  public Origin<T> getOrigin() {
+  public Origin<O> getOrigin() {
     return origin;
   }
 
@@ -70,11 +70,18 @@ public abstract class Workflow<T extends Origin<T>> {
   public abstract void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException;
 
-  void runTransformations(Path workdir) throws RepoException {
+  /**
+   * Runs the transformations for the workflow
+   *
+   * @param workdir working directory to use for the transformations
+   * @param progressPrefix prefix to be used when printing progress messages to the console
+   */
+  void runTransformations(Path workdir, String progressPrefix) throws RepoException {
     for (int i = 0; i < transformations.size(); i++) {
       Transformation transformation = transformations.get(i);
       String transformMsg = String.format(
-          "[%2d/%d] Transform: %s", i + 1, transformations.size(), transformation.describe());
+          "%s[%2d/%d] Transform: %s", progressPrefix, i + 1, transformations.size(),
+          transformation.describe());
       logger.log(Level.INFO, transformMsg);
 
       console.progress(transformMsg);
@@ -154,18 +161,20 @@ public abstract class Workflow<T extends Origin<T>> {
       for (Transformation.Yaml transformation : this.transformations) {
         transformations.add(transformation.withOptions(options));
       }
+      Origin<?> origin = this.origin.withOptions(options);
+      Destination destination = this.destination.withOptions(options, configName);
+      ImmutableList<Transformation> transforms = transformations.build();
+      Console console = options.get(GeneralOptions.class).console();
+      GeneralOptions generalOptions = options.get(GeneralOptions.class);
       switch (mode) {
         case SQUASH:
-          GeneralOptions generalOptions = options.get(GeneralOptions.class);
-          return new SquashWorkflow<>(configName,
-              name,
-              origin.withOptions(options),
-              destination.withOptions(options, configName),
-              transformations.build(),
-              generalOptions.console(),
-              generalOptions.getLastRevision(),
-              includeChangeListNotes
-          );
+
+          return new SquashWorkflow<>(configName, name, origin, destination, transforms, console,
+              generalOptions.getLastRevision(), includeChangeListNotes);
+        case ITERATIVE:
+          return new IterativeWorkflow<>(configName, name, origin, destination, transforms,
+              generalOptions.getLastRevision(), console);
+
         default:
           throw new UnsupportedOperationException(mode + " still not implemented");
       }

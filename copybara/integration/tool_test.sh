@@ -121,7 +121,7 @@ EOF
   echo "second version for food and foooooo" > test.txt
   run_git add test.txt
   run_git commit -m "second commit"
-  second_commit=$(run_git rev-parse HEAD)
+  second_commit=$(git rev-parse HEAD)
   popd
 
   copybara test.copybara
@@ -137,6 +137,58 @@ EOF
 
   expect_log "-first version for drink"
   expect_log "+second version for drink and barooooo"
+}
+function test_git_iterative() {
+  remote=$(temp_dir remote)
+  repo_storage=$(temp_dir storage)
+  workdir=$(temp_dir workdir)
+  destination=$(empty_git_bare_repo)
+
+  pushd $remote
+  run_git init .
+  commit_one=$(single_file_commit "commit one" file.txt "food fooooo content1")
+  commit_two=$(single_file_commit "commit two" file.txt "food fooooo content2")
+  commit_three=$(single_file_commit "commit three" file.txt "food fooooo content3")
+  commit_four=$(single_file_commit "commit four" file.txt "food fooooo content4")
+  commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
+
+  popd
+    cat > test.copybara <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      pullFromRef: "master"
+      pushToRef: "master"
+    mode: ITERATIVE
+EOF
+
+  copybara test.copybara default $commit_three --last-rev $commit_one
+
+  check_copybara_rev_id "$destination" "$commit_three"
+
+  ( cd $destination
+    run_git log master~1..master > $TEST_log
+  )
+  expect_not_log "commit two"
+  expect_log "commit three"
+
+  copybara test.copybara default $commit_five
+
+  check_copybara_rev_id "$destination" "$commit_five"
+
+  ( cd $destination
+    run_git log master~2..master~1 > $TEST_log
+  )
+  expect_log "commit four"
+
+  ( cd $destination
+    run_git log master~1..master > $TEST_log
+  )
+  expect_log "commit five"
 }
 
 function single_file_commit() {

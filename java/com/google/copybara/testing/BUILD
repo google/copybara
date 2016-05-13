@@ -10,6 +10,7 @@ java_library(
         "//java/com/google/copybara:copybara_lib",
         "//third_party:guava",
         "//third_party:jimfs",
+        "//third_party:joda_time",
         "//third_party:jsr305",
     ],
     visibility = [

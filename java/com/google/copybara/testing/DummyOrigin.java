@@ -8,6 +8,8 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 
+import org.joda.time.DateTime;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -69,7 +71,18 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   @Override
   public ImmutableList<Change<DummyOrigin>> changes(Reference<DummyOrigin> oldRef,
       @Nullable Reference<DummyOrigin> newRef) throws RepoException {
-    throw new CannotComputeChangesException("not supported");
+    int last = Integer.parseInt(oldRef.asString());
+    if (newRef == null) {
+      throw new CannotComputeChangesException("new ref not set");
+    }
+    int current = Integer.parseInt(newRef.asString());
+    ImmutableList.Builder<Change<DummyOrigin>> changes = ImmutableList.builder();
+    for (int i = last + 1; i <= current; i++) {
+      DummyReference dummyReference = new DummyReference();
+      dummyReference.reference = i + "";
+      changes.add(new Change<>(dummyReference, "someone" + i, "message" + i, new DateTime(i)));
+    }
+    return changes.build();
   }
 
   @Override

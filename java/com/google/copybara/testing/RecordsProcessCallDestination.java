@@ -18,16 +18,20 @@ import javax.annotation.Nullable;
 public class RecordsProcessCallDestination implements Destination, Destination.Yaml {
 
   public List<Long> processTimestamps = new ArrayList<>();
+  public int calls = 0;
+  private String originRef;
 
   @Override
   public void process(Path workdir, Reference<?> originRef, long timestamp, String changesSummary) {
+    this.originRef = originRef.asString();
     processTimestamps.add(timestamp);
+    calls++;
   }
 
   @Nullable
   @Override
   public String getPreviousRef(String labelName) {
-    return null;
+    return originRef;
   }
 
   @Override

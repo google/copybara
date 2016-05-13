@@ -8,8 +8,10 @@ public enum WorkflowMode {
    * Create a single commit in the destination with new tree state.
    */
   SQUASH,
-  // Import each origin change individually
-  // ITERATIVE,
+  /**
+   * Import each origin change individually
+   */
+  ITERATIVE,
   // TODO(copybara): Cherrypick an individual change from origin into destination
   //CHERRYPICK,
   // TODO(copybara): Import an origin tree state diffed by a common parent

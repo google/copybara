@@ -4,6 +4,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.truth.Truth;
 import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.DummyOrigin;
@@ -22,6 +23,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import javax.annotation.Nullable;
 
 @RunWith(JUnit4.class)
 public class WorkflowTest {
@@ -52,6 +55,16 @@ public class WorkflowTest {
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
+  private Workflow iterativeWorkflow(@Nullable String previousRef)
+      throws ConfigValidationException {
+    yaml.setOrigin(new DummyOrigin());
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.ITERATIVE);
+    options.general = new GeneralOptions(options.general.getWorkdir(),
+        options.general.isVerbose(), previousRef, options.general.console());
+    return yaml.withOptions(options.build(), CONFIG_NAME);
+  }
+
   private Path workdir() {
     return options.general.getWorkdir();
   }
@@ -65,6 +78,29 @@ public class WorkflowTest {
   public void toStringIncludesName() throws Exception {
     yaml.setName("toStringIncludesName");
     assertThat(workflow().toString()).contains("toStringIncludesName");
+  }
+
+  @Test
+  public void iterativeWorkflowTest() throws Exception {
+    Workflow workflow = iterativeWorkflow(/*previousRef=*/"42");
+    Path workdir = options.general.getWorkdir();
+    workflow.run(workdir, /*sourceRef=*/"50");
+    Truth.assertThat(destination.calls).isEqualTo(8);
+
+    destination.calls = 0;
+
+    workflow = iterativeWorkflow(null);
+    workflow.run(workdir, /*sourceRef=*/"60");
+    Truth.assertThat(destination.calls).isEqualTo(10);
+  }
+
+  @Test
+  public void iterativeWorkflowNoPreviousRef() throws Exception {
+    Workflow workflow = iterativeWorkflow(/*previousRef=*/null);
+    Path workdir = options.general.getWorkdir();
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("Previous revision label Dummy-RevId could not be found");
+    workflow.run(workdir, /*sourceRef=*/"50");
   }
 
   @Test
