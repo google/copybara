@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
@@ -33,6 +34,8 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
   @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException {
+    console.progress("Cleaning working directory");
+    FileUtil.deleteAllFilesRecursively(workdir);
     console.progress("Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
     ReferenceFiles<O> resolvedRef = getOrigin().resolve(sourceRef);
     logger.log(Level.INFO,

@@ -14,9 +14,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class FileUtil {
 
+  private static final PathMatcher ALL_FILES = new PathMatcher() {
+    @Override
+    public boolean matches(Path path) {
+      return true;
+    }
+  };
+
   private FileUtil() {
   }
 
+  public static int deleteAllFilesRecursively(Path path) throws IOException {
+    return deleteFilesRecursively(path, ALL_FILES);
+  }
   /**
    * Deletes the files that match the PathMatcher.
    *

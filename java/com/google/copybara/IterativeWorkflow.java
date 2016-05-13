@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
@@ -51,7 +52,9 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
           change.getReference().asString());
       ReferenceFiles<O> ref = change.getReference();
       logger.log(Level.INFO, String.format("%s %s", prefix, ref.asString()));
-      console.progress(prefix + " Checking out the change");
+      console.progress(prefix + "Cleaning working directory");
+      FileUtil.deleteAllFilesRecursively(workdir);
+      console.progress(prefix + "Checking out the change");
       ref.checkout(workdir);
       runTransformations(workdir, prefix);
 

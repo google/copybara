@@ -4,13 +4,16 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.truth.Truth;
 import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.RecordsInvocationTransformation;
 import com.google.copybara.testing.RecordsProcessCallDestination;
+import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
+import com.google.copybara.transform.Replace;
+import com.google.copybara.transform.Transformation;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,28 +33,32 @@ import javax.annotation.Nullable;
 public class WorkflowTest {
 
   private static final String CONFIG_NAME = "copybara_project";
+  private static final String PREFIX = "TRANSFORMED";
 
   private Yaml yaml;
   private DummyOrigin origin;
   private RecordsProcessCallDestination destination;
   private OptionsBuilder options;
+  private Replace.Yaml replace = new Replace.Yaml();
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
-  public void setup() throws IOException {
+  public void setup() throws IOException, ConfigValidationException {
     yaml = new Yaml();
     origin = new DummyOrigin();
     destination = new RecordsProcessCallDestination();
-
-    options = new OptionsBuilder()
-        .setWorkdirToRealTempDir();
+    replace.setBefore("${line}");
+    replace.setAfter(PREFIX + "${line}");
+    replace.setRegexGroups(ImmutableMap.of("line", ".+"));
+    options = new OptionsBuilder().setWorkdirToRealTempDir();
   }
 
   private Workflow workflow() throws ConfigValidationException {
     yaml.setOrigin(origin);
     yaml.setDestination(destination);
+    yaml.setTransformations(ImmutableList.<Transformation.Yaml>of(replace));
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
@@ -60,6 +67,7 @@ public class WorkflowTest {
     yaml.setOrigin(new DummyOrigin());
     yaml.setDestination(destination);
     yaml.setMode(WorkflowMode.ITERATIVE);
+    yaml.setTransformations(ImmutableList.<Transformation.Yaml>of(replace));
     options.general = new GeneralOptions(options.general.getWorkdir(),
         options.general.isVerbose(), previousRef, options.general.console());
     return yaml.withOptions(options.build(), CONFIG_NAME);
@@ -85,13 +93,21 @@ public class WorkflowTest {
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"42");
     Path workdir = options.general.getWorkdir();
     workflow.run(workdir, /*sourceRef=*/"50");
-    Truth.assertThat(destination.calls).isEqualTo(8);
-
-    destination.calls = 0;
+    Truth.assertThat(destination.processed).hasSize(8);
+    int nextChange = 43;
+    for (ProcessedChange change : destination.processed) {
+      assertThat(change.getChangesSummary()).isEqualTo("message" + nextChange + "\n");
+      String asString = Integer.toString(nextChange);
+      assertThat(change.getOriginRef().asString()).isEqualTo(asString);
+      assertThat(change.getWorkdir()).hasSize(1);
+      String content = change.getWorkdir().get(workdir.resolve("file.txt"));
+      assertThat(content).isEqualTo(PREFIX + asString);
+      nextChange++;
+    }
 
     workflow = iterativeWorkflow(null);
     workflow.run(workdir, /*sourceRef=*/"60");
-    Truth.assertThat(destination.calls).isEqualTo(10);
+    Truth.assertThat(destination.processed).hasSize(18);
   }
 
   @Test
@@ -109,7 +125,7 @@ public class WorkflowTest {
 
     workflow().run(workdir(), "some_sha1");
 
-    long timestamp = destination.processTimestamps.get(0);
+    long timestamp = destination.processed.get(0).getTimestamp();
     assertThat(timestamp).isAtLeast(beginTime);
     assertThat(timestamp).isAtMost(System.currentTimeMillis() / 1000);
   }
@@ -118,23 +134,24 @@ public class WorkflowTest {
   public void processIsCalledWithCorrectWorkdir() throws Exception {
     workflow().run(workdir(), "some_sha1");
     assertThat(Files.readAllLines(workdir().resolve("file.txt"), StandardCharsets.UTF_8))
-        .contains("some_sha1");
+        .contains(PREFIX + "some_sha1");
   }
 
   @Test
   public void sendsOriginTimestampToDest() throws Exception {
     origin.referenceToTimestamp.put("refname", (long) 42918273);
     workflow().run(workdir(), "refname");
-    assertThat(destination.processTimestamps.get(0))
+    assertThat(destination.processed).hasSize(1);
+    assertThat(destination.processed.get(0).getTimestamp())
         .isEqualTo(42918273);
   }
 
   @Test
   public void runsTransformations() throws Exception {
-    RecordsInvocationTransformation transformation = new RecordsInvocationTransformation();
-    yaml.setTransformations(ImmutableList.of(transformation));
     workflow().run(workdir(), "some_sha1");
-    assertThat(destination.processTimestamps).hasSize(1);
-    assertThat(transformation.timesInvoked).isEqualTo(1);
+    assertThat(destination.processed).hasSize(1);
+    ImmutableMap<Path, String> outputDir = destination.processed.get(0).getWorkdir();
+    assertThat(outputDir).hasSize(1);
+    assertThat(outputDir.get(workdir().resolve("file.txt"))).isEqualTo(PREFIX + "some_sha1");
   }
 }
