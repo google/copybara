@@ -8,10 +8,15 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,15 +36,17 @@ public abstract class Workflow<O extends Origin<O>> {
   private final Destination destination;
   private final List<Transformation> transformations;
   protected final Console console;
+  private final PathMatcherBuilder excludedOriginPaths;
 
   Workflow(String name,
       Origin<O> origin, Destination destination, ImmutableList<Transformation> transformations,
-      Console console) {
+      Console console, PathMatcherBuilder excludedOriginPaths) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.transformations = Preconditions.checkNotNull(transformations);
     this.console = Preconditions.checkNotNull(console);
+    this.excludedOriginPaths = excludedOriginPaths;
   }
 
   public String getName() {
@@ -93,6 +100,24 @@ public abstract class Workflow<O extends Origin<O>> {
     }
   }
 
+  void removeExcludedFiles(Path workdir) throws IOException, RepoException {
+    if (excludedOriginPaths.isEmpty()) {
+      return;
+    }
+    PathMatcher pathMatcher = excludedOriginPaths.relativeTo(workdir);
+    console.progress("Removing excluded files");
+
+    int result = FileUtil.deleteFilesRecursively(workdir, pathMatcher);
+    logger.log(Level.INFO,
+        String.format("Removed %s files from workdir that were excluded", result));
+
+    if (result == 0) {
+      throw new RepoException(
+          String.format("Nothing was deleted in the workdir for excludedOriginPaths: '%s'",
+              pathMatcher));
+    }
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
@@ -100,6 +125,7 @@ public abstract class Workflow<O extends Origin<O>> {
         .add("origin", origin)
         .add("destination", destination)
         .add("transformations", transformations)
+        .add("excludedOriginPaths", excludedOriginPaths)
         .toString();
   }
 
@@ -116,6 +142,7 @@ public abstract class Workflow<O extends Origin<O>> {
     private WorkflowMode mode = WorkflowMode.SQUASH;
     private boolean includeChangeListNotes = false;
     private ImmutableList<Transformation.Yaml> transformations = ImmutableList.of();
+    private List<String> excludedOriginPaths = new ArrayList<>();
 
     public String getName() {
       return name;
@@ -144,6 +171,11 @@ public abstract class Workflow<O extends Origin<O>> {
       this.transformations = ImmutableList.copyOf(transformations);
     }
 
+    @DocField(description = "An list of expressions representing globs of paths relative to the workdir that will be excluded from the origin during the import. For example \"**.java\", all java files, recursively.", required = false, defaultValue = "[]")
+    public void setExcludedOriginPaths(List<String> excludedOriginPaths) {
+      this.excludedOriginPaths = excludedOriginPaths;
+    }
+
     @DocField(description = "Include a list of change list messages that were imported",
         required = false, defaultValue = "false")
     public void setIncludeChangeListNotes(boolean includeChangeListNotes) {
@@ -166,14 +198,15 @@ public abstract class Workflow<O extends Origin<O>> {
       ImmutableList<Transformation> transforms = transformations.build();
       Console console = options.get(GeneralOptions.class).console();
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
+      PathMatcherBuilder excludedOriginPaths = PathMatcherBuilder.create(
+          FileSystems.getDefault(), this.excludedOriginPaths);
       switch (mode) {
         case SQUASH:
-
           return new SquashWorkflow<>(configName, name, origin, destination, transforms, console,
-              generalOptions.getLastRevision(), includeChangeListNotes);
+              generalOptions.getLastRevision(), includeChangeListNotes, excludedOriginPaths);
         case ITERATIVE:
           return new IterativeWorkflow<>(configName, name, origin, destination, transforms,
-              generalOptions.getLastRevision(), console);
+              generalOptions.getLastRevision(), console, excludedOriginPaths);
 
         default:
           throw new UnsupportedOperationException(mode + " still not implemented");

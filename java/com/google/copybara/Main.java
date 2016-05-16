@@ -14,7 +14,6 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOrigin;
 import com.google.copybara.localdir.FolderDestination;
 import com.google.copybara.localdir.LocalDestinationOptions;
-import com.google.copybara.transform.DeletePath;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
@@ -56,7 +55,6 @@ public class Main {
   protected Iterable<TypeDescription> getYamlTypeDescriptions() {
     return ImmutableList.of(
         // Transformations
-        YamlParser.docTypeDescription(DeletePath.Yaml.class),
         YamlParser.docTypeDescription(Replace.Yaml.class),
         // Origins
         YamlParser.docTypeDescription(GitOrigin.Yaml.class),

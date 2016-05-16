@@ -1,15 +1,18 @@
 package com.google.copybara;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -28,8 +31,8 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
   IterativeWorkflow(String configName, String workflowName, Origin<O> origin,
       Destination destination,
       ImmutableList<Transformation> transformations, @Nullable String lastRevision,
-      Console console) {
-    super(workflowName, origin, destination, transformations, console);
+      Console console, PathMatcherBuilder excludedOriginPaths) {
+    super(workflowName, origin, destination, transformations, console, excludedOriginPaths);
     this.configName = Preconditions.checkNotNull(configName);
     this.lastRevision = lastRevision;
   }
@@ -56,6 +59,7 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
       FileUtil.deleteAllFilesRecursively(workdir);
       console.progress(prefix + "Checking out the change");
       ref.checkout(workdir);
+      removeExcludedFiles(workdir);
       runTransformations(workdir, prefix);
 
       Long timestamp = ref.readTimestamp();

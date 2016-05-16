@@ -1,6 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util;
 
+import com.google.copybara.config.ConfigValidationException;
+
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 
@@ -33,9 +35,14 @@ public final class ReadablePathMatcher implements PathMatcher {
    *
    * For example a glob "dir/**.java" would match any java file inside {@code path}/dir directory.
    */
-  public static ReadablePathMatcher relativeGlob(Path path, String glob) {
+  public static ReadablePathMatcher relativeGlob(Path path, String glob)
+      throws ConfigValidationException {
+    Path resolved = path.resolve(glob);
+    if (!resolved.normalize().startsWith(path)) {
+      throw new ConfigValidationException(
+          String.format("glob '%s' is not relative to '%s'", glob, path));
+    }
     return new ReadablePathMatcher(
-        path.getFileSystem().getPathMatcher("glob:" + path.resolve(glob)),
-        glob);
+        path.getFileSystem().getPathMatcher("glob:" + resolved), glob);
   }
 }

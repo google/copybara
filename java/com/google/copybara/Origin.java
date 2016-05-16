@@ -3,6 +3,7 @@ package com.google.copybara;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigValidationException;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 import javax.annotation.Nullable;

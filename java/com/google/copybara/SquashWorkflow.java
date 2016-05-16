@@ -1,14 +1,18 @@
 package com.google.copybara;
 
+import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.util.List;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -24,8 +28,8 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
 
   SquashWorkflow(String configName, String workflowName, Origin<O> origin, Destination destination,
       ImmutableList<Transformation> transformations, Console console, String lastRevision,
-      boolean includeChangeListNotes) {
-    super(workflowName, origin, destination, transformations, console);
+      boolean includeChangeListNotes, PathMatcherBuilder excludedOriginPaths) {
+    super(workflowName, origin, destination, transformations, console, excludedOriginPaths);
     this.configName = configName;
     this.lastRevision = lastRevision;
     this.includeChangeListNotes = includeChangeListNotes;
@@ -44,6 +48,7 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
             + "' (" + WorkflowMode.SQUASH + ")"
             + " and ref '" + resolvedRef.asString() + "': " + this.toString());
     resolvedRef.checkout(workdir);
+    removeExcludedFiles(workdir);
 
     runTransformations(workdir, "");
 

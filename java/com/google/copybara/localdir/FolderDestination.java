@@ -13,7 +13,7 @@ import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
-import com.google.copybara.util.ReadablePathMatcher;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -97,7 +97,7 @@ public class FolderDestination implements Destination {
 
     @Override
     public Destination withOptions(Options options, String configName) throws ConfigValidationException {
-      ImmutableList.Builder<PathMatcher> pathMatchers = ImmutableList.builder();
+
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getWorkdir().getFileSystem();
@@ -110,12 +110,12 @@ public class FolderDestination implements Destination {
       if (!localFolder.isAbsolute()) {
         localFolder = fs.getPath(System.getProperty("user.dir")).resolve(localFolder);
       }
-      for (String path : excludePathsForDeletion) {
-        pathMatchers.add(ReadablePathMatcher.relativeGlob(localFolder, path));
-      }
-      return new FolderDestination(generalOptions.console(),
-          FileUtil.anyPathMatcher(pathMatchers.build()),
+      PathMatcher excludePathMatcher = PathMatcherBuilder.create(
+          localFolder.getFileSystem(), excludePathsForDeletion).relativeTo(localFolder);
+
+      return new FolderDestination(generalOptions.console(), excludePathMatcher,
           localFolder, generalOptions.isVerbose());
     }
+
   }
 }

@@ -1,12 +1,19 @@
 package com.google.copybara.util;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.copybara.config.ConfigValidationException;
+
 import java.io.IOException;
+import java.nio.file.FileSystem;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -18,6 +25,11 @@ public final class FileUtil {
     @Override
     public boolean matches(Path path) {
       return true;
+    }
+
+    @Override
+    public String toString() {
+      return "**";
     }
   };
 
@@ -57,7 +69,11 @@ public final class FileUtil {
    * A {@link PathMatcher} that returns true if any of the delegate {@code pathMatchers} returns
    * true.
    */
-  public static PathMatcher anyPathMatcher(final Iterable<PathMatcher> pathMatchers) {
+  static PathMatcher anyPathMatcher(final Iterable<PathMatcher> pathMatchers) {
+    if (!pathMatchers.iterator().hasNext()) {
+      return ALL_FILES;
+    }
+
     return new PathMatcher() {
       @Override
       public boolean matches(Path path) {
@@ -67,6 +83,11 @@ public final class FileUtil {
           }
         }
         return false;
+      }
+
+      @Override
+      public String toString() {
+        return "anyOf[" + Joiner.on(", ").join(pathMatchers) + "]";
       }
     };
   }
@@ -80,6 +101,12 @@ public final class FileUtil {
       public boolean matches(Path path) {
         return !pathMatcher.matches(path);
       }
+
+      @Override
+      public String toString() {
+        return "not(" + pathMatcher + ")";
+      }
     };
   }
+
 }

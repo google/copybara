@@ -351,11 +351,9 @@ workflows:
       url: "file://$destination"
       pullFromRef: master
       pushToRef: master
-    transformations:
-      - !DeletePath
-        path: subdir/**
-      - !DeletePath
-        path: "**/*.java"
+    excludedOriginPaths:
+      - "**/*.java"
+      - "subdir/**"
 EOF
   copybara test.copybara
 
