@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.testing;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.Options;
@@ -30,14 +31,14 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
     processed.add(new ProcessedChange(originRef, timestamp, changesSummary, copyWorkdir(workdir)));
   }
 
-  private ImmutableMap<Path, String> copyWorkdir(Path workdir) {
-    final ImmutableMap.Builder<Path, String> result = ImmutableMap.builder();
+  private ImmutableMap<String, String> copyWorkdir(final Path workdir) {
+    final ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
     try {
       Files.walkFileTree(workdir, new SimpleFileVisitor<Path>() {
 
         @Override
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-          result.put(file, new String(Files.readAllBytes(file)));
+          result.put(workdir.relativize(file).toString(), new String(Files.readAllBytes(file)));
           return FileVisitResult.CONTINUE;
         }
       });
@@ -65,10 +66,10 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
     private final long timestamp;
     private final Reference<?> originRef;
     private final String changesSummary;
-    private final ImmutableMap<Path, String> workdir;
+    private final ImmutableMap<String, String> workdir;
 
-    public ProcessedChange(Reference<?> originRef, long timestamp, String changesSummary,
-        ImmutableMap<Path, String> workdir) {
+    private ProcessedChange(Reference<?> originRef, long timestamp, String changesSummary,
+        ImmutableMap<String, String> workdir) {
       this.timestamp = timestamp;
       this.originRef = originRef;
       this.changesSummary = changesSummary;
@@ -87,8 +88,17 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
       return changesSummary;
     }
 
-    public ImmutableMap<Path, String> getWorkdir() {
-      return workdir;
+    public int numFiles() {
+      return workdir.size();
+    }
+
+    public String getContent(String fileName) {
+      return Preconditions.checkNotNull(
+          workdir.get(fileName), "Cannot find content for " + fileName);
+    }
+
+    public boolean filePresent(String fileName) {
+      return workdir.containsKey(fileName);
     }
   }
 }

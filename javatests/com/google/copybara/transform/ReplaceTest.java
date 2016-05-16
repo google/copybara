@@ -26,20 +26,19 @@ public final class ReplaceTest {
 
   private Replace.Yaml yaml;
   private OptionsBuilder options;
+  private Path workdir;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
+
   @Before
   public void setup() throws IOException {
     FileSystem fs = Jimfs.newFileSystem();
+    workdir = fs.getPath("/");
+    Files.createDirectories(workdir);
     yaml = new Replace.Yaml();
-    options = new OptionsBuilder()
-        .setWorkdirToRealTempDir();
-  }
-
-  private Path workdir() {
-    return options.general.getWorkdir();
+    options = new OptionsBuilder();
   }
 
   @Test
@@ -63,14 +62,14 @@ public final class ReplaceTest {
     yaml.setAfter("bar");
     Transformation transformation = yaml.withOptions(options.build());
 
-    Path file1 = workdir().resolve("file1.txt");
+    Path file1 = workdir.resolve("file1.txt");
     writeFile(file1, "foo");
-    Path file2 = workdir().resolve("file2.txt");
+    Path file2 = workdir.resolve("file2.txt");
     writeFile(file2, "foo\nbaz\nfoo");
-    Path file3 = workdir().resolve("file3.txt");
+    Path file3 = workdir.resolve("file3.txt");
     writeFile(file3, "bazbazbaz");
     BasicFileAttributes before = Files.readAttributes(file3, BasicFileAttributes.class);
-    transformation.transform(workdir());
+    transformation.transform(workdir);
     assertFileContents("file1.txt", "bar");
     assertFileContents("file2.txt", "bar\nbaz\nbar");
     assertFileContents("file3.txt", "bazbazbaz");
@@ -88,9 +87,9 @@ public final class ReplaceTest {
     yaml.setRegexGroups(ImmutableMap.of("middle", ".*"));
     Transformation transformation = yaml.withOptions(options.build());
 
-    Path file1 = workdir().resolve("file1.txt");
+    Path file1 = workdir.resolve("file1.txt");
     writeFile(file1, "fooBAZbar");
-    transformation.transform(workdir());
+    transformation.transform(workdir);
 
     assertFileContents("file1.txt", "barBAZfoo");
   }
@@ -104,7 +103,7 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir());
+    transformation.transform(workdir);
 
     assertFileContents("file1.txt", "foo");
     assertFileContents("file1.java", "bar");
@@ -123,7 +122,7 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir());
+    transformation.transform(workdir);
 
     assertFileContents("file1.txt", "foo");
     assertFileContents("file1.java", "foo");
@@ -141,7 +140,7 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir());
+    transformation.transform(workdir);
 
     assertFileContents("file1.txt", "foo");
     assertFileContents("file1.java", "foo");
@@ -160,11 +159,11 @@ public final class ReplaceTest {
             "a", "a+",
             "b", "[bB]"));
 
-    writeFile(workdir().resolve("before_and_after"), ""
+    writeFile(workdir.resolve("before_and_after"), ""
         + "not a match: beforeB\n"
         + "is a match: befaaaaaoreB # trailing content\n");
 
-    yaml.withOptions(options.build()).transform(workdir());
+    yaml.withOptions(options.build()).transform(workdir);
 
     assertFileContents("before_and_after", ""
         + "not a match: beforeB\n"
@@ -225,12 +224,12 @@ public final class ReplaceTest {
     yaml.setAfter("aft${a}er");
     yaml.setRegexGroups(ImmutableMap.of("a", "[^/]+"));
 
-    writeFile(workdir().resolve("before_and_after"), ""
+    writeFile(workdir.resolve("before_and_after"), ""
         + "obviously match: befASDFore/\n"
         + "should not match: bef\n"
         + "ore");
 
-    yaml.withOptions(options.build()).transform(workdir());
+    yaml.withOptions(options.build()).transform(workdir);
 
     assertFileContents("before_and_after", ""
         + "obviously match: aftASDFer/\n"
@@ -242,9 +241,9 @@ public final class ReplaceTest {
   public void multipleMatchesPerLine() throws Exception {
     yaml.setBefore("before");
     yaml.setAfter("after");
-    writeFile(workdir().resolve("before_and_after"), "before ... still before");
+    writeFile(workdir.resolve("before_and_after"), "before ... still before");
 
-    yaml.withOptions(options.build()).transform(workdir());
+    yaml.withOptions(options.build()).transform(workdir);
 
     assertFileContents("before_and_after", "after ... still after");
   }
@@ -253,12 +252,12 @@ public final class ReplaceTest {
   public void errorIfNotRoundTrippable() throws Exception {
     yaml.setBefore("before");
     yaml.setAfter("after");
-    writeFile(workdir().resolve("before_and_after"), "before_and_after");
+    writeFile(workdir.resolve("before_and_after"), "before_and_after");
 
     thrown.expect(NotRoundtrippableException.class);
     thrown.expectMessage("before_and_after");
 
-    yaml.withOptions(options.build()).transform(workdir());
+    yaml.withOptions(options.build()).transform(workdir);
   }
 
   @Test
@@ -277,7 +276,7 @@ public final class ReplaceTest {
     yaml.setAfter("after");
     yaml.setPath("foo/**/bar.htm");
     String string = yaml.withOptions(options.build()).toString();
-    assertThat(string).contains("path=foo/**/bar.htm");
+    assertThat(string).contains("path=[foo/**/bar.htm]");
   }
 
   @Test
@@ -285,7 +284,7 @@ public final class ReplaceTest {
     yaml.setBefore("before");
     yaml.setAfter("after");
     String string = yaml.withOptions(options.build()).toString();
-    assertThat(string).contains("path=**");
+    assertThat(string).contains("path=[**]");
   }
 
   @Test
@@ -293,15 +292,15 @@ public final class ReplaceTest {
     yaml.setBefore("this string doesn't appear anywhere in source");
     yaml.setAfter("lulz");
     thrown.expect(TransformationDoesNothingException.class);
-    yaml.withOptions(options.build()).transform(workdir());
+    yaml.withOptions(options.build()).transform(workdir);
   }
 
   @Test
   public void useDollarSignInAfter() throws Exception {
     yaml.setBefore("before");
     yaml.setAfter("after$$");
-    writeFile(workdir().resolve("before_and_after"), "before ... still before");
-    yaml.withOptions(options.build()).transform(workdir());
+    writeFile(workdir.resolve("before_and_after"), "before ... still before");
+    yaml.withOptions(options.build()).transform(workdir);
     assertFileContents("before_and_after", "after$ ... still after$");
   }
 
@@ -309,8 +308,8 @@ public final class ReplaceTest {
   public void useBackslashInAfter() throws Exception {
     yaml.setBefore("before");
     yaml.setAfter("after\\");
-    writeFile(workdir().resolve("before_and_after"), "before ... still before");
-    yaml.withOptions(options.build()).transform(workdir());
+    writeFile(workdir.resolve("before_and_after"), "before ... still before");
+    yaml.withOptions(options.build()).transform(workdir);
     assertFileContents("before_and_after", "after\\ ... still after\\");
   }
 
@@ -318,8 +317,8 @@ public final class ReplaceTest {
   public void useEscapedDollarInBeforeAndAfter() throws Exception {
     yaml.setBefore("be$$ore");
     yaml.setAfter("after$$");
-    writeFile(workdir().resolve("before_and_after"), "be$ore ... still be$ore");
-    yaml.withOptions(options.build()).transform(workdir());
+    writeFile(workdir.resolve("before_and_after"), "be$ore ... still be$ore");
+    yaml.withOptions(options.build()).transform(workdir);
     assertFileContents("before_and_after", "after$ ... still after$");
   }
 
@@ -327,22 +326,22 @@ public final class ReplaceTest {
   public void useBackslashInBeforeAndAfter() throws Exception {
     yaml.setBefore("be\\ore");
     yaml.setAfter("after\\");
-    writeFile(workdir().resolve("before_and_after"), "be\\ore ... still be\\ore");
-    yaml.withOptions(options.build()).transform(workdir());
+    writeFile(workdir.resolve("before_and_after"), "be\\ore ... still be\\ore");
+    yaml.withOptions(options.build()).transform(workdir);
     assertFileContents("before_and_after", "after\\ ... still after\\");
   }
 
   private void prepareGlobTree() throws IOException {
-    writeFile(workdir().resolve("file1.txt"), "foo");
-    writeFile(workdir().resolve("file1.java"), "foo");
-    Files.createDirectories(workdir().resolve("folder/subfolder"));
-    writeFile(workdir().resolve("folder/file1.txt"), "foo");
-    writeFile(workdir().resolve("folder/file1.java"), "foo");
-    writeFile(workdir().resolve("folder/subfolder/file1.java"), "foo");
+    writeFile(workdir.resolve("file1.txt"), "foo");
+    writeFile(workdir.resolve("file1.java"), "foo");
+    Files.createDirectories(workdir.resolve("folder/subfolder"));
+    writeFile(workdir.resolve("folder/file1.txt"), "foo");
+    writeFile(workdir.resolve("folder/file1.java"), "foo");
+    writeFile(workdir.resolve("folder/subfolder/file1.java"), "foo");
   }
 
   private void assertFileContents(String path, String expectedText) throws IOException {
-    assertThat(new String(Files.readAllBytes(workdir().resolve(path)))).isEqualTo(expectedText);
+    assertThat(new String(Files.readAllBytes(workdir.resolve(path)))).isEqualTo(expectedText);
   }
 
   private Path writeFile(Path path, String text) throws IOException {

@@ -48,11 +48,14 @@ public class WorkflowTest {
   public ExpectedException thrown = ExpectedException.none();
   private ImmutableList<Transformation.Yaml> transformations =
       ImmutableList.<Transformation.Yaml>of(replace);
+  private Path workdir;
 
   @Before
   public void setup() throws IOException, ConfigValidationException {
     yaml = new Yaml();
     options = new OptionsBuilder();
+    workdir = options.general.getFileSystem().getPath("workdir");
+    Files.createDirectories(workdir);
     origin = new DummyOrigin();
     destination = new RecordsProcessCallDestination();
     replace.setBefore("${line}");
@@ -74,13 +77,9 @@ public class WorkflowTest {
     yaml.setDestination(destination);
     yaml.setMode(WorkflowMode.ITERATIVE);
     yaml.setTransformations(transformations);
-    options.general = new GeneralOptions(options.general.getWorkdir(),
+    options.general = new GeneralOptions(options.general.getFileSystem(),
         options.general.isVerbose(), previousRef, options.general.console());
     return yaml.withOptions(options.build(), CONFIG_NAME);
-  }
-
-  private Path workdir() {
-    return options.general.getWorkdir();
   }
 
   @Test
@@ -100,7 +99,7 @@ public class WorkflowTest {
       origin.addSimpleChange(i);
     }
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"42");
-    Path workdir = options.general.getWorkdir();
+
     workflow.run(workdir, /*sourceRef=*/"50");
     Truth.assertThat(destination.processed).hasSize(8);
     int nextChange = 43;
@@ -108,9 +107,8 @@ public class WorkflowTest {
       assertThat(change.getChangesSummary()).isEqualTo(nextChange + " change\n");
       String asString = Integer.toString(nextChange);
       assertThat(change.getOriginRef().asString()).isEqualTo(asString);
-      assertThat(change.getWorkdir()).hasSize(1);
-      String content = change.getWorkdir().get(workdir.resolve("file.txt"));
-      assertThat(content).isEqualTo(PREFIX + asString);
+      assertThat(change.numFiles()).isEqualTo(1);
+      assertThat(change.getContent("file.txt")).isEqualTo(PREFIX + asString);
       nextChange++;
     }
 
@@ -122,7 +120,6 @@ public class WorkflowTest {
   @Test
   public void iterativeWorkflowNoPreviousRef() throws Exception {
     Workflow workflow = iterativeWorkflow(/*previousRef=*/null);
-    Path workdir = options.general.getWorkdir();
     thrown.expect(RepoException.class);
     thrown.expectMessage("Previous revision label Dummy-RevId could not be found");
     workflow.run(workdir, /*sourceRef=*/"50");
@@ -131,7 +128,7 @@ public class WorkflowTest {
   @Test
   public void processIsCalledWithCurrentTimeIfTimestampNotInOrigin() throws Exception {
     Workflow workflow = workflow();
-    workflow.run(workdir(), origin.getHead());
+    workflow.run(workdir, origin.getHead());
 
     long timestamp = destination.processed.get(0).getTimestamp();
     assertThat(timestamp).isEqualTo(42);
@@ -141,8 +138,8 @@ public class WorkflowTest {
   public void processIsCalledWithCorrectWorkdir() throws Exception {
     Workflow workflow = workflow();
     String head = origin.getHead();
-    workflow.run(workdir(), head);
-    assertThat(Files.readAllLines(workdir().resolve("file.txt"), StandardCharsets.UTF_8))
+    workflow.run(workdir, head);
+    assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
         .contains(PREFIX + head);
   }
 
@@ -150,7 +147,7 @@ public class WorkflowTest {
   public void sendsOriginTimestampToDest() throws Exception {
     Workflow workflow = workflow();
     origin.addSimpleChange(42918273);
-    workflow.run(workdir(), origin.getHead());
+    workflow.run(workdir, origin.getHead());
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getTimestamp())
         .isEqualTo(42918273);
@@ -158,24 +155,23 @@ public class WorkflowTest {
 
   @Test
   public void runsTransformations() throws Exception {
-    workflow().run(workdir(), origin.getHead());
+    workflow().run(workdir, origin.getHead());
     assertThat(destination.processed).hasSize(1);
-    ImmutableMap<Path, String> outputDir = destination.processed.get(0).getWorkdir();
-    assertThat(outputDir).hasSize(1);
-    assertThat(outputDir.get(workdir().resolve("file.txt"))).isEqualTo(PREFIX + "0");
+    assertThat(destination.processed.get(0).numFiles()).isEqualTo(1);
+    assertThat(destination.processed.get(0).getContent("file.txt")).isEqualTo(PREFIX + "0");
   }
 
   @Test
   public void invalidExcludePath() throws Exception {
     prepareExcludes();
     String outsideFolder = "../../../file";
-    Path file = workdir().resolve(outsideFolder);
+    Path file = workdir.resolve(outsideFolder);
     Files.createDirectories(file.getParent());
     Files.write(file, new byte[]{});
 
     yaml.setExcludedOriginPaths(ImmutableList.of(outsideFolder));
     try {
-      workflow().run(workdir(), origin.getHead());
+      workflow().run(workdir, origin.getHead());
       fail("should have thrown");
     } catch (ConfigValidationException e) {
       // Expected.
@@ -190,7 +186,7 @@ public class WorkflowTest {
     try {
       Workflow workflow = workflow();
       prepareExcludes();
-      workflow.run(workdir(), origin.getHead());
+      workflow.run(workdir, origin.getHead());
       fail("Should fail because it could not delete anything.");
     } catch (RepoException e) {
       assertThat(e.getMessage()).contains("Nothing was deleted");
@@ -204,7 +200,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareExcludes();
-    workflow.run(workdir(), origin.getHead());
+    workflow.run(workdir, origin.getHead());
     assertFilesExist("folder", "folder2");
     assertFilesDontExist("folder/file.txt", "folder/subfolder/file.txt",
         "folder/subfolder/file.java");
@@ -216,7 +212,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareExcludes();
-    workflow.run(workdir(), origin.getHead());
+    workflow.run(workdir, origin.getHead());
     assertFilesExist("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt");
     assertFilesDontExist("folder/subfolder/file.java");
   }
@@ -230,17 +226,15 @@ public class WorkflowTest {
     prepareExcludes();
     prepareExcludes();
     prepareExcludes();
-    workflow.run(workdir(), origin.getHead());
+    workflow.run(workdir, origin.getHead());
     for (ProcessedChange processedChange : destination.processed) {
       for (String path : ImmutableList.of("folder/file.txt",
           "folder2/file.txt",
           "folder2/subfolder/file.java",
           "folder/subfolder/file.txt")) {
-        assertThat(processedChange.getWorkdir()).containsKey(workdir().resolve(path));
+        assertThat(processedChange.filePresent(path)).isTrue();
       }
-      assertThat(processedChange.getWorkdir()).doesNotContainKey(
-          workdir().resolve("folder/subfolder/file.java"));
-
+      assertThat(processedChange.filePresent("folder/subfolder/file.java")).isFalse();
     }
   }
 
@@ -254,7 +248,7 @@ public class WorkflowTest {
   public void prepareExcludes() throws IOException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("excludesTest");
-    Path folder = workdir().resolve("folder");
+    Path folder = workdir.resolve("folder");
     Files.createDirectories(folder);
     touchFile(base, "folder/file.txt");
     touchFile(base, "folder/subfolder/file.txt");
@@ -272,13 +266,13 @@ public class WorkflowTest {
 
   private void assertFilesExist(String... paths) {
     for (String path : paths) {
-      assertThat(Files.exists(workdir().resolve(path))).named(path).isTrue();
+      assertThat(Files.exists(workdir.resolve(path))).named(path).isTrue();
     }
   }
 
   private void assertFilesDontExist(String... paths) {
     for (String path : paths) {
-      assertThat(Files.exists(workdir().resolve(path))).named(path).isFalse();
+      assertThat(Files.exists(workdir.resolve(path))).named(path).isFalse();
     }
   }
 

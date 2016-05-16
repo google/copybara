@@ -26,7 +26,7 @@ public class GitOriginTest {
 
   private GitOrigin origin;
   private Path remote;
-  private OptionsBuilder options;
+  private Path workdir;
   private String firstCommitRef;
 
   @Rule
@@ -35,12 +35,12 @@ public class GitOriginTest {
   @Before
   public void setup() throws Exception {
     remote = Files.createTempDirectory("remote");
+    workdir = Files.createTempDirectory("workdir");
     GitOrigin.Yaml yaml = new GitOrigin.Yaml();
     yaml.setUrl("file://" + remote.toFile().getAbsolutePath());
     yaml.setDefaultTrackingRef("other");
 
-    options = new OptionsBuilder()
-        .setWorkdirToRealTempDir();
+    OptionsBuilder options = new OptionsBuilder();
     options.git.gitRepoStorage = Files.createTempDirectory("repos_repo").toString();
 
     origin = yaml.withOptions(options.build());
@@ -54,10 +54,6 @@ public class GitOriginTest {
     firstCommitRef = head.substring(0, head.length() -1);
   }
 
-  private Path workdir() {
-    return options.general.getWorkdir();
-  }
-
   private String git(String... params) throws RepoException {
     return origin.getRepository().git(remote, params).getStdout();
   }
@@ -65,8 +61,8 @@ public class GitOriginTest {
   @Test
   public void testCheckout() throws IOException, RepoException {
     // Check that we get can checkout a branch
-    origin.resolve("master").checkout(workdir());
-    Path testFile = workdir().resolve("test.txt");
+    origin.resolve("master").checkout(workdir);
+    Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
@@ -75,7 +71,7 @@ public class GitOriginTest {
     git("add", "test.txt");
     git("commit", "-m", "second commit");
 
-    origin.resolve("master").checkout(workdir());
+    origin.resolve("master").checkout(workdir);
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("new content");
 
@@ -83,7 +79,7 @@ public class GitOriginTest {
     Files.delete(remote.resolve("test.txt"));
     git("rm", "test.txt");
     git("commit", "-m", "third commit");
-    origin.resolve("master").checkout(workdir());
+    origin.resolve("master").checkout(workdir);
 
     assertThat(Files.exists(testFile)).isFalse();
   }
@@ -91,14 +87,14 @@ public class GitOriginTest {
   @Test
   public void testCheckoutWithLocalModifications() throws IOException, RepoException {
     ReferenceFiles<GitOrigin> master = origin.resolve("master");
-    master.checkout(workdir());
-    Path testFile = workdir().resolve("test.txt");
+    master.checkout(workdir);
+    Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
     Files.delete(testFile);
 
-    master.checkout(workdir());
+    master.checkout(workdir);
 
     // The deletion in the workdir should not matter, since we should override in the next
     // checkout
@@ -108,8 +104,8 @@ public class GitOriginTest {
   @Test
   public void testCheckoutOfARef() throws IOException, RepoException {
     ReferenceFiles<GitOrigin> reference = origin.resolve(firstCommitRef);
-    reference.checkout(workdir());
-    Path testFile = workdir().resolve("test.txt");
+    reference.checkout(workdir);
+    Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
   }

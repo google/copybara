@@ -31,19 +31,16 @@ public class FolderDestinationTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+  private Path workdir;
 
   @Before
   public void setup() throws IOException, RepoException {
     yaml = new Yaml();
-    options = new OptionsBuilder()
-        .setWorkdirToRealTempDir();
-    Files.createDirectory(workdir().resolve("dir"));
-    Files.write(workdir().resolve("test.txt"), new byte[]{});
-    Files.write(workdir().resolve("dir/file.txt"), new byte[]{});
-  }
-
-  private Path workdir() {
-    return options.general.getWorkdir();
+    workdir = Files.createTempDirectory("workdir");
+    options = new OptionsBuilder().setWorkdirToRealTempDir();
+    Files.createDirectory(workdir.resolve("dir"));
+    Files.write(workdir.resolve("test.txt"), new byte[]{});
+    Files.write(workdir.resolve("dir/file.txt"), new byte[]{});
   }
 
   @Test
@@ -61,7 +58,7 @@ public class FolderDestinationTest {
     options.localDestination.localFolder = localFolder.toString();
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
     Destination destination = yaml.withOptions(options.build(), CONFIG_NAME);
-    destination.process(workdir(), new MockReference("origin_ref"),
+    destination.process(workdir, new MockReference("origin_ref"),
         /*timestamp=*/424242420, "Not relevant");
     assertFilesExist(localFolder, "one", "two", "root_file",
         "one/file.java", "two/file.java", "test.txt", "dir/file.txt");

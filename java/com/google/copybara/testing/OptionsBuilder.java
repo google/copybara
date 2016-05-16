@@ -13,9 +13,7 @@ import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.util.console.LogConsole;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.nio.file.FileSystems;
 
 /**
  * Allows building complete and sane {@link Options} instances succinctly.
@@ -23,7 +21,7 @@ import java.util.Arrays;
 public class OptionsBuilder {
 
   public GeneralOptions general =
-      new GeneralOptions(Jimfs.newFileSystem().getPath("/"), /*verbose=*/true, /*lastRevision=*/
+      new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true, /*lastRevision=*/
           null, new LogConsole(System.out));
   public LocalDestinationOptions localDestination =
       new LocalDestinationOptions();
@@ -32,7 +30,7 @@ public class OptionsBuilder {
   public WorkflowNameOptions workflowName = new WorkflowNameOptions("default");
 
   public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
-    general = new GeneralOptions(Files.createTempDirectory("OptionsBuilder"), /*verbose=*/true,
+    general = new GeneralOptions(FileSystems.getDefault(), /*verbose=*/true,
         /*lastRevision=*/null, new LogConsole(System.out));
     return this;
   }

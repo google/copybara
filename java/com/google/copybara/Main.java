@@ -87,7 +87,8 @@ public class Main {
     try {
       configureLog(fs);
       jcommander.parse(args);
-      GeneralOptions generalOptions = generalOptionsArgs.init(FileSystems.getDefault(), console);
+      Path baseWorkdir = mainArgs.getBaseWorkdir(fs);
+      GeneralOptions generalOptions = generalOptionsArgs.init(fs, console);
 
       if (mainArgs.help) {
         System.out.print(usage(jcommander));
@@ -97,8 +98,8 @@ public class Main {
       options.add(generalOptions);
       options.add(new WorkflowNameOptions(mainArgs.getWorkflowName()));
       Config config = loadConfig(fs.getPath(mainArgs.getConfigPath()), new Options(options));
-      Path workdir = generalOptions.getWorkdir();
-      config.getActiveWorkflow().run(workdir, mainArgs.getSourceRef());
+
+      config.getActiveWorkflow().run(baseWorkdir, mainArgs.getSourceRef());
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
       System.err.print(usage(jcommander));

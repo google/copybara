@@ -9,16 +9,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.util.ReadablePathMatcher;
+import com.google.copybara.util.PathMatcherBuilder;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -61,14 +61,14 @@ public final class Replace implements Transformation {
   private final TemplateTokens before;
   private final TemplateTokens after;
   private final ImmutableMap<String, Pattern> regexGroups;
-  private final PathMatcher fileMatcher;
+  private final PathMatcherBuilder fileMatcherBuilder;
 
   private Replace(TemplateTokens before, TemplateTokens after,
-      ImmutableMap<String, Pattern> regexGroups, PathMatcher fileMatcher) {
+      ImmutableMap<String, Pattern> regexGroups, PathMatcherBuilder fileMatcherBuilder) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.regexGroups = Preconditions.checkNotNull(regexGroups);
-    this.fileMatcher = Preconditions.checkNotNull(fileMatcher);
+    this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
   }
 
   @Override
@@ -77,14 +77,20 @@ public final class Replace implements Transformation {
         .add("before", before.template())
         .add("after", after.template())
         .add("regexGroup", regexGroups)
-        .add("path", fileMatcher)
+        .add("path", fileMatcherBuilder)
         .toString();
   }
 
   private final class TransformVisitor extends SimpleFileVisitor<Path> {
     final Pattern beforeRegex = before.toRegex(regexGroups);
     final Pattern afterRegex = after.toRegex(regexGroups);
+    private final PathMatcher pathMatcher;
     boolean somethingWasChanged;
+
+    TransformVisitor(PathMatcher pathMatcher) {
+
+      this.pathMatcher = pathMatcher;
+    }
 
     /**
      * Transforms a single line which confirming that the current transformation can be applied in
@@ -107,7 +113,7 @@ public final class Replace implements Transformation {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      if (!Files.isRegularFile(file) || !fileMatcher.matches(file)) {
+      if (!Files.isRegularFile(file) || !pathMatcher.matches(file)) {
         return FileVisitResult.CONTINUE;
       }
       logger.log(
@@ -132,7 +138,7 @@ public final class Replace implements Transformation {
 
   @Override
   public void transform(Path workdir) throws IOException {
-    TransformVisitor visitor = new TransformVisitor();
+    TransformVisitor visitor = new TransformVisitor(fileMatcherBuilder.relativeTo(workdir));
     Files.walkFileTree(workdir, visitor);
     if (!visitor.somethingWasChanged) {
       throw new TransformationDoesNothingException(
@@ -194,10 +200,8 @@ public final class Replace implements Transformation {
       before.validateInterpolations(regexGroups.keySet());
       after.validateInterpolations(regexGroups.keySet());
 
-      PathMatcher pathMatcher = ReadablePathMatcher.relativeGlob(
-          options.get(GeneralOptions.class).getWorkdir(), path);
-
-      return new Replace(before, after, regexGroups, pathMatcher);
+      return new Replace(before, after, regexGroups,
+          PathMatcherBuilder.create(FileSystems.getDefault(), ImmutableList.of(path)));
     }
   }
 }
