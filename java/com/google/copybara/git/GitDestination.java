@@ -187,8 +187,7 @@ public final class GitDestination implements Destination {
 
     @Override
     public GitDestination withOptions(Options options, String configName) throws ConfigValidationException {
-      ConfigValidationException.checkNotMissing(url, "url");
-
+      checkRequiredFields();
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       return new GitDestination(
           configName,

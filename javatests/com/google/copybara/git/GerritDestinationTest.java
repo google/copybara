@@ -60,7 +60,7 @@ public class GerritDestinationTest {
         .getStdout();
   }
 
-  private GerritDestination destination() {
+  private GerritDestination destination() throws ConfigValidationException {
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
@@ -184,4 +184,21 @@ public class GerritDestinationTest {
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 424242420);
   }
 
+  @Test
+  public void validationErrorForMissingPullFromRef() throws Exception {
+    yaml = new Yaml();
+    yaml.setUrl("file:///foo");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'pullFromRef'");
+    destination();
+  }
+
+  @Test
+  public void validationErrorForMissingUrl() throws Exception {
+    yaml = new Yaml();
+    yaml.setPullFromRef("master");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'url'");
+    destination();
+  }
 }

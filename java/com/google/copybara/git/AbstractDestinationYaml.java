@@ -36,6 +36,11 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
     this.pullFromRef = pullFromRef;
   }
 
+  protected void checkRequiredFields() throws ConfigValidationException {
+    ConfigValidationException.checkNotMissing(url, "url");
+    ConfigValidationException.checkNotMissing(pullFromRef, "pullFromRef");
+  }
+
   /**
    * Sets the author line to use for the generated commit. Should be in the form
    * {@code Full Name <email@foo.com>}.

@@ -10,6 +10,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 
 import java.nio.file.Path;
@@ -98,7 +99,9 @@ public final class GerritDestination implements Destination {
       elementKind = Destination.class, flags = {GerritOptions.class, GitOptions.class})
   public static final class Yaml extends AbstractDestinationYaml {
     @Override
-    public GerritDestination withOptions(Options options, String configName) {
+    public GerritDestination withOptions(Options options, String configName)
+        throws ConfigValidationException {
+      checkRequiredFields();
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       return new GerritDestination(
           new GitDestination(
