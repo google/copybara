@@ -94,7 +94,7 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
 
     public String getContent(String fileName) {
       return Preconditions.checkNotNull(
-          workdir.get(fileName), "Cannot find content for " + fileName);
+          workdir.get(fileName), "Cannot find content for %s", fileName);
     }
 
     public boolean filePresent(String fileName) {
