@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
  * Arguments which are unnamed (i.e. positional) or must be evaluated inside {@link Main}.
  */
 @Parameters(separators = "=")
-final class MainArguments {
+public final class MainArguments {
 
   @Parameter(description = "CONFIG_PATH [WORKFLOW_NAME [SOURCE_REF]]")
   List<String> unnamed = new ArrayList<>();
@@ -55,7 +55,7 @@ final class MainArguments {
    * Returns the base working directory. This method should not be accessed directly by any other
    * class but Main.
    */
-  Path getBaseWorkdir(FileSystem fs) throws IOException {
+  public Path getBaseWorkdir(FileSystem fs) throws IOException {
     Path workdirPath;
 
     if (baseWorkdir == null) {
