@@ -84,8 +84,8 @@ workflows:
       defaultTrackingRef: "master"
     destination: !GitDestination
       url: "file://$destination"
-      pullFromRef: "master"
-      pushToRef: "master"
+      fetch: "master"
+      push: "master"
     transformations:
       - !Replace
         before:       food
@@ -161,8 +161,8 @@ workflows:
       defaultTrackingRef: "master"
     destination: !GitDestination
       url: "file://$destination"
-      pullFromRef: "master"
-      pushToRef: "master"
+      fetch: "master"
+      push: "master"
     mode: ITERATIVE
 EOF
 
@@ -222,8 +222,8 @@ workflows:
       defaultTrackingRef: "master"
     destination: !GitDestination
       url: "file://$destination"
-      pullFromRef: "master"
-      pushToRef: "master"
+      fetch: "master"
+      push: "master"
     includeChangeListNotes: true
 EOF
 
@@ -305,8 +305,8 @@ workflows:
       defaultTrackingRef: "master"
     destination: !GitDestination
       url: "file://$destination"
-      pullFromRef: master
-      pushToRef: master
+      fetch: master
+      push: master
     transformations:
       - !Replace
         path:   "**.java"
@@ -349,8 +349,8 @@ workflows:
       defaultTrackingRef: "master"
     destination: !GitDestination
       url: "file://$destination"
-      pullFromRef: master
-      pushToRef: master
+      fetch: master
+      push: master
     excludedOriginPaths:
       - "**/*.java"
       - "subdir/**"

@@ -17,7 +17,7 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
   private static final String DEFAULT_AUTHOR = "Copybara <noreply@google.com>";
 
   protected String url;
-  protected String pullFromRef;
+  protected String fetch;
   protected String author = DEFAULT_AUTHOR;
 
   /**
@@ -32,13 +32,13 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
    * Indicates the ref from which to get the parent commit.
    */
   @DocField(description = "Indicates the ref from which to get the parent commit")
-  public void setPullFromRef(String pullFromRef) {
-    this.pullFromRef = pullFromRef;
+  public void setFetch(String fetch) {
+    this.fetch = fetch;
   }
 
   protected void checkRequiredFields() throws ConfigValidationException {
     ConfigValidationException.checkNotMissing(url, "url");
-    ConfigValidationException.checkNotMissing(pullFromRef, "pullFromRef");
+    ConfigValidationException.checkNotMissing(fetch, "fetch");
   }
 
   /**

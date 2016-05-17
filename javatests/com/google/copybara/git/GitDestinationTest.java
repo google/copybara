@@ -58,10 +58,10 @@ public class GitDestinationTest {
 
   @Test
   public void errorIfPushToRefMissing() throws ConfigValidationException {
-    yaml.setPullFromRef("master");
+    yaml.setFetch("master");
     yaml.setUrl("file:///foo");
     thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("pushToRef");
+    thrown.expectMessage("push");
     destinationFirstCommit();
   }
 
@@ -92,8 +92,8 @@ public class GitDestinationTest {
 
   @Test
   public void processFirstCommit() throws Exception {
-    yaml.setPullFromRef("testPullFromRef");
-    yaml.setPushToRef("testPushToRef");
+    yaml.setFetch("testPullFromRef");
+    yaml.setPush("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     destinationFirstCommit().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG);
 
@@ -109,8 +109,8 @@ public class GitDestinationTest {
 
   @Test
   public void processFetchRefDoesntExist() throws Exception {
-    yaml.setPullFromRef("testPullFromRef");
-    yaml.setPushToRef("testPushToRef");
+    yaml.setFetch("testPullFromRef");
+    yaml.setPush("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     thrown.expect(RepoException.class);
@@ -120,8 +120,8 @@ public class GitDestinationTest {
 
   @Test
   public void processCommitDeletesAndAddsFiles() throws Exception {
-    yaml.setPullFromRef("pullFromBar");
-    yaml.setPushToRef("pushToFoo");
+    yaml.setFetch("pullFromBar");
+    yaml.setPush("pushToFoo");
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
     destinationFirstCommit().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG);
@@ -144,8 +144,8 @@ public class GitDestinationTest {
 
   @Test
   public void previousImportReference() throws Exception {
-    yaml.setPullFromRef("master");
-    yaml.setPushToRef("master");
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Path file = workdir.resolve("test.txt");
 
@@ -169,8 +169,8 @@ public class GitDestinationTest {
   }
 
   private void verifySpecifyAuthorField(String expected) throws Exception {
-    yaml.setPullFromRef("master");
-    yaml.setPushToRef("master");
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
@@ -226,8 +226,8 @@ public class GitDestinationTest {
 
   @Test
   public void writesOriginTimestampToAuthorField() throws Exception {
-    yaml.setPullFromRef("master");
-    yaml.setPushToRef("master");
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     destinationFirstCommit().process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG);
@@ -241,8 +241,8 @@ public class GitDestinationTest {
 
   @Test
   public void canOverrideCommitterName() throws Exception {
-    yaml.setPullFromRef("master");
-    yaml.setPushToRef("master");
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     options.git.gitCommitterName = "Bara Kopi";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -259,8 +259,8 @@ public class GitDestinationTest {
 
   @Test
   public void canOverrideCommitterEmail() throws Exception {
-    yaml.setPullFromRef("master");
-    yaml.setPushToRef("master");
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     options.git.gitCommitterEmail = "bara.bara@gocha.gocha";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -281,8 +281,8 @@ public class GitDestinationTest {
   public void gitUserNameMustBeConfigured() throws Exception {
     options.git.gitCommitterName = "";
     options.git.gitCommitterEmail = "foo@bara";
-    yaml.setPullFromRef("master");
-    yaml.setPushToRef("master");
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
@@ -294,8 +294,8 @@ public class GitDestinationTest {
   public void gitUserEmailMustBeConfigured() throws Exception {
     options.git.gitCommitterName = "Foo Bara";
     options.git.gitCommitterEmail = "";
-    yaml.setPullFromRef("master");
-    yaml.setPushToRef("master");
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");

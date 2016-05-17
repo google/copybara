@@ -36,8 +36,8 @@ all this boilerplate in there
   >   defaultTrackingRef: "master"
   > destination: !GitDestination
   >   url: "file://$PWD/destination"
-  >   pullFromRef: "master"
-  >   pushToRef: "master"
+  >   fetch: "master"
+  >   push: "master"
   > transformations:
   >   - !Replace
   >     before:       food

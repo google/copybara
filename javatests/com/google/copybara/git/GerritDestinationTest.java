@@ -73,7 +73,7 @@ public class GerritDestinationTest {
 
   @Test
   public void gerritChangeIdChangesBetweenCommits() throws Exception {
-    yaml.setPullFromRef("master");
+    yaml.setFetch("master");
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
     options.git.gitFirstCommit = true;
@@ -94,7 +94,7 @@ public class GerritDestinationTest {
 
   @Test
   public void specifyChangeId() throws Exception {
-    yaml.setPullFromRef("master");
+    yaml.setFetch("master");
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
 
@@ -120,7 +120,7 @@ public class GerritDestinationTest {
   }
 
   private void verifySpecifyAuthorField(String expected) throws Exception {
-    yaml.setPullFromRef("master");
+    yaml.setFetch("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
@@ -163,7 +163,7 @@ public class GerritDestinationTest {
 
   @Test
   public void writesOriginTimestampToAuthorField() throws Exception {
-    yaml.setPullFromRef("master");
+    yaml.setFetch("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
@@ -185,14 +185,14 @@ public class GerritDestinationTest {
     yaml = new Yaml();
     yaml.setUrl("file:///foo");
     thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("missing required field 'pullFromRef'");
+    thrown.expectMessage("missing required field 'fetch'");
     destination();
   }
 
   @Test
   public void validationErrorForMissingUrl() throws Exception {
     yaml = new Yaml();
-    yaml.setPullFromRef("master");
+    yaml.setFetch("master");
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("missing required field 'url'");
     destination();

@@ -50,20 +50,20 @@ public final class GitDestination implements Destination {
 
   private final String configName;
   private final String repoUrl;
-  private final String pullFromRef;
-  private final String pushToRef;
+  private final String fetch;
+  private final String push;
   private final String author;
   private final GitOptions gitOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
 
-  GitDestination(String configName, String repoUrl, String pullFromRef, String pushToRef,
+  GitDestination(String configName, String repoUrl, String fetch, String push,
       String author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
       Console console) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
-    this.pullFromRef = Preconditions.checkNotNull(pullFromRef);
-    this.pushToRef = Preconditions.checkNotNull(pushToRef);
+    this.fetch = Preconditions.checkNotNull(fetch);
+    this.push = Preconditions.checkNotNull(push);
     this.author = Preconditions.checkNotNull(author);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
@@ -100,7 +100,7 @@ public final class GitDestination implements Destination {
     console.progress("Git Destination: Fetching " + repoUrl);
     GitRepository scratchClone = cloneBaseline();
     if (!gitOptions.gitFirstCommit) {
-      console.progress("Git Destination: Checking out " + pullFromRef);
+      console.progress("Git Destination: Checking out " + fetch);
       scratchClone.simpleCommand("checkout", "-q", "FETCH_HEAD");
     }
     if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
@@ -118,19 +118,19 @@ public final class GitDestination implements Destination {
         "--date", timestamp + " +0000",
         "-m", commitGenerator.message(changesSummary, alternate, originRef));
     console.progress("Git Destination: Pushing to " + repoUrl);
-    alternate.simpleCommand("push", repoUrl, "HEAD:" + pushToRef);
+    alternate.simpleCommand("push", repoUrl, "HEAD:" + push);
   }
 
   private GitRepository cloneBaseline() throws RepoException {
     GitRepository scratchClone = GitRepository.initScratchRepo(gitOptions, verbose);
     try {
-      scratchClone.simpleCommand("fetch", repoUrl, pullFromRef);
+      scratchClone.simpleCommand("fetch", repoUrl, fetch);
       if (gitOptions.gitFirstCommit) {
-        throw new RepoException("'" + pullFromRef + "' already exists in '" + repoUrl + "'.");
+        throw new RepoException("'" + fetch + "' already exists in '" + repoUrl + "'.");
       }
     } catch (CannotFindReferenceException e) {
       if (!gitOptions.gitFirstCommit) {
-        throw new RepoException("'" + pullFromRef + "' doesn't exist in '" + repoUrl
+        throw new RepoException("'" + fetch + "' doesn't exist in '" + repoUrl
             + "'. Use --git-first-commit flag if you want to push anyway");
       }
     }
@@ -161,8 +161,8 @@ public final class GitDestination implements Destination {
     return MoreObjects.toStringHelper(this)
         .add("configName", configName)
         .add("repoUrl", repoUrl)
-        .add("pullFromRef", pullFromRef)
-        .add("pushToRef", pushToRef)
+        .add("fetch", fetch)
+        .add("push", push)
         .add("gitOptions", gitOptions)
         .add("verbose", verbose)
         .add("commitGenerator", commitGenerator)
@@ -173,7 +173,7 @@ public final class GitDestination implements Destination {
       description = "Creates a commit in a git repository using the transformed worktree",
       elementKind = Destination.class, flags = {GitOptions.class})
   public static final class Yaml extends AbstractDestinationYaml {
-    private String pushToRef;
+    private String push;
 
     /**
      * Indicates the ref to push to after the repository has been updated. For instance, to create a
@@ -181,8 +181,8 @@ public final class GitDestination implements Destination {
      * {@code defaultTrackingRef}.
      */
     @DocField(description = "Reference to use for pushing the change, for example 'master'")
-    public void setPushToRef(String pushToRef) {
-      this.pushToRef = pushToRef;
+    public void setPush(String push) {
+      this.push = push;
     }
 
     @Override
@@ -192,8 +192,8 @@ public final class GitDestination implements Destination {
       return new GitDestination(
           configName,
           url,
-          ConfigValidationException.checkNotMissing(pullFromRef, "pullFromRef"),
-          ConfigValidationException.checkNotMissing(pushToRef, "pushToRef"),
+          ConfigValidationException.checkNotMissing(fetch, "fetch"),
+          ConfigValidationException.checkNotMissing(push, "push"),
           author,
           options.get(GitOptions.class),
           generalOptions.isVerbose(),

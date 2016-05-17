@@ -106,7 +106,7 @@ public final class GerritDestination implements Destination {
       return new GerritDestination(
           new GitDestination(
               configName,
-              url, pullFromRef, "refs/for/master", author,
+              url, fetch, "refs/for/master", author,
               options.get(GitOptions.class),
               generalOptions.isVerbose(),
               new CommitGenerator(options.get(GerritOptions.class)), generalOptions.console()));
