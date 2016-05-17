@@ -9,7 +9,6 @@ import com.google.copybara.config.ConfigValidationException;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.util.List;
 
 /**
  * A {@link PathMatcher} builder that creates a PathMatcher relative to a {@link Path}.
@@ -31,7 +30,7 @@ public final class PathMatcherBuilder {
    * PathMatcherBuilder#relativeTo(Path)}.
    * @param paths list of strings representing globs
    */
-  public static PathMatcherBuilder create(FileSystem validationFs, final List<String> paths)
+  public static PathMatcherBuilder create(FileSystem validationFs, final Iterable<String> paths)
       throws ConfigValidationException {
     ImmutableList<String> pathsCopy = ImmutableList.copyOf(paths);
     // Validate the paths so that they don't contain invalid patterns.
