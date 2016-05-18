@@ -49,6 +49,14 @@ public final class AnsiConsole implements Console {
   }
 
   @Override
+  public void info(String message) {
+    synchronized (lock) {
+      lastWasProgress = false;
+      output.println(GREEN.write("INFO: ") + message);
+    }
+  }
+
+  @Override
   public void progress(String progress) {
     synchronized (lock) {
       if (lastWasProgress) {

@@ -29,6 +29,11 @@ public class LogConsole implements Console {
   }
 
   @Override
+  public void info(String message) {
+    printMessage("INFO", message);
+  }
+
+  @Override
   public void progress(final String task) {
     printMessage("TASK", task);
   }

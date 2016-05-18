@@ -16,6 +16,14 @@ public interface Console {
   void warn(String message);
 
   /**
+   * Print an informational message in the console
+   *
+   * <p> Warning: Do not abuse the usage of this method. We don't
+   * want to spam our users.
+   */
+  void info(String message);
+
+  /**
    * Print a progress message in the console
    */
   void progress(String progress);
