@@ -58,18 +58,4 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
       getDestination().process(workdir, ref, timestamp, message);
     }
   }
-
-  private Reference<O> getLastRev() throws RepoException {
-    if (lastRevisionFlag != null) {
-      return getOrigin().resolve(lastRevisionFlag);
-    }
-    String labelName = getOrigin().getLabelName();
-    String previousRef = getDestination().getPreviousRef(labelName);
-    if (previousRef == null) {
-      throw new RepoException(String.format(
-          "Previous revision label %s could not be found in %s and --last-rev flag"
-              + " was not passed", labelName, getDestination()));
-    }
-    return getOrigin().resolve(previousRef);
-  }
 }

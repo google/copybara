@@ -5,6 +5,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -38,10 +39,10 @@ public abstract class Workflow<O extends Origin<O>> {
   private final Origin<O> origin;
   private final Destination destination;
   private final List<Transformation> transformations;
-  @Nullable
-  protected final String lastRevisionFlag;
-  protected final Console console;
   private final PathMatcherBuilder excludedOriginPaths;
+  @Nullable
+  final String lastRevisionFlag;
+  final Console console;
 
   Workflow(String configName, String name, Origin<O> origin, Destination destination,
       ImmutableList<Transformation> transformations, @Nullable String lastRevisionFlag,
@@ -141,6 +142,26 @@ public abstract class Workflow<O extends Origin<O>> {
           String.format("Nothing was deleted in the workdir for excludedOriginPaths: '%s'",
               pathMatcher));
     }
+  }
+
+  /**
+   * Returns the last revision that was imported from this origin to the destination.
+   *
+   * <p>If {@code --last-rev} is specified, that revision will be used. Otherwise, the previous
+   * reference will be resolved in the destination with the origin label.
+   */
+  ReferenceFiles<O> getLastRev() throws RepoException {
+    if (lastRevisionFlag != null) {
+      return getOrigin().resolve(lastRevisionFlag);
+    }
+    String labelName = getOrigin().getLabelName();
+    String previousRef = getDestination().getPreviousRef(labelName);
+    if (previousRef == null) {
+      throw new RepoException(String.format(
+          "Previous revision label %s could not be found in %s and --last-rev flag"
+              + " was not passed", labelName, getDestination()));
+    }
+    return getOrigin().resolve(previousRef);
   }
 
   @Override
