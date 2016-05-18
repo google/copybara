@@ -1,7 +1,5 @@
 package com.google.copybara;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
@@ -12,7 +10,6 @@ import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -24,30 +21,18 @@ import javax.annotation.Nullable;
  */
 class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
 
-  private final String configName;
-  @Nullable
-  private final String lastRevision;
-
   IterativeWorkflow(String configName, String workflowName, Origin<O> origin,
-      Destination destination,
-      ImmutableList<Transformation> transformations, @Nullable String lastRevision,
-      Console console, PathMatcherBuilder excludedOriginPaths) {
-    super(workflowName, origin, destination, transformations, console, excludedOriginPaths);
-    this.configName = Preconditions.checkNotNull(configName);
-    this.lastRevision = lastRevision;
+      Destination destination, ImmutableList<Transformation> transformations,
+      @Nullable String lastRevision, Console console, PathMatcherBuilder excludedOriginPaths) {
+    super(configName, workflowName, origin, destination, transformations, lastRevision,
+        console, excludedOriginPaths);
   }
 
   @Override
-  public void run(Path workdir, @Nullable String sourceRef)
+  public void runForRef(Path workdir, ReferenceFiles<O> to)
       throws RepoException, IOException {
-    console.progress("Getting last revision");
-    Reference<O> from = getLastRevision();
-    console.progress("Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
-    Reference<O> to = getOrigin().resolve(sourceRef);
-
+    Reference<O> from = getLastRef();
     ImmutableList<Change<O>> changes = getOrigin().changes(from, to);
-    logger.log(Level.INFO, String.format("Running Copybara for config '%s', workflow '%s' (%s)",
-        configName, getName(), WorkflowMode.ITERATIVE));
     for (int i = 0; i < changes.size(); i++) {
       Change<O> change = changes.get(i);
       String prefix = String.format(
@@ -75,7 +60,7 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
     }
   }
 
-  private Reference<O> getLastRevision() throws RepoException {
+  private Reference<O> getLastRef() throws RepoException {
     if (lastRevision != null) {
       return getOrigin().resolve(lastRevision);
     }

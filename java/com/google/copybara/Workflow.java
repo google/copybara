@@ -1,9 +1,11 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -31,25 +33,31 @@ public abstract class Workflow<O extends Origin<O>> {
 
   protected final Logger logger = Logger.getLogger(this.getClass().getName());
 
+  private final String configName;
   private final String name;
   private final Origin<O> origin;
   private final Destination destination;
   private final List<Transformation> transformations;
+  @Nullable
+  protected final String lastRevision;
   protected final Console console;
   private final PathMatcherBuilder excludedOriginPaths;
 
-  Workflow(String name,
-      Origin<O> origin, Destination destination, ImmutableList<Transformation> transformations,
+  Workflow(String configName, String name, Origin<O> origin, Destination destination,
+      ImmutableList<Transformation> transformations, @Nullable String lastRevision,
       Console console, PathMatcherBuilder excludedOriginPaths) {
+    this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.transformations = Preconditions.checkNotNull(transformations);
+    this.lastRevision = lastRevision;
     this.console = Preconditions.checkNotNull(console);
     this.excludedOriginPaths = excludedOriginPaths;
   }
 
-  public String getName() {
+  @VisibleForTesting
+  String getName() {
     return name;
   }
 
@@ -74,7 +82,24 @@ public abstract class Workflow<O extends Origin<O>> {
     return transformations;
   }
 
-  public abstract void run(Path workdir, @Nullable String sourceRef)
+  public final void run(Path workdir, @Nullable String sourceRef)
+      throws RepoException, IOException {
+    console.progress("Cleaning working directory");
+    FileUtil.deleteAllFilesRecursively(workdir);
+
+    console.progress("Getting last revision: "
+        + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
+    ReferenceFiles<O> resolvedRef = getOrigin().resolve(sourceRef);
+    logger.log(Level.INFO,
+        String.format(
+            "Running Copybara for config '%s', workflow '%s' (%s) and ref '%s': %s",
+            configName, name, this.getClass().getSimpleName(), resolvedRef.asString(),
+            this.toString()));
+
+    runForRef(workdir, resolvedRef);
+  }
+
+  abstract void runForRef(Path workdir, ReferenceFiles<O> resolvedRef)
       throws RepoException, IOException;
 
   /**
@@ -121,12 +146,17 @@ public abstract class Workflow<O extends Origin<O>> {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
+        .add("configName", configName)
         .add("name", name)
         .add("origin", origin)
         .add("destination", destination)
         .add("transformations", transformations)
         .add("excludedOriginPaths", excludedOriginPaths)
         .toString();
+  }
+
+  protected final String getConfigName() {
+    return configName;
   }
 
   /**
@@ -208,7 +238,9 @@ public abstract class Workflow<O extends Origin<O>> {
         case ITERATIVE:
           return new IterativeWorkflow<>(configName, name, origin, destination, transforms,
               generalOptions.getLastRevision(), console, excludedOriginPaths);
-
+        case CHERRYPICK:
+          return new CherrypickWorkflow<>(configName, name, origin, destination, transforms,
+              generalOptions.getLastRevision(), console, excludedOriginPaths);
         default:
           throw new UnsupportedOperationException(mode + " still not implemented");
       }

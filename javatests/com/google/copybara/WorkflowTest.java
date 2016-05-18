@@ -63,11 +63,11 @@ public class WorkflowTest {
     replace.setRegexGroups(ImmutableMap.of("line", ".+"));
   }
 
-    private Workflow workflow() throws ConfigValidationException, IOException, EnvironmentException {
+  private Workflow workflow() throws ConfigValidationException, IOException, EnvironmentException {
     yaml.setOrigin(origin);
     yaml.setDestination(destination);
     yaml.setTransformations(transformations);
-    origin.addSimpleChange(42);
+    origin.addSimpleChange(/*timestamp*/ 42);
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
@@ -79,6 +79,16 @@ public class WorkflowTest {
     yaml.setTransformations(transformations);
     options.general = new GeneralOptions(options.general.getFileSystem(),
         options.general.isVerbose(), previousRef, options.general.console());
+    return yaml.withOptions(options.build(), CONFIG_NAME);
+  }
+
+  private Workflow cherrypickWorkflow() throws ConfigValidationException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.CHERRYPICK);
+    yaml.setTransformations(transformations);
+    options.general = new GeneralOptions(options.general.getFileSystem(),
+        options.general.isVerbose(), /*previousRef*/ null, options.general.console());
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
@@ -95,8 +105,8 @@ public class WorkflowTest {
 
   @Test
   public void iterativeWorkflowTest() throws Exception {
-    for (int i = 0; i < 61; i++) {
-      origin.addSimpleChange(i);
+    for (int timestamp = 0; timestamp < 61; timestamp++) {
+      origin.addSimpleChange(timestamp);
     }
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"42");
 
@@ -119,10 +129,19 @@ public class WorkflowTest {
 
   @Test
   public void iterativeWorkflowNoPreviousRef() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
     Workflow workflow = iterativeWorkflow(/*previousRef=*/null);
     thrown.expect(RepoException.class);
     thrown.expectMessage("Previous revision label Dummy-RevId could not be found");
-    workflow.run(workdir, /*sourceRef=*/"50");
+    workflow.run(workdir, /*sourceRef=*/"0");
+  }
+
+  @Test
+  public void cherrypickWorkflowTest() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
+    Workflow workflow = cherrypickWorkflow();
+    workflow.run(workdir, /*sourceRef*/ "0");
+    Truth.assertThat(destination.processed).hasSize(1);
   }
 
   @Test
@@ -146,7 +165,7 @@ public class WorkflowTest {
   @Test
   public void sendsOriginTimestampToDest() throws Exception {
     Workflow workflow = workflow();
-    origin.addSimpleChange(42918273);
+    origin.addSimpleChange(/*timestamp*/ 42918273);
     workflow.run(workdir, origin.getHead());
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getTimestamp())

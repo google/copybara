@@ -12,8 +12,10 @@ public enum WorkflowMode {
    * Import each origin change individually
    */
   ITERATIVE,
-  // TODO(copybara): Cherrypick an individual change from origin into destination
-  //CHERRYPICK,
+  /**
+   * Cherrypick an individual change from origin into destination
+   */
+  CHERRYPICK,
   // TODO(copybara): Import an origin tree state diffed by a common parent
   // in destination. This could be a GH Pull Request, a Gerrit Change, etc.
   //CHANGE_REQUEST,
