@@ -26,6 +26,7 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
@@ -94,6 +95,9 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
       for (Entry<String, ExecutableElement> entry : getDeclaredSetters(classElement).entrySet()) {
         DocField fieldAnnotation = getFieldAnnotationOrFail(classElement, entry.getValue());
+        if (fieldAnnotation.undocumented()) {
+          continue;
+        }
         sb.append(entry.getKey());
         sb.append(" | ");
         sb.append(fieldAnnotation.required() ? "*required;* " : "*optional;* ");
@@ -101,6 +105,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
             : " *default:" + fieldAnnotation.defaultValue() + ";*");
         sb.append("<br/>");
         sb.append(fieldAnnotation.description());
+        maybeAddEnumDescription(entry.getValue(), sb);
         sb.append("\n");
       }
       Element elementKind = getAnnotationSingleClassField(classElement, "elementKind").asElement();
@@ -141,6 +146,35 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
           writer.append(groupValues).append("\n");
         }
       }
+    }
+  }
+
+  private void maybeAddEnumDescription(ExecutableElement method, StringBuilder sb)
+      throws ElementException {
+    VariableElement variableElement = method.getParameters().get(0);
+    TypeMirror typeMirror = variableElement.asType();
+    // Enums are declared classes
+    if (typeMirror.getKind() != TypeKind.DECLARED) {
+      return;
+    }
+    TypeElement typeElement = (TypeElement) processingEnv.getTypeUtils()
+        .asElement(typeMirror);
+    if (typeElement.getKind() == ElementKind.ENUM) {
+      sb.append("<br>**Values**:<ul>");
+      for (Element enumValue : typeElement.getEnclosedElements()) {
+        if (enumValue.getKind() == ElementKind.ENUM_CONSTANT) {
+          DocField docField = getFieldAnnotationOrFail(typeElement, enumValue);
+          if (docField.undocumented()) {
+            continue;
+          }
+          sb.append("<li>*");
+          sb.append(enumValue);
+          sb.append("*: ");
+          sb.append(docField.description());
+          sb.append("</li>");
+        }
+      }
+      sb.append("</ul>");
     }
   }
 
@@ -200,7 +234,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         && (method.getReturnType().getKind() == TypeKind.VOID);
   }
 
-  private DocField getFieldAnnotationOrFail(TypeElement cls, ExecutableElement setter)
+  private DocField getFieldAnnotationOrFail(TypeElement cls, Element setter)
       throws ElementException {
     DocField annotation = setter.getAnnotation(DocField.class);
     if (annotation == null) {

@@ -102,6 +102,15 @@ public class MarkdownGeneratorTest {
     assertThat(content).contains("my_description");
   }
 
+  @Test
+  public void testEnums() throws IOException {
+    byElement.put(DocElement.class, classAsElement(EnumExample.class));
+    step.process(byElement);
+    String content = Files.toString(new File(tempDir, "Origin.md"), StandardCharsets.UTF_8);
+    assertThat(content).contains("one description");
+    assertThat(content).contains("two description");
+  }
+
   private ClassSymbol classAsElement(Class<?> clazz) {
     return env.getElementUtils().getTypeElement(clazz.getCanonicalName());
   }
@@ -128,6 +137,22 @@ public class MarkdownGeneratorTest {
     @DocField(description = "field with default", defaultValue = "default_value")
     public void setFieldWithDefault(String name) {
 
+    }
+  }
+
+  public enum MyTest {
+    @DocField(description = "one description")
+    ONE,
+    @DocField(description = "two description")
+    TWO
+  }
+
+  @DocElement(yamlName = "yaml_name", description = "my_description", elementKind = Origin.class,
+      flags = SomeOptions.class)
+  public static final class EnumExample {
+
+    @DocField(description = "some field")
+    public void setEnum(MyTest test) {
     }
   }
 

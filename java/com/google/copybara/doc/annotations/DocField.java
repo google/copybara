@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * A field documentation for a {@link DocElement} type.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
+@Target({ElementType.METHOD, ElementType.FIELD})
 public @interface DocField {
 
   String description();
@@ -17,4 +17,6 @@ public @interface DocField {
   boolean required() default true;
 
   String defaultValue() default "none";
+
+  boolean undocumented() default false;
 }
