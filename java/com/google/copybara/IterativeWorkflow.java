@@ -23,16 +23,15 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
 
   IterativeWorkflow(String configName, String workflowName, Origin<O> origin,
       Destination destination, ImmutableList<Transformation> transformations,
-      @Nullable String lastRevision, Console console, PathMatcherBuilder excludedOriginPaths) {
-    super(configName, workflowName, origin, destination, transformations, lastRevision,
+      @Nullable String lastRevisionFlag, Console console, PathMatcherBuilder excludedOriginPaths) {
+    super(configName, workflowName, origin, destination, transformations, lastRevisionFlag,
         console, excludedOriginPaths);
   }
 
   @Override
   public void runForRef(Path workdir, ReferenceFiles<O> to)
       throws RepoException, IOException {
-    Reference<O> from = getLastRef();
-    ImmutableList<Change<O>> changes = getOrigin().changes(from, to);
+    ImmutableList<Change<O>> changes = getOrigin().changes(getLastRev(), to);
     for (int i = 0; i < changes.size(); i++) {
       Change<O> change = changes.get(i);
       String prefix = String.format(
@@ -60,15 +59,15 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
     }
   }
 
-  private Reference<O> getLastRef() throws RepoException {
-    if (lastRevision != null) {
-      return getOrigin().resolve(lastRevision);
+  private Reference<O> getLastRev() throws RepoException {
+    if (lastRevisionFlag != null) {
+      return getOrigin().resolve(lastRevisionFlag);
     }
     String labelName = getOrigin().getLabelName();
     String previousRef = getDestination().getPreviousRef(labelName);
     if (previousRef == null) {
       throw new RepoException(String.format(
-          "Previous revision label %s could not be found in %s and --last_revision flag"
+          "Previous revision label %s could not be found in %s and --last-rev flag"
               + " was not passed", labelName, getDestination()));
     }
     return getOrigin().resolve(previousRef);

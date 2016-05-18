@@ -39,19 +39,19 @@ public abstract class Workflow<O extends Origin<O>> {
   private final Destination destination;
   private final List<Transformation> transformations;
   @Nullable
-  protected final String lastRevision;
+  protected final String lastRevisionFlag;
   protected final Console console;
   private final PathMatcherBuilder excludedOriginPaths;
 
   Workflow(String configName, String name, Origin<O> origin, Destination destination,
-      ImmutableList<Transformation> transformations, @Nullable String lastRevision,
+      ImmutableList<Transformation> transformations, @Nullable String lastRevisionFlag,
       Console console, PathMatcherBuilder excludedOriginPaths) {
     this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.transformations = Preconditions.checkNotNull(transformations);
-    this.lastRevision = lastRevision;
+    this.lastRevisionFlag = lastRevisionFlag;
     this.console = Preconditions.checkNotNull(console);
     this.excludedOriginPaths = excludedOriginPaths;
   }
