@@ -5,7 +5,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -21,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -96,7 +96,6 @@ public abstract class Workflow<O extends Origin<O>> {
             "Running Copybara for config '%s', workflow '%s' (%s) and ref '%s': %s",
             configName, name, this.getClass().getSimpleName(), resolvedRef.asString(),
             this.toString()));
-
     runForRef(workdir, resolvedRef);
   }
 
@@ -162,6 +161,17 @@ public abstract class Workflow<O extends Origin<O>> {
               + " was not passed", labelName, getDestination()));
     }
     return getOrigin().resolve(previousRef);
+  }
+
+  /**
+   * Returns the timestamp of {@code ref}, if present. Otherwise returns the current time.
+   */
+  long getTimestamp(ReferenceFiles<O> ref) throws RepoException {
+    Long timestamp = ref.readTimestamp();
+    if (timestamp == null) {
+      timestamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+    }
+    return timestamp;
   }
 
   @Override

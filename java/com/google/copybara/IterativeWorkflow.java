@@ -1,7 +1,6 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.util.FileUtil;
@@ -46,16 +45,12 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
       removeExcludedFiles(workdir);
       runTransformations(workdir, prefix);
 
-      Long timestamp = ref.readTimestamp();
-      if (timestamp == null) {
-        timestamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
-      }
       String message = change.getMessage();
       if (!message.endsWith("\n")) {
         message += "\n";
       }
       // TODO(malcon): Show the prefix on destination
-      getDestination().process(workdir, ref, timestamp, message);
+      getDestination().process(workdir, ref, getTimestamp(ref), message);
     }
   }
 }

@@ -12,8 +12,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 /**
  * Migrates all pending changes as one change.
  */
@@ -37,11 +35,8 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
 
     runTransformations(workdir, /*progressPrefix*/ "");
 
-    Long timestamp = resolvedRef.readTimestamp();
-    if (timestamp == null) {
-      timestamp = System.currentTimeMillis() / 1000;
-    }
-    getDestination().process(workdir, resolvedRef, timestamp, getCommitMessage(resolvedRef));
+    getDestination().process(
+        workdir, resolvedRef, getTimestamp(resolvedRef), getCommitMessage(resolvedRef));
   }
 
   private String getCommitMessage(ReferenceFiles<O> resolvedRef) throws RepoException {
