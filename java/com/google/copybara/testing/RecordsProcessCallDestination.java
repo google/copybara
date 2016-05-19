@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.testing;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
@@ -99,6 +100,16 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
 
     public boolean filePresent(String fileName) {
       return workdir.containsKey(fileName);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("timestamp", timestamp)
+          .add("originRef", originRef)
+          .add("changesSummary", changesSummary)
+          .add("workdir", workdir)
+          .toString();
     }
   }
 }

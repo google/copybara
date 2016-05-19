@@ -3,6 +3,7 @@ package com.google.copybara;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
@@ -25,11 +26,18 @@ class CherrypickWorkflow<O extends Origin<O>> extends Workflow<O> {
   }
 
   @Override
-  public void runForRef(Path workdir, ReferenceFiles<O> resolvedRef)
-      throws RepoException, IOException {
-    // TODO(danielromero): Implement workflow
+  public void runForRef(Path workdir, ReferenceFiles<O> cherrypickRef)
+      throws RepoException, IOException, EnvironmentException, ValidationException {
+    console.progress("Checking out the cherrypick ref: " + cherrypickRef.asString());
+    cherrypickRef.checkout(workdir);
 
-    getDestination().process(workdir, resolvedRef, 0L, "");
+    // TODO(danielromero): Calculate diff with baseline and use that as workdir
+
+    runTransformations(workdir, /*progressPrefix*/ "");
+
+    Change<O> change = getOrigin().change(cherrypickRef);
+    getDestination().process(
+        workdir, cherrypickRef, getTimestamp(cherrypickRef), change.getMessage());
  }
 
 }

@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.common.truth.Truth;
 import com.google.copybara.Workflow.Yaml;
@@ -141,7 +142,14 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 1);
     Workflow workflow = cherrypickWorkflow();
     workflow.run(workdir, /*sourceRef*/ "0");
+
     Truth.assertThat(destination.processed).hasSize(1);
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary()).isEqualTo("0 change");
+    assertThat(change.getOriginRef().asString()).isEqualTo("0");
+    assertThat(change.numFiles()).isEqualTo(1);
+    assertThat(change.getTimestamp()).isEqualTo(1);
+    assertThat(change.getContent("file.txt")).isEqualTo(PREFIX + 0);
   }
 
   @Test
