@@ -1,5 +1,6 @@
 package com.google.copybara.testing;
 
+import com.google.common.base.MoreObjects;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
@@ -33,5 +34,12 @@ public class MockReference<O extends Origin<O>> implements Reference<O> {
   @Override
   public String getLabelName() {
     return MOCK_LABEL_REV_ID;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("reference", reference)
+        .toString();
   }
 }
