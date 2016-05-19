@@ -2,6 +2,13 @@
 
 licenses(["unencumbered"])  # Owned by Google. No external contributions
 
+load(":docs.bzl", "doc_generator")
+
+export_files = [
+    "doc.sh",
+    "docs.bzl",
+]
+
 java_binary(
     name = "copybara",
     srcs = ["Main.java"],
@@ -16,6 +23,11 @@ java_binary(
         "//third_party:jsr305",
         "//third_party:snakeyaml",
     ],
+)
+
+doc_generator(
+    name = "docs",
+    deps = [":copybara"],
 )
 
 java_library(

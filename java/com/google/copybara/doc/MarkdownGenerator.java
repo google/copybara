@@ -45,6 +45,11 @@ import javax.tools.StandardLocation;
  */
 public class MarkdownGenerator extends BasicAnnotationProcessor {
 
+  /**
+   * Elements that doesn't make sense to have a h2 header since they are unique.
+   */
+  private static final ImmutableSet<String> SKIP_HEADER_ELEMENTS = ImmutableSet
+      .of("Config", "Workflow");
   @Override
   public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latest();
@@ -87,7 +92,10 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
       DocElement annotation = classElement.getAnnotation(DocElement.class);
 
-      sb.append("## ").append(annotation.yamlName()).append("\n");
+      Element elementKind = getAnnotationSingleClassField(classElement, "elementKind").asElement();
+      if (!SKIP_HEADER_ELEMENTS.contains(elementKind.getSimpleName().toString())) {
+        sb.append("## ").append(annotation.yamlName()).append("\n");
+      }
       sb.append(annotation.description());
       sb.append("\n\n**Fields:**\n\n");
       sb.append("Name | Description\n");
@@ -108,7 +116,6 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         maybeAddEnumDescription(entry.getValue(), sb);
         sb.append("\n");
       }
-      Element elementKind = getAnnotationSingleClassField(classElement, "elementKind").asElement();
 
       StringBuilder flagsString = new StringBuilder();
       for (DeclaredType flag : getAnnotationListClassField(classElement, "flags")) {
@@ -141,7 +148,6 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
           .createResource(StandardLocation.SOURCE_OUTPUT, "", group.getSimpleName() + ".md");
 
       try (Writer writer = resource.openWriter()) {
-        writer.append("# ").append(group.getSimpleName()).append("\n\n");
         for (String groupValues : docByElementType.get(group)) {
           writer.append(groupValues).append("\n");
         }
