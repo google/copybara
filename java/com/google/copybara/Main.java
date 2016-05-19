@@ -14,6 +14,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOrigin;
 import com.google.copybara.localdir.FolderDestination;
 import com.google.copybara.localdir.LocalDestinationOptions;
+import com.google.copybara.transform.FileMove;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.ExitCode;
@@ -57,6 +58,7 @@ public class Main {
     return ImmutableList.of(
         // Transformations
         YamlParser.docTypeDescription(Replace.Yaml.class),
+        YamlParser.docTypeDescription(FileMove.Yaml.class),
         // Origins
         YamlParser.docTypeDescription(GitOrigin.Yaml.class),
         // Destinations

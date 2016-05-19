@@ -6,6 +6,7 @@ import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.Workflow;
 import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.TypeDescription;
@@ -31,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -65,7 +67,24 @@ public final class YamlParser {
         .checkNotNull(clazz.getAnnotation(DocElement.class),
             "%s class is not annotated with @%s",
             clazz.getName(), DocElement.class.getName());
-    return new TypeDescription(clazz, annotation.yamlName());
+    TypeDescription typeDescription = new TypeDescription(clazz, annotation.yamlName());
+    // Find @DocField elements with listType attribute to avoid having yaml configuration with
+    // !ClassName
+    try {
+      for (PropertyDescriptor property : Introspector.getBeanInfo(clazz).getPropertyDescriptors()) {
+        Method setter = property.getWriteMethod();
+        if (setter == null || !Collection.class.isAssignableFrom(setter.getParameterTypes()[0])) {
+          continue;
+        }
+        DocField docField = setter.getAnnotation(DocField.class);
+        if (!docField.listType().equals(Object.class)) {
+          typeDescription.putListPropertyType(property.getName(), docField.listType());
+        }
+      }
+    } catch (IntrospectionException e) {
+      throw new IllegalStateException("Error introspecting the class", e);
+    }
+    return typeDescription;
   }
 
   /**
@@ -107,6 +126,7 @@ public final class YamlParser {
      * This method is almost an exact copy of its super method except for a call to
      * {@code new GenericMethodProperty} instead of {@code new MethodProperty}.
      */
+    @Override
     protected Map<String, Property> getPropertiesMap(Class<?> type, BeanAccess bAccess)
         throws IntrospectionException {
       if (bAccess != BeanAccess.DEFAULT) {

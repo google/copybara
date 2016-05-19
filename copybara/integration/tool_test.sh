@@ -441,6 +441,42 @@ EOF
   expect_in_file "bar" destination/test.txt
 }
 
+function test_file_move() {
+  remote=$(temp_dir remote)
+
+  ( cd $remote
+    run_git init .
+    echo "foo" > test1.txt
+    echo "foo" > test2.txt
+    run_git add test1.txt test2.txt
+    run_git commit -m "first commit"
+  )
+  mkdir destination
+
+  cat > destination/test.copybara <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !FolderDestination {}
+    transformations:
+      - !MoveFiles
+        paths:
+          - before: test1.txt
+            after: test1.moved
+          - before: test2.txt
+            after: test2.moved
+EOF
+
+  copybara destination/test.copybara --folder-dir destination
+
+  expect_in_file "foo" destination/test1.moved
+  expect_in_file "foo" destination/test2.moved
+  [[ ! -z destination/test1.txt ]] || fail "test1.txt should have been moved"
+  [[ ! -z destination/test2.txt ]] || fail "test2.txt should have been moved"
+}
+
 function test_invalid_transformations_in_config() {
   cat > test.copybara <<EOF
 name: "cbtest-invalid-xform"

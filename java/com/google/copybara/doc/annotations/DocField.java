@@ -19,4 +19,10 @@ public @interface DocField {
   String defaultValue() default "none";
 
   boolean undocumented() default false;
+
+  /**
+   * Use when the elements of a list fields are always of the same type so that we can avoid
+   * using !FieldClass.
+   */
+  Class<?> listType() default Object.class;
 }
