@@ -254,7 +254,7 @@ public final class ReplaceTest {
     yaml.setAfter("after");
     writeFile(workdir.resolve("before_and_after"), "before_and_after");
 
-    thrown.expect(NotRoundtrippableException.class);
+    thrown.expect(ValidationException.class);
     thrown.expectMessage("before_and_after");
 
     yaml.withOptions(options.build()).transform(workdir);

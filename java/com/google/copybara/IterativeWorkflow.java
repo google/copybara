@@ -3,6 +3,7 @@ package com.google.copybara;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
@@ -29,7 +30,7 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
 
   @Override
   public void runForRef(Path workdir, ReferenceFiles<O> to)
-      throws RepoException, IOException {
+      throws RepoException, IOException, EnvironmentException, ValidationException {
     ImmutableList<Change<O>> changes = getOrigin().changes(getLastRev(), to);
     for (int i = 0; i < changes.size(); i++) {
       Change<O> change = changes.get(i);

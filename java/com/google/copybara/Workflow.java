@@ -10,6 +10,7 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
@@ -84,7 +85,7 @@ public abstract class Workflow<O extends Origin<O>> {
   }
 
   public final void run(Path workdir, @Nullable String sourceRef)
-      throws RepoException, IOException {
+      throws RepoException, IOException, EnvironmentException, ValidationException {
     console.progress("Cleaning working directory");
     FileUtil.deleteAllFilesRecursively(workdir);
 
@@ -100,7 +101,7 @@ public abstract class Workflow<O extends Origin<O>> {
   }
 
   abstract void runForRef(Path workdir, ReferenceFiles<O> resolvedRef)
-      throws RepoException, IOException;
+      throws RepoException, IOException, EnvironmentException, ValidationException;
 
   /**
    * Runs the transformations for the workflow
@@ -108,7 +109,8 @@ public abstract class Workflow<O extends Origin<O>> {
    * @param workdir working directory to use for the transformations
    * @param progressPrefix prefix to be used when printing progress messages to the console
    */
-  void runTransformations(Path workdir, String progressPrefix) throws RepoException {
+  void runTransformations(Path workdir, String progressPrefix)
+      throws EnvironmentException, ValidationException {
     for (int i = 0; i < transformations.size(); i++) {
       Transformation transformation = transformations.get(i);
       String transformMsg = String.format(
@@ -120,7 +122,7 @@ public abstract class Workflow<O extends Origin<O>> {
       try {
         transformation.transform(workdir);
       } catch (IOException e) {
-        throw new RepoException("Error applying transformation: " + transformation, e);
+        throw new EnvironmentException("Error applying transformation: " + transformation, e);
       }
     }
   }

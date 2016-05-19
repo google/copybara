@@ -1,12 +1,14 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.config;
 
+import com.google.copybara.transform.ValidationException;
+
 /**
  * Indicates that the data in the configuration is not valid or some error occurred during
- * configuration validation or parsing. For instance, this exception is thrownif a field is missing
+ * configuration validation or parsing. For instance, this exception is thrown if a field is missing
  * or is not formatted correctly.
  */
-public class ConfigValidationException extends Exception {
+public class ConfigValidationException extends ValidationException {
   public ConfigValidationException(String message) {
     super(message);
   }

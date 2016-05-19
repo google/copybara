@@ -86,7 +86,7 @@ public final class Replace implements Transformation {
     final Pattern afterRegex = after.toRegex(regexGroups);
     private final PathMatcher pathMatcher;
     boolean somethingWasChanged;
-
+    ValidationException error = null;
     TransformVisitor(PathMatcher pathMatcher) {
 
       this.pathMatcher = pathMatcher;
@@ -96,13 +96,14 @@ public final class Replace implements Transformation {
      * Transforms a single line which confirming that the current transformation can be applied in
      * reverse to get the original line back.
      */
-    private String transformLine(String originalLine) throws NotRoundtrippableException {
+    private String transformLine(String originalLine)
+        throws ValidationException {
       Matcher matcher = beforeRegex.matcher(originalLine);
       String newLine = matcher.replaceAll(after.template());
       matcher = afterRegex.matcher(newLine);
       String roundTrippedLine = matcher.replaceAll(before.template());
       if (!roundTrippedLine.equals(originalLine)) {
-        throw new NotRoundtrippableException(String.format(
+        throw new ValidationException(String.format(
             "Reverse-transform didn't generate the original text:\n"
                 + "    Expected : %s\n"
                 + "    Actual   : %s\n",
@@ -123,7 +124,12 @@ public final class Replace implements Transformation {
           Splitter.on('\n').split(new String(Files.readAllBytes(file), UTF_8)));
       List<String> newLines = new ArrayList<>(originalLines.size());
       for (String line : originalLines) {
-        newLines.add(transformLine(line));
+        try {
+          newLines.add(transformLine(line));
+        } catch (ValidationException e) {
+          error = e;
+          return FileVisitResult.TERMINATE;
+        }
       }
       if (!originalLines.equals(newLines)) {
         somethingWasChanged = true;
@@ -137,10 +143,12 @@ public final class Replace implements Transformation {
   }
 
   @Override
-  public void transform(Path workdir) throws IOException {
+  public void transform(Path workdir) throws IOException, ValidationException {
     TransformVisitor visitor = new TransformVisitor(fileMatcherBuilder.relativeTo(workdir));
     Files.walkFileTree(workdir, visitor);
-    if (!visitor.somethingWasChanged) {
+    if (visitor.error != null) {
+      throw visitor.error;
+    } else if (!visitor.somethingWasChanged) {
       throw new TransformationDoesNothingException(
           "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");
     }

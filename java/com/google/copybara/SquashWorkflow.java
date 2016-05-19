@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
@@ -29,7 +30,7 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
 
   @Override
   public void runForRef(Path workdir, ReferenceFiles<O> resolvedRef)
-      throws RepoException, IOException {
+      throws RepoException, IOException, EnvironmentException, ValidationException {
     resolvedRef.checkout(workdir);
     removeExcludedFiles(workdir);
 

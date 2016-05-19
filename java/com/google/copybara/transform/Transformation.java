@@ -19,11 +19,11 @@ public interface Transformation {
 
   /**
    * Transforms the files inside {@code workdir}
-   * TODO(malcon,matvore): Think if we want to remove workdir from this interface
    *
    * @throws IOException if an error occur during the access to the files
+   * @throws ValidationException if an error attributable to the user happened
    */
-  void transform(Path workdir) throws IOException;
+  void transform(Path workdir) throws IOException, ValidationException;
 
   /**
    * Return a high level description of what the transform is doing. Note that this should not be

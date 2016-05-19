@@ -15,6 +15,7 @@ import com.google.copybara.git.GitOrigin;
 import com.google.copybara.localdir.FolderDestination;
 import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.transform.Replace;
+import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
@@ -104,9 +105,12 @@ public class Main {
       printCauseChain(console, e);
       System.err.print(usage(jcommander));
       System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
-    } catch (RepoException | ConfigValidationException e) {
+    } catch (RepoException e) {
       printCauseChain(console, e);
       System.exit(ExitCode.REPOSITORY_ERROR.getCode());
+    } catch (ValidationException e) {
+      printCauseChain(console, e);
+      System.exit(ExitCode.CONFIGURATION_ERROR.getCode());
     } catch (EnvironmentException | IOException e) {
       handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
     } catch (RuntimeException e) {
