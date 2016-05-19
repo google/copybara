@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
@@ -104,13 +105,26 @@ public final class GitOrigin implements Origin<GitOrigin> {
       log = repository.simpleCommand("log", "--date=iso-strict", "--first-parent",
           fromRef.asString() + ".." + toRef.asString()).getStdout();
     }
-    Iterator<String> rawLines = Splitter.on('\n').split(log).iterator();
-    ImmutableList.Builder<Change<GitOrigin>> builder = ImmutableList.builder();
+    return buildChanges(log);
+  }
 
+  @Override
+  public Change<GitOrigin> change(Reference<GitOrigin> ref) throws RepoException {
+    // Throws CannotFindReferenceException if ref is invalid
+    String log =
+        repository.simpleCommand("log", "--date=iso-strict", "-1", ref.asString()).getStdout();
+    // The -1 flag guarantees that only one change is returned
+    return Iterables.getOnlyElement(buildChanges(log));
+  }
+
+  private ImmutableList<Change<GitOrigin>> buildChanges(String log) {
     // No changes. We cannot know until we run git log since fromRef can be null (HEAD)
     if (log.isEmpty()) {
       return ImmutableList.of();
     }
+
+    Iterator<String> rawLines = Splitter.on('\n').split(log).iterator();
+    ImmutableList.Builder<Change<GitOrigin>> builder = ImmutableList.builder();
 
     while (rawLines.hasNext()) {
       String rawCommit = rawLines.next();

@@ -150,6 +150,18 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   @Override
+  public Change<DummyOrigin> change(Reference<DummyOrigin> ref) throws RepoException {
+    int idx = Integer.parseInt(ref.asString());
+    DummyReference dummyRef;
+    try {
+      dummyRef = changes.get(idx);
+    } catch (IndexOutOfBoundsException e) {
+      throw new RepoException(String.format("Reference '%s' not found", ref));
+    }
+    return dummyRef.toChange();
+  }
+
+  @Override
   public String getLabelName() {
     return DUMMY_REV_ID;
   }

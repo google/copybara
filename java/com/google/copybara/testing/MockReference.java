@@ -1,5 +1,6 @@
 package com.google.copybara.testing;
 
+import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 
@@ -8,7 +9,7 @@ import javax.annotation.Nullable;
 /**
  * A mock reference of a change
  */
-public class MockReference implements Reference {
+public class MockReference<O extends Origin<O>> implements Reference<O> {
 
   public static final String MOCK_LABEL_REV_ID = "MockLabelRevId";
 

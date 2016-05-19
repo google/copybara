@@ -5,8 +5,10 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Change;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.RepoException;
+import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
 
 import org.joda.time.DateTime;
@@ -139,6 +141,33 @@ public class GitOriginTest {
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
     assertThat(changes).isEmpty();
+  }
+
+  @Test
+  public void testChange() throws IOException, RepoException {
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "change2", "test.txt", "some content2");
+
+    String head = git("rev-parse", "HEAD");
+    String lastCommit = head.substring(0, head.length() -1);
+    ReferenceFiles<GitOrigin> lastCommitRef = origin.resolve(lastCommit);
+    Change<GitOrigin> change = origin.change(lastCommitRef);
+
+    assertThat(change.getAuthor()).isEqualTo(author);
+    assertThat(change.firstLineMessage()).isEqualTo("change2");
+    assertThat(change.getReference().asString()).isEqualTo(lastCommitRef.asString());
+  }
+
+  @Test
+  public void testNoChange() throws IOException, RepoException {
+    // This is needed to initialize the local repo
+    origin.resolve(firstCommitRef);
+
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("Cannot find reference 'foo'");
+
+    Reference<GitOrigin> dummyRef = new MockReference<>("foo");
+    origin.change(dummyRef);
   }
 
   private void singleFileCommit(String author, String commitMessage, String fileName,

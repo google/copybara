@@ -212,6 +212,11 @@ public class YamlParserTest {
     }
 
     @Override
+    public Change<MockOrigin> change(Reference<MockOrigin> ref) throws RepoException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public String getLabelName() {
       return "Mock-RevId";
     }

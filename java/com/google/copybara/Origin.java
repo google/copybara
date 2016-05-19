@@ -2,8 +2,8 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.git.CannotFindReferenceException;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 import javax.annotation.Nullable;
@@ -74,6 +74,9 @@ public interface Origin<O extends Origin<O>> {
   /**
    * Returns the changes that happen in the interval (fromRef, toRef].
    *
+   * <p>If {@code fromRef} is null, returns all the changes from the first commit of the parent
+   * branch to {@code toRef}, both included.
+   *
    * @param fromRef the reference used in the latest invocation. If null it means that no
    * previous ref could be found or that the destination didn't store the ref.
    * @param toRef current reference to transform.
@@ -82,6 +85,15 @@ public interface Origin<O extends Origin<O>> {
    */
   ImmutableList<Change<O>> changes(@Nullable Reference<O> fromRef, Reference<O> toRef)
       throws RepoException;
+
+  /**
+   * Returns a change identified by {@code ref}.
+   *
+   * @param ref current reference to transform.
+   * @throws CannotFindReferenceException if the ref is invalid.
+   * @throws RepoException if any error happens during the computation of the diff.
+   */
+  Change<O> change(Reference<O> ref) throws RepoException;
 
   /**
    * Label name to be used in when creating a commit message in the destination to refer to a
