@@ -97,6 +97,7 @@ public abstract class Workflow<O extends Origin<O>> {
             "Running Copybara for config '%s', workflow '%s' (%s) and ref '%s': %s",
             configName, name, this.getClass().getSimpleName(), resolvedRef.asString(),
             this.toString()));
+    logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
     runForRef(workdir, resolvedRef);
   }
 
