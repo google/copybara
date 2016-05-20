@@ -133,7 +133,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 1);
     Workflow workflow = iterativeWorkflow(/*previousRef=*/null);
     thrown.expect(RepoException.class);
-    thrown.expectMessage("Previous revision label Dummy-RevId could not be found");
+    thrown.expectMessage("Previous revision label DummyOrigin-RevId could not be found");
     workflow.run(workdir, /*sourceRef=*/"0");
   }
 

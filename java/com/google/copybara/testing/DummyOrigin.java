@@ -34,7 +34,7 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
     this.fs = Jimfs.newFileSystem();
   }
 
-  private static final String DUMMY_REV_ID = "Dummy-RevId";
+  private static final String DUMMY_REV_ID = "DummyOrigin-RevId";
 
   public List<DummyReference> changes = new ArrayList<>();
 
@@ -96,11 +96,15 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   public void addSimpleChange(int timestamp) throws IOException {
+    addSimpleChange(timestamp, changes.size() + " change");
+  }
+
+  public void addSimpleChange(int timestamp, String message) throws IOException {
     int current = changes.size();
     Path path = fs.getPath("" + current);
     Files.createDirectories(path);
     Files.write(path.resolve("file.txt"), String.valueOf(current).getBytes());
-    addChange(timestamp, path, current + " change");
+    addChange(timestamp, path, message);
   }
 
   public void addChange(int timestamp, Path path, String message) {
@@ -120,7 +124,7 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
 
   @Override
   public ReferenceFiles<DummyOrigin> resolve(@Nullable final String reference) {
-    int idx = 0;
+    int idx = changes.size() - 1;
     if (reference != null) {
       idx = Integer.parseInt(reference);
     }
@@ -135,7 +139,7 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   public ImmutableList<Change<DummyOrigin>> changes(Reference<DummyOrigin> oldRef,
       @Nullable Reference<DummyOrigin> newRef) throws RepoException {
 
-    int current = Integer.parseInt(oldRef.asString()) + 1;
+    int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
 
     ImmutableList.Builder<Change<DummyOrigin>> result = ImmutableList.builder();
     while (current < changes.size()) {
