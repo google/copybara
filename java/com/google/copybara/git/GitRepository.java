@@ -4,7 +4,6 @@ import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -163,7 +162,7 @@ public final class GitRepository {
       }
       throw new RepoException("Error on git command: " + result.getStderr());
     } catch (BadExitStatusWithOutputException e) {
-      String stderr = e.getStdErr();
+      String stderr = e.stdErrAsString();
 
       for (Pattern error : REF_NOT_FOUND_ERRORS) {
         Matcher matcher = error.matcher(stderr);
@@ -174,7 +173,7 @@ public final class GitRepository {
       }
 
       throw new RepoException(
-          "Error executing 'git': " + e.getMessage() + ". Stderr: \n" + e.getStdErr(), e);
+          "Error executing 'git': " + e.getMessage() + ". Stderr: \n" + e.stdErrAsString(), e);
     } catch (CommandException e) {
       throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }

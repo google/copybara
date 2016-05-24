@@ -1,8 +1,6 @@
 package com.google.copybara.util;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.shell.BadExitStatusException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -14,9 +12,7 @@ import com.google.devtools.build.lib.shell.TerminationStatus;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,8 +25,7 @@ public final class CommandUtil {
   private static final Logger logger = Logger.getLogger(CommandUtil.class.getName());
   private static final byte[] NO_INPUT = new byte[]{};
 
-  private CommandUtil() {
-  }
+  private CommandUtil() {}
 
   /**
    * Executes a {@link Command} and writes to the console and the log depending on the exit code of
@@ -38,6 +33,15 @@ public final class CommandUtil {
    */
   public static CommandOutput executeCommand(Command cmd, boolean verbose)
       throws CommandException {
+    return executeCommand(cmd, NO_INPUT, verbose);
+  }
+
+  /**
+   * Executes a {@link Command} with the given input and writes to the console and the log depending
+   * on the exit code of the command and the verbose flag.
+   */
+  public static CommandOutput executeCommand(
+      Command cmd, byte[] input, boolean verbose) throws CommandException {
     Stopwatch stopwatch = Stopwatch.createStarted();
     String startMsg = "Executing ["
         + ShellUtils.prettyPrintArgv(Arrays.asList(cmd.getCommandLineElements())) + "]";
@@ -52,7 +56,7 @@ public final class CommandUtil {
 
     TerminationStatus exitStatus = null;
     try {
-      cmdResult = cmd.execute(NO_INPUT, new SimpleKillableObserver(),
+      cmdResult = cmd.execute(input, new SimpleKillableObserver(),
           // If verbose we stream to the user console too
           verbose ? new DemultiplexOutputStream(System.err, stdoutCollector) : stdoutCollector,
           verbose ? new DemultiplexOutputStream(System.err, stderrCollector) : stderrCollector,
@@ -65,8 +69,8 @@ public final class CommandUtil {
     } catch (BadExitStatusException e) {
       exitStatus = e.getResult().getTerminationStatus();
       throw new BadExitStatusWithOutputException(e.getCommand(), e.getResult(), e.getMessage(),
-          asString(stdoutCollector),
-          asString(stderrCollector));
+          stdoutCollector.toByteArray(),
+          stderrCollector.toByteArray());
     } finally {
       String finishMsg = "Command '" + cmd.getCommandLineElements()[0] + "' finished in "
           + stopwatch + ". " + (exitStatus != null ? exitStatus.toString() : "(No exit status)");
