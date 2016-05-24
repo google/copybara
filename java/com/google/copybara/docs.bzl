@@ -1,12 +1,12 @@
 def _doc_impl(ctx):
-  list=[]
+  jars=[]
   for dep in ctx.attr.deps:
     for jar in dep.java.transitive_source_jars:
-      list.append(jar)
+      jars.append(jar)
   ctx.action(
-      inputs=list,
+      inputs=jars,
       outputs=[ctx.outputs.out],
-      arguments=[ctx.outputs.out.path, ",".join(ctx.attr.elements)] + [f.path for f in list],
+      arguments=[ctx.outputs.out.path, ",".join(ctx.attr.elements)] + [f.path for f in jars],
       progress_message="Generating documentation for %s" % ctx.label,
       executable=ctx.executable._doc_tool)
 
