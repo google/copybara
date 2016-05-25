@@ -14,6 +14,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.Workflow;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.transform.ValidationException;
 
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;

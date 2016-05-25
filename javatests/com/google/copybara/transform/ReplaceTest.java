@@ -331,6 +331,18 @@ public final class ReplaceTest {
     assertFileContents("before_and_after", "after\\ ... still after\\");
   }
 
+  @Test
+  public void reverse() throws Exception {
+    yaml.setBefore("x${foo}y");
+    yaml.setAfter("y${foo}x");
+    yaml.setRegexGroups(ImmutableMap.of("foo", "[0-9]+"));
+    writeFile(workdir.resolve("file"), "!@# y123x ...");
+    yaml.withOptions(options.build())
+        .reverse()
+        .transform(workdir);
+    assertFileContents("file", "!@# x123y ...");
+  }
+
   private void prepareGlobTree() throws IOException {
     writeFile(workdir.resolve("file1.txt"), "foo");
     writeFile(workdir.resolve("file1.java"), "foo");

@@ -16,6 +16,7 @@ import com.google.copybara.localdir.FolderDestination;
 import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.transform.FileMove;
 import com.google.copybara.transform.Replace;
+import com.google.copybara.transform.Reverse;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
@@ -58,6 +59,7 @@ public class Main {
     return ImmutableList.of(
         // Transformations
         YamlParser.docTypeDescription(Replace.Yaml.class),
+        YamlParser.docTypeDescription(Reverse.Yaml.class),
         YamlParser.docTypeDescription(FileMove.Yaml.class),
         // Origins
         YamlParser.docTypeDescription(GitOrigin.Yaml.class),
