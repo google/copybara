@@ -90,7 +90,7 @@ public class FileSubjects {
       Path filePath = checkFile(filename);
       String realContents = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
       if (!realContents.equals(fileContents)) {
-        fail("has file", filePath, "with contents", fileContents);
+        failWithCustomSubject(filename + " file content equals", fileContents, realContents);
       }
       return this;
     }
