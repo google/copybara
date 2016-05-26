@@ -5,6 +5,7 @@ import static com.google.copybara.util.CommandUtil.executeCommand;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
@@ -29,6 +30,8 @@ import javax.annotation.Nullable;
  */
 public final class GitRepository {
 
+  private static final Pattern NOTHING_TO_COMMIT = Pattern.compile(
+      "nothing to commit, working directory clean");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
       ImmutableList.of(
           Pattern.compile("pathspec '(.+)' did not match any file"),
@@ -163,7 +166,10 @@ public final class GitRepository {
       throw new RepoException("Error on git command: " + result.getStderr());
     } catch (BadExitStatusWithOutputException e) {
       String stderr = e.stdErrAsString();
-
+      if (NOTHING_TO_COMMIT.matcher(e.stdOutAsString()).find()) {
+        throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
+            + "Is the change already migrated?");
+      }
       for (Pattern error : REF_NOT_FOUND_ERRORS) {
         Matcher matcher = error.matcher(stderr);
         if (matcher.find()) {

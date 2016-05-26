@@ -4,6 +4,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.MockReference.MOCK_LABEL_REV_ID;
 
+import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
@@ -105,6 +106,18 @@ public class GitDestinationTest {
     assertCommitCount(1, "testPushToRef");
 
     assertCommitHasOrigin("testPushToRef", "origin_ref");
+  }
+
+  @Test
+  public void processEmptyCommit() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPush("master");
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    MockReference ref = new MockReference("origin_ref");
+    destinationFirstCommit().process(workdir, ref, /*timestamp=*/424242420, COMMIT_MSG);
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage("empty change");
+    destination().process(workdir, ref, /*timestamp=*/424242421, COMMIT_MSG);
   }
 
   @Test
