@@ -2,6 +2,8 @@
 
 licenses(["unencumbered"])  # Owned by Google. No external contributions
 
+package(default_visibility = ["//visibility:public"])
+
 load(":docs.bzl", "doc_generator")
 
 export_files = [
@@ -13,9 +15,6 @@ java_binary(
     name = "copybara",
     srcs = ["Main.java"],
     main_class = "com.google.copybara.Main",
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         ":copybara_lib",
         "//third_party:guava",
@@ -36,9 +35,7 @@ java_library(
         ["**/*.java"],
         exclude = ["Main.java"],
     ),
-    visibility = [
-        "//visibility:public",
-    ],
+    javacopts = ["-Xlint:unchecked"],
     deps = [
         "//java/com/google/copybara/doc:annotations",
         "//third_party:guava",
@@ -48,5 +45,4 @@ java_library(
         "//third_party:shell",
         "//third_party:snakeyaml",
     ],
-    javacopts = ["-Xlint:unchecked"],
 )
