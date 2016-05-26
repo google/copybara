@@ -1,7 +1,9 @@
 package com.google.copybara.util;
 
+import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
+
+import com.google.copybara.testing.FileSubjects;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -13,14 +15,8 @@ import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 @RunWith(JUnit4.class)
 public class DiffUtilTest {
@@ -76,15 +72,21 @@ public class DiffUtilTest {
 
     DiffUtil.patch(destination, diffContents, /*verbose*/ true);
 
-    assertFileContents(left, "file1.txt", "foo");
-    assertFileContents(left, "b/file2.txt", "bar");
-    assertOnlyFiles(left, "file1.txt", "b/file2.txt");
-    assertFileContents(right, "file1.txt", "new foo");
-    assertFileContents(right, "c/file3.txt", "bar");
-    assertOnlyFiles(right, "file1.txt", "c/file3.txt");
-    assertFileContents(destination, "file1.txt", "new foo");
-    assertFileContents(destination, "c/file3.txt", "bar");
-    assertOnlyFiles(destination, "file1.txt", "c/file3.txt");
+    assertAbout(FileSubjects.path())
+        .that(left)
+        .containsFile("file1.txt", "foo")
+        .containsFile("b/file2.txt", "bar")
+        .containsNoMoreFiles();
+    assertAbout(FileSubjects.path())
+        .that(right)
+        .containsFile("file1.txt", "new foo")
+        .containsFile("c/file3.txt", "bar")
+        .containsNoMoreFiles();
+    assertAbout(FileSubjects.path())
+        .that(destination)
+        .containsFile("file1.txt", "new foo")
+        .containsFile("c/file3.txt", "bar")
+        .containsNoMoreFiles();
   }
 
   @Test
@@ -93,9 +95,11 @@ public class DiffUtilTest {
     writeFile(left, "b/file2.txt", "bar");
     DiffUtil.patch(left, /*empty diff*/ new byte[]{}, /*verbose*/ true);
 
-    assertFileContents(left, "file1.txt", "foo");
-    assertFileContents(left, "b/file2.txt", "bar");
-    assertOnlyFiles(left, "file1.txt", "b/file2.txt");
+    assertAbout(FileSubjects.path())
+        .that(left)
+        .containsFile("file1.txt", "foo")
+        .containsFile("b/file2.txt", "bar")
+        .containsNoMoreFiles();
   }
 
   private Path createDir(Path parent, String name) throws IOException {
@@ -108,32 +112,5 @@ public class DiffUtilTest {
     Path filePath = parent.resolve(fileName);
     Files.createDirectories(filePath.getParent());
     Files.write(parent.resolve(filePath), fileContents.getBytes(StandardCharsets.UTF_8));
-  }
-
-  private void assertFileContents(Path parent, String expectedFilename, String expectedContents)
-      throws IOException {
-    assertFileContents(parent.resolve(expectedFilename), expectedContents);
-  }
-
-  private void assertFileContents(Path expectedFilePath, String expectedContents)
-      throws IOException {
-    assertWithMessage("Expected file not found %s", expectedFilePath)
-        .that(Files.exists(expectedFilePath)).isTrue();
-    String realContents = new String(Files.readAllBytes(expectedFilePath), StandardCharsets.UTF_8);
-    assertWithMessage("Unexpected contents for file %s", expectedFilePath)
-        .that(realContents).isEqualTo(expectedContents);
-  }
-
-  private void assertOnlyFiles(final Path parent, String... expectedFiles) throws IOException {
-    final Set<String> onlyFiles = new HashSet<>(Arrays.asList(expectedFiles));
-    Files.walkFileTree(parent, new SimpleFileVisitor<Path>() {
-      @Override
-      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        if (!attrs.isDirectory()) {
-          assertThat(onlyFiles).contains(parent.relativize(file).toString());
-        }
-        return FileVisitResult.CONTINUE;
-      }
-    });
   }
 }

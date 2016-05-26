@@ -1,12 +1,13 @@
 package com.google.copybara.localdir;
 
-import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.common.collect.Lists;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.localdir.FolderDestination.Yaml;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
 
@@ -60,9 +61,12 @@ public class FolderDestinationTest {
     Destination destination = yaml.withOptions(options.build(), CONFIG_NAME);
     destination.process(workdir, new MockReference("origin_ref"),
         /*timestamp=*/424242420, "Not relevant");
-    assertFilesExist(localFolder, "one", "two", "root_file",
-        "one/file.java", "two/file.java", "test.txt", "dir/file.txt");
-    assertFilesDontExist(localFolder, "root_file2", "one/file.txt");
+
+    assertAbout(FileSubjects.path())
+        .that(localFolder)
+        .containsFiles("one", "two", "root_file",
+            "one/file.java", "two/file.java", "test.txt", "dir/file.txt")
+        .containsNoMoreFiles();
   }
 
   @Test
@@ -70,17 +74,5 @@ public class FolderDestinationTest {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("--folder-dir is required");
     yaml.withOptions(options.build(), CONFIG_NAME);
-  }
-
-  private void assertFilesExist(Path base, String... paths) {
-    for (String path : paths) {
-      assertThat(Files.exists(base.resolve(path))).named(path).isTrue();
-    }
-  }
-
-  private void assertFilesDontExist(Path base, String... paths) {
-    for (String path : paths) {
-      assertThat(Files.exists(base.resolve(path))).named(path).isFalse();
-    }
   }
 }

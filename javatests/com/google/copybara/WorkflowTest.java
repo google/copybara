@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
@@ -12,6 +13,7 @@ import com.google.common.truth.Truth;
 import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
@@ -204,7 +206,9 @@ public class WorkflowTest {
       // Expected.
       assertThat(e.getMessage()).contains("is not relative to");
     }
-    assertFilesExist(outsideFolder);
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFiles(outsideFolder);
   }
 
   @Test
@@ -218,7 +222,9 @@ public class WorkflowTest {
     } catch (RepoException e) {
       assertThat(e.getMessage()).contains("Nothing was deleted");
     }
-    assertFilesExist("folder/file.txt", "folder2/file.txt");
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFiles("folder/file.txt", "folder2/file.txt");
   }
 
   @Test
@@ -228,9 +234,12 @@ public class WorkflowTest {
     Workflow workflow = workflow();
     prepareExcludes();
     workflow.run(workdir, origin.getHead());
-    assertFilesExist("folder", "folder2");
-    assertFilesDontExist("folder/file.txt", "folder/subfolder/file.txt",
-        "folder/subfolder/file.java");
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFiles("folder", "folder2")
+        .containsNoFiles(
+            "folder/file.txt", "folder/subfolder/file.txt", "folder/subfolder/file.java");
   }
 
   @Test
@@ -240,8 +249,11 @@ public class WorkflowTest {
     Workflow workflow = workflow();
     prepareExcludes();
     workflow.run(workdir, origin.getHead());
-    assertFilesExist("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt");
-    assertFilesDontExist("folder/subfolder/file.java");
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFiles("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt")
+        .containsNoFiles("folder/subfolder/file.java");
   }
 
   @Test
@@ -290,17 +302,4 @@ public class WorkflowTest {
     Files.createDirectories(base.resolve(path).getParent());
     return Files.write(base.resolve(path), new byte[]{});
   }
-
-  private void assertFilesExist(String... paths) {
-    for (String path : paths) {
-      assertThat(Files.exists(workdir.resolve(path))).named(path).isTrue();
-    }
-  }
-
-  private void assertFilesDontExist(String... paths) {
-    for (String path : paths) {
-      assertThat(Files.exists(workdir.resolve(path))).named(path).isFalse();
-    }
-  }
-
 }

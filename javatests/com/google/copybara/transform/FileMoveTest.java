@@ -1,11 +1,12 @@
 package com.google.copybara.transform;
 
-import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.FileMove.MoveElement;
 
@@ -51,8 +52,10 @@ public class FileMoveTest {
     Files.write(workdir.resolve("folder2/two.before"), new byte[]{});
     mover.transform(workdir);
 
-    assertFilesExist("folder/one.after", "two.after");
-    assertFilesDontExist("one.after", "folder2/two.after");
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFiles("folder/one.after", "two.after")
+        .containsNoMoreFiles();
   }
 
   @Test
@@ -106,8 +109,11 @@ public class FileMoveTest {
     Files.write(workdir.resolve("one"), new byte[]{});
     FileMove mover = yaml.withOptions(options.build());
     mover.transform(workdir);
-    assertFilesExist("folder/two");
-    assertFilesDontExist("one");
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFiles("folder/two")
+        .containsNoMoreFiles();
   }
 
   private MoveElement createMove(String before, String after) throws ConfigValidationException {
@@ -116,17 +122,4 @@ public class FileMoveTest {
     result.setAfter(after);
     return result;
   }
-
-  private void assertFilesExist(String... paths) {
-    for (String path : paths) {
-      assertThat(Files.exists(workdir.resolve(path))).named(path).isTrue();
-    }
-  }
-
-  private void assertFilesDontExist(String... paths) {
-    for (String path : paths) {
-      assertThat(Files.exists(workdir.resolve(path))).named(path).isFalse();
-    }
-  }
-
 }

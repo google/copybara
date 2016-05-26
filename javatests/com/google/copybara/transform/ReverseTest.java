@@ -1,10 +1,11 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
-import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 
 import org.junit.Before;
@@ -44,7 +45,10 @@ public final class ReverseTest {
 
     writeFile(workdir.resolve("file"), "jkl;");
     yaml.withOptions(options.build()).transform(workdir);
-    assertFileContents("file", "asdf");
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFile("file", "asdf");
   }
 
   @Test
@@ -57,10 +61,6 @@ public final class ReverseTest {
         return null;
       }
     });
-  }
-
-  private void assertFileContents(String path, String expectedText) throws IOException {
-    assertThat(new String(Files.readAllBytes(workdir.resolve(path)))).isEqualTo(expectedText);
   }
 
   private Path writeFile(Path path, String text) throws IOException {
