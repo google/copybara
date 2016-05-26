@@ -18,6 +18,7 @@ all_tests(
      "//third_party:snakeyaml",
      "//third_party:truth",
   ],
+  tags = ["local"],
 )
 
 all_tests(
