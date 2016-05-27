@@ -27,7 +27,7 @@ public class DiffUtil {
         "Paths 'one' and 'other' must be sibling directories.");
     Path root = one.getParent();
     String[] params = new String[] {
-        "git", "diff", "--no-prefix",
+        "git", "diff",
         root.relativize(one).toString(),
         root.relativize(other).toString()
     };
@@ -54,7 +54,11 @@ public class DiffUtil {
    */
   public static void patch(Path rootDir, byte[] diffContents, boolean verbose)
       throws EnvironmentException {
-    String[] params = new String[] {"patch", "-p1" };
+    // TODO(danielromero): Think if it makes sense to throw EmptyChangeException here
+    if (diffContents.length == 0) {
+      return;
+    }
+    String[] params = new String[]{"git", "apply", "-p2","-"};
     Command cmd = new Command(params, /*envVars*/ null, rootDir.toFile());
     try {
       CommandUtil.executeCommand(cmd, diffContents, verbose);
