@@ -7,10 +7,10 @@ import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.ProgressPrefixConsole;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -22,9 +22,9 @@ import javax.annotation.Nullable;
 class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
 
   IterativeWorkflow(String configName, String workflowName, Origin<O> origin,
-      Destination destination, ImmutableList<Transformation> transformations,
+      Destination destination, Transformation transformation,
       @Nullable String lastRevisionFlag, Console console, PathMatcherBuilder excludedOriginPaths) {
-    super(configName, workflowName, origin, destination, transformations, lastRevisionFlag,
+    super(configName, workflowName, origin, destination, transformation, lastRevisionFlag,
         console, excludedOriginPaths);
   }
 
@@ -37,6 +37,7 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
       String prefix = String.format(
           "[%2d/%d] Migrating change %s: ", i + 1, changes.size(),
           change.getReference().asString());
+      ProgressPrefixConsole console = new ProgressPrefixConsole(prefix, this.console);
       ReferenceFiles<O> ref = change.getReference();
       logger.log(Level.INFO, String.format("%s %s", prefix, ref.asString()));
       console.progress(prefix + "Cleaning working directory");
@@ -44,14 +45,14 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
       console.progress(prefix + "Checking out the change");
       ref.checkout(workdir);
       removeExcludedFiles(workdir);
-      runTransformations(workdir, prefix);
+
+      transform(workdir, console);
 
       String message = change.getMessage();
       if (!message.endsWith("\n")) {
         message += "\n";
       }
-      // TODO(malcon): Show the prefix on destination
-      getDestination().process(workdir, ref, getTimestamp(ref), message);
+      getDestination().process(workdir, ref, getTimestamp(ref), message, console);
     }
   }
 }

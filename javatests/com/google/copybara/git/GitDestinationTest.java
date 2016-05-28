@@ -11,6 +11,7 @@ import com.google.copybara.git.GitDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.util.console.Console;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,6 +31,7 @@ public class GitDestinationTest {
   private Yaml yaml;
   private Path repoGitDir;
   private OptionsBuilder options;
+  private Console console;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -45,6 +47,7 @@ public class GitDestinationTest {
     options = new OptionsBuilder();
     options.git.gitCommitterEmail = "commiter@email";
     options.git.gitCommitterName = "Bara Kopi";
+    console = options.general.console();
   }
 
   private GitRepository repo() {
@@ -96,7 +99,7 @@ public class GitDestinationTest {
     yaml.setFetch("testPullFromRef");
     yaml.setPush("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    destinationFirstCommit().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG);
+    destinationFirstCommit().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG, console);
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "testPushToRef");
@@ -114,10 +117,10 @@ public class GitDestinationTest {
     yaml.setPush("master");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     MockReference ref = new MockReference("origin_ref");
-    destinationFirstCommit().process(workdir, ref, /*timestamp=*/424242420, COMMIT_MSG);
+    destinationFirstCommit().process(workdir, ref, /*timestamp=*/424242420, COMMIT_MSG, console);
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("empty change");
-    destination().process(workdir, ref, /*timestamp=*/424242421, COMMIT_MSG);
+    destination().process(workdir, ref, /*timestamp=*/424242421, COMMIT_MSG, console);
   }
 
   @Test
@@ -128,7 +131,7 @@ public class GitDestinationTest {
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'testPullFromRef' doesn't exist");
-    destination().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG);
+    destination().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG, console);
   }
 
   @Test
@@ -137,14 +140,14 @@ public class GitDestinationTest {
     yaml.setPush("pushToFoo");
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
-    destinationFirstCommit().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG);
+    destinationFirstCommit().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG, console);
     git("--git-dir", repoGitDir.toString(), "branch", "pullFromBar", "pushToFoo");
 
     workdir = Files.createTempDirectory("workdir2");
     Files.write(workdir.resolve("1.txt"), "content 1".getBytes());
     Files.createDirectories(workdir.resolve("subdir"));
     Files.write(workdir.resolve("subdir/2.txt"), "content 2".getBytes());
-    destination().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG);
+    destination().process(workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG, console);
 
     // Make sure original file was deleted.
     assertFilesInDir(2, "pushToFoo", ".");
@@ -165,19 +168,19 @@ public class GitDestinationTest {
     Files.write(file, "some content".getBytes());
     GitDestination destination1 = destinationFirstCommit();
     assertThat(destination1.getPreviousRef(MOCK_LABEL_REV_ID)).isNull();
-    destination1.process(workdir, new MockReference("first_commit"), /*timestamp=*/424242420, COMMIT_MSG);
+    destination1.process(workdir, new MockReference("first_commit"), /*timestamp=*/424242420, COMMIT_MSG, console);
     assertCommitHasOrigin("master", "first_commit");
 
     Files.write(file, "some other content".getBytes());
     GitDestination destination2 = destination();
     assertThat(destination2.getPreviousRef(MOCK_LABEL_REV_ID)).isEqualTo("first_commit");
-    destination2.process(workdir, new MockReference("second_commit"), /*timestamp=*/424242420, COMMIT_MSG);
+    destination2.process(workdir, new MockReference("second_commit"), /*timestamp=*/424242420, COMMIT_MSG, console);
     assertCommitHasOrigin("master", "second_commit");
 
     Files.write(file, "just more text".getBytes());
     GitDestination destination3 = destination();
     assertThat(destination3.getPreviousRef(MOCK_LABEL_REV_ID)).isEqualTo("second_commit");
-    destination3.process(workdir, new MockReference("third_commit"), /*timestamp=*/424242420, COMMIT_MSG);
+    destination3.process(workdir, new MockReference("third_commit"), /*timestamp=*/424242420, COMMIT_MSG, console);
     assertCommitHasOrigin("master", "third_commit");
   }
 
@@ -188,7 +191,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     GitDestination destination = destinationFirstCommit();
-    destination.process(workdir, new MockReference("first_commit"), /*timestamp=*/424242420, COMMIT_MSG);
+    destination.process(workdir, new MockReference("first_commit"), /*timestamp=*/424242420, COMMIT_MSG, console);
 
     String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1").split("\n");
     assertThat(commitLines[1]).isEqualTo("Author: " + expected);
@@ -243,12 +246,12 @@ public class GitDestinationTest {
     yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    destinationFirstCommit().process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG);
+    destinationFirstCommit().process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG, console);
     GitTesting.assertAuthorTimestamp(repo(), "master", 1414141414);
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     destination().process(workdir, new MockReference("second_commit"), /*timestamp=*/1515151515,
-        COMMIT_MSG);
+        COMMIT_MSG, console);
     GitTesting.assertAuthorTimestamp(repo(), "master", 1515151515);
   }
 
@@ -260,13 +263,13 @@ public class GitDestinationTest {
     options.git.gitCommitterName = "Bara Kopi";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     destinationFirstCommit()
-        .process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG);
+        .process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG, console);
     GitTesting.assertCommitterLineMatches(repo(), "master", "Bara Kopi <.*> [-+ 0-9]+");
 
     options.git.gitCommitterName = "Piko Raba";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     destination()
-        .process(workdir, new MockReference("second_commit"), /*timestamp=*/1414141490, COMMIT_MSG);
+        .process(workdir, new MockReference("second_commit"), /*timestamp=*/1414141490, COMMIT_MSG, console);
     GitTesting.assertCommitterLineMatches(repo(), "master", "Piko Raba <.*> [-+ 0-9+]+");
   }
 
@@ -278,14 +281,14 @@ public class GitDestinationTest {
     options.git.gitCommitterEmail = "bara.bara@gocha.gocha";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     destinationFirstCommit()
-        .process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG);
+        .process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG, console);
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <bara[.]bara@gocha[.]gocha> [-+ 0-9]+");
 
     options.git.gitCommitterEmail = "kupo.kupo@tan.kou";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     destination()
-        .process(workdir, new MockReference("second_commit"), /*timestamp=*/1414141490, COMMIT_MSG);
+        .process(workdir, new MockReference("second_commit"), /*timestamp=*/1414141490, COMMIT_MSG, console);
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <kupo[.]kupo@tan[.]kou> [-+ 0-9]+");
   }
@@ -300,7 +303,7 @@ public class GitDestinationTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
     destinationFirstCommit()
-        .process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG);
+        .process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG, console);
   }
 
   @Test
@@ -313,6 +316,6 @@ public class GitDestinationTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
     destinationFirstCommit()
-        .process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG);
+        .process(workdir, new MockReference("first_commit"), /*timestamp=*/1414141414, COMMIT_MSG, console);
   }
 }

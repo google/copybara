@@ -9,6 +9,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.util.console.Console;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -29,10 +30,10 @@ public final class ReplaceTest {
   private Replace.Yaml yaml;
   private OptionsBuilder options;
   private Path workdir;
+  private Console console;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-
 
   @Before
   public void setup() throws IOException {
@@ -41,6 +42,7 @@ public final class ReplaceTest {
     Files.createDirectories(workdir);
     yaml = new Replace.Yaml();
     options = new OptionsBuilder();
+    console = options.general.console();
   }
 
   @Test
@@ -71,7 +73,7 @@ public final class ReplaceTest {
     Path file3 = workdir.resolve("file3.txt");
     writeFile(file3, "bazbazbaz");
     BasicFileAttributes before = Files.readAttributes(file3, BasicFileAttributes.class);
-    transformation.transform(workdir);
+    transformation.transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -94,7 +96,7 @@ public final class ReplaceTest {
 
     Path file1 = workdir.resolve("file1.txt");
     writeFile(file1, "fooBAZbar");
-    transformation.transform(workdir);
+    transformation.transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -110,7 +112,7 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir);
+    transformation.transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -130,7 +132,7 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir);
+    transformation.transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -150,7 +152,7 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir);
+    transformation.transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -175,7 +177,7 @@ public final class ReplaceTest {
         + "not a match: beforeB\n"
         + "is a match: befaaaaaoreB # trailing content\n");
 
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -243,7 +245,7 @@ public final class ReplaceTest {
         + "should not match: bef\n"
         + "ore");
 
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -259,7 +261,7 @@ public final class ReplaceTest {
     yaml.setAfter("after");
     writeFile(workdir.resolve("before_and_after"), "before ... still before");
 
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -275,7 +277,7 @@ public final class ReplaceTest {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("before_and_after");
 
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
   }
 
   @Test
@@ -310,7 +312,7 @@ public final class ReplaceTest {
     yaml.setBefore("this string doesn't appear anywhere in source");
     yaml.setAfter("lulz");
     thrown.expect(TransformationDoesNothingException.class);
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
   }
 
   @Test
@@ -318,7 +320,7 @@ public final class ReplaceTest {
     yaml.setBefore("before");
     yaml.setAfter("after$$");
     writeFile(workdir.resolve("before_and_after"), "before ... still before");
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertAbout(FileSubjects.path())
             .that(workdir)
@@ -330,7 +332,7 @@ public final class ReplaceTest {
     yaml.setBefore("before");
     yaml.setAfter("after\\");
     writeFile(workdir.resolve("before_and_after"), "before ... still before");
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertAbout(FileSubjects.path())
                 .that(workdir)
@@ -342,7 +344,7 @@ public final class ReplaceTest {
     yaml.setBefore("be$$ore");
     yaml.setAfter("after$$");
     writeFile(workdir.resolve("before_and_after"), "be$ore ... still be$ore");
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -354,7 +356,7 @@ public final class ReplaceTest {
     yaml.setBefore("be\\ore");
     yaml.setAfter("after\\");
     writeFile(workdir.resolve("before_and_after"), "be\\ore ... still be\\ore");
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -369,7 +371,7 @@ public final class ReplaceTest {
     writeFile(workdir.resolve("file"), "!@# y123x ...");
     yaml.withOptions(options.build())
         .reverse()
-        .transform(workdir);
+        .transform(workdir, console);
 
     assertAbout(FileSubjects.path())
             .that(workdir)

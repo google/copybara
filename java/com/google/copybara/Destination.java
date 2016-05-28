@@ -3,6 +3,7 @@ package com.google.copybara;
 
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,9 +27,10 @@ public interface Destination {
    * @param timestamp when the code was submitted to the origin repository, expressed as seconds
  * since the UNIX epoch
    * @param changesSummary commit message to use for destination. Note that the destination can
+   * @param console console to be used for printing messages
    */
   void process(Path workdir, Reference<?> originRef, long timestamp,
-      String changesSummary) throws RepoException, IOException;
+      String changesSummary, Console console) throws RepoException, IOException;
 
   /**
    * Returns the latest origin ref that was pushed to this destination.

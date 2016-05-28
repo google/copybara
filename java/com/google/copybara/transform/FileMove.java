@@ -1,9 +1,7 @@
 package com.google.copybara.transform;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.EnvironmentException;
-import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -26,15 +24,13 @@ import java.util.List;
 public class FileMove implements Transformation {
 
   private final List<MoveElement> paths;
-  private final Console console;
 
-  private FileMove(List<MoveElement> paths, Console console) {
+  private FileMove(List<MoveElement> paths) {
     this.paths = ImmutableList.copyOf(paths);
-    this.console = Preconditions.checkNotNull(console);
   }
 
   @Override
-  public void transform(Path workdir) throws IOException, ValidationException {
+  public void transform(Path workdir, Console console) throws IOException, ValidationException {
     for (MoveElement path : paths) {
       console.progress("Moving " + path.before);
       Path before = workdir.resolve(path.before);
@@ -96,7 +92,7 @@ public class FileMove implements Transformation {
             "'paths' attribute is required and cannot be empty. At least one file"
                 + " movement/rename is needed.");
       }
-      return new FileMove(paths, options.get(GeneralOptions.class).console());
+      return new FileMove(paths);
     }
   }
 

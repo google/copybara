@@ -12,6 +12,7 @@ import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.util.console.Console;
 
 import java.nio.file.Path;
 
@@ -82,8 +83,8 @@ public final class GerritDestination implements Destination {
 
   @Override
   public void process(Path workdir, Reference<?> originRef, long timestamp,
-      String changesSummary) throws RepoException {
-    gitDestination.process(workdir, originRef, timestamp, changesSummary);
+      String changesSummary, Console console) throws RepoException {
+    gitDestination.process(workdir, originRef, timestamp, changesSummary, console);
   }
 
   @Nullable
@@ -109,7 +110,7 @@ public final class GerritDestination implements Destination {
               url, fetch, "refs/for/master", author,
               options.get(GitOptions.class),
               generalOptions.isVerbose(),
-              new CommitGenerator(options.get(GerritOptions.class)), generalOptions.console()));
+              new CommitGenerator(options.get(GerritOptions.class))));
     }
   }
 }

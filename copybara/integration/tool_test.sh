@@ -100,11 +100,11 @@ EOF
   copybara test.copybara
 
   expect_log "Running Copybara for config 'cbtest', workflow 'default' (SquashWorkflow).*repoUrl=file://$remote"
-  expect_log 'Transform: Replace food'
+  expect_log 'Transform Replace food'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/test.txt$'
   expect_log 'apply s/\\Qfood\\E/drink/ to .*/subdir/test.txt$'
   expect_not_log 'apply .* to .*/subdir$'
-  expect_log 'Transform: Replace f\${os}o'
+  expect_log 'Transform Replace f\${os}o'
   expect_log 'Exporting .* to:'
 
   # Make sure we don't get detached head warnings polluting the log.

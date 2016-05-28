@@ -21,9 +21,9 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
   private final boolean includeChangeListNotes;
 
   SquashWorkflow(String configName, String workflowName, Origin<O> origin, Destination destination,
-      ImmutableList<Transformation> transformations, Console console, String lastRevisionFlag,
+      Transformation transformation, Console console, String lastRevisionFlag,
       boolean includeChangeListNotes, PathMatcherBuilder excludedOriginPaths) {
-    super(configName, workflowName, origin, destination, transformations, lastRevisionFlag,
+    super(configName, workflowName, origin, destination, transformation, lastRevisionFlag,
         console, excludedOriginPaths);
     this.includeChangeListNotes = includeChangeListNotes;
   }
@@ -34,10 +34,10 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
     resolvedRef.checkout(workdir);
     removeExcludedFiles(workdir);
 
-    runTransformations(workdir, /*progressPrefix*/ "");
+    transform(workdir, console);
 
-    getDestination().process(
-        workdir, resolvedRef, getTimestamp(resolvedRef), getCommitMessage(resolvedRef));
+    getDestination().process(workdir, resolvedRef, getTimestamp(resolvedRef),
+        getCommitMessage(resolvedRef), console);
   }
 
   private String getCommitMessage(ReferenceFiles<O> resolvedRef) throws RepoException {

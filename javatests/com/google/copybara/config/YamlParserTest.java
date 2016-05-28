@@ -13,8 +13,9 @@ import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.Workflow;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.Transformation;
-import com.google.copybara.transform.ValidationException;
+import com.google.copybara.util.console.Console;
 
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
@@ -111,7 +112,10 @@ public class YamlParserTest {
     MockDestination destination = (MockDestination) config.getActiveWorkflow().getDestination();
     assertThat(destination.folder).isEqualTo("some folder");
 
-    List<Transformation> transformations = config.getActiveWorkflow().getTransformations();
+    Transformation transformation = config.getActiveWorkflow().getTransformation();
+    assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
+    ImmutableList<? extends Transformation> transformations =
+        ((Sequence<? extends Transformation>) transformation).getSequence();
     assertThat(transformations).hasSize(2);
     MockTransform transformation1 = (MockTransform) transformations.get(0);
     assertThat(transformation1.field1).isEqualTo("foo");
@@ -119,6 +123,32 @@ public class YamlParserTest {
     MockTransform transformation2 = (MockTransform) transformations.get(1);
     assertThat(transformation2.field1).isEqualTo("baz");
     assertThat(transformation2.field2).isEqualTo("bee");
+  }
+
+  @Test
+  public void testSingleTransform()
+      throws IOException, ConfigValidationException, EnvironmentException {
+    String configContent = "name: \"mytest\"\n"
+        + "workflows:\n"
+        + "  - origin: !MockOrigin\n"
+        + "      url: some_url\n"
+        + "      branch: \"master\"\n"
+        + "    destination: !MockDestination\n"
+        + "      folder: \"some folder\"\n"
+        + "    transformations:\n"
+        + "      - !MockTransform\n"
+        + "        field1: \"foo\"\n"
+        + "        field2:  \"bar\"\n";
+
+    Files.write(fs.getPath("test"), configContent.getBytes());
+
+    Config config = yamlParser.loadConfig(fs.getPath("test"), options);
+
+    Transformation transformation = config.getActiveWorkflow().getTransformation();
+    assertThat(transformation instanceof Sequence).isFalse();
+    MockTransform mockTransform = (MockTransform) transformation;
+    assertThat(mockTransform.field1).isEqualTo("foo");
+    assertThat(mockTransform.field2).isEqualTo("bar");
   }
 
   @Test
@@ -242,7 +272,7 @@ public class YamlParserTest {
 
     @Override
     public void process(Path workdir, Reference<?> originRef, long timestamp,
-        String changesSummary) throws RepoException, IOException {
+        String changesSummary, Console console) throws RepoException, IOException {
       throw new UnsupportedOperationException();
     }
 
@@ -279,7 +309,7 @@ public class YamlParserTest {
     }
 
     @Override
-    public void transform(Path workdir) throws IOException {
+    public void transform(Path workdir, Console console) throws IOException {
       throw new UnsupportedOperationException();
     }
 

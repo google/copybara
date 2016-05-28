@@ -49,7 +49,8 @@ public class FolderDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, Reference<?> originRef, long timestamp, String changesSummary)
+  public void process(Path workdir, Reference<?> originRef, long timestamp, String changesSummary,
+      Console console)
       throws RepoException, IOException {
     console.progress("FolderDestination: creating " + localFolder);
     try {

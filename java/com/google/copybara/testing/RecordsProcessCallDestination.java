@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.Options;
 import com.google.copybara.Origin.Reference;
+import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -20,15 +21,16 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 /**
- * A destination for testing which doesn't write the workdir anywhere and simply records when
- * {@link Destination#process(Path, Reference, long, String)} is called and with what arguments.
+ * A destination for testing which doesn't write the workdir anywhere and simply records when {@link
+ * Destination#process(Path, Reference, long, String, Console)} is called and with what arguments.
  */
 public class RecordsProcessCallDestination implements Destination, Destination.Yaml {
 
   public final List<ProcessedChange> processed = new ArrayList<>();
 
   @Override
-  public void process(Path workdir, Reference<?> originRef, long timestamp, String changesSummary) {
+  public void process(Path workdir, Reference<?> originRef, long timestamp, String changesSummary,
+      Console console) {
     processed.add(new ProcessedChange(originRef, timestamp, changesSummary, copyWorkdir(workdir)));
   }
 

@@ -9,6 +9,7 @@ import com.google.copybara.git.GerritDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.util.console.Console;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -29,6 +30,7 @@ public class GerritDestinationTest {
   private Path repoGitDir;
   private Path workdir;
   private OptionsBuilder options;
+  private Console console;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -44,6 +46,7 @@ public class GerritDestinationTest {
     options = new OptionsBuilder();
     options.git.gitCommitterEmail = "commiter@email";
     options.git.gitCommitterName = "Bara Kopi";
+    console = options.general.console();
   }
 
   private GitRepository repo() {
@@ -78,7 +81,7 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("file"), "some content".getBytes());
     options.git.gitFirstCommit = true;
     destination().process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, COMMIT_MSG);
+        /*timestamp=*/424242420, COMMIT_MSG, console);
 
     String firstChangeIdLine = lastCommitChangeIdLine();
 
@@ -86,7 +89,7 @@ public class GerritDestinationTest {
     git("branch", "master", "refs/for/master");
     options.git.gitFirstCommit = false;
     destination().process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, COMMIT_MSG);
+        /*timestamp=*/424242420, COMMIT_MSG, console);
 
     assertThat(firstChangeIdLine)
         .isNotEqualTo(lastCommitChangeIdLine());
@@ -102,7 +105,7 @@ public class GerritDestinationTest {
     options.git.gitFirstCommit = true;
     options.gerrit.gerritChangeId = changeId;
     destination().process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, COMMIT_MSG);
+        /*timestamp=*/424242420, COMMIT_MSG, console);
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
 
@@ -114,7 +117,7 @@ public class GerritDestinationTest {
     options.git.gitFirstCommit = false;
     options.gerrit.gerritChangeId = changeId;
     destination().process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, COMMIT_MSG);
+        /*timestamp=*/424242420, COMMIT_MSG, console);
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
   }
@@ -126,7 +129,7 @@ public class GerritDestinationTest {
 
     options.git.gitFirstCommit = true;
     destination().process(workdir, new MockReference("first_commit"),
-        /*timestamp=*/424242420, COMMIT_MSG);
+        /*timestamp=*/424242420, COMMIT_MSG, console);
 
     String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1", "refs/for/master")
         .split("\n");
@@ -168,7 +171,7 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
     destination().process(workdir, new MockReference("first_commit"),
-        /*timestamp=*/355558888, COMMIT_MSG);
+        /*timestamp=*/355558888, COMMIT_MSG, console);
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 355558888);
 
     git("branch", "master", "refs/for/master");
@@ -176,7 +179,7 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     options.git.gitFirstCommit = false;
     destination().process(workdir, new MockReference("first_commit"),
-        /*timestamp=*/424242420, COMMIT_MSG);
+        /*timestamp=*/424242420, COMMIT_MSG, console);
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 424242420);
   }
 

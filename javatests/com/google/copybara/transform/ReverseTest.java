@@ -44,7 +44,7 @@ public final class ReverseTest {
     yaml.setOriginal(replace);
 
     writeFile(workdir.resolve("file"), "jkl;");
-    yaml.withOptions(options.build()).transform(workdir);
+    yaml.withOptions(options.build()).transform(workdir, options.general.console());
 
     assertAbout(FileSubjects.path())
         .that(workdir)

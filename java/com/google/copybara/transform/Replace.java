@@ -14,6 +14,7 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -143,7 +144,7 @@ public final class Replace implements ReversibleTransformation {
   }
 
   @Override
-  public void transform(Path workdir) throws IOException, ValidationException {
+  public void transform(Path workdir, Console console) throws IOException, ValidationException {
     TransformVisitor visitor = new TransformVisitor(fileMatcherBuilder.relativeTo(workdir));
     Files.walkFileTree(workdir, visitor);
     if (visitor.error != null) {

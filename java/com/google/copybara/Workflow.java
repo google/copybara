@@ -5,10 +5,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.FileUtil;
@@ -39,20 +41,20 @@ public abstract class Workflow<O extends Origin<O>> {
   private final String name;
   private final Origin<O> origin;
   private final Destination destination;
-  private final List<Transformation> transformations;
+  protected final Transformation transformation;
   private final PathMatcherBuilder excludedOriginPaths;
   @Nullable
   final String lastRevisionFlag;
   final Console console;
 
   Workflow(String configName, String name, Origin<O> origin, Destination destination,
-      ImmutableList<Transformation> transformations, @Nullable String lastRevisionFlag,
+      Transformation transformation, @Nullable String lastRevisionFlag,
       Console console, PathMatcherBuilder excludedOriginPaths) {
     this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
-    this.transformations = Preconditions.checkNotNull(transformations);
+    this.transformation = Preconditions.checkNotNull(transformation);
     this.lastRevisionFlag = lastRevisionFlag;
     this.console = Preconditions.checkNotNull(console);
     this.excludedOriginPaths = excludedOriginPaths;
@@ -78,10 +80,10 @@ public abstract class Workflow<O extends Origin<O>> {
   }
 
   /**
-   * Transformations to run before writing them to the destination.
+   * Transformation to run before writing them to the destination.
    */
-  public List<Transformation> getTransformations() {
-    return transformations;
+  public Transformation getTransformation() {
+    return transformation;
   }
 
   public final void run(Path workdir, @Nullable String sourceRef)
@@ -103,28 +105,18 @@ public abstract class Workflow<O extends Origin<O>> {
 
   abstract void runForRef(Path workdir, ReferenceFiles<O> resolvedRef)
       throws RepoException, IOException, EnvironmentException, ValidationException;
-
   /**
-   * Runs the transformations for the workflow
+   * Runs the transformation for the workflow
    *
    * @param workdir working directory to use for the transformations
-   * @param progressPrefix prefix to be used when printing progress messages to the console
+   * @param console console to use for printing messages
    */
-  void runTransformations(Path workdir, String progressPrefix)
-      throws EnvironmentException, ValidationException {
-    for (int i = 0; i < transformations.size(); i++) {
-      Transformation transformation = transformations.get(i);
-      String transformMsg = String.format(
-          "%s[%2d/%d] Transform: %s", progressPrefix, i + 1, transformations.size(),
-          transformation.describe());
-      logger.log(Level.INFO, transformMsg);
-
-      console.progress(transformMsg);
-      try {
-        transformation.transform(workdir);
-      } catch (IOException e) {
-        throw new EnvironmentException("Error applying transformation: " + transformation, e);
-      }
+  protected void transform(Path workdir, Console console)
+      throws ValidationException, EnvironmentException {
+    try {
+      transformation.transform(workdir, console);
+    } catch (IOException e) {
+      throw new EnvironmentException("Error applying transformation: " + transformation, e);
     }
   }
 
@@ -184,7 +176,7 @@ public abstract class Workflow<O extends Origin<O>> {
         .add("name", name)
         .add("origin", origin)
         .add("destination", destination)
-        .add("transformations", transformations)
+        .add("transformation", transformation)
         .add("excludedOriginPaths", excludedOriginPaths)
         .toString();
   }
@@ -254,26 +246,35 @@ public abstract class Workflow<O extends Origin<O>> {
 
     public Workflow withOptions(Options options, String configName)
         throws ConfigValidationException, EnvironmentException {
-      ImmutableList.Builder<Transformation> transformations = new ImmutableList.Builder<>();
-      for (Transformation.Yaml transformation : this.transformations) {
-        transformations.add(transformation.withOptions(options));
+
+      Transformation transformation;
+      // Avoid nesting a single element sequence in the top level
+      if (this.transformations.size() == 1) {
+        transformation = Iterables.getOnlyElement(this.transformations).withOptions(options);
+      } else {
+        ImmutableList.Builder<Transformation> transformations = new ImmutableList.Builder<>();
+        for (Transformation.Yaml yaml : this.transformations) {
+          transformations.add(yaml.withOptions(options));
+        }
+        transformation = Sequence.of(transformations.build());
       }
+
       Origin<?> origin = this.origin.withOptions(options);
       Destination destination = this.destination.withOptions(options, configName);
-      ImmutableList<Transformation> transforms = transformations.build();
       Console console = options.get(GeneralOptions.class).console();
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       PathMatcherBuilder excludedOriginPaths = PathMatcherBuilder.create(
           FileSystems.getDefault(), this.excludedOriginPaths);
       switch (mode) {
         case SQUASH:
-          return new SquashWorkflow<>(configName, name, origin, destination, transforms, console,
-              generalOptions.getLastRevision(), includeChangeListNotes, excludedOriginPaths);
+          return new SquashWorkflow<>(configName, name, origin, destination, transformation,
+              console, generalOptions.getLastRevision(), includeChangeListNotes,
+              excludedOriginPaths);
         case ITERATIVE:
-          return new IterativeWorkflow<>(configName, name, origin, destination, transforms,
+          return new IterativeWorkflow<>(configName, name, origin, destination, transformation,
               generalOptions.getLastRevision(), console, excludedOriginPaths);
         case CHERRYPICK:
-          return new CherrypickWorkflow<>(configName, name, origin, destination, transforms,
+          return new CherrypickWorkflow<>(configName, name, origin, destination, transformation,
               generalOptions.getLastRevision(), console, excludedOriginPaths);
         default:
           throw new UnsupportedOperationException(mode + " still not implemented");

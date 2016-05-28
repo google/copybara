@@ -9,6 +9,7 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.FileMove.MoveElement;
+import com.google.copybara.util.console.Console;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -28,6 +29,7 @@ public class FileMoveTest {
   private FileMove.Yaml yaml;
   private OptionsBuilder options;
   private Path workdir;
+  private Console console;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -39,6 +41,7 @@ public class FileMoveTest {
     Files.createDirectories(workdir);
     yaml = new FileMove.Yaml();
     options = new OptionsBuilder();
+    console = options.general.console();
   }
 
   @Test
@@ -50,7 +53,7 @@ public class FileMoveTest {
     Files.write(workdir.resolve("one.before"), new byte[]{});
     Files.createDirectories(workdir.resolve("folder2"));
     Files.write(workdir.resolve("folder2/two.before"), new byte[]{});
-    mover.transform(workdir);
+    mover.transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)
@@ -65,7 +68,7 @@ public class FileMoveTest {
     FileMove mover = yaml.withOptions(options.build());
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
-    mover.transform(workdir);
+    mover.transform(workdir, console);
   }
 
   @Test
@@ -98,7 +101,7 @@ public class FileMoveTest {
     FileMove mover = yaml.withOptions(options.build());
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot move '/two' because it already exists in the workdir");
-    mover.transform(workdir);
+    mover.transform(workdir, console);
   }
 
   @Test
@@ -108,7 +111,7 @@ public class FileMoveTest {
     Files.createDirectories(workdir.resolve("folder"));
     Files.write(workdir.resolve("one"), new byte[]{});
     FileMove mover = yaml.withOptions(options.build());
-    mover.transform(workdir);
+    mover.transform(workdir, console);
 
     assertAbout(FileSubjects.path())
         .that(workdir)

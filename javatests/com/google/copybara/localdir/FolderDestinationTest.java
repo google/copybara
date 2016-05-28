@@ -60,7 +60,7 @@ public class FolderDestinationTest {
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
     Destination destination = yaml.withOptions(options.build(), CONFIG_NAME);
     destination.process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, "Not relevant");
+        /*timestamp=*/424242420, "Not relevant", options.general.console());
 
     assertAbout(FileSubjects.path())
         .that(localFolder)

@@ -25,8 +25,6 @@ import javax.annotation.Nullable;
  */
 public final class GitDestination implements Destination {
 
-  private final Console console;
-
   interface CommitGenerator {
     /**
      * Generates a commit message based on the uncommitted index stored in the given repository.
@@ -58,8 +56,7 @@ public final class GitDestination implements Destination {
   private final CommitGenerator commitGenerator;
 
   GitDestination(String configName, String repoUrl, String fetch, String push,
-      String author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
-      Console console) {
+      String author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
@@ -68,7 +65,6 @@ public final class GitDestination implements Destination {
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
-    this.console = Preconditions.checkNotNull(console);
   }
 
   /**
@@ -94,7 +90,7 @@ public final class GitDestination implements Destination {
 
   @Override
   public void process(Path workdir, Reference<?> originRef, long timestamp,
-      String changesSummary) throws RepoException {
+      String changesSummary, Console console) throws RepoException {
     logger.log(Level.INFO, "Exporting " + configName + " from " + workdir + " to: " + this);
 
     console.progress("Git Destination: Fetching " + repoUrl);
@@ -188,7 +184,6 @@ public final class GitDestination implements Destination {
     @Override
     public GitDestination withOptions(Options options, String configName) throws ConfigValidationException {
       checkRequiredFields();
-      GeneralOptions generalOptions = options.get(GeneralOptions.class);
       return new GitDestination(
           configName,
           url,
@@ -196,9 +191,9 @@ public final class GitDestination implements Destination {
           ConfigValidationException.checkNotMissing(push, "push"),
           author,
           options.get(GitOptions.class),
-          generalOptions.isVerbose(),
-          new DefaultCommitGenerator(),
-          generalOptions.console());
+          options.get(GeneralOptions.class).isVerbose(),
+          new DefaultCommitGenerator()
+      );
     }
   }
 }

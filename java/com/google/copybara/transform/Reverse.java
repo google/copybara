@@ -7,6 +7,8 @@ import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.ProgressPrefixConsole;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -18,18 +20,18 @@ public final class Reverse implements ReversibleTransformation {
 
   private final ReversibleTransformation original;
 
-  private Reverse(ReversibleTransformation original) {
+  Reverse(ReversibleTransformation original) {
     this.original = Preconditions.checkNotNull(original);
   }
 
   @Override
-  public void transform(Path workdir) throws IOException, ValidationException {
-    original.reverse().transform(workdir);
+  public void transform(Path workdir, Console console) throws IOException, ValidationException {
+    original.reverse().transform(workdir, new ProgressPrefixConsole("Reverse ", console));
   }
 
   @Override
   public String describe() {
-    return "Reverse " + original.describe();
+    return "reverse " + original.describe();
   }
 
   @Override

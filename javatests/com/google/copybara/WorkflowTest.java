@@ -140,6 +140,16 @@ public class WorkflowTest {
   }
 
   @Test
+  public void emptyTransformList() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
+    transformations = ImmutableList.of();
+    Workflow workflow = workflow();
+    workflow.run(workdir, /*sourceRef=*/"0");
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getContent("file.txt")).isEqualTo("0");
+  }
+
+  @Test
   public void cherrypickWorkflowTest() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     Workflow workflow = cherrypickWorkflow();
