@@ -3,6 +3,7 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.copybara.EnvironmentException;
 import com.google.copybara.testing.FileSubjects;
 
 import org.junit.Before;
@@ -60,7 +61,7 @@ public class DiffUtilTest {
   }
 
   @Test
-  public void applyDiff() throws Exception {
+  public void apply() throws Exception {
     writeFile(left, "file1.txt", "foo");
     writeFile(left, "b/file2.txt", "bar");
     writeFile(right, "file1.txt", "new foo");
@@ -89,6 +90,66 @@ public class DiffUtilTest {
         .containsNoMoreFiles();
   }
 
+  /**
+   * Tests the situation where the destination is ahead of the baseline, and the diff between the
+   * baseline and the cherrypick can be applied without conflicts to the destination.
+   */
+  @Test
+  public void applyDifferentBaseline() throws Exception {
+    writeFile(left, "file1.txt", "foo\n"
+        + "more foo\n");
+    writeFile(left, "b/file2.txt", "bar");
+    writeFile(left, "file5.txt", "mmm\n"
+        + "zzzzzzzzz\n"
+        + "zzzzzzzzzzzzzz\n"
+        + "zzzzzzzzzzzzzzzzzzzz\n"
+        + "bar\n"
+        + "foo\n"
+        + "bar");
+    writeFile(right, "file1.txt", "new foo\n"
+        + "more foo\n");
+    writeFile(right, "c/file3.txt", "bar");
+    writeFile(right, "file5.txt", "mmm\n"
+        + "zzzzzzzzz\n"
+        + "zzzzzzzzzzzzzz\n"
+        + "zzzzzzzzzzzzzzzzzzzz\n"
+        + "bar\n"
+        + "xxx\n"
+        + "bar");
+    writeFile(destination, "file1.txt", "foo\n"
+        + "more foo\n"
+        + "added foo\n");
+    writeFile(destination, "b/file2.txt", "bar");
+    writeFile(destination, "c/file4.txt", "bar");
+    writeFile(destination, "file5.txt", "vvv\n"
+        + "zzzzzzzzz\n"
+        + "zzzzzzzzzzzzzz\n"
+        + "zzzzzzzzzzzzzzzzzzzz\n"
+        + "bar\n"
+        + "foo\n"
+        + "bar");
+
+    byte[] diffContents = DiffUtil.diff(left, right, /*verbose*/ true);
+
+    DiffUtil.patch(destination, diffContents, /*verbose*/ true);
+
+    assertAbout(FileSubjects.path())
+        .that(destination)
+        .containsFile("file1.txt", "new foo\n"
+            + "more foo\n"
+            + "added foo\n")
+        .containsFile("c/file3.txt", "bar")
+        .containsFile("c/file4.txt", "bar")
+        .containsFile("file5.txt", "vvv\n"
+            + "zzzzzzzzz\n"
+            + "zzzzzzzzzzzzzz\n"
+            + "zzzzzzzzzzzzzzzzzzzz\n"
+            + "bar\n"
+            + "xxx\n"
+            + "bar")
+        .containsNoMoreFiles();
+  }
+
   @Test
   public void applyEmptyDiff() throws Exception {
     writeFile(left, "file1.txt", "foo");
@@ -100,6 +161,20 @@ public class DiffUtilTest {
         .containsFile("file1.txt", "foo")
         .containsFile("b/file2.txt", "bar")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void applyFails() throws Exception {
+    writeFile(left, "file1.txt", "foo");
+    writeFile(right, "file1.txt", "new foo\n");
+    writeFile(destination, "file1.txt", "foo\nmore foo\n");
+
+    thrown.expect(EnvironmentException.class);
+    thrown.expectMessage("error: patch failed: file1.txt:1\n"
+        + "error: file1.txt: patch does not apply");
+
+    byte[] diffContents = DiffUtil.diff(left, right, /*verbose*/ true);
+    DiffUtil.patch(destination, diffContents, /*verbose*/ true);
   }
 
   private Path createDir(Path parent, String name) throws IOException {
