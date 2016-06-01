@@ -9,11 +9,10 @@ java_plugin(
     visibility = [
         "//visibility:public",
     ],
-
     deps = [
         "//third_party:autocommon",
-        "//third_party:jcommander",
         "//third_party:guava",
+        "//third_party:jcommander",
     ],
 )
 
@@ -23,5 +22,8 @@ java_library(
     exported_plugins = [":document"],
     visibility = [
         "//visibility:public",
+    ],
+    deps = [
+        "//third_party:guava",
     ],
 )

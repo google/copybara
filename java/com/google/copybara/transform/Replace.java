@@ -55,7 +55,7 @@ import java.util.regex.PatternSyntaxException;
  *
  * TODO(matvore): Consider making this configurable to non-line-based and multiple matches.
  */
-public final class Replace implements ReversibleTransformation {
+public final class Replace implements Transformation {
 
   private static final Logger logger = Logger.getLogger(Replace.class.getName());
 
@@ -168,7 +168,7 @@ public final class Replace implements ReversibleTransformation {
   }
 
   @DocElement(yamlName = "!Replace", description = "Replace a text with another text using optional regex groups. This tranformer can be automatically reversed with !Reverse.", elementKind = Transformation.class)
-  public final static class Yaml implements ReversibleTransformation.Yaml {
+  public final static class Yaml implements Transformation.Yaml {
 
     private TemplateTokens before;
     private TemplateTokens after;
@@ -216,6 +216,11 @@ public final class Replace implements ReversibleTransformation {
 
       return new Replace(before, after, regexGroups,
           PathMatcherBuilder.create(FileSystems.getDefault(), ImmutableList.of(path)));
+    }
+
+    @Override
+    public void checkReversible() throws ConfigValidationException {
+
     }
   }
 }

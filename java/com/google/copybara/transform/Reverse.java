@@ -16,11 +16,11 @@ import java.nio.file.Path;
 /**
  * A transformation which runs some other transformation in reverse.
  */
-public final class Reverse implements ReversibleTransformation {
+public final class Reverse implements Transformation {
 
-  private final ReversibleTransformation original;
+  private final Transformation original;
 
-  Reverse(ReversibleTransformation original) {
+  Reverse(Transformation original) {
     this.original = Preconditions.checkNotNull(original);
   }
 
@@ -35,31 +35,32 @@ public final class Reverse implements ReversibleTransformation {
   }
 
   @Override
-  public ReversibleTransformation reverse() {
+  public Transformation reverse() {
     return original;
   }
 
-  @DocElement(yamlName = "!Reverse", description = "Run a particular transformation in reverse. Note that not all transformations support being reversed.", elementKind = ReversibleTransformation.class)
-  public final static class Yaml implements ReversibleTransformation.Yaml {
+  @DocElement(yamlName = "!Reverse", description = "Run a particular transformation in reverse. Note that not all transformations support being reversed.", elementKind = Transformation.class)
+  public final static class Yaml implements Transformation.Yaml {
 
-    private ReversibleTransformation.Yaml original;
+    private Transformation.Yaml original;
 
     @DocField(description = "The transformation to be reversed.")
     public void setOriginal(Transformation.Yaml original) throws ConfigValidationException {
-      // Throw an exception rather than specify the required type in the signature because the
-      // snakeyaml-generated error is not clear.
-      if (!(original instanceof ReversibleTransformation.Yaml)) {
-        throw new ConfigValidationException(
-            "'original' transformation is not automatically reversible.");
-      }
-      this.original = (ReversibleTransformation.Yaml) original;
+      original.checkReversible();
+      this.original = original;
     }
 
     @Override
-    public ReversibleTransformation withOptions(Options options)
+    public Transformation withOptions(Options options)
         throws ConfigValidationException, EnvironmentException {
       ConfigValidationException.checkNotMissing(original, "original");
-      return new Reverse(original.withOptions(options));
+      Transformation original = this.original.withOptions(options);
+      return new Reverse(original);
+    }
+
+    @Override
+    public void checkReversible() throws ConfigValidationException {
+      // original is already validated in the setter
     }
   }
 }

@@ -7,6 +7,7 @@ licenses(["unencumbered"])  # Owned by Google. No external contributions
 all_tests(
   tests = glob(["**/*Test.java"], exclude = ["git/*.java"]),
   deps = [
+     "//java/com/google/copybara/doc:annotations",
      "//java/com/google/copybara:copybara_lib",
      "//java/com/google/copybara/testing",
      "//third_party:guava",

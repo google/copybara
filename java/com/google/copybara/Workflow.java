@@ -5,7 +5,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -247,17 +246,9 @@ public abstract class Workflow<O extends Origin<O>> {
     public Workflow withOptions(Options options, String configName)
         throws ConfigValidationException, EnvironmentException {
 
-      Transformation transformation;
-      // Avoid nesting a single element sequence in the top level
-      if (this.transformations.size() == 1) {
-        transformation = Iterables.getOnlyElement(this.transformations).withOptions(options);
-      } else {
-        ImmutableList.Builder<Transformation> transformations = new ImmutableList.Builder<>();
-        for (Transformation.Yaml yaml : this.transformations) {
-          transformations.add(yaml.withOptions(options));
-        }
-        transformation = Sequence.of(transformations.build());
-      }
+      Sequence.Yaml sequence = new Sequence.Yaml();
+      sequence.setTransformations(this.transformations);
+      Transformation transformation = sequence.withOptions(options);
 
       Origin<?> origin = this.origin.withOptions(options);
       Destination destination = this.destination.withOptions(options, configName);

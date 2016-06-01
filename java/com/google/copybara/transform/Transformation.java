@@ -16,6 +16,11 @@ public interface Transformation {
   interface Yaml {
     Transformation withOptions(Options options)
         throws ConfigValidationException, EnvironmentException;
+
+    /**
+     * Checks if the tranformation is reversible.
+     */
+    void checkReversible() throws ConfigValidationException;
   }
 
   /**
@@ -25,6 +30,11 @@ public interface Transformation {
    * @throws ValidationException if an error attributable to the user happened
    */
   void transform(Path workdir, Console console) throws IOException, ValidationException;
+
+  /**
+   * Returns a transformation which runs this transformation in reverse.
+   */
+  Transformation reverse();
 
   /**
    * Return a high level description of what the transform is doing. Note that this should not be

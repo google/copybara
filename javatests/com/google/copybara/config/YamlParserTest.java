@@ -3,6 +3,7 @@ package com.google.copybara.config;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Change;
 import com.google.copybara.Destination;
@@ -12,9 +13,13 @@ import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.Workflow;
+import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.transform.Reverse;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.Console;
 
 import org.hamcrest.Description;
@@ -51,7 +56,8 @@ public class YamlParserTest {
     yamlParser = new YamlParser(ImmutableList.of(
         new TypeDescription(MockOrigin.class, "!MockOrigin"),
         new TypeDescription(MockDestination.class, "!MockDestination"),
-        new TypeDescription(MockTransform.class, "!MockTransform")
+        new TypeDescription(MockTransform.class, "!MockTransform"),
+        new TypeDescription(Reverse.Yaml.class, "!Reverse")
     ));
     fs = Jimfs.newFileSystem();
     options = new OptionsBuilder().build();
@@ -115,7 +121,7 @@ public class YamlParserTest {
     Transformation transformation = config.getActiveWorkflow().getTransformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
-        ((Sequence<? extends Transformation>) transformation).getSequence();
+        ((Sequence) transformation).getSequence();
     assertThat(transformations).hasSize(2);
     MockTransform transformation1 = (MockTransform) transformations.get(0);
     assertThat(transformation1.field1).isEqualTo("foo");
@@ -145,10 +151,36 @@ public class YamlParserTest {
     Config config = yamlParser.loadConfig(fs.getPath("test"), options);
 
     Transformation transformation = config.getActiveWorkflow().getTransformation();
-    assertThat(transformation instanceof Sequence).isFalse();
-    MockTransform mockTransform = (MockTransform) transformation;
+    assertThat(transformation instanceof Sequence).isTrue();
+    MockTransform mockTransform = (MockTransform) Iterables
+        .getOnlyElement(((Sequence) transformation).getSequence());
     assertThat(mockTransform.field1).isEqualTo("foo");
     assertThat(mockTransform.field2).isEqualTo("bar");
+  }
+
+  @Test
+  public void testNonReversibleTransform()
+      throws IOException, ConfigValidationException, EnvironmentException {
+    String configContent = "name: \"mytest\"\n"
+        + "workflows:\n"
+        + "  - origin: !MockOrigin\n"
+        + "      url: some_url\n"
+        + "      branch: \"master\"\n"
+        + "    destination: !MockDestination\n"
+        + "      folder: \"some folder\"\n"
+        + "    transformations:\n"
+        + "      - !Reverse \n"
+        + "        original: !MockTransform\n"
+        + "          field1: \"foo\"\n"
+        + "          field2:  \"bar\"\n";
+
+    Files.write(fs.getPath("test"), configContent.getBytes());
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectCause(new CauseMatcher(NonReversibleValidationException.class,
+        "'!MockTransform' transformation is not automatically reversible"));
+
+    yamlParser.loadConfig(fs.getPath("test"), options);
   }
 
   @Test
@@ -283,6 +315,8 @@ public class YamlParserTest {
     }
   }
 
+  @DocElement(yamlName = "!MockTransform", description = "MockTransform",
+      elementKind = Transformation.class)
   public static class MockTransform implements Transformation.Yaml, Transformation {
 
     private String field1;
@@ -292,14 +326,17 @@ public class YamlParserTest {
     public MockTransform() {
     }
 
+    @DocField(description = "field1")
     public void setField1(String field1) {
       this.field1 = field1;
     }
 
+    @DocField(description = "field2")
     public void setField2(String field2) {
       this.field2 = field2;
     }
 
+    @DocField(description = "list")
     public void setList(List<String> list) {
       for (Object s : list) {
         System.out.println(s + ":");
@@ -314,6 +351,11 @@ public class YamlParserTest {
     }
 
     @Override
+    public Transformation reverse() {
+      throw new UnsupportedOperationException("Non reversible");
+    }
+
+    @Override
     public String describe() {
       return "A mock translation";
     }
@@ -321,6 +363,11 @@ public class YamlParserTest {
     @Override
     public Transformation withOptions(Options options) throws ConfigValidationException {
       return this;
+    }
+
+    @Override
+    public void checkReversible() throws ConfigValidationException {
+      throw new NonReversibleValidationException(this);
     }
   }
 
@@ -339,8 +386,15 @@ public class YamlParserTest {
 
     @Override
     protected boolean matchesSafely(Throwable item) {
-      return item.getClass().isAssignableFrom(type)
-          && item.getMessage().contains(expectedMessage);
+      Throwable cause = item;
+      while (cause != null) {
+        if (cause.getClass().isAssignableFrom(type)
+            && cause.getMessage().contains(expectedMessage)) {
+          return true;
+        }
+        cause = cause.getCause();
+      }
+      return false;
     }
 
     @Override

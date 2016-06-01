@@ -369,6 +369,68 @@ EOF
   )
 }
 
+function test_reverse_sequence() {
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  ( cd $remote
+    run_git init .
+    echo "foobaz" > test.txt
+    run_git add -A
+    run_git commit -m "first commit"
+  )
+
+  cat > test.copybara <<EOF
+name: "cbtest"
+global:
+  - &forward_transforms !Sequence
+      transformations:
+        - !Replace
+            before: "foo"
+            after:  "bar"
+        - !Replace
+            before: "baz"
+            after:  "bee"
+workflows:
+  - name : "forward"
+    origin: !GitOrigin
+      url: "file://$remote"
+      defaultTrackingRef: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: master
+      push: master
+    transformations:
+      - *forward_transforms
+  - name : "reverse"
+    origin: !GitOrigin
+      url: "file://$destination"
+      defaultTrackingRef: "master"
+    destination: !GitDestination
+      url: "file://$remote"
+      fetch: reverse
+      push: reverse
+    transformations:
+      - !Reverse
+          original: *forward_transforms
+EOF
+  copybara test.copybara forward
+
+  ( cd $(mktemp -d)
+    run_git clone $destination .
+    [[ -f test.txt ]] || fail "/test.txt should exit"
+    expect_in_file "barbee" test.txt
+  )
+  copybara test.copybara reverse --git-first-commit
+
+  ( cd $(mktemp -d)
+    run_git clone $remote .
+    run_git checkout reverse
+    [[ -f test.txt ]] || fail "/test.txt should exit"
+    expect_in_file "foobaz" test.txt
+  )
+}
+
 function test_local_dir_destination() {
   remote=$(temp_dir remote)
 

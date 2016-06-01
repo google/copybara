@@ -3,24 +3,31 @@ package com.google.copybara.transform;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.copybara.EnvironmentException;
+import com.google.copybara.Options;
+import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * A transformation that runs a sequence of delegate transformations
  */
-public class Sequence<T extends Transformation> implements Transformation {
+public class Sequence implements Transformation {
 
-  protected final ImmutableList<T> sequence;
+  private final ImmutableList<Transformation> sequence;
 
   protected final Logger logger = Logger.getLogger(Sequence.class.getName());
 
-  public Sequence(ImmutableList<T> sequence) {
+  Sequence(ImmutableList<Transformation> sequence) {
     this.sequence = Preconditions.checkNotNull(sequence);
   }
 
@@ -38,8 +45,17 @@ public class Sequence<T extends Transformation> implements Transformation {
     }
   }
 
+  @Override
+  public Transformation reverse() {
+    ImmutableList.Builder<Transformation> list = ImmutableList.builder();
+    for (Transformation element : sequence) {
+      list.add(element.reverse());
+    }
+    return new Sequence(list.build().reverse());
+  }
+
   @VisibleForTesting
-  public ImmutableList<T> getSequence() {
+  public ImmutableList<Transformation> getSequence() {
     return sequence;
   }
 
@@ -56,42 +72,40 @@ public class Sequence<T extends Transformation> implements Transformation {
     return "sequence";
   }
 
-  public static class ReversibleSequence
-      extends Sequence<ReversibleTransformation> implements ReversibleTransformation {
+  @DocElement(yamlName = "!Sequence", description = "A sequence of transformations. This is useful"
+      + " when you want to reuse the sequence in several workflows and be able to get the inverse"
+      + " of the sequence.", elementKind = Transformation.class)
+  public final static class Yaml implements Transformation.Yaml {
 
-    public ReversibleSequence(ImmutableList<ReversibleTransformation> list) {
-      super(list);
+    ImmutableList<Transformation.Yaml> transformations = ImmutableList.of();
+
+    @DocField(description = "Transformations to run on the migration code.",
+        required = false)
+    public void setTransformations(List<? extends Transformation.Yaml> transformations)
+        throws ConfigValidationException {
+      this.transformations = ImmutableList.copyOf(transformations);
     }
 
     @Override
-    public ReversibleTransformation reverse() throws ValidationException {
-      ImmutableList.Builder<ReversibleTransformation> list = ImmutableList.builder();
-      for (ReversibleTransformation element : sequence) {
-        list.add(new Reverse(element));
+    public Sequence withOptions(Options options)
+        throws ConfigValidationException, EnvironmentException {
+      //Avoid nesting one sequence inside another sequence
+      if (this.transformations.size() == 1 && Iterables
+          .getOnlyElement(this.transformations) instanceof Sequence.Yaml) {
+        return (Sequence) Iterables.getOnlyElement(this.transformations).withOptions(options);
       }
-      return new ReversibleSequence(list.build().reverse());
+      ImmutableList.Builder<Transformation> transformations = new ImmutableList.Builder<>();
+      for (Transformation.Yaml yaml : this.transformations) {
+        transformations.add(yaml.withOptions(options));
+      }
+      return new Sequence(transformations.build());
     }
 
     @Override
-    public String toString() {
-      return "Reversible" + super.toString();
-    }
-  }
-
-  public static Transformation of(ImmutableList<Transformation> transformations) {
-    boolean reversible = true;
-    ImmutableList.Builder<ReversibleTransformation> reversibleSequence = ImmutableList.builder();
-    for (Transformation transformation : transformations) {
-      if (!(transformation instanceof ReversibleTransformation)) {
-        reversible = false;
-        break;
+    public void checkReversible() throws ConfigValidationException {
+      for (Transformation.Yaml transformation : transformations) {
+        transformation.checkReversible();
       }
-      reversibleSequence.add((ReversibleTransformation) transformation);
     }
-    return reversible
-        ? new ReversibleSequence(reversibleSequence.build())
-        : new Sequence<>(transformations);
   }
-
-  // TODO(malcon): create the yaml classes
 }

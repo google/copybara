@@ -5,6 +5,8 @@ import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.NonReversibleValidationException;
+import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 
@@ -53,16 +55,25 @@ public final class ReverseTest {
 
   @Test
   public void requiresReversibleTransform() throws Exception {
-    thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("'original' transformation is not automatically reversible.");
-    yaml.setOriginal(new Transformation.Yaml() {
-      @Override
-      public Transformation withOptions(Options options) {
-        return null;
-      }
-    });
+    thrown.expect(NonReversibleValidationException.class);
+    thrown.expectMessage("'!NonReversible' transformation is not automatically reversible");
+    yaml.setOriginal(new NonReversible());
   }
 
+  @DocElement(yamlName = "!NonReversible", description = "non-reversible",
+      elementKind = Transformation.class)
+  private static class NonReversible implements Transformation.Yaml {
+
+    @Override
+    public Transformation withOptions(Options options) {
+      return null;
+    }
+
+    @Override
+    public void checkReversible() throws ConfigValidationException {
+      throw new NonReversibleValidationException(this);
+    }
+  }
   private Path writeFile(Path path, String text) throws IOException {
     return Files.write(path, text.getBytes());
   }

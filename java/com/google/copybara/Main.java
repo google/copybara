@@ -17,6 +17,7 @@ import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.transform.FileMove;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Reverse;
+import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
@@ -61,6 +62,7 @@ public class Main {
         YamlParser.docTypeDescription(Replace.Yaml.class),
         YamlParser.docTypeDescription(Reverse.Yaml.class),
         YamlParser.docTypeDescription(FileMove.Yaml.class),
+        YamlParser.docTypeDescription(Sequence.Yaml.class),
         // Origins
         YamlParser.docTypeDescription(GitOrigin.Yaml.class),
         // Destinations

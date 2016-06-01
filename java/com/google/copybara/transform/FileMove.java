@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
@@ -52,6 +53,12 @@ public class FileMove implements Transformation {
     }
   }
 
+  @Override
+  public Transformation reverse() {
+    //TODO(malcon): Make FileMove reversible
+    throw new UnsupportedOperationException("FileMove not reversible");
+  }
+
   private void createParentDirs(Path after) throws IOException, ValidationException {
     try {
       Files.createDirectories(after.getParent());
@@ -93,6 +100,11 @@ public class FileMove implements Transformation {
                 + " movement/rename is needed.");
       }
       return new FileMove(paths);
+    }
+
+    @Override
+    public void checkReversible() throws ConfigValidationException {
+      throw new NonReversibleValidationException(this);
     }
   }
 
