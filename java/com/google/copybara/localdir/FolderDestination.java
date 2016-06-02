@@ -24,7 +24,6 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -35,14 +34,12 @@ import javax.annotation.Nullable;
  */
 public class FolderDestination implements Destination {
 
-  private final Console console;
-  private final PathMatcher excludeFromDeletion;
+  private final PathMatcherBuilder excludeFromDeletion;
   private final Path localFolder;
   private final boolean verbose;
 
-  private FolderDestination(Console console, PathMatcher excludeFromDeletion,
-      Path localFolder, boolean verbose) {
-    this.console = console;
+  private FolderDestination(PathMatcherBuilder excludeFromDeletion, Path localFolder,
+      boolean verbose) {
     this.excludeFromDeletion = excludeFromDeletion;
     this.localFolder = localFolder;
     this.verbose = verbose;
@@ -61,7 +58,10 @@ public class FolderDestination implements Destination {
           + "' already exists and is not a directory");
     }
     console.progress("FolderDestination: deleting previous data from " + localFolder);
-    FileUtil.deleteFilesRecursively(localFolder, FileUtil.notPathMatcher(excludeFromDeletion));
+
+    FileUtil.deleteFilesRecursively(localFolder,
+        FileUtil.notPathMatcher(excludeFromDeletion.relativeTo(localFolder)));
+
     console.progress(
         "FolderDestination: Copying contents of the workdir to " + localFolder);
     try {
@@ -111,11 +111,10 @@ public class FolderDestination implements Destination {
       if (!localFolder.isAbsolute()) {
         localFolder = fs.getPath(System.getProperty("user.dir")).resolve(localFolder);
       }
-      PathMatcher excludePathMatcher = PathMatcherBuilder.create(
-          localFolder.getFileSystem(), excludePathsForDeletion).relativeTo(localFolder);
+      PathMatcherBuilder excludePathMatcher = PathMatcherBuilder.create(
+          localFolder.getFileSystem(), excludePathsForDeletion);
 
-      return new FolderDestination(generalOptions.console(), excludePathMatcher,
-          localFolder, generalOptions.isVerbose());
+      return new FolderDestination(excludePathMatcher, localFolder, generalOptions.isVerbose());
     }
 
   }

@@ -45,6 +45,27 @@ public class FolderDestinationTest {
   }
 
   @Test
+  public void testDeleteWithEmptyExcludes()
+      throws IOException, ConfigValidationException, RepoException {
+    workdir = Files.createTempDirectory("workdir");
+    Path localFolder = Files.createTempDirectory("local_folder");
+
+    Files.write(workdir.resolve("file1.txt"), new byte[]{});
+    Files.write(localFolder.resolve("file2.txt"), new byte[]{});
+
+    options.localDestination.localFolder = localFolder.toString();
+
+    Destination destination = yaml.withOptions(options.build(), CONFIG_NAME);
+    destination.process(workdir, new MockReference("origin_ref"),
+        /*timestamp=*/424242420, "Not relevant", options.general.console());
+
+    assertAbout(FileSubjects.path())
+        .that(localFolder)
+        .containsFiles("file1.txt")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testCopyWithExcludes() throws Exception {
     Path localFolder = Files.createTempDirectory("local_folder");
 

@@ -1,19 +1,14 @@
 package com.google.copybara.util;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.copybara.config.ConfigValidationException;
 
 import java.io.IOException;
-import java.nio.file.FileSystem;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -70,10 +65,6 @@ public final class FileUtil {
    * true.
    */
   static PathMatcher anyPathMatcher(final Iterable<PathMatcher> pathMatchers) {
-    if (!pathMatchers.iterator().hasNext()) {
-      return ALL_FILES;
-    }
-
     return new PathMatcher() {
       @Override
       public boolean matches(Path path) {

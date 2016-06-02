@@ -12,6 +12,9 @@ import java.nio.file.PathMatcher;
 
 /**
  * A {@link PathMatcher} builder that creates a PathMatcher relative to a {@link Path}.
+ *
+ * <p>The returned {@link PathMatcher} returns true if any of the {@code paths} expressions match.
+ * If {@code paths} is empty it will no match any file.
  */
 public final class PathMatcherBuilder {
 
