@@ -40,7 +40,7 @@ public class GitOriginTest {
     workdir = Files.createTempDirectory("workdir");
     GitOrigin.Yaml yaml = new GitOrigin.Yaml();
     yaml.setUrl("file://" + remote.toFile().getAbsolutePath());
-    yaml.setDefaultTrackingRef("other");
+    yaml.setRef("other");
 
     OptionsBuilder options = new OptionsBuilder();
     options.git.gitRepoStorage = Files.createTempDirectory("repos_repo").toString();

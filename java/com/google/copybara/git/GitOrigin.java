@@ -52,15 +52,14 @@ public final class GitOrigin implements Origin<GitOrigin> {
    * Default reference to track
    */
   @Nullable
-  private final String defaultTrackingRef;
+  private final String configRef;
   private final Console console;
 
-  GitOrigin(Console console, GitRepository repository, String repoUrl,
-      @Nullable String defaultTrackingRef) {
+  GitOrigin(Console console, GitRepository repository, String repoUrl, @Nullable String configRef) {
     this.console = console;
     this.repository = Preconditions.checkNotNull(repository);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
-    this.defaultTrackingRef = Preconditions.checkNotNull(defaultTrackingRef);
+    this.configRef = Preconditions.checkNotNull(configRef);
   }
 
   public GitRepository getRepository() {
@@ -73,11 +72,11 @@ public final class GitOrigin implements Origin<GitOrigin> {
     repository.initGitDir();
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
-      if (defaultTrackingRef == null) {
+      if (configRef == null) {
         throw new RepoException("No reference was pass for " + repoUrl
-            + " and no default reference was configured");
+            + " and no default reference was configured in the config file");
       }
-      ref = defaultTrackingRef;
+      ref = configRef;
     } else {
       ref = reference;
     }
@@ -171,7 +170,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
     return MoreObjects.toStringHelper(this)
         .add("repository", repository)
         .add("repoUrl", repoUrl)
-        .add("defaultTrackingRef", defaultTrackingRef)
+        .add("ref", configRef)
         .toString();
   }
 
@@ -226,7 +225,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
   public final static class Yaml implements Origin.Yaml<GitOrigin> {
 
     private String url;
-    private String defaultTrackingRef;
+    private String ref;
 
     @DocField(description = "Indicates the URL of the git repository")
     public void setUrl(String url) {
@@ -234,8 +233,8 @@ public final class GitOrigin implements Origin<GitOrigin> {
     }
 
     @DocField(description = "Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'", required = false)
-    public void setDefaultTrackingRef(String defaultTrackingRef) {
-      this.defaultTrackingRef = defaultTrackingRef;
+    public void setRef(String ref) {
+      this.ref = ref;
     }
 
     @Override
@@ -248,7 +247,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
       Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
       Console console = options.get(GeneralOptions.class).console();
       return new GitOrigin(console, GitRepository.bareRepo(gitDir, options), url,
-          defaultTrackingRef);
+          ref);
     }
   }
 }

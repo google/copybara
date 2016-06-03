@@ -33,7 +33,7 @@ all this boilerplate in there
   > name: "cbtest"
   > origin: !GitOrigin
   >   url: "file://$PWD/remote"
-  >   defaultTrackingRef: "master"
+  >   ref: "master"
   > destination: !GitDestination
   >   url: "file://$PWD/destination"
   >   fetch: "master"

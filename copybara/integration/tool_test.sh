@@ -81,7 +81,7 @@ name: "cbtest"
 workflows:
   - origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !GitDestination
       url: "file://$destination"
       fetch: "master"
@@ -158,7 +158,7 @@ name: "cbtest"
 workflows:
   - origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !GitDestination
       url: "file://$destination"
       fetch: "master"
@@ -219,7 +219,7 @@ name: "cbtest"
 workflows:
   - origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !GitDestination
       url: "file://$destination"
       fetch: "master"
@@ -302,7 +302,7 @@ name: "cbtest"
 workflows:
   - origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !GitDestination
       url: "file://$destination"
       fetch: master
@@ -346,7 +346,7 @@ name: "cbtest"
 workflows:
   - origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !GitDestination
       url: "file://$destination"
       fetch: master
@@ -395,7 +395,7 @@ workflows:
   - name : "forward"
     origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !GitDestination
       url: "file://$destination"
       fetch: master
@@ -405,7 +405,7 @@ workflows:
   - name : "reverse"
     origin: !GitOrigin
       url: "file://$destination"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !GitDestination
       url: "file://$remote"
       fetch: reverse
@@ -448,7 +448,7 @@ name: "cbtest"
 workflows:
   - origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !FolderDestination
       excludePathsForDeletion:
         - "test.copybara"
@@ -486,12 +486,12 @@ workflows:
   - name: "default"
     origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !FolderDestination {}
   - name: "choochoochoose_me"
     origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !FolderDestination {}
     transformations:
       - !Replace
@@ -520,7 +520,7 @@ name: "cbtest"
 workflows:
   - origin: !GitOrigin
       url: "file://$remote"
-      defaultTrackingRef: "master"
+      ref: "master"
     destination: !FolderDestination {}
     transformations:
       - !MoveFiles
