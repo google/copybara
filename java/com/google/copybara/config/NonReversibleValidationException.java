@@ -9,6 +9,11 @@ import com.google.copybara.transform.Transformation;
  */
 public class NonReversibleValidationException extends ConfigValidationException {
 
+  public NonReversibleValidationException(Transformation.Yaml element, String message) {
+    super(String.format("'%s' transformation is not automatically reversible: %s",
+        DocElementUtil.getYamlName(element), message));
+  }
+
   public NonReversibleValidationException(Transformation.Yaml element) {
     super(String.format("'%s' transformation is not automatically reversible",
         DocElementUtil.getYamlName(element)));
