@@ -97,7 +97,7 @@ public final class Replace implements Transformation {
      * Transforms a single line which confirming that the current transformation can be applied in
      * reverse to get the original line back.
      */
-    private String transformLine(String originalLine)
+    private String transformLine(String originalLine, Path file)
         throws ValidationException {
       Matcher matcher = beforeRegex.matcher(originalLine);
       String newLine = matcher.replaceAll(after.template());
@@ -105,10 +105,10 @@ public final class Replace implements Transformation {
       String roundTrippedLine = matcher.replaceAll(before.template());
       if (!roundTrippedLine.equals(originalLine)) {
         throw new ValidationException(String.format(
-            "Reverse-transform didn't generate the original text:\n"
+            "Error transforming '%s' file. Reverse-transform didn't generate the original text:\n"
                 + "    Expected : %s\n"
                 + "    Actual   : %s\n",
-            originalLine, roundTrippedLine));
+            file, originalLine, roundTrippedLine));
       }
       return newLine;
     }
@@ -126,7 +126,7 @@ public final class Replace implements Transformation {
       List<String> newLines = new ArrayList<>(originalLines.size());
       for (String line : originalLines) {
         try {
-          newLines.add(transformLine(line));
+          newLines.add(transformLine(line, file));
         } catch (ValidationException e) {
           error = e;
           return FileVisitResult.TERMINATE;
