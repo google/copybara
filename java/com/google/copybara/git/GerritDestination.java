@@ -3,6 +3,7 @@ package com.google.copybara.git;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.hash.Hashing;
 import com.google.copybara.Destination;
@@ -12,9 +13,14 @@ import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.console.Console;
 
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -110,7 +116,35 @@ public final class GerritDestination implements Destination {
               url, fetch, "refs/for/master", author,
               options.get(GitOptions.class),
               generalOptions.isVerbose(),
-              new CommitGenerator(options.get(GerritOptions.class))));
+              new CommitGenerator(options.get(GerritOptions.class)),
+              new GerritProcessPushOutput(generalOptions.console())));
+    }
+
+    static class GerritProcessPushOutput extends ProcessPushOutput {
+
+      private static final Pattern GERRIT_URL_LINE = Pattern.compile(
+          ".*: *(http(s)?://[^ ]+)( .*)?");
+      private final Console console;
+
+      GerritProcessPushOutput(Console console) {
+        this.console = console;
+      }
+
+      @Override
+      void process(String output) {
+        List<String> lines = Splitter.on("\n").splitToList(output);
+        for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
+          String line = iterator.next();
+          if ((line.contains("New Changes") || line.contains("Updated Changes"))
+              && iterator.hasNext()) {
+            String next = iterator.next();
+            Matcher matcher = GERRIT_URL_LINE.matcher(next);
+            if (matcher.matches()) {
+              console.info("New Gerrit review created at " + matcher.group(1));
+            }
+          }
+        }
+      }
     }
   }
 }

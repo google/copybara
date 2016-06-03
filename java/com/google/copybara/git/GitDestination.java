@@ -54,9 +54,11 @@ public final class GitDestination implements Destination {
   private final GitOptions gitOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
+  private final ProcessPushOutput processPushOutput;
 
   GitDestination(String configName, String repoUrl, String fetch, String push,
-      String author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator) {
+      String author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
+      ProcessPushOutput processPushOutput) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
@@ -65,6 +67,7 @@ public final class GitDestination implements Destination {
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
+    this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
   }
 
   /**
@@ -114,7 +117,8 @@ public final class GitDestination implements Destination {
         "--date", timestamp + " +0000",
         "-m", commitGenerator.message(changesSummary, alternate, originRef));
     console.progress("Git Destination: Pushing to " + repoUrl);
-    alternate.simpleCommand("push", repoUrl, "HEAD:" + push);
+    processPushOutput.process(
+        alternate.simpleCommand("push", repoUrl, "HEAD:" + this.push).getStderr());
   }
 
   private GitRepository cloneBaseline() throws RepoException {
@@ -192,8 +196,19 @@ public final class GitDestination implements Destination {
           author,
           options.get(GitOptions.class),
           options.get(GeneralOptions.class).isVerbose(),
-          new DefaultCommitGenerator()
+          new DefaultCommitGenerator(),
+          new ProcessPushOutput()
       );
+    }
+  }
+
+  /**
+   * Process the server response from the push command
+   */
+  static class ProcessPushOutput {
+
+    void process(String output) {
+
     }
   }
 }

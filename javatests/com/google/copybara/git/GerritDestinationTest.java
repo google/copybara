@@ -6,10 +6,12 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GerritDestination.Yaml;
+import com.google.copybara.git.GerritDestination.Yaml.GerritProcessPushOutput;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.LogConsole;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -18,6 +20,8 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -199,5 +203,32 @@ public class GerritDestinationTest {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("missing required field 'url'");
     destination();
+  }
+
+  @Test
+  public void testProcessPushOutput() {
+    String gerritResponse = "Counting objects: 9, done.\n"
+        + "Delta compression using up to 4 threads.\n"
+        + "Compressing objects: 100% (6/6), done.\n"
+        + "Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.\n"
+        + "Total 9 (delta 4), reused 0 (delta 0)\n"
+        + "remote: Resolving deltas: 100% (4/4)\n"
+        + "remote: Processing changes: updated: 1, done\n"
+        + "remote:\n"
+        + "remote: Updated Changes:\n"
+        + "remote:   https://some.url.google.com/1234 This is a message\n"
+        + "remote:\n"
+        + "To sso://team/copybara-team/copybara\n"
+        + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
+        + "<o> [master] ~/dev/copybara$\n";
+
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    GerritProcessPushOutput process = new GerritProcessPushOutput(
+        new LogConsole(new PrintStream(out)));
+
+    process.process(gerritResponse);
+
+    assertThat(out.toString())
+        .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
   }
 }
