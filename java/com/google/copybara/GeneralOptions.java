@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.Console;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -14,6 +15,7 @@ import javax.annotation.Nullable;
 /**
  * General options available for all the program classes.
  */
+@Parameters(separators = "=")
 public final class GeneralOptions implements Option {
 
   public static final String NOANSI = "--noansi";
