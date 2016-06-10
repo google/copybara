@@ -8,7 +8,7 @@ import com.google.copybara.EnvironmentException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.transform.FileMove.MoveElement;
+import com.google.copybara.transform.MoveFiles.MoveElement;
 import com.google.copybara.util.console.Console;
 
 import org.junit.Before;
@@ -24,9 +24,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
-public class FileMoveTest {
+public class MoveFilesTest {
 
-  private FileMove.Yaml yaml;
+  private MoveFiles.Yaml yaml;
   private OptionsBuilder options;
   private Path workdir;
   private Console console;
@@ -39,7 +39,7 @@ public class FileMoveTest {
     FileSystem fs = Jimfs.newFileSystem();
     workdir = fs.getPath("/");
     Files.createDirectories(workdir);
-    yaml = new FileMove.Yaml();
+    yaml = new MoveFiles.Yaml();
     options = new OptionsBuilder();
     console = options.general.console();
   }
@@ -49,7 +49,7 @@ public class FileMoveTest {
     yaml.setPaths(ImmutableList.of(
         createMove("one.before", "folder/one.after"),
         createMove("folder2/two.before", "two.after")));
-    FileMove mover = yaml.withOptions(options.build());
+    MoveFiles mover = yaml.withOptions(options.build());
     Files.write(workdir.resolve("one.before"), new byte[]{});
     Files.createDirectories(workdir.resolve("folder2"));
     Files.write(workdir.resolve("folder2/two.before"), new byte[]{});
@@ -65,7 +65,7 @@ public class FileMoveTest {
   public void testDoesntExist() throws ValidationException, EnvironmentException, IOException {
     yaml.setPaths(ImmutableList.of(
         createMove("blablabla", "other")));
-    FileMove mover = yaml.withOptions(options.build());
+    MoveFiles mover = yaml.withOptions(options.build());
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
     mover.transform(workdir, console);
@@ -98,7 +98,7 @@ public class FileMoveTest {
     yaml.setPaths(ImmutableList.of(createMove("one", "two")));
     Files.write(workdir.resolve("one"), new byte[]{});
     Files.write(workdir.resolve("two"), new byte[]{});
-    FileMove mover = yaml.withOptions(options.build());
+    MoveFiles mover = yaml.withOptions(options.build());
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot move '/two' because it already exists in the workdir");
     mover.transform(workdir, console);
@@ -110,7 +110,7 @@ public class FileMoveTest {
     yaml.setPaths(ImmutableList.of(createMove("one", "folder/two")));
     Files.createDirectories(workdir.resolve("folder"));
     Files.write(workdir.resolve("one"), new byte[]{});
-    FileMove mover = yaml.withOptions(options.build());
+    MoveFiles mover = yaml.withOptions(options.build());
     mover.transform(workdir, console);
 
     assertAbout(FileSubjects.path())

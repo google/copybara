@@ -14,7 +14,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOrigin;
 import com.google.copybara.localdir.FolderDestination;
 import com.google.copybara.localdir.LocalDestinationOptions;
-import com.google.copybara.transform.FileMove;
+import com.google.copybara.transform.MoveFiles;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Reverse;
 import com.google.copybara.transform.Sequence;
@@ -61,7 +61,7 @@ public class Main {
         // Transformations
         YamlParser.docTypeDescription(Replace.Yaml.class),
         YamlParser.docTypeDescription(Reverse.Yaml.class),
-        YamlParser.docTypeDescription(FileMove.Yaml.class),
+        YamlParser.docTypeDescription(MoveFiles.Yaml.class),
         YamlParser.docTypeDescription(Sequence.Yaml.class),
         // Origins
         YamlParser.docTypeDescription(GitOrigin.Yaml.class),

@@ -22,11 +22,11 @@ import java.util.List;
 /**
  * Moves and renames files
  */
-public class FileMove implements Transformation {
+public class MoveFiles implements Transformation {
 
   private final List<MoveElement> paths;
 
-  private FileMove(List<MoveElement> paths) {
+  private MoveFiles(List<MoveElement> paths) {
     this.paths = ImmutableList.copyOf(paths);
   }
 
@@ -55,8 +55,8 @@ public class FileMove implements Transformation {
 
   @Override
   public Transformation reverse() {
-    //TODO(malcon): Make FileMove reversible
-    throw new UnsupportedOperationException("FileMove not reversible");
+    //TODO(malcon): Make MoveFiles reversible
+    throw new UnsupportedOperationException("MoveFiles not reversible");
   }
 
   private void createParentDirs(Path after) throws IOException, ValidationException {
@@ -92,14 +92,14 @@ public class FileMove implements Transformation {
     }
 
     @Override
-    public FileMove withOptions(Options options)
+    public MoveFiles withOptions(Options options)
         throws ConfigValidationException, EnvironmentException {
       if (paths.isEmpty()) {
         throw new ConfigValidationException(
             "'paths' attribute is required and cannot be empty. At least one file"
                 + " movement/rename is needed.");
       }
-      return new FileMove(paths);
+      return new MoveFiles(paths);
     }
 
     @Override
