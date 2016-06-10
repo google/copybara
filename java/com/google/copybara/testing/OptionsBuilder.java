@@ -7,9 +7,9 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
 import com.google.copybara.WorkflowNameOptions;
+import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitOptions;
-import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.util.console.LogConsole;
 
 import java.io.IOException;
@@ -23,8 +23,8 @@ public class OptionsBuilder {
   public GeneralOptions general =
       new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true, /*lastRevision=*/
           null, new LogConsole(System.out));
-  public LocalDestinationOptions localDestination =
-      new LocalDestinationOptions();
+  public FolderDestinationOptions localDestination =
+      new FolderDestinationOptions();
   public GitOptions git = new GitOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowNameOptions workflowName = new WorkflowNameOptions("default");

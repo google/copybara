@@ -1,4 +1,4 @@
-package com.google.copybara.localdir;
+package com.google.copybara.folder;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -86,7 +86,7 @@ public class FolderDestination implements Destination {
 
   @DocElement(yamlName = "!FolderDestination", elementKind = Destination.class,
       description = "A folder destination is a destination that puts the output in a folder.",
-      flags = LocalDestinationOptions.class)
+      flags = FolderDestinationOptions.class)
   public static class Yaml implements Destination.Yaml {
 
     List<String> excludePathsForDeletion = ImmutableList.of();
@@ -102,7 +102,7 @@ public class FolderDestination implements Destination {
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getFileSystem();
-      String localFolderOption = options.get(LocalDestinationOptions.class).localFolder;
+      String localFolderOption = options.get(FolderDestinationOptions.class).localFolder;
       if (Strings.isNullOrEmpty(localFolderOption)) {
         throw new ConfigValidationException(
             "--folder-dir is required with FolderDestination destination");

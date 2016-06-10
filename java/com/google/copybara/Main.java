@@ -7,13 +7,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.YamlParser;
+import com.google.copybara.folder.FolderDestination;
+import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritDestination;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitDestination;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOrigin;
-import com.google.copybara.localdir.FolderDestination;
-import com.google.copybara.localdir.LocalDestinationOptions;
 import com.google.copybara.transform.MoveFiles;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Reverse;
@@ -53,7 +53,7 @@ public class Main {
   private static final Logger logger = Logger.getLogger(Main.class.getName());
 
   protected List<Option> getAllOptions() {
-    return ImmutableList.of(new LocalDestinationOptions(), new GitOptions(), new GerritOptions());
+    return ImmutableList.of(new FolderDestinationOptions(), new GitOptions(), new GerritOptions());
   }
 
   protected Iterable<TypeDescription> getYamlTypeDescriptions() {

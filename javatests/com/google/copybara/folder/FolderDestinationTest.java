@@ -1,4 +1,4 @@
-package com.google.copybara.localdir;
+package com.google.copybara.folder;
 
 import static com.google.common.truth.Truth.assertAbout;
 
@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.localdir.FolderDestination.Yaml;
+import com.google.copybara.folder.FolderDestination.Yaml;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
