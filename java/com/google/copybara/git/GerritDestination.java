@@ -2,6 +2,7 @@
 package com.google.copybara.git;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -13,6 +14,7 @@ import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.console.Console;
 
@@ -105,6 +107,18 @@ public final class GerritDestination implements Destination {
       description = "Creates a change in Gerrit using the transformed worktree",
       elementKind = Destination.class, flags = {GerritOptions.class, GitOptions.class})
   public static final class Yaml extends AbstractDestinationYaml {
+
+    private String pushToRefsFor;
+
+    @DocField(
+        description = "Review branch to push the change to, for example setting this to 'feature_x'"
+        + " causes the destination to push to 'refs/for/feature_x'",
+        required = false,
+        defaultValue = "{fetch}")
+    public void setPushToRefsFor(String pushToRefsFor) {
+      this.pushToRefsFor = pushToRefsFor;
+    }
+
     @Override
     public GerritDestination withOptions(Options options, String configName)
         throws ConfigValidationException {
@@ -113,7 +127,9 @@ public final class GerritDestination implements Destination {
       return new GerritDestination(
           new GitDestination(
               configName,
-              url, fetch, "refs/for/master", author,
+              url, fetch,
+              "refs/for/" + MoreObjects.firstNonNull(pushToRefsFor, fetch),
+              author,
               options.get(GitOptions.class),
               generalOptions.isVerbose(),
               new CommitGenerator(options.get(GerritOptions.class)),

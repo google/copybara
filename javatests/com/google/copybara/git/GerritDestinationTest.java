@@ -231,4 +231,31 @@ public class GerritDestinationTest {
     assertThat(out.toString())
         .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
   }
+
+  @Test
+  public void testPushToNonDefaultRef() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPushToRefsFor("testPushToRef");
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.git.gitFirstCommit = true;
+    destination().process(
+        workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG, console);
+
+    // Make sure commit adds new text
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/testPushToRef");
+    assertThat(showResult).contains("some content");
+  }
+
+  @Test
+  public void testPushToNonMasterDefaultRef() throws Exception {
+    yaml.setFetch("fooze");
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.git.gitFirstCommit = true;
+    destination().process(
+        workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG, console);
+
+    // Make sure commit adds new text
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/fooze");
+    assertThat(showResult).contains("some content");
+  }
 }
