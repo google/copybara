@@ -22,15 +22,10 @@ public interface Destination {
 
   /**
    * Writes the fully-transformed repository stored at {@code workdir} to this destination.
-   *  @param workdir directory containing the tree of files to put in destination
-   * @param originRef reference to the origin revision being moved
-   * @param timestamp when the code was submitted to the origin repository, expressed as seconds
- * since the UNIX epoch
-   * @param changesSummary commit message to use for destination. Note that the destination can
+   * @param transformResult what to write to the destination
    * @param console console to be used for printing messages
    */
-  void process(Path workdir, Reference<?> originRef, long timestamp,
-      String changesSummary, Console console) throws RepoException, IOException;
+  void process(TransformResult transformResult, Console console) throws RepoException, IOException;
 
   /**
    * Returns the latest origin ref that was pushed to this destination.

@@ -36,8 +36,8 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
 
     transform(workdir, console);
 
-    getDestination().process(workdir, resolvedRef, getTimestamp(resolvedRef),
-        getCommitMessage(resolvedRef), console);
+    getDestination()
+        .process(new TransformResult(workdir, resolvedRef, getCommitMessage(resolvedRef)), console);
   }
 
   private String getCommitMessage(ReferenceFiles<O> resolvedRef) throws RepoException {

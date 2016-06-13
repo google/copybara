@@ -4,6 +4,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GerritDestination.Yaml;
 import com.google.copybara.git.GerritDestination.Yaml.GerritProcessPushOutput;
@@ -21,6 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -78,22 +80,25 @@ public class GerritDestinationTest {
     return changeIdLine;
   }
 
+  private void process(MockReference originRef)
+      throws ConfigValidationException, RepoException, IOException {
+    destination().process(new TransformResult(workdir, originRef, COMMIT_MSG), console);
+  }
+
   @Test
   public void gerritChangeIdChangesBetweenCommits() throws Exception {
     yaml.setFetch("master");
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
     options.git.gitFirstCommit = true;
-    destination().process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, COMMIT_MSG, console);
+    process(new MockReference("origin_ref"));
 
     String firstChangeIdLine = lastCommitChangeIdLine();
 
     Files.write(workdir.resolve("file2"), "some more content".getBytes());
     git("branch", "master", "refs/for/master");
     options.git.gitFirstCommit = false;
-    destination().process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, COMMIT_MSG, console);
+    process(new MockReference("origin_ref"));
 
     assertThat(firstChangeIdLine)
         .isNotEqualTo(lastCommitChangeIdLine());
@@ -108,8 +113,7 @@ public class GerritDestinationTest {
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
     options.git.gitFirstCommit = true;
     options.gerrit.gerritChangeId = changeId;
-    destination().process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, COMMIT_MSG, console);
+    process(new MockReference("origin_ref"));
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
 
@@ -120,8 +124,7 @@ public class GerritDestinationTest {
     changeId = "Ibbbbbbbbbbccccccccccddddddddddeeeeeeeeee";
     options.git.gitFirstCommit = false;
     options.gerrit.gerritChangeId = changeId;
-    destination().process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, COMMIT_MSG, console);
+    process(new MockReference("origin_ref"));
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
   }
@@ -132,8 +135,7 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     options.git.gitFirstCommit = true;
-    destination().process(workdir, new MockReference("first_commit"),
-        /*timestamp=*/424242420, COMMIT_MSG, console);
+    process(new MockReference("first_commit"));
 
     String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1", "refs/for/master")
         .split("\n");
@@ -174,16 +176,14 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
-    destination().process(workdir, new MockReference("first_commit"),
-        /*timestamp=*/355558888, COMMIT_MSG, console);
+    process(new MockReference("first_commit").withTimestamp(355558888));
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 355558888);
 
     git("branch", "master", "refs/for/master");
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     options.git.gitFirstCommit = false;
-    destination().process(workdir, new MockReference("first_commit"),
-        /*timestamp=*/424242420, COMMIT_MSG, console);
+    process(new MockReference("first_commit").withTimestamp(424242420));
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 424242420);
   }
 
@@ -238,8 +238,7 @@ public class GerritDestinationTest {
     yaml.setPushToRefsFor("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
-    destination().process(
-        workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG, console);
+    process(new MockReference("origin_ref"));
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/testPushToRef");
@@ -251,8 +250,7 @@ public class GerritDestinationTest {
     yaml.setFetch("fooze");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
-    destination().process(
-        workdir, new MockReference("origin_ref"), /*timestamp=*/424242420, COMMIT_MSG, console);
+    process(new MockReference("origin_ref"));
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/fooze");

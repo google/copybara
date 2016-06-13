@@ -4,6 +4,7 @@ import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.common.collect.Lists;
 import com.google.copybara.Destination;
+import com.google.copybara.TransformResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.folder.FolderDestination.Yaml;
@@ -44,6 +45,14 @@ public class FolderDestinationTest {
     Files.write(workdir.resolve("dir/file.txt"), new byte[]{});
   }
 
+  private void process() throws ConfigValidationException, RepoException, IOException {
+    yaml.withOptions(options.build(), CONFIG_NAME)
+        .process(
+            new TransformResult(
+                workdir, new MockReference("origin_ref"), "Unused summary"),
+            options.general.console());
+  }
+
   @Test
   public void testDeleteWithEmptyExcludes()
       throws IOException, ConfigValidationException, RepoException {
@@ -55,9 +64,7 @@ public class FolderDestinationTest {
 
     options.localDestination.localFolder = localFolder.toString();
 
-    Destination destination = yaml.withOptions(options.build(), CONFIG_NAME);
-    destination.process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, "Not relevant", options.general.console());
+    process();
 
     assertAbout(FileSubjects.path())
         .that(localFolder)
@@ -79,9 +86,8 @@ public class FolderDestinationTest {
 
     options.localDestination.localFolder = localFolder.toString();
     yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
-    Destination destination = yaml.withOptions(options.build(), CONFIG_NAME);
-    destination.process(workdir, new MockReference("origin_ref"),
-        /*timestamp=*/424242420, "Not relevant", options.general.console());
+
+    process();
 
     assertAbout(FileSubjects.path())
         .that(localFolder)

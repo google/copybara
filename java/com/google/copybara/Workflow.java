@@ -22,7 +22,6 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -155,17 +154,6 @@ public abstract class Workflow<O extends Origin<O>> {
               + " was not passed", labelName, getDestination()));
     }
     return getOrigin().resolve(previousRef);
-  }
-
-  /**
-   * Returns the timestamp of {@code ref}, if present. Otherwise returns the current time.
-   */
-  long getTimestamp(ReferenceFiles<O> ref) throws RepoException {
-    Long timestamp = ref.readTimestamp();
-    if (timestamp == null) {
-      timestamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
-    }
-    return timestamp;
   }
 
   @Override

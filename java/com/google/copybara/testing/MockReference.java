@@ -15,15 +15,29 @@ public class MockReference<O extends Origin<O>> implements Reference<O> {
   public static final String MOCK_LABEL_REV_ID = "MockLabelRevId";
 
   private final String reference;
+  @Nullable private final Long timestamp;
 
   public MockReference(String reference) {
     this.reference = reference;
+    this.timestamp = null;
+  }
+
+  private MockReference(String reference, @Nullable Long timestamp) {
+    this.reference = reference;
+    this.timestamp = timestamp;
+  }
+
+  /**
+   * Returns an instance equivalent to this one but with the timestamp set to the specified value.
+   */
+  public MockReference withTimestamp(long timestamp) {
+    return new MockReference(reference, timestamp);
   }
 
   @Nullable
   @Override
   public Long readTimestamp() throws RepoException {
-    throw new UnsupportedOperationException();
+    return timestamp;
   }
 
   @Override

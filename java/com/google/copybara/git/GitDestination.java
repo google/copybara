@@ -7,14 +7,13 @@ import com.google.common.base.Strings;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
 
-import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,17 +28,17 @@ public final class GitDestination implements Destination {
     /**
      * Generates a commit message based on the uncommitted index stored in the given repository.
      */
-    String message(String commitMsg, GitRepository repo, Reference<?> originRef)
+    String message(TransformResult transformResult, GitRepository repo)
         throws RepoException;
   }
 
   private static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
-    public String message(String commitMsg, GitRepository repo, Reference<?> originRef) {
+    public String message(TransformResult transformResult, GitRepository repo) {
       return String.format("%s\n%s: %s\n",
-          commitMsg,
-          originRef.getLabelName(),
-          originRef.asString()
+          transformResult.getSummary(),
+          transformResult.getOriginRef().getLabelName(),
+          transformResult.getOriginRef().asString()
       );
     }
   }
@@ -92,9 +91,9 @@ public final class GitDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, Reference<?> originRef, long timestamp,
-      String changesSummary, Console console) throws RepoException {
-    logger.log(Level.INFO, "Exporting " + configName + " from " + workdir + " to: " + this);
+  public void process(TransformResult transformResult, Console console) throws RepoException {
+    logger.log(Level.INFO,
+        "Exporting " + configName + " from " + transformResult.getPath() + " to: " + this);
 
     console.progress("Git Destination: Fetching " + repoUrl);
     GitRepository scratchClone = cloneBaseline();
@@ -110,12 +109,12 @@ public final class GitDestination implements Destination {
     }
     verifyUserInfoConfigured(scratchClone);
     console.progress("Git Destination: Adding files for push");
-    GitRepository alternate = scratchClone.withWorkTree(workdir);
+    GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
     alternate.simpleCommand("add", "--all");
     alternate.simpleCommand("commit",
         "--author", author,
-        "--date", timestamp + " +0000",
-        "-m", commitGenerator.message(changesSummary, alternate, originRef));
+        "--date", transformResult.getTimestamp() + " +0000",
+        "-m", commitGenerator.message(transformResult, alternate));
     console.progress("Git Destination: Pushing to " + repoUrl);
     processPushOutput.process(
         alternate.simpleCommand("push", repoUrl, "HEAD:" + this.push).getStderr());

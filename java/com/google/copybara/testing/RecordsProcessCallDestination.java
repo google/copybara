@@ -5,6 +5,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
+import com.google.copybara.TransformResult;
 import com.google.copybara.Options;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.util.console.Console;
@@ -29,9 +30,8 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
   public final List<ProcessedChange> processed = new ArrayList<>();
 
   @Override
-  public void process(Path workdir, Reference<?> originRef, long timestamp, String changesSummary,
-      Console console) {
-    processed.add(new ProcessedChange(originRef, timestamp, changesSummary, copyWorkdir(workdir)));
+  public void process(TransformResult transformResult, Console console) {
+    processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath())));
   }
 
   private ImmutableMap<String, String> copyWorkdir(final Path workdir) {
@@ -56,7 +56,7 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
   public String getPreviousRef(String labelName) {
     return processed.isEmpty()
         ? null
-        : processed.get(processed.size() - 1).originRef.asString();
+        : processed.get(processed.size() - 1).getOriginRef().asString();
   }
 
   @Override
@@ -66,29 +66,24 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
 
   public static class ProcessedChange {
 
-    private final long timestamp;
-    private final Reference<?> originRef;
-    private final String changesSummary;
+    private final TransformResult transformResult;
     private final ImmutableMap<String, String> workdir;
 
-    private ProcessedChange(Reference<?> originRef, long timestamp, String changesSummary,
-        ImmutableMap<String, String> workdir) {
-      this.timestamp = timestamp;
-      this.originRef = originRef;
-      this.changesSummary = changesSummary;
-      this.workdir = workdir;
+    private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir) {
+      this.transformResult = Preconditions.checkNotNull(transformResult);
+      this.workdir = Preconditions.checkNotNull(workdir);
     }
 
     public long getTimestamp() {
-      return timestamp;
+      return transformResult.getTimestamp();
     }
 
     public Reference<?> getOriginRef() {
-      return originRef;
+      return transformResult.getOriginRef();
     }
 
     public String getChangesSummary() {
-      return changesSummary;
+      return transformResult.getSummary();
     }
 
     public int numFiles() {
@@ -107,9 +102,9 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
-          .add("timestamp", timestamp)
-          .add("originRef", originRef)
-          .add("changesSummary", changesSummary)
+          .add("timestamp", getTimestamp())
+          .add("originRef", getOriginRef())
+          .add("changesSummary", getChangesSummary())
           .add("workdir", workdir)
           .toString();
     }

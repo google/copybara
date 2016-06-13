@@ -12,6 +12,7 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformResult;
 import com.google.copybara.Workflow;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -19,7 +20,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.Reverse;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.Transformation;
-import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.Console;
 
 import org.hamcrest.Description;
@@ -303,8 +303,8 @@ public class YamlParserTest {
     }
 
     @Override
-    public void process(Path workdir, Reference<?> originRef, long timestamp,
-        String changesSummary, Console console) throws RepoException, IOException {
+    public void process(TransformResult transformResult, Console console)
+        throws RepoException, IOException {
       throw new UnsupportedOperationException();
     }
 

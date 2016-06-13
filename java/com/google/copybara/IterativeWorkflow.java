@@ -52,7 +52,7 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
       if (!message.endsWith("\n")) {
         message += "\n";
       }
-      getDestination().process(workdir, ref, getTimestamp(ref), message, console);
+      getDestination().process(new TransformResult(workdir, ref, message), console);
     }
   }
 }

@@ -10,15 +10,14 @@ import com.google.common.hash.Hashing;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.console.Console;
 
-import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -50,12 +49,12 @@ public final class GerritDestination implements Destination {
      * values of the git variables {@code GIT_AUTHOR_IDENT} and {@code GIT_COMMITTER_IDENT}.
      */
     @Override
-    public String message(String commitMsg, GitRepository repo, Reference<?> originRef)
+    public String message(TransformResult transformResult, GitRepository repo)
         throws RepoException {
       return String.format("%s\n%s: %s\nChange-Id: %s\n",
-          commitMsg,
-          originRef.getLabelName(),
-          originRef.asString(),
+          transformResult.getSummary(),
+          transformResult.getOriginRef().getLabelName(),
+          transformResult.getOriginRef().asString(),
           changeId(repo)
       );
     }
@@ -90,9 +89,8 @@ public final class GerritDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, Reference<?> originRef, long timestamp,
-      String changesSummary, Console console) throws RepoException {
-    gitDestination.process(workdir, originRef, timestamp, changesSummary, console);
+  public void process(TransformResult transformResult, Console console) throws RepoException {
+    gitDestination.process(transformResult, console);
   }
 
   @Nullable

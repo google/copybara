@@ -6,8 +6,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -46,8 +46,7 @@ public class FolderDestination implements Destination {
   }
 
   @Override
-  public void process(Path workdir, Reference<?> originRef, long timestamp, String changesSummary,
-      Console console)
+  public void process(TransformResult transformResult, Console console)
       throws RepoException, IOException {
     console.progress("FolderDestination: creating " + localFolder);
     try {
@@ -71,9 +70,11 @@ public class FolderDestination implements Destination {
       CommandUtil.executeCommand(
           new Command(new String[]{"/bin/sh", "-cxv",
               "cp -aR * " + ShellUtils.shellEscape(localFolder.toString())},
-              ImmutableMap.<String, String>of(), workdir.toFile()), verbose);
+              ImmutableMap.<String, String>of(), transformResult.getPath().toFile()), verbose);
     } catch (CommandException e) {
-      throw new RepoException("Cannot copy contents of " + workdir + " to " + localFolder, e);
+      throw new RepoException(
+          "Cannot copy contents of " + transformResult.getPath() + " to " + localFolder,
+          e);
     }
   }
 
