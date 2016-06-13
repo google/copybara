@@ -12,10 +12,12 @@ import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,12 +46,30 @@ public class MoveFiles implements Transformation {
       Path after = workdir.resolve(path.after);
       createParentDirs(after);
       try {
-        Files.move(before, after, LinkOption.NOFOLLOW_LINKS, StandardCopyOption.ATOMIC_MOVE);
+        Files.walkFileTree(before, new MovingVisitor(before, after));
       } catch (FileAlreadyExistsException e) {
         throw new ValidationException(
-            String
-                .format("Cannot move '%s' because it already exists in the workdir", e.getFile()));
+            String.format("Cannot move file to '%s' because it already exists", e.getFile()));
       }
+    }
+  }
+
+  private static final class MovingVisitor extends SimpleFileVisitor<Path> {
+    private final Path before;
+    private final Path after;
+
+    MovingVisitor(Path before, Path after) {
+      this.before = before;
+      this.after = after;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path source, BasicFileAttributes attrs) throws IOException {
+      Path relative = before.relativize(source);
+      Path dest = after.resolve(relative);
+      Files.createDirectories(dest.getParent());
+      Files.move(source, dest, LinkOption.NOFOLLOW_LINKS);
+      return FileVisitResult.CONTINUE;
     }
   }
 
@@ -119,6 +139,9 @@ public class MoveFiles implements Transformation {
       this.before = validatePath(before);
     }
 
+    @DocField(description = "The name of the file or directory after moving. If this is the empty"
+        + " string and 'before' is a directory, then all files in 'before' will be moved to the"
+        + " repo root, maintaining the directory tree inside 'before'.")
     public void setAfter(String after) throws ConfigValidationException {
       this.after = validatePath(after);
     }

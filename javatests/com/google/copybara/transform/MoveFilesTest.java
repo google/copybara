@@ -37,7 +37,7 @@ public class MoveFilesTest {
   @Before
   public void setup() throws IOException {
     FileSystem fs = Jimfs.newFileSystem();
-    workdir = fs.getPath("/");
+    workdir = fs.getPath("/test-workdir");
     Files.createDirectories(workdir);
     yaml = new MoveFiles.Yaml();
     options = new OptionsBuilder();
@@ -100,7 +100,7 @@ public class MoveFilesTest {
     Files.write(workdir.resolve("two"), new byte[]{});
     MoveFiles mover = yaml.withOptions(options.build());
     thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot move '/two' because it already exists in the workdir");
+    thrown.expectMessage("Cannot move file to '/test-workdir/two' because it already exists");
     mover.transform(workdir, console);
   }
 
@@ -116,6 +116,21 @@ public class MoveFilesTest {
     assertAbout(FileSubjects.path())
         .that(workdir)
         .containsFiles("folder/two")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testMoveToWorkdirRoot() throws Exception {
+    yaml.setPaths(ImmutableList.of(createMove("third_party/java", "")));
+    Files.createDirectories(workdir.resolve("third_party/java/org"));
+    Files.write(workdir.resolve("third_party/java/one.java"), new byte[]{});
+    Files.write(workdir.resolve("third_party/java/org/two.java"), new byte[]{});
+    MoveFiles mover = yaml.withOptions(options.build());
+    mover.transform(workdir, console);
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFiles("one.java", "org/two.java")
         .containsNoMoreFiles();
   }
 
