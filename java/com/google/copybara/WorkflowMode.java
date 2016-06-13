@@ -16,13 +16,6 @@ public enum WorkflowMode {
    */
   @DocField(description = "Import each origin change individually.")
   ITERATIVE,
-  /**
-   * Cherrypick an individual change from origin into destination
-   */
-  @DocField(description = "Cherrypick an individual change from origin into destination.",
-      // TODO(danielromero): Change this when ready
-      undocumented = true)
-  CHERRYPICK,
   // TODO(copybara): Import an origin tree state diffed by a common parent
   // in destination. This could be a GH Pull Request, a Gerrit Change, etc.
   //CHANGE_REQUEST,

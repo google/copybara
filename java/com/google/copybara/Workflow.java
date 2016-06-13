@@ -264,9 +264,6 @@ public abstract class Workflow<O extends Origin<O>> {
         case ITERATIVE:
           return new IterativeWorkflow<>(configName, name, origin, destination, transformation,
               generalOptions.getLastRevision(), console, excludedOriginPaths);
-        case CHERRYPICK:
-          return new CherrypickWorkflow<>(configName, name, origin, destination, transformation,
-              generalOptions.getLastRevision(), console, excludedOriginPaths);
         default:
           throw new UnsupportedOperationException(mode + " still not implemented");
       }

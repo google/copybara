@@ -92,7 +92,7 @@ public class DiffUtilTest {
 
   /**
    * Tests the situation where the destination is ahead of the baseline, and the diff between the
-   * baseline and the cherrypick can be applied without conflicts to the destination.
+   * baseline and the destination can be applied without conflicts to the destination.
    */
   @Test
   public void applyDifferentBaseline() throws Exception {
