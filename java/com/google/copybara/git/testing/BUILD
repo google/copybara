@@ -8,6 +8,7 @@ java_library(
     srcs = glob(["**/*.java"]),
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/testing",
         "//third_party:truth",
     ],
     visibility = ["//visibility:public"],

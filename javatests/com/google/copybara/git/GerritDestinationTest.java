@@ -2,7 +2,9 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
@@ -11,6 +13,7 @@ import com.google.copybara.git.GerritDestination.Yaml.GerritProcessPushOutput;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 
@@ -24,6 +27,7 @@ import org.junit.runners.JUnit4;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -37,6 +41,7 @@ public class GerritDestinationTest {
   private Path workdir;
   private OptionsBuilder options;
   private Console console;
+  private ImmutableList<String> excludedDestinationPaths;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -53,6 +58,7 @@ public class GerritDestinationTest {
     options.git.gitCommitterEmail = "commiter@email";
     options.git.gitCommitterName = "Bara Kopi";
     console = options.general.console();
+    excludedDestinationPaths = ImmutableList.of();
   }
 
   private GitRepository repo() {
@@ -82,7 +88,10 @@ public class GerritDestinationTest {
 
   private void process(MockReference originRef)
       throws ConfigValidationException, RepoException, IOException {
-    destination().process(new TransformResult(workdir, originRef, COMMIT_MSG), console);
+    destination().process(
+        new TransformResult(workdir, originRef, COMMIT_MSG,
+            PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths)),
+        console);
   }
 
   @Test
@@ -255,5 +264,25 @@ public class GerritDestinationTest {
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/fooze");
     assertThat(showResult).contains("some content");
+  }
+
+  @Test
+  public void canExcludeDestinationPathFromWorkflow() throws Exception {
+    yaml.setFetch("master");
+
+    Path scratchWorkTree = Files.createTempDirectory("GitDestinationTest-scratchWorkTree");
+    Files.write(scratchWorkTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
+    repo().withWorkTree(scratchWorkTree)
+        .simpleCommand("add", "excluded.txt");
+    repo().withWorkTree(scratchWorkTree)
+        .simpleCommand("commit", "-m", "message");
+
+    Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
+    excludedDestinationPaths = ImmutableList.of("excluded.txt");
+    process(new MockReference("ref"));
+    GitTesting.assertThatCheckout(repo(), "refs/for/master")
+        .containsFile("excluded.txt", "some content")
+        .containsFile("normal_file.txt", "some more content")
+        .containsNoMoreFiles();
   }
 }

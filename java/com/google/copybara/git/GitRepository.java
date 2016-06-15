@@ -91,6 +91,18 @@ public final class GitRepository {
   }
 
   /**
+   * The Git work tree - in a typical Git repo, this is the directory containing the {@code .git}
+   * directory. Returns {@code null} for bare repos.
+   */
+  @Nullable public Path getWorkTree() {
+    return workTree;
+  }
+
+  public Path getGitDir() {
+    return gitDir;
+  }
+
+  /**
    * Resolves a git reference to the SHA-1 reference
    */
   public String revParse(String ref) throws RepoException {

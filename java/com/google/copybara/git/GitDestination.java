@@ -12,8 +12,16 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -112,8 +120,9 @@ public final class GitDestination implements Destination {
     console.progress("Git Destination: Adding files for push");
     GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
     alternate.simpleCommand("add", "--all");
-    // TODO(matvore): Add files in scratchClone that match
-    // transformResult.getExcludedDestinationPaths()
+
+    new AddMatchingFilesToIndexVisitor(scratchClone, transformResult.getExcludedDestinationPaths())
+        .walk();
 
     alternate.simpleCommand("commit",
         "--author", author,
@@ -138,6 +147,47 @@ public final class GitDestination implements Destination {
       }
     }
     return scratchClone;
+  }
+
+  /**
+   * A walker which adds all files matching a PathMatcher to the index of a Git repo using
+   * {@code git add}.
+   */
+  private static final class AddMatchingFilesToIndexVisitor extends SimpleFileVisitor<Path> {
+    private final GitRepository repo;
+    private final PathMatcher matcher;
+
+    AddMatchingFilesToIndexVisitor(GitRepository repo, PathMatcherBuilder matcherBuilder) {
+      this.repo = repo;
+      this.matcher = matcherBuilder.relativeTo(repo.getWorkTree());
+    }
+
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+      return dir.equals(repo.getGitDir())
+          ? FileVisitResult.SKIP_SUBTREE
+          : FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+      if (matcher.matches(file)) {
+        try {
+          repo.simpleCommand("add", file.toString());
+        } catch (RepoException e) {
+          throw new IOException(e);
+        }
+      }
+      return FileVisitResult.CONTINUE;
+    }
+
+    void walk() throws RepoException {
+      try {
+        Files.walkFileTree(repo.getWorkTree(), this);
+      } catch (IOException e) {
+        throw new RepoException("Error when adding excludedDestinationPaths to destination.", e);
+      }
+    }
   }
 
   @Nullable
