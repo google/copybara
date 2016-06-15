@@ -108,9 +108,13 @@ public final class GitDestination implements Destination {
       scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
     }
     verifyUserInfoConfigured(scratchClone);
+
     console.progress("Git Destination: Adding files for push");
     GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
     alternate.simpleCommand("add", "--all");
+    // TODO(matvore): Add files in scratchClone that match
+    // transformResult.getExcludedDestinationPaths()
+
     alternate.simpleCommand("commit",
         "--author", author,
         "--date", transformResult.getTimestamp() + " +0000",

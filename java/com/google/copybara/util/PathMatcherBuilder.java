@@ -25,6 +25,11 @@ public final class PathMatcherBuilder {
   }
 
   /**
+   * Generates matchers that do not match any paths (i.e. return {@code false} for all paths).
+   */
+  public static final PathMatcherBuilder EMPTY = new PathMatcherBuilder(ImmutableList.<String>of());
+
+  /**
    * Creates a function {@link PathMatcherBuilder} that when a {@link Path} is passed it returns a
    * {@link PathMatcher} relative to the path.
    *

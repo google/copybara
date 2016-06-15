@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 
 import javax.annotation.Nullable;
 
@@ -176,8 +177,8 @@ public class WorkflowTest {
   }
 
   @Test
-  public void invalidExcludePath() throws Exception {
-    prepareExcludes();
+  public void invalidExcludedOriginPath() throws Exception {
+    prepareOriginExcludes();
     String outsideFolder = "../../../file";
     Path file = workdir.resolve(outsideFolder);
     Files.createDirectories(file.getParent());
@@ -197,11 +198,11 @@ public class WorkflowTest {
   }
 
   @Test
-  public void excludeDoesntExcludeDirectories() throws Exception {
+  public void excludedOriginPathDoesntExcludeDirectories() throws Exception {
     yaml.setExcludedOriginPaths(ImmutableList.of("folder"));
     try {
       Workflow workflow = workflow();
-      prepareExcludes();
+      prepareOriginExcludes();
       workflow.run(workdir, origin.getHead());
       fail("Should fail because it could not delete anything.");
     } catch (RepoException e) {
@@ -213,11 +214,11 @@ public class WorkflowTest {
   }
 
   @Test
-  public void excludeRecursive() throws Exception {
+  public void excludedOriginPathRecursive() throws Exception {
     yaml.setExcludedOriginPaths(ImmutableList.of("folder/**"));
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    prepareExcludes();
+    prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
 
     assertAbout(FileSubjects.path())
@@ -228,11 +229,11 @@ public class WorkflowTest {
   }
 
   @Test
-  public void excludeRecursiveByType() throws Exception {
+  public void excludedOriginRecursiveByType() throws Exception {
     yaml.setExcludedOriginPaths(ImmutableList.of("folder/**/*.java"));
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    prepareExcludes();
+    prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
 
     assertAbout(FileSubjects.path())
@@ -242,14 +243,14 @@ public class WorkflowTest {
   }
 
   @Test
-  public void excludeIterative() throws Exception {
+  public void excludeOriginPathIterative() throws Exception {
     yaml.setExcludedOriginPaths(ImmutableList.of("folder/**/*.java"));
     transformations = ImmutableList.of();
-    prepareExcludes();
+    prepareOriginExcludes();
     Workflow workflow = iterativeWorkflow(origin.getHead());
-    prepareExcludes();
-    prepareExcludes();
-    prepareExcludes();
+    prepareOriginExcludes();
+    prepareOriginExcludes();
+    prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
     for (ProcessedChange processedChange : destination.processed) {
       for (String path : ImmutableList.of("folder/file.txt",
@@ -263,13 +264,51 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testExcludesToString() throws Exception {
+  public void testOriginExcludesToString() throws Exception {
     yaml.setExcludedOriginPaths(ImmutableList.of("foo/**/bar.htm"));
     String string = workflow().toString();
     assertThat(string).contains("foo/**/bar.htm");
   }
 
-  public void prepareExcludes() throws IOException {
+  @Test
+  public void testDestinationExcludesToString() throws Exception {
+    yaml.setExcludedDestinationPaths(ImmutableList.of("foo/**/bar.htm"));
+    String string = workflow().toString();
+    assertThat(string).contains("foo/**/bar.htm");
+  }
+
+  @Test
+  public void testExcludedDestinationPathsPassedToDestination_iterative() throws Exception {
+    yaml.setExcludedDestinationPaths(ImmutableList.of("foo", "bar/**"));
+    origin.addSimpleChange(/*timestamp*/ 42);
+    Workflow workflow = iterativeWorkflow(origin.getHead());
+    origin.addSimpleChange(/*timestamp*/ 4242);
+    workflow.run(workdir, origin.getHead());
+
+    assertThat(destination.processed).hasSize(1);
+
+    PathMatcher matcher = destination.processed.get(0).getExcludedDestinationPaths()
+        .relativeTo(workdir);
+    assertThat(matcher.matches(workdir.resolve("foo"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isTrue();
+  }
+
+  @Test
+  public void testExcludedDestinationPathsPassedToDestination_squash() throws Exception {
+    yaml.setExcludedDestinationPaths(ImmutableList.of("foo", "bar/**"));
+    workflow().run(workdir, origin.getHead());
+
+    assertThat(destination.processed).hasSize(1);
+
+    PathMatcher matcher = destination.processed.get(0).getExcludedDestinationPaths()
+        .relativeTo(workdir);
+    assertThat(matcher.matches(workdir.resolve("foo"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isTrue();
+  }
+
+  private void prepareOriginExcludes() throws IOException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("excludesTest");
     Path folder = workdir.resolve("folder");

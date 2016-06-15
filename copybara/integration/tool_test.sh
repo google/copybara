@@ -449,10 +449,10 @@ workflows:
   - origin: !GitOrigin
       url: "file://$remote"
       ref: "master"
-    destination: !FolderDestination
-      excludePathsForDeletion:
-        - "test.copybara"
-        - "**.keep"
+    excludedDestinationPaths:
+      - "test.copybara"
+      - "**.keep"
+    destination: !FolderDestination {}
 EOF
 
   touch destination/keepme.keep

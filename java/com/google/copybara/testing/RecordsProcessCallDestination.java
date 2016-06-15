@@ -5,9 +5,10 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
-import com.google.copybara.TransformResult;
 import com.google.copybara.Options;
 import com.google.copybara.Origin.Reference;
+import com.google.copybara.TransformResult;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
@@ -97,6 +98,10 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
 
     public boolean filePresent(String fileName) {
       return workdir.containsKey(fileName);
+    }
+
+    public PathMatcherBuilder getExcludedDestinationPaths() {
+      return transformResult.getExcludedDestinationPaths();
     }
 
     @Override

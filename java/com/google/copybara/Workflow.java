@@ -41,13 +41,15 @@ public abstract class Workflow<O extends Origin<O>> {
   private final Destination destination;
   protected final Transformation transformation;
   private final PathMatcherBuilder excludedOriginPaths;
+  protected final PathMatcherBuilder excludedDestinationPaths;
   @Nullable
   final String lastRevisionFlag;
   final Console console;
 
   Workflow(String configName, String name, Origin<O> origin, Destination destination,
       Transformation transformation, @Nullable String lastRevisionFlag,
-      Console console, PathMatcherBuilder excludedOriginPaths) {
+      Console console, PathMatcherBuilder excludedOriginPaths,
+      PathMatcherBuilder excludedDestinationPaths) {
     this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
@@ -56,6 +58,7 @@ public abstract class Workflow<O extends Origin<O>> {
     this.lastRevisionFlag = lastRevisionFlag;
     this.console = Preconditions.checkNotNull(console);
     this.excludedOriginPaths = excludedOriginPaths;
+    this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
   }
 
   @VisibleForTesting
@@ -165,6 +168,7 @@ public abstract class Workflow<O extends Origin<O>> {
         .add("destination", destination)
         .add("transformation", transformation)
         .add("excludedOriginPaths", excludedOriginPaths)
+        .add("excludedDestinationPaths", excludedDestinationPaths)
         .toString();
   }
 
@@ -186,6 +190,7 @@ public abstract class Workflow<O extends Origin<O>> {
     private boolean includeChangeListNotes = false;
     private ImmutableList<Transformation.Yaml> transformations = ImmutableList.of();
     private List<String> excludedOriginPaths = new ArrayList<>();
+    private List<String> excludedDestinationPaths = new ArrayList<>();
 
     public String getName() {
       return name;
@@ -214,9 +219,25 @@ public abstract class Workflow<O extends Origin<O>> {
       this.transformations = ImmutableList.copyOf(transformations);
     }
 
-    @DocField(description = "An list of expressions representing globs of paths relative to the workdir that will be excluded from the origin during the import. For example \"**.java\", all java files, recursively.", required = false, defaultValue = "[]")
+    @DocField(
+        description = "A list of file globs relative to the workdir that will be excluded from the"
+        + " origin during the import. For example \"**.java\", all java files, recursively.",
+        required = false,
+        defaultValue = "[]")
     public void setExcludedOriginPaths(List<String> excludedOriginPaths) {
-      this.excludedOriginPaths = excludedOriginPaths;
+      this.excludedOriginPaths.clear();
+      this.excludedOriginPaths.addAll(excludedOriginPaths);
+    }
+
+    @DocField(
+        description = "A list of file globs relative to the root of the destination repository that"
+        + " will not be removed even if the file does not exist in the source. For example"
+        + " '**/BUILD', all BUILD files, recursively.",
+        required = false,
+        defaultValue = "[]")
+    public void setExcludedDestinationPaths(List<String> excludedDestinationPaths) {
+      this.excludedDestinationPaths.clear();
+      this.excludedDestinationPaths.addAll(excludedDestinationPaths);
     }
 
     @DocField(description = "Include a list of change list messages that were imported",
@@ -244,14 +265,17 @@ public abstract class Workflow<O extends Origin<O>> {
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       PathMatcherBuilder excludedOriginPaths = PathMatcherBuilder.create(
           FileSystems.getDefault(), this.excludedOriginPaths);
+      PathMatcherBuilder excludedDestinationPaths = PathMatcherBuilder.create(
+          FileSystems.getDefault(), this.excludedDestinationPaths);
       switch (mode) {
         case SQUASH:
           return new SquashWorkflow<>(configName, name, origin, destination, transformation,
               console, generalOptions.getLastRevision(), includeChangeListNotes,
-              excludedOriginPaths);
+              excludedOriginPaths, excludedDestinationPaths);
         case ITERATIVE:
           return new IterativeWorkflow<>(configName, name, origin, destination, transformation,
-              generalOptions.getLastRevision(), console, excludedOriginPaths);
+              generalOptions.getLastRevision(), console, excludedOriginPaths,
+              excludedDestinationPaths);
         default:
           throw new UnsupportedOperationException(mode + " still not implemented");
       }

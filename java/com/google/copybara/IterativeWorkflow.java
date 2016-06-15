@@ -6,6 +6,7 @@ import com.google.copybara.transform.Transformation;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 
@@ -23,9 +24,10 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
 
   IterativeWorkflow(String configName, String workflowName, Origin<O> origin,
       Destination destination, Transformation transformation,
-      @Nullable String lastRevisionFlag, Console console, PathMatcherBuilder excludedOriginPaths) {
+      @Nullable String lastRevisionFlag, Console console, PathMatcherBuilder excludedOriginPaths,
+      PathMatcherBuilder excludedDestinationPaths) {
     super(configName, workflowName, origin, destination, transformation, lastRevisionFlag,
-        console, excludedOriginPaths);
+        console, excludedOriginPaths, excludedDestinationPaths);
   }
 
   @Override
@@ -52,7 +54,8 @@ class IterativeWorkflow<O extends Origin<O>> extends Workflow<O> {
       if (!message.endsWith("\n")) {
         message += "\n";
       }
-      getDestination().process(new TransformResult(workdir, ref, message), console);
+      getDestination().process(
+          new TransformResult(workdir, ref, message, excludedDestinationPaths), console);
     }
   }
 }

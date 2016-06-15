@@ -1,5 +1,6 @@
 package com.google.copybara.folder;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -34,14 +35,11 @@ import javax.annotation.Nullable;
  */
 public class FolderDestination implements Destination {
 
-  private final PathMatcherBuilder excludeFromDeletion;
   private final Path localFolder;
   private final boolean verbose;
 
-  private FolderDestination(PathMatcherBuilder excludeFromDeletion, Path localFolder,
-      boolean verbose) {
-    this.excludeFromDeletion = excludeFromDeletion;
-    this.localFolder = localFolder;
+  private FolderDestination(Path localFolder, boolean verbose) {
+    this.localFolder = Preconditions.checkNotNull(localFolder);
     this.verbose = verbose;
   }
 
@@ -59,7 +57,8 @@ public class FolderDestination implements Destination {
     console.progress("FolderDestination: deleting previous data from " + localFolder);
 
     FileUtil.deleteFilesRecursively(localFolder,
-        FileUtil.notPathMatcher(excludeFromDeletion.relativeTo(localFolder)));
+        FileUtil.notPathMatcher(
+            transformResult.getExcludedDestinationPaths().relativeTo(localFolder)));
 
     console.progress(
         "FolderDestination: Copying contents of the workdir to " + localFolder);
@@ -90,13 +89,6 @@ public class FolderDestination implements Destination {
       flags = FolderDestinationOptions.class)
   public static class Yaml implements Destination.Yaml {
 
-    List<String> excludePathsForDeletion = ImmutableList.of();
-
-    @DocField(description = "Exclude the following paths from deletion if the destination folder exist.", required = false, defaultValue = "[]")
-    public void setExcludePathsForDeletion(List<String> excludePathsForDeletion) {
-      this.excludePathsForDeletion = excludePathsForDeletion;
-    }
-
     @Override
     public Destination withOptions(Options options, String configName) throws ConfigValidationException {
 
@@ -112,10 +104,8 @@ public class FolderDestination implements Destination {
       if (!localFolder.isAbsolute()) {
         localFolder = fs.getPath(System.getProperty("user.dir")).resolve(localFolder);
       }
-      PathMatcherBuilder excludePathMatcher = PathMatcherBuilder.create(
-          localFolder.getFileSystem(), excludePathsForDeletion);
 
-      return new FolderDestination(excludePathMatcher, localFolder, generalOptions.isVerbose());
+      return new FolderDestination(localFolder, generalOptions.isVerbose());
     }
 
   }

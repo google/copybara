@@ -2,15 +2,17 @@ package com.google.copybara.folder;
 
 import static com.google.common.truth.Truth.assertAbout;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.copybara.Destination;
-import com.google.copybara.TransformResult;
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.folder.FolderDestination.Yaml;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.util.PathMatcherBuilder;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,6 +32,7 @@ public class FolderDestinationTest {
 
   private Yaml yaml;
   private OptionsBuilder options;
+  private ImmutableList<String> excludedPathsForDeletion;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -43,13 +46,15 @@ public class FolderDestinationTest {
     Files.createDirectory(workdir.resolve("dir"));
     Files.write(workdir.resolve("test.txt"), new byte[]{});
     Files.write(workdir.resolve("dir/file.txt"), new byte[]{});
+    excludedPathsForDeletion = ImmutableList.of();
   }
 
   private void process() throws ConfigValidationException, RepoException, IOException {
     yaml.withOptions(options.build(), CONFIG_NAME)
         .process(
             new TransformResult(
-                workdir, new MockReference("origin_ref"), "Unused summary"),
+                workdir, new MockReference("origin_ref"), "Unused summary",
+                PathMatcherBuilder.create(workdir.getFileSystem(), excludedPathsForDeletion)),
             options.general.console());
   }
 
@@ -85,7 +90,7 @@ public class FolderDestinationTest {
     Files.write(localFolder.resolve("two/file.java"), new byte[]{});
 
     options.localDestination.localFolder = localFolder.toString();
-    yaml.excludePathsForDeletion = Lists.newArrayList("root_file", "**\\.java");
+    excludedPathsForDeletion = ImmutableList.of("root_file", "**\\.java");
 
     process();
 

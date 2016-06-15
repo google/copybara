@@ -2,6 +2,7 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.copybara.util.PathMatcherBuilder;
 
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
@@ -15,8 +16,15 @@ public final class TransformResult {
   private final Origin.Reference<?> originRef;
   private final long timestamp;
   private final String summary;
+  private final PathMatcherBuilder excludedDestinationPaths;
 
   public TransformResult(Path path, Origin.Reference<?> originRef, String summary)
+      throws RepoException {
+    this(path, originRef, summary, PathMatcherBuilder.EMPTY);
+  }
+
+  public TransformResult(Path path, Origin.Reference<?> originRef, String summary,
+      PathMatcherBuilder excludedDestinationPaths)
       throws RepoException {
     this.path = Preconditions.checkNotNull(path);
     this.originRef = Preconditions.checkNotNull(originRef);
@@ -24,6 +32,7 @@ public final class TransformResult {
     this.timestamp = (refTimestamp != null)
         ? refTimestamp : TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
     this.summary = Preconditions.checkNotNull(summary);
+    this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
   }
 
   /**
@@ -54,5 +63,13 @@ public final class TransformResult {
    */
   public String getSummary() {
     return summary;
+  }
+
+  /**
+   * A path matcher which matches files in the destination that should not be deleted even if they
+   * don't exist in source.
+   */
+  public PathMatcherBuilder getExcludedDestinationPaths() {
+    return excludedDestinationPaths;
   }
 }

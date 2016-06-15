@@ -7,6 +7,7 @@ import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
@@ -22,9 +23,10 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
 
   SquashWorkflow(String configName, String workflowName, Origin<O> origin, Destination destination,
       Transformation transformation, Console console, String lastRevisionFlag,
-      boolean includeChangeListNotes, PathMatcherBuilder excludedOriginPaths) {
+      boolean includeChangeListNotes, PathMatcherBuilder excludedOriginPaths,
+      PathMatcherBuilder excludedDestinationPaths) {
     super(configName, workflowName, origin, destination, transformation, lastRevisionFlag,
-        console, excludedOriginPaths);
+        console, excludedOriginPaths, excludedDestinationPaths);
     this.includeChangeListNotes = includeChangeListNotes;
   }
 
@@ -37,7 +39,10 @@ public class SquashWorkflow<O extends Origin<O>> extends Workflow<O> {
     transform(workdir, console);
 
     getDestination()
-        .process(new TransformResult(workdir, resolvedRef, getCommitMessage(resolvedRef)), console);
+        .process(
+            new TransformResult(
+                workdir, resolvedRef, getCommitMessage(resolvedRef), excludedDestinationPaths),
+            console);
   }
 
   private String getCommitMessage(ReferenceFiles<O> resolvedRef) throws RepoException {
