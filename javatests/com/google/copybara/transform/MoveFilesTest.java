@@ -134,6 +134,33 @@ public class MoveFilesTest {
         .containsNoMoreFiles();
   }
 
+  @Test
+  public void testMoveFromWorkdirRootToSubdir() throws Exception {
+    yaml.setPaths(ImmutableList.of(createMove("", "third_party/java")));
+    Files.write(workdir.resolve("file.java"), new byte[]{});
+    MoveFiles mover = yaml.withOptions(options.build());
+    mover.transform(workdir, console);
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFiles("third_party/java/file.java")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCannotMoveFromRootToAlreadyExistingDir() throws Exception {
+    yaml.setPaths(ImmutableList.of(createMove("", "third_party/java")));
+    Files.createDirectories(workdir.resolve("third_party/java"));
+    Files.write(workdir.resolve("third_party/java/bar.java"), new byte[]{});
+    Files.write(workdir.resolve("third_party/java/foo.java"), new byte[]{});
+    MoveFiles mover = yaml.withOptions(options.build());
+
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage(
+        "Files already exist in " + workdir + "/third_party/java: [bar.java, foo.java]");
+    mover.transform(workdir, console);
+  }
+
   private MoveElement createMove(String before, String after) throws ConfigValidationException {
     MoveElement result = new MoveElement();
     result.setBefore(before);

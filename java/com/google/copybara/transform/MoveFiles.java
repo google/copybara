@@ -19,6 +19,8 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -44,12 +46,42 @@ public class MoveFiles implements Transformation {
             String.format("Error moving '%s'. It doesn't exist in the workdir", path.before));
       }
       Path after = workdir.resolve(path.after);
+      if (Files.isDirectory(after, LinkOption.NOFOLLOW_LINKS)
+          && after.startsWith(before)) {
+        // When moving from a parent dir to a sub-directory, make sure after doesn't already have
+        // files in it - this is most likely a mistake.
+        new VerifyDirIsEmptyVisitor(after).walk();
+      }
       createParentDirs(after);
       try {
         Files.walkFileTree(before, new MovingVisitor(before, after));
       } catch (FileAlreadyExistsException e) {
         throw new ValidationException(
             String.format("Cannot move file to '%s' because it already exists", e.getFile()));
+      }
+    }
+  }
+
+  private static final class VerifyDirIsEmptyVisitor extends SimpleFileVisitor<Path> {
+    private final Path root;
+    private final ArrayList<String> existingFiles = new ArrayList<>();
+
+    private VerifyDirIsEmptyVisitor(Path root) {
+      this.root = root;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path source, BasicFileAttributes attrs) throws IOException {
+      existingFiles.add(root.relativize(source).toString());
+      return FileVisitResult.CONTINUE;
+    }
+
+    void walk() throws IOException, ValidationException {
+      Files.walkFileTree(root, this);
+      if (!existingFiles.isEmpty()) {
+        Collections.sort(existingFiles);
+        throw new ValidationException(
+            String.format("Files already exist in %s: %s", root, existingFiles));
       }
     }
   }
@@ -61,6 +93,13 @@ public class MoveFiles implements Transformation {
     MovingVisitor(Path before, Path after) {
       this.before = before;
       this.after = after;
+    }
+
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+      return dir.equals(after)
+          ? FileVisitResult.SKIP_SUBTREE
+          : FileVisitResult.CONTINUE;
     }
 
     @Override
@@ -135,6 +174,9 @@ public class MoveFiles implements Transformation {
     private String before;
     private String after;
 
+    @DocField(description = "The name of the file or directory before moving. If this is the empty"
+        + " string and 'after' is a directory, then all files in the workdir will be moved to the"
+        + " sub directory specified by 'after', maintaining the directory tree.")
     public void setBefore(String before) throws ConfigValidationException {
       this.before = validatePath(before);
     }
