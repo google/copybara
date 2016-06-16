@@ -1,5 +1,6 @@
 package com.google.copybara.git;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -24,6 +25,7 @@ import org.joda.time.format.DateTimeFormatter;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -96,22 +98,20 @@ public final class GitOrigin implements Origin<GitOrigin> {
   public ImmutableList<Change<GitOrigin>> changes(@Nullable Reference<GitOrigin> fromRef,
       Reference<GitOrigin> toRef) throws RepoException {
 
-    String log;
-    if (fromRef == null) {
-      log = repository.simpleCommand("log", "--date=iso-strict", "--first-parent", toRef.asString())
-          .getStdout();
-    } else {
-      log = repository.simpleCommand("log", "--date=iso-strict", "--first-parent",
-          fromRef.asString() + ".." + toRef.asString()).getStdout();
-    }
-    return buildChanges(log);
+    String refRange = fromRef == null
+        ? toRef.asString()
+        : fromRef.asString() + ".." + toRef.asString();
+
+    return buildChanges(repository.simpleCommand(
+        "log", "--no-color", "--date=iso-strict", "--first-parent", refRange).getStdout());
   }
 
   @Override
   public Change<GitOrigin> change(Reference<GitOrigin> ref) throws RepoException {
     // Throws CannotFindReferenceException if ref is invalid
     String log =
-        repository.simpleCommand("log", "--date=iso-strict", "-1", ref.asString()).getStdout();
+        repository.simpleCommand("log", "--no-color", "--date=iso-strict", "-1", ref.asString())
+            .getStdout();
     // The -1 flag guarantees that only one change is returned
     return Iterables.getOnlyElement(buildChanges(log));
   }
@@ -239,6 +239,12 @@ public final class GitOrigin implements Origin<GitOrigin> {
 
     @Override
     public GitOrigin withOptions(Options options) throws ConfigValidationException {
+      return withOptions(options, GitRepository.CURRENT_PROCESS_ENVIRONMENT);
+    }
+
+    @VisibleForTesting
+    GitOrigin withOptions(Options options, Map<String, String> environment)
+        throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(url, "url");
 
       GitOptions gitConfig = options.get(GitOptions.class);
@@ -246,8 +252,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
       Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
       Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
       Console console = options.get(GeneralOptions.class).console();
-      return new GitOrigin(console, GitRepository.bareRepo(gitDir, options), url,
-          ref);
+      return new GitOrigin(console, GitRepository.bareRepo(gitDir, options, environment), url, ref);
     }
   }
 }

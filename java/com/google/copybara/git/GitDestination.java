@@ -198,7 +198,7 @@ public final class GitDestination implements Destination {
     }
     GitRepository gitRepository = cloneBaseline();
     String commit = gitRepository.revParse("FETCH_HEAD");
-    String log = gitRepository.simpleCommand("log", commit, "-1").getStdout();
+    String log = gitRepository.simpleCommand("log", "--no-color", commit, "-1").getStdout();
     String prefix = "    " + labelName + ": ";
     for (String line : log.split("\n")) {
       if (line.startsWith(prefix)) {

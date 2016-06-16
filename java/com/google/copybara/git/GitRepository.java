@@ -4,6 +4,7 @@ import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
@@ -20,6 +21,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +31,11 @@ import javax.annotation.Nullable;
  * A class for manipulating Git repositories
  */
 public final class GitRepository {
+
+  // When used as the environment parameter in GitRepository construction it will
+  // pass the current process environment as-is.
+  @Nullable
+  static final Map<String, String> CURRENT_PROCESS_ENVIRONMENT = null;
 
   private static final Pattern NOTHING_TO_COMMIT = Pattern.compile(
       "nothing to commit, working directory clean");
@@ -48,20 +55,24 @@ public final class GitRepository {
   private final @Nullable Path workTree;
 
   private final boolean verbose;
+  // The environment to be passed to git. When the value is null, it will pass the current
+  // process environment as-is.
+  @Nullable
+  private final ImmutableMap<String, String> environment;
 
-  public GitRepository(Path gitDir, @Nullable Path workTree, boolean verbose) {
+  public GitRepository(Path gitDir, @Nullable Path workTree, boolean verbose,
+      @Nullable Map<String, String> environment) {
     this.gitDir = Preconditions.checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
+    this.environment = environment == null ? null : ImmutableMap.copyOf(environment);
   }
 
-  public static GitRepository bareRepo(Path gitDir, Options options) {
+  public static GitRepository bareRepo(Path gitDir, Options options,
+      @Nullable Map<String, String> environment) {
     GitOptions gitConfig = options.get(GitOptions.class);
-
     return new GitRepository(
-        gitDir,
-        /*workTree=*/null,
-        options.get(GeneralOptions.class).isVerbose());
+        gitDir,/*workTree=*/null, options.get(GeneralOptions.class).isVerbose(), environment);
   }
 
   /**
@@ -77,7 +88,8 @@ public final class GitRepository {
     }
 
     GitRepository repository =
-        new GitRepository(scratchWorkTree.resolve(".git"), scratchWorkTree, verbose);
+        new GitRepository(scratchWorkTree.resolve(".git"), scratchWorkTree, verbose,
+            CURRENT_PROCESS_ENVIRONMENT);
     repository.git(scratchWorkTree, "init", ".");
     return repository;
   }
@@ -87,7 +99,7 @@ public final class GitRepository {
    * initialize or alter the given work tree.
    */
   public GitRepository withWorkTree(Path newWorkTree) {
-    return new GitRepository(this.gitDir, newWorkTree, this.verbose);
+    return new GitRepository(this.gitDir, newWorkTree, this.verbose, this.environment);
   }
 
   /**
@@ -168,9 +180,7 @@ public final class GitRepository {
     Iterables.addAll(allParams, params);
     try {
       CommandOutput result =
-          executeCommand(
-              new Command(
-                  allParams.toArray(new String[0]), /*environmentVariables=*/ null, cwd.toFile()),
+          executeCommand(new Command(allParams.toArray(new String[0]), environment, cwd.toFile()),
               verbose);
       if (result.getTerminationStatus().success()) {
         return result;

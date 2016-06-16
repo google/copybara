@@ -4,6 +4,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
@@ -22,6 +23,7 @@ import org.junit.runners.JUnit4;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 @RunWith(JUnit4.class)
 public class GitOriginTest {
@@ -33,6 +35,7 @@ public class GitOriginTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+  private Path reposDir;
 
   @Before
   public void setup() throws Exception {
@@ -43,9 +46,15 @@ public class GitOriginTest {
     yaml.setRef("other");
 
     OptionsBuilder options = new OptionsBuilder();
-    options.git.gitRepoStorage = Files.createTempDirectory("repos_repo").toString();
+    reposDir = Files.createTempDirectory("repos_repo");
+    options.git.gitRepoStorage = reposDir.toString();
 
-    origin = yaml.withOptions(options.build());
+    // Pass custom HOME directory so that we run an hermetic test and we
+    // can add custom configuration to $HOME/.gitconfig.
+    Path userHomeForTest = Files.createTempDirectory("home");
+    Map<String, String> env = Maps.newHashMap(System.getenv());
+    env.put("HOME", userHomeForTest.toString());
+    origin = yaml.withOptions(options.build(), env);
 
     git("init");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
@@ -214,5 +223,21 @@ public class GitOriginTest {
     git("commit", "-m", "second file", "--date=1400110011");
     ReferenceFiles<GitOrigin> master = origin.resolve("master");
     assertThat(master.readTimestamp()).isEqualTo(1400110011L);
+  }
+
+  @Test
+  public void testColor() throws RepoException, IOException {
+    git("config", "--global", "color.ui", "always");
+
+    ReferenceFiles<GitOrigin> firstRef = origin.resolve(firstCommitRef);
+
+    Files.write(remote.resolve("test.txt"), "new content".getBytes());
+    git("add", "test.txt");
+    git("commit", "-m", "second commit");
+    ReferenceFiles<GitOrigin> secondRef = origin.resolve("HEAD");
+
+    assertThat(origin.change(firstRef).getMessage()).contains("first file");
+    assertThat(origin.changes(null, secondRef)).hasSize(2);
+    assertThat(origin.changes(firstRef, secondRef)).hasSize(1);
   }
 }

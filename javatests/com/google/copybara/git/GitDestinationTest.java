@@ -2,6 +2,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static com.google.copybara.testing.MockReference.MOCK_LABEL_REV_ID;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -59,7 +60,8 @@ public class GitDestinationTest {
   }
 
   private GitRepository repo() {
-    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true);
+    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true,
+        CURRENT_PROCESS_ENVIRONMENT);
   }
 
   private String git(String... argv) throws RepoException {
