@@ -26,7 +26,4 @@ public final class GitOptions implements Option {
   @Parameter(names = "--git-first-commit",
       description = "Ignore that the fetch reference doesn't exist when pushing to destination")
   boolean gitFirstCommit = false;
-
-  @Parameter(names = "--git-previous-ref", description = "Previous SHA-1 reference used for the migration.")
-  String gitPreviousRef = "";
 }
