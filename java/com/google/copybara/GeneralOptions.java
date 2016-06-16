@@ -15,7 +15,6 @@ import javax.annotation.Nullable;
 /**
  * General options available for all the program classes.
  */
-@Parameters(separators = "=")
 public final class GeneralOptions implements Option {
 
   public static final String NOANSI = "--noansi";
@@ -51,6 +50,7 @@ public final class GeneralOptions implements Option {
     return fileSystem;
   }
 
+  @Parameters(separators = "=")
   public static final class Args {
     @Parameter(names = "-v", description = "Verbose output.")
     boolean verbose;
