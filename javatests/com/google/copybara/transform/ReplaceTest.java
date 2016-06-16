@@ -311,7 +311,7 @@ public final class ReplaceTest {
   public void nopReplaceShouldThrowException() throws Exception {
     yaml.setBefore("this string doesn't appear anywhere in source");
     yaml.setAfter("lulz");
-    thrown.expect(TransformationDoesNothingException.class);
+    thrown.expect(VoidTransformationException.class);
     yaml.withOptions(options.build()).transform(workdir, console);
   }
 

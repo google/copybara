@@ -150,7 +150,7 @@ public final class Replace implements Transformation {
     if (visitor.error != null) {
       throw visitor.error;
     } else if (!visitor.somethingWasChanged) {
-      throw new TransformationDoesNothingException(
+      throw new VoidTransformationException(
           "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");
     }
   }
