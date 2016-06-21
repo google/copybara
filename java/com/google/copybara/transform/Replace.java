@@ -62,13 +62,16 @@ public final class Replace implements Transformation {
   private final TemplateTokens before;
   private final TemplateTokens after;
   private final ImmutableMap<String, Pattern> regexGroups;
+  private final boolean multiline;
   private final PathMatcherBuilder fileMatcherBuilder;
 
   private Replace(TemplateTokens before, TemplateTokens after,
-      ImmutableMap<String, Pattern> regexGroups, PathMatcherBuilder fileMatcherBuilder) {
+      ImmutableMap<String, Pattern> regexGroups, boolean multiline,
+      PathMatcherBuilder fileMatcherBuilder) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.regexGroups = Preconditions.checkNotNull(regexGroups);
+    this.multiline = multiline;
     this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
   }
 
@@ -77,7 +80,8 @@ public final class Replace implements Transformation {
     return MoreObjects.toStringHelper(this)
         .add("before", before.template())
         .add("after", after.template())
-        .add("regexGroup", regexGroups)
+        .add("regexGroups", regexGroups)
+        .add("multiline", multiline)
         .add("path", fileMatcherBuilder)
         .toString();
   }
@@ -94,23 +98,22 @@ public final class Replace implements Transformation {
     }
 
     /**
-     * Transforms a single line which confirming that the current transformation can be applied in
-     * reverse to get the original line back.
+     * Transforms content confirming that the current transformation can be applied in reverse to
+     * get the original line back.
      */
-    private String transformLine(String originalLine, Path file)
-        throws ValidationException {
-      Matcher matcher = beforeRegex.matcher(originalLine);
-      String newLine = matcher.replaceAll(after.template());
-      matcher = afterRegex.matcher(newLine);
-      String roundTrippedLine = matcher.replaceAll(before.template());
-      if (!roundTrippedLine.equals(originalLine)) {
+    private String transform(String originalContent, Path file) throws ValidationException {
+      Matcher matcher = beforeRegex.matcher(originalContent);
+      String newContent = matcher.replaceAll(after.template());
+      matcher = afterRegex.matcher(newContent);
+      String roundTrippedContent = matcher.replaceAll(before.template());
+      if (!roundTrippedContent.equals(originalContent)) {
         throw new ValidationException(String.format(
             "Error transforming '%s' file. Reverse-transform didn't generate the original text:\n"
                 + "    Expected : %s\n"
                 + "    Actual   : %s\n",
-            file, originalLine, roundTrippedLine));
+            file, originalContent, roundTrippedContent));
       }
-      return newLine;
+      return newContent;
     }
 
     @Override
@@ -121,21 +124,24 @@ public final class Replace implements Transformation {
       logger.log(
           Level.INFO, String.format("apply s/%s/%s/ to %s", beforeRegex, after.template(), file));
 
-      List<String> originalLines = ImmutableList.copyOf(
-          Splitter.on('\n').split(new String(Files.readAllBytes(file), UTF_8)));
-      List<String> newLines = new ArrayList<>(originalLines.size());
-      for (String line : originalLines) {
+      String originalFileContent = new String(Files.readAllBytes(file), UTF_8);
+      List<String> originalRanges = multiline
+          ? ImmutableList.of(originalFileContent)
+          : Splitter.on('\n').splitToList(originalFileContent);
+
+      List<String> newRanges = new ArrayList<>(originalRanges.size());
+      for (String line : originalRanges) {
         try {
-          newLines.add(transformLine(line, file));
+          newRanges.add(transform(line, file));
         } catch (ValidationException e) {
           error = e;
           return FileVisitResult.TERMINATE;
         }
       }
-      if (!originalLines.equals(newLines)) {
+      if (!originalRanges.equals(newRanges)) {
         somethingWasChanged = true;
         try (Writer writer = new OutputStreamWriter(Files.newOutputStream(file), UTF_8)) {
-          Joiner.on('\n').appendTo(writer, newLines);
+          Joiner.on('\n').appendTo(writer, newRanges);
         }
       }
 
@@ -164,7 +170,7 @@ public final class Replace implements Transformation {
 
   @Override
   public Replace reverse() {
-    return new Replace(after, before, regexGroups, fileMatcherBuilder);
+    return new Replace(after, before, regexGroups, multiline, fileMatcherBuilder);
   }
 
   @DocElement(yamlName = "!Replace", description = "Replace a text with another text using optional regex groups. This tranformer can be automatically reversed with !Reverse.", elementKind = Transformation.class)
@@ -173,6 +179,7 @@ public final class Replace implements Transformation {
     private TemplateTokens before;
     private TemplateTokens after;
     private ImmutableMap<String, Pattern> regexGroups = ImmutableMap.of();
+    private boolean multiline;
     private String path = "**";
 
     @DocField(description = "The text before the transformation. Can contain references to regex groups. For example \"foo${x}text\"")
@@ -206,6 +213,12 @@ public final class Replace implements Transformation {
       this.path = path;
     }
 
+    @DocField(description = "Whether to replace text that spans more than one line.",
+        required = false, defaultValue = "false")
+    public void setMultiline(boolean multiline) {
+      this.multiline = multiline;
+    }
+
     @Override
     public Replace withOptions(Options options) throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(before, "before");
@@ -214,7 +227,7 @@ public final class Replace implements Transformation {
       before.validateInterpolations(regexGroups.keySet());
       after.validateInterpolations(regexGroups.keySet());
 
-      return new Replace(before, after, regexGroups,
+      return new Replace(before, after, regexGroups, multiline,
           PathMatcherBuilder.create(FileSystems.getDefault(), ImmutableList.of(path)));
     }
 

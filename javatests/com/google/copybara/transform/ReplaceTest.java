@@ -308,6 +308,26 @@ public final class ReplaceTest {
   }
 
   @Test
+  public void showMultilineInToString() throws ConfigValidationException {
+    yaml.setBefore("before");
+    yaml.setAfter("after");
+    yaml.setMultiline(true);
+
+    Replace replace = yaml.withOptions(options.build());
+    assertThat(replace.toString())
+        .contains("multiline=true");
+    assertThat(replace.reverse().toString())
+        .contains("multiline=true");
+
+    yaml.setMultiline(false);
+    replace = yaml.withOptions(options.build());
+    assertThat(replace.toString())
+        .contains("multiline=false");
+    assertThat(replace.reverse().toString())
+        .contains("multiline=false");
+  }
+
+  @Test
   public void nopReplaceShouldThrowException() throws Exception {
     yaml.setBefore("this string doesn't appear anywhere in source");
     yaml.setAfter("lulz");
@@ -376,6 +396,41 @@ public final class ReplaceTest {
     assertAbout(FileSubjects.path())
             .that(workdir)
             .containsFile("file", "!@# x123y ...");
+  }
+
+  @Test
+  public void multiline() throws Exception {
+    yaml.setBefore("foo\nbar");
+    yaml.setAfter("bar\nfoo");
+    yaml.setMultiline(true);
+    writeFile(workdir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
+    yaml.withOptions(options.build())
+        .transform(workdir, console);
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFile("file", "aaa bar\nfoo bbb bar\nfoo ccc");
+  }
+
+  @Test
+  public void multilineFieldActivatesRegexMultilineSemantics() throws Exception {
+    yaml.setBefore("foo${eol}");
+    yaml.setRegexGroups(ImmutableMap.of("eol", "$"));
+    yaml.setAfter("bar${eol}");
+    yaml.setMultiline(true);
+    writeFile(workdir.resolve("file"), ""
+        + "a foo\n"
+        + "b foo\n"
+        + "c foo d\n");
+    yaml.withOptions(options.build())
+        .transform(workdir, console);
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFile("file", ""
+            + "a bar\n"
+            + "b bar\n"
+            + "c foo d\n");
   }
 
   private void prepareGlobTree() throws IOException {

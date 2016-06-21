@@ -94,6 +94,9 @@ public final class TemplateTokens {
   /**
    * Converts this sequence of tokens into a regex which can be used to search a string. It
    * automatically quotes literals and represents interpolations as named groups.
+   *
+   * @param regexesByInterpolationName map from group name to the regex to interpolate when the
+   * group is mentioned
    */
   public Pattern toRegex(ImmutableMap<String, Pattern> regexesByInterpolationName) {
     StringBuilder fullPattern = new StringBuilder();
@@ -110,7 +113,7 @@ public final class TemplateTokens {
           throw new IllegalStateException(token.type.toString());
       }
     }
-    return Pattern.compile(fullPattern.toString());
+    return Pattern.compile(fullPattern.toString(), Pattern.MULTILINE);
   }
 
   /**
