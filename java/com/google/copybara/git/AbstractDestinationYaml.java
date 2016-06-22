@@ -13,12 +13,11 @@ import java.util.regex.Pattern;
  */
 abstract class AbstractDestinationYaml implements Destination.Yaml {
 
-  private static final Pattern AUTHOR_PATTERN = Pattern.compile(".+ <.+@.+>");
   private static final String DEFAULT_AUTHOR = "Copybara <noreply@google.com>";
 
   protected String url;
   protected String fetch;
-  protected String author = DEFAULT_AUTHOR;
+  protected GitAuthor author = new GitAuthor(DEFAULT_AUTHOR);
 
   /**
    * Indicates the URL to push to as well as the URL from which to get the parent commit.
@@ -44,6 +43,7 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
   /**
    * Sets the author line to use for the generated commit. Should be in the form
    * {@code Full Name <email@foo.com>}.
+   * TODO(danielromero): Remove this field once we incorporate Authoring to the workflow
    */
   @DocField(description = "Sets the author line to use for the generated commit. Should be in the form: Full Name <email@foo.com>",
       required = false, defaultValue = DEFAULT_AUTHOR)
@@ -51,9 +51,11 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
     // The author line is validated by git commit, but it is nicer to validate early so the user
     // can see the source of the error a little more clearly and he doesn't have to wait until
     // after the transformations are finished.
-    if (!AUTHOR_PATTERN.matcher(author).matches()) {
-      throw new ConfigValidationException("author field must be in the form of 'Name <email@domain>'");
+    try {
+      this.author = new GitAuthor(author);
+    } catch (IllegalArgumentException e) {
+      // Keep the underneath message as the ConfigValidationException one
+      throw new ConfigValidationException(e.getMessage());
     }
-    this.author = author;
   }
 }

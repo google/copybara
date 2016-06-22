@@ -229,7 +229,7 @@ public class GitDestinationTest {
 
   private void checkAuthorFormatIsBad(String author) throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("author field must be in the form of 'Name <email@domain>'");
+    thrown.expectMessage("Must be in the form of 'Name <email@domain>'");
     yaml.setAuthor(author);
   }
 
