@@ -45,7 +45,8 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
    * {@code Full Name <email@foo.com>}.
    * TODO(danielromero): Remove this field once we incorporate Authoring to the workflow
    */
-  @DocField(description = "Sets the author line to use for the generated commit. Should be in the form: Full Name <email@foo.com>",
+  @DocField(description = "Sets the author line to use for the generated commit. "
+      + "Should be in the form: Full Name <email@foo.com>",
       required = false, defaultValue = DEFAULT_AUTHOR)
   public void setAuthor(String author) throws ConfigValidationException {
     // The author line is validated by git commit, but it is nicer to validate early so the user
