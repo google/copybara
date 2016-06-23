@@ -10,7 +10,6 @@ import com.google.copybara.Destination;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.Workflow;

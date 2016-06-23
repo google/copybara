@@ -5,6 +5,7 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.CannotFindReferenceException;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
