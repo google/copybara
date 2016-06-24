@@ -4,6 +4,7 @@ package com.google.copybara.git;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.copybara.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -57,14 +58,14 @@ public final class GitDestination implements Destination {
   private final String repoUrl;
   private final String fetch;
   private final String push;
-  private final GitAuthor author;
+  private final Author author;
   private final GitOptions gitOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
 
   GitDestination(String configName, String repoUrl, String fetch, String push,
-      GitAuthor author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
+      Author author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
       ProcessPushOutput processPushOutput) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -125,7 +126,7 @@ public final class GitDestination implements Destination {
         .walk();
 
     alternate.simpleCommand("commit",
-        "--author", author.getId(),
+        "--author", GitAuthorParser.serialize(author),
         "--date", transformResult.getTimestamp() + " +0000",
         "-m", commitGenerator.message(transformResult, alternate));
     console.progress("Git Destination: Pushing to " + repoUrl);

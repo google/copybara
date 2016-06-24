@@ -282,23 +282,15 @@ public class GitDestinationTest {
 
   private void checkAuthorFormatIsBad(String author) throws ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("Must be in the form of 'Name <email@domain>'");
+    thrown.expectMessage("Must be in the form of 'Name <email>'");
     yaml.setAuthor(author);
   }
 
+  // TODO(danielromero): This field is going away in favor of Workflow.authoring. Add a explicit
+  // test to validate the author format for Git workflows.
   @Test
   public void validatesAuthorFieldFormat1() throws ConfigValidationException {
     checkAuthorFormatIsBad("foo");
-  }
-
-  @Test
-  public void validatesAuthorFieldFormat2() throws ConfigValidationException {
-    checkAuthorFormatIsBad("foo <a@>");
-  }
-
-  @Test
-  public void validatesAuthorFieldFormat3() throws ConfigValidationException {
-    checkAuthorFormatIsBad("foo <@b>");
   }
 
   @Test

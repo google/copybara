@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
+import com.google.copybara.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocField;
@@ -17,7 +18,7 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
 
   protected String url;
   protected String fetch;
-  protected GitAuthor author = new GitAuthor(DEFAULT_AUTHOR);
+  protected Author author = GitAuthorParser.parse(DEFAULT_AUTHOR);
 
   /**
    * Indicates the URL to push to as well as the URL from which to get the parent commit.
@@ -53,7 +54,7 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
     // can see the source of the error a little more clearly and he doesn't have to wait until
     // after the transformations are finished.
     try {
-      this.author = new GitAuthor(author);
+      this.author = GitAuthorParser.parse(author);
     } catch (IllegalArgumentException e) {
       // Keep the underneath message as the ConfigValidationException one
       throw new ConfigValidationException(e.getMessage());
