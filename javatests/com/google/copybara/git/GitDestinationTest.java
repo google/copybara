@@ -202,6 +202,59 @@ public class GitDestinationTest {
     assertCommitHasOrigin("master", "third_commit");
   }
 
+  @Test
+  public void previousImportReference_nonCopybaraCommitsSinceLastMigrate() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPush("master");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    process(destinationFirstCommit(), new MockReference("first_commit"));
+
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
+    for (int i = 0; i < 20; i++) {
+      Files.write(scratchTree.resolve("excluded.dat"), new byte[] {(byte) i});
+      repo().withWorkTree(scratchTree)
+          .simpleCommand("add", "excluded.dat");
+      repo().withWorkTree(scratchTree)
+          .simpleCommand("commit", "-m", "excluded #" + i);
+    }
+
+    assertThat(destination().getPreviousRef(MOCK_LABEL_REV_ID))
+        .isEqualTo("first_commit");
+  }
+
+  @Test
+  public void previousImportReferenceIsBeforeACommitWithMultipleParents() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPush("master");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    process(destinationFirstCommit(), new MockReference("first_commit"));
+
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
+    GitRepository scratchRepo = repo().withWorkTree(scratchTree);
+
+    scratchRepo.simpleCommand("checkout", "-b", "b1");
+    Files.write(scratchTree.resolve("b1.file"), new byte[] {1});
+    scratchRepo.simpleCommand("add", "b1.file");
+    scratchRepo.simpleCommand("commit", "-m", "b1");
+
+    scratchRepo.simpleCommand("checkout", "-b", "b2", "master");
+    Files.write(scratchTree.resolve("b2.file"), new byte[] {2});
+    scratchRepo.simpleCommand("add", "b2.file");
+    scratchRepo.simpleCommand("commit", "-m", "b2");
+
+    scratchRepo.simpleCommand("checkout", "master");
+    scratchRepo.simpleCommand("merge", "b1");
+    scratchRepo.simpleCommand("merge", "b2");
+
+    thrown.expect(RepoException.class);
+    thrown.expectMessage(
+        "Found commit with multiple parents (merge commit) when looking for "
+        + MOCK_LABEL_REV_ID + ".");
+    destination().getPreviousRef(MOCK_LABEL_REV_ID);
+  }
+
   private void verifySpecifyAuthorField(String expected) throws Exception {
     yaml.setFetch("master");
     yaml.setPush("master");
@@ -336,11 +389,11 @@ public class GitDestinationTest {
     yaml.setFetch("master");
     yaml.setPush("master");
 
-    Path scratchWorkTree = Files.createTempDirectory("GitDestinationTest-scratchWorkTree");
-    Files.write(scratchWorkTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
-    repo().withWorkTree(scratchWorkTree)
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
+    Files.write(scratchTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree)
         .simpleCommand("add", "excluded.txt");
-    repo().withWorkTree(scratchWorkTree)
+    repo().withWorkTree(scratchTree)
         .simpleCommand("commit", "-m", "message");
 
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
@@ -357,12 +410,12 @@ public class GitDestinationTest {
     yaml.setFetch("master");
     yaml.setPush("master");
 
-    Path scratchWorkTree = Files.createTempDirectory("GitDestinationTest-scratchWorkTree");
-    Files.createDirectories(scratchWorkTree.resolve("notgit"));
-    Files.write(scratchWorkTree.resolve("notgit/HEAD"), "some content".getBytes(UTF_8));
-    repo().withWorkTree(scratchWorkTree)
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
+    Files.createDirectories(scratchTree.resolve("notgit"));
+    Files.write(scratchTree.resolve("notgit/HEAD"), "some content".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree)
         .simpleCommand("add", "notgit/HEAD");
-    repo().withWorkTree(scratchWorkTree)
+    repo().withWorkTree(scratchTree)
         .simpleCommand("commit", "-m", "message");
 
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));

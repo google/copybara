@@ -198,14 +198,28 @@ public final class GitDestination implements Destination {
     }
     GitRepository gitRepository = cloneBaseline();
     String commit = gitRepository.revParse("FETCH_HEAD");
-    String log = gitRepository.simpleCommand("log", "--no-color", commit, "-1").getStdout();
-    String prefix = "    " + labelName + ": ";
-    for (String line : log.split("\n")) {
-      if (line.startsWith(prefix)) {
-        return line.substring(prefix.length());
+    String labelPrefix = labelName + ": ";
+    // Look at commits in reverse chronological order, starting from FETCH_HEAD.
+    while (!commit.isEmpty()) {
+      // Get commit message body.
+      String body = gitRepository.simpleCommand("log", "--no-color", "--format=%b", commit, "-1")
+          .getStdout();
+      for (String line : body.split("\n")) {
+        if (line.startsWith(labelPrefix)) {
+          return line.substring(labelPrefix.length());
+        }
       }
 
+      // Get parent hash.
+      commit = gitRepository.simpleCommand("log", "--no-color", "--format=%P", commit, "-1")
+          .getStdout().trim();
+      if (commit.indexOf(' ') != -1) {
+        throw new RepoException(
+            "Found commit with multiple parents (merge commit) when looking for "
+            + labelName + ". Please invoke Copybara with the --last-rev flag.");
+      }
     }
+
     return null;
   }
 
