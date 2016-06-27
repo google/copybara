@@ -53,7 +53,7 @@ import java.util.regex.PatternSyntaxException;
  * <p>This transformation is line-based and only replaces the first instance of the pattern on a
  * line.
  *
- * TODO(matvore): Consider making this configurable to non-line-based and multiple matches.
+ * TODO(matvore): Consider making this configurable to replace multiple matches.
  */
 public final class Replace implements Transformation {
 
@@ -213,6 +213,13 @@ public final class Replace implements Transformation {
       this.path = path;
     }
 
+    /**
+     * Sets multiline behavior. Turning this off causes lines to be split before processing them.
+     *
+     * <p>Splitting the lines by default is slightly less flexible, but it is more performant,
+     * because complement group expressions like {@code [^xyz]} will not include {@code \n}, which
+     * will limit the amount of backtracking that occurs.
+     */
     @DocField(description = "Whether to replace text that spans more than one line.",
         required = false, defaultValue = "false")
     public void setMultiline(boolean multiline) {
