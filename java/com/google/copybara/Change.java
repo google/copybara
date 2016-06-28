@@ -1,5 +1,6 @@
 package com.google.copybara;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.ReferenceFiles;
 
@@ -51,9 +52,11 @@ public final class Change<T extends Origin<T>> {
 
   @Override
   public String toString() {
-    return "Reference: " + reference.asString()
-        + "\nAuthor: " + author
-        + "\nDate: " + date
-        + "\n" + message;
+    return MoreObjects.toStringHelper(this)
+        .add("reference", reference.asString())
+        .add("author", author)
+        .add("date", author)
+        .add("message", message)
+        .toString();
   }
 }
