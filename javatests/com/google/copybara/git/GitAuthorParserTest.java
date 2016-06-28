@@ -44,8 +44,9 @@ public class GitAuthorParserTest {
   public void testSerializeEmptyAuthor() throws Exception {
     expectedException.expect(NullPointerException.class);
     expectedException.expectMessage(
-        "Author must have a name in order to generate a valid Git author.");
-    GitAuthorParser.serialize(new Author(/*name*/ null, /*email*/null));
+        "Author must have a name in order to generate a valid Git author: "
+            + "Author{name=null, email=foo@bar.com}");
+    GitAuthorParser.serialize(new Author(/*name*/ null, /*email*/"foo@bar.com"));
   }
 
   @Test

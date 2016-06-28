@@ -38,7 +38,7 @@ class GitAuthorParser {
   static String serialize(Author author) {
     Preconditions.checkNotNull(author);
     Preconditions.checkNotNull(author.getName(),
-        "Author must have a name in order to generate a valid Git author.");
+        "Author must have a name in order to generate a valid Git author: %s", author);
     return String.format(
         "%s <%s>", author.getName(), author.getEmail() != null ? author.getEmail() : "");
   }
