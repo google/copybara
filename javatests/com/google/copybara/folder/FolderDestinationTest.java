@@ -9,8 +9,8 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.folder.FolderDestination.Yaml;
+import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.FileSubjects;
-import com.google.copybara.testing.MockReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.PathMatcherBuilder;
 
@@ -53,7 +53,7 @@ public class FolderDestinationTest {
     yaml.withOptions(options.build(), CONFIG_NAME)
         .process(
             new TransformResult(
-                workdir, new MockReference("origin_ref"), "Unused summary",
+                workdir, new DummyReference("origin_ref"), "Unused summary",
                 PathMatcherBuilder.create(workdir.getFileSystem(), excludedPathsForDeletion)),
             options.general.console());
   }

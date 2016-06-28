@@ -3,7 +3,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
-import static com.google.copybara.testing.MockReference.MOCK_LABEL_REV_ID;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -13,7 +12,8 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
-import com.google.copybara.testing.MockReference;
+import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
@@ -101,10 +101,10 @@ public class GitDestinationTest {
 
   private void assertCommitHasOrigin(String branch, String originRef) throws RepoException {
     assertThat(git("--git-dir", repoGitDir.toString(), "log", "-n1", branch))
-        .contains("\n    " + MOCK_LABEL_REV_ID + ": " + originRef + "\n");
+        .contains("\n    " + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
   }
 
-  private void process(GitDestination destination, MockReference originRef)
+  private void process(GitDestination destination, DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
     destination.process(
         new TransformResult(workdir, originRef, COMMIT_MSG,
@@ -117,7 +117,7 @@ public class GitDestinationTest {
     yaml.setFetch("testPullFromRef");
     yaml.setPush("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    process(destinationFirstCommit(), new MockReference("origin_ref"));
+    process(destinationFirstCommit(), new DummyReference("origin_ref"));
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "testPushToRef");
@@ -134,7 +134,7 @@ public class GitDestinationTest {
     yaml.setFetch("master");
     yaml.setPush("master");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    MockReference ref = new MockReference("origin_ref");
+    DummyReference ref = new DummyReference("origin_ref");
     process(destinationFirstCommit(), ref);
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("empty change");
@@ -149,7 +149,7 @@ public class GitDestinationTest {
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'testPullFromRef' doesn't exist");
-    process(destination(), new MockReference("origin_ref"));
+    process(destination(), new DummyReference("origin_ref"));
   }
 
   @Test
@@ -158,14 +158,14 @@ public class GitDestinationTest {
     yaml.setPush("pushToFoo");
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
-    process(destinationFirstCommit(), new MockReference("origin_ref"));
+    process(destinationFirstCommit(), new DummyReference("origin_ref"));
     git("--git-dir", repoGitDir.toString(), "branch", "pullFromBar", "pushToFoo");
 
     workdir = Files.createTempDirectory("workdir2");
     Files.write(workdir.resolve("1.txt"), "content 1".getBytes());
     Files.createDirectories(workdir.resolve("subdir"));
     Files.write(workdir.resolve("subdir/2.txt"), "content 2".getBytes());
-    process(destination(), new MockReference("origin_ref"));
+    process(destination(), new DummyReference("origin_ref"));
 
     // Make sure original file was deleted.
     assertFilesInDir(2, "pushToFoo", ".");
@@ -185,20 +185,20 @@ public class GitDestinationTest {
 
     Files.write(file, "some content".getBytes());
     GitDestination destination1 = destinationFirstCommit();
-    assertThat(destination1.getPreviousRef(MOCK_LABEL_REV_ID)).isNull();
-    process(destination1, new MockReference("first_commit"));
+    assertThat(destination1.getPreviousRef(DummyOrigin.LABEL_NAME)).isNull();
+    process(destination1, new DummyReference("first_commit"));
     assertCommitHasOrigin("master", "first_commit");
 
     Files.write(file, "some other content".getBytes());
     GitDestination destination2 = destination();
-    assertThat(destination2.getPreviousRef(MOCK_LABEL_REV_ID)).isEqualTo("first_commit");
-    process(destination2, new MockReference("second_commit"));
+    assertThat(destination2.getPreviousRef(DummyOrigin.LABEL_NAME)).isEqualTo("first_commit");
+    process(destination2, new DummyReference("second_commit"));
     assertCommitHasOrigin("master", "second_commit");
 
     Files.write(file, "just more text".getBytes());
     GitDestination destination3 = destination();
-    assertThat(destination3.getPreviousRef(MOCK_LABEL_REV_ID)).isEqualTo("second_commit");
-    process(destination3, new MockReference("third_commit"));
+    assertThat(destination3.getPreviousRef(DummyOrigin.LABEL_NAME)).isEqualTo("second_commit");
+    process(destination3, new DummyReference("third_commit"));
     assertCommitHasOrigin("master", "third_commit");
   }
 
@@ -208,7 +208,7 @@ public class GitDestinationTest {
     yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    process(destinationFirstCommit(), new MockReference("first_commit"));
+    process(destinationFirstCommit(), new DummyReference("first_commit"));
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     for (int i = 0; i < 20; i++) {
@@ -219,7 +219,7 @@ public class GitDestinationTest {
           .simpleCommand("commit", "-m", "excluded #" + i);
     }
 
-    assertThat(destination().getPreviousRef(MOCK_LABEL_REV_ID))
+    assertThat(destination().getPreviousRef(DummyOrigin.LABEL_NAME))
         .isEqualTo("first_commit");
   }
 
@@ -229,7 +229,7 @@ public class GitDestinationTest {
     yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    process(destinationFirstCommit(), new MockReference("first_commit"));
+    process(destinationFirstCommit(), new DummyReference("first_commit"));
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     GitRepository scratchRepo = repo().withWorkTree(scratchTree);
@@ -251,8 +251,8 @@ public class GitDestinationTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage(
         "Found commit with multiple parents (merge commit) when looking for "
-        + MOCK_LABEL_REV_ID + ".");
-    destination().getPreviousRef(MOCK_LABEL_REV_ID);
+        + DummyOrigin.LABEL_NAME + ".");
+    destination().getPreviousRef(DummyOrigin.LABEL_NAME);
   }
 
   private void verifySpecifyAuthorField(String expected) throws Exception {
@@ -262,7 +262,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     GitDestination destination = destinationFirstCommit();
-    process(destination, new MockReference("first_commit"));
+    process(destination, new DummyReference("first_commit"));
 
     String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1").split("\n");
     assertThat(commitLines[1]).isEqualTo("Author: " + expected);
@@ -309,11 +309,11 @@ public class GitDestinationTest {
     yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    process(destinationFirstCommit(), new MockReference("first_commit").withTimestamp(1414141414));
+    process(destinationFirstCommit(), new DummyReference("first_commit").withTimestamp(1414141414));
     GitTesting.assertAuthorTimestamp(repo(), "master", 1414141414);
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
-    process(destination(), new MockReference("second_commit").withTimestamp(1515151515));
+    process(destination(), new DummyReference("second_commit").withTimestamp(1515151515));
     GitTesting.assertAuthorTimestamp(repo(), "master", 1515151515);
   }
 
@@ -324,12 +324,12 @@ public class GitDestinationTest {
 
     options.git.gitCommitterName = "Bara Kopi";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    process(destinationFirstCommit(), new MockReference("first_commit").withTimestamp(1414141414));
+    process(destinationFirstCommit(), new DummyReference("first_commit").withTimestamp(1414141414));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Bara Kopi <.*> [-+ 0-9]+");
 
     options.git.gitCommitterName = "Piko Raba";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
-    process(destination(), new MockReference("second_commit").withTimestamp(1414141490));
+    process(destination(), new DummyReference("second_commit").withTimestamp(1414141490));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Piko Raba <.*> [-+ 0-9+]+");
   }
 
@@ -341,13 +341,13 @@ public class GitDestinationTest {
     options.git.gitCommitterEmail = "bara.bara@gocha.gocha";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
-    process(destinationFirstCommit(), new MockReference("first_commit").withTimestamp(1414141414));
+    process(destinationFirstCommit(), new DummyReference("first_commit").withTimestamp(1414141414));
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <bara[.]bara@gocha[.]gocha> [-+ 0-9]+");
 
     options.git.gitCommitterEmail = "kupo.kupo@tan.kou";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
-    process(destination(), new MockReference("second_commit").withTimestamp(1414141490));
+    process(destination(), new DummyReference("second_commit").withTimestamp(1414141490));
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <kupo[.]kupo@tan[.]kou> [-+ 0-9]+");
   }
@@ -361,7 +361,7 @@ public class GitDestinationTest {
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
-    process(destinationFirstCommit(), new MockReference("first_commit"));
+    process(destinationFirstCommit(), new DummyReference("first_commit"));
   }
 
   @Test
@@ -373,7 +373,7 @@ public class GitDestinationTest {
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
-    process(destinationFirstCommit(), new MockReference("first_commit"));
+    process(destinationFirstCommit(), new DummyReference("first_commit"));
   }
 
   @Test
@@ -390,7 +390,7 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
     excludedDestinationPaths = ImmutableList.of("excluded.txt");
-    process(destination(), new MockReference("ref"));
+    process(destination(), new DummyReference("ref"));
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("excluded.txt", "some content")
         .containsFile("normal_file.txt", "some more content")
@@ -415,7 +415,7 @@ public class GitDestinationTest {
     // Make sure this glob does not cause .git/HEAD to be added.
     excludedDestinationPaths = ImmutableList.of("**/HEAD");
 
-    process(destination(), new MockReference("ref"));
+    process(destination(), new DummyReference("ref"));
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("notgit/HEAD", "some content")
         .containsFile("normal_file.txt", "some more content")

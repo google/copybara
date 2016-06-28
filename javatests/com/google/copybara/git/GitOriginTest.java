@@ -9,7 +9,7 @@ import com.google.copybara.Change;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.RepoException;
-import com.google.copybara.testing.MockReference;
+import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 
 import org.joda.time.DateTime;
@@ -175,8 +175,7 @@ public class GitOriginTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage("Cannot find reference 'foo'");
 
-    Reference<GitOrigin> dummyRef = new MockReference<>("foo");
-    origin.change(dummyRef);
+    origin.resolve("foo");
   }
 
   private void singleFileCommit(String author, String commitMessage, String fileName,

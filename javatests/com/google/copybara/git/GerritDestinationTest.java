@@ -12,7 +12,8 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GerritDestination.Yaml;
 import com.google.copybara.git.GerritDestination.Yaml.GerritProcessPushOutput;
 import com.google.copybara.git.testing.GitTesting;
-import com.google.copybara.testing.MockReference;
+import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
@@ -80,7 +81,7 @@ public class GerritDestinationTest {
   private String lastCommitChangeIdLine() throws Exception {
     String logOutput = git("log", "-n1", "refs/for/master");
     assertThat(logOutput)
-        .contains("\n    " + MockReference.MOCK_LABEL_REV_ID
+        .contains("\n    " + DummyOrigin.LABEL_NAME
             + ": " + "origin_ref\n");
     String logLines[] = logOutput.split("\n");
     String changeIdLine = logLines[logLines.length - 1];
@@ -88,7 +89,7 @@ public class GerritDestinationTest {
     return changeIdLine;
   }
 
-  private void process(MockReference originRef)
+  private void process(DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
     destination().process(
         new TransformResult(workdir, originRef, COMMIT_MSG,
@@ -102,14 +103,14 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
     options.git.gitFirstCommit = true;
-    process(new MockReference("origin_ref"));
+    process(new DummyReference("origin_ref"));
 
     String firstChangeIdLine = lastCommitChangeIdLine();
 
     Files.write(workdir.resolve("file2"), "some more content".getBytes());
     git("branch", "master", "refs/for/master");
     options.git.gitFirstCommit = false;
-    process(new MockReference("origin_ref"));
+    process(new DummyReference("origin_ref"));
 
     assertThat(firstChangeIdLine)
         .isNotEqualTo(lastCommitChangeIdLine());
@@ -124,7 +125,7 @@ public class GerritDestinationTest {
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
     options.git.gitFirstCommit = true;
     options.gerrit.gerritChangeId = changeId;
-    process(new MockReference("origin_ref"));
+    process(new DummyReference("origin_ref"));
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
 
@@ -135,7 +136,7 @@ public class GerritDestinationTest {
     changeId = "Ibbbbbbbbbbccccccccccddddddddddeeeeeeeeee";
     options.git.gitFirstCommit = false;
     options.gerrit.gerritChangeId = changeId;
-    process(new MockReference("origin_ref"));
+    process(new DummyReference("origin_ref"));
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
   }
@@ -146,7 +147,7 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     options.git.gitFirstCommit = true;
-    process(new MockReference("first_commit"));
+    process(new DummyReference("first_commit"));
 
     String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1", "refs/for/master")
         .split("\n");
@@ -184,14 +185,14 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
-    process(new MockReference("first_commit").withTimestamp(355558888));
+    process(new DummyReference("first_commit").withTimestamp(355558888));
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 355558888);
 
     git("branch", "master", "refs/for/master");
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     options.git.gitFirstCommit = false;
-    process(new MockReference("first_commit").withTimestamp(424242420));
+    process(new DummyReference("first_commit").withTimestamp(424242420));
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 424242420);
   }
 
@@ -246,7 +247,7 @@ public class GerritDestinationTest {
     yaml.setPushToRefsFor("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
-    process(new MockReference("origin_ref"));
+    process(new DummyReference("origin_ref"));
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/testPushToRef");
@@ -258,7 +259,7 @@ public class GerritDestinationTest {
     yaml.setFetch("fooze");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
-    process(new MockReference("origin_ref"));
+    process(new DummyReference("origin_ref"));
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/fooze");
@@ -278,7 +279,7 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
     excludedDestinationPaths = ImmutableList.of("excluded.txt");
-    process(new MockReference("ref"));
+    process(new DummyReference("ref"));
     GitTesting.assertThatCheckout(repo(), "refs/for/master")
         .containsFile("excluded.txt", "some content")
         .containsFile("normal_file.txt", "some more content")

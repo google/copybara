@@ -8,15 +8,10 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 
-import org.joda.time.DateTime;
-
 import java.io.IOException;
 import java.nio.file.FileSystem;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,66 +29,9 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
     this.fs = Jimfs.newFileSystem();
   }
 
-  private static final String DUMMY_REV_ID = "DummyOrigin-RevId";
+  public static final String LABEL_NAME = "DummyOrigin-RevId";
 
   public List<DummyReference> changes = new ArrayList<>();
-
-  private class DummyReference implements ReferenceFiles<DummyOrigin> {
-
-    private final int reference;
-    private final String message;
-    private final String author;
-    private final Path changesBase;
-    private final long timestamp;
-
-    private DummyReference(int reference, String message, String author, Path changesBaseDir,
-        long timestamp) {
-      this.timestamp = timestamp;
-      this.message = message;
-      this.changesBase = changesBaseDir;
-      this.author = author;
-      this.reference = reference;
-    }
-
-    @Override
-    public void checkout(final Path workdir) throws RepoException {
-      try {
-        Files.walkFileTree(changesBase, new SimpleFileVisitor<Path>() {
-          @Override
-          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-              throws IOException {
-            Path destination = workdir.resolve(changesBase.relativize(file).toString());
-            Files.createDirectories(destination.getParent());
-            Files.write(destination, Files.readAllBytes(file));
-            return FileVisitResult.CONTINUE;
-          }
-        });
-      } catch (IOException e) {
-        throw new RepoException("Error copying files", e);
-      }
-    }
-
-    @Nullable
-    @Override
-    public Long readTimestamp() throws RepoException {
-      return timestamp;
-    }
-
-    @Override
-    public String asString() {
-      return String.valueOf(reference);
-    }
-
-    @Override
-    public String getLabelName() {
-      return DUMMY_REV_ID;
-    }
-
-    private Change<DummyOrigin> toChange() {
-      return new Change<>(this, author, message, new DateTime(timestamp));
-    }
-
-  }
 
   public void addSimpleChange(int timestamp) throws IOException {
     addSimpleChange(timestamp, changes.size() + " change");
@@ -107,8 +45,8 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
     addChange(timestamp, path, message);
   }
 
-  public void addChange(int timestamp, Path path, String message) {
-    changes.add(new DummyReference(changes.size(), message, "Someone", path, timestamp));
+  public void addChange(long timestamp, Path path, String message) {
+    changes.add(new DummyReference("" + changes.size(), message, "Someone", path, timestamp));
   }
 
   public String getHead() {
@@ -167,6 +105,6 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
 
   @Override
   public String getLabelName() {
-    return DUMMY_REV_ID;
+    return LABEL_NAME;
   }
 }
