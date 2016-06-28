@@ -108,6 +108,9 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         }
         sb.append(entry.getKey());
         sb.append(" | ");
+        if (fieldAnnotation.deprecated()) {
+          sb.append("*DEPRECATED* ");
+        }
         sb.append(fieldAnnotation.required() ? "*required;* " : "*optional;* ");
         sb.append(fieldAnnotation.defaultValue().equals("none") ? ""
             : " *default:" + fieldAnnotation.defaultValue() + ";*");

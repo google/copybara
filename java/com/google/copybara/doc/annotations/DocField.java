@@ -20,6 +20,8 @@ public @interface DocField {
 
   boolean undocumented() default false;
 
+  boolean deprecated() default false;
+
   /**
    * Use when the elements of a list fields are always of the same type so that we can avoid
    * using !FieldClass.

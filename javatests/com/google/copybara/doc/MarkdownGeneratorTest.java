@@ -79,6 +79,10 @@ public class MarkdownGeneratorTest {
     assertThat(fieldWithDefaultLine).contains("default_value;");
     assertThat(fieldWithDefaultLine).contains("field with default");
 
+    String deprecatedField = findLine("deprecatedField", byLine);
+    assertThat(deprecatedField).contains("DEPRECATED;");
+    assertThat(deprecatedField).contains("this field has been deprecated");
+
     String someParamLine = findLine("someParam", byLine);
     assertThat(someParamLine).contains("does foo with bar");
   }
@@ -125,19 +129,16 @@ public class MarkdownGeneratorTest {
   public static final class Example {
 
     @DocField(description = "field is required")
-    public void setFieldRequired(String name) {
-
-    }
+    public void setFieldRequired(String name) {}
 
     @DocField(description = "field is optional", required = false)
-    public void setFieldOptional(String name) {
-
-    }
+    public void setFieldOptional(String name) {}
 
     @DocField(description = "field with default", defaultValue = "default_value")
-    public void setFieldWithDefault(String name) {
+    public void setFieldWithDefault(String name) {}
 
-    }
+    @DocField(description = "this field has been deprecated", deprecated = true)
+    public void setDeprecatedField(String name) {}
   }
 
   public enum MyTest {
