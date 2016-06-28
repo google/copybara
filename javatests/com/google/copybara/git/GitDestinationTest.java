@@ -255,54 +255,6 @@ public class GitDestinationTest {
     destination().getPreviousRef(DummyOrigin.LABEL_NAME);
   }
 
-  private void verifySpecifyAuthorField(String expected) throws Exception {
-    yaml.setFetch("master");
-    yaml.setPush("master");
-
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-
-    GitDestination destination = destinationFirstCommit();
-    process(destination, new DummyReference("first_commit"));
-
-    String[] commitLines = git("--git-dir", repoGitDir.toString(), "log", "-n1").split("\n");
-    assertThat(commitLines[1]).isEqualTo("Author: " + expected);
-  }
-
-  @Test
-  public void specifyAuthorField() throws Exception {
-    String author = "Copybara Unit Tester <noreply@foo.bar>";
-    yaml.setAuthor(author);
-    verifySpecifyAuthorField(author);
-  }
-
-  @Test
-  public void defaultAuthorFieldIsCopybara() throws Exception {
-    verifySpecifyAuthorField("Copybara <noreply@google.com>");
-  }
-
-  private void checkAuthorFormatIsBad(String author) throws ConfigValidationException {
-    thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("Must be in the form of 'Name <email>'");
-    yaml.setAuthor(author);
-  }
-
-  // TODO(danielromero): This field is going away in favor of Workflow.authoring. Add a explicit
-  // test to validate the author format for Git workflows.
-  @Test
-  public void validatesAuthorFieldFormat1() throws ConfigValidationException {
-    checkAuthorFormatIsBad("foo");
-  }
-
-  @Test
-  public void validatesAuthorFieldFormat4() throws ConfigValidationException {
-    checkAuthorFormatIsBad("foo <a@b> foo");
-  }
-
-  @Test
-  public void validatesAuthorFieldFormat5() throws ConfigValidationException {
-    checkAuthorFormatIsBad(" <a@b>");
-  }
-
   @Test
   public void writesOriginTimestampToAuthorField() throws Exception {
     yaml.setFetch("master");

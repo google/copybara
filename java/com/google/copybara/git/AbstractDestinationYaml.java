@@ -6,8 +6,6 @@ import com.google.copybara.Destination;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocField;
 
-import java.util.regex.Pattern;
-
 /**
  * Common super-class for Git destination YAML objects. This includes fields common to all Git
  * destinations.
@@ -46,9 +44,10 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
    * {@code Full Name <email@foo.com>}.
    * TODO(danielromero): Remove this field once we incorporate Authoring to the workflow
    */
-  @DocField(description = "Sets the author line to use for the generated commit. "
+  @DocField(description = "DEPRECATED: This field will be replaced by Workflow.authoring. Sets the "
+      + "author line to use for the generated commit. "
       + "Should be in the form: Full Name <email@foo.com>",
-      required = false, defaultValue = DEFAULT_AUTHOR)
+      required = false, defaultValue = DEFAULT_AUTHOR, deprecated = true)
   public void setAuthor(String author) throws ConfigValidationException {
     // The author line is validated by git commit, but it is nicer to validate early so the user
     // can see the source of the error a little more clearly and he doesn't have to wait until
