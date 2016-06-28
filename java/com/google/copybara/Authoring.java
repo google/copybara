@@ -3,14 +3,14 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Represents the authors mapping between an origin and a destination.
@@ -21,13 +21,13 @@ final class Authoring {
 
   private final String defaultAuthor;
   private final AuthoringMappingMode mode;
-  private final ImmutableMap<String, String> individuals;
+  private final ImmutableSet<String> whitelist;
 
   Authoring(
-      String defaultAuthor, AuthoringMappingMode mode, ImmutableMap<String, String> individuals) {
+      String defaultAuthor, AuthoringMappingMode mode, ImmutableSet<String> whitelist) {
     this.defaultAuthor = Preconditions.checkNotNull(defaultAuthor);
     this.mode = Preconditions.checkNotNull(mode);
-    this.individuals = Preconditions.checkNotNull(individuals);
+    this.whitelist = Preconditions.checkNotNull(whitelist);
   }
 
   /**
@@ -44,17 +44,17 @@ final class Authoring {
       case USE_DEFAULT:
         return defaultAuthor;
       case WHITELIST:
-        return getWhitelistAuthor(originAuthor);
+        return getWhitelistedAuthor(originAuthor);
       default:
         throw new IllegalStateException(String.format("Mode '%s' not implemented.", mode));
     }
   }
 
-  private String getWhitelistAuthor(String originAuthor) {
-    if (!individuals.containsKey(originAuthor)) {
+  private String getWhitelistedAuthor(String originAuthor) {
+    if (!whitelist.contains(originAuthor)) {
       return defaultAuthor;
     }
-    return individuals.get(originAuthor);
+    return originAuthor;
   }
 
   /**
@@ -67,7 +67,7 @@ final class Authoring {
   public static final class Yaml {
 
     private String defaultAuthor;
-    private ImmutableMap<String, String> whitelist = ImmutableMap.of();
+    private ImmutableSet<String> whitelist = ImmutableSet.of();
     private AuthoringMappingMode mode = AuthoringMappingMode.USE_DEFAULT;
 
 
@@ -93,23 +93,18 @@ final class Authoring {
      * Sets the mapping of whitelisted authors from origin to destination.
      *
      * TODO(danielromero): Load this mapping from an external file.
-     * TODO(danielromero): Replace Map<String, String> by Map<String, Author>
      */
-    @DocField(description = "List of whitelisted authors, mapped from origin to destination. "
-        + "The mapping needs to be unique.", required = false)
-    public void setWhitelist(Map<String, String> whitelist) throws ConfigValidationException {
-      Map<String, String> whitelistInverseMap = new HashMap<>();
-      for (Entry<String, String> whitelistEntry : whitelist.entrySet()) {
-        String fromAuthor = whitelistEntry.getKey();
-        String toAuthor = whitelistEntry.getValue();
-        if (whitelistInverseMap.containsKey(toAuthor)) {
+    @DocField(description = "List of whitelisted authors in the origin. "
+        + "The authors must be unique.", required = false)
+    public void setWhitelist(List<String> whitelist) throws ConfigValidationException {
+      Set<String> uniqueAuthors = new HashSet<>();
+      for (String author : whitelist) {
+        if (!uniqueAuthors.add(author)) {
           throw new ConfigValidationException(
-              String.format("Duplicated whitelist entry '%s' for keys [%s, %s].",
-                  toAuthor, whitelistInverseMap.get(toAuthor), fromAuthor));
+              String.format("Duplicated whitelist entry '%s'", author));
         }
-        whitelistInverseMap.put(toAuthor, fromAuthor);
       }
-      this.whitelist = ImmutableMap.copyOf(whitelist);
+      this.whitelist = ImmutableSet.copyOf(whitelist);
     }
 
     public Authoring withOptions(Options options, String configName)
@@ -119,7 +114,7 @@ final class Authoring {
       }
       if (mode == AuthoringMappingMode.WHITELIST && whitelist.isEmpty()) {
         throw new ConfigValidationException(
-            "Mode 'WHITELIST' requires a non-empty 'whitelist' mapping. "
+            "Mode 'WHITELIST' requires a non-empty 'whitelist' field. "
                 + "For default mapping, use 'USE_DEFAULT' mode instead.");
       }
       return new Authoring(defaultAuthor, mode, whitelist);

@@ -2,7 +2,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -18,9 +18,8 @@ import org.junit.runners.JUnit4;
 public class AuthoringTest {
 
   private static final String CONFIG_NAME = "copybara_project";
-  private static final ImmutableMap<String, String> WHITELIST = ImmutableMap.of(
-      "foo <foo@gmail.com>", "foo",
-      "bar@gmail.com", "bar");
+  private static final ImmutableList<String> WHITELIST =
+      ImmutableList.of("foo@gmail.com", "bar@gmail.com");
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -42,7 +41,7 @@ public class AuthoringTest {
 
     Authoring authoring = yaml.withOptions(options.build(), CONFIG_NAME);
 
-    assertThat(authoring.getDestinationAuthor("bar@gmail.com")).isEqualTo("bar@gmail.com");
+    assertThat(authoring.getDestinationAuthor("john@gmail.com")).isEqualTo("john@gmail.com");
   }
 
   @Test
@@ -53,7 +52,7 @@ public class AuthoringTest {
 
     Authoring authoring = yaml.withOptions(options.build(), CONFIG_NAME);
 
-    assertThat(authoring.getDestinationAuthor("bar@gmail.com")).isEqualTo("bar");
+    assertThat(authoring.getDestinationAuthor("bar@gmail.com")).isEqualTo("bar@gmail.com");
     assertThat(authoring.getDestinationAuthor("john@gmail.com"))
         .isEqualTo("copybara-team@google.com");
   }
@@ -61,11 +60,8 @@ public class AuthoringTest {
   @Test
   public void testWhitelistMappingDuplicates() throws Exception {
     thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage(
-        "Duplicated whitelist entry 'foo external <foo@mydomain.com>' for keys [foo, bar].");
-    yaml.setWhitelist(ImmutableMap.of(
-          "foo", "foo external <foo@mydomain.com>",
-          "bar", "foo external <foo@mydomain.com>"));
+    thrown.expectMessage("Duplicated whitelist entry 'foo'");
+    yaml.setWhitelist(ImmutableList.of("foo", "foo"));
   }
 
   @Test
@@ -95,7 +91,7 @@ public class AuthoringTest {
     yaml.setMode(AuthoringMappingMode.WHITELIST);
 
     thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("Mode 'WHITELIST' requires a non-empty 'whitelist' mapping. "
+    thrown.expectMessage("Mode 'WHITELIST' requires a non-empty 'whitelist' field. "
         + "For default mapping, use 'USE_DEFAULT' mode instead.");
     yaml.withOptions(options.build(), CONFIG_NAME);
 
