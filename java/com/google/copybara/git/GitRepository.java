@@ -2,6 +2,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.util.CommandUtil.executeCommand;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -209,10 +210,10 @@ public final class GitRepository {
 
   @Override
   public String toString() {
-    return "GitRepository{" +
-        "gitDir='" + gitDir + '\'' +
-        ", workTree='" + workTree + '\'' +
-        ", verbose=" + verbose +
-        '}';
+    return MoreObjects.toStringHelper(this)
+        .add("gitDir", gitDir)
+        .add("workTree", workTree)
+        .add("verbose", verbose)
+        .toString();
   }
 }
