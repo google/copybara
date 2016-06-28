@@ -48,14 +48,6 @@ java_library(
 )
 
 java_library(
-    name = "junit4",
-    testonly = 1,
-    exports = [
-        "@bazel_tools//third_party:junit4",
-    ],
-)
-
-java_library(
     name = "snakeyaml",
     exports = [
         "@snakeyaml//jar",
