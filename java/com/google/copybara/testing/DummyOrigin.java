@@ -4,6 +4,7 @@ package com.google.copybara.testing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Author;
+import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -62,7 +63,7 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
     return Integer.toString(changes.size() - 1);
   }
   @Override
-  public DummyOrigin withOptions(Options options) {
+  public DummyOrigin withOptions(Options options, Authoring authoring) {
     return this;
   }
 

@@ -16,7 +16,7 @@ public interface Origin<O extends Origin<O>> {
 
   interface Yaml<O extends Origin<O>> {
 
-    Origin<O> withOptions(Options options) throws ConfigValidationException;
+    Origin<O> withOptions(Options options, Authoring authoring) throws ConfigValidationException;
   }
 
   /**

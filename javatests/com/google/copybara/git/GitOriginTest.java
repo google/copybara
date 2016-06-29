@@ -4,12 +4,14 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.copybara.Author;
+import com.google.copybara.Authoring;
+import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.RepoException;
-import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 
 import org.joda.time.DateTime;
@@ -28,10 +30,17 @@ import java.util.Map;
 @RunWith(JUnit4.class)
 public class GitOriginTest {
 
+  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
+  private static final Authoring DEFAULT_AUTHORING =
+      new Authoring(DEFAULT_AUTHOR, AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
+
   private GitOrigin origin;
   private Path remote;
   private Path workdir;
   private String firstCommitRef;
+  private GitOrigin.Yaml yaml;
+  private OptionsBuilder options;
+  private Map<String, String> env;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -41,20 +50,20 @@ public class GitOriginTest {
   public void setup() throws Exception {
     remote = Files.createTempDirectory("remote");
     workdir = Files.createTempDirectory("workdir");
-    GitOrigin.Yaml yaml = new GitOrigin.Yaml();
+    yaml = new GitOrigin.Yaml();
     yaml.setUrl("file://" + remote.toFile().getAbsolutePath());
     yaml.setRef("other");
 
-    OptionsBuilder options = new OptionsBuilder();
+    options = new OptionsBuilder();
     reposDir = Files.createTempDirectory("repos_repo");
     options.git.gitRepoStorage = reposDir.toString();
 
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");
-    Map<String, String> env = Maps.newHashMap(System.getenv());
+    env = Maps.newHashMap(System.getenv());
     env.put("HOME", userHomeForTest.toString());
-    origin = yaml.withOptions(options.build(), env);
+    origin = yaml.withOptions(options.build(), DEFAULT_AUTHORING, env);
 
     git("init");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
@@ -157,9 +166,7 @@ public class GitOriginTest {
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "change2", "test.txt", "some content2");
 
-    String head = git("rev-parse", "HEAD");
-    String lastCommit = head.substring(0, head.length() -1);
-    ReferenceFiles<GitOrigin> lastCommitRef = origin.resolve(lastCommit);
+    ReferenceFiles<GitOrigin> lastCommitRef = getLastCommitRef();
     Change<GitOrigin> change = origin.change(lastCommitRef);
 
     assertThat(change.getAuthor().toString()).isEqualTo(author);
@@ -178,11 +185,25 @@ public class GitOriginTest {
     origin.resolve("foo");
   }
 
-  private void singleFileCommit(String author, String commitMessage, String fileName,
-      String fileContent) throws IOException, RepoException {
-    Files.write(remote.resolve(fileName), fileContent.getBytes());
-    git("add", fileName);
-    git("commit", "-m", commitMessage, "--author=" + author);
+  @Test
+  public void testWhitelisting() throws Exception {
+    Authoring authoring = new Authoring(
+        DEFAULT_AUTHOR, AuthoringMappingMode.WHITELIST, ImmutableSet.of("john@name.com"));
+    origin = yaml.withOptions(options.build(), authoring, env);
+
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "change2", "test.txt", "some content2");
+    ReferenceFiles<GitOrigin> lastCommitRef = getLastCommitRef();
+    Change<GitOrigin> change = origin.change(lastCommitRef);
+
+    assertThat(change.getAuthor().toString()).isEqualTo(author);
+
+    author = "Foo Bar <foo@bar.com>";
+    singleFileCommit(author, "change3", "test.txt", "some content3");
+    lastCommitRef = getLastCommitRef();
+    change = origin.change(lastCommitRef);
+
+    assertThat(change.getAuthor().toString()).isEqualTo(DEFAULT_AUTHOR.toString());
   }
 
   @Test
@@ -238,5 +259,18 @@ public class GitOriginTest {
     assertThat(origin.change(firstRef).getMessage()).contains("first file");
     assertThat(origin.changes(null, secondRef)).hasSize(2);
     assertThat(origin.changes(firstRef, secondRef)).hasSize(1);
+  }
+
+  private ReferenceFiles<GitOrigin> getLastCommitRef() throws RepoException {
+    String head = git("rev-parse", "HEAD");
+    String lastCommit = head.substring(0, head.length() -1);
+    return origin.resolve(lastCommit);
+  }
+
+  private void singleFileCommit(String author, String commitMessage, String fileName,
+      String fileContent) throws IOException, RepoException {
+    Files.write(remote.resolve(fileName), fileContent.getBytes());
+    git("add", fileName);
+    git("commit", "-m", commitMessage, "--author=" + author);
   }
 }

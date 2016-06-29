@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.Author;
+import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -57,12 +58,16 @@ public final class GitOrigin implements Origin<GitOrigin> {
   @Nullable
   private final String configRef;
   private final Console console;
+  @Nullable
+  private final Authoring authoring;
 
-  GitOrigin(Console console, GitRepository repository, String repoUrl, @Nullable String configRef) {
+  GitOrigin(Console console, GitRepository repository, String repoUrl, @Nullable String configRef,
+      @Nullable Authoring authoring) {
     this.console = console;
     this.repository = Preconditions.checkNotNull(repository);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.configRef = Preconditions.checkNotNull(configRef);
+    this.authoring = authoring;
   }
 
   public GitRepository getRepository() {
@@ -150,10 +155,31 @@ public final class GitOrigin implements Origin<GitOrigin> {
         }
         message.append(s, 4, s.length()).append("\n");
       }
-      builder.add(new Change<>(new GitReference(commit), author, message.toString(), date));
+      builder.add(new Change<>(
+          new GitReference(commit), resolveAuthor(author), message.toString(), date));
     }
     // Return older commit first. This operation is O(1)
     return builder.build().reverse();
+  }
+
+  private Author resolveAuthor(Author author) {
+    // TODO(danielromero): Remove this once Authoring is required
+    if (authoring == null) {
+      return author;
+    }
+    switch (authoring.getMode()) {
+      case PASS_THRU:
+        return author;
+      case USE_DEFAULT:
+        return authoring.getDefaultAuthor();
+      case WHITELIST:
+        return authoring.getWhitelist().contains(author.getEmail())
+            ? author
+            : authoring.getDefaultAuthor();
+      default:
+        throw new IllegalStateException(
+            String.format("Mode '%s' not implemented.", authoring.getMode()));
+    }
   }
 
   @Override
@@ -239,12 +265,13 @@ public final class GitOrigin implements Origin<GitOrigin> {
     }
 
     @Override
-    public GitOrigin withOptions(Options options) throws ConfigValidationException {
-      return withOptions(options, GitRepository.CURRENT_PROCESS_ENVIRONMENT);
+    public GitOrigin withOptions(Options options, Authoring authoring)
+        throws ConfigValidationException {
+      return withOptions(options, authoring, GitRepository.CURRENT_PROCESS_ENVIRONMENT);
     }
 
     @VisibleForTesting
-    GitOrigin withOptions(Options options, Map<String, String> environment)
+    GitOrigin withOptions(Options options, Authoring authoring, Map<String, String> environment)
         throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(url, "url");
 
@@ -253,7 +280,8 @@ public final class GitOrigin implements Origin<GitOrigin> {
       Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
       Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
       Console console = options.get(GeneralOptions.class).console();
-      return new GitOrigin(console, GitRepository.bareRepo(gitDir, options, environment), url, ref);
+      return new GitOrigin(
+          console, GitRepository.bareRepo(gitDir, options, environment), url, ref, authoring);
     }
   }
 }

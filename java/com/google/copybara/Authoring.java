@@ -1,8 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -17,44 +17,43 @@ import java.util.Set;
  *
  * <p>For a given author in the origin, always provides an author in the destination.
  */
-final class Authoring {
+public final class Authoring {
 
-  private final String defaultAuthor;
+  private final Author defaultAuthor;
   private final AuthoringMappingMode mode;
   private final ImmutableSet<String> whitelist;
 
-  Authoring(
-      String defaultAuthor, AuthoringMappingMode mode, ImmutableSet<String> whitelist) {
+  @VisibleForTesting
+  public Authoring(
+      Author defaultAuthor, AuthoringMappingMode mode, ImmutableSet<String> whitelist) {
     this.defaultAuthor = Preconditions.checkNotNull(defaultAuthor);
     this.mode = Preconditions.checkNotNull(mode);
     this.whitelist = Preconditions.checkNotNull(whitelist);
   }
 
   /**
-   * Returns the default author for squash workflows where there is more than one author.
+   * Returns the mapping mode.
    */
-  public String getDefaultAuthor() {
+  public AuthoringMappingMode getMode() {
+    return mode;
+  }
+
+  /**
+   * Returns the default author, used for squash workflows,
+   * {@link AuthoringMappingMode#USE_DEFAULT} mode and for non-whitelisted authors.
+   */
+  public Author getDefaultAuthor() {
     return defaultAuthor;
   }
 
-  String getDestinationAuthor(String originAuthor) {
-    switch (mode) {
-      case PASS_THRU:
-        return originAuthor;
-      case USE_DEFAULT:
-        return defaultAuthor;
-      case WHITELIST:
-        return getWhitelistedAuthor(originAuthor);
-      default:
-        throw new IllegalStateException(String.format("Mode '%s' not implemented.", mode));
-    }
-  }
-
-  private String getWhitelistedAuthor(String originAuthor) {
-    if (!whitelist.contains(originAuthor)) {
-      return defaultAuthor;
-    }
-    return originAuthor;
+  /**
+   * Returns a {@code Set} of whitelisted author identifiers.
+   *
+   * <p>An identifier is typically an email but might have different representations depending on
+   * the origin.
+   */
+  public ImmutableSet<String> getWhitelist() {
+    return whitelist;
   }
 
   /**
@@ -66,7 +65,7 @@ final class Authoring {
       elementKind = Authoring.class)
   public static final class Yaml {
 
-    private String defaultAuthor;
+    private Author.Yaml defaultAuthor;
     private ImmutableSet<String> whitelist = ImmutableSet.of();
     private AuthoringMappingMode mode = AuthoringMappingMode.USE_DEFAULT;
 
@@ -79,7 +78,7 @@ final class Authoring {
      */
     @DocField(description = "Sets the default author for commits in the destination.",
         required = true)
-    public void setDefaultAuthor(String defaultAuthor) throws ConfigValidationException {
+    public void setDefaultAuthor(Author.Yaml defaultAuthor) throws ConfigValidationException {
       this.defaultAuthor = defaultAuthor;
     }
 
@@ -109,9 +108,10 @@ final class Authoring {
 
     public Authoring withOptions(Options options, String configName)
         throws ConfigValidationException, EnvironmentException {
-      if (Strings.isNullOrEmpty(defaultAuthor)) {
+      if (this.defaultAuthor == null) {
         throw new ConfigValidationException("Field 'defaultAuthor' cannot be empty.");
       }
+      Author defaultAuthor = this.defaultAuthor.withOptions(options, configName);
       if (mode == AuthoringMappingMode.WHITELIST && whitelist.isEmpty()) {
         throw new ConfigValidationException(
             "Mode 'WHITELIST' requires a non-empty 'whitelist' field. "

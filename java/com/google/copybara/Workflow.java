@@ -345,7 +345,11 @@ public final class Workflow<O extends Origin<O>> {
       sequence.setTransformations(this.transformations);
       Transformation transformation = sequence.withOptions(options);
 
-      Origin<?> origin = this.origin.withOptions(options);
+      // TODO(danielromero): Remove check when we make it mandatory
+      Authoring authoring = this.authoring != null
+          ? this.authoring.withOptions(options, configName)
+          : null;
+      Origin<?> origin = this.origin.withOptions(options, authoring);
       Destination destination = this.destination.withOptions(options, configName);
       Console console = options.get(GeneralOptions.class).console();
       GeneralOptions generalOptions = options.get(GeneralOptions.class);

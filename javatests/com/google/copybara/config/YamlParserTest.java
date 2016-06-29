@@ -5,6 +5,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.Destination;
 import com.google.copybara.EnvironmentException;
@@ -258,7 +259,8 @@ public class YamlParserTest {
     }
 
     @Override
-    public MockOrigin withOptions(Options options) throws ConfigValidationException {
+    public MockOrigin withOptions(Options options, Authoring authoring)
+        throws ConfigValidationException {
       return this;
     }
 

@@ -1,7 +1,5 @@
 package com.google.copybara;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.config.ConfigValidationException;
@@ -18,43 +16,20 @@ import org.junit.runners.JUnit4;
 public class AuthoringTest {
 
   private static final String CONFIG_NAME = "copybara_project";
-  private static final ImmutableList<String> WHITELIST =
-      ImmutableList.of("foo@gmail.com", "bar@gmail.com");
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
+  private Author.Yaml authorYaml = new Author.Yaml();
   private Authoring.Yaml yaml;
   private OptionsBuilder options;
 
   @Before
   public void setUp() throws Exception {
+    authorYaml.setName("Copybara");
+    authorYaml.setEmail("no-reply@google.com");
     yaml = new Authoring.Yaml();
     options = new OptionsBuilder();
-  }
-
-  @Test
-  public void testPassThruMapping() throws Exception {
-    yaml.setDefaultAuthor("copybara-team@google.com");
-    yaml.setMode(AuthoringMappingMode.PASS_THRU);
-    yaml.setWhitelist(WHITELIST);
-
-    Authoring authoring = yaml.withOptions(options.build(), CONFIG_NAME);
-
-    assertThat(authoring.getDestinationAuthor("john@gmail.com")).isEqualTo("john@gmail.com");
-  }
-
-  @Test
-  public void testWhitelistMapping() throws Exception {
-    yaml.setDefaultAuthor("copybara-team@google.com");
-    yaml.setMode(AuthoringMappingMode.WHITELIST);
-    yaml.setWhitelist(WHITELIST);
-
-    Authoring authoring = yaml.withOptions(options.build(), CONFIG_NAME);
-
-    assertThat(authoring.getDestinationAuthor("bar@gmail.com")).isEqualTo("bar@gmail.com");
-    assertThat(authoring.getDestinationAuthor("john@gmail.com"))
-        .isEqualTo("copybara-team@google.com");
   }
 
   @Test
@@ -62,20 +37,6 @@ public class AuthoringTest {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("Duplicated whitelist entry 'foo'");
     yaml.setWhitelist(ImmutableList.of("foo", "foo"));
-  }
-
-  @Test
-  public void testDefaultMapping() throws Exception {
-    yaml.setDefaultAuthor("copybara-team@google.com");
-    yaml.setMode(AuthoringMappingMode.USE_DEFAULT);
-    yaml.setWhitelist(WHITELIST);
-
-    Authoring authoring = yaml.withOptions(options.build(), CONFIG_NAME);
-
-    assertThat(authoring.getDestinationAuthor("bar@gmail.com"))
-        .isEqualTo("copybara-team@google.com");
-    assertThat(authoring.getDestinationAuthor("john@gmail.com"))
-        .isEqualTo("copybara-team@google.com");
   }
 
   @Test
@@ -87,7 +48,7 @@ public class AuthoringTest {
 
   @Test
   public void testWhitelistNotEmpty() throws Exception {
-    yaml.setDefaultAuthor("copybara-team@google.com");
+    yaml.setDefaultAuthor(authorYaml);
     yaml.setMode(AuthoringMappingMode.WHITELIST);
 
     thrown.expect(ConfigValidationException.class);
