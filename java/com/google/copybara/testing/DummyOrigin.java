@@ -3,6 +3,7 @@ package com.google.copybara.testing;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Author;
 import com.google.copybara.Change;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -22,6 +23,8 @@ import javax.annotation.Nullable;
  * and populates the workdir with a single file.
  */
 public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
+
+  private static final Author AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
   private final FileSystem fs;
 
@@ -48,7 +51,7 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   public DummyOrigin addChange(long timestamp, Path path, String message) {
-    changes.add(new DummyReference("" + changes.size(), message, "Someone", path, timestamp));
+    changes.add(new DummyReference("" + changes.size(), message, AUTHOR, path, timestamp));
     return this;
   }
 

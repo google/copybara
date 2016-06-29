@@ -12,11 +12,11 @@ import org.joda.time.DateTime;
 public final class Change<T extends Origin<T>> {
 
   private final ReferenceFiles<T> reference;
-  private final String author;
+  private final Author author;
   private final String message;
   private final DateTime date;
 
-  public Change(ReferenceFiles<T> reference, String author, String message, DateTime date) {
+  public Change(ReferenceFiles<T> reference, Author author, String message, DateTime date) {
     this.reference = Preconditions.checkNotNull(reference);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
@@ -30,7 +30,7 @@ public final class Change<T extends Origin<T>> {
     return reference;
   }
 
-  public String getAuthor() {
+  public Author getAuthor() {
     return author;
   }
 

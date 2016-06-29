@@ -138,7 +138,7 @@ public class GitOriginTest {
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
     for (Change<GitOrigin> change : changes) {
-      assertThat(change.getAuthor()).isEqualTo(author);
+      assertThat(change.getAuthor().toString()).isEqualTo(author);
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
     }
@@ -162,7 +162,7 @@ public class GitOriginTest {
     ReferenceFiles<GitOrigin> lastCommitRef = origin.resolve(lastCommit);
     Change<GitOrigin> change = origin.change(lastCommitRef);
 
-    assertThat(change.getAuthor()).isEqualTo(author);
+    assertThat(change.getAuthor().toString()).isEqualTo(author);
     assertThat(change.firstLineMessage()).isEqualTo("change2");
     assertThat(change.getReference().asString()).isEqualTo(lastCommitRef.asString());
   }
@@ -209,7 +209,7 @@ public class GitOriginTest {
     assertThat(changes.get(1).getMessage()).isEqualTo("master2\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("Merge branch 'feature'\n");
     for (Change<GitOrigin> change : changes) {
-      assertThat(change.getAuthor()).isEqualTo(author);
+      assertThat(change.getAuthor().toString()).isEqualTo(author);
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
     }

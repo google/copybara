@@ -2,6 +2,7 @@
 package com.google.copybara.testing;
 
 import com.google.common.base.Preconditions;
+import com.google.copybara.Author;
 import com.google.copybara.Change;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
@@ -24,20 +25,21 @@ import javax.annotation.Nullable;
  */
 public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
 
+  private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
+
   private final String reference;
   private final String message;
-  private final String author;
+  private final Author author;
   private final Path changesBase;
   private final Long timestamp;
 
   public DummyReference(String reference) {
-    this(reference, "DummyReference message", "DummyReference author",
+    this(reference, "DummyReference message", DEFAULT_AUTHOR,
         Paths.get("/DummyReference", reference), /*timestamp=*/null);
   }
 
   DummyReference(
-      String reference, String message, String author, Path changesBase,
-      @Nullable Long timestamp) {
+      String reference, String message, Author author, Path changesBase, @Nullable Long timestamp) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
     this.author = Preconditions.checkNotNull(author);

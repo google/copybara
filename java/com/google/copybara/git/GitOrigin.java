@@ -8,6 +8,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.net.PercentEscaper;
+import com.google.copybara.Author;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -129,11 +130,11 @@ public final class GitOrigin implements Origin<GitOrigin> {
       String rawCommit = rawLines.next();
       String commit = removePrefix(log, rawCommit, "commit ");
       String line = rawLines.next();
-      String author = null;
+      Author author = null;
       DateTime date = null;
       while (!line.isEmpty()) {
         if (line.startsWith("Author: ")) {
-          author = line.substring("Author: ".length()).trim();
+          author = GitAuthorParser.parse(line.substring("Author: ".length()).trim());
         } else if (line.startsWith("Date: ")) {
           date = dateFormatter.parseDateTime(line.substring("Date: ".length()).trim());
         }
