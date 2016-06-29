@@ -108,7 +108,7 @@ public class WorkflowTest {
     Truth.assertThat(destination.processed).hasSize(8);
     int nextChange = 43;
     for (ProcessedChange change : destination.processed) {
-      assertThat(change.getChangesSummary()).isEqualTo(nextChange + " change\n");
+      assertThat(change.getChangesSummary()).isEqualTo(nextChange + " change");
       String asString = Integer.toString(nextChange);
       assertThat(change.getOriginRef().asString()).isEqualTo(asString);
       assertThat(change.numFiles()).isEqualTo(1);

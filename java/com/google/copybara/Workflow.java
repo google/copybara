@@ -31,25 +31,28 @@ import javax.annotation.Nullable;
  * Represents a particular migration operation that can occur for a project. Each project can have
  * multiple workflows. Each workflow has a particular origin and destination.
  */
-public abstract class Workflow<O extends Origin<O>> {
+public final class Workflow<O extends Origin<O>> {
 
-  protected final Logger logger = Logger.getLogger(this.getClass().getName());
+  private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   private final String configName;
   private final String name;
   private final Origin<O> origin;
   private final Destination destination;
-  protected final Transformation transformation;
+  private final Transformation transformation;
   private final PathMatcherBuilder excludedOriginPaths;
-  protected final PathMatcherBuilder excludedDestinationPaths;
+  private final PathMatcherBuilder excludedDestinationPaths;
   @Nullable
-  final String lastRevisionFlag;
-  final Console console;
+  private final String lastRevisionFlag;
+  private final Console console;
+  private final WorkflowMode mode;
+  private final boolean includeChangeListNotes;
 
-  Workflow(String configName, String name, Origin<O> origin, Destination destination,
+  private Workflow(String configName, String name, Origin<O> origin, Destination destination,
       Transformation transformation, @Nullable String lastRevisionFlag,
       Console console, PathMatcherBuilder excludedOriginPaths,
-      PathMatcherBuilder excludedDestinationPaths) {
+      PathMatcherBuilder excludedDestinationPaths, WorkflowMode mode,
+      boolean includeChangeListNotes) {
     this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
@@ -59,6 +62,8 @@ public abstract class Workflow<O extends Origin<O>> {
     this.console = Preconditions.checkNotNull(console);
     this.excludedOriginPaths = excludedOriginPaths;
     this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
+    this.mode = Preconditions.checkNotNull(mode);
+    this.includeChangeListNotes = includeChangeListNotes;
   }
 
   @VisibleForTesting
@@ -87,76 +92,26 @@ public abstract class Workflow<O extends Origin<O>> {
     return transformation;
   }
 
-  public final void run(Path workdir, @Nullable String sourceRef)
+  public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, EnvironmentException, ValidationException {
     console.progress("Cleaning working directory");
     FileUtil.deleteAllFilesRecursively(workdir);
 
     console.progress("Getting last revision: "
         + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
-    ReferenceFiles<O> resolvedRef = getOrigin().resolve(sourceRef);
+    ReferenceFiles<O> resolvedRef = origin.resolve(sourceRef);
     logger.log(Level.INFO,
         String.format(
-            "Running Copybara for config '%s', workflow '%s' (%s) and ref '%s': %s",
-            configName, name, this.getClass().getSimpleName(), resolvedRef.asString(),
+            "Running Copybara for config '%s', workflow '%s' (%s mode) and ref '%s': %s",
+            configName, name, mode, resolvedRef.asString(),
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
     runForRef(workdir, resolvedRef);
   }
 
-  abstract void runForRef(Path workdir, ReferenceFiles<O> resolvedRef)
-      throws RepoException, IOException, EnvironmentException, ValidationException;
-  /**
-   * Runs the transformation for the workflow
-   *
-   * @param workdir working directory to use for the transformations
-   * @param console console to use for printing messages
-   */
-  protected void transform(Path workdir, Console console)
-      throws ValidationException, EnvironmentException {
-    try {
-      transformation.transform(workdir, console);
-    } catch (IOException e) {
-      throw new EnvironmentException("Error applying transformation: " + transformation, e);
-    }
-  }
-
-  void removeExcludedFiles(Path workdir) throws IOException, RepoException {
-    if (excludedOriginPaths.isEmpty()) {
-      return;
-    }
-    PathMatcher pathMatcher = excludedOriginPaths.relativeTo(workdir);
-    console.progress("Removing excluded files");
-
-    int result = FileUtil.deleteFilesRecursively(workdir, pathMatcher);
-    logger.log(Level.INFO,
-        String.format("Removed %s files from workdir that were excluded", result));
-
-    if (result == 0) {
-      throw new RepoException(
-          String.format("Nothing was deleted in the workdir for excludedOriginPaths: '%s'",
-              pathMatcher));
-    }
-  }
-
-  /**
-   * Returns the last revision that was imported from this origin to the destination.
-   *
-   * <p>If {@code --last-rev} is specified, that revision will be used. Otherwise, the previous
-   * reference will be resolved in the destination with the origin label.
-   */
-  ReferenceFiles<O> getLastRev() throws RepoException {
-    if (lastRevisionFlag != null) {
-      return getOrigin().resolve(lastRevisionFlag);
-    }
-    String labelName = getOrigin().getLabelName();
-    String previousRef = getDestination().getPreviousRef(labelName);
-    if (previousRef == null) {
-      throw new RepoException(String.format(
-          "Previous revision label %s could not be found in %s and --last-rev flag"
-              + " was not passed", labelName, getDestination()));
-    }
-    return getOrigin().resolve(previousRef);
+  public void runForRef(Path workdir, ReferenceFiles<O> resolvedRef)
+      throws RepoException, IOException, EnvironmentException, ValidationException {
+    mode.run(new RunHelper(workdir, resolvedRef));
   }
 
   @Override
@@ -169,11 +124,132 @@ public abstract class Workflow<O extends Origin<O>> {
         .add("transformation", transformation)
         .add("excludedOriginPaths", excludedOriginPaths)
         .add("excludedDestinationPaths", excludedDestinationPaths)
+        .add("mode", mode)
         .toString();
   }
 
-  protected final String getConfigName() {
-    return configName;
+  final class RunHelper {
+    private final Path workdir;
+    private final ReferenceFiles<O> resolvedRef;
+
+    /**
+     * @param workdir working directory to use for the transformations
+     */
+    RunHelper(Path workdir, ReferenceFiles<O> resolvedRef) {
+      this.workdir = Preconditions.checkNotNull(workdir);
+      this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
+    }
+
+    ReferenceFiles<O> getResolvedRef() {
+      return resolvedRef;
+    }
+
+    /** Console to use for printing messages. */
+    Console getConsole() {
+      return console;
+    }
+
+    /**
+     * Performs a full migration, including checking out files from the origin, deleting excluded
+     * files, transforming the code, and writing to the destination. This writes to the destination
+     * exactly once.
+     *
+     * @param ref reference to the version which will be written to the destination
+     * @param processConsole console to use to print progress messages
+     * @param message change message to write to the destination
+     */
+    void migrate(ReferenceFiles<O> ref, Console processConsole, String message)
+        throws EnvironmentException, IOException, RepoException, ValidationException {
+      processConsole.progress("Cleaning working directory");
+      FileUtil.deleteAllFilesRecursively(workdir);
+
+      processConsole.progress("Checking out the change");
+      ref.checkout(workdir);
+
+      // Remove excluded origin files.
+      if (!excludedOriginPaths.isEmpty()) {
+        PathMatcher pathMatcher = excludedOriginPaths.relativeTo(workdir);
+        processConsole.progress("Removing excluded origin files");
+
+        int result = FileUtil.deleteFilesRecursively(workdir, pathMatcher);
+        logger.log(Level.INFO,
+            String.format("Removed %s files from workdir that were excluded", result));
+
+        if (result == 0) {
+          throw new RepoException(
+              String.format("Nothing was deleted in the workdir for excludedOriginPaths: '%s'",
+                  pathMatcher));
+        }
+      }
+
+      // Runs the transformation for the workflow
+      try {
+        transformation.transform(workdir, processConsole);
+      } catch (IOException e) {
+        throw new EnvironmentException("Error applying transformation: " + transformation, e);
+      }
+
+      destination.process(
+          new TransformResult(workdir, ref, message, excludedDestinationPaths), processConsole);
+    }
+
+    /**
+     * Creates a commit message to correspond to an import of any number of changes in the origin.
+     */
+    String changesSummaryMessage() throws RepoException {
+      return String.format(
+          "Imports '%s'.\n\n"
+              + "This change was generated by Copybara (go/copybara).\n%s\n",
+          configName,
+          getChangeListNotes());
+    }
+
+    ImmutableList<Change<O>> changesSinceLastImport() throws RepoException {
+      ReferenceFiles<O> lastRev = getLastRev();
+      if (lastRev == null) {
+        throw new RepoException(String.format(
+                "Previous revision label %s could not be found in %s and --last-rev flag"
+                + " was not passed", origin.getLabelName(), destination));
+      }
+      return origin.changes(getLastRev(), resolvedRef);
+    }
+
+    /**
+     * Returns the last revision that was imported from this origin to the destination. Returns
+     * {@code null} if it cannot be determined.
+     *
+     * <p>If {@code --last-rev} is specified, that revision will be used. Otherwise, the previous
+     * reference will be resolved in the destination with the origin label.
+     */
+    @Nullable private ReferenceFiles<O> getLastRev() throws RepoException {
+      if (lastRevisionFlag != null) {
+        return origin.resolve(lastRevisionFlag);
+      }
+
+      String previousRef = destination.getPreviousRef(origin.getLabelName());
+      return (previousRef == null) ? null : origin.resolve(previousRef);
+    }
+
+    private String getChangeListNotes() throws RepoException {
+      if (!includeChangeListNotes) {
+        return "";
+      }
+      ReferenceFiles<O> lastRev = getLastRev();
+      if (lastRev == null) {
+        logger.log(Level.WARNING, "Previous reference couldn't be resolved");
+        return "(List of included changes could not be computed)\n";
+      }
+
+      StringBuilder result = new StringBuilder("List of included changes:\n");
+      for (Change<O> change : origin.changes(lastRev, resolvedRef)) {
+        result.append(String.format("  - %s %s by %s\n",
+            change.getReference().asString(),
+            change.firstLineMessage(),
+            change.getAuthor()));
+      }
+
+      return result.toString();
+    }
   }
 
   /**
@@ -267,18 +343,9 @@ public abstract class Workflow<O extends Origin<O>> {
           FileSystems.getDefault(), this.excludedOriginPaths);
       PathMatcherBuilder excludedDestinationPaths = PathMatcherBuilder.create(
           FileSystems.getDefault(), this.excludedDestinationPaths);
-      switch (mode) {
-        case SQUASH:
-          return new SquashWorkflow<>(configName, name, origin, destination, transformation,
-              console, generalOptions.getLastRevision(), includeChangeListNotes,
-              excludedOriginPaths, excludedDestinationPaths);
-        case ITERATIVE:
-          return new IterativeWorkflow<>(configName, name, origin, destination, transformation,
-              generalOptions.getLastRevision(), console, excludedOriginPaths,
-              excludedDestinationPaths);
-        default:
-          throw new UnsupportedOperationException(mode + " still not implemented");
-      }
+      return new Workflow<>(configName, name, origin, destination, transformation,
+          generalOptions.getLastRevision(), console,
+          excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes);
     }
   }
 }
