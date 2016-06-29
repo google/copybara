@@ -269,6 +269,7 @@ public final class Workflow<O extends Origin<O>> {
     private ImmutableList<Transformation.Yaml> transformations = ImmutableList.of();
     private List<String> excludedOriginPaths = new ArrayList<>();
     private List<String> excludedDestinationPaths = new ArrayList<>();
+    private Authoring.Yaml authoring;
 
     public String getName() {
       return name;
@@ -324,10 +325,17 @@ public final class Workflow<O extends Origin<O>> {
       this.includeChangeListNotes = includeChangeListNotes;
     }
 
-    @DocField(description = "Import/export mode of the changes. For example if the changes should be imported by squashing all the pending changes or imported individually",
+    @DocField(description = "Import/export mode of the changes. For example if the changes should "
+        + "be imported by squashing all the pending changes or imported individually",
         required = false, defaultValue = "SQUASH")
     public void setMode(WorkflowMode mode) {
       this.mode = mode;
+    }
+
+    @DocField(description = "The author mapping configuration from origin to destination",
+        required = false)
+    public void setAuthoring(Authoring.Yaml authoring) throws ConfigValidationException {
+        this.authoring = authoring;
     }
 
     public Workflow withOptions(Options options, String configName)
