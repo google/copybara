@@ -33,20 +33,23 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
 
   public List<DummyReference> changes = new ArrayList<>();
 
-  public void addSimpleChange(int timestamp) throws IOException {
+  public DummyOrigin addSimpleChange(int timestamp) throws IOException {
     addSimpleChange(timestamp, changes.size() + " change");
+    return this;
   }
 
-  public void addSimpleChange(int timestamp, String message) throws IOException {
+  public DummyOrigin addSimpleChange(int timestamp, String message) throws IOException {
     int current = changes.size();
     Path path = fs.getPath("" + current);
     Files.createDirectories(path);
     Files.write(path.resolve("file.txt"), String.valueOf(current).getBytes());
     addChange(timestamp, path, message);
+    return this;
   }
 
-  public void addChange(long timestamp, Path path, String message) {
+  public DummyOrigin addChange(long timestamp, Path path, String message) {
     changes.add(new DummyReference("" + changes.size(), message, "Someone", path, timestamp));
+    return this;
   }
 
   public String getHead() {
@@ -61,13 +64,18 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   @Override
-  public ReferenceFiles<DummyOrigin> resolve(@Nullable final String reference) {
+  public ReferenceFiles<DummyOrigin> resolve(@Nullable final String reference)
+      throws RepoException {
     int idx = changes.size() - 1;
     if (reference != null) {
-      idx = Integer.parseInt(reference);
+      try {
+        idx = Integer.parseInt(reference);
+      } catch (NumberFormatException e) {
+        throw new RepoException("Not a well-formatted reference: " + reference, e);
+      }
     }
     if (idx >= changes.size()) {
-      throw new IllegalStateException("Cannot find any change for " + reference
+      throw new RepoException("Cannot find any change for " + reference
           + ". Only " + changes.size() + " changes exist");
     }
     return changes.get(idx);

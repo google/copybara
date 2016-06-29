@@ -102,15 +102,10 @@ public final class Workflow<O extends Origin<O>> {
     ReferenceFiles<O> resolvedRef = origin.resolve(sourceRef);
     logger.log(Level.INFO,
         String.format(
-            "Running Copybara for config '%s', workflow '%s' (%s mode) and ref '%s': %s",
-            configName, name, mode, resolvedRef.asString(),
+            "Running Copybara for config '%s', workflow '%s' and ref '%s': %s",
+            configName, name, resolvedRef.asString(),
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-    runForRef(workdir, resolvedRef);
-  }
-
-  public void runForRef(Path workdir, ReferenceFiles<O> resolvedRef)
-      throws RepoException, IOException, EnvironmentException, ValidationException {
     mode.run(new RunHelper(workdir, resolvedRef));
   }
 
@@ -223,7 +218,14 @@ public final class Workflow<O extends Origin<O>> {
      */
     @Nullable private ReferenceFiles<O> getLastRev() throws RepoException {
       if (lastRevisionFlag != null) {
-        return origin.resolve(lastRevisionFlag);
+        try {
+          return origin.resolve(lastRevisionFlag);
+        } catch (RepoException e) {
+          throw new RepoException(
+              "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
+                  + lastRevisionFlag,
+              e);
+        }
       }
 
       String previousRef = destination.getPreviousRef(origin.getLabelName());

@@ -308,6 +308,17 @@ public class WorkflowTest {
     assertThat(matcher.matches(workdir.resolve("bar/indir"))).isTrue();
   }
 
+  @Test
+  public void invalidLastRevFlagGivesClearError() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 42);
+
+    Workflow workflow = iterativeWorkflow("deadbeef");
+    thrown.expect(RepoException.class);
+    thrown.expectMessage(
+        "Could not resolve --last-rev flag. Please make sure it exists in the origin: deadbeef");
+    workflow.run(workdir, origin.getHead());
+  }
+
   private void prepareOriginExcludes() throws IOException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("excludesTest");
