@@ -71,6 +71,21 @@ public class Main {
         YamlParser.docTypeDescription(FolderDestination.Yaml.class));
   }
 
+  /**
+   * Returns a short String representing the version of the binary
+   */
+  protected String getVersion() {
+    return "Unknown version";
+  }
+
+  /**
+   * Returns a String (can be multiline) representing all the information about who and when the
+   * Copybara was built.
+   */
+  protected String getBinaryInfo() {
+    return "Unknown version";
+  }
+
   public static void main(String[] args) {
     new Main().run(args);
   }
@@ -91,14 +106,19 @@ public class Main {
     // We need a console before parsing the args because it could fail with wrong
     // arguments and we need to show the error.
     Console console = getConsole(args);
+    String version = getVersion();
     try {
       configureLog(fs);
+      logger.log(Level.INFO, "Copybara version: " + version);
       jcommander.parse(args);
       Path baseWorkdir = mainArgs.getBaseWorkdir(fs);
       GeneralOptions generalOptions = generalOptionsArgs.init(fs, console);
 
       if (mainArgs.help) {
-        System.out.print(usage(jcommander));
+        System.out.print(usage(jcommander, version));
+        return;
+      } else if (mainArgs.version) {
+        System.out.println(getBinaryInfo());
         return;
       }
       mainArgs.validateUnnamedArgs();
@@ -109,7 +129,7 @@ public class Main {
       config.getActiveWorkflow().run(baseWorkdir, mainArgs.getSourceRef());
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
-      System.err.print(usage(jcommander));
+      System.err.print(usage(jcommander, version));
       System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
     } catch (RepoException e) {
       printCauseChain(console, e);
@@ -204,8 +224,9 @@ public class Main {
     }
   }
 
-  private static String usage(JCommander jcommander) {
+  private static String usage(JCommander jcommander, String version) {
     StringBuilder fullUsage = new StringBuilder();
+    fullUsage.append("Copybara version: ").append(version).append("\n");
     jcommander.usage(fullUsage);
     fullUsage
         .append("\n")

@@ -26,6 +26,9 @@ public final class MainArguments {
   @Parameter(names = "--help", help = true, description = "Shows this help text")
   boolean help;
 
+  @Parameter(names = "--version", description = "Shows the version of the binary")
+  boolean version;
+
   @Parameter(names = "--work-dir", description = "Directory where all the transformations"
       + " will be performed. By default a temporary directory.")
   String baseWorkdir;
