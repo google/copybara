@@ -1,7 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
-import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -19,20 +19,18 @@ import javax.annotation.Nullable;
  */
 public final class Author {
 
-  @Nullable
   private final String name;
   @Nullable
   private final String email;
 
   public Author(String name, String email) {
-    this.name = name;
+    this.name = Preconditions.checkNotNull(name);
     this.email = email;
   }
 
   /**
    * Returns the name of the author.
    */
-  @Nullable
   public String getName() {
     return name;
   }
@@ -45,12 +43,13 @@ public final class Author {
     return email;
   }
 
+  /**
+   * Returns the string representation of an author, which is the standard format
+   * {@code Name <email>} used by most version control systems.
+   */
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("name", name)
-        .add("email", email)
-        .toString();
+    return String.format("%s <%s>", name, email != null ? email : "");
   }
 
 
@@ -70,7 +69,7 @@ public final class Author {
     /**
      * Sets author name.
      */
-    @DocField(description = "Sets the name of the author.", required = false)
+    @DocField(description = "Sets the name of the author.", required = true)
     public void setName(String name) throws ConfigValidationException {
       this.name = name;
     }

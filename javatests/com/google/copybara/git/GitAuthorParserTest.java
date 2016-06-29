@@ -34,27 +34,6 @@ public class GitAuthorParserTest {
     GitAuthorParser.parse("Foo Bar");
   }
 
-  @Test
-  public void testSerialize() throws Exception {
-    assertThat(GitAuthorParser.serialize(new Author("Foo Bar", "foo@bar.com")))
-        .isEqualTo("Foo Bar <foo@bar.com>");
-  }
-
-  @Test
-  public void testSerializeEmptyAuthor() throws Exception {
-    expectedException.expect(NullPointerException.class);
-    expectedException.expectMessage(
-        "Author must have a name in order to generate a valid Git author: "
-            + "Author{name=null, email=foo@bar.com}");
-    GitAuthorParser.serialize(new Author(/*name*/ null, /*email*/"foo@bar.com"));
-  }
-
-  @Test
-  public void testSerializeEmptyEmail() throws Exception {
-    assertThat(GitAuthorParser.serialize(new Author("Foo Bar", /*email*/null)))
-        .isEqualTo("Foo Bar <>");
-  }
-
   private void checkAuthorFormat(String gitAuthor, String expectedName, String expectedEmail) {
     Author author = GitAuthorParser.parse(gitAuthor);
     assertThat(author.getName()).isEqualTo(expectedName);

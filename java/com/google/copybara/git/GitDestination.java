@@ -126,7 +126,7 @@ public final class GitDestination implements Destination {
         .walk();
 
     alternate.simpleCommand("commit",
-        "--author", GitAuthorParser.serialize(author),
+        "--author", author.toString(),
         "--date", transformResult.getTimestamp() + " +0000",
         "-m", commitGenerator.message(transformResult, alternate));
     console.progress("Git Destination: Pushing to " + repoUrl);
