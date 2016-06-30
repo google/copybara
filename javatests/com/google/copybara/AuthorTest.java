@@ -2,6 +2,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.testing.EqualsTester;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 
@@ -52,5 +53,14 @@ public class AuthorTest {
     // An empty email is a valid author label
     assertThat(new Author("Foo Bar", "").toString())
         .isEqualTo("Foo Bar <>");
+  }
+
+  @Test
+  public void testEquals() throws Exception {
+    new EqualsTester()
+        .addEqualityGroup(
+            new Author("Foo Bar", "foo@bar.com"), new Author("Foo Bar", "foo@bar.com"))
+        .addEqualityGroup(new Author("Copybara", "no-reply@google.com"))
+        .testEquals();
   }
 }

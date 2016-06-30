@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -47,6 +48,24 @@ public final class Author {
   @Override
   public String toString() {
     return String.format("%s <%s>", name, email);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    // TODO(danielromero): We should revisit this. Email should be the identifier to be able to
+    // match two users with slightly different names "Foo B <foo@bar.com>" and
+    // "Foo Bar <foo@bar.com>", but email can be empty in Git standard author format.
+    if (o instanceof Author) {
+      Author that = (Author) o;
+      return Objects.equal(this.name, that.name)
+          && Objects.equal(this.email, that.email);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(this.name, this.email);
   }
 
   /**

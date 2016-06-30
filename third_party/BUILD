@@ -2,10 +2,10 @@ licenses(["notice"])  # Apache 2.0
 
 package_group(
     name = "copybara_pkgs",
-        packages = [
+    packages = [
         "//java/com/google/copybara/...",
         "//javatests/com/google/copybara/...",
-        ],
+    ],
 )
 
 package(
@@ -16,6 +16,13 @@ java_library(
     name = "guava",
     exports = [
         "@guava//jar",
+    ],
+)
+
+java_library(
+    name = "guava_testlib",
+    exports = [
+        "@guava_testlib//jar",
     ],
 )
 

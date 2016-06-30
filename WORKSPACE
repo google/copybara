@@ -9,6 +9,13 @@ maven_jar(
 
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
+    name = "guava_testlib",
+    artifact = "com.google.guava:guava-testlib:19.0",
+    sha1 = "ce5b880b206de3f76d364988a6308c68c726f74a",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
     name = "autocommon",
     artifact = "com.google.auto:auto-common:0.6",
     sha1 = "cf7212b0f8bfef12657b942df8f4f2cf032d3f41",
