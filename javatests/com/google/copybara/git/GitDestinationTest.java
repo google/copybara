@@ -114,8 +114,8 @@ public class GitDestinationTest {
       throws RepoException, ConfigValidationException {
     destination.process(
         new TransformResult(workdir, originRef, COMMIT_MSG,
-            PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths),
-            baseline),
+            PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths))
+            .withBaseline(baseline),
         console);
   }
 

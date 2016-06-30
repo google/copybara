@@ -23,26 +23,13 @@ public final class TransformResult {
   @Nullable
   private final String baseline;
 
-  /**
-   * @deprecated Don't use. Will be removed in the near future.
-   */
-  @Deprecated
-  public TransformResult(Path path, Origin.Reference<?> originRef, String summary)
-      throws RepoException {
-    this(path, originRef, summary, PathMatcherBuilder.EMPTY, null);
-  }
-
-  /**
-   * @deprecated Don't use. Will be removed in the near future.
-   */
-  @Deprecated
   public TransformResult(Path path, Origin.Reference<?> originRef, String summary,
       PathMatcherBuilder excludedDestinationPaths)
       throws RepoException {
     this(path, originRef, summary, excludedDestinationPaths, null);
   }
 
-  public TransformResult(Path path, Reference<?> originRef, String summary,
+  private TransformResult(Path path, Reference<?> originRef, String summary,
       PathMatcherBuilder excludedDestinationPaths, @Nullable String baseline)
       throws RepoException {
     this.path = Preconditions.checkNotNull(path);
@@ -53,6 +40,10 @@ public final class TransformResult {
         ? refTimestamp : TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
     this.summary = Preconditions.checkNotNull(summary);
     this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
+  }
+
+  public TransformResult withBaseline(String baseline) throws RepoException {
+    return new TransformResult(path, originRef, summary, excludedDestinationPaths, baseline);
   }
 
   /**
