@@ -23,6 +23,8 @@ doc_generator = rule(
             "Origin",
             "Destination",
             "Transformation",
+            "Authoring",
+            "Author",
         ]),
         "deps": attr.label_list(allow_rules = [
             "java_binary",
