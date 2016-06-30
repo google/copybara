@@ -14,18 +14,16 @@ import javax.annotation.Nullable;
  * Represents a contributor in an origin or destination repository. A contributor can be either an
  * individual or a team.
  *
- * <p>Author is lenient in name or email validation. It does not require any of them to be present
- * and the validation happens in the Yaml class.
+ * <p>Author is lenient in name or email validation. Validation happens in the Yaml class.
  */
 public final class Author {
 
   private final String name;
-  @Nullable
   private final String email;
 
   public Author(String name, String email) {
     this.name = Preconditions.checkNotNull(name);
-    this.email = email;
+    this.email = Preconditions.checkNotNull(email);
   }
 
   /**
@@ -38,7 +36,6 @@ public final class Author {
   /**
    * Returns the email address of the author.
    */
-  @Nullable
   public String getEmail() {
     return email;
   }
@@ -49,9 +46,8 @@ public final class Author {
    */
   @Override
   public String toString() {
-    return String.format("%s <%s>", name, email != null ? email : "");
+    return String.format("%s <%s>", name, email);
   }
-
 
   /**
    * Config builder used by YAML.
@@ -78,9 +74,9 @@ public final class Author {
      * Sets author email address.
      *
      */
-    @DocField(description = "Sets the email address of the author.", required = false)
+    @DocField(description = "Sets the email address of the author.", required = true)
     public void setEmail(String email) throws ConfigValidationException {
-      if (email != null && !EMAIL_PATTERN.matcher(email).matches()) {
+      if (!EMAIL_PATTERN.matcher(email).matches()) {
         throw new ConfigValidationException(String.format("Invalid email format: %s", email));
       }
       this.email = email;

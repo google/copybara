@@ -30,13 +30,6 @@ public class AuthorTest {
   }
 
   @Test
-  public void testNoMandatoryEmail() throws Exception {
-    yaml.setName("Foo Bar");
-    Author author = yaml.withOptions(options.build(), CONFIG_NAME);
-    assertThat(author.getEmail()).isNull();
-  }
-
-  @Test
   public void testAllFields() throws Exception {
     yaml.setName("Foo Bar");
     yaml.setEmail("foo@bar.com");
@@ -57,7 +50,7 @@ public class AuthorTest {
     assertThat(new Author("Foo Bar", "foo@bar.com").toString())
         .isEqualTo("Foo Bar <foo@bar.com>");
     // An empty email is a valid author label
-    assertThat(new Author("Foo Bar", /*email*/null).toString())
+    assertThat(new Author("Foo Bar", "").toString())
         .isEqualTo("Foo Bar <>");
   }
 }
