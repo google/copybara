@@ -38,6 +38,7 @@ public final class GitRepository {
   @Nullable
   static final Map<String, String> CURRENT_PROCESS_ENVIRONMENT = null;
 
+  private static final Pattern FAILED_REBASE = Pattern.compile("Failed to merge in the changes");
   private static final Pattern NOTHING_TO_COMMIT = Pattern.compile(
       "nothing to commit, working directory clean");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
@@ -123,6 +124,17 @@ public final class GitRepository {
     return simpleCommand("rev-parse", ref).getStdout().trim();
   }
 
+  public void rebase(String newBaseline) throws RepoException {
+    try {
+      simpleCommand("rebase", Preconditions.checkNotNull(newBaseline));
+    } catch (RebaseConflictException e) {
+      // Improve the message with more context
+      throw new RebaseConflictException(
+          "Conflict detected while rebasing " + workTree + " to " + newBaseline
+              + ". Git ouput was:\n" + e.getMessage());
+    }
+  }
+
   /**
    * Runs a {@code git} command with the {@code --git-dir} and (if non-bare) {@code --work-tree}
    * args set.
@@ -189,10 +201,15 @@ public final class GitRepository {
       throw new RepoException("Error on git command: " + result.getStderr());
     } catch (BadExitStatusWithOutputException e) {
       String stderr = e.stdErrAsString();
+
       if (NOTHING_TO_COMMIT.matcher(e.stdOutAsString()).find()) {
         throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
             + "Is the change already migrated?");
+      } else if (FAILED_REBASE.matcher(e.stdErrAsString()).find()) {
+        System.out.println(e.stdOutAsString());
+        throw new RebaseConflictException(e.stdOutAsString());
       }
+
       for (Pattern error : REF_NOT_FOUND_ERRORS) {
         Matcher matcher = error.matcher(stderr);
         if (matcher.find()) {

@@ -106,9 +106,16 @@ public class GitDestinationTest {
 
   private void process(GitDestination destination, DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
+    processWithBaseline(destination, originRef, /*baseline=*/ null);
+  }
+
+  private void processWithBaseline(GitDestination destination, DummyReference originRef,
+      String baseline)
+      throws RepoException, ConfigValidationException {
     destination.process(
         new TransformResult(workdir, originRef, COMMIT_MSG,
-            PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths)),
+            PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths),
+            baseline),
         console);
   }
 
@@ -372,5 +379,72 @@ public class GitDestinationTest {
         .containsFile("notgit/HEAD", "some content")
         .containsFile("normal_file.txt", "some more content")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void processWithBaseline() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPush("master");
+    DummyReference ref = new DummyReference("origin_ref");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    process(destinationFirstCommit(), ref);
+    String firstCommit = repo().revParse("HEAD");
+    Files.write(workdir.resolve("test.txt"), "new content".getBytes());
+    process(destination(), ref);
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("other.txt"), "other file".getBytes());
+    processWithBaseline(destination(), ref, firstCommit);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "new content")
+        .containsFile("other.txt", "other file")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void processWithBaselineSameFileConflict() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPush("master");
+    DummyReference ref = new DummyReference("origin_ref");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    process(destinationFirstCommit(), ref);
+    String firstCommit = repo().revParse("HEAD");
+    Files.write(workdir.resolve("test.txt"), "new content".getBytes());
+    process(destination(), ref);
+
+    Files.write(workdir.resolve("test.txt"), "conflict content".getBytes());
+    thrown.expect(RebaseConflictException.class);
+    thrown.expectMessage("conflict in test.txt");
+    processWithBaseline(destination(), ref, firstCommit);
+  }
+
+  @Test
+  public void processWithBaselineSameFileNoConflict() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPush("master");
+    String text = "";
+    for (int i = 0; i < 1000; i++) {
+      text += "Line " + i + "\n";
+    }
+    DummyReference ref = new DummyReference("origin_ref");
+
+    Files.write(workdir.resolve("test.txt"), text.getBytes());
+    process(destinationFirstCommit(), ref);
+    String firstCommit = repo().revParse("HEAD");
+    Files.write(workdir.resolve("test.txt"),
+        text.replace("Line 200", "Line 200 Modified").getBytes());
+    process(destination(), ref);
+
+    Files.write(workdir.resolve("test.txt"),
+        text.replace("Line 500", "Line 500 Modified").getBytes());
+
+    processWithBaseline(destination(), ref, firstCommit);
+
+    GitTesting.assertThatCheckout(repo(), "master").containsFile("test.txt",
+        text.replace("Line 200", "Line 200 Modified")
+            .replace("Line 500", "Line 500 Modified")).containsNoMoreFiles();
   }
 }

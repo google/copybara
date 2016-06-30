@@ -1,6 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
+import static com.google.copybara.git.GitOptions.GIT_FIRST_COMMIT_FLAG;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -106,10 +108,19 @@ public final class GitDestination implements Destination {
 
     console.progress("Git Destination: Fetching " + repoUrl);
     GitRepository scratchClone = cloneBaseline();
+    String baseline = transformResult.getBaseline();
+    if (gitOptions.gitFirstCommit && baseline != null) {
+      throw new RepoException(
+          "Cannot use " + GIT_FIRST_COMMIT_FLAG + " and a previous baseline (" + baseline
+              + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
+    }
     if (!gitOptions.gitFirstCommit) {
       console.progress("Git Destination: Checking out " + fetch);
-      scratchClone.simpleCommand("checkout", "-q", "FETCH_HEAD");
+      // If baseline is not null we sync first to the baseline and apply the changes on top of
+      // that. Then we will rebase the new change to FETCH_HEAD.
+      scratchClone.simpleCommand("checkout", "-q", baseline != null ? baseline : "FETCH_HEAD");
     }
+
     if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
       scratchClone.simpleCommand("config", "user.name", gitOptions.gitCommitterName);
     }
@@ -130,6 +141,11 @@ public final class GitDestination implements Destination {
         "--date", transformResult.getTimestamp() + " +0000",
         "-m", commitGenerator.message(transformResult, alternate));
     console.progress("Git Destination: Pushing to " + repoUrl);
+
+    if (baseline != null) {
+      alternate.rebase("FETCH_HEAD");
+    }
+
     processPushOutput.process(
         alternate.simpleCommand("push", repoUrl, "HEAD:" + this.push).getStderr());
   }

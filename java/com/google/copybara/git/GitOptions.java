@@ -11,6 +11,8 @@ import com.beust.jcommander.Parameters;
 @Parameters(separators = "=")
 public final class GitOptions implements Option {
 
+  static final String GIT_FIRST_COMMIT_FLAG = "--git-first-commit";
+
   @Parameter(names = "--git-committer-name",
       description = "If set, overrides the committer name for the generated commits.")
   String gitCommitterName = "";
@@ -23,7 +25,7 @@ public final class GitOptions implements Option {
       description = "Location of the storage path for git repositories")
   String gitRepoStorage = System.getProperty("user.home") + "/.copybara/repos";
 
-  @Parameter(names = "--git-first-commit",
+  @Parameter(names = GIT_FIRST_COMMIT_FLAG,
       description = "Ignore that the fetch reference doesn't exist when pushing to destination")
   boolean gitFirstCommit = false;
 }
