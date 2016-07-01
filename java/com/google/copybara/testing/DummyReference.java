@@ -73,6 +73,11 @@ public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
         this.reference, this.message, this.author, this.changesBase, newTimestamp);
   }
 
+  public DummyReference withAuthor(Author author) {
+    return new DummyReference(
+        this.reference, this.message, author, this.changesBase, this.timestamp);
+  }
+
   @Nullable
   @Override
   public Long readTimestamp() throws RepoException {
@@ -93,4 +98,7 @@ public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
     return new Change<>(this, author, message, new DateTime(timestamp));
   }
 
+  public Author getAuthor() {
+    return author;
+  }
 }

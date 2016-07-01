@@ -60,20 +60,18 @@ public final class GitDestination implements Destination {
   private final String repoUrl;
   private final String fetch;
   private final String push;
-  private final Author author;
   private final GitOptions gitOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
 
   GitDestination(String configName, String repoUrl, String fetch, String push,
-      Author author, GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
+      GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
       ProcessPushOutput processPushOutput) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
-    this.author = Preconditions.checkNotNull(author);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
@@ -137,7 +135,7 @@ public final class GitDestination implements Destination {
         .walk();
 
     alternate.simpleCommand("commit",
-        "--author", author.toString(),
+        "--author", transformResult.getAuthor().toString(),
         "--date", transformResult.getTimestamp() + " +0000",
         "-m", commitGenerator.message(transformResult, alternate));
     console.progress("Git Destination: Pushing to " + repoUrl);
@@ -277,7 +275,6 @@ public final class GitDestination implements Destination {
           url,
           ConfigValidationException.checkNotMissing(fetch, "fetch"),
           ConfigValidationException.checkNotMissing(push, "push"),
-          author,
           options.get(GitOptions.class),
           options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator(),

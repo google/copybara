@@ -1,7 +1,6 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
-import com.google.copybara.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocField;
@@ -12,11 +11,8 @@ import com.google.copybara.doc.annotations.DocField;
  */
 abstract class AbstractDestinationYaml implements Destination.Yaml {
 
-  private static final String DEFAULT_AUTHOR = "Copybara <noreply@google.com>";
-
   protected String url;
   protected String fetch;
-  protected Author author = GitAuthorParser.parse(DEFAULT_AUTHOR);
 
   /**
    * Indicates the URL to push to as well as the URL from which to get the parent commit.
@@ -37,26 +33,5 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
   protected void checkRequiredFields() throws ConfigValidationException {
     ConfigValidationException.checkNotMissing(url, "url");
     ConfigValidationException.checkNotMissing(fetch, "fetch");
-  }
-
-  /**
-   * Sets the author line to use for the generated commit. Should be in the form
-   * {@code Full Name <email@foo.com>}.
-   * TODO(danielromero): Remove this field once we incorporate Authoring to the workflow
-   */
-  @DocField(description = "DEPRECATED: This field will be replaced by Workflow.authoring. Sets the "
-      + "author line to use for the generated commit. "
-      + "Should be in the form: Full Name <email@foo.com>",
-      required = false, defaultValue = DEFAULT_AUTHOR, deprecated = true)
-  public void setAuthor(String author) throws ConfigValidationException {
-    // The author line is validated by git commit, but it is nicer to validate early so the user
-    // can see the source of the error a little more clearly and he doesn't have to wait until
-    // after the transformations are finished.
-    try {
-      this.author = GitAuthorParser.parse(author);
-    } catch (IllegalArgumentException e) {
-      // Keep the underneath message as the ConfigValidationException one
-      throw new ConfigValidationException(e.getMessage());
-    }
   }
 }

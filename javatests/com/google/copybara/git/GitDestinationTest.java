@@ -6,9 +6,9 @@ import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Author;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
-import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
@@ -100,6 +100,12 @@ public class GitDestinationTest {
   private void assertCommitHasOrigin(String branch, String originRef) throws RepoException {
     assertThat(git("--git-dir", repoGitDir.toString(), "log", "-n1", branch))
         .contains("\n    " + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
+  }
+
+  private void assertCommitHasAuthor(String branch, Author author) throws RepoException {
+    assertThat(git("--git-dir", repoGitDir.toString(), "log", "-n1",
+        "--pretty=format:\"%an <%ae>\"", branch))
+        .isEqualTo("\"" + author + "\"");
   }
 
   private void process(GitDestination destination, DummyReference originRef)
@@ -330,6 +336,21 @@ public class GitDestinationTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
     process(destinationFirstCommit(), new DummyReference("first_commit"));
+  }
+
+  @Test
+  public void authorPropagated() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPush("master");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+
+    DummyReference firstCommit = new DummyReference("first_commit")
+        .withAuthor(new Author("Foo Bar", "foo@bar.com"))
+        .withTimestamp(1414141414);
+    process(destinationFirstCommit(), firstCommit);
+
+    assertCommitHasAuthor("master", new Author("Foo Bar", "foo@bar.com"));
   }
 
   @Test
