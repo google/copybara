@@ -6,9 +6,7 @@ import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Author;
 import com.google.copybara.RepoException;
-import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GerritDestination.Yaml;
 import com.google.copybara.git.GerritDestination.Yaml.GerritProcessPushOutput;
@@ -16,7 +14,7 @@ import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 
@@ -30,7 +28,6 @@ import org.junit.runners.JUnit4;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -38,8 +35,7 @@ import java.nio.file.Path;
 public class GerritDestinationTest {
 
   private static final String CONFIG_NAME = "copybara_project";
-  private static final String COMMIT_MSG = "Commit!\n";
-  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
+
   private Yaml yaml;
   private Path repoGitDir;
   private Path workdir;
@@ -93,10 +89,8 @@ public class GerritDestinationTest {
 
   private void process(DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
-    destination().process(
-        new TransformResult(workdir, originRef, DEFAULT_AUTHOR, COMMIT_MSG,
-            PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths)),
-        console);
+    destination()
+        .process(TransformResults.of(workdir, originRef, excludedDestinationPaths), console);
   }
 
   @Test

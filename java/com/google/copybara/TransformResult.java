@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.util.PathMatcherBuilder;
@@ -24,29 +25,33 @@ public final class TransformResult {
   @Nullable
   private final String baseline;
 
-  public TransformResult(Path path, Reference<?> originRef, Author author, String summary,
-      PathMatcherBuilder excludedDestinationPaths)
-      throws RepoException {
-    this(path, originRef, author, summary, excludedDestinationPaths, null);
+  private static long readTimestampOrCurrentTime(Reference<?> originRef) throws RepoException {
+    Long refTimestamp = originRef.readTimestamp();
+    return (refTimestamp != null)
+        ? refTimestamp : TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
   }
 
-  private TransformResult(Path path, Reference<?> originRef, Author author, String summary,
-      PathMatcherBuilder excludedDestinationPaths, @Nullable String baseline)
-      throws RepoException {
+  public TransformResult(Path path, Reference<?> originRef, Author author, String summary,
+      PathMatcherBuilder excludedDestinationPaths) throws RepoException {
+    this(path, originRef, author,
+        readTimestampOrCurrentTime(originRef), summary, excludedDestinationPaths, null);
+  }
+
+  private TransformResult(Path path, Reference<?> originRef, Author author, long timestamp,
+      String summary, PathMatcherBuilder excludedDestinationPaths, @Nullable String baseline) {
     this.path = Preconditions.checkNotNull(path);
     this.originRef = Preconditions.checkNotNull(originRef);
     this.author = Preconditions.checkNotNull(author);
-    this.baseline = baseline;
-    Long refTimestamp = originRef.readTimestamp();
-    this.timestamp = (refTimestamp != null)
-        ? refTimestamp : TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+    this.timestamp = timestamp;
     this.summary = Preconditions.checkNotNull(summary);
     this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
+    this.baseline = baseline;
   }
 
-  public TransformResult withBaseline(String baseline) throws RepoException {
+  public TransformResult withBaseline(String newBaseline) {
     return new TransformResult(
-        path, originRef, author, summary, excludedDestinationPaths, baseline);
+        this.path, this.originRef, this.author, this.timestamp, this.summary,
+        this.excludedDestinationPaths, newBaseline);
   }
 
   /**

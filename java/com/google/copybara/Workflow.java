@@ -197,8 +197,9 @@ public final class Workflow<O extends Origin<O>> {
         throw new EnvironmentException("Error applying transformation: " + transformation, e);
       }
 
-      destination.process(new TransformResult(
-          workdir, ref, author, message, excludedDestinationPaths), processConsole);
+      destination.process(
+          new TransformResult(workdir, ref, author, message, excludedDestinationPaths),
+          processConsole);
     }
 
     /**

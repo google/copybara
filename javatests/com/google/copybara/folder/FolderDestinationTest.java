@@ -3,15 +3,13 @@ package com.google.copybara.folder;
 import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Author;
 import com.google.copybara.RepoException;
-import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.folder.FolderDestination.Yaml;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.testing.TransformResults;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -28,7 +26,6 @@ import java.nio.file.Path;
 public class FolderDestinationTest {
 
   private static final String CONFIG_NAME = "copybara_project";
-  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
 
   private Yaml yaml;
   private OptionsBuilder options;
@@ -52,9 +49,8 @@ public class FolderDestinationTest {
   private void process() throws ConfigValidationException, RepoException, IOException {
     yaml.withOptions(options.build(), CONFIG_NAME)
         .process(
-            new TransformResult(
-                workdir, new DummyReference("origin_ref"), DEFAULT_AUTHOR, "Unused summary",
-                PathMatcherBuilder.create(workdir.getFileSystem(), excludedPathsForDeletion)),
+            TransformResults.of(
+                workdir, new DummyReference("origin_ref"), excludedPathsForDeletion),
             options.general.console());
   }
 
