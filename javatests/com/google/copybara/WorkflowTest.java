@@ -66,7 +66,8 @@ public class WorkflowTest {
     options = new OptionsBuilder();
     workdir = options.general.getFileSystem().getPath("workdir");
     Files.createDirectories(workdir);
-    origin = new DummyOrigin(CONTRIBUTOR);
+    origin = new DummyOrigin()
+        .setAuthor(CONTRIBUTOR);
     destination = new RecordsProcessCallDestination();
     replace.setBefore("${line}");
     replace.setAfter(PREFIX + "${line}");

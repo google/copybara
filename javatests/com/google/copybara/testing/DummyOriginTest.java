@@ -3,6 +3,7 @@ package com.google.copybara.testing;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Author;
 import com.google.copybara.Change;
 import com.google.copybara.RepoException;
 
@@ -60,5 +61,23 @@ public class DummyOriginTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage("Cannot find any change for 42. Only 2 changes exist");
     origin.resolve("42");
+  }
+
+  @Test
+  public void canSetAuthorOfIndividualChanges() throws Exception {
+    DummyOrigin origin = new DummyOrigin()
+        .setAuthor(new Author("Dummy Origin", "dummy_origin@google.com"))
+        .addSimpleChange(/*timestamp*/ 42)
+        .setAuthor(new Author("Wise Origin", "wise_origin@google.com"))
+        .addSimpleChange(/*timestamp*/ 999);
+
+    ImmutableList<Change<DummyOrigin>> changes =
+        origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"));
+
+    assertThat(changes).hasSize(2);
+    assertThat(changes.get(0).getAuthor())
+        .isEqualTo(new Author("Dummy Origin", "dummy_origin@google.com"));
+    assertThat(changes.get(1).getAuthor())
+        .isEqualTo(new Author("Wise Origin", "wise_origin@google.com"));
   }
 }

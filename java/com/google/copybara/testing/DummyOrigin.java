@@ -28,20 +28,24 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
   private final FileSystem fs;
-  private final Author author;
+  private Author author;
 
   public DummyOrigin() {
-    this(DEFAULT_AUTHOR);
-  }
-
-  public DummyOrigin(Author author) {
     this.fs = Jimfs.newFileSystem();
-    this.author = author;
+    this.author = DEFAULT_AUTHOR;
   }
 
   public static final String LABEL_NAME = "DummyOrigin-RevId";
 
   public List<DummyReference> changes = new ArrayList<>();
+
+  /**
+   * Sets the author to use for the following changes that get added.
+   */
+  public DummyOrigin setAuthor(Author author) {
+    this.author = author;
+    return this;
+  }
 
   public DummyOrigin addSimpleChange(int timestamp) throws IOException {
     addSimpleChange(timestamp, changes.size() + " change");
