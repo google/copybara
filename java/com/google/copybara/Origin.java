@@ -5,7 +5,6 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.CannotFindReferenceException;
 
 import java.nio.file.Path;
-import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -95,6 +94,45 @@ public interface Origin<O extends Origin<O>> {
    * @throws RepoException if any error happens during the computation of the diff.
    */
   Change<O> change(Reference<O> ref) throws RepoException;
+
+  /**
+   * Visit the parents of {@code start} reference recursively and call the visitor for each change.
+   * The visitor can stop the stream of changes at any moment by returning {@link
+   * VisitResult#TERMINATE}.
+   *
+   * <p>It is up to the Origin how and what changes it provides to the function.
+   */
+  void visitChanges(Reference<O> start, ChangesVisitor visitor)
+      throws RepoException;
+
+  /**
+   * A visitor of changes. An implementation of this interface is provided to the {@link
+   * #visitChanges(Reference, ChangesVisitor)} methods to visit changes in Origin history.
+   */
+  interface ChangesVisitor {
+
+    /**
+     * Invoked for each change found. The implementation can chose to cancel the visitation by
+     * returning {@link VisitResult#TERMINATE}.
+     */
+    VisitResult visit(Change<?> input);
+  }
+
+  /**
+   * The result type for the function passed to {@link #visitChanges(Reference, ChangesVisitor)}. }
+   */
+  enum VisitResult {
+    /**
+     * Continue. If more changes are available for visiting, the origin will call again the function
+     * with the next changes.
+     */
+    CONTINUE,
+    /**
+     * Stop. Origin will not pass more changes to the visitor function. Usually used because the
+     * function found what it was looking for (For example a commit with a label).
+     */
+    TERMINATE;
+  }
 
   /**
    * Label name to be used in when creating a commit message in the destination to refer to a

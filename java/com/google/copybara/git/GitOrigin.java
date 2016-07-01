@@ -26,7 +26,10 @@ import org.joda.time.format.DateTimeFormatter;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -108,58 +111,120 @@ public final class GitOrigin implements Origin<GitOrigin> {
         ? toRef.asString()
         : fromRef.asString() + ".." + toRef.asString();
 
-    return buildChanges(repository.simpleCommand(
-        "log", "--no-color", "--date=iso-strict", "--first-parent", refRange).getStdout());
+    return asChanges(new QueryChanges().run(refRange));
   }
+
 
   @Override
   public Change<GitOrigin> change(Reference<GitOrigin> ref) throws RepoException {
-    // Throws CannotFindReferenceException if ref is invalid
-    String log =
-        repository.simpleCommand("log", "--no-color", "--date=iso-strict", "-1", ref.asString())
-            .getStdout();
-    // The -1 flag guarantees that only one change is returned
-    return Iterables.getOnlyElement(buildChanges(log));
+    // The limit=1 flag guarantees that only one change is returned
+    return Iterables.getOnlyElement(asChanges(new QueryChanges().limit(1).run(ref.asString())));
   }
 
-  private ImmutableList<Change<GitOrigin>> buildChanges(String log) {
-    // No changes. We cannot know until we run git log since fromRef can be null (HEAD)
-    if (log.isEmpty()) {
-      return ImmutableList.of();
+  @Override
+  public void visitChanges(Reference<GitOrigin> start, ChangesVisitor visitor)
+      throws RepoException {
+    QueryChanges queryChanges = new QueryChanges().limit(1);
+
+    ImmutableList<GitChange> result = queryChanges.run(start.asString());
+    if (result.isEmpty()) {
+      throw new CannotFindReferenceException("Cannot find reference " + start.asString());
+    }
+    GitChange current = Iterables.getOnlyElement(result);
+    while (current != null) {
+      if (visitor.visit(current.change) == VisitResult.TERMINATE
+          || current.parents.isEmpty()) {
+        break;
+      }
+      current = Iterables.getOnlyElement(queryChanges.run(current.parents.get(0).asString()));
+    }
+  }
+
+  private class QueryChanges {
+
+    private int limit = -1;
+
+    /**
+     * Limit the number of results
+     */
+    QueryChanges limit(int limit) {
+      Preconditions.checkArgument(limit > 0);
+      this.limit = limit;
+      return this;
     }
 
-    Iterator<String> rawLines = Splitter.on('\n').split(log).iterator();
-    ImmutableList.Builder<Change<GitOrigin>> builder = ImmutableList.builder();
+    public ImmutableList<GitChange> run(String refExpression)
+        throws RepoException {
+      List<String> params = new ArrayList<>(
+          Arrays.asList("log", "--no-color", "--date=iso-strict"));
 
-    while (rawLines.hasNext()) {
-      String rawCommit = rawLines.next();
-      String commit = removePrefix(log, rawCommit, "commit ");
-      String line = rawLines.next();
-      Author author = null;
-      DateTime date = null;
-      while (!line.isEmpty()) {
-        if (line.startsWith("Author: ")) {
-          author = GitAuthorParser.parse(line.substring("Author: ".length()).trim());
-        } else if (line.startsWith("Date: ")) {
-          date = dateFormatter.parseDateTime(line.substring("Date: ".length()).trim());
-        }
-        line = rawLines.next();
+      if (limit != -1) {
+        params.add("-" + limit);
       }
-      Preconditions.checkState(author != null || date != null,
-          "Could not find author and/or date for commit %s in log\n:%s", rawCommit, log);
-      StringBuilder message = new StringBuilder();
+
+      params.add("--parents");
+      params.add("--first-parent");
+
+      params.add(refExpression);
+      return parseChanges(
+          repository.simpleCommand(params.toArray(new String[params.size()])).getStdout());
+    }
+
+    private ImmutableList<GitChange> parseChanges(String log) {
+      // No changes. We cannot know until we run git log since fromRef can be null (HEAD)
+      if (log.isEmpty()) {
+        return ImmutableList.of();
+      }
+
+      Iterator<String> rawLines = Splitter.on('\n').split(log).iterator();
+      ImmutableList.Builder<GitChange> builder = ImmutableList.builder();
+
       while (rawLines.hasNext()) {
-        String s = rawLines.next();
-        if (!s.startsWith("    ")) {
-          break;
+        String rawCommitLine = rawLines.next();
+        Iterator<String> commitReferences = Splitter.on(" ")
+            .split(removePrefix(log, rawCommitLine, "commit")).iterator();
+
+        ReferenceFiles<GitOrigin> ref = new GitReference(commitReferences.next());
+        ImmutableList.Builder<Reference<GitOrigin>> parents = ImmutableList.builder();
+        while (commitReferences.hasNext()) {
+          parents.add(new GitReference(commitReferences.next()));
         }
-        message.append(s, 4, s.length()).append("\n");
+        String line = rawLines.next();
+        Author author = null;
+        DateTime date = null;
+        while (!line.isEmpty()) {
+          if (line.startsWith("Author: ")) {
+            author = GitAuthorParser.parse(line.substring("Author: ".length()).trim());
+          } else if (line.startsWith("Date: ")) {
+            date = dateFormatter.parseDateTime(line.substring("Date: ".length()).trim());
+          }
+          line = rawLines.next();
+        }
+        Preconditions.checkState(author != null || date != null,
+            "Could not find author and/or date for commitReferences %s in log\n:%s", rawCommitLine,
+            log);
+        StringBuilder message = new StringBuilder();
+        while (rawLines.hasNext()) {
+          String s = rawLines.next();
+          if (!s.startsWith("    ")) {
+            break;
+          }
+          message.append(s, 4, s.length()).append("\n");
+        }
+        Change<GitOrigin> change = new Change<>(ref, resolveAuthor(author), message.toString(), date);
+        builder.add(new GitChange(change, parents.build()));
       }
-      builder.add(new Change<>(
-          new GitReference(commit), resolveAuthor(author), message.toString(), date));
+      // Return older commit first.
+      return builder.build().reverse();
     }
-    // Return older commit first. This operation is O(1)
-    return builder.build().reverse();
+  }
+
+  private ImmutableList<Change<GitOrigin>> asChanges(ImmutableList<GitChange> gitChanges) {
+    ImmutableList.Builder<Change<GitOrigin>> result = ImmutableList.builder();
+    for (GitChange gitChange : gitChanges) {
+      result.add(gitChange.change);
+    }
+    return result.build();
   }
 
   private Author resolveAuthor(Author author) {
@@ -282,6 +347,21 @@ public final class GitOrigin implements Origin<GitOrigin> {
       Console console = options.get(GeneralOptions.class).console();
       return new GitOrigin(
           console, GitRepository.bareRepo(gitDir, options, environment), url, ref, authoring);
+    }
+  }
+
+  /**
+   * An enhanced version of Change that contains the git parents.
+   */
+  private class GitChange {
+
+    private final Change<GitOrigin> change;
+    private final ImmutableList<Reference<GitOrigin>> parents;
+
+    public GitChange(Change<GitOrigin> change,
+        ImmutableList<Reference<GitOrigin>> parents) {
+      this.change = change;
+      this.parents = parents;
     }
   }
 }

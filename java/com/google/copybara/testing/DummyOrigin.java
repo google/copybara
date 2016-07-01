@@ -2,6 +2,7 @@
 package com.google.copybara.testing;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Author;
 import com.google.copybara.Authoring;
@@ -123,6 +124,26 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
       throw new RepoException(String.format("Reference '%s' not found", ref));
     }
     return dummyRef.toChange();
+  }
+
+  @Override
+  public void visitChanges(Reference<DummyOrigin> start, ChangesVisitor visitor)
+      throws RepoException {
+    boolean found = false;
+    for (DummyReference change : Lists.reverse(changes)) {
+      if (change.equals(start)) {
+        found = true;
+      }
+      if (found) {
+        if (visitor.visit(change.toChange()) == VisitResult.TERMINATE) {
+          return;
+        }
+      }
+    }
+    if (!found) {
+      throw new RepoException(
+          "Could not find " + start.asString() + " reference in the repository");
+    }
   }
 
   @Override

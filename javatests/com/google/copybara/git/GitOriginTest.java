@@ -3,6 +3,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -10,7 +11,9 @@ import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
+import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.ReferenceFiles;
+import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
 
@@ -25,6 +28,8 @@ import org.junit.runners.JUnit4;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RunWith(JUnit4.class)
@@ -186,6 +191,54 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testVisit() throws IOException, RepoException {
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "one", "test.txt", "some content1");
+    singleFileCommit(author, "two", "test.txt", "some content2");
+    singleFileCommit(author, "three", "test.txt", "some content3");
+    ReferenceFiles<GitOrigin> lastCommitRef = getLastCommitRef();
+    final List<Change<?>> visited = new ArrayList<>();
+    origin.visitChanges(lastCommitRef,
+        new ChangesVisitor() {
+          @Override
+          public VisitResult visit(Change<?> input) {
+            visited.add(input);
+            System.out.println(input.firstLineMessage().equals("three"));
+            return input.firstLineMessage().equals("three")
+                ? VisitResult.CONTINUE
+                : VisitResult.TERMINATE;
+          }
+        });
+
+    assertThat(visited).hasSize(2);
+    assertThat(visited.get(0).firstLineMessage()).isEqualTo("three");
+    assertThat(visited.get(1).firstLineMessage()).isEqualTo("two");
+  }
+
+  @Test
+  public void testVisitMerge() throws IOException, RepoException {
+    createBranchMerge("John Name <john@name.com>");
+    ReferenceFiles<GitOrigin> lastCommitRef = getLastCommitRef();
+    final List<Change<?>> visited = new ArrayList<>();
+    origin.visitChanges(lastCommitRef,
+        new ChangesVisitor() {
+          @Override
+          public VisitResult visit(Change<?> input) {
+            visited.add(input);
+            return VisitResult.CONTINUE;
+          }
+        });
+
+    // We don't visit 'feature' branch since the visit is using --first-parent. Maybe we have
+    // to revisit this in the future.
+    assertThat(visited).hasSize(4);
+    assertThat(visited.get(0).firstLineMessage()).isEqualTo("Merge branch 'feature'");
+    assertThat(visited.get(1).firstLineMessage()).isEqualTo("master2");
+    assertThat(visited.get(2).firstLineMessage()).isEqualTo("master1");
+    assertThat(visited.get(3).firstLineMessage()).isEqualTo("first file");
+  }
+
+  @Test
   public void testWhitelisting() throws Exception {
     Authoring authoring = new Authoring(
         DEFAULT_AUTHOR, AuthoringMappingMode.WHITELIST, ImmutableSet.of("john@name.com"));
@@ -210,17 +263,9 @@ public class GitOriginTest {
   public void testChangesMerge() throws IOException, RepoException {
     // Need to "round" it since git doesn't store the milliseconds
     DateTime beforeTime = DateTime.now().minusSeconds(1);
-    git("branch", "feature");
-    git("checkout", "feature");
+
     String author = "John Name <john@name.com>";
-    singleFileCommit(author, "change2", "test2.txt", "some content2");
-    singleFileCommit(author, "change3", "test2.txt", "some content3");
-    git("checkout", "master");
-    singleFileCommit(author, "master1", "test.txt", "some content2");
-    singleFileCommit(author, "master2", "test.txt", "some content3");
-    git("merge", "master", "feature");
-    // Change merge author
-    git("commit", "--amend", "--author=" + author, "--no-edit");
+    createBranchMerge(author);
 
     ImmutableList<Change<GitOrigin>> changes = origin
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
@@ -234,6 +279,19 @@ public class GitOriginTest {
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
     }
+  }
+
+  public void createBranchMerge(String author) throws RepoException, IOException {
+    git("branch", "feature");
+    git("checkout", "feature");
+    singleFileCommit(author, "change2", "test2.txt", "some content2");
+    singleFileCommit(author, "change3", "test2.txt", "some content3");
+    git("checkout", "master");
+    singleFileCommit(author, "master1", "test.txt", "some content2");
+    singleFileCommit(author, "master2", "test.txt", "some content3");
+    git("merge", "master", "feature");
+    // Change merge author
+    git("commit", "--amend", "--author=" + author, "--no-edit");
   }
 
   @Test
