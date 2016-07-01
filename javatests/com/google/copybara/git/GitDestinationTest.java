@@ -6,6 +6,7 @@ import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Author;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
@@ -34,6 +35,7 @@ import java.nio.file.Path;
 public class GitDestinationTest {
 
   private static final String CONFIG_NAME = "copybara_project";
+  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
   private static final String COMMIT_MSG = "A commit!\n";
   private Yaml yaml;
   private Path repoGitDir;
@@ -113,7 +115,7 @@ public class GitDestinationTest {
       String baseline)
       throws RepoException, ConfigValidationException {
     destination.process(
-        new TransformResult(workdir, originRef, COMMIT_MSG,
+        new TransformResult(workdir, originRef, DEFAULT_AUTHOR, COMMIT_MSG,
             PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths))
             .withBaseline(baseline),
         console);

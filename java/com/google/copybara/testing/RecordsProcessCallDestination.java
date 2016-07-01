@@ -4,6 +4,7 @@ package com.google.copybara.testing;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.Options;
 import com.google.copybara.Origin.Reference;
@@ -81,6 +82,10 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
 
     public Reference<?> getOriginRef() {
       return transformResult.getOriginRef();
+    }
+
+    public Author getAuthor() {
+      return transformResult.getAuthor();
     }
 
     public String getChangesSummary() {

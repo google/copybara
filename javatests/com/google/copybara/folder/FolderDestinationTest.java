@@ -3,8 +3,7 @@ package com.google.copybara.folder;
 import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.copybara.Destination;
+import com.google.copybara.Author;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
@@ -29,6 +28,7 @@ import java.nio.file.Path;
 public class FolderDestinationTest {
 
   private static final String CONFIG_NAME = "copybara_project";
+  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
 
   private Yaml yaml;
   private OptionsBuilder options;
@@ -53,7 +53,7 @@ public class FolderDestinationTest {
     yaml.withOptions(options.build(), CONFIG_NAME)
         .process(
             new TransformResult(
-                workdir, new DummyReference("origin_ref"), "Unused summary",
+                workdir, new DummyReference("origin_ref"), DEFAULT_AUTHOR, "Unused summary",
                 PathMatcherBuilder.create(workdir.getFileSystem(), excludedPathsForDeletion)),
             options.general.console());
   }

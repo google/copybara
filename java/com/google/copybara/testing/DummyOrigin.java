@@ -25,12 +25,18 @@ import javax.annotation.Nullable;
  */
 public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
 
-  private static final Author AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
+  private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
   private final FileSystem fs;
+  private final Author author;
 
   public DummyOrigin() {
+    this(DEFAULT_AUTHOR);
+  }
+
+  public DummyOrigin(Author author) {
     this.fs = Jimfs.newFileSystem();
+    this.author = author;
   }
 
   public static final String LABEL_NAME = "DummyOrigin-RevId";
@@ -52,7 +58,7 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   public DummyOrigin addChange(long timestamp, Path path, String message) {
-    changes.add(new DummyReference("" + changes.size(), message, AUTHOR, path, timestamp));
+    changes.add(new DummyReference("" + changes.size(), message, author, path, timestamp));
     return this;
   }
 

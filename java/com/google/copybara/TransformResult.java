@@ -17,23 +17,25 @@ import javax.annotation.Nullable;
 public final class TransformResult {
   private final Path path;
   private final Origin.Reference<?> originRef;
+  private final Author author;
   private final long timestamp;
   private final String summary;
   private final PathMatcherBuilder excludedDestinationPaths;
   @Nullable
   private final String baseline;
 
-  public TransformResult(Path path, Origin.Reference<?> originRef, String summary,
+  public TransformResult(Path path, Reference<?> originRef, Author author, String summary,
       PathMatcherBuilder excludedDestinationPaths)
       throws RepoException {
-    this(path, originRef, summary, excludedDestinationPaths, null);
+    this(path, originRef, author, summary, excludedDestinationPaths, null);
   }
 
-  private TransformResult(Path path, Reference<?> originRef, String summary,
+  private TransformResult(Path path, Reference<?> originRef, Author author, String summary,
       PathMatcherBuilder excludedDestinationPaths, @Nullable String baseline)
       throws RepoException {
     this.path = Preconditions.checkNotNull(path);
     this.originRef = Preconditions.checkNotNull(originRef);
+    this.author = Preconditions.checkNotNull(author);
     this.baseline = baseline;
     Long refTimestamp = originRef.readTimestamp();
     this.timestamp = (refTimestamp != null)
@@ -43,7 +45,8 @@ public final class TransformResult {
   }
 
   public TransformResult withBaseline(String baseline) throws RepoException {
-    return new TransformResult(path, originRef, summary, excludedDestinationPaths, baseline);
+    return new TransformResult(
+        path, originRef, author, summary, excludedDestinationPaths, baseline);
   }
 
   /**
@@ -58,6 +61,13 @@ public final class TransformResult {
    */
   public Origin.Reference<?> getOriginRef() {
     return originRef;
+  }
+
+  /**
+   * Destination author to be used.
+   */
+  public Author getAuthor() {
+    return author;
   }
 
   /**

@@ -39,6 +39,8 @@ public final class Workflow<O extends Origin<O>> {
   private final String name;
   private final Origin<O> origin;
   private final Destination destination;
+  @Nullable
+  private final Authoring authoring;
   private final Transformation transformation;
   private final PathMatcherBuilder excludedOriginPaths;
   private final PathMatcherBuilder excludedDestinationPaths;
@@ -49,14 +51,15 @@ public final class Workflow<O extends Origin<O>> {
   private final boolean includeChangeListNotes;
 
   private Workflow(String configName, String name, Origin<O> origin, Destination destination,
-      Transformation transformation, @Nullable String lastRevisionFlag,
-      Console console, PathMatcherBuilder excludedOriginPaths,
+      @Nullable Authoring authoring, Transformation transformation,
+      @Nullable String lastRevisionFlag, Console console, PathMatcherBuilder excludedOriginPaths,
       PathMatcherBuilder excludedDestinationPaths, WorkflowMode mode,
       boolean includeChangeListNotes) {
     this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
+    this.authoring = authoring;
     this.transformation = Preconditions.checkNotNull(transformation);
     this.lastRevisionFlag = lastRevisionFlag;
     this.console = Preconditions.checkNotNull(console);
@@ -129,6 +132,7 @@ public final class Workflow<O extends Origin<O>> {
 
     /**
      * @param workdir working directory to use for the transformations
+     * @param resolvedRef reference to migrate
      */
     RunHelper(Path workdir, ReferenceFiles<O> resolvedRef) {
       this.workdir = Preconditions.checkNotNull(workdir);
@@ -137,6 +141,14 @@ public final class Workflow<O extends Origin<O>> {
 
     ReferenceFiles<O> getResolvedRef() {
       return resolvedRef;
+    }
+
+    /**
+     * Authoring configuration.
+     */
+    @Nullable
+    Authoring getAuthoring() {
+      return authoring;
     }
 
     /** Console to use for printing messages. */
@@ -150,10 +162,11 @@ public final class Workflow<O extends Origin<O>> {
      * exactly once.
      *
      * @param ref reference to the version which will be written to the destination
+     * @param author the author that the destination change will be attributed to
      * @param processConsole console to use to print progress messages
      * @param message change message to write to the destination
      */
-    void migrate(ReferenceFiles<O> ref, Console processConsole, String message)
+    void migrate(ReferenceFiles<O> ref, Author author, Console processConsole, String message)
         throws EnvironmentException, IOException, RepoException, ValidationException {
       processConsole.progress("Cleaning working directory");
       FileUtil.deleteAllFilesRecursively(workdir);
@@ -184,8 +197,8 @@ public final class Workflow<O extends Origin<O>> {
         throw new EnvironmentException("Error applying transformation: " + transformation, e);
       }
 
-      destination.process(
-          new TransformResult(workdir, ref, message, excludedDestinationPaths), processConsole);
+      destination.process(new TransformResult(
+          workdir, ref, author, message, excludedDestinationPaths), processConsole);
     }
 
     /**
@@ -357,7 +370,7 @@ public final class Workflow<O extends Origin<O>> {
           FileSystems.getDefault(), this.excludedOriginPaths);
       PathMatcherBuilder excludedDestinationPaths = PathMatcherBuilder.create(
           FileSystems.getDefault(), this.excludedDestinationPaths);
-      return new Workflow<>(configName, name, origin, destination, transformation,
+      return new Workflow<>(configName, name, origin, destination, authoring, transformation,
           generalOptions.getLastRevision(), console,
           excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes);
     }

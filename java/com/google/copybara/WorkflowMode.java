@@ -1,7 +1,6 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.ProgressPrefixConsole;
@@ -21,7 +20,13 @@ public enum WorkflowMode {
     <O extends Origin<O>> void run(Workflow<O>.RunHelper runHelper)
         throws RepoException, IOException, EnvironmentException, ValidationException {
       runHelper.migrate(
-          runHelper.getResolvedRef(), runHelper.getConsole(), runHelper.changesSummaryMessage());
+          runHelper.getResolvedRef(),
+          // SQUASH workflows always use the default author
+          runHelper.getAuthoring() != null
+              ? runHelper.getAuthoring().getDefaultAuthor()
+              : DEFAULT_AUTHOR,
+          runHelper.getConsole(),
+          runHelper.changesSummaryMessage());
     }
   },
 
@@ -42,11 +47,15 @@ public enum WorkflowMode {
 
         runHelper.migrate(
             change.getReference(),
+            change.getAuthor(),
             new ProgressPrefixConsole(prefix, runHelper.getConsole()),
             change.getMessage());
       }
     }
   };
+
+  // TODO(danielromero): Remove once authoring is required
+  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "noreply@google.com");
 
   abstract <O extends Origin<O>> void run(Workflow<O>.RunHelper runHelper)
       throws RepoException, IOException, EnvironmentException, ValidationException;

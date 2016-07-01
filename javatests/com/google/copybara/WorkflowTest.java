@@ -7,9 +7,11 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.common.truth.Truth;
+import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.DummyOrigin;
@@ -41,12 +43,16 @@ public class WorkflowTest {
 
   private static final String CONFIG_NAME = "copybara_project";
   private static final String PREFIX = "TRANSFORMED";
+  private static final Author CONTRIBUTOR = new Author("Foo Bar", "foo@bar.com");
+  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
 
   private Yaml yaml;
   private DummyOrigin origin;
   private RecordsProcessCallDestination destination;
   private OptionsBuilder options;
   private Replace.Yaml replace = new Replace.Yaml();
+  private Author.Yaml defaultAuthor = new Author.Yaml();
+  private Authoring.Yaml authoring = new Authoring.Yaml();
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -60,17 +66,23 @@ public class WorkflowTest {
     options = new OptionsBuilder();
     workdir = options.general.getFileSystem().getPath("workdir");
     Files.createDirectories(workdir);
-    origin = new DummyOrigin();
+    origin = new DummyOrigin(CONTRIBUTOR);
     destination = new RecordsProcessCallDestination();
     replace.setBefore("${line}");
     replace.setAfter(PREFIX + "${line}");
     replace.setRegexGroups(ImmutableMap.of("line", ".+"));
+    defaultAuthor.setName("Copybara");
+    defaultAuthor.setEmail("no-reply@google.com");
+    authoring.setDefaultAuthor(defaultAuthor);
+    authoring.setMode(AuthoringMappingMode.PASS_THRU);
+    authoring.setWhitelist(ImmutableList.<String>of());
   }
 
   private Workflow workflow() throws ConfigValidationException, IOException, EnvironmentException {
     yaml.setOrigin(origin);
     yaml.setDestination(destination);
     yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring);
     origin.addSimpleChange(/*timestamp*/ 42);
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
@@ -81,6 +93,7 @@ public class WorkflowTest {
     yaml.setDestination(destination);
     yaml.setMode(WorkflowMode.ITERATIVE);
     yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring);
     options.general = new GeneralOptions(options.general.getFileSystem(),
         options.general.isVerbose(), previousRef, options.general.console());
     return yaml.withOptions(options.build(), CONFIG_NAME);
@@ -113,6 +126,7 @@ public class WorkflowTest {
       assertThat(change.getOriginRef().asString()).isEqualTo(asString);
       assertThat(change.numFiles()).isEqualTo(1);
       assertThat(change.getContent("file.txt")).isEqualTo(PREFIX + asString);
+      assertThat(change.getAuthor()).isEqualTo(CONTRIBUTOR);
       nextChange++;
     }
 
@@ -166,6 +180,16 @@ public class WorkflowTest {
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getTimestamp())
         .isEqualTo(42918273);
+  }
+
+  @Test
+  public void usesDefaultAuthorForSquash() throws Exception {
+    Workflow workflow = workflow();
+    origin.addSimpleChange(/*timestamp*/ 1);
+    workflow.run(workdir, origin.getHead());
+    assertThat(destination.processed).hasSize(1);
+    assertThat(Iterables.getOnlyElement(destination.processed).getAuthor())
+        .isEqualTo(DEFAULT_AUTHOR);
   }
 
   @Test
