@@ -76,7 +76,7 @@ function test_git_tracking() {
   first_commit=$(run_git rev-parse HEAD)
   popd
 
-    cat > test.copybara <<EOF
+    cat > copybara.yaml <<EOF
 name: "cbtest"
 workflows:
   - origin: !GitOrigin
@@ -100,7 +100,7 @@ workflows:
           os: "o+"
 EOF
 
-  copybara test.copybara
+  copybara copybara.yaml
 
   expect_log "Running Copybara for config 'cbtest', workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
   expect_log 'Transform Replace food'
@@ -127,7 +127,7 @@ EOF
   second_commit=$(git rev-parse HEAD)
   popd
 
-  copybara test.copybara
+  copybara copybara.yaml
 
   [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
   expect_in_file "second version for drink and barooooo" $workdir/test.txt
@@ -156,7 +156,7 @@ function test_git_iterative() {
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
 
   popd
-    cat > test.copybara <<EOF
+    cat > copybara.yaml <<EOF
 name: "cbtest"
 workflows:
   - origin: !GitOrigin
@@ -172,7 +172,7 @@ workflows:
     mode: ITERATIVE
 EOF
 
-  copybara test.copybara default $commit_three --last-rev $commit_one
+  copybara copybara.yaml default $commit_three --last-rev $commit_one
 
   check_copybara_rev_id "$destination" "$commit_three"
 
@@ -182,7 +182,7 @@ EOF
   expect_not_log "commit two"
   expect_log "commit three"
 
-  copybara test.copybara default $commit_five
+  copybara copybara.yaml default $commit_five
 
   check_copybara_rev_id "$destination" "$commit_five"
 
@@ -220,7 +220,7 @@ function test_get_git_changes() {
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
   popd
 
-    cat > test.copybara <<EOF
+    cat > copybara.yaml <<EOF
 name: "cbtest"
 workflows:
   - origin: !GitOrigin
@@ -236,7 +236,7 @@ workflows:
     includeChangeListNotes: true
 EOF
 
-  copybara test.copybara default $commit_one
+  copybara copybara.yaml default $commit_one
 
   check_copybara_rev_id "$destination" "$commit_one"
 
@@ -246,7 +246,7 @@ EOF
   # We only record changes when we know the previous version
   expect_not_log "commit one"
 
-  copybara test.copybara default $commit_four
+  copybara copybara.yaml default $commit_four
 
   check_copybara_rev_id "$destination" "$commit_four"
 
@@ -260,7 +260,7 @@ EOF
   expect_log "$commit_four.*commit four"
   expect_not_log "commit five"
 
-  copybara test.copybara default $commit_five --last-rev $commit_three
+  copybara copybara.yaml default $commit_five --last-rev $commit_three
 
   check_copybara_rev_id "$destination" "$commit_five"
 
@@ -306,7 +306,7 @@ function prepare_glob_tree() {
 function test_regex_with_path() {
   prepare_glob_tree
 
-  cat > test.copybara <<EOF
+  cat > copybara.yaml <<EOF
 name: "cbtest"
 workflows:
   - origin: !GitOrigin
@@ -325,7 +325,7 @@ workflows:
         before: foo
         after:  bar
 EOF
-  copybara test.copybara
+  copybara copybara.yaml
   ( cd $(mktemp -d)
     run_git clone $destination .
     expect_in_file "foo" test.txt
@@ -353,7 +353,7 @@ function test_git_delete() {
     run_git commit -m "first commit"
   )
 
-  cat > test.copybara <<EOF
+  cat > copybara.yaml <<EOF
 name: "cbtest"
 workflows:
   - origin: !GitOrigin
@@ -370,7 +370,7 @@ workflows:
       - "**/*.java"
       - "subdir/**"
 EOF
-  copybara test.copybara
+  copybara copybara.yaml
 
   ( cd $(mktemp -d)
     run_git clone $destination .
@@ -395,7 +395,7 @@ function test_reverse_sequence() {
     run_git commit -m "first commit"
   )
 
-  cat > test.copybara <<EOF
+  cat > copybara.yaml <<EOF
 name: "cbtest"
 global:
   - &forward_transforms !Sequence
@@ -435,14 +435,14 @@ workflows:
       - !Reverse
           original: *forward_transforms
 EOF
-  copybara test.copybara forward
+  copybara copybara.yaml forward
 
   ( cd $(mktemp -d)
     run_git clone $destination .
     [[ -f test.txt ]] || fail "/test.txt should exit"
     expect_in_file "barbee" test.txt
   )
-  copybara test.copybara reverse --git-first-commit
+  copybara copybara.yaml reverse --git-first-commit
 
   ( cd $(mktemp -d)
     run_git clone $remote .
@@ -464,14 +464,14 @@ function test_local_dir_destination() {
   )
   mkdir destination
 
-  cat > destination/test.copybara <<EOF
+  cat > destination/copybara.yaml <<EOF
 name: "cbtest"
 workflows:
   - origin: !GitOrigin
       url: "file://$remote"
       ref: "master"
     excludedDestinationPaths:
-      - "test.copybara"
+      - "copybara.yaml"
       - "**.keep"
     destination: !FolderDestination {}
     authoring:
@@ -484,10 +484,10 @@ EOF
   touch destination/folder/keepme.keep
   touch destination/dontkeep.txt
 
-  copybara destination/test.copybara --folder-dir destination
+  copybara destination/copybara.yaml --folder-dir destination
 
   [[ -f destination/test.txt ]] || fail "test.txt should exist"
-  [[ -f destination/test.copybara ]] || fail "test.copybara should exist"
+  [[ -f destination/copybara.yaml ]] || fail "copybara.yaml should exist"
   [[ -f destination/keepme.keep ]] || fail "keepme.keep should exist"
   [[ -f destination/folder/keepme.keep ]] || fail "folder/keepme.keep should exist"
   [[ ! -f destination/dontkeep.txt ]] || fail "dontkeep.txt should be deleted"
@@ -504,7 +504,7 @@ function test_choose_non_default_workflow() {
   )
   mkdir destination
 
-  cat > destination/test.copybara <<EOF
+  cat > destination/copybara.yaml <<EOF
 name: "cbtest"
 workflows:
   - name: "default"
@@ -526,7 +526,7 @@ workflows:
         after: bar
 EOF
 
-  copybara destination/test.copybara choochoochoose_me --folder-dir destination
+  copybara destination/copybara.yaml choochoochoose_me --folder-dir destination
   expect_in_file "bar" destination/test.txt
 }
 
@@ -542,7 +542,7 @@ function test_file_move() {
   )
   mkdir destination
 
-  cat > destination/test.copybara <<EOF
+  cat > destination/copybara.yaml <<EOF
 name: "cbtest"
 workflows:
   - origin: !GitOrigin
@@ -561,7 +561,7 @@ workflows:
             after: test2.moved
 EOF
 
-  copybara destination/test.copybara --folder-dir destination
+  copybara destination/copybara.yaml --folder-dir destination
 
   expect_in_file "foo" destination/test1.moved
   expect_in_file "foo" destination/test2.moved
@@ -570,7 +570,7 @@ EOF
 }
 
 function test_invalid_transformations_in_config() {
-  cat > test.copybara <<EOF
+  cat > copybara.yaml <<EOF
 name: "cbtest-invalid-xform"
 workflows:
   - authoring:
@@ -578,7 +578,7 @@ workflows:
       mode: PASS_THRU
     transformations: [42]
 EOF
-  copybara test.copybara origin/master && fail "Should fail"
+  copybara copybara.yaml origin/master && fail "Should fail"
   expect_log "sequence field 'transformations' expects elements of type 'Transformation', but transformations\[0\] is of type 'integer' (value = 42)"
 }
 
@@ -586,6 +586,11 @@ function test_command_help_flag() {
   copybara --help
   expect_log 'Usage: copybara \[options\]'
   expect_log 'Example:'
+}
+
+function test_command_copybara_filename_no_correct_name() {
+  copybara somename.yaml && fail "Should fail"
+  expect_log "Copybara config file filename should be 'copybara.yaml'"
 }
 
 function test_command_too_few_args() {
@@ -601,8 +606,8 @@ function test_command_too_many_args() {
 }
 
 function test_config_not_found() {
-  copybara not_existent_file origin/master && fail "Should fail"
-  expect_log "Config file 'not_existent_file' cannot be found."
+  copybara copybara.yaml origin/master && fail "Should fail"
+  expect_log "Config file 'copybara.yaml' cannot be found."
 }
 
 run_suite "Integration tests for Copybara code sharing tool."

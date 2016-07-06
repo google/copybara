@@ -51,6 +51,7 @@ public class Main {
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
+  private static final String COPYBARA_CONFIG_FILENAME = "copybara.yaml";
 
   protected List<Option> getAllOptions() {
     return ImmutableList.of(new FolderDestinationOptions(), new GitOptions(), new GerritOptions());
@@ -217,6 +218,11 @@ public class Main {
 
   private Config loadConfig(Path path, Options options)
       throws IOException, CommandLineException, ConfigValidationException, EnvironmentException {
+    if (!path.getFileName().toString().equals(COPYBARA_CONFIG_FILENAME)) {
+      throw new CommandLineException(
+          String.format("Copybara config file filename should be '%s' but is '%s'.",
+              COPYBARA_CONFIG_FILENAME, path.getFileName()));
+    }
     try {
       return new YamlParser(getYamlTypeDescriptions()).loadConfig(path, options);
     } catch (NoSuchFileException e) {
@@ -231,7 +237,7 @@ public class Main {
     fullUsage
         .append("\n")
         .append("Example:\n")
-        .append("  copybara myproject.copybara origin/master\n");
+        .append("  copybara ").append(COPYBARA_CONFIG_FILENAME).append(" origin/master\n");
     return fullUsage.toString();
   }
 }
