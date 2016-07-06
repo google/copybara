@@ -5,13 +5,11 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Author;
-import com.google.copybara.Authoring;
-import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Destination;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowNameOptions;
 import com.google.copybara.config.Config.Yaml;
+import com.google.copybara.testing.AuthoringYamlBuilder;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
@@ -29,13 +27,15 @@ import java.io.IOException;
 public class ConfigTest {
 
   private Yaml yaml;
+  private AuthoringYamlBuilder authoring;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
-  public void setup() throws IOException {
+  public void setup() throws IOException, ConfigValidationException {
     yaml = new Yaml();
+    authoring = new AuthoringYamlBuilder();
   }
 
   private Workflow.Yaml workflow(String name) throws ConfigValidationException {
@@ -50,13 +50,7 @@ public class ConfigTest {
     }
     yaml.setOrigin(new DummyOrigin());
     yaml.setDestination(destination);
-    Author.Yaml defaultAuthor = new Author.Yaml();
-    defaultAuthor.setName("Copybara");
-    defaultAuthor.setEmail("no-reply@google.com");
-    Authoring.Yaml authoring = new Authoring.Yaml();
-    authoring.setDefaultAuthor(defaultAuthor);
-    authoring.setMode(AuthoringMappingMode.PASS_THRU);
-    yaml.setAuthoring(authoring);
+    yaml.setAuthoring(authoring.build());
     return yaml;
   }
 
