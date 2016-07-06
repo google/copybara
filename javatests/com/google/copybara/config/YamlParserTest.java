@@ -104,6 +104,9 @@ public class YamlParserTest {
         + "      branch: \"master\"\n"
         + "    destination: !MockDestination\n"
         + "      folder: \"some folder\"\n"
+        + "    authoring:\n"
+        + "      defaultAuthor: {name: \"Copybara Team\", email: \"no-reply@google.com\"}\n"
+        + "      mode: PASS_THRU\n"
         + "    transformations: *transform_reference\n";
 
     Files.write(fs.getPath("test"), configContent.getBytes());
@@ -141,6 +144,9 @@ public class YamlParserTest {
         + "      branch: \"master\"\n"
         + "    destination: !MockDestination\n"
         + "      folder: \"some folder\"\n"
+        + "    authoring:\n"
+        + "      defaultAuthor: {name: \"Copybara Team\", email: \"no-reply@google.com\"}\n"
+        + "      mode: PASS_THRU\n"
         + "    transformations:\n"
         + "      - !MockTransform\n"
         + "        field1: \"foo\"\n"

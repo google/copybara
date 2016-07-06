@@ -39,7 +39,6 @@ public final class Workflow<O extends Origin<O>> {
   private final String name;
   private final Origin<O> origin;
   private final Destination destination;
-  @Nullable
   private final Authoring authoring;
   private final Transformation transformation;
   private final PathMatcherBuilder excludedOriginPaths;
@@ -51,15 +50,15 @@ public final class Workflow<O extends Origin<O>> {
   private final boolean includeChangeListNotes;
 
   private Workflow(String configName, String name, Origin<O> origin, Destination destination,
-      @Nullable Authoring authoring, Transformation transformation,
-      @Nullable String lastRevisionFlag, Console console, PathMatcherBuilder excludedOriginPaths,
+      Authoring authoring, Transformation transformation, @Nullable String lastRevisionFlag,
+      Console console, PathMatcherBuilder excludedOriginPaths,
       PathMatcherBuilder excludedDestinationPaths, WorkflowMode mode,
       boolean includeChangeListNotes) {
     this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
-    this.authoring = authoring;
+    this.authoring = Preconditions.checkNotNull(authoring);
     this.transformation = Preconditions.checkNotNull(transformation);
     this.lastRevisionFlag = lastRevisionFlag;
     this.console = Preconditions.checkNotNull(console);
@@ -146,7 +145,6 @@ public final class Workflow<O extends Origin<O>> {
     /**
      * Authoring configuration.
      */
-    @Nullable
     Authoring getAuthoring() {
       return authoring;
     }
@@ -347,7 +345,7 @@ public final class Workflow<O extends Origin<O>> {
     }
 
     @DocField(description = "The author mapping configuration from origin to destination",
-        required = false)
+        required = true)
     public void setAuthoring(Authoring.Yaml authoring) throws ConfigValidationException {
         this.authoring = authoring;
     }
@@ -359,10 +357,7 @@ public final class Workflow<O extends Origin<O>> {
       sequence.setTransformations(this.transformations);
       Transformation transformation = sequence.withOptions(options);
 
-      // TODO(danielromero): Remove check when we make it mandatory
-      Authoring authoring = this.authoring != null
-          ? this.authoring.withOptions(options, configName)
-          : null;
+      Authoring authoring = this.authoring.withOptions(options, configName);
       Origin<?> origin = this.origin.withOptions(options, authoring);
       Destination destination = this.destination.withOptions(options, configName);
       Console console = options.get(GeneralOptions.class).console();

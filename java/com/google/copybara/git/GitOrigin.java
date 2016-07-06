@@ -61,16 +61,15 @@ public final class GitOrigin implements Origin<GitOrigin> {
   @Nullable
   private final String configRef;
   private final Console console;
-  @Nullable
   private final Authoring authoring;
 
-  GitOrigin(Console console, GitRepository repository, String repoUrl, @Nullable String configRef,
-      @Nullable Authoring authoring) {
-    this.console = console;
+  private GitOrigin(Console console, GitRepository repository, String repoUrl,
+      @Nullable String configRef, Authoring authoring) {
+    this.console = Preconditions.checkNotNull(console);
     this.repository = Preconditions.checkNotNull(repository);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.configRef = Preconditions.checkNotNull(configRef);
-    this.authoring = authoring;
+    this.authoring = Preconditions.checkNotNull(authoring);
   }
 
   public GitRepository getRepository() {
@@ -228,10 +227,6 @@ public final class GitOrigin implements Origin<GitOrigin> {
   }
 
   private Author resolveAuthor(Author author) {
-    // TODO(danielromero): Remove this once Authoring is required
-    if (authoring == null) {
-      return author;
-    }
     switch (authoring.getMode()) {
       case PASS_THRU:
         return author;

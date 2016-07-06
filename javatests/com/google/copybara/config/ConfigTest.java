@@ -5,6 +5,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Author;
+import com.google.copybara.Authoring;
+import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Destination;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowNameOptions;
@@ -35,17 +38,25 @@ public class ConfigTest {
     yaml = new Yaml();
   }
 
-  private Workflow.Yaml workflow(String name) {
+  private Workflow.Yaml workflow(String name) throws ConfigValidationException {
     return workflow(name, new RecordsProcessCallDestination());
   }
 
-  private Workflow.Yaml workflow(String name, Destination.Yaml destination) {
+  private Workflow.Yaml workflow(String name, Destination.Yaml destination)
+      throws ConfigValidationException {
     Workflow.Yaml yaml = new Workflow.Yaml();
     if (name != null) {
       yaml.setName(name);
     }
     yaml.setOrigin(new DummyOrigin());
     yaml.setDestination(destination);
+    Author.Yaml defaultAuthor = new Author.Yaml();
+    defaultAuthor.setName("Copybara");
+    defaultAuthor.setEmail("no-reply@google.com");
+    Authoring.Yaml authoring = new Authoring.Yaml();
+    authoring.setDefaultAuthor(defaultAuthor);
+    authoring.setMode(AuthoringMappingMode.PASS_THRU);
+    yaml.setAuthoring(authoring);
     return yaml;
   }
 

@@ -27,7 +27,7 @@ public final class GeneralOptions implements Option {
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, @Nullable String lastRevision,
       Console console) {
-    this.console = console;
+    this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.lastRevision = lastRevision;

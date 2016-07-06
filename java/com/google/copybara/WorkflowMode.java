@@ -22,9 +22,7 @@ public enum WorkflowMode {
       runHelper.migrate(
           runHelper.getResolvedRef(),
           // SQUASH workflows always use the default author
-          runHelper.getAuthoring() != null
-              ? runHelper.getAuthoring().getDefaultAuthor()
-              : DEFAULT_AUTHOR,
+          runHelper.getAuthoring().getDefaultAuthor(),
           runHelper.getConsole(),
           runHelper.changesSummaryMessage());
     }
@@ -53,9 +51,6 @@ public enum WorkflowMode {
       }
     }
   };
-
-  // TODO(danielromero): Remove once authoring is required
-  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "noreply@google.com");
 
   abstract <O extends Origin<O>> void run(Workflow<O>.RunHelper runHelper)
       throws RepoException, IOException, EnvironmentException, ValidationException;

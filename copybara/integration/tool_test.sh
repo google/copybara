@@ -86,6 +86,9 @@ workflows:
       url: "file://$destination"
       fetch: "master"
       push: "master"
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     transformations:
       - !Replace
         before:       food
@@ -163,6 +166,9 @@ workflows:
       url: "file://$destination"
       fetch: "master"
       push: "master"
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     mode: ITERATIVE
 EOF
 
@@ -224,6 +230,9 @@ workflows:
       url: "file://$destination"
       fetch: "master"
       push: "master"
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     includeChangeListNotes: true
 EOF
 
@@ -307,6 +316,9 @@ workflows:
       url: "file://$destination"
       fetch: master
       push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     transformations:
       - !Replace
         path:   "**.java"
@@ -351,6 +363,9 @@ workflows:
       url: "file://$destination"
       fetch: master
       push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     excludedOriginPaths:
       - "**/*.java"
       - "subdir/**"
@@ -400,6 +415,9 @@ workflows:
       url: "file://$destination"
       fetch: master
       push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     transformations:
       - *forward_transforms
   - name : "reverse"
@@ -410,6 +428,9 @@ workflows:
       url: "file://$remote"
       fetch: reverse
       push: reverse
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     transformations:
       - !Reverse
           original: *forward_transforms
@@ -453,6 +474,9 @@ workflows:
       - "test.copybara"
       - "**.keep"
     destination: !FolderDestination {}
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
 EOF
 
   touch destination/keepme.keep
@@ -493,6 +517,9 @@ workflows:
       url: "file://$remote"
       ref: "master"
     destination: !FolderDestination {}
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     transformations:
       - !Replace
         before: foo
@@ -522,6 +549,9 @@ workflows:
       url: "file://$remote"
       ref: "master"
     destination: !FolderDestination {}
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
     transformations:
       - !MoveFiles
         paths:
@@ -543,7 +573,10 @@ function test_invalid_transformations_in_config() {
   cat > test.copybara <<EOF
 name: "cbtest-invalid-xform"
 workflows:
-  - transformations: [42]
+  - authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    transformations: [42]
 EOF
   copybara test.copybara origin/master && fail "Should fail"
   expect_log "sequence field 'transformations' expects elements of type 'Transformation', but transformations\[0\] is of type 'integer' (value = 42)"
