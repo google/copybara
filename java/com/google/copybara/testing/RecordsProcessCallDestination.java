@@ -33,7 +33,8 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
 
   @Override
   public void process(TransformResult transformResult, Console console) {
-    processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath())));
+    processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
+        transformResult.getBaseline()));
   }
 
   private ImmutableMap<String, String> copyWorkdir(final Path workdir) {
@@ -62,6 +63,11 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
   }
 
   @Override
+  public String getLabelNameWhenOrigin() {
+    return "Destination-RevId";
+  }
+
+  @Override
   public Destination withOptions(Options options, String configName) {
     return this;
   }
@@ -70,10 +76,13 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
 
     private final TransformResult transformResult;
     private final ImmutableMap<String, String> workdir;
+    private final String baseline;
 
-    private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir) {
+    private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir,
+        String baseline) {
       this.transformResult = Preconditions.checkNotNull(transformResult);
       this.workdir = Preconditions.checkNotNull(workdir);
+      this.baseline = baseline;
     }
 
     public long getTimestamp() {
@@ -99,6 +108,10 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
     public String getContent(String fileName) {
       return Preconditions.checkNotNull(
           workdir.get(fileName), "Cannot find content for %s", fileName);
+    }
+
+    public String getBaseline() {
+      return baseline;
     }
 
     public boolean filePresent(String fileName) {

@@ -7,7 +7,6 @@ import static org.hamcrest.CoreMatchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
 import com.google.copybara.Workflow;
-import com.google.copybara.WorkflowNameOptions;
 import com.google.copybara.config.Config.Yaml;
 import com.google.copybara.testing.AuthoringYamlBuilder;
 import com.google.copybara.testing.DummyOrigin;
@@ -87,7 +86,7 @@ public class ConfigTest {
     Workflow.Yaml chosen = workflow("chosen", destination);
 
     OptionsBuilder options = new OptionsBuilder();
-    options.workflowName = new WorkflowNameOptions("chosen");
+    options.workflowOptions.setWorkflowName("chosen");
 
     yaml.setName("ConfigTest");
     yaml.setWorkflows(ImmutableList.of(workflow("default"), chosen, workflow("other")));

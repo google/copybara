@@ -101,6 +101,11 @@ public final class GerritDestination implements Destination {
     return null;
   }
 
+  @Override
+  public String getLabelNameWhenOrigin() {
+    return GitRepository.GIT_ORIGIN_REV_ID;
+  }
+
   @DocElement(yamlName = "!GerritDestination",
       description = "Creates a change in Gerrit using the transformed worktree",
       elementKind = Destination.class, flags = {GerritOptions.class, GitOptions.class})

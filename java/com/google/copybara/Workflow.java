@@ -48,12 +48,13 @@ public final class Workflow<O extends Origin<O>> {
   private final Console console;
   private final WorkflowMode mode;
   private final boolean includeChangeListNotes;
+  private final WorkflowOptions workflowOptions;
 
   private Workflow(String configName, String name, Origin<O> origin, Destination destination,
       Authoring authoring, Transformation transformation, @Nullable String lastRevisionFlag,
       Console console, PathMatcherBuilder excludedOriginPaths,
       PathMatcherBuilder excludedDestinationPaths, WorkflowMode mode,
-      boolean includeChangeListNotes) {
+      boolean includeChangeListNotes, WorkflowOptions workflowOptions) {
     this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
@@ -66,6 +67,7 @@ public final class Workflow<O extends Origin<O>> {
     this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
     this.mode = Preconditions.checkNotNull(mode);
     this.includeChangeListNotes = includeChangeListNotes;
+    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
   }
 
   @VisibleForTesting
@@ -155,6 +157,21 @@ public final class Workflow<O extends Origin<O>> {
     }
 
     /**
+     * Options that change how workflows behave.
+     */
+    WorkflowOptions workflowOptions() {
+      return workflowOptions;
+    }
+
+    Destination getDestination() {
+      return destination;
+    }
+
+    Origin<O> getOrigin() {
+      return origin;
+    }
+
+    /**
      * Performs a full migration, including checking out files from the origin, deleting excluded
      * files, transforming the code, and writing to the destination. This writes to the destination
      * exactly once.
@@ -165,6 +182,12 @@ public final class Workflow<O extends Origin<O>> {
      * @param message change message to write to the destination
      */
     void migrate(ReferenceFiles<O> ref, Author author, Console processConsole, String message)
+        throws EnvironmentException, IOException, RepoException, ValidationException {
+      migrate(ref, author, processConsole, message, /*destinationBaseline=*/ null);
+    }
+
+    void migrate(ReferenceFiles<O> ref, Author author, Console processConsole, String message,
+        @Nullable String destinationBaseline)
         throws EnvironmentException, IOException, RepoException, ValidationException {
       processConsole.progress("Cleaning working directory");
       FileUtil.deleteAllFilesRecursively(workdir);
@@ -195,9 +218,12 @@ public final class Workflow<O extends Origin<O>> {
         throw new EnvironmentException("Error applying transformation: " + transformation, e);
       }
 
-      destination.process(
-          new TransformResult(workdir, ref, author, message, excludedDestinationPaths),
-          processConsole);
+      TransformResult transformResult = new TransformResult(workdir, ref, author, message,
+          excludedDestinationPaths);
+      if (destinationBaseline != null) {
+        transformResult = transformResult.withBaseline(destinationBaseline);
+      }
+      destination.process(transformResult, processConsole);
     }
 
     /**
@@ -361,14 +387,15 @@ public final class Workflow<O extends Origin<O>> {
       Origin<?> origin = this.origin.withOptions(options, authoring);
       Destination destination = this.destination.withOptions(options, configName);
       Console console = options.get(GeneralOptions.class).console();
-      GeneralOptions generalOptions = options.get(GeneralOptions.class);
+      WorkflowOptions workflowOptions = options.get(WorkflowOptions.class);
       PathMatcherBuilder excludedOriginPaths = PathMatcherBuilder.create(
           FileSystems.getDefault(), this.excludedOriginPaths);
       PathMatcherBuilder excludedDestinationPaths = PathMatcherBuilder.create(
           FileSystems.getDefault(), this.excludedDestinationPaths);
       return new Workflow<>(configName, name, origin, destination, authoring, transformation,
-          generalOptions.getLastRevision(), console,
-          excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes);
+          workflowOptions.getLastRevision(), console,
+          excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes,
+          options.get(WorkflowOptions.class));
     }
   }
 }

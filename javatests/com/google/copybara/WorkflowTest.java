@@ -89,8 +89,20 @@ public class WorkflowTest {
     yaml.setMode(WorkflowMode.ITERATIVE);
     yaml.setTransformations(transformations);
     yaml.setAuthoring(authoring.build());
+    options.workflowOptions.lastRevision = previousRef;
     options.general = new GeneralOptions(options.general.getFileSystem(),
-        options.general.isVerbose(), previousRef, options.general.console());
+        options.general.isVerbose(), options.general.console());
+    return yaml.withOptions(options.build(), CONFIG_NAME);
+  }
+
+  private Workflow changeRequestWorkflow(@Nullable String baseline)
+      throws ConfigValidationException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.CHANGE_REQUEST);
+    yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring.build());
+    options.workflowOptions.changeBaseline = baseline;
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
@@ -336,6 +348,24 @@ public class WorkflowTest {
     thrown.expectMessage(
         "Could not resolve --last-rev flag. Please make sure it exists in the origin: deadbeef");
     workflow.run(workdir, origin.getHead());
+  }
+
+  @Test
+  public void changeRequest() throws Exception {
+    origin.addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42");
+    origin.addSimpleChange(1, "Second Change");
+    Workflow workflow = changeRequestWorkflow(null);
+    workflow.run(workdir, "1");
+    assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
+  }
+
+  @Test
+  public void changeRequestManualBaseline() throws Exception {
+    origin.addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42");
+    origin.addSimpleChange(1, "Second Change");
+    Workflow workflow = changeRequestWorkflow("24");
+    workflow.run(workdir, "1");
+    assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
   }
 
   private void prepareOriginExcludes() throws IOException {

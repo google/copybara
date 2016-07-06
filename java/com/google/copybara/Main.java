@@ -54,7 +54,11 @@ public class Main {
   private static final String COPYBARA_CONFIG_FILENAME = "copybara.yaml";
 
   protected List<Option> getAllOptions() {
-    return ImmutableList.of(new FolderDestinationOptions(), new GitOptions(), new GerritOptions());
+    return ImmutableList.of(
+        new FolderDestinationOptions(),
+        new GitOptions(),
+        new GerritOptions(),
+        new WorkflowOptions());
   }
 
   protected Iterable<TypeDescription> getYamlTypeDescriptions() {
@@ -94,9 +98,9 @@ public class Main {
   protected void run(String[] args) {
     MainArguments mainArgs = new MainArguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-    List<Option> options = new ArrayList<>(getAllOptions());
+    List<Option> allOptions = new ArrayList<>(getAllOptions());
     JCommander jcommander = new JCommander(ImmutableList.builder()
-        .addAll(options)
+        .addAll(allOptions)
         .add(mainArgs)
         .add(generalOptionsArgs)
         .build());
@@ -123,9 +127,10 @@ public class Main {
         return;
       }
       mainArgs.validateUnnamedArgs();
-      options.add(generalOptions);
-      options.add(new WorkflowNameOptions(mainArgs.getWorkflowName()));
-      Config config = loadConfig(fs.getPath(mainArgs.getConfigPath()), new Options(options));
+      allOptions.add(generalOptions);
+      Options options = new Options(allOptions);
+      options.get(WorkflowOptions.class).setWorkflowName(mainArgs.getWorkflowName());
+      Config config = loadConfig(fs.getPath(mainArgs.getConfigPath()), options);
 
       config.getActiveWorkflow().run(baseWorkdir, mainArgs.getSourceRef());
     } catch (CommandLineException | ParameterException e) {

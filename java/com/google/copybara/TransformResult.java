@@ -49,6 +49,7 @@ public final class TransformResult {
   }
 
   public TransformResult withBaseline(String newBaseline) {
+    Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
         this.path, this.originRef, this.author, this.timestamp, this.summary,
         this.excludedDestinationPaths, newBaseline);

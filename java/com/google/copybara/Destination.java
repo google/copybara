@@ -1,12 +1,10 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
-import java.nio.file.Path;
 
 import javax.annotation.Nullable;
 
@@ -36,4 +34,14 @@ public interface Destination {
    */
   @Nullable
   String getPreviousRef(String labelName) throws RepoException;
+
+  /**
+   * Given a reverse workflow with an {@code Origin} than is of the same type as this destination,
+   * the label that that {@link Origin#getLabelName()} would return.
+   *
+   * <p>This label name is used by the origin in the reverse workflow to stamp it's original
+   * revision id. Destinations return the origin label so that a baseline label can be found when
+   * using {@link WorkflowMode#CHANGE_REQUEST}.
+   */
+  String getLabelNameWhenOrigin();
 }

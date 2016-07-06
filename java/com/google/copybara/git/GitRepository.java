@@ -49,6 +49,11 @@ public final class GitRepository {
           Pattern.compile("fatal: Couldn't find remote ref ([^\n]+)\n"));
 
   /**
+   * Label to be used for marking the original revision id (Git SHA-1) for migrated commits.
+   */
+  static final String GIT_ORIGIN_REV_ID = "GitOrigin-RevId";
+
+  /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
    * flag.
    */

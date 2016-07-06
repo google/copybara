@@ -326,6 +326,11 @@ public class YamlParserTest {
     public String getPreviousRef(String labelName) throws RepoException {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public String getLabelNameWhenOrigin() {
+      throw new UnsupportedOperationException();
+    }
   }
 
   @DocElement(yamlName = "!MockTransform", description = "MockTransform",

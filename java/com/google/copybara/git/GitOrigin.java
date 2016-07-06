@@ -6,12 +6,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
@@ -48,6 +50,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
       "yyyy-MM-dd'T'HH:mm:ssZ");
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
+  private static final String GIT_LOG_COMMENT_PREFIX = "    ";
   private final GitRepository repository;
 
   /**
@@ -203,14 +206,21 @@ public final class GitOrigin implements Origin<GitOrigin> {
             "Could not find author and/or date for commitReferences %s in log\n:%s", rawCommitLine,
             log);
         StringBuilder message = new StringBuilder();
+        ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
         while (rawLines.hasNext()) {
           String s = rawLines.next();
-          if (!s.startsWith("    ")) {
+          if (!s.startsWith(GIT_LOG_COMMENT_PREFIX)) {
             break;
           }
-          message.append(s, 4, s.length()).append("\n");
+          LabelFinder labelFinder = new LabelFinder(
+              s.substring(GIT_LOG_COMMENT_PREFIX.length()));
+          if (labelFinder.isLabel()) {
+            labels.put(labelFinder.getName(), labelFinder.getValue());
+          }
+          message.append(s, GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
         }
-        Change<GitOrigin> change = new Change<>(ref, resolveAuthor(author), message.toString(), date);
+        Change<GitOrigin> change = new Change<>(ref, resolveAuthor(author), message.toString(),
+            date, labels.build());
         builder.add(new GitChange(change, parents.build()));
       }
       // Return older commit first.
@@ -244,7 +254,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
 
   @Override
   public String getLabelName() {
-    return "GitOrigin-RevId";
+    return GitRepository.GIT_ORIGIN_REV_ID;
   }
 
   private String removePrefix(String log, String line, String prefix) {

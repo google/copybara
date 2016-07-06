@@ -337,6 +337,75 @@ EOF
   )
 }
 
+function test_git_pull_request() {
+  sot=$(empty_git_bare_repo)
+  public=$(empty_git_bare_repo)
+
+  cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - name : "export"
+    origin: !GitOrigin
+      url: "file://$sot"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$public"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+  - name : "import_change"
+    mode: CHANGE_REQUEST
+    origin: !GitOrigin
+      url: "file://$public"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$sot"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+EOF
+
+  # Create the SoT repo
+  pushd $(mktemp -d)
+  run_git clone $sot .
+  commit_one=$(single_file_commit "commit one" one.txt "content")
+  commit_two=$(single_file_commit "commit two" two.txt "content")
+  commit_three=$(single_file_commit "commit three" three.txt "content")
+  run_git push
+  popd
+
+  copybara copybara.yaml export $commit_two
+
+  # Check that we have exported correctly the tree state as in commit_two
+  pushd $(mktemp -d)
+  run_git clone $public .
+  [[ -f one.txt ]] || fail "one.txt should exist in commit two"
+  [[ -f two.txt ]] || fail "two.txt should exist in commit two"
+  [[ ! -f three.txt ]] || fail "three.txt should NOT exist in commit two"
+
+  # Create a new change on top of the public version (commit_two)
+  pr_request=$(single_file_commit "pull request" pr.txt "content")
+  run_git push
+  popd
+
+  copybara copybara.yaml import_change $pr_request
+
+  # Check that the SoT contains the change from pr_request but that it has not reverted
+  # commit_three (SoT was ahead of public).
+  pushd $(mktemp -d)
+  run_git clone $sot .
+  [[ -f one.txt ]] || fail "one.txt should exist after pr import"
+  [[ -f two.txt ]] || fail "two.txt should exist after pr import"
+  [[ -f three.txt ]] || fail "three.txt should exist after pr import"
+  [[ -f pr.txt ]] || fail "pr.txt should exist after pr import"
+  popd
+
+}
+
 function test_git_delete() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)

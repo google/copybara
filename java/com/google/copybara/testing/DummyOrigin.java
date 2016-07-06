@@ -2,11 +2,13 @@
 package com.google.copybara.testing;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Change;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;

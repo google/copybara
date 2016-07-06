@@ -2,6 +2,7 @@ package com.google.copybara;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Origin.ReferenceFiles;
 
 import org.joda.time.DateTime;
@@ -15,12 +16,14 @@ public final class Change<T extends Origin<T>> {
   private final Author author;
   private final String message;
   private final DateTime date;
-
-  public Change(ReferenceFiles<T> reference, Author author, String message, DateTime date) {
+  private final ImmutableMap<String, String> labels;
+  public Change(ReferenceFiles<T> reference, Author author, String message, DateTime date,
+      ImmutableMap<String, String> labels) {
     this.reference = Preconditions.checkNotNull(reference);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
     this.date = date;
+    this.labels = labels;
   }
 
   /**
@@ -40,6 +43,10 @@ public final class Change<T extends Origin<T>> {
 
   public DateTime getDate() {
     return date;
+  }
+
+  public ImmutableMap<String, String> getLabels() {
+    return labels;
   }
 
   /**

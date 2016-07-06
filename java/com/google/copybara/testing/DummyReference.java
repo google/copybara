@@ -2,8 +2,10 @@
 package com.google.copybara.testing;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Author;
 import com.google.copybara.Change;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 
@@ -32,6 +34,7 @@ public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
   private final Author author;
   private final Path changesBase;
   private final Long timestamp;
+  private final ImmutableMap<String, String> labels;
 
   public DummyReference(String reference) {
     this(reference, "DummyReference message", DEFAULT_AUTHOR,
@@ -45,6 +48,15 @@ public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
     this.author = Preconditions.checkNotNull(author);
     this.changesBase = Preconditions.checkNotNull(changesBase);
     this.timestamp = timestamp;
+
+    ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
+    for (String line : message.split("\n")) {
+      LabelFinder labelFinder = new LabelFinder(line);
+      if (labelFinder.isLabel()) {
+        labels.put(labelFinder.getName(), labelFinder.getValue());
+      }
+    }
+    this.labels = labels.build();
   }
 
   @Override
@@ -95,7 +107,7 @@ public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
   }
 
   Change<DummyOrigin> toChange() {
-    return new Change<>(this, author, message, new DateTime(timestamp));
+    return new Change<>(this, author, message, new DateTime(timestamp), labels);
   }
 
   public Author getAuthor() {

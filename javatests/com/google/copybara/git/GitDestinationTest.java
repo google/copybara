@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
@@ -116,10 +117,11 @@ public class GitDestinationTest {
   private void processWithBaseline(GitDestination destination, DummyReference originRef,
       String baseline)
       throws RepoException, ConfigValidationException {
-    destination.process(
-        TransformResults.of(workdir, originRef, excludedDestinationPaths)
-            .withBaseline(baseline),
-        console);
+    TransformResult result = TransformResults.of(workdir, originRef, excludedDestinationPaths);
+    if (baseline != null) {
+      result = result.withBaseline(baseline);
+    }
+    destination.process(result, console);
   }
 
   @Test

@@ -2,7 +2,6 @@ package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
@@ -11,10 +10,8 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
-import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -25,7 +22,6 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -34,6 +30,8 @@ import javax.annotation.Nullable;
  * gets deleted before writing the new files.
  */
 public class FolderDestination implements Destination {
+
+  private static final String FOLDER_DESTINATION_NAME = "!FolderDestination";
 
   private final Path localFolder;
   private final boolean verbose;
@@ -84,7 +82,12 @@ public class FolderDestination implements Destination {
     return null;
   }
 
-  @DocElement(yamlName = "!FolderDestination", elementKind = Destination.class,
+  @Override
+  public String getLabelNameWhenOrigin() {
+    throw new UnsupportedOperationException(FOLDER_DESTINATION_NAME + " does not support labels");
+  }
+
+  @DocElement(yamlName = FOLDER_DESTINATION_NAME, elementKind = Destination.class,
       description = "A folder destination is a destination that puts the output in a folder.",
       flags = FolderDestinationOptions.class)
   public static class Yaml implements Destination.Yaml {

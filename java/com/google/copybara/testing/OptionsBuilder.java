@@ -6,7 +6,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
-import com.google.copybara.WorkflowNameOptions;
+import com.google.copybara.WorkflowOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitOptions;
@@ -22,23 +22,26 @@ import java.nio.file.FileSystems;
 public class OptionsBuilder {
 
   public GeneralOptions general =
-      new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true, /*lastRevision=*/
-          null, new LogConsole(System.out));
+      new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true, new LogConsole(System.out));
   public FolderDestinationOptions localDestination =
       new FolderDestinationOptions();
   public GitOptions git = new GitOptions();
   public GerritOptions gerrit = new GerritOptions();
-  public WorkflowNameOptions workflowName = new WorkflowNameOptions("default");
+  public WorkflowOptions workflowOptions = new WorkflowOptions();
+
+  public OptionsBuilder() {
+    workflowOptions.setWorkflowName("default");
+  }
 
   public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
     general = new GeneralOptions(FileSystems.getDefault(), /*verbose=*/true,
-        /*lastRevision=*/null, new LogConsole(System.out));
+        new LogConsole(System.out));
     return this;
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
-        general.getFileSystem(), general.isVerbose(), general.getLastRevision(), newConsole);
+        general.getFileSystem(), general.isVerbose(), newConsole);
     return this;
   }
 
@@ -47,10 +50,10 @@ public class OptionsBuilder {
    * child classes, in which case it should also include the superclass' instances.
    */
   protected Iterable<Option> allOptions() {
-    return ImmutableList.of(general, localDestination, git, gerrit, workflowName);
+    return ImmutableList.of(general, localDestination, git, gerrit, this.workflowOptions);
   }
 
   public final Options build() {
     return new Options(ImmutableList.copyOf(allOptions()));
   }
-}
+  }

@@ -6,7 +6,6 @@ import static com.google.copybara.git.GitOptions.GIT_FIRST_COMMIT_FLAG;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.copybara.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -15,6 +14,7 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
@@ -236,6 +236,11 @@ public final class GitDestination implements Destination {
     }
 
     return null;
+  }
+
+  @Override
+  public String getLabelNameWhenOrigin() {
+    return GitRepository.GIT_ORIGIN_REV_ID;
   }
 
   @Override
