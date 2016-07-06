@@ -10,6 +10,7 @@ import com.google.copybara.WorkflowNameOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 
 import java.io.IOException;
@@ -32,6 +33,12 @@ public class OptionsBuilder {
   public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
     general = new GeneralOptions(FileSystems.getDefault(), /*verbose=*/true,
         /*lastRevision=*/null, new LogConsole(System.out));
+    return this;
+  }
+
+  public final OptionsBuilder setConsole(Console newConsole) {
+    general = new GeneralOptions(
+        general.getFileSystem(), general.isVerbose(), general.getLastRevision(), newConsole);
     return this;
   }
 
