@@ -86,7 +86,7 @@ public class ConfigTest {
     Workflow.Yaml chosen = workflow("chosen", destination);
 
     OptionsBuilder options = new OptionsBuilder();
-    options.workflowOptions.setWorkflowName("chosen");
+    options.setWorkflowName("chosen");
 
     yaml.setName("ConfigTest");
     yaml.setWorkflows(ImmutableList.of(workflow("default"), chosen, workflow("other")));

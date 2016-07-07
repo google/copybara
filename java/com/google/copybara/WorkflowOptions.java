@@ -23,8 +23,17 @@ public class WorkflowOptions implements Option {
 
   private String workflowName;
 
+  public WorkflowOptions() {
+  }
+
   @VisibleForTesting
-  public void setWorkflowName(String workflowName) {
+  public WorkflowOptions(String changeBaseline, String lastRevision, String workflowName) {
+    this.changeBaseline = changeBaseline;
+    this.lastRevision = lastRevision;
+    this.workflowName = workflowName;
+  }
+
+  void setWorkflowName(String workflowName) {
     Preconditions.checkNotNull(workflowName);
     this.workflowName = workflowName;
   }
@@ -35,5 +44,9 @@ public class WorkflowOptions implements Option {
 
   public String getWorkflowName() {
     return workflowName;
+  }
+
+  public String getChangeBaseline() {
+    return changeBaseline;
   }
 }

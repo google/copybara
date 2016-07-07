@@ -27,11 +27,8 @@ public class OptionsBuilder {
       new FolderDestinationOptions();
   public GitOptions git = new GitOptions();
   public GerritOptions gerrit = new GerritOptions();
-  public WorkflowOptions workflowOptions = new WorkflowOptions();
-
-  public OptionsBuilder() {
-    workflowOptions.setWorkflowName("default");
-  }
+  public WorkflowOptions workflowOptions = new WorkflowOptions(
+      /*changeBaseline=*/null, /*lastRevision=*/ null, "default");
 
   public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
     general = new GeneralOptions(FileSystems.getDefault(), /*verbose=*/true,
@@ -42,6 +39,24 @@ public class OptionsBuilder {
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getFileSystem(), general.isVerbose(), newConsole);
+    return this;
+  }
+
+  public final OptionsBuilder setWorkflowName(String workflowName) {
+    workflowOptions = new WorkflowOptions(
+        workflowOptions.getChangeBaseline(), workflowOptions.getLastRevision(), workflowName);
+    return this;
+  }
+
+  public final OptionsBuilder setChangeBaseline(String changeBaseline) {
+    workflowOptions = new WorkflowOptions(
+        changeBaseline, workflowOptions.getLastRevision(), workflowOptions.getChangeBaseline());
+    return this;
+  }
+
+  public final OptionsBuilder setLastRevision(String lastRevision) {
+    workflowOptions = new WorkflowOptions(
+        workflowOptions.getChangeBaseline(), lastRevision, workflowOptions.getChangeBaseline());
     return this;
   }
 
