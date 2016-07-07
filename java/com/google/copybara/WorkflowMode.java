@@ -6,6 +6,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
+import com.google.copybara.Workflow.RunHelper;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.ProgressPrefixConsole;
@@ -89,12 +90,20 @@ public enum WorkflowMode {
       helper.migrate(helper.getResolvedRef(), change.getAuthor(), helper.getConsole(),
           change.getMessage(), requestParent.get());
     }
+  },
+
+  // TODO(copybara): Implement
+  @DocField(description = "Mirror individual changes from origin to destination. Requires that "
+      + "origin and destination are of the same type and that they support mirroring.",
+      undocumented = true)
+  MIRROR {
+    @Override
+    <O extends Origin<O>> void run(Workflow<O>.RunHelper helper)
+        throws RepoException, IOException, EnvironmentException, ValidationException {
+      throw new UnsupportedOperationException("WorkflowMode 'MIRROR' not implemented.");
+    }
   };
 
   abstract <O extends Origin<O>> void run(Workflow<O>.RunHelper runHelper)
       throws RepoException, IOException, EnvironmentException, ValidationException;
-
-  // TODO(copybara): Mirror individual changes from origin to destination. Requires a
-  // that origin and destination are of the same time and that they support mirroring
-  //MIRROR
 }
