@@ -368,6 +368,39 @@ public class WorkflowTest {
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
   }
 
+  @Test
+  public void testNullAuthoring() throws ConfigValidationException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'authoring'");
+
+    yaml.withOptions(options.build(), CONFIG_NAME);
+  }
+
+  @Test
+  public void testNullOrigin() throws ConfigValidationException, EnvironmentException {
+    yaml.setDestination(destination);
+    yaml.setAuthoring(authoring.build());
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'origin'");
+
+    yaml.withOptions(options.build(), CONFIG_NAME);
+  }
+
+  @Test
+  public void testNullDestination() throws ConfigValidationException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setAuthoring(authoring.build());
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'destination'");
+
+    yaml.withOptions(options.build(), CONFIG_NAME);
+  }
+
   private void prepareOriginExcludes() throws IOException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("excludesTest");

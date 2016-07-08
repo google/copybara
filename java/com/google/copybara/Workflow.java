@@ -383,6 +383,10 @@ public final class Workflow<O extends Origin<O>> {
       sequence.setTransformations(this.transformations);
       Transformation transformation = sequence.withOptions(options);
 
+      ConfigValidationException.checkNotMissing(this.authoring,"authoring");
+      ConfigValidationException.checkNotMissing(this.origin,"origin");
+      ConfigValidationException.checkNotMissing(this.destination,"destination");
+
       Authoring authoring = this.authoring.withOptions(options, configName);
       Origin<?> origin = this.origin.withOptions(options, authoring);
       Destination destination = this.destination.withOptions(options, configName);
