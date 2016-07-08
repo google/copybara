@@ -156,7 +156,7 @@ public class Main {
     // jobs covered.
     return Arrays.asList(args).contains(GeneralOptions.NOANSI) || System.console() == null
         ? new LogConsole(System.err)
-        : new AnsiConsole(System.err);
+        : new AnsiConsole(System.in, System.err);
   }
 
   protected void configureLog(FileSystem fs) throws IOException {

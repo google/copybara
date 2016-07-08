@@ -82,4 +82,9 @@ public final class AssertingConsole implements Console {
   public void progress(String progress) {
     messages.addLast(new Message(MessageType.PROGRESS, progress));
   }
+
+  @Override
+  public boolean promptConfirmation(String message) {
+    throw new UnsupportedOperationException();
+  }
 }

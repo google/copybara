@@ -27,4 +27,9 @@ public interface Console {
    * Print a progress message in the console
    */
   void progress(String progress);
+
+  /**
+   * Returns true if this Console's input registers Y/y after showing the prompt message.
+   */
+  boolean promptConfirmation(String message);
 }

@@ -38,6 +38,12 @@ public class LogConsole implements Console {
     printMessage("TASK", task);
   }
 
+  @Override
+  public boolean promptConfirmation(String message) {
+    // TODO(danielromero): LogConsole should implement this when possible
+    throw new UnsupportedOperationException("Implement this");
+  }
+
   private void printMessage(final String messageKind, String message) {
     synchronized (lock) {
       output.println(dateFormat.format(new Date()) + " " + messageKind + ": " + message);

@@ -32,4 +32,9 @@ public class ProgressPrefixConsole implements Console {
   public void progress(String progress) {
     delegate.progress(prefix + progress);
   }
+
+  @Override
+  public boolean promptConfirmation(String message) {
+    return delegate.promptConfirmation(message);
+  }
 }
