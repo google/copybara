@@ -36,6 +36,10 @@ public class LogConsole implements Console {
   private LogConsole(InputStream input, PrintStream output) {
     this.input = input;
     this.output = Preconditions.checkNotNull(output);
+  }
+
+  @Override
+  public void startupMessage() {
     output.println("Copybara source mover");
   }
 

@@ -3,6 +3,8 @@ package com.google.copybara.util.console;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.copybara.util.console.testing.AssertingConsole;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -76,6 +78,17 @@ public class ConsoleTest {
     console.promptConfirmation("Do you want to proceed?");
   }
 
+  @Test
+  public void progressPrefix() throws Exception {
+    AssertingConsole delegate = new AssertingConsole();
+    Console console = new ProgressPrefixConsole("FOO ", delegate);
+    console.progress("bar");
+
+    delegate
+        .assertNextMatches("FOO bar")
+        .assertNoMore();
+  }
+
   private void checkAnsiConsoleExpectedPrompt(String inputText, boolean expectedResponse)
       throws IOException {
     ByteArrayInputStream in = new ByteArrayInputStream(inputText.getBytes(StandardCharsets.UTF_8));
@@ -98,9 +111,8 @@ public class ConsoleTest {
       Console console, ByteArrayOutputStream out, String inputText, boolean expectedResponse)
       throws IOException {
     boolean prompt = console.promptConfirmation("Do you want to proceed?");
-    String[] output = out.toString(StandardCharsets.UTF_8.name()).split("\n");
-    // AnsiConsole prints a message in the first line
-    assertThat(output[1]).endsWith("Do you want to proceed? [y/n] ");
+    assertThat(out.toString(StandardCharsets.UTF_8.name()))
+        .endsWith("Do you want to proceed? [y/n] ");
     if (expectedResponse) {
       assertWithMessage("Input text '" + inputText + "' should return true.")
           .that(prompt)

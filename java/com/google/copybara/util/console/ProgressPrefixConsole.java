@@ -1,5 +1,7 @@
 package com.google.copybara.util.console;
 
+import com.google.common.base.Preconditions;
+
 /**
  * A console that delegates to another console but adds a prefix to the progress messages
  */
@@ -9,8 +11,13 @@ public class ProgressPrefixConsole implements Console {
   private final Console delegate;
 
   public ProgressPrefixConsole(String prefix, Console delegate) {
-    this.prefix = prefix;
-    this.delegate = delegate;
+    this.prefix = Preconditions.checkNotNull(prefix);
+    this.delegate = Preconditions.checkNotNull(delegate);
+  }
+
+  @Override
+  public void startupMessage() {
+    delegate.startupMessage();
   }
 
   @Override

@@ -111,6 +111,7 @@ public class Main {
     // We need a console before parsing the args because it could fail with wrong
     // arguments and we need to show the error.
     Console console = getConsole(args);
+    console.startupMessage();
     String version = getVersion();
     try {
       configureLog(fs);

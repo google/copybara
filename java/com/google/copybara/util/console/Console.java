@@ -6,6 +6,11 @@ package com.google.copybara.util.console;
 public interface Console {
 
   /**
+   * Print the Copybara welcome message.
+   */
+  void startupMessage();
+
+  /**
    * Print an error in the console
    */
   void error(String message);

@@ -25,6 +25,10 @@ public final class AnsiConsole implements Console {
   public AnsiConsole(InputStream input, PrintStream output) {
     this.input = Preconditions.checkNotNull(input);
     this.output = Preconditions.checkNotNull(output);
+  }
+
+  @Override
+  public void startupMessage() {
     // Just because we can!
     output.println(BLUE.write("C")
         + RED.write("o")

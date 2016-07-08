@@ -64,6 +64,9 @@ public final class AssertingConsole implements Console {
   }
 
   @Override
+  public void startupMessage() {}
+
+  @Override
   public void error(String message) {
     messages.addLast(new Message(MessageType.ERROR, message));
   }
