@@ -32,4 +32,11 @@ public interface Console {
    * Returns true if this Console's input registers Y/y after showing the prompt message.
    */
   boolean promptConfirmation(String message);
+
+  interface PromptPrinter {
+    /**
+     * Prints a prompt message.
+     */
+    void print(String message);
+  }
 }

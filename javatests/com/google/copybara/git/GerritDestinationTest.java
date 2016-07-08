@@ -191,7 +191,7 @@ public class GerritDestinationTest {
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     GerritProcessPushOutput process = new GerritProcessPushOutput(
-        new LogConsole(new PrintStream(out)));
+        LogConsole.readWriteConsole(System.in, new PrintStream(out)));
 
     process.process(gerritResponse);
 

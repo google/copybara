@@ -152,11 +152,14 @@ public class Main {
   }
 
   protected Console getConsole(String[] args) {
-    // The System.console doesn't detect redirects/pipes, but at least we have
-    // jobs covered.
-    return Arrays.asList(args).contains(GeneralOptions.NOANSI) || System.console() == null
-        ? new LogConsole(System.err)
-        : new AnsiConsole(System.in, System.err);
+    if (Arrays.asList(args).contains(GeneralOptions.NOANSI)) {
+      // The System.console doesn't detect redirects/pipes, but at least we have
+      // jobs covered.
+      return System.console() == null
+          ? LogConsole.writeOnlyConsole(System.err)
+          : LogConsole.readWriteConsole(System.in, System.err);
+    }
+    return new AnsiConsole(System.in, System.err);
   }
 
   protected void configureLog(FileSystem fs) throws IOException {

@@ -22,7 +22,8 @@ import java.nio.file.FileSystems;
 public class OptionsBuilder {
 
   public GeneralOptions general =
-      new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true, new LogConsole(System.out));
+      new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true,
+          LogConsole.readWriteConsole(System.in, System.out));
   public FolderDestinationOptions localDestination =
       new FolderDestinationOptions();
   public GitOptions git = new GitOptions();
@@ -32,7 +33,7 @@ public class OptionsBuilder {
 
   public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
     general = new GeneralOptions(FileSystems.getDefault(), /*verbose=*/true,
-        new LogConsole(System.out));
+        LogConsole.readWriteConsole(System.in, System.out));
     return this;
   }
 

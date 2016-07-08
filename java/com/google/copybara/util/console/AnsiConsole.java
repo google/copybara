@@ -7,19 +7,14 @@ import static com.google.copybara.util.console.AnsiEscapes.Color.RED;
 import static com.google.copybara.util.console.AnsiEscapes.Color.YELLOW;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.Scanner;
 
 /**
  * A console that prints the the output using fancy ANSI capabilities.
  */
 public final class AnsiConsole implements Console {
-
-  private static final ImmutableSet<String> YES = ImmutableSet.of("y", "yes");
-  private static final ImmutableSet<String> NO = ImmutableSet.of("n", "no");
 
   private final InputStream input;
   private final PrintStream output;
@@ -79,25 +74,14 @@ public final class AnsiConsole implements Console {
 
   @Override
   public boolean promptConfirmation(String message) {
-    Scanner scanner = new Scanner(input);
-    while (true) {
-      printPromptMessage(message);
-      if (scanner.hasNextLine()) {
-        String answer = scanner.nextLine().trim().toLowerCase();
-        if (YES.contains(answer)) {
-          return true;
-        }
-        if (NO.contains(answer)) {
-          return false;
+    return new ConsolePrompt(input, new PromptPrinter() {
+      @Override
+      public void print(String message) {
+        synchronized (lock) {
+          lastWasProgress = false;
+          output.print(YELLOW.write("WARN: ") + message + " [y/n] ");
         }
       }
-    }
-  }
-
-  private void printPromptMessage(String message) {
-    synchronized (lock) {
-      lastWasProgress = false;
-      output.print(YELLOW.write("WARN: ") + message + " [y/n] ");
-    }
+    }).promptConfirmation(message);
   }
 }
