@@ -77,7 +77,6 @@ public final class GitRepository {
 
   public static GitRepository bareRepo(Path gitDir, Options options,
       @Nullable Map<String, String> environment) {
-    GitOptions gitConfig = options.get(GitOptions.class);
     return new GitRepository(
         gitDir,/*workTree=*/null, options.get(GeneralOptions.class).isVerbose(), environment);
   }
@@ -85,8 +84,7 @@ public final class GitRepository {
   /**
    * Initializes a new repository in a temporary directory. The new repo is not bare.
    */
-  public static GitRepository initScratchRepo(
-      GitOptions gitOptions, boolean verbose) throws RepoException {
+  public static GitRepository initScratchRepo(boolean verbose) throws RepoException {
     Path scratchWorkTree;
     try {
       scratchWorkTree = Files.createTempDirectory("copybara-makeScratchClone");

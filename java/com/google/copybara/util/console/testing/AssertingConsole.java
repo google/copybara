@@ -100,6 +100,7 @@ public final class AssertingConsole implements Console {
   @Override
   public boolean promptConfirmation(String message) {
     Preconditions.checkState(!programmedResponses.isEmpty(), "No more programmed responses.");
+    warn(message);
     return programmedResponses.removeFirst() == PromptResponse.YES;
   }
 }

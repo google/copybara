@@ -13,6 +13,7 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
 
   protected String url;
   protected String fetch;
+  protected boolean showDiffConfirmation;
 
   /**
    * Indicates the URL to push to as well as the URL from which to get the parent commit.
@@ -28,6 +29,13 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
   @DocField(description = "Indicates the ref from which to get the parent commit")
   public void setFetch(String fetch) {
     this.fetch = fetch;
+  }
+
+  @DocField(description = "Indicates that the tool should show the diff and require user's "
+      + "confirmation before making a change in this destination.",
+      required = false, defaultValue = "false")
+  public void setShowDiffConfirmation(boolean showDiffConfirmation) {
+    this.showDiffConfirmation = showDiffConfirmation;
   }
 
   protected void checkRequiredFields() throws ConfigValidationException {

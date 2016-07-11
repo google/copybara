@@ -14,7 +14,6 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
@@ -60,18 +59,20 @@ public final class GitDestination implements Destination {
   private final String repoUrl;
   private final String fetch;
   private final String push;
+  private final boolean showDiffConfirmation;
   private final GitOptions gitOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
 
   GitDestination(String configName, String repoUrl, String fetch, String push,
-      GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
-      ProcessPushOutput processPushOutput) {
+      boolean showDiffConfirmation, GitOptions gitOptions, boolean verbose,
+      CommitGenerator commitGenerator, ProcessPushOutput processPushOutput) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
+    this.showDiffConfirmation = showDiffConfirmation;
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
@@ -134,11 +135,22 @@ public final class GitDestination implements Destination {
     new AddMatchingFilesToIndexVisitor(scratchClone, transformResult.getExcludedDestinationPaths())
         .walk();
 
+    if (showDiffConfirmation) {
+      // TODO(danielromero): Show diff using git global config
+      if (!console.promptConfirmation(
+          String.format("Proceed with push to %s %s?", repoUrl, push))) {
+        console.info("Migration aborted by user. Local copy of the transformed code: "
+            + alternate.getGitDir());
+        // TODO(danielromero): This should probably be replaced by a more meaningful exception
+        throw new RepoException("User aborted execution: did not confirm diff changes.");
+      }
+    }
+
     alternate.simpleCommand("commit",
         "--author", transformResult.getAuthor().toString(),
         "--date", transformResult.getTimestamp() + " +0000",
         "-m", commitGenerator.message(transformResult, alternate));
-    console.progress("Git Destination: Pushing to " + repoUrl);
+    console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
 
     if (baseline != null) {
       alternate.rebase("FETCH_HEAD");
@@ -149,7 +161,7 @@ public final class GitDestination implements Destination {
   }
 
   private GitRepository cloneBaseline() throws RepoException {
-    GitRepository scratchClone = GitRepository.initScratchRepo(gitOptions, verbose);
+    GitRepository scratchClone = GitRepository.initScratchRepo(verbose);
     try {
       scratchClone.simpleCommand("fetch", repoUrl, fetch);
       if (gitOptions.gitFirstCommit) {
@@ -280,6 +292,7 @@ public final class GitDestination implements Destination {
           url,
           ConfigValidationException.checkNotMissing(fetch, "fetch"),
           ConfigValidationException.checkNotMissing(push, "push"),
+          showDiffConfirmation,
           options.get(GitOptions.class),
           options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator(),

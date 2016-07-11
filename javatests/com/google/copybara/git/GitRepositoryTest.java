@@ -17,7 +17,7 @@ public class GitRepositoryTest {
 
   @Before
   public void setup() throws Exception {
-    this.repository = GitRepository.initScratchRepo(new GitOptions(), /*verbose=*/true);
+    this.repository = GitRepository.initScratchRepo(/*verbose=*/true);
   }
 
   @Test

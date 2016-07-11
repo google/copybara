@@ -17,7 +17,9 @@ import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
-import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.testing.AssertingConsole;
+import com.google.copybara.util.console.testing.AssertingConsole.MessageType;
+import com.google.copybara.util.console.testing.AssertingConsole.PromptResponse;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -37,7 +39,7 @@ public class GitDestinationTest {
   private Yaml yaml;
   private Path repoGitDir;
   private OptionsBuilder options;
-  private Console console;
+  private AssertingConsole console;
   private ImmutableList<String> excludedDestinationPaths;
 
   @Rule
@@ -51,10 +53,10 @@ public class GitDestinationTest {
     workdir = Files.createTempDirectory("workdir");
     yaml.setUrl("file://" + repoGitDir);
     git("init", "--bare", repoGitDir.toString());
-    options = new OptionsBuilder();
+    console = new AssertingConsole();
+    options = new OptionsBuilder().setConsole(console);
     options.git.gitCommitterEmail = "commiter@email";
     options.git.gitCommitterName = "Bara Kopi";
-    console = options.general.console();
     excludedDestinationPaths = ImmutableList.of();
   }
 
@@ -79,7 +81,13 @@ public class GitDestinationTest {
   }
 
   private GitDestination destinationFirstCommit() throws ConfigValidationException {
+    return destinationFirstCommit(/*showDiffConfirmation*/ false);
+  }
+
+  private GitDestination destinationFirstCommit(boolean showDiffConfirmation)
+      throws ConfigValidationException {
     options.git.gitFirstCommit = true;
+    yaml.setShowDiffConfirmation(showDiffConfirmation);
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
@@ -139,6 +147,21 @@ public class GitDestinationTest {
     assertCommitCount(1, "testPushToRef");
 
     assertCommitHasOrigin("testPushToRef", "origin_ref");
+  }
+
+  @Test
+  public void processUserAborts() throws Exception {
+    console = new AssertingConsole(PromptResponse.NO);
+    yaml.setFetch("master");
+    yaml.setPush("master");
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("User aborted execution: did not confirm diff changes");
+    process(destinationFirstCommit(/*showDiffConfirmation*/ true),
+        new DummyReference("origin_ref"));
+    console
+        .assertNextMatches(MessageType.WARNING, "Proceed with push to http://foo.git master\\?")
+        .assertNoMore();
   }
 
   @Test

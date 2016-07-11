@@ -132,6 +132,7 @@ public final class GerritDestination implements Destination {
               configName,
               url, fetch,
               "refs/for/" + MoreObjects.firstNonNull(pushToRefsFor, fetch),
+              showDiffConfirmation,
               options.get(GitOptions.class),
               generalOptions.isVerbose(),
               new CommitGenerator(options.get(GerritOptions.class)),
