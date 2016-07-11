@@ -28,4 +28,8 @@ public final class GitOptions implements Option {
   @Parameter(names = GIT_FIRST_COMMIT_FLAG,
       description = "Ignore that the fetch reference doesn't exist when pushing to destination")
   boolean gitFirstCommit = false;
+
+  @Parameter(names = "--git-origin-url", description = "Overwrite !GitOrigin url with a custom one."
+      + " This flag should be used only for presubmit checking workflows.")
+  String gitOriginUrl;
 }

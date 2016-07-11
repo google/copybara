@@ -1,9 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
+import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -15,7 +15,11 @@ import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.RepoException;
+import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.util.console.testing.AssertingConsole;
+import com.google.copybara.util.console.testing.AssertingConsole.MessageType;
 
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -257,6 +261,38 @@ public class GitOriginTest {
     change = origin.change(lastCommitRef);
 
     assertThat(change.getAuthor().toString()).isEqualTo(DEFAULT_AUTHOR.toString());
+  }
+
+  /**
+   * Check that we can overwrite the git url using the CLI option and that we show a message
+   */
+  @Test
+  public void testGitUrlOverwrite() throws ConfigValidationException, IOException, RepoException {
+    remote = Files.createTempDirectory("cliremote");
+    git("init");
+    Files.write(remote.resolve("cli_remote.txt"), "some change".getBytes());
+    git("add", "cli_remote.txt");
+    git("commit", "-m", "a change from somewhere");
+
+    options.git.gitOriginUrl = "file://" + remote.toFile().getAbsolutePath();
+
+    AssertingConsole assertingConsole = new AssertingConsole();
+    options.setConsole(assertingConsole);
+    origin = yaml.withOptions(options.build(), DEFAULT_AUTHORING, env);
+
+    Change<GitOrigin> cliHead = origin.change(origin.resolve("HEAD"));
+
+    cliHead.getReference().checkout(workdir);
+
+    assertThat(cliHead.firstLineMessage()).isEqualTo("a change from somewhere");
+
+    assertAbout(FileSubjects.path())
+        .that(workdir)
+        .containsFile("cli_remote.txt", "some change")
+        .containsNoMoreFiles();
+
+    assertingConsole.assertNextMatches(MessageType.WARNING,
+        "Git origin URL overwritten in the command line as " + options.git.gitOriginUrl);
   }
 
   @Test

@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -320,7 +321,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
   @DocElement(yamlName = "!GitOrigin", description = "A origin that represents a git repository",
       elementKind = Origin.class, flags = GitOptions.class)
   public final static class Yaml implements Origin.Yaml<GitOrigin> {
-
+    private  final Logger logger = Logger.getLogger(this.getClass().getCanonicalName());
     private String url;
     private String ref;
 
@@ -350,8 +351,22 @@ public final class GitOrigin implements Origin<GitOrigin> {
       Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
       Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
       Console console = options.get(GeneralOptions.class).console();
+
       return new GitOrigin(
-          console, GitRepository.bareRepo(gitDir, options, environment), url, ref, authoring);
+          console, GitRepository.bareRepo(gitDir, options, environment),
+          getUrl(console, options.get(GitOptions.class).gitOriginUrl),
+          ref, authoring);
+    }
+
+    private String getUrl(Console console, String commandLineUrl) {
+      if (Strings.isNullOrEmpty(commandLineUrl)) {
+        return url;
+      } else {
+        String msg = "Git origin URL overwritten in the command line as " + commandLineUrl;
+        console.warn(msg);
+        logger.warning(msg+ ". Config value was: "+ url);
+        return commandLineUrl;
+      }
     }
   }
 

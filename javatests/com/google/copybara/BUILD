@@ -32,6 +32,7 @@ all_tests(
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/git/testing",
         "//java/com/google/copybara/testing",
+        "//java/com/google/copybara/util/console/testing",
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:joda_time",
