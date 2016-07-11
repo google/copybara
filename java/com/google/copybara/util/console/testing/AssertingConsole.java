@@ -4,9 +4,11 @@ package com.google.copybara.util.console.testing;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.Console;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 
 import javax.annotation.Nullable;
 
@@ -24,11 +26,20 @@ public final class AssertingConsole implements Console {
     }
   }
 
+  public enum PromptResponse {
+    YES, NO,
+  }
+
   public enum MessageType {
     ERROR, WARNING, INFO, PROGRESS;
   }
 
+  private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
   private final ArrayDeque<Message> messages = new ArrayDeque<>();
+
+  public AssertingConsole(PromptResponse... programmedResponses) {
+    this.programmedResponses.addAll(Arrays.asList(programmedResponses));
+  }
 
   /**
    * Asserts the next message matches some regex.
@@ -88,6 +99,7 @@ public final class AssertingConsole implements Console {
 
   @Override
   public boolean promptConfirmation(String message) {
-    throw new UnsupportedOperationException();
+    Preconditions.checkState(!programmedResponses.isEmpty(), "No more programmed responses.");
+    return programmedResponses.removeFirst() == PromptResponse.YES;
   }
 }
