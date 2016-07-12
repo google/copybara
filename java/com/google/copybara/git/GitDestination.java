@@ -148,12 +148,13 @@ public final class GitDestination implements Destination {
           .walk();
 
       if (askConfirmation) {
-        // TODO(danielromero): Show diff using git global config
+        // The git repo contains the staged changes at this point. Git diff writes to Stdout
+        console.info('\n' + alternate.simpleCommand("diff", "--staged").getStdout());
         if (!console.promptConfirmation(
-                String.format("Proceed with push to %s %s?", repoUrl, push))) {
-          console.info("Migration aborted by user. Local copy of the transformed code: "
-              + alternate.getGitDir());
-          throw new ChangeRejectedException("User aborted execution: did not confirm diff changes.");
+            String.format("Proceed with push to %s %s?", repoUrl, push))) {
+          console.warn("Migration aborted by user.");
+          throw new ChangeRejectedException(
+              "User aborted execution: did not confirm diff changes.");
         }
       }
 

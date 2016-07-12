@@ -4,6 +4,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -85,7 +86,7 @@ public class ConsoleTest {
     console.progress("bar");
 
     delegate
-        .assertNextMatches("FOO bar")
+        .assertNextMatches(MessageType.PROGRESS, "FOO bar")
         .assertNoMore();
   }
 

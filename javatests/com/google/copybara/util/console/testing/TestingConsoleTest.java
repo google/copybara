@@ -4,7 +4,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-import com.google.copybara.util.console.testing.TestingConsole.PromptResponse;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -43,7 +42,7 @@ public final class TestingConsoleTest {
         new Runnable() {
           @Override
           public void run() {
-            console.assertNextMatches("asdf");
+            console.assertNextMatches(MessageType.ERROR, "asdf");
           }
         });
   }
@@ -51,27 +50,41 @@ public final class TestingConsoleTest {
   @Test
   public void assertFailsWhenNoMoreMessagesRemain() {
     console.error("foo");
-    console.assertNextMatches("foo");
+    console.assertNextMatches(MessageType.ERROR, "foo");
     expectAssertion("no more console messages.*",
         new Runnable() {
           @Override
           public void run() {
-            console.assertNextMatches("foo");
+            console.assertNextMatches(MessageType.ERROR, "foo");
           }
         });
   }
 
   @Test
   public void allMethodsAddMessages() {
+    console.error("error method 1234");
+    console.warn("warn method 1234");
+    console.info("info method 1234");
+    console.progress("progress method 1234");
+    console
+        .assertNextMatches(MessageType.ERROR, "error method \\d{4}")
+        .assertNextMatches(MessageType.WARNING, "warn method \\d{4}")
+        .assertNextMatches(MessageType.INFO, "info method \\d{4}")
+        .assertNextMatches(MessageType.PROGRESS, "progress method \\d{4}")
+        .assertNoMore();
+  }
+
+  @Test
+  public void assertNextEquals() {
     console.error("error method");
     console.warn("warn method");
     console.info("info method");
     console.progress("progress method");
     console
-        .assertNextMatches("error method")
-        .assertNextMatches("warn method")
-        .assertNextMatches("info method")
-        .assertNextMatches("progress method")
+        .assertNextEquals(MessageType.ERROR, "error method")
+        .assertNextEquals(MessageType.WARNING, "warn method")
+        .assertNextEquals(MessageType.INFO, "info method")
+        .assertNextEquals(MessageType.PROGRESS, "progress method")
         .assertNoMore();
   }
 
@@ -115,14 +128,17 @@ public final class TestingConsoleTest {
 
   @Test
   public void programmedResponses() throws Exception {
-    Console console = new TestingConsole(PromptResponse.YES, PromptResponse.NO);
+    Console console = new TestingConsole()
+        .respondYes()
+        .respondNo();
     assertThat(console.promptConfirmation("Proceed?")).isTrue();
     assertThat(console.promptConfirmation("Proceed?")).isFalse();
   }
 
   @Test
   public void throwsExceptionIfNoMoreResponses() throws Exception {
-    Console console = new TestingConsole(PromptResponse.NO);
+    Console console = new TestingConsole()
+        .respondNo();
     console.promptConfirmation("Proceed?");
     expectedException.expect(IllegalStateException.class);
     expectedException.expectMessage("No more programmed responses");

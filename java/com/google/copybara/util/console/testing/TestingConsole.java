@@ -8,7 +8,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.Console;
 
 import java.util.ArrayDeque;
-import java.util.Arrays;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -28,7 +28,7 @@ public final class TestingConsole implements Console {
     }
   }
 
-  public enum PromptResponse {
+  private enum PromptResponse {
     YES, NO,
   }
 
@@ -39,15 +39,14 @@ public final class TestingConsole implements Console {
   private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
   private final ArrayDeque<Message> messages = new ArrayDeque<>();
 
-  public TestingConsole(PromptResponse... programmedResponses) {
-    this.programmedResponses.addAll(Arrays.asList(programmedResponses));
+  public TestingConsole respondYes() {
+    this.programmedResponses.addLast(PromptResponse.YES);
+    return this;
   }
 
-  /**
-   * Asserts the next message matches some regex.
-   */
-  public TestingConsole assertNextMatches(String regex) {
-    return assertNextMatches(/*type*/ null, regex);
+  public TestingConsole respondNo() {
+    this.programmedResponses.addLast(PromptResponse.NO);
+    return this;
   }
 
   /**
@@ -57,6 +56,19 @@ public final class TestingConsole implements Console {
    * @param regex a regex which must fully match the next message.
    */
   public TestingConsole assertNextMatches(@Nullable MessageType type, String regex) {
+    return assertRegex(type, regex);
+  }
+
+  /**
+   * Asserts the next message is equals to a string literal.
+   *
+   * <p>This is a convenience method to avoid having to escape special characters in the regex.
+   */
+  public TestingConsole assertNextEquals(@Nullable MessageType type, String text) {
+    return assertRegex(type, Pattern.quote(text));
+  }
+
+  private TestingConsole assertRegex(@Nullable MessageType type, String regex) {
     assertWithMessage("no more console messages")
         .that(messages)
         .isNotEmpty();
