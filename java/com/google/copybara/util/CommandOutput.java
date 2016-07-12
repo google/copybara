@@ -17,9 +17,7 @@ public final class CommandOutput {
   private final byte[] stdout;
   private final byte[] stderr;
 
-  CommandOutput(
-      TerminationStatus terminationStatus,
-      byte[] stdout, byte[] stderr) {
+  CommandOutput(TerminationStatus terminationStatus, byte[] stdout, byte[] stderr) {
     this.terminationStatus = terminationStatus;
     this.stdout = stdout;
     this.stderr = stderr;

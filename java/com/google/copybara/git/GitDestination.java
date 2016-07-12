@@ -156,6 +156,7 @@ public final class GitDestination implements Destination {
       alternate.rebase("FETCH_HEAD");
     }
 
+    // Git push writes to Stderr
     processPushOutput.process(
         alternate.simpleCommand("push", repoUrl, "HEAD:" + this.push).getStderr());
   }
