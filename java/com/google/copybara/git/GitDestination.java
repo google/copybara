@@ -107,35 +107,38 @@ public final class GitDestination implements Destination {
   }
 
   private class WriterImpl implements Writer {
+    @Nullable private GitRepository scratchClone;
+
     @Override
     public void write(TransformResult transformResult, Console console) throws RepoException {
       logger.log(Level.INFO,
           "Exporting " + configName + " from " + transformResult.getPath() + " to: " + this);
 
-      console.progress("Git Destination: Fetching " + repoUrl);
-
-      // TODO(matvore): Do not re-generate the scratch clone for each invocation.
-      GitRepository scratchClone = cloneBaseline();
       String baseline = transformResult.getBaseline();
-      if (gitOptions.gitFirstCommit && baseline != null) {
-        throw new RepoException(
-            "Cannot use " + GIT_FIRST_COMMIT_FLAG + " and a previous baseline (" + baseline
-            + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
-      }
-      if (!gitOptions.gitFirstCommit) {
-        console.progress("Git Destination: Checking out " + fetch);
-        // If baseline is not null we sync first to the baseline and apply the changes on top of
-        // that. Then we will rebase the new change to FETCH_HEAD.
-        scratchClone.simpleCommand("checkout", "-q", baseline != null ? baseline : "FETCH_HEAD");
-      }
+      if (scratchClone == null) {
+        console.progress("Git Destination: Fetching " + repoUrl);
 
-      if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
-        scratchClone.simpleCommand("config", "user.name", gitOptions.gitCommitterName);
+        scratchClone = cloneBaseline();
+        if (gitOptions.gitFirstCommit && baseline != null) {
+          throw new RepoException(
+              "Cannot use " + GIT_FIRST_COMMIT_FLAG + " and a previous baseline (" + baseline
+              + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
+        }
+        if (!gitOptions.gitFirstCommit) {
+          console.progress("Git Destination: Checking out " + fetch);
+          // If baseline is not null we sync first to the baseline and apply the changes on top of
+          // that. Then we will rebase the new change to FETCH_HEAD.
+          scratchClone.simpleCommand("checkout", "-q", baseline != null ? baseline : "FETCH_HEAD");
+        }
+
+        if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
+          scratchClone.simpleCommand("config", "user.name", gitOptions.gitCommitterName);
+        }
+        if (!Strings.isNullOrEmpty(gitOptions.gitCommitterEmail)) {
+          scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
+        }
+        verifyUserInfoConfigured(scratchClone);
       }
-      if (!Strings.isNullOrEmpty(gitOptions.gitCommitterEmail)) {
-        scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
-      }
-      verifyUserInfoConfigured(scratchClone);
 
       console.progress("Git Destination: Adding files for push");
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());

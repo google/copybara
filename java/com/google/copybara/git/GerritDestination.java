@@ -107,7 +107,10 @@ public final class GerritDestination implements Destination {
   }
 
   @DocElement(yamlName = "!GerritDestination",
-      description = "Creates a change in Gerrit using the transformed worktree",
+      description = "Creates a change in Gerrit using the transformed worktree. If this is used in"
+      + " iterative mode, then each commit pushed in a single Copybara invocation will have the"
+      + " correct commit parent. The reviews generated can then be easily done in the correct order"
+      + " without rebasing.",
       elementKind = Destination.class, flags = {GerritOptions.class, GitOptions.class})
   public static final class Yaml extends AbstractDestinationYaml {
 

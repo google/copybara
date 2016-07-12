@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.testing;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
@@ -24,5 +25,13 @@ public class TransformResults {
     return new TransformResult(
         path, originRef, originRef.getAuthor(), "test summary\n",
         PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths));
+  }
+
+  /**
+   * Creates an instance with reasonable defaults for testing and no excluded destination paths.
+   */
+  public static TransformResult of(Path path, DummyReference originRef)
+      throws ConfigValidationException, RepoException {
+    return of(path, originRef, ImmutableList.<String>of());
   }
 }

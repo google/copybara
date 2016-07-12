@@ -7,6 +7,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
+import com.google.copybara.Destination;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
@@ -489,5 +490,33 @@ public class GitDestinationTest {
     GitTesting.assertThatCheckout(repo(), "master").containsFile("test.txt",
         text.replace("Line 200", "Line 200 Modified")
             .replace("Line 500", "Line 500 Modified")).containsNoMoreFiles();
+  }
+
+  @Test
+  public void pushSequenceOfChangesToReviewBranch() throws Exception {
+    yaml.setFetch("master");
+    yaml.setPush("refs_for_master");
+
+    Destination.Writer writer = destinationFirstCommit().newWriter();
+
+    Files.write(workdir.resolve("test42"), "42".getBytes(UTF_8));
+    writer.write(TransformResults.of(workdir, new DummyReference("ref1")), console);
+    String firstCommitHash = repo().simpleCommand("rev-parse", "refs_for_master").getStdout();
+
+    Files.write(workdir.resolve("test99"), "99".getBytes(UTF_8));
+    writer.write(TransformResults.of(workdir, new DummyReference("ref2")), console);
+
+    // Make sure parent of second commit is the first commit.
+    assertThat(repo().simpleCommand("rev-parse", "refs_for_master~1").getStdout())
+        .isEqualTo(firstCommitHash);
+
+    // Make sure commits have correct file content.
+    GitTesting.assertThatCheckout(repo(), "refs_for_master~1")
+        .containsFile("test42", "42")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(repo(), "refs_for_master")
+        .containsFile("test42", "42")
+        .containsFile("test99", "99")
+        .containsNoMoreFiles();
   }
 }
