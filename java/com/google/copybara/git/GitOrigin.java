@@ -327,6 +327,7 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
     private  final Logger logger = Logger.getLogger(this.getClass().getCanonicalName());
     private String url;
     private String ref;
+    private GitRepoType type = GitRepoType.GIT;
 
     @DocField(description = "Indicates the URL of the git repository")
     public void setUrl(String url) {
@@ -336,6 +337,12 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
     @DocField(description = "Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'", required = false)
     public void setRef(String ref) {
       this.ref = ref;
+    }
+
+    @DocField(description = "Repository type. This knowledge allow Copybara to provide better"
+        + " experience/integration.", required = false)
+    public void setType(GitRepoType type) {
+      this.type = type;
     }
 
     @Override
