@@ -5,6 +5,7 @@ licenses(["unencumbered"])  # Owned by Google. No external contributions
 java_plugin(
     name = "document",
     srcs = glob(["**/*.java"]),
+    javacopts = ["-Xlint:unchecked", "-source", "1.7"],
     processor_class = "com.google.copybara.doc.MarkdownGenerator",
     visibility = [
         "//visibility:public",
@@ -19,6 +20,7 @@ java_plugin(
 java_library(
     name = "annotations",
     srcs = glob(["annotations/**/*.java"]),
+    javacopts = ["-Xlint:unchecked", "-source", "1.7"],
     exported_plugins = [":document"],
     visibility = [
         "//visibility:public",

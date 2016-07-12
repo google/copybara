@@ -82,7 +82,7 @@ public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
   }
 
   @Override
-  public void checkout(DummyReference ref, final Path workdir) throws RepoException {
+  public void checkout(final DummyReference ref, final Path workdir) throws RepoException {
     try {
       Files.walkFileTree(ref.changesBase, new SimpleFileVisitor<Path>() {
         @Override

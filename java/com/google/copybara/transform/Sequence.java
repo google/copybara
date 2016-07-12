@@ -83,7 +83,7 @@ public class Sequence implements Transformation {
         required = false)
     public void setTransformations(List<? extends Transformation.Yaml> transformations)
         throws ConfigValidationException {
-      this.transformations = ImmutableList.copyOf(transformations);
+      this.transformations = ImmutableList.<Transformation.Yaml>copyOf(transformations);
     }
 
     @Override

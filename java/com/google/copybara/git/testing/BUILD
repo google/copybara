@@ -6,6 +6,7 @@ java_library(
     name = "testing",
     testonly = 1,
     srcs = glob(["**/*.java"]),
+    javacopts = ["-Xlint:unchecked", "-source", "1.7"],
     deps = [
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/testing",

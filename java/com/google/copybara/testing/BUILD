@@ -17,4 +17,5 @@ java_library(
         "//third_party:jsr305",
         "//third_party:truth",
     ],
+    javacopts = ["-Xlint:unchecked", "-source", "1.7"],
 )

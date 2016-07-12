@@ -14,6 +14,7 @@ export_files = [
 java_binary(
     name = "copybara",
     srcs = ["Main.java"],
+    javacopts = ["-Xlint:unchecked", "-source", "1.7"],
     main_class = "com.google.copybara.Main",
     deps = [
         ":copybara_lib",
@@ -35,7 +36,7 @@ java_library(
         ["**/*.java"],
         exclude = ["Main.java"],
     ),
-    javacopts = ["-Xlint:unchecked"],
+    javacopts = ["-Xlint:unchecked", "-source", "1.7"],
     deps = [
         "//java/com/google/copybara/doc:annotations",
         "//third_party:guava",
