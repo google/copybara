@@ -89,8 +89,8 @@ public class GerritDestinationTest {
 
   private void process(DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
-    destination()
-        .process(TransformResults.of(workdir, originRef, excludedDestinationPaths), console);
+    destination().newWriter()
+        .write(TransformResults.of(workdir, originRef, excludedDestinationPaths), console);
   }
 
   @Test

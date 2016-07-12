@@ -321,8 +321,7 @@ public class YamlParserTest {
     }
 
     @Override
-    public void process(TransformResult transformResult, Console console)
-        throws RepoException, IOException {
+    public Writer newWriter() {
       throw new UnsupportedOperationException();
     }
 

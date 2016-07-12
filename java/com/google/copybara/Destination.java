@@ -20,11 +20,33 @@ public interface Destination {
   }
 
   /**
-   * Writes the fully-transformed repository stored at {@code workdir} to this destination.
-   * @param transformResult what to write to the destination
-   * @param console console to be used for printing messages
+   * An object which is capable of writing multiple revisions to the destination. This object is
+   * allowed to maintain state between the writing of revisions if applicable (for instance, to
+   * create multiple changes which are dependent on one another that require review before
+   * submission).
+   *
+   * <p>A single instance of this class is used to import either a single change, or a sequence of
+   * changes where each change is the following change's parent.
    */
-  void process(TransformResult transformResult, Console console) throws RepoException, IOException;
+  interface Writer {
+    /**
+     * Writes the fully-transformed repository stored at {@code workdir} to this destination.
+     * @param transformResult what to write to the destination
+     * @param console console to be used for printing messages
+     */
+    void write(TransformResult transformResult, Console console)
+        throws RepoException, IOException;
+  }
+
+  /**
+   * Creates a writer which is capable of writing to this destination. This writer may maintain
+   * state between writing of revisions.
+   *
+   * <p>Implementors should not attempt to do non-trivial work in this method. Instead, start-up
+   * work should be done in {@link Writer#write(TransformResult, Console)} where a {@link Console}
+   * reference is available.
+   */
+  Writer newWriter();
 
   /**
    * Returns the latest origin ref that was pushed to this destination.

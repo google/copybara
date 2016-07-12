@@ -31,10 +31,12 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
 
   public final List<ProcessedChange> processed = new ArrayList<>();
 
-  @Override
-  public void process(TransformResult transformResult, Console console) {
-    processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
-        transformResult.getBaseline()));
+  private class WriterImpl implements Writer {
+    @Override
+    public void write(TransformResult transformResult, Console console) {
+      processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
+          transformResult.getBaseline()));
+    }
   }
 
   private ImmutableMap<String, String> copyWorkdir(final Path workdir) {
@@ -52,6 +54,11 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
       throw new IllegalStateException(e);
     }
     return result.build();
+  }
+
+  @Override
+  public Writer newWriter() {
+    return new WriterImpl();
   }
 
   @Nullable

@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -123,12 +124,12 @@ public class GitDestinationTest {
 
   private void processWithBaseline(GitDestination destination, DummyReference originRef,
       String baseline)
-      throws RepoException, ConfigValidationException {
+      throws RepoException, ConfigValidationException, IOException {
     TransformResult result = TransformResults.of(workdir, originRef, excludedDestinationPaths);
     if (baseline != null) {
       result = result.withBaseline(baseline);
     }
-    destination.process(result, console);
+    destination.newWriter().write(result, console);
   }
 
   @Test

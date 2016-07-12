@@ -102,63 +102,72 @@ public final class GitDestination implements Destination {
   }
 
   @Override
-  public void process(TransformResult transformResult, Console console) throws RepoException {
-    logger.log(Level.INFO,
-        "Exporting " + configName + " from " + transformResult.getPath() + " to: " + this);
+  public Writer newWriter() {
+    return new WriterImpl();
+  }
 
-    console.progress("Git Destination: Fetching " + repoUrl);
-    GitRepository scratchClone = cloneBaseline();
-    String baseline = transformResult.getBaseline();
-    if (gitOptions.gitFirstCommit && baseline != null) {
-      throw new RepoException(
-          "Cannot use " + GIT_FIRST_COMMIT_FLAG + " and a previous baseline (" + baseline
-              + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
-    }
-    if (!gitOptions.gitFirstCommit) {
-      console.progress("Git Destination: Checking out " + fetch);
-      // If baseline is not null we sync first to the baseline and apply the changes on top of
-      // that. Then we will rebase the new change to FETCH_HEAD.
-      scratchClone.simpleCommand("checkout", "-q", baseline != null ? baseline : "FETCH_HEAD");
-    }
+  private class WriterImpl implements Writer {
+    @Override
+    public void write(TransformResult transformResult, Console console) throws RepoException {
+      logger.log(Level.INFO,
+          "Exporting " + configName + " from " + transformResult.getPath() + " to: " + this);
 
-    if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
-      scratchClone.simpleCommand("config", "user.name", gitOptions.gitCommitterName);
-    }
-    if (!Strings.isNullOrEmpty(gitOptions.gitCommitterEmail)) {
-      scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
-    }
-    verifyUserInfoConfigured(scratchClone);
+      console.progress("Git Destination: Fetching " + repoUrl);
 
-    console.progress("Git Destination: Adding files for push");
-    GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
-    alternate.simpleCommand("add", "--all");
-
-    new AddMatchingFilesToIndexVisitor(scratchClone, transformResult.getExcludedDestinationPaths())
-        .walk();
-
-    if (askConfirmation) {
-      // TODO(danielromero): Show diff using git global config
-      if (!console.promptConfirmation(
-          String.format("Proceed with push to %s %s?", repoUrl, push))) {
-        console.info("Migration aborted by user. Local copy of the transformed code: "
-            + alternate.getGitDir());
-        throw new ChangeRejectedException("User aborted execution: did not confirm diff changes.");
+      // TODO(matvore): Do not re-generate the scratch clone for each invocation.
+      GitRepository scratchClone = cloneBaseline();
+      String baseline = transformResult.getBaseline();
+      if (gitOptions.gitFirstCommit && baseline != null) {
+        throw new RepoException(
+            "Cannot use " + GIT_FIRST_COMMIT_FLAG + " and a previous baseline (" + baseline
+            + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
       }
+      if (!gitOptions.gitFirstCommit) {
+        console.progress("Git Destination: Checking out " + fetch);
+        // If baseline is not null we sync first to the baseline and apply the changes on top of
+        // that. Then we will rebase the new change to FETCH_HEAD.
+        scratchClone.simpleCommand("checkout", "-q", baseline != null ? baseline : "FETCH_HEAD");
+      }
+
+      if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
+        scratchClone.simpleCommand("config", "user.name", gitOptions.gitCommitterName);
+      }
+      if (!Strings.isNullOrEmpty(gitOptions.gitCommitterEmail)) {
+        scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
+      }
+      verifyUserInfoConfigured(scratchClone);
+
+      console.progress("Git Destination: Adding files for push");
+      GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
+      alternate.simpleCommand("add", "--all");
+
+      new AddMatchingFilesToIndexVisitor(scratchClone, transformResult.getExcludedDestinationPaths())
+          .walk();
+
+      if (askConfirmation) {
+        // TODO(danielromero): Show diff using git global config
+        if (!console.promptConfirmation(
+                String.format("Proceed with push to %s %s?", repoUrl, push))) {
+          console.info("Migration aborted by user. Local copy of the transformed code: "
+              + alternate.getGitDir());
+          throw new ChangeRejectedException("User aborted execution: did not confirm diff changes.");
+        }
+      }
+
+      alternate.simpleCommand("commit",
+          "--author", transformResult.getAuthor().toString(),
+          "--date", transformResult.getTimestamp() + " +0000",
+          "-m", commitGenerator.message(transformResult, alternate));
+      console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
+
+      if (baseline != null) {
+        alternate.rebase("FETCH_HEAD");
+      }
+
+      // Git push writes to Stderr
+      processPushOutput.process(
+          alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push).getStderr());
     }
-
-    alternate.simpleCommand("commit",
-        "--author", transformResult.getAuthor().toString(),
-        "--date", transformResult.getTimestamp() + " +0000",
-        "-m", commitGenerator.message(transformResult, alternate));
-    console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
-
-    if (baseline != null) {
-      alternate.rebase("FETCH_HEAD");
-    }
-
-    // Git push writes to Stderr
-    processPushOutput.process(
-        alternate.simpleCommand("push", repoUrl, "HEAD:" + this.push).getStderr());
   }
 
   private GitRepository cloneBaseline() throws RepoException {

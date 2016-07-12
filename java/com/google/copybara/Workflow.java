@@ -130,6 +130,7 @@ public final class Workflow<R extends Origin.Reference> {
   final class RunHelper {
     private final Path workdir;
     private final R resolvedRef;
+    private final Destination.Writer writer;
 
     /**
      * @param workdir working directory to use for the transformations
@@ -138,6 +139,7 @@ public final class Workflow<R extends Origin.Reference> {
     RunHelper(Path workdir, R resolvedRef) {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
+      this.writer = destination.newWriter();
     }
 
     R getResolvedRef() {
@@ -223,7 +225,7 @@ public final class Workflow<R extends Origin.Reference> {
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
-      destination.process(transformResult, processConsole);
+      writer.write(transformResult, processConsole);
     }
 
     /**

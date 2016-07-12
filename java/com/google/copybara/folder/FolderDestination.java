@@ -42,36 +42,45 @@ public class FolderDestination implements Destination {
   }
 
   @Override
-  public void process(TransformResult transformResult, Console console)
+  public Writer newWriter() {
+    return new WriterImpl();
+  }
+
+  private class WriterImpl implements Writer {
+    @Override
+    public void write(TransformResult transformResult, Console console)
       throws RepoException, IOException {
-    console.progress("FolderDestination: creating " + localFolder);
-    try {
-      Files.createDirectories(localFolder);
-    } catch (FileAlreadyExistsException e) {
-      // This exception message is particularly bad and we don't want to treat it as unhandled
-      throw new RepoException("Cannot create '" + localFolder + "' because '" + e.getFile()
-          + "' already exists and is not a directory");
-    }
-    console.progress("FolderDestination: deleting previous data from " + localFolder);
+      console.progress("FolderDestination: creating " + localFolder);
+      try {
+        Files.createDirectories(localFolder);
+      } catch (FileAlreadyExistsException e) {
+        // This exception message is particularly bad and we don't want to treat it as unhandled
+        throw new RepoException("Cannot create '" + localFolder + "' because '" + e.getFile()
+            + "' already exists and is not a directory");
+      }
+      console.progress("FolderDestination: deleting previous data from " + localFolder);
 
-    FileUtil.deleteFilesRecursively(localFolder,
-        FileUtil.notPathMatcher(
-            transformResult.getExcludedDestinationPaths().relativeTo(localFolder)));
+      FileUtil.deleteFilesRecursively(localFolder,
+          FileUtil.notPathMatcher(
+              transformResult.getExcludedDestinationPaths().relativeTo(localFolder)));
 
-    console.progress(
-        "FolderDestination: Copying contents of the workdir to " + localFolder);
-    try {
-      // Life is too short to implement a recursive copy in Java... Let's wait until
-      // we need Windows support. This also should be faster than copy and we don't need the
-      // workdir after the destination is executed.
-      CommandUtil.executeCommand(
-          new Command(new String[]{"/bin/sh", "-cxv",
-              "cp -aR * " + ShellUtils.shellEscape(localFolder.toString())},
-              ImmutableMap.<String, String>of(), transformResult.getPath().toFile()), verbose);
-    } catch (CommandException e) {
-      throw new RepoException(
-          "Cannot copy contents of " + transformResult.getPath() + " to " + localFolder,
-          e);
+      console.progress(
+          "FolderDestination: Copying contents of the workdir to " + localFolder);
+      try {
+        // Life is too short to implement a recursive copy in Java... Let's wait until
+        // we need Windows support. This also should be faster than copy and we don't need the
+        // workdir after the destination is executed.
+        CommandUtil.executeCommand(
+            new Command(new String[] {
+                    "/bin/sh", "-cxv",
+                    "cp -aR * " + ShellUtils.shellEscape(localFolder.toString())
+                },
+                ImmutableMap.<String, String>of(), transformResult.getPath().toFile()), verbose);
+      } catch (CommandException e) {
+        throw new RepoException(
+            "Cannot copy contents of " + transformResult.getPath() + " to " + localFolder,
+            e);
+      }
     }
   }
 

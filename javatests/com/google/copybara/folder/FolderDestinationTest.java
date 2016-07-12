@@ -48,7 +48,8 @@ public class FolderDestinationTest {
 
   private void process() throws ConfigValidationException, RepoException, IOException {
     yaml.withOptions(options.build(), CONFIG_NAME, /*askConfirmation*/ false)
-        .process(
+        .newWriter()
+        .write(
             TransformResults.of(
                 workdir, new DummyReference("origin_ref"), excludedPathsForDeletion),
             options.general.console());

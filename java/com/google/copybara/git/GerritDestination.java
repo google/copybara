@@ -89,8 +89,8 @@ public final class GerritDestination implements Destination {
   }
 
   @Override
-  public void process(TransformResult transformResult, Console console) throws RepoException {
-    gitDestination.process(transformResult, console);
+  public Writer newWriter() {
+    return gitDestination.newWriter();
   }
 
   @Nullable
