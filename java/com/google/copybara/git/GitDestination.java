@@ -6,6 +6,7 @@ import static com.google.copybara.git.GitOptions.GIT_FIRST_COMMIT_FLAG;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -141,8 +142,7 @@ public final class GitDestination implements Destination {
           String.format("Proceed with push to %s %s?", repoUrl, push))) {
         console.info("Migration aborted by user. Local copy of the transformed code: "
             + alternate.getGitDir());
-        // TODO(danielromero): This should probably be replaced by a more meaningful exception
-        throw new RepoException("User aborted execution: did not confirm diff changes.");
+        throw new ChangeRejectedException("User aborted execution: did not confirm diff changes.");
       }
     }
 

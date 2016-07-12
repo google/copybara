@@ -17,12 +17,12 @@ public enum ExitCode {
    */
   CONFIGURATION_ERROR(2),
   /**
-   * An error that happened in the Origin/Destination repository.
+   * An error that happened during repository manipulation.
    */
   REPOSITORY_ERROR(3),
   /**
-   * Any error transient or permanent due to the enviroment (Error accessing the network, filesystem
-   * errors, etc.)
+   * Any error transient or permanent due to the environment (Error accessing the network,
+   * filesystem errors, etc.)
    */
   ENVIRONMENT_ERROR(30),
   /**
