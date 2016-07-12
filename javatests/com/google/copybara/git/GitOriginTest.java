@@ -18,8 +18,8 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitOrigin.GitReference;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.util.console.testing.AssertingConsole;
-import com.google.copybara.util.console.testing.AssertingConsole.MessageType;
+import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -276,8 +276,8 @@ public class GitOriginTest {
 
     options.git.gitOriginUrl = "file://" + remote.toFile().getAbsolutePath();
 
-    AssertingConsole assertingConsole = new AssertingConsole();
-    options.setConsole(assertingConsole);
+    TestingConsole testingConsole = new TestingConsole();
+    options.setConsole(testingConsole);
     origin = yaml.withOptions(options.build(), DEFAULT_AUTHORING, env);
 
     Change<GitReference> cliHead = origin.change(origin.resolve("HEAD"));
@@ -291,7 +291,7 @@ public class GitOriginTest {
         .containsFile("cli_remote.txt", "some change")
         .containsNoMoreFiles();
 
-    assertingConsole.assertNextMatches(MessageType.WARNING,
+    testingConsole.assertNextMatches(MessageType.WARNING,
         "Git origin URL overwritten in the command line as " + options.git.gitOriginUrl);
   }
 

@@ -13,9 +13,11 @@ import java.util.Arrays;
 import javax.annotation.Nullable;
 
 /**
- * A console which allows asserting on the messages that were sent to it.
+ * A console for testing purposes that does not perform any I/O operations.
+ *
+ * <p>Allows programming the user input, and asserting on the output messages.
  */
-public final class AssertingConsole implements Console {
+public final class TestingConsole implements Console {
   private static final class Message {
     private final MessageType type;
     private final String text;
@@ -37,14 +39,14 @@ public final class AssertingConsole implements Console {
   private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
   private final ArrayDeque<Message> messages = new ArrayDeque<>();
 
-  public AssertingConsole(PromptResponse... programmedResponses) {
+  public TestingConsole(PromptResponse... programmedResponses) {
     this.programmedResponses.addAll(Arrays.asList(programmedResponses));
   }
 
   /**
    * Asserts the next message matches some regex.
    */
-  public AssertingConsole assertNextMatches(String regex) {
+  public TestingConsole assertNextMatches(String regex) {
     return assertNextMatches(/*type*/ null, regex);
   }
 
@@ -54,7 +56,7 @@ public final class AssertingConsole implements Console {
    * @param type the type of the message, or {@code null} to allow any type
    * @param regex a regex which must fully match the next message.
    */
-  public AssertingConsole assertNextMatches(@Nullable MessageType type, String regex) {
+  public TestingConsole assertNextMatches(@Nullable MessageType type, String regex) {
     assertWithMessage("no more console messages")
         .that(messages)
         .isNotEmpty();
@@ -69,7 +71,7 @@ public final class AssertingConsole implements Console {
     return this;
   }
 
-  public AssertingConsole assertNoMore() {
+  public TestingConsole assertNoMore() {
     assertThat(messages).isEmpty();
     return this;
   }

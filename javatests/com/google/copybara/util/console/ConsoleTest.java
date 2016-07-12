@@ -3,7 +3,7 @@ package com.google.copybara.util.console;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import com.google.copybara.util.console.testing.AssertingConsole;
+import com.google.copybara.util.console.testing.TestingConsole;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -80,7 +80,7 @@ public class ConsoleTest {
 
   @Test
   public void progressPrefix() throws Exception {
-    AssertingConsole delegate = new AssertingConsole();
+    TestingConsole delegate = new TestingConsole();
     Console console = new ProgressPrefixConsole("FOO ", delegate);
     console.progress("bar");
 

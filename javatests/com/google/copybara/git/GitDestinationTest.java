@@ -17,9 +17,9 @@ import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
-import com.google.copybara.util.console.testing.AssertingConsole;
-import com.google.copybara.util.console.testing.AssertingConsole.MessageType;
-import com.google.copybara.util.console.testing.AssertingConsole.PromptResponse;
+import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
+import com.google.copybara.util.console.testing.TestingConsole.PromptResponse;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -39,7 +39,7 @@ public class GitDestinationTest {
   private Yaml yaml;
   private Path repoGitDir;
   private OptionsBuilder options;
-  private AssertingConsole console;
+  private TestingConsole console;
   private ImmutableList<String> excludedDestinationPaths;
 
   @Rule
@@ -53,7 +53,7 @@ public class GitDestinationTest {
     workdir = Files.createTempDirectory("workdir");
     yaml.setUrl("file://" + repoGitDir);
     git("init", "--bare", repoGitDir.toString());
-    console = new AssertingConsole();
+    console = new TestingConsole();
     options = new OptionsBuilder().setConsole(console);
     options.git.gitCommitterEmail = "commiter@email";
     options.git.gitCommitterName = "Bara Kopi";
@@ -151,7 +151,7 @@ public class GitDestinationTest {
 
   @Test
   public void processUserAborts() throws Exception {
-    console = new AssertingConsole(PromptResponse.NO);
+    console = new TestingConsole(PromptResponse.NO);
     yaml.setFetch("master");
     yaml.setPush("master");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
