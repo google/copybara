@@ -11,13 +11,8 @@ import com.google.copybara.RepoException;
 
 import org.joda.time.DateTime;
 
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 
 import javax.annotation.Nullable;
 
@@ -25,14 +20,14 @@ import javax.annotation.Nullable;
  * A reference of a change used for testing. This can be used with a {@link DummyOrigin} instance or
  * without an actual {@link Origin} implementation.
  */
-public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
+public class DummyReference implements Origin.Reference {
 
   private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
   private final String reference;
   private final String message;
   private final Author author;
-  private final Path changesBase;
+  final Path changesBase;
   private final Long timestamp;
   private final ImmutableMap<String, String> labels;
 
@@ -57,24 +52,6 @@ public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
       }
     }
     this.labels = labels.build();
-  }
-
-  @Override
-  public void checkout(final Path workdir) throws RepoException {
-    try {
-      Files.walkFileTree(changesBase, new SimpleFileVisitor<Path>() {
-        @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-            throws IOException {
-          Path destination = workdir.resolve(changesBase.relativize(file).toString());
-          Files.createDirectories(destination.getParent());
-          Files.write(destination, Files.readAllBytes(file));
-          return FileVisitResult.CONTINUE;
-        }
-      });
-    } catch (IOException e) {
-      throw new RepoException("Error copying files", e);
-    }
   }
 
   /**
@@ -106,7 +83,7 @@ public class DummyReference implements Origin.ReferenceFiles<DummyOrigin> {
     return DummyOrigin.LABEL_NAME;
   }
 
-  Change<DummyOrigin> toChange() {
+  Change<DummyReference> toChange() {
     return new Change<>(this, author, message, new DateTime(timestamp), labels);
   }
 

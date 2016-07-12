@@ -89,7 +89,7 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
       return transformResult.getTimestamp();
     }
 
-    public Reference<?> getOriginRef() {
+    public Reference getOriginRef() {
       return transformResult.getOriginRef();
     }
 

@@ -42,7 +42,7 @@ import javax.annotation.Nullable;
 /**
  * A class for manipulating Git repositories
  */
-public final class GitOrigin implements Origin<GitOrigin> {
+public final class GitOrigin implements Origin<GitOrigin.GitReference> {
 
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
@@ -80,8 +80,18 @@ public final class GitOrigin implements Origin<GitOrigin> {
     return repository;
   }
 
+  /**
+   * Creates a worktree with the contents of the git reference
+   *
+   * <p>Any content in the workdir is removed/overwritten.
+   */
   @Override
-  public ReferenceFiles<GitOrigin> resolve(@Nullable String reference) throws RepoException {
+  public void checkout(GitReference ref, Path workdir) throws RepoException {
+    repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", ref.reference);
+  }
+
+  @Override
+  public GitReference resolve(@Nullable String reference) throws RepoException {
     console.progress("Git Origin: Initializing local repo");
     repository.initGitDir();
     String ref;
@@ -107,8 +117,8 @@ public final class GitOrigin implements Origin<GitOrigin> {
   }
 
   @Override
-  public ImmutableList<Change<GitOrigin>> changes(@Nullable Reference<GitOrigin> fromRef,
-      Reference<GitOrigin> toRef) throws RepoException {
+  public ImmutableList<Change<GitReference>> changes(@Nullable GitReference fromRef,
+      GitReference toRef) throws RepoException {
 
     String refRange = fromRef == null
         ? toRef.asString()
@@ -119,14 +129,13 @@ public final class GitOrigin implements Origin<GitOrigin> {
 
 
   @Override
-  public Change<GitOrigin> change(Reference<GitOrigin> ref) throws RepoException {
+  public Change<GitReference> change(GitReference ref) throws RepoException {
     // The limit=1 flag guarantees that only one change is returned
     return Iterables.getOnlyElement(asChanges(new QueryChanges().limit(1).run(ref.asString())));
   }
 
   @Override
-  public void visitChanges(Reference<GitOrigin> start, ChangesVisitor visitor)
-      throws RepoException {
+  public void visitChanges(GitReference start, ChangesVisitor visitor) throws RepoException {
     QueryChanges queryChanges = new QueryChanges().limit(1);
 
     ImmutableList<GitChange> result = queryChanges.run(start.asString());
@@ -187,8 +196,8 @@ public final class GitOrigin implements Origin<GitOrigin> {
         Iterator<String> commitReferences = Splitter.on(" ")
             .split(removePrefix(log, rawCommitLine, "commit")).iterator();
 
-        ReferenceFiles<GitOrigin> ref = new GitReference(commitReferences.next());
-        ImmutableList.Builder<Reference<GitOrigin>> parents = ImmutableList.builder();
+        GitReference ref = new GitReference(commitReferences.next());
+        ImmutableList.Builder<GitReference> parents = ImmutableList.builder();
         while (commitReferences.hasNext()) {
           parents.add(new GitReference(commitReferences.next()));
         }
@@ -220,7 +229,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
           }
           message.append(s, GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
         }
-        Change<GitOrigin> change = new Change<>(ref, resolveAuthor(author), message.toString(),
+        Change<GitReference> change = new Change<>(ref, resolveAuthor(author), message.toString(),
             date, labels.build());
         builder.add(new GitChange(change, parents.build()));
       }
@@ -229,8 +238,8 @@ public final class GitOrigin implements Origin<GitOrigin> {
     }
   }
 
-  private ImmutableList<Change<GitOrigin>> asChanges(ImmutableList<GitChange> gitChanges) {
-    ImmutableList.Builder<Change<GitOrigin>> result = ImmutableList.builder();
+  private ImmutableList<Change<GitReference>> asChanges(ImmutableList<GitChange> gitChanges) {
+    ImmutableList.Builder<Change<GitReference>> result = ImmutableList.builder();
     for (GitChange gitChange : gitChanges) {
       result.add(gitChange.change);
     }
@@ -272,7 +281,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
         .toString();
   }
 
-  private final class GitReference implements ReferenceFiles<GitOrigin> {
+  public final class GitReference implements Reference {
 
     private final String reference;
 
@@ -290,16 +299,6 @@ public final class GitOrigin implements Origin<GitOrigin> {
       } catch (NumberFormatException e) {
         throw new RepoException("Output of git show not a valid long", e);
       }
-    }
-
-    /**
-     * Creates a worktree with the contents of the git reference
-     *
-     * <p>Any content in the workdir is removed/overwritten.
-     */
-    @Override
-    public void checkout(Path workdir) throws RepoException {
-      repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", reference);
     }
 
     @Override
@@ -320,7 +319,7 @@ public final class GitOrigin implements Origin<GitOrigin> {
 
   @DocElement(yamlName = "!GitOrigin", description = "A origin that represents a git repository",
       elementKind = Origin.class, flags = GitOptions.class)
-  public final static class Yaml implements Origin.Yaml<GitOrigin> {
+  public final static class Yaml implements Origin.Yaml<GitReference> {
     private  final Logger logger = Logger.getLogger(this.getClass().getCanonicalName());
     private String url;
     private String ref;
@@ -375,11 +374,10 @@ public final class GitOrigin implements Origin<GitOrigin> {
    */
   private class GitChange {
 
-    private final Change<GitOrigin> change;
-    private final ImmutableList<Reference<GitOrigin>> parents;
+    private final Change<GitReference> change;
+    private final ImmutableList<GitReference> parents;
 
-    public GitChange(Change<GitOrigin> change,
-        ImmutableList<Reference<GitOrigin>> parents) {
+    public GitChange(Change<GitReference> change, ImmutableList<GitReference> parents) {
       this.change = change;
       this.parents = parents;
     }

@@ -3,21 +3,21 @@ package com.google.copybara;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.Origin.ReferenceFiles;
+import com.google.copybara.Origin.Reference;
 
 import org.joda.time.DateTime;
 
 /**
  * Represents a change in a Repository
  */
-public final class Change<T extends Origin<T>> {
+public final class Change<R extends Origin.Reference> {
 
-  private final ReferenceFiles<T> reference;
+  private final R reference;
   private final Author author;
   private final String message;
   private final DateTime date;
   private final ImmutableMap<String, String> labels;
-  public Change(ReferenceFiles<T> reference, Author author, String message, DateTime date,
+  public Change(R reference, Author author, String message, DateTime date,
       ImmutableMap<String, String> labels) {
     this.reference = Preconditions.checkNotNull(reference);
     this.author = Preconditions.checkNotNull(author);
@@ -29,7 +29,7 @@ public final class Change<T extends Origin<T>> {
   /**
    * Reference of the change. For example a SHA-1 reference in git.
    */
-  public ReferenceFiles<T> getReference() {
+  public R getReference() {
     return reference;
   }
 

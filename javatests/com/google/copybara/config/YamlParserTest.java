@@ -11,6 +11,7 @@ import com.google.copybara.Destination;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.Workflow;
@@ -251,7 +252,7 @@ public class YamlParserTest {
     yaml.withOptions(options);
   }
 
-  public static class MockOrigin implements Origin.Yaml<MockOrigin>, Origin<MockOrigin> {
+  public static class MockOrigin implements Origin.Yaml<Reference>, Origin<Reference> {
 
     private String url;
     private String branch;
@@ -271,24 +272,28 @@ public class YamlParserTest {
     }
 
     @Override
-    public ReferenceFiles<MockOrigin> resolve(@Nullable String reference) throws RepoException {
+    public void checkout(Reference ref, Path workdir) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public ImmutableList<Change<MockOrigin>> changes(@Nullable Reference<MockOrigin> fromRef,
-        Reference<MockOrigin> toRef) throws RepoException {
+    public Reference resolve(@Nullable String reference) throws RepoException {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Change<MockOrigin> change(Reference<MockOrigin> ref) throws RepoException {
+    public ImmutableList<Change<Reference>> changes(
+        @Nullable Reference fromRef, Reference toRef) throws RepoException {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public void visitChanges(Reference<MockOrigin> start, ChangesVisitor visitor)
-        throws RepoException {
+    public Change<Reference> change(Reference ref) throws RepoException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void visitChanges(Reference start, ChangesVisitor visitor) throws RepoException {
       throw new UnsupportedOperationException();
     }
 

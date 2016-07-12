@@ -2,21 +2,22 @@
 package com.google.copybara.testing;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Change;
-import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +27,7 @@ import javax.annotation.Nullable;
  * An origin for testing with very basic features. It allows specifying the timestamp of references
  * and populates the workdir with a single file.
  */
-public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
+public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
 
   private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
@@ -81,8 +82,25 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   @Override
-  public ReferenceFiles<DummyOrigin> resolve(@Nullable final String reference)
-      throws RepoException {
+  public void checkout(DummyReference ref, final Path workdir) throws RepoException {
+    try {
+      Files.walkFileTree(ref.changesBase, new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+            throws IOException {
+          Path destination = workdir.resolve(ref.changesBase.relativize(file).toString());
+          Files.createDirectories(destination.getParent());
+          Files.write(destination, Files.readAllBytes(file));
+          return FileVisitResult.CONTINUE;
+        }
+      });
+    } catch (IOException e) {
+      throw new RepoException("Error copying files", e);
+    }
+  }
+
+  @Override
+  public DummyReference resolve(@Nullable final String reference) throws RepoException {
     int idx = changes.size() - 1;
     if (reference != null) {
       try {
@@ -99,12 +117,12 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   @Override
-  public ImmutableList<Change<DummyOrigin>> changes(Reference<DummyOrigin> oldRef,
-      @Nullable Reference<DummyOrigin> newRef) throws RepoException {
+  public ImmutableList<Change<DummyReference>> changes(
+      DummyReference oldRef, @Nullable DummyReference newRef) throws RepoException {
 
     int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
 
-    ImmutableList.Builder<Change<DummyOrigin>> result = ImmutableList.builder();
+    ImmutableList.Builder<Change<DummyReference>> result = ImmutableList.builder();
     while (current < changes.size()) {
       DummyReference ref = changes.get(current);
       result.add(ref.toChange());
@@ -117,7 +135,7 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   @Override
-  public Change<DummyOrigin> change(Reference<DummyOrigin> ref) throws RepoException {
+  public Change<DummyReference> change(DummyReference ref) throws RepoException {
     int idx = Integer.parseInt(ref.asString());
     DummyReference dummyRef;
     try {
@@ -129,8 +147,7 @@ public class DummyOrigin implements Origin<DummyOrigin>, Origin.Yaml {
   }
 
   @Override
-  public void visitChanges(Reference<DummyOrigin> start, ChangesVisitor visitor)
-      throws RepoException {
+  public void visitChanges(DummyReference start, ChangesVisitor visitor) throws RepoException {
     boolean found = false;
     for (DummyReference change : Lists.reverse(changes)) {
       if (change.equals(start)) {

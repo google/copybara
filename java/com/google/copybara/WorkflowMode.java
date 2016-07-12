@@ -24,7 +24,7 @@ public enum WorkflowMode {
   @DocField(description = "Create a single commit in the destination with new tree state.")
   SQUASH {
     @Override
-    <O extends Origin<O>> void run(Workflow<O>.RunHelper runHelper)
+    <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
         throws RepoException, IOException, EnvironmentException, ValidationException {
       runHelper.migrate(
           runHelper.getResolvedRef(),
@@ -41,11 +41,11 @@ public enum WorkflowMode {
   @DocField(description = "Import each origin change individually.")
   ITERATIVE {
     @Override
-    <O extends Origin<O>> void run(Workflow<O>.RunHelper runHelper)
+    <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
         throws RepoException, IOException, EnvironmentException, ValidationException {
-      ImmutableList<Change<O>> changes = runHelper.changesSinceLastImport();
+      ImmutableList<Change<R>> changes = runHelper.changesSinceLastImport();
       for (int i = 0; i < changes.size(); i++) {
-        Change<O> change = changes.get(i);
+        Change<R> change = changes.get(i);
         String prefix = String.format(
             "[%2d/%d] Migrating change %s: ", i + 1, changes.size(),
             change.getReference().asString());
@@ -62,7 +62,7 @@ public enum WorkflowMode {
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
     @Override
-    <O extends Origin<O>> void run(Workflow<O>.RunHelper helper)
+    <R extends Origin.Reference> void run(Workflow<R>.RunHelper helper)
         throws RepoException, IOException, EnvironmentException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           helper.workflowOptions().changeBaseline);
@@ -86,7 +86,7 @@ public enum WorkflowMode {
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
-      Change<O> change = helper.getOrigin().change(helper.getResolvedRef());
+      Change<R> change = helper.getOrigin().change(helper.getResolvedRef());
       helper.migrate(helper.getResolvedRef(), change.getAuthor(), helper.getConsole(),
           change.getMessage(), requestParent.get());
     }
@@ -98,12 +98,12 @@ public enum WorkflowMode {
       undocumented = true)
   MIRROR {
     @Override
-    <O extends Origin<O>> void run(Workflow<O>.RunHelper helper)
+    <R extends Origin.Reference> void run(Workflow<R>.RunHelper helper)
         throws RepoException, IOException, EnvironmentException, ValidationException {
       throw new UnsupportedOperationException("WorkflowMode 'MIRROR' not implemented.");
     }
   };
 
-  abstract <O extends Origin<O>> void run(Workflow<O>.RunHelper runHelper)
+  abstract <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
       throws RepoException, IOException, EnvironmentException, ValidationException;
 }

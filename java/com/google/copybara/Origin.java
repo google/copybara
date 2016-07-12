@@ -10,20 +10,20 @@ import javax.annotation.Nullable;
 
 /**
  * A {@code Origin} represents a source control repository from which source is copied.
+ *
+ * @param <R> the origin type of the reference this origin handles
  */
-public interface Origin<O extends Origin<O>> {
+public interface Origin<R extends Origin.Reference> {
 
-  interface Yaml<O extends Origin<O>> {
+  interface Yaml<R extends Reference> {
 
-    Origin<O> withOptions(Options options, Authoring authoring) throws ConfigValidationException;
+    Origin<R> withOptions(Options options, Authoring authoring) throws ConfigValidationException;
   }
 
   /**
    * A reference of Origin. For example in Git it would be a referenc to a commit SHA-1.
-   *
-   * @param <O> the origin type of the reference
    */
-  interface Reference<O extends Origin<O>> {
+  interface Reference {
 
     /**
      * Reads the timestamp of this reference from the repository, or {@code null} if this repo type
@@ -48,19 +48,13 @@ public interface Origin<O extends Origin<O>> {
   }
 
   /**
-   * A reference of origin that allows checkouts.
+   * Checks out the reference {@code ref} from the repository into {@code workdir} directory. This
+   * method is not on {@link Reference} in order to prevent {@link Destination} implementations from
+   * getting access to the code pre-transformation.
    *
-   * @param <O> the origin type of the reference
+   * @throws RepoException if any error happens during the checkout or workdir preparation.
    */
-  interface ReferenceFiles<O extends Origin<O>> extends Reference<O> {
-
-    /**
-     * Checks out the reference from the repository into {@code workdir} directory.
-     *
-     * @throws RepoException if any error happens during the checkout or workdir preparation.
-     */
-    void checkout(Path workdir) throws RepoException;
-  }
+  void checkout(R ref, Path workdir) throws RepoException;
 
   /**
    * Resolves a reference using the {@code Origin} configuration and flags
@@ -69,7 +63,7 @@ public interface Origin<O extends Origin<O>> {
    * Origin.
    * @throws RepoException if any error happens during the resolve.
    */
-  ReferenceFiles<O> resolve(@Nullable String reference) throws RepoException;
+  R resolve(@Nullable String reference) throws RepoException;
 
   /**
    * Returns the changes that happen in the interval (fromRef, toRef].
@@ -83,8 +77,7 @@ public interface Origin<O extends Origin<O>> {
    * @throws CannotComputeChangesException if the change list cannot be computed.
    * @throws RepoException if any error happens during the computation of the diff.
    */
-  ImmutableList<Change<O>> changes(@Nullable Reference<O> fromRef, Reference<O> toRef)
-      throws RepoException;
+  ImmutableList<Change<R>> changes(@Nullable R fromRef, R toRef) throws RepoException;
 
   /**
    * Returns a change identified by {@code ref}.
@@ -93,7 +86,7 @@ public interface Origin<O extends Origin<O>> {
    * @throws CannotFindReferenceException if the ref is invalid.
    * @throws RepoException if any error happens during the computation of the diff.
    */
-  Change<O> change(Reference<O> ref) throws RepoException;
+  Change<R> change(R ref) throws RepoException;
 
   /**
    * Visit the parents of {@code start} reference recursively and call the visitor for each change.
@@ -102,8 +95,7 @@ public interface Origin<O extends Origin<O>> {
    *
    * <p>It is up to the Origin how and what changes it provides to the function.
    */
-  void visitChanges(Reference<O> start, ChangesVisitor visitor)
-      throws RepoException;
+  void visitChanges(R start, ChangesVisitor visitor) throws RepoException;
 
   /**
    * A visitor of changes. An implementation of this interface is provided to the {@link

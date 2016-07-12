@@ -37,7 +37,7 @@ public class DummyOriginTest {
     DummyOrigin origin = new DummyOrigin()
         .addSimpleChange(/*timestamp*/ 4242, "foo msg");
 
-    ImmutableList<Change<DummyOrigin>> changes =
+    ImmutableList<Change<DummyReference>> changes =
         origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0"));
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getMessage()).isEqualTo("foo msg");
@@ -71,7 +71,7 @@ public class DummyOriginTest {
         .setAuthor(new Author("Wise Origin", "wise_origin@google.com"))
         .addSimpleChange(/*timestamp*/ 999);
 
-    ImmutableList<Change<DummyOrigin>> changes =
+    ImmutableList<Change<DummyReference>> changes =
         origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"));
 
     assertThat(changes).hasSize(2);

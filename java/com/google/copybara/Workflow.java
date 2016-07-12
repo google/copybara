@@ -5,7 +5,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Origin.ReferenceFiles;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -31,13 +31,13 @@ import javax.annotation.Nullable;
  * Represents a particular migration operation that can occur for a project. Each project can have
  * multiple workflows. Each workflow has a particular origin and destination.
  */
-public final class Workflow<O extends Origin<O>> {
+public final class Workflow<R extends Origin.Reference> {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   private final String configName;
   private final String name;
-  private final Origin<O> origin;
+  private final Origin<R> origin;
   private final Destination destination;
   private final Authoring authoring;
   private final Transformation transformation;
@@ -50,7 +50,7 @@ public final class Workflow<O extends Origin<O>> {
   private final boolean includeChangeListNotes;
   private final WorkflowOptions workflowOptions;
 
-  private Workflow(String configName, String name, Origin<O> origin, Destination destination,
+  private Workflow(String configName, String name, Origin<R> origin, Destination destination,
       Authoring authoring, Transformation transformation, @Nullable String lastRevisionFlag,
       Console console, PathMatcherBuilder excludedOriginPaths,
       PathMatcherBuilder excludedDestinationPaths, WorkflowMode mode,
@@ -78,7 +78,7 @@ public final class Workflow<O extends Origin<O>> {
   /**
    * The repository that represents the source of truth
    */
-  public Origin<O> getOrigin() {
+  public Origin<R> getOrigin() {
     return origin;
   }
 
@@ -103,7 +103,7 @@ public final class Workflow<O extends Origin<O>> {
 
     console.progress("Getting last revision: "
         + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
-    ReferenceFiles<O> resolvedRef = origin.resolve(sourceRef);
+    R resolvedRef = origin.resolve(sourceRef);
     logger.log(Level.INFO,
         String.format(
             "Running Copybara for config '%s', workflow '%s' and ref '%s': %s",
@@ -129,18 +129,18 @@ public final class Workflow<O extends Origin<O>> {
 
   final class RunHelper {
     private final Path workdir;
-    private final ReferenceFiles<O> resolvedRef;
+    private final R resolvedRef;
 
     /**
      * @param workdir working directory to use for the transformations
      * @param resolvedRef reference to migrate
      */
-    RunHelper(Path workdir, ReferenceFiles<O> resolvedRef) {
+    RunHelper(Path workdir, R resolvedRef) {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
     }
 
-    ReferenceFiles<O> getResolvedRef() {
+    R getResolvedRef() {
       return resolvedRef;
     }
 
@@ -167,7 +167,7 @@ public final class Workflow<O extends Origin<O>> {
       return destination;
     }
 
-    Origin<O> getOrigin() {
+    Origin<R> getOrigin() {
       return origin;
     }
 
@@ -181,19 +181,19 @@ public final class Workflow<O extends Origin<O>> {
      * @param processConsole console to use to print progress messages
      * @param message change message to write to the destination
      */
-    void migrate(ReferenceFiles<O> ref, Author author, Console processConsole, String message)
+    void migrate(R ref, Author author, Console processConsole, String message)
         throws EnvironmentException, IOException, RepoException, ValidationException {
       migrate(ref, author, processConsole, message, /*destinationBaseline=*/ null);
     }
 
-    void migrate(ReferenceFiles<O> ref, Author author, Console processConsole, String message,
+    void migrate(R ref, Author author, Console processConsole, String message,
         @Nullable String destinationBaseline)
         throws EnvironmentException, IOException, RepoException, ValidationException {
       processConsole.progress("Cleaning working directory");
       FileUtil.deleteAllFilesRecursively(workdir);
 
       processConsole.progress("Checking out the change");
-      ref.checkout(workdir);
+      origin.checkout(ref, workdir);
 
       // Remove excluded origin files.
       if (!excludedOriginPaths.isEmpty()) {
@@ -218,8 +218,8 @@ public final class Workflow<O extends Origin<O>> {
         throw new EnvironmentException("Error applying transformation: " + transformation, e);
       }
 
-      TransformResult transformResult = new TransformResult(workdir, ref, author, message,
-          excludedDestinationPaths);
+      TransformResult transformResult =
+          new TransformResult(workdir, ref, author, message, excludedDestinationPaths);
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
@@ -237,8 +237,8 @@ public final class Workflow<O extends Origin<O>> {
           getChangeListNotes());
     }
 
-    ImmutableList<Change<O>> changesSinceLastImport() throws RepoException {
-      ReferenceFiles<O> lastRev = getLastRev();
+    ImmutableList<Change<R>> changesSinceLastImport() throws RepoException {
+      R lastRev = getLastRev();
       if (lastRev == null) {
         throw new RepoException(String.format(
                 "Previous revision label %s could not be found in %s and --last-rev flag"
@@ -254,7 +254,7 @@ public final class Workflow<O extends Origin<O>> {
      * <p>If {@code --last-rev} is specified, that revision will be used. Otherwise, the previous
      * reference will be resolved in the destination with the origin label.
      */
-    @Nullable private ReferenceFiles<O> getLastRev() throws RepoException {
+    @Nullable private R getLastRev() throws RepoException {
       if (lastRevisionFlag != null) {
         try {
           return origin.resolve(lastRevisionFlag);
@@ -274,14 +274,14 @@ public final class Workflow<O extends Origin<O>> {
       if (!includeChangeListNotes) {
         return "";
       }
-      ReferenceFiles<O> lastRev = getLastRev();
+      R lastRev = getLastRev();
       if (lastRev == null) {
         logger.log(Level.WARNING, "Previous reference couldn't be resolved");
         return "(List of included changes could not be computed)\n";
       }
 
       StringBuilder result = new StringBuilder("List of included changes:\n");
-      for (Change<O> change : origin.changes(lastRev, resolvedRef)) {
+      for (Change<R> change : origin.changes(lastRev, resolvedRef)) {
         result.append(String.format("  - %s %s by %s\n",
             change.getReference().asString(),
             change.firstLineMessage(),

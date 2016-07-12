@@ -12,10 +12,10 @@ import com.google.copybara.Authoring;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.ChangesVisitor;
-import com.google.copybara.Origin.ReferenceFiles;
 import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.git.GitOrigin.GitReference;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.testing.AssertingConsole;
@@ -90,7 +90,7 @@ public class GitOriginTest {
   @Test
   public void testCheckout() throws IOException, RepoException {
     // Check that we get can checkout a branch
-    origin.resolve("master").checkout(workdir);
+    origin.checkout(origin.resolve("master"), workdir);
     Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
@@ -100,7 +100,7 @@ public class GitOriginTest {
     git("add", "test.txt");
     git("commit", "-m", "second commit");
 
-    origin.resolve("master").checkout(workdir);
+    origin.checkout(origin.resolve("master"), workdir);
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("new content");
 
@@ -108,22 +108,22 @@ public class GitOriginTest {
     Files.delete(remote.resolve("test.txt"));
     git("rm", "test.txt");
     git("commit", "-m", "third commit");
-    origin.resolve("master").checkout(workdir);
+    origin.checkout(origin.resolve("master"), workdir);
 
     assertThat(Files.exists(testFile)).isFalse();
   }
 
   @Test
   public void testCheckoutWithLocalModifications() throws IOException, RepoException {
-    ReferenceFiles<GitOrigin> master = origin.resolve("master");
-    master.checkout(workdir);
+    GitReference master = origin.resolve("master");
+    origin.checkout(master, workdir);
     Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
     Files.delete(testFile);
 
-    master.checkout(workdir);
+    origin.checkout(master, workdir);
 
     // The deletion in the workdir should not matter, since we should override in the next
     // checkout
@@ -132,8 +132,8 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutOfARef() throws IOException, RepoException {
-    ReferenceFiles<GitOrigin> reference = origin.resolve(firstCommitRef);
-    reference.checkout(workdir);
+    GitReference reference = origin.resolve(firstCommitRef);
+    origin.checkout(reference, workdir);
     Path testFile = workdir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
@@ -148,14 +148,14 @@ public class GitOriginTest {
     singleFileCommit(author, "change3", "test.txt", "some content3");
     singleFileCommit(author, "change4", "test.txt", "some content4");
 
-    ImmutableList<Change<GitOrigin>> changes = origin
+    ImmutableList<Change<GitReference>> changes = origin
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("change2\n");
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
-    for (Change<GitOrigin> change : changes) {
+    for (Change<GitReference> change : changes) {
       assertThat(change.getAuthor().toString()).isEqualTo(author);
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
@@ -164,7 +164,7 @@ public class GitOriginTest {
 
   @Test
   public void testNoChanges() throws IOException, RepoException {
-    ImmutableList<Change<GitOrigin>> changes = origin
+    ImmutableList<Change<GitReference>> changes = origin
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
     assertThat(changes).isEmpty();
@@ -175,8 +175,8 @@ public class GitOriginTest {
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "change2", "test.txt", "some content2");
 
-    ReferenceFiles<GitOrigin> lastCommitRef = getLastCommitRef();
-    Change<GitOrigin> change = origin.change(lastCommitRef);
+    GitReference lastCommitRef = getLastCommitRef();
+    Change<GitReference> change = origin.change(lastCommitRef);
 
     assertThat(change.getAuthor().toString()).isEqualTo(author);
     assertThat(change.firstLineMessage()).isEqualTo("change2");
@@ -200,7 +200,7 @@ public class GitOriginTest {
     singleFileCommit(author, "one", "test.txt", "some content1");
     singleFileCommit(author, "two", "test.txt", "some content2");
     singleFileCommit(author, "three", "test.txt", "some content3");
-    ReferenceFiles<GitOrigin> lastCommitRef = getLastCommitRef();
+    GitReference lastCommitRef = getLastCommitRef();
     final List<Change<?>> visited = new ArrayList<>();
     origin.visitChanges(lastCommitRef,
         new ChangesVisitor() {
@@ -222,7 +222,7 @@ public class GitOriginTest {
   @Test
   public void testVisitMerge() throws IOException, RepoException {
     createBranchMerge("John Name <john@name.com>");
-    ReferenceFiles<GitOrigin> lastCommitRef = getLastCommitRef();
+    GitReference lastCommitRef = getLastCommitRef();
     final List<Change<?>> visited = new ArrayList<>();
     origin.visitChanges(lastCommitRef,
         new ChangesVisitor() {
@@ -250,8 +250,8 @@ public class GitOriginTest {
 
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "change2", "test.txt", "some content2");
-    ReferenceFiles<GitOrigin> lastCommitRef = getLastCommitRef();
-    Change<GitOrigin> change = origin.change(lastCommitRef);
+    GitReference lastCommitRef = getLastCommitRef();
+    Change<GitReference> change = origin.change(lastCommitRef);
 
     assertThat(change.getAuthor().toString()).isEqualTo(author);
 
@@ -280,9 +280,9 @@ public class GitOriginTest {
     options.setConsole(assertingConsole);
     origin = yaml.withOptions(options.build(), DEFAULT_AUTHORING, env);
 
-    Change<GitOrigin> cliHead = origin.change(origin.resolve("HEAD"));
+    Change<GitReference> cliHead = origin.change(origin.resolve("HEAD"));
 
-    cliHead.getReference().checkout(workdir);
+    origin.checkout(cliHead.getReference(), workdir);
 
     assertThat(cliHead.firstLineMessage()).isEqualTo("a change from somewhere");
 
@@ -303,14 +303,14 @@ public class GitOriginTest {
     String author = "John Name <john@name.com>";
     createBranchMerge(author);
 
-    ImmutableList<Change<GitOrigin>> changes = origin
+    ImmutableList<Change<GitReference>> changes = origin
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
     assertThat(changes.get(1).getMessage()).isEqualTo("master2\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("Merge branch 'feature'\n");
-    for (Change<GitOrigin> change : changes) {
+    for (Change<GitReference> change : changes) {
       assertThat(change.getAuthor().toString()).isEqualTo(author);
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
@@ -335,7 +335,7 @@ public class GitOriginTest {
     Files.write(remote.resolve("test2.txt"), "some more content".getBytes());
     git("add", "test2.txt");
     git("commit", "-m", "second file", "--date=1400110011");
-    ReferenceFiles<GitOrigin> master = origin.resolve("master");
+    GitReference master = origin.resolve("master");
     assertThat(master.readTimestamp()).isEqualTo(1400110011L);
   }
 
@@ -343,19 +343,19 @@ public class GitOriginTest {
   public void testColor() throws RepoException, IOException {
     git("config", "--global", "color.ui", "always");
 
-    ReferenceFiles<GitOrigin> firstRef = origin.resolve(firstCommitRef);
+    GitReference firstRef = origin.resolve(firstCommitRef);
 
     Files.write(remote.resolve("test.txt"), "new content".getBytes());
     git("add", "test.txt");
     git("commit", "-m", "second commit");
-    ReferenceFiles<GitOrigin> secondRef = origin.resolve("HEAD");
+    GitReference secondRef = origin.resolve("HEAD");
 
     assertThat(origin.change(firstRef).getMessage()).contains("first file");
     assertThat(origin.changes(null, secondRef)).hasSize(2);
     assertThat(origin.changes(firstRef, secondRef)).hasSize(1);
   }
 
-  private ReferenceFiles<GitOrigin> getLastCommitRef() throws RepoException {
+  private GitReference getLastCommitRef() throws RepoException {
     String head = git("rev-parse", "HEAD");
     String lastCommit = head.substring(0, head.length() -1);
     return origin.resolve(lastCommit);
