@@ -68,7 +68,7 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
   }
 
   @Override
-  public Destination withOptions(Options options, String configName) {
+  public Destination withOptions(Options options, String configName, boolean askConfirmation) {
     return this;
   }
 

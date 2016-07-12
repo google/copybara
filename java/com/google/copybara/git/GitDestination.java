@@ -60,20 +60,20 @@ public final class GitDestination implements Destination {
   private final String repoUrl;
   private final String fetch;
   private final String push;
-  private final boolean showDiffConfirmation;
+  private final boolean askConfirmation;
   private final GitOptions gitOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
 
   GitDestination(String configName, String repoUrl, String fetch, String push,
-      boolean showDiffConfirmation, GitOptions gitOptions, boolean verbose,
+      boolean askConfirmation, GitOptions gitOptions, boolean verbose,
       CommitGenerator commitGenerator, ProcessPushOutput processPushOutput) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
-    this.showDiffConfirmation = showDiffConfirmation;
+    this.askConfirmation = askConfirmation;
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
@@ -136,7 +136,7 @@ public final class GitDestination implements Destination {
     new AddMatchingFilesToIndexVisitor(scratchClone, transformResult.getExcludedDestinationPaths())
         .walk();
 
-    if (showDiffConfirmation) {
+    if (askConfirmation) {
       // TODO(danielromero): Show diff using git global config
       if (!console.promptConfirmation(
           String.format("Proceed with push to %s %s?", repoUrl, push))) {
@@ -285,14 +285,16 @@ public final class GitDestination implements Destination {
     }
 
     @Override
-    public GitDestination withOptions(Options options, String configName) throws ConfigValidationException {
+    public GitDestination withOptions(
+        Options options, String configName, boolean askConfirmation)
+        throws ConfigValidationException {
       checkRequiredFields();
       return new GitDestination(
           configName,
           url,
           ConfigValidationException.checkNotMissing(fetch, "fetch"),
           ConfigValidationException.checkNotMissing(push, "push"),
-          showDiffConfirmation,
+          askConfirmation,
           options.get(GitOptions.class),
           options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator(),

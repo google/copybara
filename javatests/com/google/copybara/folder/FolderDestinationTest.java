@@ -47,7 +47,7 @@ public class FolderDestinationTest {
   }
 
   private void process() throws ConfigValidationException, RepoException, IOException {
-    yaml.withOptions(options.build(), CONFIG_NAME)
+    yaml.withOptions(options.build(), CONFIG_NAME, /*askConfirmation*/ false)
         .process(
             TransformResults.of(
                 workdir, new DummyReference("origin_ref"), excludedPathsForDeletion),
@@ -101,6 +101,6 @@ public class FolderDestinationTest {
   public void testFolderDirRequired() throws Exception {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("--folder-dir is required");
-    yaml.withOptions(options.build(), CONFIG_NAME);
+    yaml.withOptions(options.build(), CONFIG_NAME, /*askConfirmation*/ false);
   }
 }

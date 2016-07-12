@@ -315,7 +315,7 @@ public class YamlParserTest {
     }
 
     @Override
-    public Destination withOptions(Options options, String configName)
+    public Destination withOptions(Options options, String configName, boolean askConfirmation)
         throws ConfigValidationException {
       return this;
     }

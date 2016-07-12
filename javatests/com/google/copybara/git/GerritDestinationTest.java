@@ -73,7 +73,7 @@ public class GerritDestinationTest {
   }
 
   private GerritDestination destination() throws ConfigValidationException {
-    return yaml.withOptions(options.build(), CONFIG_NAME);
+    return yaml.withOptions(options.build(), CONFIG_NAME, /*askConfirmation*/ false);
   }
 
   private String lastCommitChangeIdLine() throws Exception {

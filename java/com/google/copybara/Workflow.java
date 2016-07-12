@@ -308,6 +308,7 @@ public final class Workflow<R extends Origin.Reference> {
     private List<String> excludedOriginPaths = new ArrayList<>();
     private List<String> excludedDestinationPaths = new ArrayList<>();
     private Authoring.Yaml authoring;
+    private boolean askConfirmation;
 
     public String getName() {
       return name;
@@ -376,6 +377,13 @@ public final class Workflow<R extends Origin.Reference> {
         this.authoring = authoring;
     }
 
+    @DocField(description = "Indicates that the tool should show the diff and require user's "
+        + "confirmation before making a change in the destination.",
+        required = false, defaultValue = "false")
+    public void setAskConfirmation(boolean askConfirmation) {
+      this.askConfirmation = askConfirmation;
+    }
+
     public Workflow withOptions(Options options, String configName)
         throws ConfigValidationException, EnvironmentException {
 
@@ -389,7 +397,8 @@ public final class Workflow<R extends Origin.Reference> {
 
       Authoring authoring = this.authoring.withOptions(options, configName);
       Origin<?> origin = this.origin.withOptions(options, authoring);
-      Destination destination = this.destination.withOptions(options, configName);
+      Destination destination =
+          this.destination.withOptions(options, configName, askConfirmation);
       Console console = options.get(GeneralOptions.class).console();
       WorkflowOptions workflowOptions = options.get(WorkflowOptions.class);
       PathMatcherBuilder excludedOriginPaths = PathMatcherBuilder.create(

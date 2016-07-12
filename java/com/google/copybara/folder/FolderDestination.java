@@ -93,9 +93,11 @@ public class FolderDestination implements Destination {
   public static class Yaml implements Destination.Yaml {
 
     @Override
-    public Destination withOptions(Options options, String configName) throws ConfigValidationException {
-
+    public Destination withOptions(Options options, String configName, boolean askConfirmation)
+        throws ConfigValidationException {
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
+      generalOptions.console()
+          .warn("Field 'askConfirmation' is ignored in FolderDestination.");
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getFileSystem();
       String localFolderOption = options.get(FolderDestinationOptions.class).localFolder;

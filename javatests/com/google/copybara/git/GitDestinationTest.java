@@ -81,19 +81,18 @@ public class GitDestinationTest {
   }
 
   private GitDestination destinationFirstCommit() throws ConfigValidationException {
-    return destinationFirstCommit(/*showDiffConfirmation*/ false);
+    return destinationFirstCommit(/*askConfirmation*/ false);
   }
 
-  private GitDestination destinationFirstCommit(boolean showDiffConfirmation)
+  private GitDestination destinationFirstCommit(boolean askConfirmation)
       throws ConfigValidationException {
     options.git.gitFirstCommit = true;
-    yaml.setShowDiffConfirmation(showDiffConfirmation);
-    return yaml.withOptions(options.build(), CONFIG_NAME);
+    return yaml.withOptions(options.build(), CONFIG_NAME, askConfirmation);
   }
 
   private GitDestination destination() throws ConfigValidationException {
     options.git.gitFirstCommit = false;
-    return yaml.withOptions(options.build(), CONFIG_NAME);
+    return yaml.withOptions(options.build(), CONFIG_NAME, /*askConfirmation*/ false);
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {
@@ -157,7 +156,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     thrown.expect(RepoException.class);
     thrown.expectMessage("User aborted execution: did not confirm diff changes");
-    process(destinationFirstCommit(/*showDiffConfirmation*/ true),
+    process(destinationFirstCommit(/*askConfirmation*/ true),
         new DummyReference("origin_ref"));
     console
         .assertNextMatches(MessageType.WARNING, "Proceed with push to http://foo.git master\\?")
