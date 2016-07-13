@@ -21,6 +21,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.git.GitRepository.GitReference;
 import com.google.copybara.util.console.Console;
 
 import org.joda.time.DateTime;
@@ -35,15 +36,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
 /**
  * A class for manipulating Git repositories
  */
-public final class GitOrigin implements Origin<GitOrigin.GitReference> {
+public final class GitOrigin implements Origin<GitReference> {
 
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
@@ -51,7 +50,6 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
   private static final DateTimeFormatter dateFormatter = DateTimeFormat.forPattern(
       "yyyy-MM-dd'T'HH:mm:ssZ");
 
-  private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
   private static final String GIT_LOG_COMMENT_PREFIX = "    ";
   private final GitRepository repository;
 
@@ -67,14 +65,16 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
   private final String configRef;
   private final Console console;
   private final Authoring authoring;
+  private final GitRepoType repoType;
 
   private GitOrigin(Console console, GitRepository repository, String repoUrl,
-      @Nullable String configRef, Authoring authoring) {
+      @Nullable String configRef, Authoring authoring, GitRepoType repoType) {
     this.console = Preconditions.checkNotNull(console);
     this.repository = Preconditions.checkNotNull(repository);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.configRef = Preconditions.checkNotNull(configRef);
     this.authoring = Preconditions.checkNotNull(authoring);
+    this.repoType = Preconditions.checkNotNull(repoType);
   }
 
   public GitRepository getRepository() {
@@ -88,7 +88,7 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
    */
   @Override
   public void checkout(GitReference ref, Path workdir) throws RepoException {
-    repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", ref.reference);
+    repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", ref.asString());
   }
 
   @Override
@@ -106,19 +106,19 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
       ref = reference;
     }
     console.progress("Git Origin: Fetching from " + repoUrl);
-    Matcher sha1Matcher = SHA1_PATTERN.matcher(ref);
+
     // This is not strictly necessary for some Git repos that allow fetching from any sha1 ref, like
     // servers configured with 'git config uploadpack.allowReachableSHA1InWant true'. Unfortunately,
     // Github doesn't support it. So what we do is fetch the default refspec (see the comment
     // bellow) and hope the sha1 is reacheable from heads.
-    if (sha1Matcher.matches()) {
+    if (repository.isSha1Reference(ref)) {
       // TODO(malcon): For now we get the default refspec, but we should make this
       // configurable. Otherwise it is not going to work with Gerrit.
       repository.simpleCommand("fetch", "-f", repoUrl);
-      return new GitReference(repository.revParse(ref));
+      return repository.resolveReference(ref);
+    } else {
+      return repoType.resolveRef(repository,repoUrl, ref);
     }
-    repository.simpleCommand("fetch", "-f", repoUrl, ref);
-    return new GitReference(repository.revParse("FETCH_HEAD"));
   }
 
   @Override
@@ -201,10 +201,10 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
         Iterator<String> commitReferences = Splitter.on(" ")
             .split(removePrefix(log, rawCommitLine, "commit")).iterator();
 
-        GitReference ref = new GitReference(commitReferences.next());
+        GitReference ref = repository.createReferenceFromCompleteSha1(commitReferences.next());
         ImmutableList.Builder<GitReference> parents = ImmutableList.builder();
         while (commitReferences.hasNext()) {
-          parents.add(new GitReference(commitReferences.next()));
+          parents.add(repository.createReferenceFromCompleteSha1(commitReferences.next()));
         }
         String line = rawLines.next();
         Author author = null;
@@ -286,42 +286,6 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
         .toString();
   }
 
-  public final class GitReference implements Reference {
-
-    private final String reference;
-
-    private GitReference(String reference) {
-      this.reference = reference;
-    }
-
-    @Override
-    public Long readTimestamp() throws RepoException {
-      // -s suppresses diff output
-      // --format=%at indicates show the author timestamp as the number of seconds from UNIX epoch
-      String stdout = repository.simpleCommand("show", "-s", "--format=%at", reference).getStdout();
-      try {
-        return Long.parseLong(stdout.trim());
-      } catch (NumberFormatException e) {
-        throw new RepoException("Output of git show not a valid long", e);
-      }
-    }
-
-    @Override
-    public String asString() {
-      return reference;
-    }
-
-    @Override
-    public String getLabelName() {
-      return GitOrigin.this.getLabelName();
-    }
-
-    @Override
-    public String toString() {
-      return "GitReference{reference='" + reference + "', repoUrl=" + repoUrl + '}';
-    }
-  }
-
   @DocElement(yamlName = "!GitOrigin", description = "A origin that represents a git repository",
       elementKind = Origin.class, flags = GitOptions.class)
   public final static class Yaml implements Origin.Yaml<GitReference> {
@@ -366,7 +330,7 @@ public final class GitOrigin implements Origin<GitOrigin.GitReference> {
       return new GitOrigin(
           console, GitRepository.bareRepo(gitDir, options, environment),
           getUrl(console, options.get(GitOptions.class).gitOriginUrl),
-          ref, authoring);
+          ref, authoring, type);
     }
 
     private String getUrl(Console console, String commandLineUrl) {

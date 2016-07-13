@@ -11,10 +11,11 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
-import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandOutput;
+import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 
@@ -34,6 +35,9 @@ import javax.annotation.Nullable;
  * A class for manipulating Git repositories
  */
 public final class GitRepository {
+
+  private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
+  private static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
 
   // When used as the environment parameter in GitRepository construction it will
   // pass the current process environment as-is.
@@ -252,5 +256,67 @@ public final class GitRepository {
         .add("workTree", workTree)
         .add("verbose", verbose)
         .toString();
+  }
+
+  /**
+   * Resolve a reference
+   *
+   * @throws CannotFindReferenceException if it cannot resolve the reference
+   */
+  GitReference resolveReference(String reference) throws RepoException {
+    return new GitReference(revParse(reference));
+  }
+
+  /**
+   * Creates a reference from a complete SHA-1 string without any validation that it exists.
+   */
+  GitReference createReferenceFromCompleteSha1(String ref) {
+    Preconditions.checkArgument(isCompleteSha1Reference(ref),
+        "Reference '%s' is not a 40 characters SHA-1", ref);
+    return new GitReference(ref);
+  }
+
+  final class GitReference implements Reference {
+
+    private final String reference;
+
+    private GitReference(String reference) {
+      this.reference = reference;
+    }
+
+    @Override
+    public Long readTimestamp() throws RepoException {
+      // -s suppresses diff output
+      // --format=%at indicates show the author timestamp as the number of seconds from UNIX epoch
+      String stdout = simpleCommand("show", "-s", "--format=%at", reference).getStdout();
+      try {
+        return Long.parseLong(stdout.trim());
+      } catch (NumberFormatException e) {
+        throw new RepoException("Output of git show not a valid long", e);
+      }
+    }
+
+    @Override
+    public String asString() {
+      return reference;
+    }
+
+    @Override
+    public String getLabelName() {
+      return GIT_ORIGIN_REV_ID;
+    }
+
+    @Override
+    public String toString() {
+      return reference;
+    }
+  }
+
+  boolean isSha1Reference(String ref) {
+    return SHA1_PATTERN.matcher(ref).matches();
+  }
+
+  private boolean isCompleteSha1Reference(String ref) {
+    return COMPLETE_SHA1_PATTERN.matcher(ref).matches();
   }
 }
