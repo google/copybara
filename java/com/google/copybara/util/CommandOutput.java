@@ -1,53 +1,36 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util;
 
-import com.google.devtools.build.lib.shell.TerminationStatus;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 
 import java.nio.charset.StandardCharsets;
 
 /**
- * A class that contains a {@link com.google.devtools.build.lib.shell.Command} result.
- *
- * <p>This class is equivalent to {@link com.google.devtools.build.lib.shell.CommandResult} but
- * doesn't fail if the output was not collected and allows to work in stream mode and accumulate the
- * result.
+ * Holds the {@code stdout} and {@code stderr} contents of a command execution.
  */
-public final class CommandOutput {
+public class CommandOutput {
 
-  private final TerminationStatus terminationStatus;
   private final byte[] stdout;
   private final byte[] stderr;
 
-  CommandOutput(TerminationStatus terminationStatus, byte[] stdout, byte[] stderr) {
-    this.terminationStatus = terminationStatus;
-    this.stdout = stdout;
-    this.stderr = stderr;
+  CommandOutput(byte[] stdout, byte[] stderr) {
+    this.stdout = Preconditions.checkNotNull(stdout);
+    this.stderr = Preconditions.checkNotNull(stderr);
   }
 
-  public TerminationStatus getTerminationStatus() {
-    return terminationStatus;
-  }
-
-  /**
-   * Returns stdout as a UTF-8 String.
-   */
   public String getStdout() {
     return new String(stdout, StandardCharsets.UTF_8);
   }
 
-  /**
-   * Returns stderr as a UTF-8 String.
-   */
   public String getStderr() {
     return new String(stderr, StandardCharsets.UTF_8);
   }
 
   @Override
   public String toString() {
-    return "CommandOutput{" +
-        "terminationStatus=" + terminationStatus +
-        ", stdout=" + getStdout() +
-        ", stderr=" + getStderr() +
-        '}';
+    return MoreObjects.toStringHelper(this)
+        .add("stdout", getStdout())
+        .add("stderr", getStderr())
+        .toString();
   }
 }

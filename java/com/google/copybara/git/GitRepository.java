@@ -13,6 +13,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
+import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandOutput;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -141,14 +142,14 @@ public final class GitRepository {
 
   /**
    * Runs a {@code git} command with the {@code --git-dir} and (if non-bare) {@code --work-tree}
-   * args set, and returns the {@link Output} if the command execution was successful.
+   * args set, and returns the {@link CommandOutput} if the command execution was successful.
    *
    * <p>Git commands usually write to stdout, but occasionally they write to stderr. It's
    * responsibility of the client to consume the output from the correct source.
    *
    * @param argv the arguments to pass to {@code git}, starting with the sub-command name
    */
-  public Output simpleCommand(String... argv) throws RepoException {
+  public CommandOutput simpleCommand(String... argv) throws RepoException {
     Preconditions.checkState(Files.isDirectory(gitDir),
         "git repository dir '%s' doesn't exist or is not a directory", gitDir);
 
@@ -182,7 +183,7 @@ public final class GitRepository {
 
   /**
    * Invokes {@code git} in the directory given by {@code cwd} against this repository and returns
-   * the {@link Output} if the command execution was successful.
+   * the {@link CommandOutput} if the command execution was successful.
    *
    * <p>Git commands usually write to stdout, but occasionally they write to stderr. It's
    * responsibility of the client to consume the output from the correct source.
@@ -190,13 +191,13 @@ public final class GitRepository {
    * @param cwd the directory in which to execute the command
    * @param params the argv to pass to Git, excluding the initial {@code git}
    */
-  public Output git(Path cwd, String... params) throws RepoException {
+  public CommandOutput git(Path cwd, String... params) throws RepoException {
     return git(cwd, Arrays.asList(params));
   }
 
   /**
    * Invokes {@code git} in the directory given by {@code cwd} against this repository and returns
-   * the {@link Output} if the command execution was successful.
+   * the {@link CommandOutput} if the command execution was successful.
    *
    * <p>Git commands usually write to stdout, but occasionally they write to stderr. It's
    * responsibility of the client to consume the output from the correct source.
@@ -206,18 +207,18 @@ public final class GitRepository {
    * @param cwd the directory in which to execute the command
    * @param params params the argv to pass to Git, excluding the initial {@code git}
    */
-  public Output git(Path cwd, Iterable<String> params) throws RepoException {
+  public CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
     List<String> allParams = new ArrayList<>();
     allParams.add("git");
     Iterables.addAll(allParams, params);
     try {
-      CommandOutput commandOutput =
+      CommandOutputWithStatus commandOutputWithStatus =
           executeCommand(new Command(allParams.toArray(new String[0]), environment, cwd.toFile()),
               verbose);
-      if (commandOutput.getTerminationStatus().success()) {
-        return new Output(commandOutput);
+      if (commandOutputWithStatus.getTerminationStatus().success()) {
+        return commandOutputWithStatus;
       }
-      throw new RepoException("Error on git command: " + commandOutput.getStderr());
+      throw new RepoException("Error on git command: " + commandOutputWithStatus.getStderr());
     } catch (BadExitStatusWithOutputException e) {
       String stderr = e.stdErrAsString();
 
@@ -251,26 +252,5 @@ public final class GitRepository {
         .add("workTree", workTree)
         .add("verbose", verbose)
         .toString();
-  }
-
-  /**
-   * Holds the {@code stdout} and {@code stderr} contents of a successful Git command execution.
-   */
-  public static class Output {
-    private final String stdout;
-    private final String stderr;
-
-    private Output(CommandOutput commandOutput) {
-      this.stdout = commandOutput.getStdout();
-      this.stderr = commandOutput.getStderr();
-    }
-
-    public String getStdout() {
-      return stdout;
-    }
-
-    public String getStderr() {
-      return stderr;
-    }
   }
 }
