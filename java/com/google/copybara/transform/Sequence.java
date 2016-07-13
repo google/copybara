@@ -1,3 +1,4 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
 import com.google.common.annotations.VisibleForTesting;

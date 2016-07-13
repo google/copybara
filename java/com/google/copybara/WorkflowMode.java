@@ -1,3 +1,4 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;

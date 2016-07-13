@@ -1,8 +1,6 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util.console;
 
-/**
- * Created by malcon on 5/5/16.
- */
 final class AnsiEscapes {
 
   private AnsiEscapes() {

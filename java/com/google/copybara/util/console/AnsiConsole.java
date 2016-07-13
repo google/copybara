@@ -1,5 +1,5 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util.console;
-
 
 import static com.google.copybara.util.console.AnsiEscapes.Color.BLUE;
 import static com.google.copybara.util.console.AnsiEscapes.Color.GREEN;

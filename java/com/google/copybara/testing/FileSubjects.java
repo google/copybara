@@ -1,3 +1,4 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.testing;
 
 import static com.google.common.truth.Truth.assertAbout;

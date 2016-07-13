@@ -1,3 +1,4 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
 import static com.google.copybara.util.CommandUtil.executeCommand;
