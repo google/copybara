@@ -5,6 +5,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.base.Preconditions;
+import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 
 import java.util.ArrayDeque;
@@ -132,5 +133,10 @@ public final class TestingConsole implements Console {
     Preconditions.checkState(!programmedResponses.isEmpty(), "No more programmed responses.");
     warn(message);
     return programmedResponses.removeFirst() == PromptResponse.YES;
+  }
+
+  @Override
+  public String colorize(AnsiColor ansiColor, String message) {
+    return message;
   }
 }

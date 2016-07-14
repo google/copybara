@@ -45,4 +45,9 @@ public class ProgressPrefixConsole implements Console {
   public boolean promptConfirmation(String message) {
     return delegate.promptConfirmation(message);
   }
+
+  @Override
+  public String colorize(AnsiColor ansiColor, String message) {
+    return message;
+  }
 }

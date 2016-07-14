@@ -1,10 +1,10 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util.console;
 
-import static com.google.copybara.util.console.AnsiEscapes.Color.BLUE;
-import static com.google.copybara.util.console.AnsiEscapes.Color.GREEN;
-import static com.google.copybara.util.console.AnsiEscapes.Color.RED;
-import static com.google.copybara.util.console.AnsiEscapes.Color.YELLOW;
+import static com.google.copybara.util.console.AnsiColor.BLUE;
+import static com.google.copybara.util.console.AnsiColor.GREEN;
+import static com.google.copybara.util.console.AnsiColor.RED;
+import static com.google.copybara.util.console.AnsiColor.YELLOW;
 
 import com.google.common.base.Preconditions;
 
@@ -87,5 +87,10 @@ public final class AnsiConsole implements Console {
         }
       }
     }).promptConfirmation(message);
+  }
+
+  @Override
+  public String colorize(AnsiColor ansiColor, String message) {
+    return ansiColor.write(message);
   }
 }

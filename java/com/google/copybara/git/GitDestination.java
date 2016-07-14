@@ -5,6 +5,7 @@ import static com.google.copybara.git.GitOptions.GIT_FIRST_COMMIT_FLAG;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
@@ -16,6 +17,7 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 
 import java.io.IOException;
@@ -25,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -148,8 +151,20 @@ public final class GitDestination implements Destination {
           .walk();
 
       if (askConfirmation) {
-        // The git repo contains the staged changes at this point. Git diff writes to Stdout
-        console.info('\n' + alternate.simpleCommand("diff", "--staged").getStdout());
+        StringBuilder sb = new StringBuilder();
+        for (String line : Splitter.on("\n").split(
+            // The git repo contains the staged changes at this point. Git diff writes to Stdout
+            alternate.simpleCommand("diff", "--staged").getStdout())) {
+          sb.append("\n");
+          if (line.startsWith("+")) {
+            sb.append(console.colorize(AnsiColor.GREEN, line));
+          } else if (line.startsWith("-")) {
+            sb.append(console.colorize(AnsiColor.RED, line));
+          } else {
+            sb.append(line);
+          }
+        }
+        console.info(sb.toString());
         if (!console.promptConfirmation(
             String.format("Proceed with push to %s %s?", repoUrl, push))) {
           console.warn("Migration aborted by user.");

@@ -76,6 +76,11 @@ public class LogConsole implements Console {
     }).promptConfirmation(message);
   }
 
+  @Override
+  public String colorize(AnsiColor ansiColor, String message) {
+    return message;
+  }
+
   private void printMessage(final String messageKind, String message) {
     output.println(dateFormat.format(new Date()) + " " + messageKind + ": " + message);
   }

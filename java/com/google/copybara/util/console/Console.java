@@ -39,6 +39,14 @@ public interface Console {
    */
   boolean promptConfirmation(String message);
 
+  /**
+   * Given a message and a console that support colors, return a string that prints the message in
+   * the {@code ansiColor}.
+   *
+   * <p>Note that not all consoles support colors. so messages should be readable without colors.
+   */
+  String colorize(AnsiColor ansiColor, String message);
+
   interface PromptPrinter {
     /**
      * Prints a prompt message.
