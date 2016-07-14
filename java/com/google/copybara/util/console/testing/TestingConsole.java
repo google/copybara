@@ -22,9 +22,15 @@ public final class TestingConsole implements Console {
     private final MessageType type;
     private final String text;
 
+    @Override
+    public String toString() {
+      return type + ": " + text;
+    }
+
     Message(MessageType type, String text) {
       this.type = type;
       this.text = text;
+
     }
   }
 
@@ -81,6 +87,16 @@ public final class TestingConsole implements Console {
           .isEqualTo(type);
     }
     return this;
+  }
+
+  public int countTimesInLog(MessageType type, String regex) {
+    int count = 0;
+    for (Message message : messages) {
+      if (message.type.equals(type) && message.text.matches(regex)) {
+        count++;
+      }
+    }
+    return count;
   }
 
   public TestingConsole assertNoMore() {

@@ -104,20 +104,7 @@ public final class GitOrigin implements Origin<GitReference> {
     } else {
       ref = reference;
     }
-    console.progress("Git Origin: Fetching from " + repoUrl);
-
-    // This is not strictly necessary for some Git repos that allow fetching from any sha1 ref, like
-    // servers configured with 'git config uploadpack.allowReachableSHA1InWant true'. Unfortunately,
-    // Github doesn't support it. So what we do is fetch the default refspec (see the comment
-    // bellow) and hope the sha1 is reacheable from heads.
-    if (repository.isSha1Reference(ref)) {
-      // TODO(malcon): For now we get the default refspec, but we should make this
-      // configurable. Otherwise it is not going to work with Gerrit.
-      repository.simpleCommand("fetch", "-f", repoUrl);
-      return repository.resolveReference(ref);
-    } else {
-      return repoType.resolveRef(repository,repoUrl, ref);
-    }
+    return repoType.resolveRef(repository, repoUrl, ref, console);
   }
 
   @Override
@@ -327,20 +314,8 @@ public final class GitOrigin implements Origin<GitReference> {
       Console console = options.get(GeneralOptions.class).console();
 
       return new GitOrigin(
-          console, GitRepository.bareRepo(gitDir, options, environment),
-          getUrl(console, options.get(GitOptions.class).gitOriginUrl),
+          console, GitRepository.bareRepo(gitDir, options, environment), url,
           ref, authoring, type);
-    }
-
-    private String getUrl(Console console, String commandLineUrl) {
-      if (Strings.isNullOrEmpty(commandLineUrl)) {
-        return url;
-      } else {
-        String msg = "Git origin URL overwritten in the command line as " + commandLineUrl;
-        console.warn(msg);
-        logger.warning(msg+ ". Config value was: "+ url);
-        return commandLineUrl;
-      }
     }
   }
 

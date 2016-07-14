@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 /**
  * A class for manipulating Git repositories
  */
-public final class GitRepository {
+public class GitRepository {
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
 
@@ -71,7 +71,7 @@ public final class GitRepository {
   @Nullable
   private final ImmutableMap<String, String> environment;
 
-  public GitRepository(Path gitDir, @Nullable Path workTree, boolean verbose,
+  GitRepository(Path gitDir, @Nullable Path workTree, boolean verbose,
       @Nullable Map<String, String> environment) {
     this.gitDir = Preconditions.checkNotNull(gitDir);
     this.workTree = workTree;
@@ -101,6 +101,32 @@ public final class GitRepository {
             CURRENT_PROCESS_ENVIRONMENT);
     repository.git(scratchWorkTree, "init", ".");
     return repository;
+  }
+
+  /**
+   * Fetch a reference from a git url.
+   *
+   * <p>Note that this method doesn't support fetching refspecs that contain local ref path
+   * locations. IOW
+   * "refs/foo" is allowed but not "refs/foo:remote/origin/foo". Wildcards are also not allowed.
+   */
+  public GitReference fetch(String url, String ref) throws RepoException {
+    if (ref.contains(":") || ref.contains("*")) {
+      throw new CannotFindReferenceException("Fetching refspecs that"
+          + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
+    }
+    // This is not strictly necessary for some Git repos that allow fetching from any sha1 ref, like
+    // servers configured with 'git config uploadpack.allowReachableSHA1InWant true'. Unfortunately,
+    // Github doesn't support it. So what we do is fetch the default refspec (see the comment
+    // bellow) and hope the sha1 is reachable from heads.
+    if (isSha1Reference(ref)) {
+      // TODO(malcon): For now we get the default refspec, but we should make this
+      // configurable. Otherwise it is not going to work with Gerrit.
+      simpleCommand("fetch", "-f", url);
+      return resolveReference(ref);
+    }
+    simpleCommand("fetch", "-f", url, ref);
+    return resolveReference("FETCH_HEAD");
   }
 
   /**

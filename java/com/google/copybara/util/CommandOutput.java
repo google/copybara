@@ -1,5 +1,6 @@
 package com.google.copybara.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 
@@ -13,7 +14,9 @@ public class CommandOutput {
   private final byte[] stdout;
   private final byte[] stderr;
 
-  CommandOutput(byte[] stdout, byte[] stderr) {
+
+  @VisibleForTesting
+  public CommandOutput(byte[] stdout, byte[] stderr) {
     this.stdout = Preconditions.checkNotNull(stdout);
     this.stderr = Preconditions.checkNotNull(stderr);
   }

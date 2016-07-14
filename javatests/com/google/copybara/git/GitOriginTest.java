@@ -273,13 +273,12 @@ public class GitOriginTest {
     git("add", "cli_remote.txt");
     git("commit", "-m", "a change from somewhere");
 
-    options.git.gitOriginUrl = "file://" + remote.toFile().getAbsolutePath();
-
     TestingConsole testingConsole = new TestingConsole();
     options.setConsole(testingConsole);
     origin = yaml.withOptions(options.build(), DEFAULT_AUTHORING, env);
 
-    Change<GitReference> cliHead = origin.change(origin.resolve("HEAD"));
+    String newUrl = "file://" + remote.toFile().getAbsolutePath();
+    Change<GitReference> cliHead = origin.change(origin.resolve(newUrl));
 
     origin.checkout(cliHead.getReference(), workdir);
 
@@ -290,8 +289,8 @@ public class GitOriginTest {
         .containsFile("cli_remote.txt", "some change")
         .containsNoMoreFiles();
 
-    testingConsole.assertNextMatches(MessageType.WARNING,
-        "Git origin URL overwritten in the command line as " + options.git.gitOriginUrl);
+    assertThat(testingConsole.countTimesInLog(MessageType.WARNING,
+        "Git origin URL overwritten in the command line as " + newUrl)).isEqualTo(1);
   }
 
   @Test
