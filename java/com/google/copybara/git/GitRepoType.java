@@ -3,7 +3,6 @@ package com.google.copybara.git;
 
 import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.git.GitRepository.GitReference;
 
 /**
  * Git repository type. Knowing the repository type allow us to provide better experience, like

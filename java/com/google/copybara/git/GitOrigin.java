@@ -21,7 +21,6 @@ import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.git.GitRepository.GitReference;
 import com.google.copybara.util.console.Console;
 
 import org.joda.time.DateTime;
