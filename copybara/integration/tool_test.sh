@@ -679,9 +679,41 @@ function test_config_not_found() {
   expect_log "Config file 'copybara.yaml' cannot be found."
 }
 
+#Verify that we instantiate LogConsole when System.console() is null
 function test_no_ansi_console() {
   copybara copybara.yaml && fail "Should fail"
   expect_log "^20[0-9]\{6\} .*"
+}
+
+# Verify that Copybara fails if we try to read the input from the user from a writeOnly LogConsole
+function test_log_consonle_is_write_only() {
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  ( cd $remote
+    run_git init .
+    echo "first version for food and foooooo" > test.txt
+    run_git add -A
+    run_git commit -m "first commit"
+  )
+
+  cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    askConfirmation: true
+EOF
+  copybara copybara.yaml && fail "Should fail"
+  expect_log "LogConsole cannot read user input if system console is not present"
 }
 
 run_suite "Integration tests for Copybara code sharing tool."
