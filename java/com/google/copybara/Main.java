@@ -153,12 +153,14 @@ public class Main {
   }
 
   protected Console getConsole(String[] args) {
+    // If System.console() is not present, we are forced to use LogConsole
+    if (System.console() == null) {
+      return LogConsole.writeOnlyConsole(System.err);
+    }
     if (Arrays.asList(args).contains(GeneralOptions.NOANSI)) {
       // The System.console doesn't detect redirects/pipes, but at least we have
       // jobs covered.
-      return System.console() == null
-          ? LogConsole.writeOnlyConsole(System.err)
-          : LogConsole.readWriteConsole(System.in, System.err);
+      return LogConsole.readWriteConsole(System.in, System.err);
     }
     return new AnsiConsole(System.in, System.err);
   }

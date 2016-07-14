@@ -679,4 +679,9 @@ function test_config_not_found() {
   expect_log "Config file 'copybara.yaml' cannot be found."
 }
 
+function test_no_ansi_console() {
+  copybara copybara.yaml && fail "Should fail"
+  expect_log "^20[0-9]\{6\} .*"
+}
+
 run_suite "Integration tests for Copybara code sharing tool."
