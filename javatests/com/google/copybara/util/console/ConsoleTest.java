@@ -72,6 +72,15 @@ public class ConsoleTest {
   }
 
   @Test
+  public void testEOFDetected() throws Exception {
+    Console console = LogConsole.readWriteConsole(
+        new ByteArrayInputStream(new byte[]{}),new PrintStream(new ByteArrayOutputStream()));
+
+    thrown.expect(RuntimeException.class);
+    console.promptConfirmation("Proceed?");
+  }
+
+  @Test
   public void logConsolePromtFailsOnMissingSystemConsole() throws Exception {
     Console console = LogConsole.writeOnlyConsole(new PrintStream(new ByteArrayOutputStream()));
     thrown.expect(IllegalStateException.class);

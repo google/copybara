@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.Console.PromptPrinter;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Scanner;
 
@@ -26,17 +27,18 @@ class ConsolePrompt {
 
   boolean promptConfirmation(String message) {
     Scanner scanner = new Scanner(input);
-    while (true) {
-      promptPrinter.print(message);
-      if (scanner.hasNextLine()) {
-        String answer = scanner.nextLine().trim().toLowerCase();
-        if (YES.contains(answer)) {
-          return true;
-        }
-        if (NO.contains(answer)) {
-          return false;
-        }
+    promptPrinter.print(message);
+    while (scanner.hasNextLine()) {
+      String answer = scanner.nextLine().trim().toLowerCase();
+      if (YES.contains(answer)) {
+        return true;
       }
+      if (NO.contains(answer)) {
+        return false;
+      }
+      promptPrinter.print(message);
     }
+    // TODO(danielromero): This should really be IOException
+    throw new RuntimeException("EOF while reading from the input");
   }
 }
