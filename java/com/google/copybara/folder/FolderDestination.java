@@ -106,8 +106,10 @@ public class FolderDestination implements Destination {
     public Destination withOptions(Options options, String configName, boolean askConfirmation)
         throws ConfigValidationException {
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
-      generalOptions.console()
-          .warn("Field 'askConfirmation' is ignored in FolderDestination.");
+      if (askConfirmation) {
+        generalOptions.console()
+            .warn("Field 'askConfirmation' is ignored in FolderDestination.");
+      }
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getFileSystem();
       String localFolderOption = options.get(FolderDestinationOptions.class).localFolder;
