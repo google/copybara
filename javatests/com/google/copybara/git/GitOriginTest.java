@@ -297,8 +297,8 @@ public class GitOriginTest {
     git("add", "cli_remote.txt");
     git("commit", "-m", "a change from somewhere");
 
-    TestingConsole testingConsole = new TestingConsole();
-    options.setConsole(testingConsole);
+    TestingConsole testConsole = new TestingConsole();
+    options.setConsole(testConsole);
     origin = yaml.withOptions(options.build(), DEFAULT_AUTHORING, env);
 
     String newUrl = "file://" + remote.toFile().getAbsolutePath();
@@ -313,7 +313,7 @@ public class GitOriginTest {
         .containsFile("cli_remote.txt", "some change")
         .containsNoMoreFiles();
 
-    assertThat(testingConsole.countTimesInLog(MessageType.WARNING,
+    assertThat(testConsole.countTimesInLog(MessageType.WARNING,
         "Git origin URL overwritten in the command line as " + newUrl)).isEqualTo(1);
   }
 

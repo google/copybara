@@ -1,8 +1,10 @@
 package com.google.copybara.util.console;
 
+import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.copybara.testing.LogSubjects;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 
@@ -94,9 +96,10 @@ public class ConsoleTest {
     Console console = new ProgressPrefixConsole("FOO ", delegate);
     console.progress("bar");
 
-    delegate
-        .assertNextMatches(MessageType.PROGRESS, "FOO bar")
-        .assertNoMore();
+    assertAbout(LogSubjects.console())
+        .that(delegate)
+        .matchesNext(MessageType.PROGRESS, "FOO bar")
+        .containsNoMoreMessages();
   }
 
   private void checkAnsiConsoleExpectedPrompt(String inputText, boolean expectedResponse)

@@ -1,26 +1,23 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util.console.testing;
 
-import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
-
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 
 import java.util.ArrayDeque;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
+import java.util.ArrayList;
 
 /**
- * A console for testing purposes that does not perform any I/O operations.
+ * A testing console that allows programming the user input and intercepts all the messages.
  *
- * <p>Allows programming the user input, and asserting on the output messages.
+ * <p>It also writes the output to a {@link LogConsole} for debug.
  */
 public final class TestingConsole implements Console {
-  private static final class Message {
+
+  public static final class Message {
     private final MessageType type;
     private final String text;
 
@@ -32,6 +29,14 @@ public final class TestingConsole implements Console {
     Message(MessageType type, String text) {
       this.type = type;
       this.text = text;
+    }
+
+    public MessageType getType() {
+      return type;
+    }
+
+    public String getText() {
+      return text;
     }
   }
 
@@ -45,7 +50,7 @@ public final class TestingConsole implements Console {
 
   private final Console outputConsole = LogConsole.writeOnlyConsole(System.out);
   private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
-  private final ArrayDeque<Message> messages = new ArrayDeque<>();
+  private final ArrayList<Message> messages = new ArrayList<>();
 
   public TestingConsole respondYes() {
     this.programmedResponses.addLast(PromptResponse.YES);
@@ -54,40 +59,6 @@ public final class TestingConsole implements Console {
 
   public TestingConsole respondNo() {
     this.programmedResponses.addLast(PromptResponse.NO);
-    return this;
-  }
-
-  /**
-   * Asserts the next message matches some regex and is of the given type.
-   *
-   * @param type the type of the message, or {@code null} to allow any type
-   * @param regex a regex which must fully match the next message.
-   */
-  public TestingConsole assertNextMatches(@Nullable MessageType type, String regex) {
-    return assertRegex(type, regex);
-  }
-
-  /**
-   * Asserts the next message is equals to a string literal.
-   *
-   * <p>This is a convenience method to avoid having to escape special characters in the regex.
-   */
-  public TestingConsole assertNextEquals(@Nullable MessageType type, String text) {
-    return assertRegex(type, Pattern.quote(text));
-  }
-
-  private TestingConsole assertRegex(@Nullable MessageType type, String regex) {
-    assertWithMessage("no more console messages")
-        .that(messages)
-        .isNotEmpty();
-    Message next = messages.removeFirst();
-    assertThat(next.text)
-        .matches(regex);
-    if (type != null) {
-      assertWithMessage("type of message with text: " + next.text)
-          .that(next.type)
-          .isEqualTo(type);
-    }
     return this;
   }
 
@@ -101,9 +72,11 @@ public final class TestingConsole implements Console {
     return count;
   }
 
-  public TestingConsole assertNoMore() {
-    assertThat(messages).isEmpty();
-    return this;
+  /**
+   * Returns the list of messages in the original order that they were logged.
+   */
+  public ImmutableList<Message> getMessages() {
+    return ImmutableList.copyOf(messages);
   }
 
   @Override
@@ -113,25 +86,25 @@ public final class TestingConsole implements Console {
 
   @Override
   public void error(String message) {
-    messages.addLast(new Message(MessageType.ERROR, message));
+    messages.add(new Message(MessageType.ERROR, message));
     outputConsole.error(message);
   }
 
   @Override
   public void warn(String message) {
-    messages.addLast(new Message(MessageType.WARNING, message));
+    messages.add(new Message(MessageType.WARNING, message));
     outputConsole.warn(message);
   }
 
   @Override
   public void info(String message) {
-    messages.addLast(new Message(MessageType.INFO, message));
+    messages.add(new Message(MessageType.INFO, message));
     outputConsole.warn(message);
   }
 
   @Override
   public void progress(String message) {
-    messages.addLast(new Message(MessageType.PROGRESS, message));
+    messages.add(new Message(MessageType.PROGRESS, message));
     outputConsole.progress(message);
   }
 

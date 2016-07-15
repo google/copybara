@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
+import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -16,6 +17,7 @@ import com.google.copybara.git.GitDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
+import com.google.copybara.testing.LogSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -168,10 +170,12 @@ public class GitDestinationTest {
     yaml.setPush("master");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit(/*askConfirmation*/ true), new DummyReference("origin_ref"));
-    console
-        .assertNextMatches(MessageType.PROGRESS, "Git Destination: Fetching file:.*")
-        .assertNextMatches(MessageType.PROGRESS, "Git Destination: Adding files for push")
-        .assertNextEquals(MessageType.INFO, "\n"
+
+    assertAbout(LogSubjects.console())
+        .that(console)
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching file:.*")
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Adding files for push")
+        .equalsNext(MessageType.INFO, "\n"
             + "diff --git a/test.txt b/test.txt\n"
             + "new file mode 100644\n"
             + "index 0000000..f0eec86\n"
@@ -180,9 +184,9 @@ public class GitDestinationTest {
             + "@@ -0,0 +1 @@\n"
             + "+some content\n"
             + "\\ No newline at end of file\n")
-        .assertNextMatches(MessageType.WARNING, "Proceed with push to.*[?]")
-        .assertNextMatches(MessageType.PROGRESS, "Git Destination: Pushing to .*")
-        .assertNoMore();
+        .matchesNext(MessageType.WARNING, "Proceed with push to.*[?]")
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Pushing to .*")
+        .containsNoMoreMessages();
   }
 
   @Test

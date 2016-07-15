@@ -9,6 +9,7 @@ all_tests(
     tests = glob(["*.java"]),
     deps = [
         "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:truth",
     ],
