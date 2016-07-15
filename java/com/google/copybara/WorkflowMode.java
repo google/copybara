@@ -7,7 +7,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
-import com.google.copybara.Workflow.RunHelper;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.ProgressPrefixConsole;
@@ -48,8 +47,7 @@ public enum WorkflowMode {
       for (int i = 0; i < changes.size(); i++) {
         Change<R> change = changes.get(i);
         String prefix = String.format(
-            "[%2d/%d] Migrating change %s: ", i + 1, changes.size(),
-            change.getReference().asString());
+              "Change %d of %d (%s): ", i + 1, changes.size(), change.getReference().asString());
 
         runHelper.migrate(
             change.getReference(),
