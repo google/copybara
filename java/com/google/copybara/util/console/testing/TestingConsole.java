@@ -7,6 +7,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.LogConsole;
 
 import java.util.ArrayDeque;
 import java.util.regex.Pattern;
@@ -31,7 +32,6 @@ public final class TestingConsole implements Console {
     Message(MessageType type, String text) {
       this.type = type;
       this.text = text;
-
     }
   }
 
@@ -43,6 +43,7 @@ public final class TestingConsole implements Console {
     ERROR, WARNING, INFO, PROGRESS;
   }
 
+  private final Console outputConsole = LogConsole.writeOnlyConsole(System.out);
   private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
   private final ArrayDeque<Message> messages = new ArrayDeque<>();
 
@@ -106,26 +107,32 @@ public final class TestingConsole implements Console {
   }
 
   @Override
-  public void startupMessage() {}
+  public void startupMessage() {
+    outputConsole.startupMessage();
+  }
 
   @Override
   public void error(String message) {
     messages.addLast(new Message(MessageType.ERROR, message));
+    outputConsole.error(message);
   }
 
   @Override
   public void warn(String message) {
     messages.addLast(new Message(MessageType.WARNING, message));
+    outputConsole.warn(message);
   }
 
   @Override
   public void info(String message) {
     messages.addLast(new Message(MessageType.INFO, message));
+    outputConsole.warn(message);
   }
 
   @Override
-  public void progress(String progress) {
-    messages.addLast(new Message(MessageType.PROGRESS, progress));
+  public void progress(String message) {
+    messages.addLast(new Message(MessageType.PROGRESS, message));
+    outputConsole.progress(message);
   }
 
   @Override
@@ -137,6 +144,6 @@ public final class TestingConsole implements Console {
 
   @Override
   public String colorize(AnsiColor ansiColor, String message) {
-    return message;
+    return outputConsole.colorize(ansiColor, message);
   }
 }
