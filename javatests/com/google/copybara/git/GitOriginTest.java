@@ -53,6 +53,7 @@ public class GitOriginTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
   private Path reposDir;
+  private TestingConsole console;
 
   @Before
   public void setup() throws Exception {
@@ -63,6 +64,9 @@ public class GitOriginTest {
     yaml.setRef("other");
 
     options = new OptionsBuilder();
+    console = new TestingConsole();
+    options = new OptionsBuilder().setConsole(console);
+
     reposDir = Files.createTempDirectory("repos_repo");
     options.git.gitRepoStorage = reposDir.toString();
 
@@ -180,6 +184,26 @@ public class GitOriginTest {
     assertThat(change.getAuthor().toString()).isEqualTo(author);
     assertThat(change.firstLineMessage()).isEqualTo("change2");
     assertThat(change.getReference().asString()).isEqualTo(lastCommitRef.asString());
+  }
+
+  @Test
+  public void testChangeMultiLabel() throws IOException, RepoException {
+    String commitMessage = ""
+        + "I am a commit with a label happening twice\n"
+        + "\n"
+        + "foo: bar\n"
+        + "\n"
+        + "foo: baz\n";
+    singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
+
+    Change<GitReference> change = origin.change(getLastCommitRef());
+    // We keep the last label. The probability that the last one is a label and the first one
+    // is just description is very high.
+    assertThat(change.getLabels()).containsEntry("foo", "baz");
+    assertThat(console.countTimesInLog(MessageType.WARNING, "Possible duplicate label 'foo'"
+        + " happening multiple times in commit. Keeping only the last value: 'baz'\n"
+        + "  Discarded value: 'bar'"))
+        .isEqualTo(1);
   }
 
   @Test

@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -207,7 +208,8 @@ public final class GitOrigin implements Origin<GitReference> {
             "Could not find author and/or date for commitReferences %s in log\n:%s", rawCommitLine,
             log);
         StringBuilder message = new StringBuilder();
-        ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
+        // Maintain labels in order just in case we print them back in the destination.
+        Map<String, String> labels = new LinkedHashMap<>();
         while (rawLines.hasNext()) {
           String s = rawLines.next();
           if (!s.startsWith(GIT_LOG_COMMENT_PREFIX)) {
@@ -216,12 +218,17 @@ public final class GitOrigin implements Origin<GitReference> {
           LabelFinder labelFinder = new LabelFinder(
               s.substring(GIT_LOG_COMMENT_PREFIX.length()));
           if (labelFinder.isLabel()) {
-            labels.put(labelFinder.getName(), labelFinder.getValue());
+            String previous = labels.put(labelFinder.getName(), labelFinder.getValue());
+            if (previous != null) {
+              console.warn(String.format("Possible duplicate label '%s' happening multiple times"
+                      + " in commit. Keeping only the last value: '%s'\n  Discarded value: '%s'",
+                  labelFinder.getName(), labelFinder.getValue(), previous));
+            }
           }
           message.append(s, GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
         }
         Change<GitReference> change = new Change<>(ref, resolveAuthor(author), message.toString(),
-            date, labels.build());
+            date, ImmutableMap.copyOf(labels));
         builder.add(new GitChange(change, parents.build()));
       }
       // Return older commit first.
