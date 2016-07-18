@@ -5,7 +5,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -49,12 +48,13 @@ public final class Workflow<R extends Origin.Reference> {
   private final WorkflowMode mode;
   private final boolean includeChangeListNotes;
   private final WorkflowOptions workflowOptions;
+  private final boolean reversibleCheck;
 
   private Workflow(String configName, String name, Origin<R> origin, Destination destination,
       Authoring authoring, Transformation transformation, @Nullable String lastRevisionFlag,
       Console console, PathMatcherBuilder excludedOriginPaths,
       PathMatcherBuilder excludedDestinationPaths, WorkflowMode mode,
-      boolean includeChangeListNotes, WorkflowOptions workflowOptions) {
+      boolean includeChangeListNotes, WorkflowOptions workflowOptions, boolean reversibleCheck) {
     this.configName = Preconditions.checkNotNull(configName);
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
@@ -68,6 +68,7 @@ public final class Workflow<R extends Origin.Reference> {
     this.mode = Preconditions.checkNotNull(mode);
     this.includeChangeListNotes = includeChangeListNotes;
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
+    this.reversibleCheck = reversibleCheck;
   }
 
   @VisibleForTesting
@@ -311,6 +312,7 @@ public final class Workflow<R extends Origin.Reference> {
     private List<String> excludedDestinationPaths = new ArrayList<>();
     private Authoring.Yaml authoring;
     private boolean askConfirmation;
+    private Boolean reversibleCheck;
 
     public String getName() {
       return name;
@@ -336,7 +338,7 @@ public final class Workflow<R extends Origin.Reference> {
         required = false)
     public void setTransformations(List<? extends Transformation.Yaml> transformations)
         throws ConfigValidationException {
-      this.transformations = ImmutableList.<Transformation.Yaml>copyOf(transformations);
+      this.transformations = ImmutableList.copyOf(transformations);
     }
 
     @DocField(
@@ -386,6 +388,14 @@ public final class Workflow<R extends Origin.Reference> {
       this.askConfirmation = askConfirmation;
     }
 
+    @DocField(description = "Indicates if the tool should try to to reverse all the transformations"
+        + " at the end to check that they are reversible.",
+        required = false, defaultValue = "true for CHANGE_REQUEST mode. False otherwise",
+        undocumented = true)
+    public void setReversibleCheck(boolean reversibleCheck) {
+      this.reversibleCheck = reversibleCheck;
+    }
+
     public Workflow withOptions(Options options, String configName)
         throws ConfigValidationException, EnvironmentException {
 
@@ -396,6 +406,10 @@ public final class Workflow<R extends Origin.Reference> {
       ConfigValidationException.checkNotMissing(this.authoring,"authoring");
       ConfigValidationException.checkNotMissing(this.origin,"origin");
       ConfigValidationException.checkNotMissing(this.destination,"destination");
+
+      if (reversibleCheck == null) {
+        reversibleCheck = mode == WorkflowMode.CHANGE_REQUEST;
+      }
 
       Authoring authoring = this.authoring.withOptions(options, configName);
       Origin<?> origin = this.origin.withOptions(options, authoring);
@@ -410,7 +424,7 @@ public final class Workflow<R extends Origin.Reference> {
       return new Workflow<>(configName, name, origin, destination, authoring, transformation,
           workflowOptions.getLastRevision(), console,
           excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes,
-          options.get(WorkflowOptions.class));
+          options.get(WorkflowOptions.class),reversibleCheck);
     }
   }
 }
