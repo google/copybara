@@ -67,21 +67,7 @@ public class FolderDestination implements Destination {
 
       console.progress(
           "FolderDestination: Copying contents of the workdir to " + localFolder);
-      try {
-        // Life is too short to implement a recursive copy in Java... Let's wait until
-        // we need Windows support. This also should be faster than copy and we don't need the
-        // workdir after the destination is executed.
-        CommandUtil.executeCommand(
-            new Command(new String[] {
-                    "/bin/sh", "-cxv",
-                    "cp -aR * " + ShellUtils.shellEscape(localFolder.toString())
-                },
-                ImmutableMap.<String, String>of(), transformResult.getPath().toFile()), verbose);
-      } catch (CommandException e) {
-        throw new RepoException(
-            "Cannot copy contents of " + transformResult.getPath() + " to " + localFolder,
-            e);
-      }
+      FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder);
     }
   }
 

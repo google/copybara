@@ -57,10 +57,14 @@ public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
   }
 
   public DummyOrigin addSimpleChange(int timestamp, String message) throws IOException {
-    int current = changes.size();
-    Path path = fs.getPath("" + current);
+    return singleFileChange(timestamp, message, "file.txt", String.valueOf(changes.size()));
+  }
+
+  public DummyOrigin singleFileChange(int timestamp, String message, String strPath, String content)
+      throws IOException {
+    Path path = fs.getPath("" + changes.size());
     Files.createDirectories(path);
-    Files.write(path.resolve("file.txt"), String.valueOf(current).getBytes());
+    Files.write(path.resolve(strPath), content.getBytes());
     addChange(timestamp, path, message);
     return this;
   }

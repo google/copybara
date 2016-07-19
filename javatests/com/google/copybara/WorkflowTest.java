@@ -12,14 +12,19 @@ import com.google.common.jimfs.Jimfs;
 import com.google.common.truth.Truth;
 import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.testing.AuthoringYamlBuilder;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.FileSubjects;
+import com.google.copybara.testing.LogSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Transformation;
+import com.google.copybara.transform.ValidationException;
+import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -51,6 +56,7 @@ public class WorkflowTest {
   private OptionsBuilder options;
   private Replace.Yaml replace = new Replace.Yaml();
   private AuthoringYamlBuilder authoring;
+  private TestingConsole console;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -63,14 +69,17 @@ public class WorkflowTest {
     yaml = new Yaml();
     options = new OptionsBuilder();
     authoring = new AuthoringYamlBuilder();
-    workdir = options.general.getFileSystem().getPath("workdir");
+    workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
     origin = new DummyOrigin()
         .setAuthor(CONTRIBUTOR);
     destination = new RecordsProcessCallDestination();
-    replace.setBefore("${line}");
-    replace.setAfter(PREFIX + "${line}");
-    replace.setRegexGroups(ImmutableMap.of("line", ".+"));
+    replace.setBefore("${linestart}${number}");
+    replace.setAfter("${linestart}" + PREFIX + "${number}");
+    replace.setRegexGroups(ImmutableMap.of("number", "[0-9]+", "linestart", "^"));
+    replace.setMultiline(true);
+    console = new TestingConsole();
+    options.setConsole(console);
   }
 
   private Workflow workflow() throws ConfigValidationException, IOException, EnvironmentException {
@@ -175,7 +184,7 @@ public class WorkflowTest {
     Workflow workflow = workflow();
     String head = origin.getHead();
     workflow.run(workdir, head);
-    assertThat(Files.readAllLines(workdir.resolve("file.txt"), StandardCharsets.UTF_8))
+    assertThat(Files.readAllLines(workdir.resolve("checkout/file.txt"), StandardCharsets.UTF_8))
         .contains(PREFIX + head);
   }
 
@@ -210,7 +219,7 @@ public class WorkflowTest {
   @Test
   public void invalidExcludedOriginPath() throws Exception {
     prepareOriginExcludes();
-    String outsideFolder = "../../../file";
+    String outsideFolder = "../../file";
     Path file = workdir.resolve(outsideFolder);
     Files.createDirectories(file.getParent());
     Files.write(file, new byte[]{});
@@ -240,7 +249,7 @@ public class WorkflowTest {
       assertThat(e.getMessage()).contains("Nothing was deleted");
     }
     assertAbout(FileSubjects.path())
-        .that(workdir)
+        .that(workdir.resolve("checkout"))
         .containsFiles("folder/file.txt", "folder2/file.txt");
   }
 
@@ -253,7 +262,7 @@ public class WorkflowTest {
     workflow.run(workdir, origin.getHead());
 
     assertAbout(FileSubjects.path())
-        .that(workdir)
+        .that(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2")
         .containsNoFiles(
             "folder/file.txt", "folder/subfolder/file.txt", "folder/subfolder/file.java");
@@ -268,7 +277,7 @@ public class WorkflowTest {
     workflow.run(workdir, origin.getHead());
 
     assertAbout(FileSubjects.path())
-        .that(workdir)
+        .that(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt")
         .containsNoFiles("folder/subfolder/file.java");
   }
@@ -357,6 +366,9 @@ public class WorkflowTest {
     Workflow workflow = changeRequestWorkflow(null);
     workflow.run(workdir, "1");
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
+    assertAbout(LogSubjects.console())
+        .that(console)
+        .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
   @Test
@@ -366,6 +378,9 @@ public class WorkflowTest {
     Workflow workflow = changeRequestWorkflow("24");
     workflow.run(workdir, "1");
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
+    assertAbout(LogSubjects.console())
+        .that(console)
+        .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
   @Test
@@ -399,6 +414,24 @@ public class WorkflowTest {
     thrown.expectMessage("missing required field 'destination'");
 
     yaml.withOptions(options.build(), CONFIG_NAME);
+  }
+
+  @Test
+  public void nonReversibleButCheckReverseSet()
+      throws IOException, EnvironmentException, ValidationException, RepoException {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+    origin.singleFileChange(1, "one commit", "test.txt", "1\nTRANSFORMED42");
+    Workflow workflow = changeRequestWorkflow("0");
+    try {
+      workflow.run(workdir, "1");
+      fail();
+    } catch (NonReversibleValidationException e) {
+      assertThat(e).hasMessage("Workflow 'default' is not reversible");
+    }
+
+    assertThat(console.countTimesInLog(
+        MessageType.PROGRESS, "Checking that the transformations can be reverted"))
+        .isEqualTo(1);
   }
 
   private void prepareOriginExcludes() throws IOException {

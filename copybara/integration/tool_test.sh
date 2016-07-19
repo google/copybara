@@ -113,8 +113,8 @@ EOF
   # Make sure we don't get detached head warnings polluting the log.
   expect_not_log "You are in 'detached HEAD' state"
 
-  [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
-  cat $workdir/test.txt > $TEST_log
+  [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
+  cat $workdir/checkout/test.txt > $TEST_log
   expect_log "first version for drink and barooooo"
 
   check_copybara_rev_id "$destination" "$first_commit"
@@ -129,8 +129,8 @@ EOF
 
   copybara copybara.yaml
 
-  [[ -f $workdir/test.txt ]] || fail "Checkout was not successful"
-  expect_in_file "second version for drink and barooooo" $workdir/test.txt
+  [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
+  expect_in_file "second version for drink and barooooo" $workdir/checkout/test.txt
 
   check_copybara_rev_id "$destination" "$second_commit"
 

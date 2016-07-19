@@ -11,6 +11,8 @@ import com.google.copybara.util.console.testing.TestingConsole.Message;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -71,6 +73,22 @@ public class LogSubjects {
      */
     public LogSubject equalsNext(@Nullable MessageType type, String text) {
       return assertRegex(type, Pattern.quote(text));
+    }
+
+    /**
+     * Assert that a regex text message appears once in the console output for a certain message
+     * * {@code type}.
+     */
+    public LogSubject onceInLog(MessageType type, String regex) {
+      List<Message> matches = new ArrayList<>();
+      for (Message message : messages) {
+        if (message.getType().equals(type) && message.getText().matches(regex)) {
+          matches.add(message);
+        }
+      }
+      assertWithMessage(regex + " matches " + matches.size() + " times. Expected 1")
+          .that(matches).hasSize(1);
+      return this;
     }
 
     private LogSubject assertRegex(@Nullable MessageType type, String regex) {

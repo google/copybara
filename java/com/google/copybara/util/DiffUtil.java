@@ -2,8 +2,11 @@
 package com.google.copybara.util;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.copybara.EnvironmentException;
+import com.google.copybara.util.console.AnsiColor;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 
@@ -69,5 +72,23 @@ public class DiffUtil {
     } catch (CommandException e) {
       throw new EnvironmentException("Error executing 'patch'", e);
     }
+  }
+
+  /**
+   * Given a git compatible diff, returns the diff colorized if the console allows it.
+   */
+  public static String colorize(Console console, String diffText) {
+    StringBuilder sb = new StringBuilder();
+    for (String line : Splitter.on("\n").split(diffText)) {
+      sb.append("\n");
+      if (line.startsWith("+")) {
+        sb.append(console.colorize(AnsiColor.GREEN, line));
+      } else if (line.startsWith("-")) {
+        sb.append(console.colorize(AnsiColor.RED, line));
+      } else {
+        sb.append(line);
+      }
+    }
+    return sb.toString();
   }
 }

@@ -269,18 +269,6 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void errorIfNotRoundTrippable() throws Exception {
-    yaml.setBefore("before");
-    yaml.setAfter("after");
-    writeFile(workdir.resolve("before_and_after"), "before_and_after");
-
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("before_and_after");
-
-    yaml.withOptions(options.build()).transform(workdir, console);
-  }
-
-  @Test
   public void showOriginalTemplateInToString() throws ConfigValidationException {
     yaml.setBefore("a${b}c");
     yaml.setAfter("c${b}a");

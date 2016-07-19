@@ -97,25 +97,6 @@ public final class Replace implements Transformation {
       this.pathMatcher = pathMatcher;
     }
 
-    /**
-     * Transforms content confirming that the current transformation can be applied in reverse to
-     * get the original line back.
-     */
-    private String transform(String originalContent, Path file) throws ValidationException {
-      Matcher matcher = beforeRegex.matcher(originalContent);
-      String newContent = matcher.replaceAll(after.template());
-      matcher = afterRegex.matcher(newContent);
-      String roundTrippedContent = matcher.replaceAll(before.template());
-      if (!roundTrippedContent.equals(originalContent)) {
-        throw new ValidationException(String.format(
-            "Error transforming '%s' file. Reverse-transform didn't generate the original text:\n"
-                + "    Expected : %s\n"
-                + "    Actual   : %s\n",
-            file, originalContent, roundTrippedContent));
-      }
-      return newContent;
-    }
-
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
       if (!Files.isRegularFile(file) || !pathMatcher.matches(file)) {
@@ -131,12 +112,7 @@ public final class Replace implements Transformation {
 
       List<String> newRanges = new ArrayList<>(originalRanges.size());
       for (String line : originalRanges) {
-        try {
-          newRanges.add(transform(line, file));
-        } catch (ValidationException e) {
-          error = e;
-          return FileVisitResult.TERMINATE;
-        }
+        newRanges.add(beforeRegex.matcher(line).replaceAll(after.template()));
       }
       if (!originalRanges.equals(newRanges)) {
         somethingWasChanged = true;

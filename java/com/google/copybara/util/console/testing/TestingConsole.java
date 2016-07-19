@@ -62,6 +62,12 @@ public final class TestingConsole implements Console {
     return this;
   }
 
+  /**
+   * Use {@code LogSubject}
+   *
+   * TODO(malcon): Remove in next change
+   */
+  @Deprecated
   public int countTimesInLog(MessageType type, String regex) {
     int count = 0;
     for (Message message : messages) {

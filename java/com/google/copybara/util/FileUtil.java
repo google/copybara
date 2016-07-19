@@ -2,6 +2,7 @@
 package com.google.copybara.util;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -9,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,6 +32,36 @@ public final class FileUtil {
   };
 
   private FileUtil() {
+  }
+
+  /**
+   * Copies files from {@code from} directory to {@code to} directory. If any file exist in the
+   * destination it fails instead of overwriting.
+   *
+   * <p>File attributes are also copied.
+   *
+   * <p>Symlinks are kept as in the origin. If a symlink points to "../foo" it will point to
+   * that "../foo" in the destination. If it points to "/usr/bin/foo" it will point to
+   * "/usr/bin/foo"
+   */
+  public static void copyFilesRecursively(final Path from, final Path to) throws IOException {
+    Preconditions.checkArgument(Files.isDirectory(from), "%s (from) is not a directory");
+    Preconditions.checkArgument(Files.isDirectory(to), "%s (to) is not a directory");
+    Files.walkFileTree(from, new SimpleFileVisitor<Path>() {
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        Path destFile = to.resolve(from.relativize(file));
+        Files.createDirectories(destFile.getParent());
+
+        if (Files.isSymbolicLink(file)) {
+          Path realDestination = Files.readSymbolicLink(file);
+          Files.createSymbolicLink(destFile, realDestination);
+          return FileVisitResult.CONTINUE;
+        }
+        Files.copy(file, destFile, StandardCopyOption.COPY_ATTRIBUTES);
+        return FileVisitResult.CONTINUE;
+      }
+    });
   }
 
   public static int deleteAllFilesRecursively(Path path) throws IOException {
