@@ -338,7 +338,7 @@ public final class Workflow<R extends Origin.Reference> {
         required = false)
     public void setTransformations(List<? extends Transformation.Yaml> transformations)
         throws ConfigValidationException {
-      this.transformations = ImmutableList.copyOf(transformations);
+      this.transformations = ImmutableList.<Transformation.Yaml>copyOf(transformations);
     }
 
     @DocField(
