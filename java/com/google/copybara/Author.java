@@ -101,8 +101,13 @@ public final class Author {
       this.email = email;
     }
 
-    public Author withOptions(Options options, String configName)
-        throws ConfigValidationException, EnvironmentException {
+    public Author create() throws ConfigValidationException {
+      if (name == null) {
+        throw new ConfigValidationException("Field 'name' cannot be empty.");
+      }
+      if (email == null) {
+        throw new ConfigValidationException("Field 'email' cannot be empty.");
+      }
       return new Author(name, email);
     }
   }

@@ -1,5 +1,7 @@
 package com.google.copybara;
 
+import static org.hamcrest.CoreMatchers.any;
+
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.config.ConfigValidationException;
@@ -47,6 +49,15 @@ public class AuthoringTest {
   }
 
   @Test
+  public void testInvalidDefaultAuthor() throws Exception {
+    authorYaml = new Author.Yaml();
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("Invalid 'defaultAuthor'");
+    thrown.expectCause(any(ConfigValidationException.class));
+    yaml.setDefaultAuthor(authorYaml);
+  }
+
+  @Test
   public void testWhitelistNotEmpty() throws Exception {
     yaml.setDefaultAuthor(authorYaml);
     yaml.setMode(AuthoringMappingMode.WHITELIST);
@@ -55,6 +66,5 @@ public class AuthoringTest {
     thrown.expectMessage("Mode 'WHITELIST' requires a non-empty 'whitelist' field. "
         + "For default mapping, use 'USE_DEFAULT' mode instead.");
     yaml.withOptions(options.build(), CONFIG_NAME);
-
   }
 }

@@ -4,7 +4,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.testing.EqualsTester;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.testing.OptionsBuilder;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -16,25 +15,21 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class AuthorTest {
 
-  private static final String CONFIG_NAME = "copybara_project";
-
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   private Author.Yaml yaml;
-  private OptionsBuilder options;
 
   @Before
   public void setUp() throws Exception {
     yaml = new Author.Yaml();
-    options = new OptionsBuilder();
   }
 
   @Test
   public void testAllFields() throws Exception {
     yaml.setName("Foo Bar");
     yaml.setEmail("foo@bar.com");
-    Author author = yaml.withOptions(options.build(), CONFIG_NAME);
+    Author author = yaml.create();
     assertThat(author.getName()).isEqualTo("Foo Bar");
     assertThat(author.getEmail()).isEqualTo("foo@bar.com");
   }
@@ -44,6 +39,22 @@ public class AuthorTest {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("Invalid email format: foo-bar");
     yaml.setEmail("foo-bar");
+  }
+
+  @Test
+  public void testMissingName() throws Exception {
+    yaml.setEmail("foo@bar.com");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("Field 'name' cannot be empty");
+    yaml.create();
+  }
+
+  @Test
+  public void testMissingEmail() throws Exception {
+    yaml.setName("Foo Bar");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("Field 'email' cannot be empty");
+    yaml.create();
   }
 
   @Test

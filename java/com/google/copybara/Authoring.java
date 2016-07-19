@@ -65,7 +65,7 @@ public final class Authoring {
       elementKind = Authoring.class)
   public static final class Yaml {
 
-    private Author.Yaml defaultAuthor;
+    private Author defaultAuthor;
     private ImmutableSet<String> whitelist = ImmutableSet.of();
     private AuthoringMappingMode mode = AuthoringMappingMode.USE_DEFAULT;
 
@@ -79,7 +79,11 @@ public final class Authoring {
     @DocField(description = "Sets the default author for commits in the destination.",
         required = true)
     public void setDefaultAuthor(Author.Yaml defaultAuthor) throws ConfigValidationException {
-      this.defaultAuthor = defaultAuthor;
+      try {
+        this.defaultAuthor = defaultAuthor.create();
+      } catch (ConfigValidationException e) {
+        throw new ConfigValidationException("Invalid 'defaultAuthor'.", e);
+      }
     }
 
     @DocField(description = "Mode used for author mapping from origin to destination.",
@@ -111,7 +115,6 @@ public final class Authoring {
       if (this.defaultAuthor == null) {
         throw new ConfigValidationException("Field 'defaultAuthor' cannot be empty.");
       }
-      Author defaultAuthor = this.defaultAuthor.withOptions(options, configName);
       if (mode == AuthoringMappingMode.WHITELIST && whitelist.isEmpty()) {
         throw new ConfigValidationException(
             "Mode 'WHITELIST' requires a non-empty 'whitelist' field. "
