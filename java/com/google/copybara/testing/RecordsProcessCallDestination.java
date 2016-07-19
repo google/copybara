@@ -3,6 +3,7 @@ package com.google.copybara.testing;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Author;
 import com.google.copybara.Destination;
@@ -18,24 +19,35 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
 /**
- * A destination for testing which doesn't write the workdir anywhere and simply records when {@link
- * Destination#process(Path, Reference, long, String, Console)} is called and with what arguments.
+ * A destination for testing which doesn't write the workdir anywhere and simply records when
+ * {@link Destination.Writer#write(TransformResult, Console)} is called and with what arguments.
  */
 public class RecordsProcessCallDestination implements Destination, Destination.Yaml {
 
+  private final ArrayDeque<WriterResult> programmedResults;
+
   public final List<ProcessedChange> processed = new ArrayList<>();
+
+  public RecordsProcessCallDestination(WriterResult... results) {
+    this.programmedResults = new ArrayDeque<>(Arrays.asList(results));
+  }
 
   private class WriterImpl implements Writer {
     @Override
-    public void write(TransformResult transformResult, Console console) {
+    public WriterResult write(TransformResult transformResult, Console console) {
       processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
           transformResult.getBaseline()));
+      return programmedResults.isEmpty()
+          ? WriterResult.OK
+          : programmedResults.removeFirst();
     }
   }
 

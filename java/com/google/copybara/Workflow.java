@@ -4,7 +4,9 @@ package com.google.copybara;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.doc.annotations.DocElement;
@@ -185,18 +187,19 @@ public final class Workflow<R extends Origin.Reference> {
      * Performs a full migration, including checking out files from the origin, deleting excluded
      * files, transforming the code, and writing to the destination. This writes to the destination
      * exactly once.
-     *
      * @param ref reference to the version which will be written to the destination
      * @param author the author that the destination change will be attributed to
      * @param processConsole console to use to print progress messages
      * @param message change message to write to the destination
+     *
+     * @return The result of this migration
      */
-    void migrate(R ref, Author author, Console processConsole, String message)
+    WriterResult migrate(R ref, Author author, Console processConsole, String message)
         throws EnvironmentException, IOException, RepoException, ValidationException {
-      migrate(ref, author, processConsole, message, /*destinationBaseline=*/ null);
+      return migrate(ref, author, processConsole, message, /*destinationBaseline=*/ null);
     }
 
-    void migrate(R ref, Author author, Console processConsole, String message,
+    WriterResult migrate(R ref, Author author, Console processConsole, String message,
         @Nullable String destinationBaseline)
         throws EnvironmentException, IOException, RepoException, ValidationException {
       processConsole.progress("Cleaning working directory");
@@ -252,7 +255,9 @@ public final class Workflow<R extends Origin.Reference> {
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
-      writer.write(transformResult, processConsole);
+      WriterResult result = writer.write(transformResult, processConsole);
+      Verify.verifyNotNull(result != null, "Destination returned a null result.");
+      return result;
     }
 
     /**

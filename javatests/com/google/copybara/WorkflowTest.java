@@ -9,7 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
-import com.google.common.truth.Truth;
+import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
@@ -23,6 +23,7 @@ import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.transform.ValidationException;
+import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 
@@ -93,14 +94,20 @@ public class WorkflowTest {
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
       throws ConfigValidationException, EnvironmentException {
+    return iterativeWorkflow(previousRef, destination, options.general.console());
+  }
+
+  private Workflow iterativeWorkflow(
+      @Nullable String previousRef, Destination.Yaml destination, Console console)
+      throws ConfigValidationException, EnvironmentException {
     yaml.setOrigin(origin);
     yaml.setDestination(destination);
     yaml.setMode(WorkflowMode.ITERATIVE);
     yaml.setTransformations(transformations);
     yaml.setAuthoring(authoring.build());
     options.workflowOptions.lastRevision = previousRef;
-    options.general = new GeneralOptions(options.general.getFileSystem(),
-        options.general.isVerbose(), options.general.console());
+    options.general = new GeneralOptions(
+        options.general.getFileSystem(), options.general.isVerbose(), console);
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
@@ -134,7 +141,7 @@ public class WorkflowTest {
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"42");
 
     workflow.run(workdir, /*sourceRef=*/"50");
-    Truth.assertThat(destination.processed).hasSize(8);
+    assertThat(destination.processed).hasSize(8);
     int nextChange = 43;
     for (ProcessedChange change : destination.processed) {
       assertThat(change.getChangesSummary()).isEqualTo(nextChange + " change");
@@ -148,7 +155,32 @@ public class WorkflowTest {
 
     workflow = iterativeWorkflow(null);
     workflow.run(workdir, /*sourceRef=*/"60");
-    Truth.assertThat(destination.processed).hasSize(18);
+    assertThat(destination.processed).hasSize(18);
+  }
+
+  @Test
+  public void iterativeWorkflowConfirmationHandlingTest() throws Exception {
+    for (int timestamp = 0; timestamp < 10; timestamp++) {
+      origin.addSimpleChange(timestamp);
+    }
+
+    TestingConsole testConsole = new TestingConsole()
+        .respondYes()
+        .respondNo();
+    RecordsProcessCallDestination programmableDestination = new RecordsProcessCallDestination(
+        WriterResult.OK, WriterResult.PROMPT_TO_CONTINUE, WriterResult.PROMPT_TO_CONTINUE);
+
+    Workflow workflow =
+        iterativeWorkflow(/*previousRef=*/"2", programmableDestination, testConsole);
+
+    try {
+      workflow.run(workdir, /*sourceRef=*/"9");
+      fail("Should throw ChangeRejectedException");
+    } catch (ChangeRejectedException expected) {
+      assertThat(expected.getMessage())
+          .contains("Iterative workflow aborted by user after: Change 3 of 7 (5)");
+    }
+    assertThat(programmableDestination.processed).hasSize(3);
   }
 
   @Test

@@ -5,6 +5,8 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.UnmodifiableIterator;
+import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.doc.annotations.DocField;
@@ -44,16 +46,29 @@ public enum WorkflowMode {
     <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
         throws RepoException, IOException, EnvironmentException, ValidationException {
       ImmutableList<Change<R>> changes = runHelper.changesSinceLastImport();
-      for (int i = 0; i < changes.size(); i++) {
-        Change<R> change = changes.get(i);
+      int changeNumber = 1;
+      UnmodifiableIterator<Change<R>> changesIterator = changes.iterator();
+      while (changesIterator.hasNext()) {
+        Change<R> change = changesIterator.next();
         String prefix = String.format(
-              "Change %d of %d (%s): ", i + 1, changes.size(), change.getReference().asString());
-
-        runHelper.migrate(
+            "Change %d of %d (%s): ",
+            changeNumber, changes.size(), change.getReference().asString());
+        WriterResult result = runHelper.migrate(
             change.getReference(),
             change.getAuthor(),
             new ProgressPrefixConsole(prefix, runHelper.getConsole()),
             change.getMessage());
+
+        if (result == WriterResult.PROMPT_TO_CONTINUE && changesIterator.hasNext()) {
+          // Use the regular console to log prompt and final message, it will be easier to spot
+          if (!runHelper.getConsole()
+              .promptConfirmation("Continue importing next change?")) {
+            String message = String.format("Iterative workflow aborted by user after: %s", prefix);
+            runHelper.getConsole().warn(message);
+            throw new ChangeRejectedException(message);
+          }
+        }
+        changeNumber++;
       }
     }
   },

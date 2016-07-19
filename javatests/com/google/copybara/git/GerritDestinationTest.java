@@ -6,6 +6,7 @@ import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GerritDestination.Yaml;
@@ -89,8 +90,9 @@ public class GerritDestinationTest {
 
   private void process(DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
-    destination().newWriter()
+    WriterResult result = destination().newWriter()
         .write(TransformResults.of(workdir, originRef, excludedDestinationPaths), console);
+    assertThat(result).isEqualTo(WriterResult.OK);
   }
 
   @Test

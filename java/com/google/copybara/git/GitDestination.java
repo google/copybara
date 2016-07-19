@@ -111,7 +111,7 @@ public final class GitDestination implements Destination {
     @Nullable private GitRepository scratchClone;
 
     @Override
-    public void write(TransformResult transformResult, Console console) throws RepoException {
+    public WriterResult write(TransformResult transformResult, Console console) throws RepoException {
       logger.log(Level.INFO,
           "Exporting " + configName + " from " + transformResult.getPath() + " to: " + this);
 
@@ -173,6 +173,7 @@ public final class GitDestination implements Destination {
       // Git push writes to Stderr
       processPushOutput.process(
           alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push).getStderr());
+      return WriterResult.OK;
     }
   }
 

@@ -3,7 +3,6 @@ package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -11,12 +10,8 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.shell.Command;
-import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.shell.ShellUtils;
 
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
@@ -49,7 +44,7 @@ public class FolderDestination implements Destination {
 
   private class WriterImpl implements Writer {
     @Override
-    public void write(TransformResult transformResult, Console console)
+    public WriterResult write(TransformResult transformResult, Console console)
       throws RepoException, IOException {
       console.progress("FolderDestination: creating " + localFolder);
       try {
@@ -68,6 +63,7 @@ public class FolderDestination implements Destination {
       console.progress(
           "FolderDestination: Copying contents of the workdir to " + localFolder);
       FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder);
+      return WriterResult.OK;
     }
   }
 

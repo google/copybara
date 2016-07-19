@@ -13,6 +13,22 @@ import javax.annotation.Nullable;
  */
 public interface Destination {
 
+  /**
+   * The result of invoking {@link Writer#write(TransformResult, Console)}.
+   */
+  enum WriterResult {
+    /**
+     * The execution of {@link Writer#write(TransformResult, Console)} was successful. The caller
+     * should proceed with the execution.
+     */
+    OK,
+    /**
+     * The execution of {@link Writer#write(TransformResult, Console)} had errors or warnings that
+     * were logged into the console. The caller should prompt confirmation to the user to continue.
+     */
+    PROMPT_TO_CONTINUE,
+  }
+
   interface Yaml {
 
     Destination withOptions(Options options, String configName, boolean askConfirmation)
@@ -34,8 +50,9 @@ public interface Destination {
      * @param transformResult what to write to the destination
      * @param console console to be used for printing messages
      */
-    void write(TransformResult transformResult, Console console)
+    WriterResult write(TransformResult transformResult, Console console)
         throws RepoException, IOException;
+
   }
 
   /**

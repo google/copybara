@@ -9,6 +9,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
 import com.google.copybara.Destination;
+import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
@@ -130,7 +131,8 @@ public class GitDestinationTest {
     if (baseline != null) {
       result = result.withBaseline(baseline);
     }
-    destination.newWriter().write(result, console);
+    WriterResult destinationResult = destination.newWriter().write(result, console);
+    assertThat(destinationResult).isEqualTo(WriterResult.OK);
   }
 
   @Test
@@ -524,11 +526,13 @@ public class GitDestinationTest {
     Destination.Writer writer = destinationFirstCommit().newWriter();
 
     Files.write(workdir.resolve("test42"), "42".getBytes(UTF_8));
-    writer.write(TransformResults.of(workdir, new DummyReference("ref1")), console);
+    WriterResult result = writer.write(TransformResults.of(workdir, new DummyReference("ref1")), console);
+    assertThat(result).isEqualTo(WriterResult.OK);
     String firstCommitHash = repo().simpleCommand("rev-parse", "refs_for_master").getStdout();
 
     Files.write(workdir.resolve("test99"), "99".getBytes(UTF_8));
-    writer.write(TransformResults.of(workdir, new DummyReference("ref2")), console);
+    result = writer.write(TransformResults.of(workdir, new DummyReference("ref2")), console);
+    assertThat(result).isEqualTo(WriterResult.OK);
 
     // Make sure parent of second commit is the first commit.
     assertThat(repo().simpleCommand("rev-parse", "refs_for_master~1").getStdout())
