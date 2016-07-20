@@ -63,22 +63,6 @@ public final class TestingConsole implements Console {
   }
 
   /**
-   * Use {@code LogSubject}
-   *
-   * TODO(malcon): Remove in next change
-   */
-  @Deprecated
-  public int countTimesInLog(MessageType type, String regex) {
-    int count = 0;
-    for (Message message : messages) {
-      if (message.type.equals(type) && message.text.matches(regex)) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  /**
    * Returns the list of messages in the original order that they were logged.
    */
   public ImmutableList<Message> getMessages() {

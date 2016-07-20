@@ -31,14 +31,6 @@ public class LogSubjects {
         }
       };
 
-  /**
-   * Use {@link #assertThatConsole(TestingConsole)} instead.
-   */
-  @Deprecated
-  public static SubjectFactory<LogSubject, TestingConsole> console() {
-    return CONSOLE_SUBJECT_FACTORY;
-  }
-
   private LogSubjects() {}
 
   /**
