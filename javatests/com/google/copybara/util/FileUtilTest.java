@@ -4,8 +4,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.truth.Truth;
-import com.google.copybara.testing.FileSubjects;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,10 +45,10 @@ public class FileUtilTest {
 
     assertThat(Files.isExecutable(two.resolve("foo"))).isTrue();
     assertThat(Files.isExecutable(two.resolve("some/folder/bar"))).isFalse();
-    Truth.<Path>assertThat(Files.readSymbolicLink(two.resolve("some/folder/baz")))
-        .isEquivalentAccordingToCompareTo(two.getFileSystem().getPath("../../foo"));
-    Truth.<Path>assertThat(Files.readSymbolicLink(two.resolve("some/folder/absolute")))
-        .isEquivalentAccordingToCompareTo(absoluteTarget);
+    assertThat(Files.readSymbolicLink(two.resolve("some/folder/baz")).toString())
+        .isEqualTo(two.getFileSystem().getPath("../../foo").toString());
+    assertThat(Files.readSymbolicLink(two.resolve("some/folder/absolute")).toString())
+        .isEqualTo(absoluteTarget.toString());
   }
 
   private Path touch(Path path) throws IOException {
