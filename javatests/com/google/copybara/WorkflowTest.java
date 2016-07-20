@@ -3,6 +3,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -264,8 +265,7 @@ public class WorkflowTest {
       // Expected.
       assertThat(e.getMessage()).contains("is not relative to");
     }
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFiles(outsideFolder);
   }
 
@@ -280,8 +280,7 @@ public class WorkflowTest {
     } catch (RepoException e) {
       assertThat(e.getMessage()).contains("Nothing was deleted");
     }
-    assertAbout(FileSubjects.path())
-        .that(workdir.resolve("checkout"))
+    assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder/file.txt", "folder2/file.txt");
   }
 
@@ -293,8 +292,7 @@ public class WorkflowTest {
     prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
 
-    assertAbout(FileSubjects.path())
-        .that(workdir.resolve("checkout"))
+    assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2")
         .containsNoFiles(
             "folder/file.txt", "folder/subfolder/file.txt", "folder/subfolder/file.java");
@@ -308,8 +306,7 @@ public class WorkflowTest {
     prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
 
-    assertAbout(FileSubjects.path())
-        .that(workdir.resolve("checkout"))
+    assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt")
         .containsNoFiles("folder/subfolder/file.java");
   }

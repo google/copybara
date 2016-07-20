@@ -2,6 +2,7 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.testing.FileSubjects;
@@ -73,18 +74,15 @@ public class DiffUtilTest {
 
     DiffUtil.patch(destination, diffContents, /*verbose*/ true);
 
-    assertAbout(FileSubjects.path())
-        .that(left)
+    assertThatPath(left)
         .containsFile("file1.txt", "foo")
         .containsFile("b/file2.txt", "bar")
         .containsNoMoreFiles();
-    assertAbout(FileSubjects.path())
-        .that(right)
+    assertThatPath(right)
         .containsFile("file1.txt", "new foo")
         .containsFile("c/file3.txt", "bar")
         .containsNoMoreFiles();
-    assertAbout(FileSubjects.path())
-        .that(destination)
+    assertThatPath(destination)
         .containsFile("file1.txt", "new foo")
         .containsFile("c/file3.txt", "bar")
         .containsNoMoreFiles();
@@ -133,8 +131,7 @@ public class DiffUtilTest {
 
     DiffUtil.patch(destination, diffContents, /*verbose*/ true);
 
-    assertAbout(FileSubjects.path())
-        .that(destination)
+    assertThatPath(destination)
         .containsFile("file1.txt", "new foo\n"
             + "more foo\n"
             + "added foo\n")
@@ -156,8 +153,7 @@ public class DiffUtilTest {
     writeFile(left, "b/file2.txt", "bar");
     DiffUtil.patch(left, /*empty diff*/ new byte[]{}, /*verbose*/ true);
 
-    assertAbout(FileSubjects.path())
-        .that(left)
+    assertThatPath(left)
         .containsFile("file1.txt", "foo")
         .containsFile("b/file2.txt", "bar")
         .containsNoMoreFiles();

@@ -1,13 +1,12 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
-import static com.google.common.truth.Truth.assertAbout;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 
 import org.junit.Before;
@@ -48,8 +47,7 @@ public final class ReverseTest {
     writeFile(workdir.resolve("file"), "jkl;");
     yaml.withOptions(options.build()).transform(workdir, options.general.console());
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("file", "asdf");
   }
 

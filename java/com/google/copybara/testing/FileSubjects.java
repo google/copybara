@@ -30,6 +30,10 @@ public class FileSubjects {
         }
       };
 
+  /**
+   * Use {@link #assertThatPath} instead.
+   */
+  @Deprecated
   public static SubjectFactory<PathSubject, Path> path() {
     return PATH_SUBJECT_FACTORY;
   }
@@ -41,22 +45,21 @@ public class FileSubjects {
    *
    * <p>For example:
    *
-   *     assertAbout(FileSubjects.path())
-   *       .that(workdir)
+   *     assertThatPath(workdir)
    *       .containsFiles("file1", "file2")
    *       .containsFile("file3", "foo bar")
    *       .containsNoMoreFiles();
    */
+  public static PathSubject assertThatPath(Path path) {
+    return assertAbout(PATH_SUBJECT_FACTORY).that(path);
+  }
+
   public static class PathSubject extends Subject<PathSubject, Path> {
 
     private Set<Path> whitelistedPaths = new HashSet<>();
 
     PathSubject(FailureStrategy failureStrategy, Path target) {
       super(failureStrategy, target);
-    }
-
-    static PathSubject assertThat(Path target) {
-      return assertAbout(PATH_SUBJECT_FACTORY).that(target);
     }
 
     /**

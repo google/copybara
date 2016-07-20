@@ -1,6 +1,7 @@
 package com.google.copybara.folder;
 
 import static com.google.common.truth.Truth.assertAbout;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.RepoException;
@@ -68,8 +69,7 @@ public class FolderDestinationTest {
 
     process();
 
-    assertAbout(FileSubjects.path())
-        .that(localFolder)
+    assertThatPath(localFolder)
         .containsFiles("file1.txt")
         .containsNoMoreFiles();
   }
@@ -91,8 +91,7 @@ public class FolderDestinationTest {
 
     process();
 
-    assertAbout(FileSubjects.path())
-        .that(localFolder)
+    assertThatPath(localFolder)
         .containsFiles("one", "two", "root_file",
             "one/file.java", "two/file.java", "test.txt", "dir/file.txt")
         .containsNoMoreFiles();

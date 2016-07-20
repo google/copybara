@@ -1,6 +1,7 @@
 package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertAbout;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
@@ -55,8 +56,7 @@ public class MoveFilesTest {
     Files.write(workdir.resolve("folder2/two.before"), new byte[]{});
     mover.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFiles("folder/one.after", "two.after")
         .containsNoMoreFiles();
   }
@@ -113,8 +113,7 @@ public class MoveFilesTest {
     MoveFiles mover = yaml.withOptions(options.build());
     mover.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFiles("folder/two")
         .containsNoMoreFiles();
   }
@@ -128,8 +127,7 @@ public class MoveFilesTest {
     MoveFiles mover = yaml.withOptions(options.build());
     mover.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFiles("one.java", "org/two.java")
         .containsNoMoreFiles();
   }
@@ -141,8 +139,7 @@ public class MoveFilesTest {
     MoveFiles mover = yaml.withOptions(options.build());
     mover.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFiles("third_party/java/file.java")
         .containsNoMoreFiles();
   }

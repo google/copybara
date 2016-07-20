@@ -3,6 +3,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -308,8 +309,7 @@ public class GitOriginTest {
 
     assertThat(cliHead.firstLineMessage()).isEqualTo("a change from somewhere");
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("cli_remote.txt", "some change")
         .containsNoMoreFiles();
 

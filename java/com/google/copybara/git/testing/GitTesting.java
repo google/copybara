@@ -3,6 +3,7 @@ package com.google.copybara.git.testing;
 
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GitRepository;
@@ -61,6 +62,6 @@ public class GitTesting {
     Path tempWorkTree = Files.createTempDirectory("assertAboutCheckout");
     repo.withWorkTree(tempWorkTree)
         .simpleCommand("checkout", ref, "--", ".");
-    return assertAbout(FileSubjects.path()).that(tempWorkTree);
+    return assertThatPath(tempWorkTree);
   }
 }

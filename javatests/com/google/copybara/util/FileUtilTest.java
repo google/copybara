@@ -1,7 +1,7 @@
 package com.google.copybara.util;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Truth;
@@ -38,8 +38,7 @@ public class FileUtilTest {
 
     FileUtil.copyFilesRecursively(one, two);
 
-    assertAbout(FileSubjects.path())
-        .that(two)
+    assertThatPath(two)
         .containsFile("foo", "abc")
         .containsFile("some/folder/bar", "abc")
         .containsFile("some/folder/absolute", "abc")

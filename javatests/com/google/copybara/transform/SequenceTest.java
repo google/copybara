@@ -1,8 +1,7 @@
 package com.google.copybara.transform;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.testing.FileSubjects.path;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
@@ -85,11 +84,11 @@ public class SequenceTest {
     Transformation seq = yaml.withOptions(options.build());
     seq.transform(workdir, console);
 
-    assertAbout(path()).that(workdir).containsFile("file.txt", "baz");
+    assertThatPath(workdir).containsFile("file.txt", "baz");
 
     seq.reverse().transform(workdir, console);
 
-    assertAbout(path()).that(workdir).containsFile("file.txt", "foo");
+    assertThatPath(workdir).containsFile("file.txt", "foo");
   }
 
   @Test
@@ -99,11 +98,11 @@ public class SequenceTest {
 
     seq.transform(workdir, console);
 
-    assertAbout(path()).that(workdir).containsFile("file.txt", "foo");
+    assertThatPath(workdir).containsFile("file.txt", "foo");
 
     seq.reverse().transform(workdir, console);
 
-    assertAbout(path()).that(workdir).containsFile("file.txt", "foo");
+    assertThatPath(workdir).containsFile("file.txt", "foo");
   }
 
   @DocElement(yamlName = "!NonReversibleTransform", description = "NonReversibleTransform", elementKind = Transformation.class)

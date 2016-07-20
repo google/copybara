@@ -3,6 +3,7 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
@@ -75,8 +76,7 @@ public final class ReplaceTest {
     BasicFileAttributes before = Files.readAttributes(file3, BasicFileAttributes.class);
     transformation.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("file1.txt", "bar")
         .containsFile("file2.txt", "bar\nbaz\nbar")
         .containsFile("file3.txt", "bazbazbaz");
@@ -98,8 +98,7 @@ public final class ReplaceTest {
     writeFile(file1, "fooBAZbar");
     transformation.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("file1.txt", "barBAZfoo");
   }
 
@@ -114,8 +113,7 @@ public final class ReplaceTest {
 
     transformation.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("file1.txt", "foo")
         .containsFile("file1.java", "bar")
         .containsFile("folder/file1.txt", "foo")
@@ -134,8 +132,7 @@ public final class ReplaceTest {
 
     transformation.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("file1.txt", "foo")
         .containsFile("file1.java", "foo")
         .containsFile("folder/file1.txt", "foo")
@@ -154,8 +151,7 @@ public final class ReplaceTest {
 
     transformation.transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("file1.txt", "foo")
         .containsFile("file1.java", "foo")
         .containsFile("folder/file1.txt", "foo")
@@ -179,8 +175,7 @@ public final class ReplaceTest {
 
     yaml.withOptions(options.build()).transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("before_and_after", ""
                 + "not a match: beforeB\n"
                 + "is a match: afBteraaaaa # trailing content\n");
@@ -247,8 +242,7 @@ public final class ReplaceTest {
 
     yaml.withOptions(options.build()).transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("before_and_after", ""
             + "obviously match: aftASDFer/\n"
             + "should not match: bef\n"
@@ -263,8 +257,7 @@ public final class ReplaceTest {
 
     yaml.withOptions(options.build()).transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("before_and_after", "after ... still after");
   }
 
@@ -330,9 +323,8 @@ public final class ReplaceTest {
     writeFile(workdir.resolve("before_and_after"), "before ... still before");
     yaml.withOptions(options.build()).transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-            .that(workdir)
-            .containsFile("before_and_after", "after$ ... still after$");
+    assertThatPath(workdir)
+        .containsFile("before_and_after", "after$ ... still after$");
   }
 
   @Test
@@ -342,9 +334,8 @@ public final class ReplaceTest {
     writeFile(workdir.resolve("before_and_after"), "before ... still before");
     yaml.withOptions(options.build()).transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-                .that(workdir)
-                .containsFile("before_and_after", "after\\ ... still after\\");
+    assertThatPath(workdir)
+        .containsFile("before_and_after", "after\\ ... still after\\");
   }
 
   @Test
@@ -354,8 +345,7 @@ public final class ReplaceTest {
     writeFile(workdir.resolve("before_and_after"), "be$ore ... still be$ore");
     yaml.withOptions(options.build()).transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("before_and_after", "after$ ... still after$");
   }
 
@@ -366,8 +356,7 @@ public final class ReplaceTest {
     writeFile(workdir.resolve("before_and_after"), "be\\ore ... still be\\ore");
     yaml.withOptions(options.build()).transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("before_and_after", "after\\ ... still after\\");
   }
 
@@ -381,9 +370,8 @@ public final class ReplaceTest {
         .reverse()
         .transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-            .that(workdir)
-            .containsFile("file", "!@# x123y ...");
+    assertThatPath(workdir)
+        .containsFile("file", "!@# x123y ...");
   }
 
   @Test
@@ -395,8 +383,7 @@ public final class ReplaceTest {
     yaml.withOptions(options.build())
         .transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("file", "aaa bar\nfoo bbb bar\nfoo ccc");
   }
 
@@ -413,8 +400,7 @@ public final class ReplaceTest {
     yaml.withOptions(options.build())
         .transform(workdir, console);
 
-    assertAbout(FileSubjects.path())
-        .that(workdir)
+    assertThatPath(workdir)
         .containsFile("file", ""
             + "a bar\n"
             + "b bar\n"
