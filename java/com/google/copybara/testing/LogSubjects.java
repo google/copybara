@@ -1,5 +1,6 @@
 package com.google.copybara.testing;
 
+import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -30,6 +31,10 @@ public class LogSubjects {
         }
       };
 
+  /**
+   * Use {@link #assertThatConsole(TestingConsole)} instead.
+   */
+  @Deprecated
   public static SubjectFactory<LogSubject, TestingConsole> console() {
     return CONSOLE_SUBJECT_FACTORY;
   }
@@ -41,12 +46,16 @@ public class LogSubjects {
    *
    * <p>For example:
    *
-   *     assertAbout(LogSubjects.console()))
-   *       .that(testConsole)
+   *     assertThatConsole(testConsole)
    *       .matchesNext(...)
    *       .equalsNext(...)
    *       .containsNoMoreMessages();
    */
+  public static LogSubject assertThatConsole(TestingConsole console) {
+    return assertAbout(CONSOLE_SUBJECT_FACTORY)
+        .that(console);
+  }
+
   public static class LogSubject extends Subject<LogSubject, TestingConsole> {
 
     private final ArrayDeque<Message> messages;

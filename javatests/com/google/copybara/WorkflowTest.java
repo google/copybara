@@ -1,9 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -16,8 +16,6 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.testing.AuthoringYamlBuilder;
 import com.google.copybara.testing.DummyOrigin;
-import com.google.copybara.testing.FileSubjects;
-import com.google.copybara.testing.LogSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
@@ -395,8 +393,7 @@ public class WorkflowTest {
     Workflow workflow = changeRequestWorkflow(null);
     workflow.run(workdir, "1");
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
-    assertAbout(LogSubjects.console())
-        .that(console)
+    assertThatConsole(console)
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
@@ -407,8 +404,7 @@ public class WorkflowTest {
     Workflow workflow = changeRequestWorkflow("24");
     workflow.run(workdir, "1");
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
-    assertAbout(LogSubjects.console())
-        .that(console)
+    assertThatConsole(console)
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
@@ -457,10 +453,8 @@ public class WorkflowTest {
     } catch (NonReversibleValidationException e) {
       assertThat(e).hasMessage("Workflow 'default' is not reversible");
     }
-
-    assertThat(console.countTimesInLog(
-        MessageType.PROGRESS, "Checking that the transformations can be reverted"))
-        .isEqualTo(1);
+    assertThatConsole(console)
+        .onceInLog(MessageType.PROGRESS, "Checking that the transformations can be reverted");
   }
 
   private void prepareOriginExcludes() throws IOException {

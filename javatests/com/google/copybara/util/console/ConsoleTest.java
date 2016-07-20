@@ -1,10 +1,9 @@
 package com.google.copybara.util.console;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
-import com.google.copybara.testing.LogSubjects;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 
@@ -96,8 +95,7 @@ public class ConsoleTest {
     Console console = new ProgressPrefixConsole("FOO ", delegate);
     console.progress("bar");
 
-    assertAbout(LogSubjects.console())
-        .that(delegate)
+    assertThatConsole(delegate)
         .matchesNext(MessageType.PROGRESS, "FOO bar")
         .containsNoMoreMessages();
   }

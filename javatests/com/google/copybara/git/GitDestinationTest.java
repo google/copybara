@@ -1,9 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
+import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -18,7 +18,6 @@ import com.google.copybara.git.GitDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
-import com.google.copybara.testing.LogSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -173,8 +172,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit(/*askConfirmation*/ true), new DummyReference("origin_ref"));
 
-    assertAbout(LogSubjects.console())
-        .that(console)
+    assertThatConsole(console)
         .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching file:.*")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Adding files for push")
         .equalsNext(MessageType.INFO, "\n"

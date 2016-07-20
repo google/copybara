@@ -1,9 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -16,7 +16,6 @@ import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
@@ -201,10 +200,10 @@ public class GitOriginTest {
     // We keep the last label. The probability that the last one is a label and the first one
     // is just description is very high.
     assertThat(change.getLabels()).containsEntry("foo", "baz");
-    assertThat(console.countTimesInLog(MessageType.WARNING, "Possible duplicate label 'foo'"
-        + " happening multiple times in commit. Keeping only the last value: 'baz'\n"
-        + "  Discarded value: 'bar'"))
-        .isEqualTo(1);
+    assertThatConsole(console)
+        .onceInLog(MessageType.WARNING, "Possible duplicate label 'foo'"
+            + " happening multiple times in commit. Keeping only the last value: 'baz'\n"
+            + "  Discarded value: 'bar'");
   }
 
   @Test
@@ -313,8 +312,9 @@ public class GitOriginTest {
         .containsFile("cli_remote.txt", "some change")
         .containsNoMoreFiles();
 
-    assertThat(testConsole.countTimesInLog(MessageType.WARNING,
-        "Git origin URL overwritten in the command line as " + newUrl)).isEqualTo(1);
+    assertThatConsole(testConsole)
+        .onceInLog(MessageType.WARNING,
+            "Git origin URL overwritten in the command line as " + newUrl);
   }
 
   @Test

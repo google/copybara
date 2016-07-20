@@ -1,9 +1,8 @@
 package com.google.copybara.util.console.testing;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
-import com.google.copybara.testing.LogSubjects;
 import com.google.copybara.testing.LogSubjects.LogSubject;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
@@ -41,8 +40,7 @@ public final class TestingConsoleTest {
   @Test
   public void assertFailsForPartialMatch() {
     console.error("jjj_asdf_mmm");
-    final LogSubject logSubject = assertAbout(LogSubjects.console())
-        .that(console);
+    final LogSubject logSubject = assertThatConsole(console);
     expectAssertion(".*jjj_asdf_mmm.*",
         new Runnable() {
           @Override
@@ -55,8 +53,7 @@ public final class TestingConsoleTest {
   @Test
   public void assertFailsWhenNoMoreMessagesRemain() {
     console.error("foo");
-    final LogSubject logSubject = assertAbout(LogSubjects.console())
-        .that(console)
+    final LogSubject logSubject = assertThatConsole(console)
         .matchesNext(MessageType.ERROR, "foo");
     expectAssertion("no more log messages.*",
         new Runnable() {
@@ -73,8 +70,7 @@ public final class TestingConsoleTest {
     console.warn("warn method 1234");
     console.info("info method 1234");
     console.progress("progress method 1234");
-    assertAbout(LogSubjects.console())
-        .that(console)
+    assertThatConsole(console)
         .matchesNext(MessageType.ERROR, "error method \\d{4}")
         .matchesNext(MessageType.WARNING, "warn method \\d{4}")
         .matchesNext(MessageType.INFO, "info method \\d{4}")
@@ -88,8 +84,7 @@ public final class TestingConsoleTest {
     console.warn("warn method");
     console.info("info method");
     console.progress("progress method");
-    assertAbout(LogSubjects.console())
-        .that(console)
+    assertThatConsole(console)
         .equalsNext(MessageType.ERROR, "error method")
         .equalsNext(MessageType.WARNING, "warn method")
         .equalsNext(MessageType.INFO, "info method")
@@ -103,8 +98,7 @@ public final class TestingConsoleTest {
     console.warn("warn method");
     console.info("info method");
     console.progress("progress method");
-    assertAbout(LogSubjects.console())
-        .that(console)
+    assertThatConsole(console)
         .matchesNext(MessageType.ERROR, "error method")
         .matchesNext(MessageType.WARNING, "warn method")
         .matchesNext(MessageType.INFO, "info method")
@@ -119,8 +113,7 @@ public final class TestingConsoleTest {
         new Runnable() {
           @Override
           public void run() {
-            assertAbout(LogSubjects.console())
-                .that(console)
+            assertThatConsole(console)
                 .matchesNext(MessageType.WARNING, "foo");
           }
         });
@@ -129,8 +122,7 @@ public final class TestingConsoleTest {
   @Test
   public void assertMessageTypeWrong2() {
     console.info("bar");
-    final LogSubject logSubject = assertAbout(LogSubjects.console())
-        .that(console);
+    final LogSubject logSubject = assertThatConsole(console);
     expectAssertion(".*bar.*",
         new Runnable() {
           @Override
