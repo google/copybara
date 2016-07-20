@@ -1,13 +1,11 @@
 package com.google.copybara.transform;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.MoveFiles.MoveElement;
 import com.google.copybara.util.console.Console;
@@ -129,6 +127,33 @@ public class MoveFilesTest {
 
     assertThatPath(workdir)
         .containsFiles("one.java", "org/two.java")
+        .containsNoMoreFiles();
+  }
+
+  /**
+   * In bash if foo/ exist, the following command:
+   *
+   * <pre>
+   *   mv third_party/java foo/
+   * </pre>
+   *
+   * would create foo/java instead of moving the content of java to foo. Sadly, this behavior would
+   * make MoveFiles non-reversible. As it would need to know if foo exist or not for computing the
+   * reverse. This test ensures that MoveFiles doesn't work like that but instead puts the content
+   * of java in foo, no matter that foo exist or not.
+   */
+  @Test
+  public void testMoveDir() throws Exception {
+    yaml.setPaths(ImmutableList.of(createMove("third_party/java", "foo")));
+    Files.createDirectories(workdir.resolve("third_party/java/org"));
+    Files.createDirectories(workdir.resolve("foo"));
+    Files.write(workdir.resolve("third_party/java/one.java"), new byte[]{});
+    Files.write(workdir.resolve("third_party/java/org/two.java"), new byte[]{});
+    MoveFiles mover = yaml.withOptions(options.build());
+    mover.transform(workdir, console);
+
+    assertThatPath(workdir)
+        .containsFiles("foo/one.java", "foo/org/two.java")
         .containsNoMoreFiles();
   }
 
