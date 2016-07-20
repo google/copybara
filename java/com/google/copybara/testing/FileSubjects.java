@@ -30,14 +30,6 @@ public class FileSubjects {
         }
       };
 
-  /**
-   * Use {@link #assertThatPath} instead.
-   */
-  @Deprecated
-  public static SubjectFactory<PathSubject, Path> path() {
-    return PATH_SUBJECT_FACTORY;
-  }
-
   private FileSubjects() {}
 
   /**
