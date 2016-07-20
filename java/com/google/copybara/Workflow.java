@@ -256,7 +256,7 @@ public final class Workflow<R extends Origin.Reference> {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
       WriterResult result = writer.write(transformResult, processConsole);
-      Verify.verifyNotNull(result != null, "Destination returned a null result.");
+      Verify.verifyNotNull(result, "Destination returned a null result.");
       return result;
     }
 
