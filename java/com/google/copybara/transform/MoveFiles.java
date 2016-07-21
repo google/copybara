@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -115,8 +114,14 @@ public class MoveFiles implements Transformation {
 
   @Override
   public Transformation reverse() {
-    //TODO(malcon): Make MoveFiles reversible
-    throw new UnsupportedOperationException("MoveFiles not reversible");
+    ImmutableList.Builder<MoveElement> elements = ImmutableList.builder();
+    for (MoveElement path : paths) {
+      MoveElement newElement = new MoveElement();
+      newElement.before = path.after;
+      newElement.after = path.before;
+      elements.add(newElement);
+    }
+    return new MoveFiles(elements.build().reverse());
   }
 
   private void createParentDirs(Path after) throws IOException, ValidationException {
@@ -164,6 +169,8 @@ public class MoveFiles implements Transformation {
 
     @Override
     public void checkReversible() throws ConfigValidationException {
+      // TODO(malcon): Remove once internal asymmetry issue between origin/destination
+      // are solved.
       throw new NonReversibleValidationException(this);
     }
   }

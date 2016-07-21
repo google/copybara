@@ -57,6 +57,28 @@ public class MoveFilesTest {
     assertThatPath(workdir)
         .containsFiles("folder/one.after", "two.after")
         .containsNoMoreFiles();
+
+    mover.reverse().transform(workdir, console);
+
+    assertThatPath(workdir)
+        .containsFiles("one.before", "folder2/two.before")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testTransitiveMove() throws ValidationException, EnvironmentException, IOException {
+    yaml.setPaths(ImmutableList.of(
+        createMove("one", "two"),
+        createMove("two", "three")));
+    MoveFiles mover = yaml.withOptions(options.build());
+    Files.write(workdir.resolve("one"), new byte[]{});
+    mover.transform(workdir, console);
+
+    assertThatPath(workdir).containsFiles("three").containsNoMoreFiles();
+
+    mover.reverse().transform(workdir, console);
+
+    assertThatPath(workdir).containsFiles("one").containsNoMoreFiles();
   }
 
   @Test
