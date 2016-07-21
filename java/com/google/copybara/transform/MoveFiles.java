@@ -154,6 +154,9 @@ public class MoveFiles implements Transformation {
         throw new ConfigValidationException("'paths' already set: "+ this.paths );
       }
       this.paths = paths;
+      for (MoveElement path : paths) {
+        path.checkRequiredFields();
+      }
     }
 
     @Override
@@ -204,6 +207,11 @@ public class MoveFiles implements Transformation {
         throw new ConfigValidationException("'" + strPath + "' is not a relative path");
       }
       return strPath;
+    }
+
+    void checkRequiredFields() throws ConfigValidationException {
+      ConfigValidationException.checkNotMissing(before, "before");
+      ConfigValidationException.checkNotMissing(after, "after");
     }
   }
 }

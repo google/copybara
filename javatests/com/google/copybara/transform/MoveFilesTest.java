@@ -205,10 +205,28 @@ public class MoveFilesTest {
     mover.transform(workdir, console);
   }
 
+  @Test
+  public void errorForMissingBefore() throws Exception {
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("missing required field 'before'");
+    yaml.setPaths(ImmutableList.of(createMove(null, "after")));
+  }
+
+  @Test
+  public void errorForMissingAfter() throws Exception {
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("missing required field 'after'");
+    yaml.setPaths(ImmutableList.of(createMove("before", null)));
+  }
+
   private MoveElement createMove(String before, String after) throws ConfigValidationException {
     MoveElement result = new MoveElement();
-    result.setBefore(before);
-    result.setAfter(after);
+    if (before != null) {
+      result.setBefore(before);
+    }
+    if (after != null) {
+      result.setAfter(after);
+    }
     return result;
   }
 }
