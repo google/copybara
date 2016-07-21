@@ -147,7 +147,11 @@ public class Main {
     } catch (EnvironmentException | IOException e) {
       handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
     } catch (RuntimeException e) {
-      handleUnexpectedError(console, ExitCode.INTERNAL_ERROR, "Unexpected error: " + e.getMessage(),
+      // This usually indicates a serious programming error that will require Copybara team
+      // intervention. Print stack trace without concern for presentation.
+      e.printStackTrace();
+      handleUnexpectedError(console, ExitCode.INTERNAL_ERROR,
+          "Unexpected error (please file a bug): " + e.getMessage(),
           e);
     }
   }
