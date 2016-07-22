@@ -13,7 +13,6 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
-import com.google.copybara.TransformResult;
 import com.google.copybara.Workflow;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -35,6 +34,7 @@ import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,8 +68,8 @@ public class YamlParserTest {
   public void testEmptyFile() throws IOException, ConfigValidationException, EnvironmentException {
     Files.write(fs.getPath("test"), "".getBytes());
     thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("'test' is empty");
-    yamlParser.loadConfig(fs.getPath("test"), options);
+    thrown.expectMessage("Configuration is empty");
+    yamlParser.parseConfig(readConfig(), options);
   }
 
   @Test
@@ -77,8 +77,8 @@ public class YamlParserTest {
       throws IOException, ConfigValidationException, EnvironmentException {
     Files.write(fs.getPath("test"), "  ".getBytes());
     thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("'test' is empty");
-    yamlParser.loadConfig(fs.getPath("test"), options);
+    thrown.expectMessage("Configuration is empty");
+    yamlParser.parseConfig(readConfig(), options);
   }
 
   /**
@@ -112,7 +112,7 @@ public class YamlParserTest {
 
     Files.write(fs.getPath("test"), configContent.getBytes());
 
-    Config config = yamlParser.loadConfig(fs.getPath("test"), options);
+    Config config = yamlParser.parseConfig(readConfig(), options);
 
     assertThat(config.getName()).isEqualTo("mytest");
     MockOrigin origin = (MockOrigin) config.getActiveWorkflow().getOrigin();
@@ -155,7 +155,7 @@ public class YamlParserTest {
 
     Files.write(fs.getPath("test"), configContent.getBytes());
 
-    Config config = yamlParser.loadConfig(fs.getPath("test"), options);
+    Config config = yamlParser.parseConfig(readConfig(), options);
 
     Transformation transformation = config.getActiveWorkflow().getTransformation();
     assertThat(transformation instanceof Sequence).isTrue();
@@ -187,7 +187,7 @@ public class YamlParserTest {
     thrown.expectCause(new CauseMatcher(NonReversibleValidationException.class,
         "'!MockTransform' transformation is not automatically reversible"));
 
-    yamlParser.loadConfig(fs.getPath("test"), options);
+    yamlParser.parseConfig(readConfig(), options);
   }
 
   @Test
@@ -212,9 +212,9 @@ public class YamlParserTest {
     thrown.expectCause(new CauseMatcher(ConstructorException.class,
         "sequence field 'list' expects elements of type 'string',"
             + " but list[1] is of type 'boolean' (value = true)"));
-    thrown.expectMessage("Error loading 'test' configuration file");
+    thrown.expectMessage("Error parsing configuration");
 
-    yamlParser.loadConfig(fs.getPath("test"), options);
+    yamlParser.parseConfig(readConfig(), options);
   }
 
   @Test
@@ -236,9 +236,9 @@ public class YamlParserTest {
     thrown.expectCause(new CauseMatcher(ConstructorException.class,
         "sequence field 'transformations' expects elements of type"
             + " 'Transformation', but transformations[0] is of type 'integer' (value = 42)"));
-    thrown.expectMessage("Error loading 'test' configuration file");
+    thrown.expectMessage("Error parsing configuration");
 
-    yamlParser.loadConfig(fs.getPath("test"), options);
+    yamlParser.parseConfig(readConfig(), options);
   }
 
   @Test
@@ -252,6 +252,10 @@ public class YamlParserTest {
     yaml.withOptions(options);
   }
 
+  private String readConfig() throws IOException {
+    return new String(Files.readAllBytes(fs.getPath("test")), StandardCharsets.UTF_8);
+  }
+  
   public static class MockOrigin implements Origin.Yaml<Reference>, Origin<Reference> {
 
     private String url;

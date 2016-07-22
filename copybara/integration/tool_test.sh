@@ -676,7 +676,7 @@ function test_command_too_many_args() {
 
 function test_config_not_found() {
   copybara copybara.yaml origin/master && fail "Should fail"
-  expect_log "Config file 'copybara.yaml' cannot be found."
+  expect_log "Configuration file not found: copybara.yaml"
 }
 
 #Verify that we instantiate LogConsole when System.console() is null

@@ -28,10 +28,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -91,25 +88,24 @@ public final class YamlParser {
    * Load a YAML content, configure it with the program {@code Options} and return a {@link Config}
    * object.
    *
-   * @param path a file representing a YAML Copybara configuration
+   * @param configContents a UTF-8 string representing the configuration
    * @param options the options passed to the Copybara command
    * @throws NoSuchFileException in case the config file cannot be found
    * @throws IOException if the config file cannot be load
    */
-  public Config loadConfig(Path path, Options options)
-      throws IOException, NoSuchFileException, ConfigValidationException, EnvironmentException {
-    String configContent = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+  public Config parseConfig(String configContents, Options options)
+      throws IOException, ConfigValidationException, EnvironmentException {
     // TODO(matvore): The exceptions printed as a result of a bad configuration are hard to read.
     // It can include a long stack trace plus a nested cause. Find a way to make the error output
     // more digestable.
     Config.Yaml load;
     try {
-      load = (Config.Yaml) yaml.load(configContent);
+      load = (Config.Yaml) yaml.load(configContents);
     } catch (ConstructorException e) {
-      throw new ConfigValidationException("Error loading '" + path + "' configuration file", e);
+      throw new ConfigValidationException("Error parsing configuration", e);
     }
     if (load == null) {
-      throw new ConfigValidationException("Configuration file '" + path + "' is empty");
+      throw new ConfigValidationException("Configuration is empty");
     }
     return load.withOptions(options);
   }

@@ -4,20 +4,7 @@ package com.google.copybara;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.config.YamlParser;
-import com.google.copybara.folder.FolderDestination;
-import com.google.copybara.folder.FolderDestinationOptions;
-import com.google.copybara.git.GerritDestination;
-import com.google.copybara.git.GerritOptions;
-import com.google.copybara.git.GitDestination;
-import com.google.copybara.git.GitOptions;
-import com.google.copybara.git.GitOrigin;
-import com.google.copybara.transform.MoveFiles;
-import com.google.copybara.transform.Replace;
-import com.google.copybara.transform.Reverse;
-import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
@@ -27,10 +14,9 @@ import com.google.copybara.util.console.LogConsole;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
-import org.yaml.snakeyaml.TypeDescription;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -44,7 +30,10 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 /**
- * Main class for Copybara
+ * Main class that invokes {@link Copybara} from command-line.
+ *
+ * <p>This class should only know about how to validate and parse command-line arguments in order
+ * to invoke {@link Copybara}.
  */
 public class Main {
 
@@ -53,52 +42,21 @@ public class Main {
   private static final Logger logger = Logger.getLogger(Main.class.getName());
   private static final String COPYBARA_CONFIG_FILENAME = "copybara.yaml";
 
-  protected List<Option> getAllOptions() {
-    return ImmutableList.of(
-        new FolderDestinationOptions(),
-        new GitOptions(),
-        new GerritOptions(),
-        new WorkflowOptions());
-  }
-
-  protected Iterable<TypeDescription> getYamlTypeDescriptions() {
-    return ImmutableList.of(
-        // Transformations
-        YamlParser.docTypeDescription(Replace.Yaml.class),
-        YamlParser.docTypeDescription(Reverse.Yaml.class),
-        YamlParser.docTypeDescription(MoveFiles.Yaml.class),
-        YamlParser.docTypeDescription(Sequence.Yaml.class),
-        // Origins
-        YamlParser.docTypeDescription(GitOrigin.Yaml.class),
-        // Destinations
-        YamlParser.docTypeDescription(GerritDestination.Yaml.class),
-        YamlParser.docTypeDescription(GitDestination.Yaml.class),
-        YamlParser.docTypeDescription(FolderDestination.Yaml.class));
-  }
-
-  /**
-   * Returns a short String representing the version of the binary
-   */
-  protected String getVersion() {
-    return "Unknown version";
-  }
-
-  /**
-   * Returns a String (can be multiline) representing all the information about who and when the
-   * Copybara was built.
-   */
-  protected String getBinaryInfo() {
-    return "Unknown version";
-  }
-
   public static void main(String[] args) {
     new Main().run(args);
   }
 
   protected void run(String[] args) {
-    MainArguments mainArgs = new MainArguments();
+    // We need a console before parsing the args because it could fail with wrong
+    // arguments and we need to show the error.
+    Console console = getConsole(args);
+    console.startupMessage();
+
+    Copybara copybara = newCopybaraTool();
+
+    final MainArguments mainArgs = new MainArguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-    List<Option> allOptions = new ArrayList<>(getAllOptions());
+    List<Option> allOptions = new ArrayList<>(copybara.getAllOptions());
     JCommander jcommander = new JCommander(ImmutableList.builder()
         .addAll(allOptions)
         .add(mainArgs)
@@ -106,13 +64,8 @@ public class Main {
         .build());
     jcommander.setProgramName("copybara");
 
+    String version = copybara.getVersion();
     FileSystem fs = FileSystems.getDefault();
-
-    // We need a console before parsing the args because it could fail with wrong
-    // arguments and we need to show the error.
-    Console console = getConsole(args);
-    console.startupMessage();
-    String version = getVersion();
     try {
       configureLog(fs);
       logger.log(Level.INFO, "Copybara version: " + version);
@@ -124,16 +77,26 @@ public class Main {
         System.out.print(usage(jcommander, version));
         return;
       } else if (mainArgs.version) {
-        System.out.println(getBinaryInfo());
+        System.out.println(copybara.getBinaryInfo());
         return;
       }
       mainArgs.validateUnnamedArgs();
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
-      options.get(WorkflowOptions.class).setWorkflowName(mainArgs.getWorkflowName());
-      Config config = loadConfig(fs.getPath(mainArgs.getConfigPath()), options);
 
-      config.getActiveWorkflow().run(baseWorkdir, mainArgs.getSourceRef());
+      final Path configPath = fs.getPath(mainArgs.getConfigPath());
+      if (!configPath.getFileName().toString().contentEquals(COPYBARA_CONFIG_FILENAME)) {
+        throw new ConfigValidationException(
+            String.format("Copybara config file filename should be '%s' but is '%s'.",
+                COPYBARA_CONFIG_FILENAME, configPath.getFileName()));
+      }
+
+      copybara.run(
+          options,
+          loadConfig(configPath),
+          mainArgs.getWorkflowName(),
+          baseWorkdir,
+          mainArgs.getSourceRef());
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
       System.err.print(usage(jcommander, version));
@@ -156,7 +119,22 @@ public class Main {
     }
   }
 
-  protected Console getConsole(String[] args) {
+  private String loadConfig(Path configPath) throws IOException, CommandLineException {
+    try {
+      return new String(Files.readAllBytes(configPath), StandardCharsets.UTF_8);
+    } catch (NoSuchFileException e) {
+      throw new CommandLineException("Configuration file not found: " + configPath);
+    }
+  }
+
+  /**
+   * Returns a new instance of {@link Copybara}.
+   */
+  protected Copybara newCopybaraTool() {
+    return new Copybara();
+  }
+
+  private Console getConsole(String[] args) {
     // If System.console() is not present, we are forced to use LogConsole
     if (System.console() == null) {
       return LogConsole.writeOnlyConsole(System.err);
@@ -169,7 +147,7 @@ public class Main {
     return new AnsiConsole(System.in, System.err);
   }
 
-  protected void configureLog(FileSystem fs) throws IOException {
+  private void configureLog(FileSystem fs) throws IOException {
     String baseDir = getBaseExecDir();
     Files.createDirectories(fs.getPath(baseDir));
     if (System.getProperty("java.util.logging.config.file") == null) {
@@ -193,7 +171,7 @@ public class Main {
    * Returns the base directory to be used by Copybara to write execution related files (Like
    * logs).
    */
-  protected String getBaseExecDir() {
+  private String getBaseExecDir() {
     String userHome = StandardSystemProperty.USER_HOME.value();
 
     switch (StandardSystemProperty.OS_NAME.value()) {
@@ -229,20 +207,6 @@ public class Main {
     logger.log(Level.SEVERE, msg, e);
     console.error(msg + " (" + e + ")");
     System.exit(errorType.getCode());
-  }
-
-  private Config loadConfig(Path path, Options options)
-      throws IOException, CommandLineException, ConfigValidationException, EnvironmentException {
-    if (!path.getFileName().toString().equals(COPYBARA_CONFIG_FILENAME)) {
-      throw new CommandLineException(
-          String.format("Copybara config file filename should be '%s' but is '%s'.",
-              COPYBARA_CONFIG_FILENAME, path.getFileName()));
-    }
-    try {
-      return new YamlParser(getYamlTypeDescriptions()).loadConfig(path, options);
-    } catch (NoSuchFileException e) {
-      throw new CommandLineException("Config file '" + path + "' cannot be found.");
-    }
   }
 
   private static String usage(JCommander jcommander, String version) {
