@@ -57,7 +57,7 @@ public final class Workflow<R extends Origin.Reference> {
   private final boolean reversibleCheck;
   private final boolean verbose;
 
-  private Workflow(String configName, String name, Origin<R> origin, Destination destination,
+  Workflow(String configName, String name, Origin<R> origin, Destination destination,
       Authoring authoring, Transformation transformation, @Nullable String lastRevisionFlag,
       Console console, PathMatcherBuilder excludedOriginPaths,
       PathMatcherBuilder excludedDestinationPaths, WorkflowMode mode,
@@ -474,4 +474,5 @@ public final class Workflow<R extends Origin.Reference> {
           options.get(WorkflowOptions.class), reversibleCheck, generalOptions.isVerbose());
     }
   }
+
 }

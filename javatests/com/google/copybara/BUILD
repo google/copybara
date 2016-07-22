@@ -21,6 +21,7 @@ all_tests(
         "//third_party:jimfs",
         "//third_party:jsr305",
         "//third_party:shell",
+        "//third_party:skylark-lang",
         "//third_party:snakeyaml",
         "//third_party:truth",
     ],

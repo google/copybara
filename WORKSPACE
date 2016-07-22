@@ -70,3 +70,14 @@ new_http_archive(
     strip_prefix = "cram-0.7/",
     url = "https://pypi.python.org/packages/source/c/cram/cram-0.7.tar.gz",
 )
+
+# LICENSE: The Apache Software License, Version 2.0
+http_archive(
+    name = "io_bazel",
+    # TODO(malcon): Revisit to try to depend on a tag instead
+    # Currently we depend on a specific commit, otherwise the sha-256 would be changing all the
+    # times.
+    url = "https://github.com/bazelbuild/bazel/archive/0012c3524f672bce22d4bf06e49187f6bdaca4a4.zip",
+    sha256 = "8fd9c8a3f509827d15e7d7b13c36b79b9c2c571e011205175ca7498270099395",
+    strip_prefix = "bazel-0012c3524f672bce22d4bf06e49187f6bdaca4a4",
+)

@@ -3,6 +3,8 @@ package com.google.copybara;
 
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 
 import java.io.IOException;
 
@@ -11,6 +13,10 @@ import javax.annotation.Nullable;
 /**
  * A repository which a source of truth can be copied to.
  */
+@SkylarkModule(
+    name = "destination",
+    doc = "A repository which a source of truth can be copied to",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
 public interface Destination {
 
   /**

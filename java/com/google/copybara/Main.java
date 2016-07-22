@@ -41,6 +41,7 @@ public class Main {
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
   private static final String COPYBARA_CONFIG_FILENAME = "copybara.yaml";
+  private static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copybara.bzl";
 
   public static void main(String[] args) {
     new Main().run(args);
@@ -85,15 +86,10 @@ public class Main {
       Options options = new Options(allOptions);
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
-      if (!configPath.getFileName().toString().contentEquals(COPYBARA_CONFIG_FILENAME)) {
-        throw new ConfigValidationException(
-            String.format("Copybara config file filename should be '%s' but is '%s'.",
-                COPYBARA_CONFIG_FILENAME, configPath.getFileName()));
-      }
 
       copybara.run(
           options,
-          loadConfig(configPath),
+          loadConfig(generalOptions.isSkylark(), configPath),
           mainArgs.getWorkflowName(),
           baseWorkdir,
           mainArgs.getSourceRef());
@@ -119,7 +115,18 @@ public class Main {
     }
   }
 
-  private String loadConfig(Path configPath) throws IOException, CommandLineException {
+  private String loadConfig(boolean skylark, Path configPath)
+      throws IOException, CommandLineException, ConfigValidationException {
+    String expectedConfigName = COPYBARA_CONFIG_FILENAME;
+    if (skylark) {
+      expectedConfigName = COPYBARA_SKYLARK_CONFIG_FILENAME;
+    }
+    if (!configPath.getFileName().toString().contentEquals(expectedConfigName)) {
+      throw new ConfigValidationException(
+          String.format("Copybara config file filename should be '%s' but it is '%s'.",
+              expectedConfigName, configPath.getFileName()));
+    }
+
     try {
       return new String(Files.readAllBytes(configPath), StandardCharsets.UTF_8);
     } catch (NoSuchFileException e) {

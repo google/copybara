@@ -5,6 +5,8 @@ import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -12,6 +14,10 @@ import java.nio.file.Path;
 /**
  * Interface implemented by all source code transformations.
  */
+@SkylarkModule(
+    name = "transformation",
+    doc = "A transformation to the workdir",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
 public interface Transformation {
   interface Yaml {
     Transformation withOptions(Options options)

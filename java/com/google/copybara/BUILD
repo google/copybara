@@ -43,6 +43,7 @@ java_library(
         "//third_party:jcommander",
         "//third_party:jsr305",
         "//third_party:joda_time",
+        "//third_party:skylark-lang",
         "//third_party:shell",
         "//third_party:snakeyaml",
     ],

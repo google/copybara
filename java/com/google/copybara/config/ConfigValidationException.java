@@ -9,6 +9,7 @@ import com.google.copybara.transform.ValidationException;
  * or is not formatted correctly.
  */
 public class ConfigValidationException extends ValidationException {
+
   public ConfigValidationException(String message) {
     super(message);
   }
@@ -30,5 +31,12 @@ public class ConfigValidationException extends ValidationException {
       throw new ConfigValidationException(String.format("missing required field '%s'", fieldName));
     }
     return value;
+  }
+
+  public static void checkCondition(boolean condition, String msg)
+      throws ConfigValidationException {
+    if (!condition) {
+      throw new ConfigValidationException(msg);
+    }
   }
 }

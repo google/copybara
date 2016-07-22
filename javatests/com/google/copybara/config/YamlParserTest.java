@@ -255,7 +255,7 @@ public class YamlParserTest {
   private String readConfig() throws IOException {
     return new String(Files.readAllBytes(fs.getPath("test")), StandardCharsets.UTF_8);
   }
-  
+
   public static class MockOrigin implements Origin.Yaml<Reference>, Origin<Reference> {
 
     private String url;

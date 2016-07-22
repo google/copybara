@@ -28,7 +28,7 @@ public final class Config {
   private final String name;
   private final Workflow activeWorkflow;
 
-  private Config(String name, Workflow activeWorkflow) {
+  public Config(String name, Workflow activeWorkflow) {
     this.name = Preconditions.checkNotNull(name);
     this.activeWorkflow = Preconditions.checkNotNull(activeWorkflow);
   }

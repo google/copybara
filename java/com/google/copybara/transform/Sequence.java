@@ -4,7 +4,6 @@ package com.google.copybara.transform;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
@@ -28,7 +27,7 @@ public class Sequence implements Transformation {
 
   protected final Logger logger = Logger.getLogger(Sequence.class.getName());
 
-  Sequence(ImmutableList<Transformation> sequence) {
+  private Sequence(ImmutableList<Transformation> sequence) {
     this.sequence = Preconditions.checkNotNull(sequence);
   }
 
@@ -90,16 +89,13 @@ public class Sequence implements Transformation {
     @Override
     public Sequence withOptions(Options options)
         throws ConfigValidationException, EnvironmentException {
-      //Avoid nesting one sequence inside another sequence
-      if (this.transformations.size() == 1 && Iterables
-          .getOnlyElement(this.transformations) instanceof Sequence.Yaml) {
-        return (Sequence) Iterables.getOnlyElement(this.transformations).withOptions(options);
-      }
+
       ImmutableList.Builder<Transformation> transformations = new ImmutableList.Builder<>();
       for (Transformation.Yaml yaml : this.transformations) {
         transformations.add(yaml.withOptions(options));
       }
-      return new Sequence(transformations.build());
+      return createSequence(transformations.build());
+
     }
 
     @Override
@@ -108,5 +104,16 @@ public class Sequence implements Transformation {
         transformation.checkReversible();
       }
     }
+  }
+
+  /**
+   * Create a sequence avoiding nesting a single sequence twice.
+   */
+  public static Sequence createSequence(ImmutableList<Transformation> elements) {
+    //Avoid nesting one sequence inside another sequence
+    if (elements.size() == 1 && elements.get(0) instanceof Sequence) {
+      return (Sequence) elements.get(0);
+    }
+    return new Sequence(elements);
   }
 }
