@@ -71,7 +71,7 @@ public class Copybara {
     return "Unknown version";
   }
 
-  protected void run(Options options, String configContents, String workflowName,
+  public void run(Options options, String configContents, String workflowName,
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException, EnvironmentException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
