@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -385,7 +386,7 @@ public class GitOriginTest {
 
   private void singleFileCommit(String author, String commitMessage, String fileName,
       String fileContent) throws IOException, RepoException {
-    Files.write(remote.resolve(fileName), fileContent.getBytes());
+    Files.write(remote.resolve(fileName), fileContent.getBytes(StandardCharsets.UTF_8));
     git("add", fileName);
     git("commit", "-m", commitMessage, "--author=" + author);
   }

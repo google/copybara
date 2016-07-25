@@ -12,6 +12,7 @@ import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -64,7 +65,7 @@ public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
       throws IOException {
     Path path = fs.getPath("" + changes.size());
     Files.createDirectories(path);
-    Files.write(path.resolve(strPath), content.getBytes());
+    Files.write(path.resolve(strPath), content.getBytes(StandardCharsets.UTF_8));
     addChange(timestamp, path, message);
     return this;
   }

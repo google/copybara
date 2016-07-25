@@ -110,7 +110,7 @@ public class YamlParserTest {
         + "      mode: PASS_THRU\n"
         + "    transformations: *transform_reference\n";
 
-    Files.write(fs.getPath("test"), configContent.getBytes());
+    Files.write(fs.getPath("test"), configContent.getBytes(StandardCharsets.UTF_8));
 
     Config config = yamlParser.parseConfig(readConfig(), options);
 
@@ -153,7 +153,7 @@ public class YamlParserTest {
         + "        field1: \"foo\"\n"
         + "        field2:  \"bar\"\n";
 
-    Files.write(fs.getPath("test"), configContent.getBytes());
+    Files.write(fs.getPath("test"), configContent.getBytes(StandardCharsets.UTF_8));
 
     Config config = yamlParser.parseConfig(readConfig(), options);
 
@@ -181,7 +181,7 @@ public class YamlParserTest {
         + "          field1: \"foo\"\n"
         + "          field2:  \"bar\"\n";
 
-    Files.write(fs.getPath("test"), configContent.getBytes());
+    Files.write(fs.getPath("test"), configContent.getBytes(StandardCharsets.UTF_8));
 
     thrown.expect(ConfigValidationException.class);
     thrown.expectCause(new CauseMatcher(NonReversibleValidationException.class,
@@ -206,7 +206,7 @@ public class YamlParserTest {
         + "          - \"some text\"\n"
         + "          - !!bool true\n";
 
-    Files.write(fs.getPath("test"), configContent.getBytes());
+    Files.write(fs.getPath("test"), configContent.getBytes(StandardCharsets.UTF_8));
 
     thrown.expect(ConfigValidationException.class);
     thrown.expectCause(new CauseMatcher(ConstructorException.class,
@@ -230,7 +230,7 @@ public class YamlParserTest {
         + "    transformations:\n"
         + "      - 42\n";
 
-    Files.write(fs.getPath("test"), configContent.getBytes());
+    Files.write(fs.getPath("test"), configContent.getBytes(StandardCharsets.UTF_8));
 
     thrown.expect(ConfigValidationException.class);
     thrown.expectCause(new CauseMatcher(ConstructorException.class,

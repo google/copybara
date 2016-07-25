@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -417,6 +418,6 @@ public final class ReplaceTest {
   }
 
   private Path writeFile(Path path, String text) throws IOException {
-    return Files.write(path, text.getBytes());
+    return Files.write(path, text.getBytes(StandardCharsets.UTF_8));
   }
 }
