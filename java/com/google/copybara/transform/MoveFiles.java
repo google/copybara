@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
@@ -27,9 +28,11 @@ import java.util.List;
 public class MoveFiles implements Transformation {
 
   private final List<MoveElement> paths;
+  private final TransformOptions transformOptions;
 
-  private MoveFiles(List<MoveElement> paths) {
+  private MoveFiles(List<MoveElement> paths, TransformOptions transformOptions) {
     this.paths = ImmutableList.copyOf(paths);
+    this.transformOptions = Preconditions.checkNotNull(transformOptions);
   }
 
   @Override
@@ -38,10 +41,10 @@ public class MoveFiles implements Transformation {
       console.progress("Moving " + path.before);
       Path before = workdir.resolve(path.before);
       if (!Files.exists(before)) {
-        // TODO(malcon): We should have an error type for user issues that we discover
-        // during execution.
-        throw new ValidationException(
+        transformOptions.reportNoop(
+            console,
             String.format("Error moving '%s'. It doesn't exist in the workdir", path.before));
+        continue;
       }
       Path after = workdir.resolve(path.after);
       if (Files.isDirectory(after, LinkOption.NOFOLLOW_LINKS)
@@ -119,7 +122,7 @@ public class MoveFiles implements Transformation {
       newElement.after = path.before;
       elements.add(newElement);
     }
-    return new MoveFiles(elements.build().reverse());
+    return new MoveFiles(elements.build().reverse(), transformOptions);
   }
 
   private void createParentDirs(Path after) throws IOException, ValidationException {
@@ -164,7 +167,7 @@ public class MoveFiles implements Transformation {
             "'paths' attribute is required and cannot be empty. At least one file"
                 + " movement/rename is needed.");
       }
-      return new MoveFiles(paths);
+      return new MoveFiles(paths, options.get(TransformOptions.class));
     }
 
     @Override

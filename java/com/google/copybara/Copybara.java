@@ -1,3 +1,4 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
@@ -15,15 +16,13 @@ import com.google.copybara.transform.MoveFiles;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Reverse;
 import com.google.copybara.transform.Sequence;
+import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.transform.ValidationException;
-
-import org.yaml.snakeyaml.TypeDescription;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-
 import javax.annotation.Nullable;
+import org.yaml.snakeyaml.TypeDescription;
 
 /**
  * Copybara tool main class.
@@ -38,6 +37,7 @@ public class Copybara {
         new FolderDestinationOptions(),
         new GitOptions(),
         new GerritOptions(),
+        new TransformOptions(),
         new WorkflowOptions());
   }
 

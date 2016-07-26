@@ -1,17 +1,22 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.util.console.Console;
-
+import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -19,20 +24,13 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-
 @RunWith(JUnit4.class)
 public final class ReplaceTest {
 
   private Replace.Yaml yaml;
   private OptionsBuilder options;
   private Path workdir;
-  private Console console;
+  private TestingConsole console;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -43,8 +41,9 @@ public final class ReplaceTest {
     workdir = fs.getPath("/");
     Files.createDirectories(workdir);
     yaml = new Replace.Yaml();
-    options = new OptionsBuilder();
-    console = options.general.console();
+    console = new TestingConsole();
+    options = new OptionsBuilder()
+        .setConsole(console);
   }
 
   @Test
@@ -315,6 +314,16 @@ public final class ReplaceTest {
     yaml.setAfter("lulz");
     thrown.expect(VoidTransformationException.class);
     yaml.withOptions(options.build()).transform(workdir, console);
+  }
+
+  @Test
+  public void noopReplaceAsWarning() throws Exception {
+    options.transform.noop_is_warning = true;
+    yaml.setBefore("BEFORE this string doesn't appear anywhere in source");
+    yaml.setAfter("lulz");
+    yaml.withOptions(options.build()).transform(workdir, console);
+    assertThatConsole(console)
+        .onceInLog(MessageType.WARNING, ".*BEFORE.*lulz.*didn't affect the workdir[.]");
   }
 
   @Test

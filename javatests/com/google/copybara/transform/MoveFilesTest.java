@@ -1,13 +1,15 @@
 package com.google.copybara.transform;
 
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.MoveFiles.MoveElement;
-import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -25,7 +27,7 @@ public class MoveFilesTest {
   private MoveFiles.Yaml yaml;
   private OptionsBuilder options;
   private Path workdir;
-  private Console console;
+  private TestingConsole console;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -36,8 +38,9 @@ public class MoveFilesTest {
     workdir = fs.getPath("/test-workdir");
     Files.createDirectories(workdir);
     yaml = new MoveFiles.Yaml();
-    options = new OptionsBuilder();
-    console = options.general.console();
+    console = new TestingConsole();
+    options = new OptionsBuilder()
+        .setConsole(console);
   }
 
   @Test
@@ -86,6 +89,24 @@ public class MoveFilesTest {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
     mover.transform(workdir, console);
+  }
+
+  @Test
+  public void testDoesntExistAsWarning() throws Exception {
+    yaml.setPaths(ImmutableList.of(
+        createMove("blablabla", "other"),
+        createMove("one", "two")));
+    Files.write(workdir.resolve("one"), new byte[]{});
+
+    options.transform.noop_is_warning = true;
+    MoveFiles mover = yaml.withOptions(options.build());
+    mover.transform(workdir, console);
+
+    assertThatConsole(console)
+        .onceInLog(MessageType.WARNING, ".*blablabla.*doesn't exist.*");
+
+    // Make sure we didn't skip the move elements after the no-op error.
+    assertThatPath(workdir).containsFiles("two").containsNoMoreFiles();
   }
 
   @Test

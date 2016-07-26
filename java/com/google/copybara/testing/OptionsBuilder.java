@@ -10,9 +10,9 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
-
 import java.io.IOException;
 import java.nio.file.FileSystems;
 
@@ -28,6 +28,7 @@ public class OptionsBuilder {
       new FolderDestinationOptions();
   public GitOptions git = new GitOptions();
   public GerritOptions gerrit = new GerritOptions();
+  public TransformOptions transform = new TransformOptions();
   public WorkflowOptions workflowOptions = new WorkflowOptions(
       /*changeBaseline=*/null, /*lastRevision=*/ null, "default");
 
@@ -66,10 +67,10 @@ public class OptionsBuilder {
    * child classes, in which case it should also include the superclass' instances.
    */
   protected Iterable<Option> allOptions() {
-    return ImmutableList.of(general, localDestination, git, gerrit, this.workflowOptions);
+    return ImmutableList.of(general, localDestination, git, gerrit, transform, workflowOptions);
   }
 
   public final Options build() {
     return new Options(ImmutableList.copyOf(allOptions()));
   }
-  }
+}

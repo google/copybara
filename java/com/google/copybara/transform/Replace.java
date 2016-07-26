@@ -13,6 +13,7 @@ import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 
@@ -64,15 +65,18 @@ public final class Replace implements Transformation {
   private final ImmutableMap<String, Pattern> regexGroups;
   private final boolean multiline;
   private final PathMatcherBuilder fileMatcherBuilder;
+  private final TransformOptions transformOptions;
 
   private Replace(TemplateTokens before, TemplateTokens after,
       ImmutableMap<String, Pattern> regexGroups, boolean multiline,
-      PathMatcherBuilder fileMatcherBuilder) {
+      PathMatcherBuilder fileMatcherBuilder,
+      TransformOptions transformOptions) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.regexGroups = Preconditions.checkNotNull(regexGroups);
     this.multiline = multiline;
     this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
+    this.transformOptions = Preconditions.checkNotNull(transformOptions);
   }
 
   @Override
@@ -132,7 +136,8 @@ public final class Replace implements Transformation {
     if (visitor.error != null) {
       throw visitor.error;
     } else if (!visitor.somethingWasChanged) {
-      throw new VoidTransformationException(
+      transformOptions.reportNoop(
+          console,
           "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");
     }
   }
@@ -146,7 +151,7 @@ public final class Replace implements Transformation {
 
   @Override
   public Replace reverse() {
-    return new Replace(after, before, regexGroups, multiline, fileMatcherBuilder);
+    return new Replace(after, before, regexGroups, multiline, fileMatcherBuilder, transformOptions);
   }
 
   @DocElement(yamlName = "!Replace", description = "Replace a text with another text using optional regex groups. This tranformer can be automatically reversed with !Reverse.", elementKind = Transformation.class)
@@ -211,7 +216,8 @@ public final class Replace implements Transformation {
       after.validateInterpolations(regexGroups.keySet());
 
       return new Replace(before, after, regexGroups, multiline,
-          PathMatcherBuilder.create(FileSystems.getDefault(), ImmutableList.of(path)));
+          PathMatcherBuilder.create(FileSystems.getDefault(), ImmutableList.of(path)),
+          options.get(TransformOptions.class));
     }
 
     @Override
