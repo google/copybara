@@ -4,23 +4,20 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.EnvironmentException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.MoveFiles.MoveElement;
 import com.google.copybara.util.console.Console;
-
+import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
 public class MoveFilesTest {
@@ -44,7 +41,7 @@ public class MoveFilesTest {
   }
 
   @Test
-  public void testSimpleMove() throws ValidationException, EnvironmentException, IOException {
+  public void testSimpleMove() throws Exception {
     yaml.setPaths(ImmutableList.of(
         createMove("one.before", "folder/one.after"),
         createMove("folder2/two.before", "two.after")));
@@ -66,7 +63,7 @@ public class MoveFilesTest {
   }
 
   @Test
-  public void testTransitiveMove() throws ValidationException, EnvironmentException, IOException {
+  public void testTransitiveMove() throws Exception {
     yaml.setPaths(ImmutableList.of(
         createMove("one", "two"),
         createMove("two", "three")));
@@ -82,7 +79,7 @@ public class MoveFilesTest {
   }
 
   @Test
-  public void testDoesntExist() throws ValidationException, EnvironmentException, IOException {
+  public void testDoesntExist() throws Exception {
     yaml.setPaths(ImmutableList.of(
         createMove("blablabla", "other")));
     MoveFiles mover = yaml.withOptions(options.build());
@@ -92,7 +89,7 @@ public class MoveFilesTest {
   }
 
   @Test
-  public void testEmpty() throws ConfigValidationException, EnvironmentException, IOException {
+  public void testEmpty() throws Exception {
     yaml.setPaths(ImmutableList.<MoveElement>of());
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("'paths' attribute is required");
@@ -100,21 +97,21 @@ public class MoveFilesTest {
   }
 
   @Test
-  public void testAbsolute() throws ConfigValidationException, EnvironmentException, IOException {
+  public void testAbsolute() throws Exception {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("'/blablabla' is not a relative path");
     yaml.setPaths(ImmutableList.of(createMove("/blablabla", "other")));
   }
 
   @Test
-  public void testDotDot() throws ConfigValidationException, EnvironmentException, IOException {
+  public void testDotDot() throws Exception {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("'../blablabla' is not a relative path");
     yaml.setPaths(ImmutableList.of(createMove("../blablabla", "other")));
   }
 
   @Test
-  public void testDestinationExist() throws ValidationException, EnvironmentException, IOException {
+  public void testDestinationExist() throws Exception {
     yaml.setPaths(ImmutableList.of(createMove("one", "two")));
     Files.write(workdir.resolve("one"), new byte[]{});
     Files.write(workdir.resolve("two"), new byte[]{});
@@ -125,8 +122,7 @@ public class MoveFilesTest {
   }
 
   @Test
-  public void testDestinationExistDirectory() throws ValidationException, EnvironmentException,
-      IOException {
+  public void testDestinationExistDirectory() throws Exception {
     yaml.setPaths(ImmutableList.of(createMove("one", "folder/two")));
     Files.createDirectories(workdir.resolve("folder"));
     Files.write(workdir.resolve("one"), new byte[]{});

@@ -2,14 +2,12 @@
 package com.google.copybara.transform;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
-
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystems;
@@ -160,8 +158,7 @@ public class MoveFiles implements Transformation {
     }
 
     @Override
-    public MoveFiles withOptions(Options options)
-        throws ConfigValidationException, EnvironmentException {
+    public MoveFiles withOptions(Options options) throws ConfigValidationException {
       if (paths.isEmpty()) {
         throw new ConfigValidationException(
             "'paths' attribute is required and cannot be empty. At least one file"
