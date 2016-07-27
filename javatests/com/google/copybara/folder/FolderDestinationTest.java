@@ -1,14 +1,13 @@
 package com.google.copybara.folder;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.folder.FolderDestination.Yaml;
 import com.google.copybara.testing.DummyReference;
-import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
 
@@ -98,9 +97,21 @@ public class FolderDestinationTest {
   }
 
   @Test
-  public void testFolderDirRequired() throws Exception {
-    thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("--folder-dir is required");
-    yaml.withOptions(options.build(), CONFIG_NAME, /*askConfirmation*/ false);
+  public void testDefaultRoot() throws Exception {
+    Path defaultRootPath = Files.createTempDirectory("defaultRoot");
+
+    yaml.withOptions(options.build(), CONFIG_NAME, defaultRootPath)
+        .newWriter()
+        .write(
+            TransformResults.of(
+                workdir, new DummyReference("origin_ref"), excludedPathsForDeletion),
+            options.general.console());
+
+    Path outputPath = Iterables.getOnlyElement(
+        Files.newDirectoryStream(defaultRootPath.resolve("copybaraproject")));
+
+    assertThatPath(outputPath)
+        .containsFiles("test.txt", "dir/file.txt")
+        .containsNoMoreFiles();
   }
 }

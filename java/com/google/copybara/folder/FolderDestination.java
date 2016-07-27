@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.folder;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.copybara.Destination;
@@ -12,13 +13,14 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
-
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import javax.annotation.Nullable;
 
 /**
@@ -30,11 +32,9 @@ public class FolderDestination implements Destination {
   private static final String FOLDER_DESTINATION_NAME = "!FolderDestination";
 
   private final Path localFolder;
-  private final boolean verbose;
 
-  private FolderDestination(Path localFolder, boolean verbose) {
+  private FolderDestination(Path localFolder) {
     this.localFolder = Preconditions.checkNotNull(localFolder);
-    this.verbose = verbose;
   }
 
   @Override
@@ -60,8 +60,7 @@ public class FolderDestination implements Destination {
           FileUtil.notPathMatcher(
               transformResult.getExcludedDestinationPaths().relativeTo(localFolder)));
 
-      console.progress(
-          "FolderDestination: Copying contents of the workdir to " + localFolder);
+      console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);
       FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder);
       return WriterResult.OK;
     }
@@ -92,20 +91,35 @@ public class FolderDestination implements Destination {
         generalOptions.console()
             .warn("Field 'askConfirmation' is ignored in FolderDestination.");
       }
+      Path defaultRootPath = generalOptions.getFileSystem()
+          .getPath(System.getProperty("user.dir")).resolve("copybara/out/");
+      return withOptions(options, configName, defaultRootPath);
+    }
+
+    private static final DateTimeFormatter FOLDER_DATE_FORMAT =
+        new DateTimeFormatterBuilder().appendPattern("yyyy_MM_dd_HH_mm_ss").toFormatter();
+
+    @VisibleForTesting
+    Destination withOptions(Options options, String configName, Path defaultRootPath) {
+      GeneralOptions generalOptions = options.get(GeneralOptions.class);
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getFileSystem();
       String localFolderOption = options.get(FolderDestinationOptions.class).localFolder;
+      Path localFolder;
       if (Strings.isNullOrEmpty(localFolderOption)) {
-        throw new ConfigValidationException(
-            "--folder-dir is required with FolderDestination destination");
+        localFolder = defaultRootPath
+            .resolve(configName.replaceAll("[^A-Za-z0-9]", ""))
+            .resolve(DateTime.now().toString(FOLDER_DATE_FORMAT));
+        generalOptions.console().info(
+            String.format("Using folder '%s' in default root. Use --folder-dir to override.",
+                localFolder));
+      } else {
+        localFolder = fs.getPath(localFolderOption);
+        if (!localFolder.isAbsolute()) {
+          localFolder = fs.getPath(System.getProperty("user.dir")).resolve(localFolder);
+        }
       }
-      Path localFolder = fs.getPath(localFolderOption);
-      if (!localFolder.isAbsolute()) {
-        localFolder = fs.getPath(System.getProperty("user.dir")).resolve(localFolder);
-      }
-
-      return new FolderDestination(localFolder, generalOptions.isVerbose());
+      return new FolderDestination(localFolder);
     }
-
   }
 }

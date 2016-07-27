@@ -31,8 +31,7 @@ public final class FileUtil {
     }
   };
 
-  private FileUtil() {
-  }
+  private FileUtil() {}
 
   /**
    * Copies files from {@code from} directory to {@code to} directory. If any file exist in the
@@ -67,6 +66,7 @@ public final class FileUtil {
   public static int deleteAllFilesRecursively(Path path) throws IOException {
     return deleteFilesRecursively(path, ALL_FILES);
   }
+
   /**
    * Deletes the files that match the PathMatcher.
    *
@@ -132,5 +132,4 @@ public final class FileUtil {
       }
     };
   }
-
 }
