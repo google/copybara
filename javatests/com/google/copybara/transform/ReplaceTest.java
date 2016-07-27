@@ -3,7 +3,6 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
@@ -322,7 +321,7 @@ public final class ReplaceTest {
     yaml.setBefore("BEFORE this string doesn't appear anywhere in source");
     yaml.setAfter("lulz");
     yaml.withOptions(options.build()).transform(workdir, console);
-    assertThatConsole(console)
+    console.assertThat()
         .onceInLog(MessageType.WARNING, ".*BEFORE.*lulz.*didn't affect the workdir[.]");
   }
 

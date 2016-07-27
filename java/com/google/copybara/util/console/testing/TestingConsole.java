@@ -1,12 +1,13 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util.console.testing;
 
+import static com.google.common.truth.Truth.assertAbout;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 
@@ -67,6 +68,21 @@ public final class TestingConsole implements Console {
    */
   public ImmutableList<Message> getMessages() {
     return ImmutableList.copyOf(messages);
+  }
+
+  /**
+   * Returns a truth subject that provides fluent methods for assertions on this instance.
+   *
+   * <p>For example:
+   *
+   *     testConsole.assertThat()
+   *       .matchesNext(...)
+   *       .equalsNext(...)
+   *       .containsNoMoreMessages();
+   */
+  public LogSubjects.LogSubject assertThat() {
+    return assertAbout(LogSubjects.CONSOLE_SUBJECT_FACTORY)
+        .that(this);
   }
 
   @Override

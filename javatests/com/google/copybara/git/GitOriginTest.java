@@ -3,7 +3,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -19,15 +18,6 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-
-import org.joda.time.DateTime;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -35,6 +25,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.joda.time.DateTime;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitOriginTest {
@@ -201,7 +198,7 @@ public class GitOriginTest {
     // We keep the last label. The probability that the last one is a label and the first one
     // is just description is very high.
     assertThat(change.getLabels()).containsEntry("foo", "baz");
-    assertThatConsole(console)
+    console.assertThat()
         .onceInLog(MessageType.WARNING, "Possible duplicate label 'foo'"
             + " happening multiple times in commit. Keeping only the last value: 'baz'\n"
             + "  Discarded value: 'bar'");
@@ -313,7 +310,7 @@ public class GitOriginTest {
         .containsFile("cli_remote.txt", "some change")
         .containsNoMoreFiles();
 
-    assertThatConsole(testConsole)
+    testConsole.assertThat()
         .onceInLog(MessageType.WARNING,
             "Git origin URL overwritten in the command line as " + newUrl);
   }

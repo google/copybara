@@ -1,7 +1,6 @@
 package com.google.copybara.transform;
 
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
@@ -102,7 +101,7 @@ public class MoveFilesTest {
     MoveFiles mover = yaml.withOptions(options.build());
     mover.transform(workdir, console);
 
-    assertThatConsole(console)
+    console.assertThat()
         .onceInLog(MessageType.WARNING, ".*blablabla.*doesn't exist.*");
 
     // Make sure we didn't skip the move elements after the no-op error.

@@ -3,7 +3,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
-import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -22,17 +21,15 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
 public class GitDestinationTest {
@@ -172,7 +169,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit(/*askConfirmation*/ true), new DummyReference("origin_ref"));
 
-    assertThatConsole(console)
+    console.assertThat()
         .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching file:.*")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Adding files for push")
         .equalsNext(MessageType.INFO, "\n"

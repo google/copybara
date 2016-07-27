@@ -3,7 +3,6 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -25,22 +24,19 @@ import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-
 import javax.annotation.Nullable;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class WorkflowTest {
@@ -393,7 +389,7 @@ public class WorkflowTest {
     Workflow workflow = changeRequestWorkflow(null);
     workflow.run(workdir, "1");
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
-    assertThatConsole(console)
+    console.assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
@@ -404,7 +400,7 @@ public class WorkflowTest {
     Workflow workflow = changeRequestWorkflow("24");
     workflow.run(workdir, "1");
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
-    assertThatConsole(console)
+    console.assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
@@ -453,7 +449,7 @@ public class WorkflowTest {
     } catch (NonReversibleValidationException e) {
       assertThat(e).hasMessage("Workflow 'default' is not reversible");
     }
-    assertThatConsole(console)
+    console.assertThat()
         .onceInLog(MessageType.PROGRESS, "Checking that the transformations can be reverted");
   }
 

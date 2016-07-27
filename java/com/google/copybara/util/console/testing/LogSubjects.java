@@ -1,6 +1,5 @@
-package com.google.copybara.testing;
+package com.google.copybara.util.console.testing;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -10,12 +9,10 @@ import com.google.common.truth.SubjectFactory;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.Message;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
 
 /**
@@ -23,7 +20,7 @@ import javax.annotation.Nullable;
  */
 public class LogSubjects {
 
-  private static final SubjectFactory<LogSubject, TestingConsole> CONSOLE_SUBJECT_FACTORY =
+  static final SubjectFactory<LogSubject, TestingConsole> CONSOLE_SUBJECT_FACTORY =
       new SubjectFactory<LogSubject, TestingConsole>() {
         @Override
         public LogSubject getSubject(FailureStrategy failureStrategy, TestingConsole target) {
@@ -32,21 +29,6 @@ public class LogSubjects {
       };
 
   private LogSubjects() {}
-
-  /**
-   * Truth subject that provides fluent methods for assertions on {@link TestingConsole}s.
-   *
-   * <p>For example:
-   *
-   *     assertThatConsole(testConsole)
-   *       .matchesNext(...)
-   *       .equalsNext(...)
-   *       .containsNoMoreMessages();
-   */
-  public static LogSubject assertThatConsole(TestingConsole console) {
-    return assertAbout(CONSOLE_SUBJECT_FACTORY)
-        .that(console);
-  }
 
   public static class LogSubject extends Subject<LogSubject, TestingConsole> {
 

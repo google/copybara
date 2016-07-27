@@ -2,22 +2,19 @@ package com.google.copybara.util.console;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
-import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class ConsoleTest {
@@ -95,7 +92,7 @@ public class ConsoleTest {
     Console console = new ProgressPrefixConsole("FOO ", delegate);
     console.progress("bar");
 
-    assertThatConsole(delegate)
+    delegate.assertThat()
         .matchesNext(MessageType.PROGRESS, "FOO bar")
         .containsNoMoreMessages();
   }

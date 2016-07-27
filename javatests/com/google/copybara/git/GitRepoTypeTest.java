@@ -3,24 +3,21 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
-import static com.google.copybara.testing.LogSubjects.assertThatConsole;
 
 import com.google.common.base.Strings;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitRepoTypeTest {
@@ -87,7 +84,7 @@ public class GitRepoTypeTest {
     String sha1 = fileRepo.git(fileRepoDir, "rev-parse", "HEAD").getStdout().trim();
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, console).asString())
         .isEqualTo(sha1);
-    assertThatConsole(console)
+    console.assertThat()
         .containsNoMoreMessages();
   }
 
@@ -97,7 +94,7 @@ public class GitRepoTypeTest {
     String sha1 = fileRepo.git(fileRepoDir, "rev-parse", "HEAD").getStdout().trim();
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, "master", console).asString())
         .isEqualTo(sha1);
-    assertThatConsole(console)
+    console.assertThat()
         .containsNoMoreMessages();
   }
 
@@ -135,12 +132,12 @@ public class GitRepoTypeTest {
         "https://github.com/google/example/pull/1", console).asString())
         .hasLength(40);
     assertFetch("https://github.com/google/example", "refs/pull/1/head");
-    assertThatConsole(console)
+    console.assertThat()
         .containsNoMoreMessages();
   }
 
   private void assertUrlOverwritten() {
-    assertThatConsole(console)
+    console.assertThat()
         .matchesNext(MessageType.WARNING,
             "Git origin URL overwritten in the command line .*");
   }
