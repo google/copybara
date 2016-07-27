@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.copybara.Option;
 
 import com.beust.jcommander.Parameter;
@@ -24,7 +25,7 @@ public final class GitOptions implements Option {
 
   @Parameter(names = "--git-repo-storage",
       description = "Location of the storage path for git repositories")
-  String gitRepoStorage = System.getProperty("user.home") + "/.copybara/repos";
+  String gitRepoStorage = StandardSystemProperty.USER_HOME.value() + "/.copybara/repos";
 
   @Parameter(names = GIT_FIRST_COMMIT_FLAG,
       description = "Ignore that the fetch reference doesn't exist when pushing to destination")

@@ -1,6 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.base.StandardSystemProperty;
+
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
@@ -64,7 +66,7 @@ public final class MainArguments {
     if (baseWorkdir == null) {
       // This is equivalent to Files.createTempDirectory(String.. but
       // works for any filesystem
-      Path tmpDir = fs.getPath(System.getProperty("java.io.tmpdir"));
+      Path tmpDir = fs.getPath(StandardSystemProperty.JAVA_IO_TMPDIR.value());
       // This is only needed if using a fs for testing.
       Files.createDirectories(tmpDir);
       workdirPath = Files.createTempDirectory(tmpDir, "workdir");

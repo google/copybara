@@ -3,6 +3,7 @@ package com.google.copybara.folder;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
@@ -92,7 +93,7 @@ public class FolderDestination implements Destination {
             .warn("Field 'askConfirmation' is ignored in FolderDestination.");
       }
       Path defaultRootPath = generalOptions.getFileSystem()
-          .getPath(System.getProperty("user.dir")).resolve("copybara/out/");
+          .getPath(StandardSystemProperty.USER_DIR.value()).resolve("copybara/out/");
       return withOptions(options, configName, defaultRootPath);
     }
 
@@ -116,7 +117,7 @@ public class FolderDestination implements Destination {
       } else {
         localFolder = fs.getPath(localFolderOption);
         if (!localFolder.isAbsolute()) {
-          localFolder = fs.getPath(System.getProperty("user.dir")).resolve(localFolder);
+          localFolder = fs.getPath(StandardSystemProperty.USER_DIR.value()).resolve(localFolder);
         }
       }
       return new FolderDestination(localFolder);
