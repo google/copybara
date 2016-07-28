@@ -3,6 +3,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.util.CommandUtil.executeCommand;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -96,10 +97,17 @@ public class GitRepository {
       throw new RepoException("Could not make temporary directory for scratch repo", e);
     }
 
+    return initScratchRepo(verbose, scratchWorkTree);
+  }
+
+  /**
+   * Initializes a new repository in the given directory. The new repo is not bare.
+   */
+  @VisibleForTesting
+  public static GitRepository initScratchRepo(boolean verbose, Path path) throws RepoException {
     GitRepository repository =
-        new GitRepository(scratchWorkTree.resolve(".git"), scratchWorkTree, verbose,
-            CURRENT_PROCESS_ENVIRONMENT);
-    repository.git(scratchWorkTree, "init", ".");
+        new GitRepository(path.resolve(".git"), path, verbose, CURRENT_PROCESS_ENVIRONMENT);
+    repository.git(path, "init", ".");
     return repository;
   }
 
