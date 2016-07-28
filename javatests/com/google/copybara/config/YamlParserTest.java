@@ -115,14 +115,14 @@ public class YamlParserTest {
     Config config = yamlParser.parseConfig(readConfig(), options);
 
     assertThat(config.getName()).isEqualTo("mytest");
-    MockOrigin origin = (MockOrigin) config.getActiveWorkflow().getOrigin();
+    MockOrigin origin = (MockOrigin) config.getActiveWorkflow().origin();
     assertThat(origin.url).isEqualTo("https://so.me/random/url");
     assertThat(origin.branch).isEqualTo("master");
 
-    MockDestination destination = (MockDestination) config.getActiveWorkflow().getDestination();
+    MockDestination destination = (MockDestination) config.getActiveWorkflow().destination();
     assertThat(destination.folder).isEqualTo("some folder");
 
-    Transformation transformation = config.getActiveWorkflow().getTransformation();
+    Transformation transformation = config.getActiveWorkflow().transformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
         ((Sequence) transformation).getSequence();
@@ -157,7 +157,7 @@ public class YamlParserTest {
 
     Config config = yamlParser.parseConfig(readConfig(), options);
 
-    Transformation transformation = config.getActiveWorkflow().getTransformation();
+    Transformation transformation = config.getActiveWorkflow().transformation();
     assertThat(transformation instanceof Sequence).isTrue();
     MockTransform mockTransform = (MockTransform) Iterables
         .getOnlyElement(((Sequence) transformation).getSequence());

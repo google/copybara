@@ -39,6 +39,7 @@ java_library(
     javacopts = ["-Xlint:unchecked", "-source", "1.7"],
     deps = [
         "//java/com/google/copybara/doc:annotations",
+        "//third_party:autovalue",
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",

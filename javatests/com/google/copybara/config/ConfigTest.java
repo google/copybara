@@ -91,7 +91,7 @@ public class ConfigTest {
     yaml.setName("ConfigTest");
     yaml.setWorkflows(ImmutableList.of(workflow("default"), chosen, workflow("other")));
     Config config = yaml.withOptions(options.build());
-    assertThat(config.getActiveWorkflow().getDestination())
+    assertThat(config.getActiveWorkflow().destination())
         .isSameAs(destination);
   }
 

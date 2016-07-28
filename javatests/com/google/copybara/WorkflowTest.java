@@ -119,7 +119,7 @@ public class WorkflowTest {
 
   @Test
   public void defaultNameIsDefault() throws Exception {
-    assertThat(workflow().getName()).isEqualTo("default");
+    assertThat(workflow().name()).isEqualTo("default");
   }
 
   @Test

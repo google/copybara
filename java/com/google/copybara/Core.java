@@ -105,7 +105,7 @@ public class Core implements OptionsAwareModule {
       }
 
       // TODO(malcon): map the rest of Workflow parameters
-      self.workflows.put(workflowName, new Workflow<>(self.projectName, workflowName,
+      self.workflows.put(workflowName, new AutoValue_Workflow<>(self.projectName, workflowName,
           origin,
           destination,
           new Authoring(new Author("foo", "bar"), AuthoringMappingMode.PASS_THRU,

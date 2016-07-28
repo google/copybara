@@ -1,8 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.MoreObjects;
+import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
@@ -18,7 +17,6 @@ import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -29,112 +27,62 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.annotation.Nullable;
 
 /**
  * Represents a particular migration operation that can occur for a project. Each project can have
  * multiple workflows. Each workflow has a particular origin and destination.
  */
-public final class Workflow<R extends Origin.Reference> {
+@AutoValue
+public abstract class Workflow<R extends Origin.Reference> {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
-  private final String configName;
-  private final String name;
-  private final Origin<R> origin;
-  private final Destination destination;
-  private final Authoring authoring;
-  private final Transformation transformation;
-  private final PathMatcherBuilder excludedOriginPaths;
-  private final PathMatcherBuilder excludedDestinationPaths;
-  @Nullable
-  private final String lastRevisionFlag;
-  private final Console console;
-  private final WorkflowMode mode;
-  private final boolean includeChangeListNotes;
-  private final WorkflowOptions workflowOptions;
-  private final boolean reversibleCheck;
-  private final boolean verbose;
-
-  Workflow(String configName, String name, Origin<R> origin, Destination destination,
-      Authoring authoring, Transformation transformation, @Nullable String lastRevisionFlag,
-      Console console, PathMatcherBuilder excludedOriginPaths,
-      PathMatcherBuilder excludedDestinationPaths, WorkflowMode mode,
-      boolean includeChangeListNotes, WorkflowOptions workflowOptions, boolean reversibleCheck,
-      boolean verbose) {
-    this.configName = Preconditions.checkNotNull(configName);
-    this.name = Preconditions.checkNotNull(name);
-    this.origin = Preconditions.checkNotNull(origin);
-    this.destination = Preconditions.checkNotNull(destination);
-    this.authoring = Preconditions.checkNotNull(authoring);
-    this.transformation = Preconditions.checkNotNull(transformation);
-    this.lastRevisionFlag = lastRevisionFlag;
-    this.console = Preconditions.checkNotNull(console);
-    this.excludedOriginPaths = excludedOriginPaths;
-    this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
-    this.mode = Preconditions.checkNotNull(mode);
-    this.includeChangeListNotes = includeChangeListNotes;
-    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
-    this.reversibleCheck = reversibleCheck;
-    this.verbose = verbose;
-  }
-
-  @VisibleForTesting
-  String getName() {
-    return name;
-  }
+  abstract String configName();
+  abstract String name();
 
   /**
    * The repository that represents the source of truth
    */
-  public Origin<R> getOrigin() {
-    return origin;
-  }
+  public abstract Origin<R> origin();
 
   /**
    * The destination repository to copy to.
    */
-  public Destination getDestination() {
-    return destination;
-  }
+  public abstract Destination destination();
+
+  abstract Authoring authoring();
 
   /**
    * Transformation to run before writing them to the destination.
    */
-  public Transformation getTransformation() {
-    return transformation;
-  }
+  public abstract Transformation transformation();
+
+  @Nullable abstract String lastRevisionFlag();
+  abstract Console console();
+  abstract PathMatcherBuilder excludedOriginPaths();
+  abstract PathMatcherBuilder excludedDestinationPaths();
+  abstract WorkflowMode mode();
+  abstract boolean includeChangeListNotes();
+  abstract WorkflowOptions workflowOptions();
+  abstract boolean reversibleCheck();
+  abstract boolean verbose();
 
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, EnvironmentException, ValidationException {
-    console.progress("Cleaning working directory");
+    console().progress("Cleaning working directory");
     FileUtil.deleteAllFilesRecursively(workdir);
 
-    console.progress("Getting last revision: "
+    console().progress("Getting last revision: "
         + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
-    R resolvedRef = origin.resolve(sourceRef);
+    R resolvedRef = origin().resolve(sourceRef);
     logger.log(Level.INFO,
         String.format(
             "Running Copybara for config '%s', workflow '%s' and ref '%s': %s",
-            configName, name, resolvedRef.asString(),
+            configName(), name(), resolvedRef.asString(),
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-    mode.run(new RunHelper(workdir, resolvedRef));
-  }
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("configName", configName)
-        .add("name", name)
-        .add("origin", origin)
-        .add("destination", destination)
-        .add("transformation", transformation)
-        .add("excludedOriginPaths", excludedOriginPaths)
-        .add("excludedDestinationPaths", excludedDestinationPaths)
-        .add("mode", mode)
-        .toString();
+    mode().run(new RunHelper(workdir, resolvedRef));
   }
 
   final class RunHelper {
@@ -149,7 +97,7 @@ public final class Workflow<R extends Origin.Reference> {
     RunHelper(Path workdir, R resolvedRef) {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
-      this.writer = destination.newWriter();
+      this.writer = destination().newWriter();
     }
 
     R getResolvedRef() {
@@ -160,27 +108,27 @@ public final class Workflow<R extends Origin.Reference> {
      * Authoring configuration.
      */
     Authoring getAuthoring() {
-      return authoring;
+      return authoring();
     }
 
     /** Console to use for printing messages. */
     Console getConsole() {
-      return console;
+      return console();
     }
 
     /**
      * Options that change how workflows behave.
      */
     WorkflowOptions workflowOptions() {
-      return workflowOptions;
+      return Workflow.this.workflowOptions();
     }
 
     Destination getDestination() {
-      return destination;
+      return destination();
     }
 
     Origin<R> getOrigin() {
-      return origin;
+      return origin();
     }
 
     /**
@@ -208,11 +156,11 @@ public final class Workflow<R extends Origin.Reference> {
       Files.createDirectories(checkoutDir);
 
       processConsole.progress("Checking out the change");
-      origin.checkout(ref, checkoutDir);
+      origin().checkout(ref, checkoutDir);
 
       // Remove excluded origin files.
-      if (!excludedOriginPaths.isEmpty()) {
-        PathMatcher pathMatcher = excludedOriginPaths.relativeTo(checkoutDir);
+      if (!excludedOriginPaths().isEmpty()) {
+        PathMatcher pathMatcher = excludedOriginPaths().relativeTo(checkoutDir);
         processConsole.progress("Removing excluded origin files");
 
         int result = FileUtil.deleteFilesRecursively(checkoutDir, pathMatcher);
@@ -227,31 +175,31 @@ public final class Workflow<R extends Origin.Reference> {
       }
 
       Path originCopy = null;
-      if (reversibleCheck) {
-        console.progress("Making a copy or the workdir for reverse checking");
+      if (reversibleCheck()) {
+        console().progress("Making a copy or the workdir for reverse checking");
         originCopy = Files.createDirectories(workdir.resolve("origin"));
         FileUtil.copyFilesRecursively(checkoutDir, originCopy);
       }
 
-      transform(transformation, checkoutDir, processConsole);
+      transform(transformation(), checkoutDir, processConsole);
 
-      if (reversibleCheck) {
-        console.progress("Checking that the transformations can be reverted");
+      if (reversibleCheck()) {
+        console().progress("Checking that the transformations can be reverted");
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse);
-        transform(transformation.reverse(), reverse, processConsole);
-        String diff = new String(DiffUtil.diff(originCopy, reverse, verbose),
+        transform(transformation().reverse(), reverse, processConsole);
+        String diff = new String(DiffUtil.diff(originCopy, reverse, verbose()),
             StandardCharsets.UTF_8);
         if (!diff.trim().isEmpty()) {
-          console.error("Non reversible transformations:\n"
-              + DiffUtil.colorize(console, diff));
+          console().error("Non reversible transformations:\n"
+              + DiffUtil.colorize(console(), diff));
           throw new NonReversibleValidationException(String.format(
               "Workflow '%s' is not reversible", workflowOptions().getWorkflowName()));
         }
       }
 
       TransformResult transformResult =
-          new TransformResult(checkoutDir, ref, author, message, excludedDestinationPaths);
+          new TransformResult(checkoutDir, ref, author, message, excludedDestinationPaths());
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
@@ -267,7 +215,7 @@ public final class Workflow<R extends Origin.Reference> {
       return String.format(
           "Imports '%s'.\n\n"
               + "This change was generated by Copybara (go/copybara).\n%s\n",
-          configName,
+          configName(),
           getChangeListNotes());
     }
 
@@ -276,9 +224,9 @@ public final class Workflow<R extends Origin.Reference> {
       if (lastRev == null) {
         throw new RepoException(String.format(
                 "Previous revision label %s could not be found in %s and --last-rev flag"
-                + " was not passed", origin.getLabelName(), destination));
+                + " was not passed", origin().getLabelName(), destination()));
       }
-      return origin.changes(getLastRev(), resolvedRef);
+      return origin().changes(getLastRev(), resolvedRef);
     }
 
     /**
@@ -289,23 +237,23 @@ public final class Workflow<R extends Origin.Reference> {
      * reference will be resolved in the destination with the origin label.
      */
     @Nullable private R getLastRev() throws RepoException {
-      if (lastRevisionFlag != null) {
+      if (lastRevisionFlag() != null) {
         try {
-          return origin.resolve(lastRevisionFlag);
+          return origin().resolve(lastRevisionFlag());
         } catch (RepoException e) {
           throw new RepoException(
               "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
-                  + lastRevisionFlag,
+                  + lastRevisionFlag(),
               e);
         }
       }
 
-      String previousRef = destination.getPreviousRef(origin.getLabelName());
-      return (previousRef == null) ? null : origin.resolve(previousRef);
+      String previousRef = destination().getPreviousRef(origin().getLabelName());
+      return (previousRef == null) ? null : origin().resolve(previousRef);
     }
 
     private String getChangeListNotes() throws RepoException {
-      if (!includeChangeListNotes) {
+      if (!includeChangeListNotes()) {
         return "";
       }
       R lastRev = getLastRev();
@@ -315,7 +263,7 @@ public final class Workflow<R extends Origin.Reference> {
       }
 
       StringBuilder result = new StringBuilder("List of included changes:\n");
-      for (Change<R> change : origin.changes(lastRev, resolvedRef)) {
+      for (Change<R> change : origin().changes(lastRev, resolvedRef)) {
         result.append(String.format("  - %s %s by %s\n",
             change.getReference().asString(),
             change.firstLineMessage(),
@@ -468,7 +416,7 @@ public final class Workflow<R extends Origin.Reference> {
           FileSystems.getDefault(), this.excludedOriginPaths);
       PathMatcherBuilder excludedDestinationPaths = PathMatcherBuilder.create(
           FileSystems.getDefault(), this.excludedDestinationPaths);
-      return new Workflow<>(configName, name, origin, destination, authoring, transformation,
+      return new AutoValue_Workflow<>(configName, name, origin, destination, authoring, transformation,
           workflowOptions.getLastRevision(), console,
           excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes,
           options.get(WorkflowOptions.class), reversibleCheck, generalOptions.isVerbose());

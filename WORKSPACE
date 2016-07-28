@@ -23,6 +23,13 @@ maven_jar(
 
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
+    name = "autovalue",
+    artifact = "com.google.auto.value:auto-value:1.2",
+    sha1 = "6873fed014fe1de1051aae2af68ba266d2934471",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
     name = "snakeyaml",
     artifact = "org.yaml:snakeyaml:1.17",
     sha1 = "7a27ea250c5130b2922b86dea63cbb1cc10a660c",
