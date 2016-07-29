@@ -1,7 +1,6 @@
 package com.google.copybara.config.skylark;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.copybara.Core.PROJECT_FUNC;
 import static com.google.copybara.config.ConfigValidationException.checkCondition;
 import static com.google.copybara.config.ConfigValidationException.checkNotMissing;
 
@@ -100,7 +99,7 @@ public class SkylarkParser {
     checkCondition(workflow != null, String.format(
         "No workflow with '%s' name exists. Valid workflows: %s",
         workflowName, workflows.keySet()));
-    return new Config(checkNotMissing(projectName, PROJECT_FUNC), workflow);
+    return new Config(checkNotMissing(projectName, "project"), workflow);
   }
 
   private BuildFileAST parseFile(String content, EventHandler eventHandler, Environment env)

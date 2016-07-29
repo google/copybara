@@ -4,6 +4,7 @@ package com.google.copybara.transform;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -39,8 +40,10 @@ public interface Transformation {
 
   /**
    * Returns a transformation which runs this transformation in reverse.
+   *
+   * @throws NonReversibleValidationException if the transform is not reversible
    */
-  Transformation reverse();
+  Transformation reverse() throws NonReversibleValidationException;
 
   /**
    * Return a high level description of what the transform is doing. Note that this should not be

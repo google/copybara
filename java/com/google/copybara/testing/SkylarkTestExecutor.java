@@ -19,10 +19,11 @@ public final class SkylarkTestExecutor {
     this.options = options;
   }
 
+  @SuppressWarnings("unchecked")
   public <T> T eval(String var, String config) throws ConfigValidationException {
     try {
       Environment env = skylarkParser.executeSkylark(config, options.build());
-      //noinspection unchecked
+
       return (T) env.getGlobals().get(var);
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Should not happen: " + e.getMessage(), e);

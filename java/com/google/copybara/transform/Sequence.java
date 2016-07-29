@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
@@ -46,7 +47,7 @@ public class Sequence implements Transformation {
   }
 
   @Override
-  public Transformation reverse() {
+  public Transformation reverse() throws NonReversibleValidationException {
     ImmutableList.Builder<Transformation> list = ImmutableList.builder();
     for (Transformation element : sequence) {
       list.add(element.reverse());

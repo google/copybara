@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Origin.Reference;
+import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.config.skylark.OptionsAwareModule;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.Transformation;
@@ -20,6 +21,7 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,8 +44,6 @@ import java.util.Map;
 public class Core implements OptionsAwareModule {
 
   public static final String CORE_VAR = "core";
-  public static final String PROJECT_FUNC = "project";
-  private static final String WORKFLOW_FUNC = "workflow";
 
   private final Map<String, Workflow<?>> workflows = new HashMap<>();
   private GeneralOptions generalOptions;
@@ -64,14 +64,14 @@ public class Core implements OptionsAwareModule {
     return workflows;
   }
 
-  @SkylarkSignature(name = PROJECT_FUNC, returnType = NoneType.class,
+  @SkylarkSignature(name = "project", returnType = NoneType.class,
       doc = "General configuration of the project. Like the name.",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object"),
           @Param(name = "name", type = String.class, doc = "The name of the configuration."),
       },
       objectType = Core.class, useLocation = true)
-  public static final BuiltinFunction project = new BuiltinFunction(PROJECT_FUNC) {
+  public static final BuiltinFunction PROJECT = new BuiltinFunction("project") {
     public NoneType invoke(Core self, String name, Location location) throws EvalException {
       if (Strings.isNullOrEmpty(name) || name.trim().equals("")) {
         throw new EvalException(location, "Empty name for the project is not allowed");
@@ -81,7 +81,35 @@ public class Core implements OptionsAwareModule {
     }
   };
 
-  @SkylarkSignature(name = WORKFLOW_FUNC, returnType = NoneType.class,
+  @SkylarkSignature(name = "reverse", returnType = SkylarkList.class,
+      doc = "Given a list of transformations, returns the list of transformations equivalent to"
+          + " undoing all the transformations",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "transformations", type = SkylarkList.class,
+              generic1 = Transformation.class, doc = "The transformations to reverse"),
+      },
+      objectType = Core.class, useLocation = true)
+  public static final BuiltinFunction REVERSE =
+      new BuiltinFunction("reverse") {
+        public SkylarkList<Transformation> invoke(Core self, SkylarkList<Transformation> transforms,
+            Location location)
+            throws EvalException {
+
+          ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
+          for (Transformation t : transforms.getContents(Transformation.class, "transformations")) {
+            try {
+              builder.add(t.reverse());
+            } catch (NonReversibleValidationException e) {
+              throw new EvalException(location, e.getMessage());
+            }
+          }
+
+          return new MutableList<>(builder.build().reverse());
+        }
+      };
+
+  @SkylarkSignature(name = "workflow", returnType = NoneType.class,
       doc = "Defines a migration pipeline which can be invoked via the Copybara command.",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object"),
@@ -96,7 +124,7 @@ public class Core implements OptionsAwareModule {
               doc = "Where to read the migration code from."),
       },
       objectType = Core.class, useLocation = true)
-  public static final BuiltinFunction workflow = new BuiltinFunction(WORKFLOW_FUNC) {
+  public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow") {
     public NoneType invoke(Core self, String workflowName, Origin<Reference> origin,
         Destination destination, SkylarkList<Transformation> transformations, Location location)
         throws EvalException {

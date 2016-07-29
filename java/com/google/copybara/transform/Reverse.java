@@ -9,13 +9,15 @@ import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
-
 import java.io.IOException;
 import java.nio.file.Path;
 
 /**
  * A transformation which runs some other transformation in reverse.
+ *
+ * <p>This class will be removed after Skylark migration
  */
+@Deprecated
 public final class Reverse implements Transformation {
 
   private final Transformation original;
