@@ -37,7 +37,7 @@ public interface Destination {
 
   interface Yaml {
 
-    Destination withOptions(Options options, String configName, boolean askConfirmation)
+    Destination withOptions(Options options, String configName)
         throws ConfigValidationException;
   }
 

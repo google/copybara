@@ -115,7 +115,8 @@ public class Core implements OptionsAwareModule {
           self.generalOptions.console(),
           PathMatcherBuilder.EMPTY, PathMatcherBuilder.EMPTY,
           WorkflowMode.SQUASH, /*includeChangelistNotes=*/true, self.workflowOptions,
-          /*reversibleCheck=*/ false, self.generalOptions.isVerbose()));
+          /*reversibleCheck=*/ false, self.generalOptions.isVerbose(), /*askForConfirmation=*/
+          false));
       return Runtime.NONE;
     }
   };

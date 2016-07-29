@@ -67,6 +67,7 @@ public abstract class Workflow<R extends Origin.Reference> {
   abstract WorkflowOptions workflowOptions();
   abstract boolean reversibleCheck();
   abstract boolean verbose();
+  abstract boolean askForConfirmation();
 
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, EnvironmentException, ValidationException {
@@ -203,6 +204,9 @@ public abstract class Workflow<R extends Origin.Reference> {
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
+
+      transformResult = transformResult.withAskForConfirmation(askForConfirmation());
+
       WriterResult result = writer.write(transformResult, processConsole);
       Verify.verifyNotNull(result, "Destination returned a null result.");
       return result;
@@ -408,7 +412,7 @@ public abstract class Workflow<R extends Origin.Reference> {
       Authoring authoring = this.authoring.withOptions(options, configName);
       Origin<?> origin = this.origin.withOptions(options, authoring);
       Destination destination =
-          this.destination.withOptions(options, configName, askConfirmation);
+          this.destination.withOptions(options, configName);
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       Console console = generalOptions.console();
       WorkflowOptions workflowOptions = options.get(WorkflowOptions.class);
@@ -419,7 +423,8 @@ public abstract class Workflow<R extends Origin.Reference> {
       return new AutoValue_Workflow<>(configName, name, origin, destination, authoring, transformation,
           workflowOptions.getLastRevision(), console,
           excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes,
-          options.get(WorkflowOptions.class), reversibleCheck, generalOptions.isVerbose());
+          options.get(WorkflowOptions.class), reversibleCheck, generalOptions.isVerbose(),
+          askConfirmation);
     }
   }
 

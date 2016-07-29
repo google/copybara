@@ -126,8 +126,7 @@ public final class GerritDestination implements Destination {
     }
 
     @Override
-    public GerritDestination withOptions(
-        Options options, String configName, boolean askConfirmation)
+    public GerritDestination withOptions(Options options, String configName)
         throws ConfigValidationException {
       checkRequiredFields();
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -136,7 +135,6 @@ public final class GerritDestination implements Destination {
               configName,
               url, fetch,
               "refs/for/" + MoreObjects.firstNonNull(pushToRefsFor, fetch),
-              askConfirmation,
               options.get(GitOptions.class),
               generalOptions.isVerbose(),
               new CommitGenerator(options.get(GerritOptions.class)),

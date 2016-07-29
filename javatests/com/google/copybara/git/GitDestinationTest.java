@@ -79,19 +79,15 @@ public class GitDestinationTest {
     destinationFirstCommit();
   }
 
-  private GitDestination destinationFirstCommit() throws ConfigValidationException {
-    return destinationFirstCommit(/*askConfirmation*/ false);
-  }
-
-  private GitDestination destinationFirstCommit(boolean askConfirmation)
+  private GitDestination destinationFirstCommit()
       throws ConfigValidationException {
     options.git.gitFirstCommit = true;
-    return yaml.withOptions(options.build(), CONFIG_NAME, askConfirmation);
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private GitDestination destination() throws ConfigValidationException {
     options.git.gitFirstCommit = false;
-    return yaml.withOptions(options.build(), CONFIG_NAME, /*askConfirmation*/ false);
+    return yaml.withOptions(options.build(), CONFIG_NAME /*askConfirmation*/);
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {
@@ -123,9 +119,21 @@ public class GitDestinationTest {
   private void processWithBaseline(GitDestination destination, DummyReference originRef,
       String baseline)
       throws RepoException, ConfigValidationException, IOException {
+    processWithBaselineAndConfirmation(destination, originRef, baseline,
+        /*askForConfirmation*/false);
+  }
+
+  private void processWithBaselineAndConfirmation(GitDestination destination,
+      DummyReference originRef,
+      String baseline, boolean askForConfirmation)
+      throws ConfigValidationException, RepoException, IOException {
     TransformResult result = TransformResults.of(workdir, originRef, excludedDestinationPaths);
     if (baseline != null) {
       result = result.withBaseline(baseline);
+    }
+
+    if (askForConfirmation) {
+      result = result.withAskForConfirmation(true);
     }
     WriterResult destinationResult = destination.newWriter().write(result, console);
     assertThat(destinationResult).isEqualTo(WriterResult.OK);
@@ -157,7 +165,8 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     thrown.expect(RepoException.class);
     thrown.expectMessage("User aborted execution: did not confirm diff changes");
-    process(destinationFirstCommit(/*askConfirmation*/ true), new DummyReference("origin_ref"));
+    processWithBaselineAndConfirmation(destinationFirstCommit(), new DummyReference("origin_ref"),
+        /*baseline=*/null, /*askForConfirmation=*/true);
   }
 
   @Test
@@ -167,7 +176,8 @@ public class GitDestinationTest {
     yaml.setFetch("master");
     yaml.setPush("master");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    process(destinationFirstCommit(/*askConfirmation*/ true), new DummyReference("origin_ref"));
+    processWithBaselineAndConfirmation(destinationFirstCommit(), new DummyReference("origin_ref"),
+        /*baseline=*/null, /*askForConfirmation=*/true);
 
     console.assertThat()
         .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching file:.*")

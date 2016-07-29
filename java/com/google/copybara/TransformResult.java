@@ -1,14 +1,11 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.util.PathMatcherBuilder;
-
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nullable;
 
 /**
@@ -24,6 +21,7 @@ public final class TransformResult {
   private final PathMatcherBuilder excludedDestinationPaths;
   @Nullable
   private final String baseline;
+  private final boolean askForConfirmation;
 
   private static long readTimestampOrCurrentTime(Reference originRef) throws RepoException {
     Long refTimestamp = originRef.readTimestamp();
@@ -34,11 +32,13 @@ public final class TransformResult {
   public TransformResult(Path path, Reference originRef, Author author, String summary,
       PathMatcherBuilder excludedDestinationPaths) throws RepoException {
     this(path, originRef, author,
-        readTimestampOrCurrentTime(originRef), summary, excludedDestinationPaths, null);
+        readTimestampOrCurrentTime(originRef), summary, excludedDestinationPaths,
+        /*baseline=*/ null, /*askForConfirmation=*/ false);
   }
 
   private TransformResult(Path path, Reference originRef, Author author, long timestamp,
-      String summary, PathMatcherBuilder excludedDestinationPaths, @Nullable String baseline) {
+      String summary, PathMatcherBuilder excludedDestinationPaths, @Nullable String baseline,
+      boolean askForConfirmation) {
     this.path = Preconditions.checkNotNull(path);
     this.originRef = Preconditions.checkNotNull(originRef);
     this.author = Preconditions.checkNotNull(author);
@@ -46,13 +46,20 @@ public final class TransformResult {
     this.summary = Preconditions.checkNotNull(summary);
     this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
     this.baseline = baseline;
+    this.askForConfirmation = askForConfirmation;
   }
 
   public TransformResult withBaseline(String newBaseline) {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
         this.path, this.originRef, this.author, this.timestamp, this.summary,
-        this.excludedDestinationPaths, newBaseline);
+        this.excludedDestinationPaths, newBaseline, this.askForConfirmation);
+  }
+
+  public TransformResult withAskForConfirmation(boolean askForConfirmation) {
+    return new TransformResult(
+        this.path, this.originRef, this.author, this.timestamp, this.summary,
+        this.excludedDestinationPaths, this.baseline, askForConfirmation);
   }
 
   /**
@@ -114,5 +121,17 @@ public final class TransformResult {
   @Nullable
   public String getBaseline() {
     return baseline;
+  }
+
+  /**
+   * If the destination should ask for confirmation. Some destinations might chose to ignore this
+   * flag either because it doesn't apply to them or because the always ask for confirmation in
+   * certain circumstances.
+   *
+   * <p>But in general, any destination that could do accidental damage to a repository should
+   * not ignore when the value is true.
+   */
+  public boolean isAskForConfirmation() {
+    return askForConfirmation;
   }
 }

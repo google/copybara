@@ -18,7 +18,6 @@ import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -28,7 +27,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.annotation.Nullable;
 
 /**
@@ -61,20 +59,18 @@ public final class GitDestination implements Destination {
   private final String repoUrl;
   private final String fetch;
   private final String push;
-  private final boolean askConfirmation;
   private final GitOptions gitOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
 
   GitDestination(String configName, String repoUrl, String fetch, String push,
-      boolean askConfirmation, GitOptions gitOptions, boolean verbose,
-      CommitGenerator commitGenerator, ProcessPushOutput processPushOutput) {
+      GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
+      ProcessPushOutput processPushOutput) {
     this.configName = Preconditions.checkNotNull(configName);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
-    this.askConfirmation = askConfirmation;
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
@@ -148,7 +144,7 @@ public final class GitDestination implements Destination {
       new AddMatchingFilesToIndexVisitor(scratchClone, transformResult.getExcludedDestinationPaths())
           .walk();
 
-      if (askConfirmation) {
+      if (transformResult.isAskForConfirmation()) {
         // The git repo contains the staged changes at this point. Git diff writes to Stdout
         console.info(DiffUtil.colorize(
             console, alternate.simpleCommand("diff", "--staged").getStdout()));
@@ -302,8 +298,7 @@ public final class GitDestination implements Destination {
     }
 
     @Override
-    public GitDestination withOptions(
-        Options options, String configName, boolean askConfirmation)
+    public GitDestination withOptions(Options options, String configName)
         throws ConfigValidationException {
       checkRequiredFields();
       return new GitDestination(
@@ -311,7 +306,6 @@ public final class GitDestination implements Destination {
           url,
           ConfigValidationException.checkNotMissing(fetch, "fetch"),
           ConfigValidationException.checkNotMissing(push, "push"),
-          askConfirmation,
           options.get(GitOptions.class),
           options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator(),
