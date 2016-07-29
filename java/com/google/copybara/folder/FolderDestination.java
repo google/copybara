@@ -3,26 +3,35 @@ package com.google.copybara.folder;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
+import com.google.copybara.Core;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.skylark.OptionsAwareModule;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
+import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
+import com.google.devtools.build.lib.syntax.BuiltinFunction;
+import com.google.devtools.build.lib.syntax.Environment;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
 
 /**
  * Writes the output tree to a local destination. Any file that is not excluded in the configuration
@@ -87,17 +96,15 @@ public class FolderDestination implements Destination {
     @Override
     public Destination withOptions(Options options, String configName)
         throws ConfigValidationException {
-      GeneralOptions generalOptions = options.get(GeneralOptions.class);
-      Path defaultRootPath = generalOptions.getFileSystem()
-          .getPath(StandardSystemProperty.USER_DIR.value()).resolve("copybara/out/");
-      return withOptions(options, configName, defaultRootPath);
+      return createDestination(options, configName,
+          options.get(GeneralOptions.class).getCwd());
     }
 
     private static final DateTimeFormatter FOLDER_DATE_FORMAT =
         new DateTimeFormatterBuilder().appendPattern("yyyy_MM_dd_HH_mm_ss").toFormatter();
 
     @VisibleForTesting
-    Destination withOptions(Options options, String configName, Path defaultRootPath) {
+    static Destination withOptions(Options options, String configName, Path defaultRootPath) {
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getFileSystem();
@@ -113,10 +120,46 @@ public class FolderDestination implements Destination {
       } else {
         localFolder = fs.getPath(localFolderOption);
         if (!localFolder.isAbsolute()) {
-          localFolder = fs.getPath(StandardSystemProperty.USER_DIR.value()).resolve(localFolder);
+          localFolder = generalOptions.getCwd().resolve(localFolder);
         }
       }
       return new FolderDestination(localFolder);
     }
+  }
+
+  @SkylarkModule(
+      name = "folder",
+      doc = "Module for dealing with local filesytem folders",
+      category = SkylarkModuleCategory.BUILTIN)
+  public static class Module implements OptionsAwareModule {
+
+    private Options options;
+
+    private static final String DESTINATION_VAR = "destination";
+
+    @SkylarkSignature(name = DESTINATION_VAR, returnType = Destination.class,
+        doc = "A folder destination is a destination that puts the output in a folder",
+        parameters = {
+            @Param(name = "self", type = Module.class, doc = "this object"),
+        },
+        objectType = Module.class, useLocation = true, useEnvironment = true)
+    public static final BuiltinFunction destination = new BuiltinFunction(DESTINATION_VAR) {
+      public Destination invoke(Module self, Location location, Environment env)
+          throws EvalException {
+        return createDestination(self.options, Core.getProjectNameOrFail(env, location),
+            self.options.get(GeneralOptions.class).getCwd());
+      }
+    };
+
+    @Override
+    public void setOptions(Options options) {
+      this.options = options;
+    }
+  }
+
+  // TODO(team): Inline this once we get rid of yaml logic
+  private static Destination createDestination(Options options, String configName, Path cwd) {
+    Path defaultRootPath = cwd.resolve("copybara/out/");
+    return Yaml.withOptions(options, configName, defaultRootPath);
   }
 }

@@ -35,7 +35,8 @@ import org.yaml.snakeyaml.TypeDescription;
  */
 public class Copybara {
 
-  protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.<Class<?>>of();
+  protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.<Class<?>>of(
+      FolderDestination.Module.class);
 
   private final SkylarkParser skylarkParser;
 

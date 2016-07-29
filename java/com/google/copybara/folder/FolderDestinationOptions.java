@@ -1,11 +1,10 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.folder;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.copybara.Option;
-
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.copybara.Option;
 
 /**
  * Arguments for GitRepository

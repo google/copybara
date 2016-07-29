@@ -42,8 +42,8 @@ public class OptionsBuilder {
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
-    general = new GeneralOptions(
-        general.getFileSystem(), general.isVerbose(), newConsole);
+    general = new GeneralOptions(general.getFileSystem(), general.isVerbose(), newConsole,
+        general.isSkylark(), general.getCwd().toString());
     return this;
   }
 
