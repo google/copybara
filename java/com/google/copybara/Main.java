@@ -5,6 +5,7 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.skylark.SkylarkParser;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
@@ -138,7 +139,7 @@ public class Main {
    * Returns a new instance of {@link Copybara}.
    */
   protected Copybara newCopybaraTool() {
-    return new Copybara();
+    return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES));
   }
 
   private Console getConsole(String[] args) {

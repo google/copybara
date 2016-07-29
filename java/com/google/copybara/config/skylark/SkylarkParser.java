@@ -5,6 +5,7 @@ import static com.google.copybara.Core.PROJECT_FUNC;
 import static com.google.copybara.config.ConfigValidationException.checkCondition;
 import static com.google.copybara.config.ConfigValidationException.checkNotMissing;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Core;
 import com.google.copybara.EnvironmentException;
@@ -20,6 +21,7 @@ import com.google.devtools.build.lib.events.EventHandler;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.syntax.BuildFileAST;
 import com.google.devtools.build.lib.syntax.Environment;
+import com.google.devtools.build.lib.syntax.Environment.Frame;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
@@ -45,23 +47,21 @@ public class SkylarkParser {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(Core.class)
         .addAll(modules).build();
+
+    // Register module functions
+    for (Class<?> module : this.modules) {
+      logger.log(Level.INFO, "Registering module " + module.getName());
+      // This method should be only called once for VM or at least not concurrently,
+      // since it registers functions in an static HashMap.
+      SkylarkSignatureProcessor.configureSkylarkFunctions(module);
+    }
   }
 
   public Config loadConfig(String content, Options options)
       throws IOException, ConfigValidationException, EnvironmentException {
-    Console console = options.get(GeneralOptions.class).console();
     Core core;
     try {
-      EventHandler eventHandler = new ConsoleEventHandler(console);
-      Environment.Frame globals = createGlobals(eventHandler, options);
-      Environment env = createEnvironment(eventHandler, globals);
-
-      BuildFileAST buildFileAST = parseFile(content, eventHandler, env);
-      // TODO(malcon): multifile support
-      checkState(buildFileAST.getImports().isEmpty(),
-          "load() statements are still not supported: %s", buildFileAST.getImports());
-
-      checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
+      Environment env = executeSkylark(content, options);
 
       core = (Core) env.getGlobals().get(Core.CORE_VAR);
     } catch (InterruptedException e) {
@@ -69,6 +69,24 @@ public class SkylarkParser {
       throw new RuntimeException("Internal error", e);
     }
     return createConfig(options, core.getWorkflows(), core.getProjectName());
+  }
+
+  @VisibleForTesting
+  public Environment executeSkylark(String content, Options options)
+      throws IOException, ConfigValidationException, InterruptedException {
+    Console console = options.get(GeneralOptions.class).console();
+    EventHandler eventHandler = new ConsoleEventHandler(console);
+
+    Frame globals = createGlobals(eventHandler, options);
+    Environment env = createEnvironment(eventHandler, globals);
+
+    BuildFileAST buildFileAST = parseFile(content, eventHandler, env);
+    // TODO(malcon): multifile support
+    checkState(buildFileAST.getImports().isEmpty(),
+        "load() statements are still not supported: %s", buildFileAST.getImports());
+
+    checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
+    return env;
   }
 
   private Config createConfig(Options options, Map<String, Workflow<?>> workflows,
@@ -120,9 +138,7 @@ public class SkylarkParser {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK);
 
     for (Class<?> module : modules) {
-      logger.log(Level.INFO, "Registering module " + module.getName());
-      // Register module functions
-      SkylarkSignatureProcessor.configureSkylarkFunctions(module);
+      logger.log(Level.INFO, "Creating variable for " + module.getName());
       // Create the module object and associate it with the functions
       Runtime.registerModuleGlobals(env, module);
       // Add the options to the module that require them

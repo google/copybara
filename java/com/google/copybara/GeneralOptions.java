@@ -5,9 +5,11 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.StandardSystemProperty;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.Path;
 
 /**
  * General options available for all the program classes.
@@ -19,19 +21,22 @@ public final class GeneralOptions implements Option {
   private final boolean verbose;
   private final Console console;
   private final boolean skylark;
+  private final Path cwd;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(fileSystem, verbose, console, /*skylark=*/false);
+    this(fileSystem, verbose, console, /*skylark=*/false,
+        StandardSystemProperty.USER_DIR.value());
   }
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console,
-      boolean skylark) {
+      boolean skylark, String cwd) {
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.skylark = skylark;
+    this.cwd = fileSystem.getPath(cwd);
   }
 
   public boolean isVerbose() {
@@ -48,6 +53,13 @@ public final class GeneralOptions implements Option {
 
   public boolean isSkylark() {
     return skylark;
+  }
+
+  /**
+   * Returns current working directory
+   */
+  public Path getCwd() {
+    return cwd;
   }
 
   @Parameters(separators = "=")
@@ -69,7 +81,8 @@ public final class GeneralOptions implements Option {
      * This method should be called after the options have been set but before are used by any class.
      */
     public GeneralOptions init(FileSystem fileSystem, Console console) throws IOException {
-      return new GeneralOptions(fileSystem, verbose, console, skylark);
+      return new GeneralOptions(fileSystem, verbose, console, skylark,
+          StandardSystemProperty.USER_DIR.value());
     }
   }
 }

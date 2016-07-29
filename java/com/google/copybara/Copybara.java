@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.Config;
@@ -23,7 +24,6 @@ import com.google.copybara.transform.ValidationException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 import javax.annotation.Nullable;
 import org.yaml.snakeyaml.TypeDescription;
 
@@ -34,6 +34,22 @@ import org.yaml.snakeyaml.TypeDescription;
  * (command-line, service).
  */
 public class Copybara {
+
+  protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.<Class<?>>of();
+
+  private final SkylarkParser skylarkParser;
+
+  /**
+   * Delete this method once imported and fixed
+   */
+  @Deprecated
+  public Copybara() {
+    skylarkParser = null;
+  }
+
+  public Copybara(SkylarkParser skylarkParser) {
+    this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
+  }
 
   protected List<Option> getAllOptions() {
     return ImmutableList.of(
@@ -57,10 +73,6 @@ public class Copybara {
         YamlParser.docTypeDescription(GerritDestination.Yaml.class),
         YamlParser.docTypeDescription(GitDestination.Yaml.class),
         YamlParser.docTypeDescription(FolderDestination.Yaml.class));
-  }
-
-  protected Set<Class<?>> getSkylarkModules() {
-    return ImmutableSet.of();
   }
 
   /**
@@ -90,7 +102,7 @@ public class Copybara {
       throws IOException, ConfigValidationException, EnvironmentException {
     if (options.get(GeneralOptions.class).isSkylark()) {
       // TODO(malcon): Split between static intialization and load config.
-      return new SkylarkParser(getSkylarkModules()).loadConfig(configContents, options);
+      return skylarkParser.loadConfig(configContents, options);
     }
     return new YamlParser(getYamlTypeDescriptions()).parseConfig(configContents, options);
   }

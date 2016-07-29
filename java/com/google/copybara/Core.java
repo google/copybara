@@ -15,6 +15,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
+import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
@@ -100,12 +101,10 @@ public class Core implements OptionsAwareModule {
         Destination destination, SkylarkList<Transformation> transformations, Location location)
         throws EvalException {
 
-      if (self.projectName == null) {
-        throw new EvalException(location, "Project name not defined. Use project() first.");
-      }
-
       // TODO(malcon): map the rest of Workflow parameters
-      self.workflows.put(workflowName, new AutoValue_Workflow<>(self.projectName, workflowName,
+      self.workflows.put(workflowName, new AutoValue_Workflow<>(
+          getProjectNameOrFailInternal(self, location),
+          workflowName,
           origin,
           destination,
           new Authoring(new Author("foo", "bar"), AuthoringMappingMode.PASS_THRU,
@@ -120,5 +119,22 @@ public class Core implements OptionsAwareModule {
       return Runtime.NONE;
     }
   };
+
+  /**
+   * Find the project name from the enviroment 'core' object or fail if there was no
+   * project( name = 'foo') in the config file before the current call.
+   */
+  public static String getProjectNameOrFail(Environment env, Location location)
+      throws EvalException {
+    return getProjectNameOrFailInternal(((Core) env.getGlobals().get(CORE_VAR)), location);
+  }
+
+  private static String getProjectNameOrFailInternal(Core self, Location location)
+      throws EvalException {
+    if (self.projectName == null) {
+      throw new EvalException(location, "Project name not defined. Use project() first.");
+    }
+    return self.projectName;
+  }
 
 }

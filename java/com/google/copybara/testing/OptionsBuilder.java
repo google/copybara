@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.testing;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
@@ -23,7 +24,9 @@ public class OptionsBuilder {
 
   public GeneralOptions general =
       new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true,
-          LogConsole.readWriteConsole(System.in, System.out));
+          LogConsole.readWriteConsole(System.in, System.out), /*skylark=*/false,
+          StandardSystemProperty.USER_DIR.value());
+
   public FolderDestinationOptions localDestination =
       new FolderDestinationOptions();
   public GitOptions git = new GitOptions();
@@ -41,6 +44,12 @@ public class OptionsBuilder {
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getFileSystem(), general.isVerbose(), newConsole);
+    return this;
+  }
+
+  public final OptionsBuilder setCurrentWorkDir(String cwd) {
+    general = new GeneralOptions(
+        general.getFileSystem(), general.isVerbose(), general.console(), general.isSkylark(), cwd);
     return this;
   }
 
