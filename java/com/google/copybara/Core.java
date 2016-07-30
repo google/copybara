@@ -7,7 +7,9 @@ import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.config.skylark.OptionsAwareModule;
+import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Sequence;
+import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.devtools.build.lib.events.Location;
@@ -47,12 +49,14 @@ public class Core implements OptionsAwareModule {
 
   private final Map<String, Workflow<?>> workflows = new HashMap<>();
   private GeneralOptions generalOptions;
+  private TransformOptions transformOptions;
   private WorkflowOptions workflowOptions;
   private String projectName;
 
   @Override
   public void setOptions(Options options) {
     generalOptions = options.get(GeneralOptions.class);
+    transformOptions = options.get(TransformOptions.class);
     workflowOptions = options.get(WorkflowOptions.class);
   }
 
@@ -145,6 +149,28 @@ public class Core implements OptionsAwareModule {
           /*reversibleCheck=*/ false, self.generalOptions.isVerbose(), /*askForConfirmation=*/
           false));
       return Runtime.NONE;
+    }
+  };
+
+  @SkylarkSignature(
+      name = "move",
+      returnType = Move.class,
+      doc = "Moves files between directories and renames files",
+      parameters = {
+        @Param(name = "self", type = Core.class, doc = "this object"),
+        @Param(name = "before", type = String.class, doc = ""
+            + "The name of the file or directory before moving. If this is the empty"
+            + " string and 'after' is a directory, then all files in the workdir will be moved to"
+            + " the sub directory specified by 'after', maintaining the directory tree."),
+        @Param(name = "after", type = String.class, doc = ""
+            + "The name of the file or directory after moving. If this is the empty"
+            + " string and 'before' is a directory, then all files in 'before' will be moved to"
+            + " the repo root, maintaining the directory tree inside 'before'.")
+      },
+      objectType = Core.class, useLocation = true)
+  public static final BuiltinFunction MOVE = new BuiltinFunction("move") {
+    public Move invoke(Core self, String before, String after, Location location) throws EvalException {
+      return Move.fromConfig(before, after, self.transformOptions, location);
     }
   };
 
