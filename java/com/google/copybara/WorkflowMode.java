@@ -55,7 +55,7 @@ public enum WorkflowMode {
             changeNumber, changes.size(), change.getReference().asString());
         WriterResult result = runHelper.migrate(
             change.getReference(),
-            change.getAuthor(),
+            runHelper.getAuthoring().resolve(change.getAuthor()),
             new ProgressPrefixConsole(prefix, runHelper.getConsole()),
             change.getMessage());
 
@@ -76,13 +76,13 @@ public enum WorkflowMode {
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
     @Override
-    <R extends Origin.Reference> void run(Workflow<R>.RunHelper helper)
+    <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
         throws RepoException, IOException, EnvironmentException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
-          helper.workflowOptions().changeBaseline);
-      final String originLabelName = helper.getDestination().getLabelNameWhenOrigin();
+          runHelper.workflowOptions().changeBaseline);
+      final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
-        helper.getOrigin().visitChanges(helper.getResolvedRef(), new ChangesVisitor() {
+        runHelper.getOrigin().visitChanges(runHelper.getResolvedRef(), new ChangesVisitor() {
           @Override
           public VisitResult visit(Change<?> change) {
             if (change.getLabels().containsKey(originLabelName)) {
@@ -100,8 +100,11 @@ public enum WorkflowMode {
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
-      Change<R> change = helper.getOrigin().change(helper.getResolvedRef());
-      helper.migrate(helper.getResolvedRef(), change.getAuthor(), helper.getConsole(),
+      Change<R> change = runHelper.getOrigin().change(runHelper.getResolvedRef());
+      runHelper.migrate(
+          runHelper.getResolvedRef(),
+          runHelper.getAuthoring().resolve(change.getAuthor()),
+          runHelper.getConsole(),
           change.getMessage(), requestParent.get());
     }
   },

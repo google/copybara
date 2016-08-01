@@ -82,7 +82,7 @@ public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
     return Integer.toString(changes.size() - 1);
   }
   @Override
-  public DummyOrigin withOptions(Options options, Authoring authoring) {
+  public DummyOrigin withOptions(Options options) {
     return this;
   }
 

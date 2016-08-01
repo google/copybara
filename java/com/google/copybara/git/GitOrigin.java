@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.Author;
-import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
@@ -64,16 +63,14 @@ public final class GitOrigin implements Origin<GitReference> {
   @Nullable
   private final String configRef;
   private final Console console;
-  private final Authoring authoring;
   private final GitRepoType repoType;
 
   private GitOrigin(Console console, GitRepository repository, String repoUrl,
-      @Nullable String configRef, Authoring authoring, GitRepoType repoType) {
+      @Nullable String configRef, GitRepoType repoType) {
     this.console = Preconditions.checkNotNull(console);
     this.repository = Preconditions.checkNotNull(repository);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.configRef = Preconditions.checkNotNull(configRef);
-    this.authoring = Preconditions.checkNotNull(authoring);
     this.repoType = Preconditions.checkNotNull(repoType);
   }
 
@@ -227,7 +224,7 @@ public final class GitOrigin implements Origin<GitReference> {
           }
           message.append(s, GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
         }
-        Change<GitReference> change = new Change<>(ref, resolveAuthor(author), message.toString(),
+        Change<GitReference> change = new Change<>(ref, author, message.toString(),
             date, ImmutableMap.copyOf(labels));
         builder.add(new GitChange(change, parents.build()));
       }
@@ -242,22 +239,6 @@ public final class GitOrigin implements Origin<GitReference> {
       result.add(gitChange.change);
     }
     return result.build();
-  }
-
-  private Author resolveAuthor(Author author) {
-    switch (authoring.getMode()) {
-      case PASS_THRU:
-        return author;
-      case USE_DEFAULT:
-        return authoring.getDefaultAuthor();
-      case WHITELIST:
-        return authoring.getWhitelist().contains(author.getEmail())
-            ? author
-            : authoring.getDefaultAuthor();
-      default:
-        throw new IllegalStateException(
-            String.format("Mode '%s' not implemented.", authoring.getMode()));
-    }
   }
 
   @Override
@@ -304,26 +285,34 @@ public final class GitOrigin implements Origin<GitReference> {
     }
 
     @Override
-    public GitOrigin withOptions(Options options, Authoring authoring)
+    public GitOrigin withOptions(Options options)
         throws ConfigValidationException {
-      return withOptions(options, authoring, GitRepository.CURRENT_PROCESS_ENVIRONMENT);
+      return withOptions(options, GitRepository.CURRENT_PROCESS_ENVIRONMENT);
     }
 
     @VisibleForTesting
-    GitOrigin withOptions(Options options, Authoring authoring, Map<String, String> environment)
+    GitOrigin withOptions(Options options, Map<String, String> environment)
         throws ConfigValidationException {
       ConfigValidationException.checkNotMissing(url, "url");
-
-      GitOptions gitConfig = options.get(GitOptions.class);
-
-      Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
-      Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
-      Console console = options.get(GeneralOptions.class).console();
-
-      return new GitOrigin(
-          console, GitRepository.bareRepo(gitDir, options, environment), url,
-          ref, authoring, type);
+      return newGitOrigin(options, url, ref, type, environment);
     }
+  }
+
+  /**
+   * Builds a new {@link GitOrigin}.
+   *
+   * <p>This method will be invoked both from Yaml and Skylark configurations.
+   */
+  static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
+      Map<String, String> environment) {
+    GitOptions gitConfig = options.get(GitOptions.class);
+
+    Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
+    Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
+    Console console = options.get(GeneralOptions.class).console();
+
+    return new GitOrigin(
+        console, GitRepository.bareRepo(gitDir, options, environment), url, ref, type);
   }
 
   /**

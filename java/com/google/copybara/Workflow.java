@@ -410,7 +410,7 @@ public abstract class Workflow<R extends Origin.Reference> {
       }
 
       Authoring authoring = this.authoring.withOptions();
-      Origin<?> origin = this.origin.withOptions(options, authoring);
+      Origin<?> origin = this.origin.withOptions(options);
       Destination destination =
           this.destination.withOptions(options, configName);
       GeneralOptions generalOptions = options.get(GeneralOptions.class);

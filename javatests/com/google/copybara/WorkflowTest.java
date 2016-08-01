@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
@@ -44,6 +45,8 @@ public class WorkflowTest {
   private static final String CONFIG_NAME = "copybara_project";
   private static final String PREFIX = "TRANSFORMED";
   private static final Author CONTRIBUTOR = new Author("Foo Bar", "foo@bar.com");
+  private static final Author NOT_WHITELISTED_CONTRIBUTOR =
+      new Author("Secret Coder", "secret@coder.com");
   private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
 
   private Yaml yaml;
@@ -108,6 +111,11 @@ public class WorkflowTest {
 
   private Workflow changeRequestWorkflow(@Nullable String baseline)
       throws ConfigValidationException, EnvironmentException {
+    return changeRequestWorkflow(baseline, authoring);
+  }
+
+  private Workflow changeRequestWorkflow(@Nullable String baseline, AuthoringYamlBuilder authoring)
+      throws ConfigValidationException, EnvironmentException {
     yaml.setOrigin(origin);
     yaml.setDestination(destination);
     yaml.setMode(WorkflowMode.CHANGE_REQUEST);
@@ -129,7 +137,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void iterativeWorkflowTest() throws Exception {
+  public void iterativeWorkflowTest_defaultAuthoring() throws Exception {
     for (int timestamp = 0; timestamp < 61; timestamp++) {
       origin.addSimpleChange(timestamp);
     }
@@ -144,13 +152,72 @@ public class WorkflowTest {
       assertThat(change.getOriginRef().asString()).isEqualTo(asString);
       assertThat(change.numFiles()).isEqualTo(1);
       assertThat(change.getContent("file.txt")).isEqualTo(PREFIX + asString);
-      assertThat(change.getAuthor()).isEqualTo(CONTRIBUTOR);
+      assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
       nextChange++;
     }
 
     workflow = iterativeWorkflow(null);
     workflow.run(workdir, /*sourceRef=*/"60");
     assertThat(destination.processed).hasSize(18);
+  }
+
+  @Test
+  public void iterativeWorkflowTest_whitelistAuthoring() throws Exception {
+    origin
+        .addSimpleChange(0)
+        .setAuthor(CONTRIBUTOR)
+        .addSimpleChange(1)
+        .setAuthor(NOT_WHITELISTED_CONTRIBUTOR)
+        .addSimpleChange(2);
+
+    authoring = new AuthoringYamlBuilder();
+    authoring.setMode(AuthoringMappingMode.WHITELIST);
+    authoring.setWhitelist(ImmutableList.of(CONTRIBUTOR.getEmail()));
+
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.ITERATIVE);
+    yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring.build());
+    options.workflowOptions.lastRevision = "0";
+    options.general = new GeneralOptions(
+        options.general.getFileSystem(), options.general.isVerbose(), options.general.console());
+    Workflow workflow = yaml.withOptions(options.build(), CONFIG_NAME);
+
+    workflow.run(workdir, /*sourceRef=*/"0");
+    assertThat(destination.processed).hasSize(2);
+
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
+    assertThat(destination.processed.get(1).getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
+  public void iterativeWorkflowTest_passThruAuthoring() throws Exception {
+    origin
+        .addSimpleChange(0)
+        .setAuthor(CONTRIBUTOR)
+        .addSimpleChange(1)
+        .setAuthor(NOT_WHITELISTED_CONTRIBUTOR)
+        .addSimpleChange(2);
+
+    authoring = new AuthoringYamlBuilder();
+    authoring.setMode(AuthoringMappingMode.PASS_THRU);
+
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.ITERATIVE);
+    yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring.build());
+    options.workflowOptions.lastRevision = "0";
+    options.general = new GeneralOptions(
+        options.general.getFileSystem(), options.general.isVerbose(), options.general.console());
+    Workflow workflow = yaml.withOptions(options.build(), CONFIG_NAME);
+
+    workflow.run(workdir, /*sourceRef=*/"0");
+    assertThat(destination.processed).hasSize(2);
+
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
+    assertThat(destination.processed.get(1).getAuthor()).isEqualTo(NOT_WHITELISTED_CONTRIBUTOR);
   }
 
   @Test
@@ -227,6 +294,8 @@ public class WorkflowTest {
 
   @Test
   public void usesDefaultAuthorForSquash() throws Exception {
+    // Squash always sets the default author
+    authoring.setMode(AuthoringMappingMode.PASS_THRU);
     Workflow workflow = workflow();
     origin.addSimpleChange(/*timestamp*/ 1);
     workflow.run(workdir, origin.getHead());
@@ -383,20 +452,56 @@ public class WorkflowTest {
   }
 
   @Test
-  public void changeRequest() throws Exception {
-    origin.addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42");
-    origin.addSimpleChange(1, "Second Change");
+  public void changeRequest_defaultAuthoring() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change");
+
     Workflow workflow = changeRequestWorkflow(null);
     workflow.run(workdir, "1");
-    assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
+    ProcessedChange change = destination.processed.get(0);
+
+    assertThat(change.getBaseline()).isEqualTo("42");
+    assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
     console.assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
   @Test
+  public void changeRequest_passThruAuthoring() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change");
+
+    authoring = new AuthoringYamlBuilder();
+    authoring.setMode(AuthoringMappingMode.PASS_THRU);
+    Workflow workflow = changeRequestWorkflow(null, authoring);
+    workflow.run(workdir, "1");
+
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
+  }
+
+  @Test
+  public void changeRequest_whitelistAuthoring() throws Exception {
+    origin
+        .setAuthor(NOT_WHITELISTED_CONTRIBUTOR)
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change");
+
+    authoring = new AuthoringYamlBuilder();
+    authoring.setMode(AuthoringMappingMode.WHITELIST);
+    authoring.setWhitelist(ImmutableList.of(CONTRIBUTOR.getEmail()));
+    Workflow workflow = changeRequestWorkflow(null, authoring);
+    workflow.run(workdir, "0");
+
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
   public void changeRequestManualBaseline() throws Exception {
-    origin.addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42");
-    origin.addSimpleChange(1, "Second Change");
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change");
     Workflow workflow = changeRequestWorkflow("24");
     workflow.run(workdir, "1");
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
@@ -440,8 +545,9 @@ public class WorkflowTest {
   @Test
   public void nonReversibleButCheckReverseSet()
       throws IOException, EnvironmentException, ValidationException, RepoException {
-    origin.singleFileChange(0, "one commit", "foo.txt", "1");
-    origin.singleFileChange(1, "one commit", "test.txt", "1\nTRANSFORMED42");
+    origin
+        .singleFileChange(0, "one commit", "foo.txt", "1")
+        .singleFileChange(1, "one commit", "test.txt", "1\nTRANSFORMED42");
     Workflow workflow = changeRequestWorkflow("0");
     try {
       workflow.run(workdir, "1");

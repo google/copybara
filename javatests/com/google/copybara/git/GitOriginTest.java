@@ -5,11 +5,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.copybara.Author;
-import com.google.copybara.Authoring;
-import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
@@ -35,10 +32,6 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitOriginTest {
-
-  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
-  private static final Authoring DEFAULT_AUTHORING =
-      new Authoring(DEFAULT_AUTHOR, AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
 
   private GitOrigin origin;
   private Path remote;
@@ -73,7 +66,7 @@ public class GitOriginTest {
     Path userHomeForTest = Files.createTempDirectory("home");
     env = Maps.newHashMap(System.getenv());
     env.put("HOME", userHomeForTest.toString());
-    origin = yaml.withOptions(options.build(), DEFAULT_AUTHORING, env);
+    origin = yaml.withOptions(options.build(), env);
 
     git("init");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
@@ -263,27 +256,6 @@ public class GitOriginTest {
     assertThat(visited.get(3).firstLineMessage()).isEqualTo("first file");
   }
 
-  @Test
-  public void testWhitelisting() throws Exception {
-    Authoring authoring = new Authoring(
-        DEFAULT_AUTHOR, AuthoringMappingMode.WHITELIST, ImmutableSet.of("john@name.com"));
-    origin = yaml.withOptions(options.build(), authoring, env);
-
-    String author = "John Name <john@name.com>";
-    singleFileCommit(author, "change2", "test.txt", "some content2");
-    GitReference lastCommitRef = getLastCommitRef();
-    Change<GitReference> change = origin.change(lastCommitRef);
-
-    assertThat(change.getAuthor().toString()).isEqualTo(author);
-
-    author = "Foo Bar <foo@bar.com>";
-    singleFileCommit(author, "change3", "test.txt", "some content3");
-    lastCommitRef = getLastCommitRef();
-    change = origin.change(lastCommitRef);
-
-    assertThat(change.getAuthor().toString()).isEqualTo(DEFAULT_AUTHOR.toString());
-  }
-
   /**
    * Check that we can overwrite the git url using the CLI option and that we show a message
    */
@@ -297,7 +269,7 @@ public class GitOriginTest {
 
     TestingConsole testConsole = new TestingConsole();
     options.setConsole(testConsole);
-    origin = yaml.withOptions(options.build(), DEFAULT_AUTHORING, env);
+    origin = yaml.withOptions(options.build(), env);
 
     String newUrl = "file://" + remote.toFile().getAbsolutePath();
     Change<GitReference> cliHead = origin.change(origin.resolve(newUrl));

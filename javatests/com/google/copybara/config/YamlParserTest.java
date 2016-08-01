@@ -270,7 +270,7 @@ public class YamlParserTest {
     }
 
     @Override
-    public MockOrigin withOptions(Options options, Authoring authoring)
+    public MockOrigin withOptions(Options options)
         throws ConfigValidationException {
       return this;
     }

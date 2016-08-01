@@ -20,6 +20,8 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class AuthoringTest {
 
+  private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
+
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
@@ -95,6 +97,31 @@ public class AuthoringTest {
             + ")\n",
         "'whitelisted' function requires a non-empty 'whitelist' field. "
             + "For default mapping, use 'overwrite\\(...\\)' mode instead.");
+  }
+
+  @Test
+  public void testResolve_use_default() throws Exception {
+    Authoring authoring = new Authoring(
+        DEFAULT_AUTHOR, AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of());
+    assertThat(authoring.resolve(new Author("foo bar", "baz@bar.com"))).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
+  public void testResolve_pass_thru() throws Exception {
+    Authoring authoring = new Authoring(
+        DEFAULT_AUTHOR, AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
+    Author contributor = new Author("foo bar", "baz@bar.com");
+    assertThat(authoring.resolve(contributor)).isEqualTo(contributor);
+  }
+
+  @Test
+  public void testResolve_whitelist() throws Exception {
+    Authoring authoring = new Authoring(
+        DEFAULT_AUTHOR, AuthoringMappingMode.WHITELIST, ImmutableSet.of("baz@bar.com"));
+    Author contributor = new Author("foo bar", "baz@bar.com");
+    assertThat(authoring.resolve(contributor)).isEqualTo(contributor);
+    assertThat(authoring.resolve(new Author("John", "john@someemail.com")))
+        .isEqualTo(DEFAULT_AUTHOR);
   }
 
   private void asssertErrorMessage(String skylarkCode, final String errorMsg) {

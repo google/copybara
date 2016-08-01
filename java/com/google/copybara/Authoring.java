@@ -71,6 +71,25 @@ public final class Authoring {
     return whitelist;
   }
 
+  /**
+   * Resolves an origin author to a destination one.
+   */
+  public Author resolve(Author author) {
+    switch (mode) {
+      case PASS_THRU:
+        return author;
+      case USE_DEFAULT:
+        return defaultAuthor;
+      case WHITELIST:
+        return whitelist.contains(author.getEmail())
+            ? author
+            : defaultAuthor;
+      default:
+        throw new IllegalStateException(
+            String.format("Mode '%s' not implemented.", mode));
+    }
+  }
+
   @SkylarkModule(
       name = "authoring",
       namespace = true,

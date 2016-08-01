@@ -24,7 +24,7 @@ public interface Origin<R extends Origin.Reference> {
 
   interface Yaml<R extends Reference> {
 
-    Origin<R> withOptions(Options options, Authoring authoring) throws ConfigValidationException;
+    Origin<R> withOptions(Options options) throws ConfigValidationException;
   }
 
   /**
