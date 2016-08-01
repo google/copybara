@@ -409,7 +409,7 @@ public abstract class Workflow<R extends Origin.Reference> {
         sequence.checkReversible();
       }
 
-      Authoring authoring = this.authoring.withOptions(options, configName);
+      Authoring authoring = this.authoring.withOptions();
       Origin<?> origin = this.origin.withOptions(options, authoring);
       Destination destination =
           this.destination.withOptions(options, configName);

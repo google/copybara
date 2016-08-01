@@ -6,6 +6,7 @@ import static com.google.copybara.config.ConfigValidationException.checkNotMissi
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.Authoring;
 import com.google.copybara.Core;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.GeneralOptions;
@@ -44,6 +45,7 @@ public class SkylarkParser {
 
   public SkylarkParser(Set<Class<?>> modules) {
     this.modules = ImmutableSet.<Class<?>>builder()
+        .add(Authoring.Module.class)
         .add(Core.class)
         .addAll(modules).build();
 

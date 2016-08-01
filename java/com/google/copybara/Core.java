@@ -24,6 +24,7 @@ import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
+import com.google.devtools.build.lib.syntax.Type;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -123,14 +124,17 @@ public class Core implements OptionsAwareModule {
               doc = "Where to read the migration code from."),
           @Param(name = "destination", type = Destination.class,
               doc = "Where to read the migration code from."),
+          @Param(name = "authoring", type = Authoring.class,
+              doc = "The author mapping configuration from origin to destination."),
           @Param(name = "transformations", type = SkylarkList.class,
               generic1 = Transformation.class,
               doc = "Where to read the migration code from."),
       },
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow") {
-    public NoneType invoke(Core self, String workflowName, Origin<Reference> origin,
-        Destination destination, SkylarkList<Transformation> transformations, Location location)
+    public NoneType invoke(Core self, String workflowName,
+        Origin<Reference> origin, Destination destination, Authoring authoring,
+        SkylarkList<Transformation> transformations, Location location)
         throws EvalException {
 
       // TODO(malcon): map the rest of Workflow parameters
@@ -139,8 +143,7 @@ public class Core implements OptionsAwareModule {
           workflowName,
           origin,
           destination,
-          new Authoring(new Author("foo", "bar"), AuthoringMappingMode.PASS_THRU,
-              ImmutableSet.<String>of()),
+          authoring,
           Sequence.createSequence(ImmutableList.copyOf(transformations)),
           self.workflowOptions.getLastRevision(),
           self.generalOptions.console(),

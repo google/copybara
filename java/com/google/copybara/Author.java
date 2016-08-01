@@ -6,10 +6,8 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
-
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
 
 /**
  * Represents a contributor in an origin or destination repository. A contributor can be either an
@@ -18,6 +16,8 @@ import javax.annotation.Nullable;
  * <p>Author is lenient in name or email validation. Validation happens in the Yaml class.
  */
 public final class Author {
+
+  private static final Pattern AUTHOR_PARSER = Pattern.compile("(?<name>[^<]+)<(?<email>[^>]+)>");
 
   private final String name;
   private final String email;
@@ -61,6 +61,16 @@ public final class Author {
           && Objects.equal(this.email, that.email);
     }
     return false;
+  }
+
+  /** Parse author from a String in the format of: "name <foo@bar.com>" */
+  public static Author parse(String authorStr) throws ConfigValidationException {
+    Matcher matcher = AUTHOR_PARSER.matcher(authorStr);
+    if (!matcher.matches()) {
+      throw new ConfigValidationException("Author '" + authorStr
+          + "' doesn't match the expected format 'name <mail@example.com>");
+    }
+    return new Author(matcher.group("name").trim(), matcher.group("email").trim());
   }
 
   @Override

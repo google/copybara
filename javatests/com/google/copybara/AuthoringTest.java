@@ -1,12 +1,15 @@
 package com.google.copybara;
 
-import static org.hamcrest.CoreMatchers.any;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
-
+import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -17,54 +20,89 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class AuthoringTest {
 
-  private static final String CONFIG_NAME = "copybara_project";
-
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  private Author.Yaml authorYaml = new Author.Yaml();
-  private Authoring.Yaml yaml;
+  private SkylarkTestExecutor skylark;
   private OptionsBuilder options;
+  private TestingConsole console;
 
   @Before
   public void setUp() throws Exception {
-    authorYaml.setName("Copybara");
-    authorYaml.setEmail("no-reply@google.com");
-    yaml = new Authoring.Yaml();
     options = new OptionsBuilder();
+    console = new TestingConsole();
+    options.setConsole(console);
+    skylark = new SkylarkTestExecutor(options);
+  }
+
+  @Test
+  public void overwriteTest() throws Exception {
+    Authoring authoring = skylark.eval("result",
+        "result = authoring.overwrite('foo bar <baz@bar.com>')");
+    assertThat(authoring).isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
+        AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of()));
+  }
+
+  @Test
+  public void passThruTest() throws Exception {
+    Authoring authoring = skylark.eval("result",
+        "result = authoring.pass_thru('foo bar <baz@bar.com>')");
+    assertThat(authoring).isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
+        AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of()));
+  }
+
+  @Test
+  public void whitelistedTest() throws Exception {
+    Authoring authoring = skylark.eval("result", ""
+        + "result = authoring.whitelisted(\n"
+        + "    default = 'foo bar <baz@bar.com>',\n"
+        + "    whitelist = ['foo', 'bar'])");
+    assertThat(authoring).isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
+        AuthoringMappingMode.WHITELIST, ImmutableSet.of("foo", "bar")));
   }
 
   @Test
   public void testWhitelistMappingDuplicates() throws Exception {
-    thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("Duplicated whitelist entry 'foo'");
-    yaml.setWhitelist(ImmutableList.of("foo", "foo"));
+    asssertErrorMessage(""
+            + "authoring.whitelisted(\n"
+            + "  default = 'Copybara <no-reply@google.com>',\n"
+            + "  whitelist = ['foo', 'foo']\n"
+            + ")\n",
+        "Duplicated whitelist entry 'foo'");
   }
 
   @Test
   public void testDefaultAuthorNotEmpty() throws Exception {
-    thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("Field 'defaultAuthor' cannot be empty.");
-    yaml.withOptions(options.build(), CONFIG_NAME);
+    asssertErrorMessage("authoring.overwrite()\n",
+        "insufficient arguments received by overwrite\\(default: string\\)");
   }
+
 
   @Test
   public void testInvalidDefaultAuthor() throws Exception {
-    authorYaml = new Author.Yaml();
-    thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("Invalid 'defaultAuthor'");
-    thrown.expectCause(any(ConfigValidationException.class));
-    yaml.setDefaultAuthor(authorYaml);
+    asssertErrorMessage(""
+            + "authoring.overwrite(\n"
+            + "    default = 'invalid')\n",
+        "Author 'invalid' doesn't match the expected format 'name <mail@example.com>");
   }
 
   @Test
   public void testWhitelistNotEmpty() throws Exception {
-    yaml.setDefaultAuthor(authorYaml);
-    yaml.setMode(AuthoringMappingMode.WHITELIST);
+    asssertErrorMessage(""
+            + "authoring.whitelisted(\n"
+            + "  default = 'Copybara <no-reply@google.com>',\n"
+            + "  whitelist = []\n"
+            + ")\n",
+        "'whitelisted' function requires a non-empty 'whitelist' field. "
+            + "For default mapping, use 'overwrite\\(...\\)' mode instead.");
+  }
 
-    thrown.expect(ConfigValidationException.class);
-    thrown.expectMessage("Mode 'WHITELIST' requires a non-empty 'whitelist' field. "
-        + "For default mapping, use 'USE_DEFAULT' mode instead.");
-    yaml.withOptions(options.build(), CONFIG_NAME);
+  private void asssertErrorMessage(String skylarkCode, final String errorMsg) {
+    try {
+      skylark.eval("result", "result = " + skylarkCode);
+      fail();
+    } catch (ConfigValidationException e) {
+      console.assertThat().onceInLog(MessageType.ERROR, ".*" + errorMsg + ".*");
+    }
   }
 }
