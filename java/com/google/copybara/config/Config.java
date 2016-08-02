@@ -10,9 +10,9 @@ import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
-
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -45,6 +45,24 @@ public final class Config {
    */
   public Workflow getActiveWorkflow() {
     return activeWorkflow;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Config config = (Config) o;
+    return Objects.equals(name, config.name) &&
+        Objects.equals(activeWorkflow, config.activeWorkflow);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, activeWorkflow);
   }
 
   @Override

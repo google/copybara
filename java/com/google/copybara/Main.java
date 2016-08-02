@@ -1,6 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
+import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -11,10 +14,6 @@ import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.ParameterException;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -87,13 +86,23 @@ public class Main {
       Options options = new Options(allOptions);
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
+      if (generalOptions.isValidate()) {
+        // TODO(team): skylark remove this check
+        Preconditions.checkArgument(generalOptions.isSkylark(),
+            "Validate is only allowed in Skylark mode");
 
-      copybara.run(
-          options,
-          loadConfig(generalOptions.isSkylark(), configPath),
-          mainArgs.getWorkflowName(),
-          baseWorkdir,
-          mainArgs.getSourceRef());
+        String skylarkContent = loadConfig(/*skylark=*/true, configPath);
+        String yamlContent = loadConfig(/*skylark=*/false,
+            configPath.getParent().resolve("copybara.yaml"));
+        copybara.validate(options, skylarkContent, yamlContent, mainArgs.getWorkflowName());
+      } else {
+        copybara.run(
+            options,
+            loadConfig(generalOptions.isSkylark(), configPath),
+            mainArgs.getWorkflowName(),
+            baseWorkdir,
+            mainArgs.getSourceRef());
+      }
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
       System.err.print(usage(jcommander, version));

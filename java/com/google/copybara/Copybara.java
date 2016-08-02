@@ -21,6 +21,7 @@ import com.google.copybara.transform.Reverse;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.transform.ValidationException;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -95,16 +96,37 @@ public class Copybara {
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException, EnvironmentException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
-    Config config = parseConfig(configContents, options);
+    boolean skylark = options.get(GeneralOptions.class).isSkylark();
+    Config config = parseConfig(skylark, configContents, options);
     config.getActiveWorkflow().run(baseWorkdir, sourceRef);
   }
 
-  private Config parseConfig(String configContents, Options options)
+  public void validate(Options options, String configContent, String yamlConfigContent,
+      String workflowName)
+      throws RepoException, ValidationException, IOException, EnvironmentException {
+    options.get(WorkflowOptions.class).setWorkflowName(workflowName);
+    boolean skylark = options.get(GeneralOptions.class).isSkylark();
+    Config config = parseConfig(skylark, configContent, options);
+    Config yamlConfig = parseConfig(/*skylark=*/false, yamlConfigContent, options);
+    if (!config.equals(yamlConfig)) {
+      Console console = options.get(GeneralOptions.class).console();
+      console.error("Skylark config file and Yaml one are not equivalent:\n"
+          + "YAML: " + yamlConfig + "\n"
+          + "BZL : " + config);
+      throw new ValidationException("Error validating configuration");
+    }
+  }
+
+  private Config parseConfig(boolean skylark, String configContents, Options options)
       throws IOException, ConfigValidationException, EnvironmentException {
-    if (options.get(GeneralOptions.class).isSkylark()) {
-      // TODO(malcon): Split between static intialization and load config.
+    if (skylark) {
       return skylarkParser.loadConfig(configContents, options);
     }
+    return loadYamlConfig(configContents, options);
+  }
+
+  private Config loadYamlConfig(String configContents, Options options)
+      throws IOException, ConfigValidationException, EnvironmentException {
     return new YamlParser(getYamlTypeDescriptions()).parseConfig(configContents, options);
   }
 }

@@ -21,21 +21,23 @@ public final class GeneralOptions implements Option {
   private final boolean verbose;
   private final Console console;
   private final boolean skylark;
+  private final boolean validate;
   private final Path cwd;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(fileSystem, verbose, console, /*skylark=*/false,
+    this(fileSystem, verbose, console, /*skylark=*/false, /*validate=*/false,
         StandardSystemProperty.USER_DIR.value());
   }
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console,
-      boolean skylark, String cwd) {
+      boolean skylark, boolean validate, String cwd) {
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.skylark = skylark;
+    this.validate = validate;
     this.cwd = fileSystem.getPath(cwd);
   }
 
@@ -53,6 +55,10 @@ public final class GeneralOptions implements Option {
 
   public boolean isSkylark() {
     return skylark;
+  }
+
+  public boolean isValidate() {
+    return validate;
   }
 
   /**
@@ -77,11 +83,15 @@ public final class GeneralOptions implements Option {
         description = "Use Skylark config format instead of Yaml. This is an experiment")
     boolean skylark = false;
 
+    @Parameter(names = "--validate",
+        description = "Validate that the config is correct")
+    boolean validate = false;
+
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
     public GeneralOptions init(FileSystem fileSystem, Console console) throws IOException {
-      return new GeneralOptions(fileSystem, verbose, console, skylark,
+      return new GeneralOptions(fileSystem, verbose, console, skylark, validate,
           StandardSystemProperty.USER_DIR.value());
     }
   }

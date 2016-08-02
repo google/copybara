@@ -25,7 +25,7 @@ public class OptionsBuilder {
   public GeneralOptions general =
       new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true,
           LogConsole.readWriteConsole(System.in, System.out), /*skylark=*/false,
-          StandardSystemProperty.USER_DIR.value());
+          /*validate=*/false, StandardSystemProperty.USER_DIR.value());
 
   public FolderDestinationOptions localDestination =
       new FolderDestinationOptions();
@@ -43,13 +43,14 @@ public class OptionsBuilder {
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(general.getFileSystem(), general.isVerbose(), newConsole,
-        general.isSkylark(), general.getCwd().toString());
+        general.isSkylark(), general.isValidate(), general.getCwd().toString());
     return this;
   }
 
   public final OptionsBuilder setCurrentWorkDir(String cwd) {
     general = new GeneralOptions(
-        general.getFileSystem(), general.isVerbose(), general.console(), general.isSkylark(), cwd);
+        general.getFileSystem(), general.isVerbose(), general.console(), general.isSkylark(),
+        general.isValidate(), cwd);
     return this;
   }
 

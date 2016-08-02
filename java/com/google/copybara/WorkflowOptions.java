@@ -5,6 +5,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import com.beust.jcommander.Parameter;
+import java.util.Objects;
 
 /**
  * Arguments for {@link Workflow} components.
@@ -49,5 +50,24 @@ public class WorkflowOptions implements Option {
 
   public String getChangeBaseline() {
     return changeBaseline;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    WorkflowOptions that = (WorkflowOptions) o;
+    return Objects.equals(changeBaseline, that.changeBaseline) &&
+        Objects.equals(lastRevision, that.lastRevision) &&
+        Objects.equals(workflowName, that.workflowName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(changeBaseline, lastRevision, workflowName);
   }
 }

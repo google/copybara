@@ -101,6 +101,8 @@ public class SkylarkParser {
     checkCondition(workflow != null, String.format(
         "No workflow with '%s' name exists. Valid workflows: %s",
         workflowName, workflows.keySet()));
+    //TODO(team): After skylark migration config should have all the workflows and we should
+    // move the validation above outside of the loading.
     return new Config(checkNotMissing(projectName, "project"), workflow);
   }
 
