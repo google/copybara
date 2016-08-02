@@ -10,10 +10,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Represents a contributor in an origin or destination repository. A contributor can be either an
- * individual or a team.
+ * Represents the contributor of a change in the destination repository. A contributor can be
+ * either an individual or a team.
  *
- * <p>Author is lenient in name or email validation. Validation happens in the Yaml class.
+ * <p>Author is lenient in name or email validation.
  */
 public final class Author {
 

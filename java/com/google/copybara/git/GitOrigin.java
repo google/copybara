@@ -191,17 +191,18 @@ public final class GitOrigin implements Origin<GitReference> {
           parents.add(repository.createReferenceFromCompleteSha1(commitReferences.next()));
         }
         String line = rawLines.next();
-        Author author = null;
+        OriginalAuthor originalAuthor = null;
         DateTime date = null;
         while (!line.isEmpty()) {
           if (line.startsWith("Author: ")) {
-            author = GitAuthorParser.parse(line.substring("Author: ".length()).trim());
+            String authorStr = line.substring("Author: ".length()).trim();
+            originalAuthor = new GitOriginalAuthor(authorStr);
           } else if (line.startsWith("Date: ")) {
             date = dateFormatter.parseDateTime(line.substring("Date: ".length()).trim());
           }
           line = rawLines.next();
         }
-        Preconditions.checkState(author != null || date != null,
+        Preconditions.checkState(originalAuthor != null || date != null,
             "Could not find author and/or date for commitReferences %s in log\n:%s", rawCommitLine,
             log);
         StringBuilder message = new StringBuilder();
@@ -224,8 +225,8 @@ public final class GitOrigin implements Origin<GitReference> {
           }
           message.append(s, GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
         }
-        Change<GitReference> change = new Change<>(ref, author, message.toString(),
-            date, ImmutableMap.copyOf(labels));
+        Change<GitReference> change = new Change<>(
+            ref, originalAuthor, message.toString(), date, ImmutableMap.copyOf(labels));
         builder.add(new GitChange(change, parents.build()));
       }
       // Return older commit first.
@@ -326,6 +327,27 @@ public final class GitOrigin implements Origin<GitReference> {
     public GitChange(Change<GitReference> change, ImmutableList<GitReference> parents) {
       this.change = change;
       this.parents = parents;
+    }
+  }
+
+  /**
+   * Git implementation of {@link OriginalAuthor} that parses the author from the Git logs.
+   */
+  private static class GitOriginalAuthor implements OriginalAuthor {
+    private final Author author;
+
+    private GitOriginalAuthor(String authorStr) {
+      this.author = GitAuthorParser.parse(authorStr);
+    }
+
+    @Override
+    public String getId() {
+      return author.getEmail();
+    }
+
+    @Override
+    public Author resolve() {
+      return author;
     }
   }
 }

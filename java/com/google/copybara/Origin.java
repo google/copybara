@@ -138,4 +138,20 @@ public interface Origin<R extends Origin.Reference> {
    * reference. For example "Git-RevId".
    */
   String getLabelName();
+
+  /**
+   * Represents the original author of the change in the origin.
+   */
+  interface OriginalAuthor {
+
+    /**
+     * Returns the unique identifier of this author in the {@link Origin}.
+     */
+    String getId();
+
+    /**
+     * Resolves this {@link OriginalAuthor} into an {@link Author}.
+     */
+    Author resolve();
+  }
 }

@@ -4,8 +4,6 @@ package com.google.copybara.testing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Author;
-import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -30,14 +28,15 @@ import javax.annotation.Nullable;
  */
 public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
 
-  private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
+  private static final OriginalAuthor DEFAULT_AUTHOR =
+      new DummyOriginalAuthor("Dummy Author", "no-reply@dummy.com");
 
   private final FileSystem fs;
-  private Author author;
+  private OriginalAuthor originalAuthor;
 
   public DummyOrigin() {
     this.fs = Jimfs.newFileSystem();
-    this.author = DEFAULT_AUTHOR;
+    this.originalAuthor = DEFAULT_AUTHOR;
   }
 
   public static final String LABEL_NAME = "DummyOrigin-RevId";
@@ -47,8 +46,8 @@ public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
   /**
    * Sets the author to use for the following changes that get added.
    */
-  public DummyOrigin setAuthor(Author author) {
-    this.author = author;
+  public DummyOrigin setOriginalAuthor(OriginalAuthor originalAuthor) {
+    this.originalAuthor = originalAuthor;
     return this;
   }
 
@@ -71,7 +70,7 @@ public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
   }
 
   public DummyOrigin addChange(long timestamp, Path path, String message) {
-    changes.add(new DummyReference("" + changes.size(), message, author, path, timestamp));
+    changes.add(new DummyReference("" + changes.size(), message, originalAuthor, path, timestamp));
     return this;
   }
 

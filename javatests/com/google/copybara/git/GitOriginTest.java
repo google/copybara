@@ -6,7 +6,6 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
-import com.google.copybara.Author;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
@@ -150,7 +149,7 @@ public class GitOriginTest {
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
     for (Change<GitReference> change : changes) {
-      assertThat(change.getAuthor().toString()).isEqualTo(author);
+      assertThat(change.getOriginalAuthor().getId()).isEqualTo("john@name.com");
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
     }
@@ -172,7 +171,7 @@ public class GitOriginTest {
     GitReference lastCommitRef = getLastCommitRef();
     Change<GitReference> change = origin.change(lastCommitRef);
 
-    assertThat(change.getAuthor().toString()).isEqualTo(author);
+    assertThat(change.getOriginalAuthor().getId()).isEqualTo("john@name.com");
     assertThat(change.firstLineMessage()).isEqualTo("change2");
     assertThat(change.getReference().asString()).isEqualTo(lastCommitRef.asString());
   }
@@ -303,7 +302,7 @@ public class GitOriginTest {
     assertThat(changes.get(1).getMessage()).isEqualTo("master2\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("Merge branch 'feature'\n");
     for (Change<GitReference> change : changes) {
-      assertThat(change.getAuthor().toString()).isEqualTo(author);
+      assertThat(change.getOriginalAuthor().getId()).isEqualTo("john@name.com");
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
     }

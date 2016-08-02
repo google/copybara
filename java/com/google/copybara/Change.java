@@ -4,6 +4,7 @@ package com.google.copybara;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.Origin.OriginalAuthor;
 
 import org.joda.time.DateTime;
 
@@ -13,14 +14,15 @@ import org.joda.time.DateTime;
 public final class Change<R extends Origin.Reference> {
 
   private final R reference;
-  private final Author author;
+  private final OriginalAuthor originalAuthor;
   private final String message;
   private final DateTime date;
   private final ImmutableMap<String, String> labels;
-  public Change(R reference, Author author, String message, DateTime date,
+
+  public Change(R reference, OriginalAuthor originalAuthor, String message, DateTime date,
       ImmutableMap<String, String> labels) {
     this.reference = Preconditions.checkNotNull(reference);
-    this.author = Preconditions.checkNotNull(author);
+    this.originalAuthor = Preconditions.checkNotNull(originalAuthor);
     this.message = Preconditions.checkNotNull(message);
     this.date = date;
     this.labels = labels;
@@ -33,8 +35,8 @@ public final class Change<R extends Origin.Reference> {
     return reference;
   }
 
-  public Author getAuthor() {
-    return author;
+  public OriginalAuthor getOriginalAuthor() {
+    return originalAuthor;
   }
 
   public String getMessage() {
@@ -61,8 +63,8 @@ public final class Change<R extends Origin.Reference> {
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("reference", reference.asString())
-        .add("author", author)
-        .add("date", author)
+        .add("originalAuthor", originalAuthor)
+        .add("date", originalAuthor)
         .add("message", message)
         .toString();
   }

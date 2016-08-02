@@ -16,6 +16,7 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GitDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
@@ -408,7 +409,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     DummyReference firstCommit = new DummyReference("first_commit")
-        .withAuthor(new Author("Foo Bar", "foo@bar.com"))
+        .withOriginalAuthor(new DummyOriginalAuthor("Foo Bar", "foo@bar.com"))
         .withTimestamp(1414141414);
     process(destinationFirstCommit(), firstCommit);
 

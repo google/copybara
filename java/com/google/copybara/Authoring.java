@@ -5,6 +5,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -74,15 +75,15 @@ public final class Authoring {
   /**
    * Resolves an origin author to a destination one.
    */
-  public Author resolve(Author author) {
+  public Author resolve(OriginalAuthor originalAuthor) {
     switch (mode) {
       case PASS_THRU:
-        return author;
+        return originalAuthor.resolve();
       case USE_DEFAULT:
         return defaultAuthor;
       case WHITELIST:
-        return whitelist.contains(author.getEmail())
-            ? author
+        return whitelist.contains(originalAuthor.getId())
+            ? originalAuthor.resolve()
             : defaultAuthor;
       default:
         throw new IllegalStateException(

@@ -271,7 +271,7 @@ public abstract class Workflow<R extends Origin.Reference> {
         result.append(String.format("  - %s %s by %s\n",
             change.getReference().asString(),
             change.firstLineMessage(),
-            change.getAuthor()));
+            change.getOriginalAuthor()));
       }
 
       return result.toString();

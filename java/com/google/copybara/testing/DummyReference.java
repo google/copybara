@@ -3,10 +3,10 @@ package com.google.copybara.testing;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.Author;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Origin;
+import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.RepoException;
 
 import org.joda.time.DateTime;
@@ -22,11 +22,12 @@ import javax.annotation.Nullable;
  */
 public class DummyReference implements Origin.Reference {
 
-  private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
+  private static final OriginalAuthor DEFAULT_AUTHOR =
+      new DummyOriginalAuthor("Dummy Author", "no-reply@dummy.com");
 
   private final String reference;
   private final String message;
-  private final Author author;
+  private final OriginalAuthor originalAuthor;
   final Path changesBase;
   private final Long timestamp;
   private final ImmutableMap<String, String> labels;
@@ -37,10 +38,11 @@ public class DummyReference implements Origin.Reference {
   }
 
   DummyReference(
-      String reference, String message, Author author, Path changesBase, @Nullable Long timestamp) {
+      String reference, String message, OriginalAuthor originalAuthor, Path changesBase,
+      @Nullable Long timestamp) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
-    this.author = Preconditions.checkNotNull(author);
+    this.originalAuthor = Preconditions.checkNotNull(originalAuthor);
     this.changesBase = Preconditions.checkNotNull(changesBase);
     this.timestamp = timestamp;
 
@@ -59,12 +61,12 @@ public class DummyReference implements Origin.Reference {
    */
   public DummyReference withTimestamp(long newTimestamp) {
     return new DummyReference(
-        this.reference, this.message, this.author, this.changesBase, newTimestamp);
+        this.reference, this.message, this.originalAuthor, this.changesBase, newTimestamp);
   }
 
-  public DummyReference withAuthor(Author author) {
+  public DummyReference withOriginalAuthor(OriginalAuthor originalAuthor) {
     return new DummyReference(
-        this.reference, this.message, author, this.changesBase, this.timestamp);
+        this.reference, this.message, originalAuthor, this.changesBase, this.timestamp);
   }
 
   @Nullable
@@ -84,10 +86,10 @@ public class DummyReference implements Origin.Reference {
   }
 
   Change<DummyReference> toChange() {
-    return new Change<>(this, author, message, new DateTime(timestamp), labels);
+    return new Change<>(this, originalAuthor, message, new DateTime(timestamp), labels);
   }
 
-  public Author getAuthor() {
-    return author;
+  public OriginalAuthor getOriginalAuthor() {
+    return originalAuthor;
   }
 }

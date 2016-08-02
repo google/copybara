@@ -5,7 +5,9 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring.AuthoringMappingMode;
+import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -103,24 +105,25 @@ public class AuthoringTest {
   public void testResolve_use_default() throws Exception {
     Authoring authoring = new Authoring(
         DEFAULT_AUTHOR, AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of());
-    assertThat(authoring.resolve(new Author("foo bar", "baz@bar.com"))).isEqualTo(DEFAULT_AUTHOR);
+    assertThat(authoring.resolve(new DummyOriginalAuthor("foo bar", "baz@bar.com")))
+        .isEqualTo(DEFAULT_AUTHOR);
   }
 
   @Test
   public void testResolve_pass_thru() throws Exception {
     Authoring authoring = new Authoring(
         DEFAULT_AUTHOR, AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
-    Author contributor = new Author("foo bar", "baz@bar.com");
-    assertThat(authoring.resolve(contributor)).isEqualTo(contributor);
+    OriginalAuthor contributor = new DummyOriginalAuthor("foo bar", "baz@bar.com");
+    assertThat(authoring.resolve(contributor)).isEqualTo(new Author("foo bar", "baz@bar.com"));
   }
 
   @Test
   public void testResolve_whitelist() throws Exception {
     Authoring authoring = new Authoring(
         DEFAULT_AUTHOR, AuthoringMappingMode.WHITELIST, ImmutableSet.of("baz@bar.com"));
-    Author contributor = new Author("foo bar", "baz@bar.com");
-    assertThat(authoring.resolve(contributor)).isEqualTo(contributor);
-    assertThat(authoring.resolve(new Author("John", "john@someemail.com")))
+    OriginalAuthor contributor = new DummyOriginalAuthor("foo bar", "baz@bar.com");
+    assertThat(authoring.resolve(contributor)).isEqualTo(new Author("foo bar", "baz@bar.com"));
+    assertThat(authoring.resolve(new DummyOriginalAuthor("John", "john@someemail.com")))
         .isEqualTo(DEFAULT_AUTHOR);
   }
 

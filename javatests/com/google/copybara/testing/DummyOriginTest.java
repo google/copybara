@@ -66,18 +66,18 @@ public class DummyOriginTest {
   @Test
   public void canSetAuthorOfIndividualChanges() throws Exception {
     DummyOrigin origin = new DummyOrigin()
-        .setAuthor(new Author("Dummy Origin", "dummy_origin@google.com"))
+        .setOriginalAuthor(new DummyOriginalAuthor("Dummy Origin", "dummy_origin@google.com"))
         .addSimpleChange(/*timestamp*/ 42)
-        .setAuthor(new Author("Wise Origin", "wise_origin@google.com"))
+        .setOriginalAuthor(new DummyOriginalAuthor("Wise Origin", "wise_origin@google.com"))
         .addSimpleChange(/*timestamp*/ 999);
 
     ImmutableList<Change<DummyReference>> changes =
         origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"));
 
     assertThat(changes).hasSize(2);
-    assertThat(changes.get(0).getAuthor())
-        .isEqualTo(new Author("Dummy Origin", "dummy_origin@google.com"));
-    assertThat(changes.get(1).getAuthor())
-        .isEqualTo(new Author("Wise Origin", "wise_origin@google.com"));
+    assertThat(changes.get(0).getOriginalAuthor())
+        .isEqualTo(new DummyOriginalAuthor("Dummy Origin", "dummy_origin@google.com"));
+    assertThat(changes.get(1).getOriginalAuthor())
+        .isEqualTo(new DummyOriginalAuthor("Wise Origin", "wise_origin@google.com"));
   }
 }

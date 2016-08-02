@@ -11,11 +11,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.testing.AuthoringYamlBuilder;
 import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
@@ -44,9 +46,11 @@ public class WorkflowTest {
 
   private static final String CONFIG_NAME = "copybara_project";
   private static final String PREFIX = "TRANSFORMED";
-  private static final Author CONTRIBUTOR = new Author("Foo Bar", "foo@bar.com");
-  private static final Author NOT_WHITELISTED_CONTRIBUTOR =
-      new Author("Secret Coder", "secret@coder.com");
+  private static final OriginalAuthor ORIGINAL_AUTHOR =
+      new DummyOriginalAuthor("Foo Bar", "foo@bar.com");
+  private static final Author CONTRIBUTOR = ORIGINAL_AUTHOR.resolve();
+  private static final DummyOriginalAuthor NOT_WHITELISTED_ORIGINAL_AUTHOR =
+      new DummyOriginalAuthor("Secret Coder", "secret@coder.com");
   private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
 
   private Yaml yaml;
@@ -71,7 +75,7 @@ public class WorkflowTest {
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
     origin = new DummyOrigin()
-        .setAuthor(CONTRIBUTOR);
+        .setOriginalAuthor(ORIGINAL_AUTHOR);
     destination = new RecordsProcessCallDestination();
     replace.setBefore("${linestart}${number}");
     replace.setAfter("${linestart}" + PREFIX + "${number}");
@@ -165,14 +169,14 @@ public class WorkflowTest {
   public void iterativeWorkflowTest_whitelistAuthoring() throws Exception {
     origin
         .addSimpleChange(0)
-        .setAuthor(CONTRIBUTOR)
+        .setOriginalAuthor(ORIGINAL_AUTHOR)
         .addSimpleChange(1)
-        .setAuthor(NOT_WHITELISTED_CONTRIBUTOR)
+        .setOriginalAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
     authoring = new AuthoringYamlBuilder();
     authoring.setMode(AuthoringMappingMode.WHITELIST);
-    authoring.setWhitelist(ImmutableList.of(CONTRIBUTOR.getEmail()));
+    authoring.setWhitelist(ImmutableList.of(ORIGINAL_AUTHOR.getId()));
 
     yaml.setOrigin(origin);
     yaml.setDestination(destination);
@@ -195,9 +199,9 @@ public class WorkflowTest {
   public void iterativeWorkflowTest_passThruAuthoring() throws Exception {
     origin
         .addSimpleChange(0)
-        .setAuthor(CONTRIBUTOR)
+        .setOriginalAuthor(ORIGINAL_AUTHOR)
         .addSimpleChange(1)
-        .setAuthor(NOT_WHITELISTED_CONTRIBUTOR)
+        .setOriginalAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
     authoring = new AuthoringYamlBuilder();
@@ -217,7 +221,8 @@ public class WorkflowTest {
     assertThat(destination.processed).hasSize(2);
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
-    assertThat(destination.processed.get(1).getAuthor()).isEqualTo(NOT_WHITELISTED_CONTRIBUTOR);
+    assertThat(destination.processed.get(1).getAuthor())
+        .isEqualTo(NOT_WHITELISTED_ORIGINAL_AUTHOR.resolve());
   }
 
   @Test
@@ -484,13 +489,13 @@ public class WorkflowTest {
   @Test
   public void changeRequest_whitelistAuthoring() throws Exception {
     origin
-        .setAuthor(NOT_WHITELISTED_CONTRIBUTOR)
+        .setOriginalAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
         .addSimpleChange(1, "Second Change");
 
     authoring = new AuthoringYamlBuilder();
     authoring.setMode(AuthoringMappingMode.WHITELIST);
-    authoring.setWhitelist(ImmutableList.of(CONTRIBUTOR.getEmail()));
+    authoring.setWhitelist(ImmutableList.of(ORIGINAL_AUTHOR.getId()));
     Workflow workflow = changeRequestWorkflow(null, authoring);
     workflow.run(workdir, "0");
 

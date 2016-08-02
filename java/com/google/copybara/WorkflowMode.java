@@ -55,7 +55,7 @@ public enum WorkflowMode {
             changeNumber, changes.size(), change.getReference().asString());
         WriterResult result = runHelper.migrate(
             change.getReference(),
-            runHelper.getAuthoring().resolve(change.getAuthor()),
+            runHelper.getAuthoring().resolve(change.getOriginalAuthor()),
             new ProgressPrefixConsole(prefix, runHelper.getConsole()),
             change.getMessage());
 
@@ -103,7 +103,7 @@ public enum WorkflowMode {
       Change<R> change = runHelper.getOrigin().change(runHelper.getResolvedRef());
       runHelper.migrate(
           runHelper.getResolvedRef(),
-          runHelper.getAuthoring().resolve(change.getAuthor()),
+          runHelper.getAuthoring().resolve(change.getOriginalAuthor()),
           runHelper.getConsole(),
           change.getMessage(), requestParent.get());
     }
