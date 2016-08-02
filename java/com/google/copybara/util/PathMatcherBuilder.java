@@ -7,7 +7,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.syntax.EvalUtils;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -102,14 +101,6 @@ public final class PathMatcherBuilder {
   public String toString() {
     return "glob(include=[" + Joiner.on(", ").join(include) + "], "
         + "exclude=[" + Joiner.on(", ").join(exclude) + "])";
-  }
-
-  public static PathMatcherBuilder convertFromNoneable(Object obj,
-      PathMatcherBuilder defaultValue) {
-    if (EvalUtils.isNullOrNone(obj)) {
-      return defaultValue;
-    }
-    return (PathMatcherBuilder) obj;
   }
 
   private class GlobPathMatcher implements PathMatcher {

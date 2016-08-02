@@ -1,5 +1,8 @@
 package com.google.copybara;
 
+import static com.google.copybara.config.skylark.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.skylark.SkylarkUtil.stringToEnum;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
@@ -141,29 +144,52 @@ public class Core implements OptionsAwareModule {
   @SkylarkSignature(name = "workflow", returnType = NoneType.class,
       doc = "Defines a migration pipeline which can be invoked via the Copybara command.",
       parameters = {
-          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "self", type = Core.class, doc = "this object", positional = false),
           @Param(name = "name", type = String.class,
-              doc = "The name of the workflow."),
+              doc = "The name of the workflow.", positional = false),
           @Param(name = "origin", type = Origin.class,
-              doc = "Where to read the migration code from."),
+              doc = "Where to read the migration code from.", positional = false),
           @Param(name = "destination", type = Destination.class,
-              doc = "Where to read the migration code from."),
+              doc = "Where to read the migration code from.", positional = false),
           @Param(name = "authoring", type = Authoring.class,
-              doc = "The author mapping configuration from origin to destination."),
+              doc = "The author mapping configuration from origin to destination.",
+              positional = false),
           @Param(name = "transformations", type = SkylarkList.class,
               generic1 = Transformation.class,
-              doc = "Where to read the migration code from."),
+              doc = "Where to read the migration code from.", positional = false),
           @Param(name = "exclude_in_origin", type = PathMatcherBuilder.class,
               doc = "A globs relative to the workdir that will be excluded from the"
                   + " origin during the import. For example \"**.java\", all java files,"
                   + " recursively.",
-              defaultValue = "None", noneable = true),
+              defaultValue = "None", noneable = true, positional = false),
           @Param(name = "exclude_in_destination", type = PathMatcherBuilder.class,
               doc = "A glob relative to the root of the destination"
                   + " repository that will not be removed even if the file does not"
                   + " exist in the source. For example '**/BUILD', all BUILD files,"
                   + " recursively.",
-              defaultValue = "None", noneable = true),
+              defaultValue = "None", noneable = true, positional = false),
+          @Param(name = "mode", type = String.class, doc = ""
+              + "Workflow mode. Currently we support three modes:<br>"
+              + "<ul>"
+              + "<li><b>SQUASH</b>: Create a single commit in the destination with new tree"
+              + " state.</li>"
+              + "<li><b>ITERATIVE</b>: Import each origin change individually.</li>"
+              + "<li><b>CHANGE_REQUEST</b>: Import an origin tree state diffed by a common parent"
+              + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.</li>"
+              + "</ul>",
+              defaultValue = "\"SQUASH\"", positional = false),
+          @Param(name = "include_changelist_notes", type = Boolean.class,
+              doc = "Include a list of change list messages that were imported",
+              defaultValue = "False", positional = false),
+          @Param(name = "reversible_check", type = Boolean.class,
+              doc = "Indicates if the tool should try to to reverse all the transformations"
+                  + " at the end to check that they are reversible.<br/>The default value is"
+                  + " True for CHANGE_REQUEST mode. False otherwise",
+              defaultValue = "None", noneable = true, positional = false),
+          @Param(name = "ask_for_confirmation", type = Boolean.class,
+              doc = "Indicates that the tool should show the diff and require user's"
+                  + " confirmation before making a change in the destination.",
+              defaultValue = "False", positional = false),
       },
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow") {
@@ -172,10 +198,13 @@ public class Core implements OptionsAwareModule {
         SkylarkList<Transformation> transformations,
         Object excludeInOrigin,
         Object excludeInDestination,
+        String modeStr,
+        Boolean includeChangelistNotes,
+        Object reversibleCheckObj,
+        Boolean askForConfirmation,
         Location location)
         throws EvalException {
-
-      // TODO(malcon): map the rest of Workflow parameters
+      WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
       self.workflows.put(workflowName, new AutoValue_Workflow<>(
           getProjectNameOrFailInternal(self, location),
           workflowName,
@@ -185,11 +214,14 @@ public class Core implements OptionsAwareModule {
           Sequence.createSequence(ImmutableList.copyOf(transformations)),
           self.workflowOptions.getLastRevision(),
           self.generalOptions.console(),
-          PathMatcherBuilder.convertFromNoneable(excludeInOrigin, PathMatcherBuilder.EMPTY),
-          PathMatcherBuilder.convertFromNoneable(excludeInDestination, PathMatcherBuilder.EMPTY),
-          WorkflowMode.SQUASH, /*includeChangelistNotes=*/true, self.workflowOptions,
-          /*reversibleCheck=*/ false, self.generalOptions.isVerbose(), /*askForConfirmation=*/
-          false));
+          convertFromNoneable(excludeInOrigin, PathMatcherBuilder.EMPTY),
+          convertFromNoneable(excludeInDestination, PathMatcherBuilder.EMPTY),
+          mode,
+          includeChangelistNotes,
+          self.workflowOptions,
+          convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST),
+          self.generalOptions.isVerbose(),
+          askForConfirmation));
       return Runtime.NONE;
     }
   };
