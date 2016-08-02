@@ -71,9 +71,6 @@ public class Main {
       configureLog(fs);
       logger.log(Level.INFO, "Copybara version: " + version);
       jcommander.parse(args);
-      Path baseWorkdir = mainArgs.getBaseWorkdir(fs);
-      GeneralOptions generalOptions = generalOptionsArgs.init(fs, console);
-
       if (mainArgs.help) {
         System.out.print(usage(jcommander, version));
         return;
@@ -82,6 +79,9 @@ public class Main {
         return;
       }
       mainArgs.validateUnnamedArgs();
+
+      GeneralOptions generalOptions = generalOptionsArgs.init(
+          fs, console, /*skylark=*/mainArgs.getConfigPath().endsWith(".bzl"));
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
@@ -100,7 +100,7 @@ public class Main {
             options,
             loadConfig(generalOptions.isSkylark(), configPath),
             mainArgs.getWorkflowName(),
-            baseWorkdir,
+            mainArgs.getBaseWorkdir(fs),
             mainArgs.getSourceRef());
       }
     } catch (CommandLineException | ParameterException e) {

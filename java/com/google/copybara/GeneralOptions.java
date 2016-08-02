@@ -79,10 +79,6 @@ public final class GeneralOptions implements Option {
     @Parameter(names = NOANSI, description = "Don't use ANSI output for messages")
     boolean noansi = false;
 
-    @Parameter(names = "--skylark",
-        description = "Use Skylark config format instead of Yaml. This is an experiment")
-    boolean skylark = false;
-
     @Parameter(names = "--validate",
         description = "Validate that the config is correct")
     boolean validate = false;
@@ -90,7 +86,8 @@ public final class GeneralOptions implements Option {
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
-    public GeneralOptions init(FileSystem fileSystem, Console console) throws IOException {
+    public GeneralOptions init(FileSystem fileSystem, Console console, boolean skylark)
+        throws IOException {
       return new GeneralOptions(fileSystem, verbose, console, skylark, validate,
           StandardSystemProperty.USER_DIR.value());
     }

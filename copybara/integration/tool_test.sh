@@ -17,7 +17,6 @@ function copybara() {
   # TODO(team): skylark. Remove flag
   $TEST_SRCDIR/copybara/java/com/google/copybara/copybara \
       --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" \
-      --skylark \
       --git-repo-storage "$repo_storage" \
       --work-dir "$workdir" > $TEST_log 2>&1 \
       && return
