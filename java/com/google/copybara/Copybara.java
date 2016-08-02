@@ -96,8 +96,24 @@ public class Copybara {
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException, EnvironmentException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
-    boolean skylark = options.get(GeneralOptions.class).isSkylark();
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    boolean skylark = generalOptions.isSkylark();
     Config config = parseConfig(skylark, configContents, options);
+    Console console = generalOptions.console();
+    console.progress("Validating configuration");
+    List<String> validationMessages = validateConfig(config);
+    if (!validationMessages.isEmpty()) {
+      console.error("Configuration is invalid:");
+      for (String validationMessage : validationMessages) {
+        console.error(validationMessage);
+      }
+      throw new ValidationException("Error validating configuration: Configuration is invalid.");
+    }
+    // TODO(danielromero): Add test to check that the workflow is not run, once we finish migration
+    if (generalOptions.isValidate()) {
+      console.info("Configuration is valid.");
+      return;
+    }
     config.getActiveWorkflow().run(baseWorkdir, sourceRef);
   }
 
@@ -113,8 +129,19 @@ public class Copybara {
       console.error("Skylark config file and Yaml one are not equivalent:\n"
           + "YAML: " + yamlConfig + "\n"
           + "BZL : " + config);
-      throw new ValidationException("Error validating configuration");
+      throw new ValidationException("Error validating configuration: "
+          + "Skylark config file and Yaml one are not equivalent");
     }
+    validateConfig(config);
+  }
+
+  /**
+   * Returns a list of validation error messages, if any, for the given configuration.
+   */
+  protected List<String> validateConfig(Config config) throws ValidationException {
+    // TODO(danielromero): Move here SkylarkParser validations once Config has all the workflows.
+    // checkCondition(!workflows.isEmpty(), ...)
+    return ImmutableList.of();
   }
 
   private Config parseConfig(boolean skylark, String configContents, Options options)
