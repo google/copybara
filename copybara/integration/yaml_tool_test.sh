@@ -14,10 +14,8 @@ java.util.logging.SimpleFormatter.format=%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$
 EOF
 
 function copybara() {
-  # TODO(team): skylark. Remove flag
   $TEST_SRCDIR/copybara/java/com/google/copybara/copybara \
       --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" \
-      --skylark \
       --git-repo-storage "$repo_storage" \
       --work-dir "$workdir" > $TEST_log 2>&1 \
       && return
@@ -64,8 +62,7 @@ function check_copybara_rev_id() {
    )
 }
 
-# TODO(team): skylark
-function DISABLED_test_git_tracking() {
+function test_git_tracking() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -79,38 +76,31 @@ function DISABLED_test_git_tracking() {
   first_commit=$(run_git rev-parse HEAD)
   popd
 
-    cat > copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$destination",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    transformations = [
-      core.replace(
-        before = "food",
-        after  = "drink"
-      ),
-      core.replace(
-        before = "f\${os}o",
-        after = "bar\${os}",
-        regexGroups = {
+    cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: "master"
+      push: "master"
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    transformations:
+      - !Replace
+        before:       food
+        after:        drink
+      - !Replace
+        before:       f\${os}o
+        after:        bar\${os}
+        regexGroups:
           os: "o+"
-        },
-      )
-    ],
-)
 EOF
 
-  copybara copybara.bzl
+  copybara copybara.yaml
 
   expect_log "Running Copybara for config 'cbtest', workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
   expect_log 'Transform Replace food'
@@ -137,7 +127,7 @@ EOF
   second_commit=$(git rev-parse HEAD)
   popd
 
-  copybara copybara.bzl
+  copybara copybara.yaml
 
   [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
   expect_in_file "second version for drink and barooooo" $workdir/checkout/test.txt
@@ -151,8 +141,7 @@ EOF
   expect_log "-first version for drink"
   expect_log "+second version for drink and barooooo"
 }
-# TODO(team): skylark
-function DISABLED_test_git_iterative() {
+function test_git_iterative() {
   remote=$(temp_dir remote)
   repo_storage=$(temp_dir storage)
   workdir=$(temp_dir workdir)
@@ -167,26 +156,23 @@ function DISABLED_test_git_iterative() {
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
 
   popd
-    cat > copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$destination",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    mode = "ITERATIVE",
-)
+    cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: "master"
+      push: "master"
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    mode: ITERATIVE
 EOF
 
-  copybara copybara.bzl default $commit_three --last-rev $commit_one
+  copybara copybara.yaml default $commit_three --last-rev $commit_one
 
   check_copybara_rev_id "$destination" "$commit_three"
 
@@ -196,7 +182,7 @@ EOF
   expect_not_log "commit two"
   expect_log "commit three"
 
-  copybara copybara.bzl default $commit_five
+  copybara copybara.yaml default $commit_five
 
   check_copybara_rev_id "$destination" "$commit_five"
 
@@ -221,8 +207,7 @@ function single_file_commit() {
   git rev-parse HEAD
 }
 
-# TODO(team): skylark
-function DISABLED_test_get_git_changes() {
+function test_get_git_changes() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -235,26 +220,23 @@ function DISABLED_test_get_git_changes() {
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
   popd
 
-    cat > copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$destination",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    include_change_list_notes: true,
-)
+    cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: "master"
+      push: "master"
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    includeChangeListNotes: true
 EOF
 
-  copybara copybara.bzl default $commit_one
+  copybara copybara.yaml default $commit_one
 
   check_copybara_rev_id "$destination" "$commit_one"
 
@@ -264,7 +246,7 @@ EOF
   # We only record changes when we know the previous version
   expect_not_log "commit one"
 
-  copybara copybara.bzl default $commit_four
+  copybara copybara.yaml default $commit_four
 
   check_copybara_rev_id "$destination" "$commit_four"
 
@@ -278,7 +260,7 @@ EOF
   expect_log "$commit_four.*commit four"
   expect_not_log "commit five"
 
-  copybara copybara.bzl default $commit_five --last-rev $commit_three
+  copybara copybara.yaml default $commit_five --last-rev $commit_three
 
   check_copybara_rev_id "$destination" "$commit_five"
 
@@ -321,35 +303,29 @@ function prepare_glob_tree() {
   )
 }
 
-# TODO(team): skylark
-function DISABLED_test_regex_with_path() {
+function test_regex_with_path() {
   prepare_glob_tree
 
-  cat > copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$destination",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    transformations = [
-        core.replace(
-            before = "foo",
-            after  = "bar",
-            paths = glob(['**.java']),
-        )
-    ],
-)
+  cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    transformations:
+      - !Replace
+        path:   "**.java"
+        before: foo
+        after:  bar
 EOF
-  copybara copybara.bzl
+  copybara copybara.yaml
   ( cd $(mktemp -d)
     run_git clone $destination .
     expect_in_file "foo" test.txt
@@ -361,42 +337,36 @@ EOF
   )
 }
 
-# TODO(team): skylark
-function DISABLED_git_pull_request() {
+function test_git_pull_request() {
   sot=$(empty_git_bare_repo)
   public=$(empty_git_bare_repo)
 
-  cat > copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "export",
-    origin = git.origin(
-      url = "file://$sot",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$public",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-)
-
-core.workflow(
-    name = "import_change",
-    origin = git.origin(
-      url = "file://$public",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$sot",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    mode = "CHANGE_REQUEST",
-)
+  cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - name : "export"
+    origin: !GitOrigin
+      url: "file://$sot"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$public"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+  - name : "import_change"
+    mode: CHANGE_REQUEST
+    origin: !GitOrigin
+      url: "file://$public"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$sot"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
 EOF
 
   # Create the SoT repo
@@ -408,7 +378,7 @@ EOF
   run_git push
   popd
 
-  copybara copybara.bzl export $commit_two
+  copybara copybara.yaml export $commit_two
 
   # Check that we have exported correctly the tree state as in commit_two
   pushd $(mktemp -d)
@@ -422,7 +392,7 @@ EOF
   run_git push
   popd
 
-  copybara copybara.bzl import_change $pr_request
+  copybara copybara.yaml import_change $pr_request
 
   # Check that the SoT contains the change from pr_request but that it has not reverted
   # commit_three (SoT was ahead of public).
@@ -436,8 +406,7 @@ EOF
 
 }
 
-# TODO(team): skylark
-function DISABLED_test_git_delete() {
+function test_git_delete() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -453,25 +422,24 @@ function DISABLED_test_git_delete() {
     run_git commit -m "first commit"
   )
 
-  cat > copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$destination",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    exclude_in_origin = glob(['**/*.java', 'subdir/**']),
-)
+  cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    excludedOriginPaths:
+      - "**/*.java"
+      - "subdir/**"
 EOF
-  copybara copybara.bzl
+  copybara copybara.yaml
 
   ( cd $(mktemp -d)
     run_git clone $destination .
@@ -485,8 +453,7 @@ EOF
   )
 }
 
-#TODO(team): skylark
-function DISABLED_test_reverse_sequence() {
+function test_reverse_sequence() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -497,51 +464,54 @@ function DISABLED_test_reverse_sequence() {
     run_git commit -m "first commit"
   )
 
-  cat > copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-forward_transforms = [
-  core.replace('foo', 'bar'),
-  core.replace('baz', 'bee'),
-]
-core.workflow(
-    name = "forward",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$destination",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    transformations = forward_transforms,
-)
-
-core.workflow(
-    name = "reverse",
-    origin = git.origin(
-      url = "file://$destination",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$remote",
-      fetch = "reverse",
-      push = "reverse",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    transformations = core.reverse(forward_transforms),
-)
+  cat > copybara.yaml <<EOF
+name: "cbtest"
+global:
+  - &forward_transforms !Sequence
+      transformations:
+        - !Replace
+            before: "foo"
+            after:  "bar"
+        - !Replace
+            before: "baz"
+            after:  "bee"
+workflows:
+  - name : "forward"
+    origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    transformations:
+      - *forward_transforms
+  - name : "reverse"
+    origin: !GitOrigin
+      url: "file://$destination"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$remote"
+      fetch: reverse
+      push: reverse
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    transformations:
+      - !Reverse
+          original: *forward_transforms
 EOF
-  copybara copybara.bzl forward
+  copybara copybara.yaml forward
 
   ( cd $(mktemp -d)
     run_git clone $destination .
     [[ -f test.txt ]] || fail "/test.txt should exit"
     expect_in_file "barbee" test.txt
   )
-  copybara copybara.bzl reverse --git-first-commit
+  copybara copybara.yaml reverse --git-first-commit
 
   ( cd $(mktemp -d)
     run_git clone $remote .
@@ -551,8 +521,7 @@ EOF
   )
 }
 
-#TODO(team): skylark
-function DISABLED_test_local_dir_destination() {
+function test_local_dir_destination() {
   remote=$(temp_dir remote)
 
   ( cd $remote
@@ -564,17 +533,19 @@ function DISABLED_test_local_dir_destination() {
   )
   mkdir destination
 
-  cat > destination/copybara.bzl <<EOF
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    exclude_in_destination = glob(["copybara.bzl", "**.keep"]),
-    destination = folder.destination(),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-)
+  cat > destination/copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    excludedDestinationPaths:
+      - "copybara.yaml"
+      - "**.keep"
+    destination: !FolderDestination {}
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
 EOF
 
   touch destination/keepme.keep
@@ -582,17 +553,16 @@ EOF
   touch destination/folder/keepme.keep
   touch destination/dontkeep.txt
 
-  copybara destination/copybara.bzl --folder-dir destination
+  copybara destination/copybara.yaml --folder-dir destination
 
   [[ -f destination/test.txt ]] || fail "test.txt should exist"
-  [[ -f destination/copybara.bzl ]] || fail "copybara.bzl should exist"
+  [[ -f destination/copybara.yaml ]] || fail "copybara.yaml should exist"
   [[ -f destination/keepme.keep ]] || fail "keepme.keep should exist"
   [[ -f destination/folder/keepme.keep ]] || fail "folder/keepme.keep should exist"
   [[ ! -f destination/dontkeep.txt ]] || fail "dontkeep.txt should be deleted"
 }
 
-#TODO(team): skylark
-function DISABLED_test_choose_non_default_workflow() {
+function test_choose_non_default_workflow() {
   remote=$(temp_dir remote)
 
   ( cd $remote
@@ -603,37 +573,33 @@ function DISABLED_test_choose_non_default_workflow() {
   )
   mkdir destination
 
-  cat > destination/copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = folder.destination(),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-)
-
-core.workflow(
-    name = "choochoochoose_me",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = folder.destination(),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    transforms = [core.replace('foo', 'bar')]
-)
+  cat > destination/copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - name: "default"
+    origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !FolderDestination {}
+  - name: "choochoochoose_me"
+    origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !FolderDestination {}
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    transformations:
+      - !Replace
+        before: foo
+        after: bar
 EOF
 
-  copybara destination/copybara.bzl choochoochoose_me --folder-dir destination
+  copybara destination/copybara.yaml choochoochoose_me --folder-dir destination
   expect_in_file "bar" destination/test.txt
 }
 
-#TODO(team): skylark
-function DISABLED_test_file_move() {
+function test_file_move() {
   remote=$(temp_dir remote)
 
   ( cd $remote
@@ -645,25 +611,26 @@ function DISABLED_test_file_move() {
   )
   mkdir destination
 
-  cat > destination/copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = folder.destination(),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    transformations = [
-        core.move('test1.txt', 'test1.moved'),
-        core.move('test2.txt', 'test2.moved'),
-    ],
-)
+  cat > destination/copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !FolderDestination {}
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    transformations:
+      - !MoveFiles
+        paths:
+          - before: test1.txt
+            after: test1.moved
+          - before: test2.txt
+            after: test2.moved
 EOF
 
-  copybara destination/copybara.bzl --folder-dir destination
+  copybara destination/copybara.yaml --folder-dir destination
 
   expect_in_file "foo" destination/test1.moved
   expect_in_file "foo" destination/test2.moved
@@ -671,22 +638,8 @@ EOF
   [[ ! -z destination/test2.txt ]] || fail "test2.txt should have been moved"
 }
 
-#TODO(team): skylark
-function DISABLED_test_invalid_transformations_in_config() {
-  cat > copybara.bzl <<EOF
-core.project(name = "cbtest-invalid-xform")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = folder.destination(),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    transformations = [42],
-)
-
+function test_invalid_transformations_in_config() {
+  cat > copybara.yaml <<EOF
 name: "cbtest-invalid-xform"
 workflows:
   - authoring:
@@ -694,8 +647,7 @@ workflows:
       mode: PASS_THRU
     transformations: [42]
 EOF
-  copybara copybara.bzl origin/master && fail "Should fail"
-  # TODO(team): skylark. message
+  copybara copybara.yaml origin/master && fail "Should fail"
   expect_log "sequence field 'transformations' expects elements of type 'Transformation', but transformations\[0\] is of type 'integer' (value = 42)"
 }
 
@@ -706,8 +658,8 @@ function test_command_help_flag() {
 }
 
 function test_command_copybara_filename_no_correct_name() {
-  copybara somename.bzl && fail "Should fail"
-  expect_log "Copybara config file filename should be 'copybara.bzl'"
+  copybara somename.yaml && fail "Should fail"
+  expect_log "Copybara config file filename should be 'copybara.yaml'"
 }
 
 function test_command_too_few_args() {
@@ -723,19 +675,18 @@ function test_command_too_many_args() {
 }
 
 function test_config_not_found() {
-  copybara copybara.bzl origin/master && fail "Should fail"
-  expect_log "Configuration file not found: copybara.bzl"
+  copybara copybara.yaml origin/master && fail "Should fail"
+  expect_log "Configuration file not found: copybara.yaml"
 }
 
 #Verify that we instantiate LogConsole when System.console() is null
 function test_no_ansi_console() {
-  copybara copybara.bzl && fail "Should fail"
+  copybara copybara.yaml && fail "Should fail"
   expect_log "^20[0-9]\{6\} .*"
 }
 
 # Verify that Copybara fails if we try to read the input from the user from a writeOnly LogConsole
-#TODO(team): skylark
-function DISABLED_test_log_consonle_is_write_only() {
+function test_log_consonle_is_write_only() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -746,25 +697,22 @@ function DISABLED_test_log_consonle_is_write_only() {
     run_git commit -m "first commit"
   )
 
-  cat > copybara.bzl <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://$remote",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$destination",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    ask_confirmation: True,
-)
+  cat > copybara.yaml <<EOF
+name: "cbtest"
+workflows:
+  - origin: !GitOrigin
+      url: "file://$remote"
+      ref: "master"
+    destination: !GitDestination
+      url: "file://$destination"
+      fetch: master
+      push: master
+    authoring:
+      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
+      mode: PASS_THRU
+    askConfirmation: true
 EOF
-  copybara copybara.bzl && fail "Should fail"
+  copybara copybara.yaml && fail "Should fail"
   expect_log "LogConsole cannot read user input if system console is not present"
 }
 
