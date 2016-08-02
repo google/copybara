@@ -51,7 +51,10 @@ public abstract class Workflow<R extends Origin.Reference> {
    */
   public abstract Destination destination();
 
-  abstract Authoring authoring();
+  /**
+   * The author mapping between an origin and a destination
+   */
+  public abstract Authoring authoring();
 
   /**
    * Transformation to run before writing them to the destination.
