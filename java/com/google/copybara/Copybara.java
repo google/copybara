@@ -101,14 +101,8 @@ public class Copybara {
     Config config = parseConfig(skylark, configContents, options);
     Console console = generalOptions.console();
     console.progress("Validating configuration");
-    List<String> validationMessages = validateConfig(config);
-    if (!validationMessages.isEmpty()) {
-      console.error("Configuration is invalid:");
-      for (String validationMessage : validationMessages) {
-        console.error(validationMessage);
-      }
-      throw new ValidationException("Error validating configuration: Configuration is invalid.");
-    }
+    // TODO(danielromero): Rename runConfigValidation to validate once we finish migration
+    runConfigValidation(config, console);
     // TODO(danielromero): Add test to check that the workflow is not run, once we finish migration
     if (generalOptions.isValidate()) {
       console.info("Configuration is valid.");
@@ -124,21 +118,33 @@ public class Copybara {
     boolean skylark = options.get(GeneralOptions.class).isSkylark();
     Config config = parseConfig(skylark, configContent, options);
     Config yamlConfig = parseConfig(/*skylark=*/false, yamlConfigContent, options);
+    Console console = options.get(GeneralOptions.class).console();
     if (!config.equals(yamlConfig)) {
-      Console console = options.get(GeneralOptions.class).console();
       console.error("Skylark config file and Yaml one are not equivalent:\n"
           + "YAML: " + yamlConfig + "\n"
           + "BZL : " + config);
-      throw new ValidationException("Error validating configuration: "
+      throw new ConfigValidationException("Error validating configuration: "
           + "Skylark config file and Yaml one are not equivalent");
     }
-    validateConfig(config);
+    runConfigValidation(config, console);
+  }
+
+  private void runConfigValidation(Config config, Console console) throws ConfigValidationException {
+    List<String> validationMessages = validateConfig(config);
+    if (!validationMessages.isEmpty()) {
+      console.error("Configuration is invalid:");
+      for (String validationMessage : validationMessages) {
+        console.error(validationMessage);
+      }
+      throw new ConfigValidationException(
+          "Error validating configuration: Configuration is invalid.");
+    }
   }
 
   /**
    * Returns a list of validation error messages, if any, for the given configuration.
    */
-  protected List<String> validateConfig(Config config) throws ValidationException {
+  protected List<String> validateConfig(Config config) {
     // TODO(danielromero): Move here SkylarkParser validations once Config has all the workflows.
     // checkCondition(!workflows.isEmpty(), ...)
     return ImmutableList.of();
