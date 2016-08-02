@@ -6,7 +6,6 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.PathMatcherBuilder;
-
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 
@@ -20,11 +19,10 @@ public class TransformResults {
    * Creates an instance with reasonable defaults for testing.
    */
   public static TransformResult of(
-      Path path, DummyReference originRef, Iterable<String> excludedDestinationPaths)
+      Path path, DummyReference originRef, PathMatcherBuilder excludedDestinationPaths)
       throws ConfigValidationException, RepoException {
     return new TransformResult(
-        path, originRef, originRef.getAuthor(), "test summary\n",
-        PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths));
+        path, originRef, originRef.getAuthor(), "test summary\n", excludedDestinationPaths);
   }
 
   /**
@@ -32,6 +30,6 @@ public class TransformResults {
    */
   public static TransformResult of(Path path, DummyReference originRef)
       throws ConfigValidationException, RepoException {
-    return of(path, originRef, ImmutableList.<String>of());
+    return of(path, originRef, PathMatcherBuilder.EMPTY);
   }
 }

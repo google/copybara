@@ -94,6 +94,8 @@ public class SkylarkParserTest {
         + "      mock.transform(field1 = \"foo\", field2 = \"bar\"),\n"
         + "      mock.transform(field1 = \"baz\", field2 = \"bee\"),\n"
         + "   ],\n"
+        + "   exclude_in_origin = glob(['**/*.java']),\n"
+        + "   exclude_in_destination = glob(['**/BUILD'], exclude = ['foo/BUILD']),\n"
         + ")\n";
 
     options.setWorkflowName("foo42");

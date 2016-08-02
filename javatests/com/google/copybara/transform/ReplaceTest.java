@@ -276,7 +276,7 @@ public final class ReplaceTest {
     yaml.setAfter("after");
     yaml.setPath("foo/**/bar.htm");
     String string = yaml.withOptions(options.build()).toString();
-    assertThat(string).contains("path=[foo/**/bar.htm]");
+    assertThat(string).contains("include=[foo/**/bar.htm], exclude=[]");
   }
 
   @Test
@@ -284,7 +284,7 @@ public final class ReplaceTest {
     yaml.setBefore("before");
     yaml.setAfter("after");
     String string = yaml.withOptions(options.build()).toString();
-    assertThat(string).contains("path=[**]");
+    assertThat(string).contains("include=[**], exclude=[]");
   }
 
   @Test

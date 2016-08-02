@@ -13,10 +13,8 @@ import com.google.copybara.Options;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
-
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -32,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -216,7 +213,8 @@ public final class Replace implements Transformation {
       after.validateInterpolations(regexGroups.keySet());
 
       return new Replace(before, after, regexGroups, multiline,
-          PathMatcherBuilder.create(FileSystems.getDefault(), ImmutableList.of(path)),
+          PathMatcherBuilder.create(
+              FileSystems.getDefault(), ImmutableList.of(path), ImmutableList.<String>of()),
           options.get(TransformOptions.class));
     }
 

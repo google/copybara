@@ -2,9 +2,8 @@ package com.google.copybara;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Origin.Reference;
+import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.config.skylark.OptionsAwareModule;
 import com.google.copybara.transform.Move;
@@ -25,6 +24,7 @@ import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
 import com.google.devtools.build.lib.syntax.Type;
+import java.nio.file.FileSystems;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -68,6 +68,30 @@ public class Core implements OptionsAwareModule {
   public Map<String, Workflow<?>> getWorkflows() {
     return workflows;
   }
+
+
+  @SkylarkSignature(
+      name = "glob",
+      returnType = PathMatcherBuilder.class,
+      doc = "Glob returns a list of every file in the workdir that matches at least one"
+          + " pattern in include and does not match any of the patterns in exclude.",
+      parameters = {
+          @Param(name = "include", type = SkylarkList.class,
+              generic1 = String.class, doc = "The list of glob patterns to include",
+              defaultValue = "[]"),
+          @Param(name = "exclude", type = SkylarkList.class,
+              generic1 = String.class, doc = "The list of glob patterns to exclude",
+              defaultValue = "[]"),
+      },
+      objectType = Object.class)
+  public static final BuiltinFunction GLOB = new BuiltinFunction("glob") {
+    public PathMatcherBuilder invoke(SkylarkList include, SkylarkList exclude)
+        throws EvalException, ConfigValidationException {
+      return PathMatcherBuilder.create(FileSystems.getDefault(),
+          Type.STRING_LIST.convert(include, "include"),
+          Type.STRING_LIST.convert(exclude, "exclude"));
+    }
+  };
 
   @SkylarkSignature(name = "project", returnType = NoneType.class,
       doc = "General configuration of the project. Like the name.",
@@ -129,12 +153,26 @@ public class Core implements OptionsAwareModule {
           @Param(name = "transformations", type = SkylarkList.class,
               generic1 = Transformation.class,
               doc = "Where to read the migration code from."),
+          @Param(name = "exclude_in_origin", type = PathMatcherBuilder.class,
+              doc = "A globs relative to the workdir that will be excluded from the"
+                  + " origin during the import. For example \"**.java\", all java files,"
+                  + " recursively.",
+              defaultValue = "None", noneable = true),
+          @Param(name = "exclude_in_destination", type = PathMatcherBuilder.class,
+              doc = "A glob relative to the root of the destination"
+                  + " repository that will not be removed even if the file does not"
+                  + " exist in the source. For example '**/BUILD', all BUILD files,"
+                  + " recursively.",
+              defaultValue = "None", noneable = true),
       },
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow") {
     public NoneType invoke(Core self, String workflowName,
         Origin<Reference> origin, Destination destination, Authoring authoring,
-        SkylarkList<Transformation> transformations, Location location)
+        SkylarkList<Transformation> transformations,
+        Object excludeInOrigin,
+        Object excludeInDestination,
+        Location location)
         throws EvalException {
 
       // TODO(malcon): map the rest of Workflow parameters
@@ -147,7 +185,8 @@ public class Core implements OptionsAwareModule {
           Sequence.createSequence(ImmutableList.copyOf(transformations)),
           self.workflowOptions.getLastRevision(),
           self.generalOptions.console(),
-          PathMatcherBuilder.EMPTY, PathMatcherBuilder.EMPTY,
+          PathMatcherBuilder.convertFromNoneable(excludeInOrigin, PathMatcherBuilder.EMPTY),
+          PathMatcherBuilder.convertFromNoneable(excludeInDestination, PathMatcherBuilder.EMPTY),
           WorkflowMode.SQUASH, /*includeChangelistNotes=*/true, self.workflowOptions,
           /*reversibleCheck=*/ false, self.generalOptions.isVerbose(), /*askForConfirmation=*/
           false));

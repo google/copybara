@@ -417,9 +417,9 @@ public abstract class Workflow<R extends Origin.Reference> {
       Console console = generalOptions.console();
       WorkflowOptions workflowOptions = options.get(WorkflowOptions.class);
       PathMatcherBuilder excludedOriginPaths = PathMatcherBuilder.create(
-          FileSystems.getDefault(), this.excludedOriginPaths);
+          FileSystems.getDefault(), this.excludedOriginPaths, ImmutableList.<String>of());
       PathMatcherBuilder excludedDestinationPaths = PathMatcherBuilder.create(
-          FileSystems.getDefault(), this.excludedDestinationPaths);
+          FileSystems.getDefault(), this.excludedDestinationPaths, ImmutableList.<String>of());
       return new AutoValue_Workflow<>(configName, name, origin, destination, authoring, transformation,
           workflowOptions.getLastRevision(), console,
           excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes,

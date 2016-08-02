@@ -11,6 +11,7 @@ import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.util.PathMatcherBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,7 +53,10 @@ public class FolderDestinationTest {
         .newWriter()
         .write(
             TransformResults.of(
-                workdir, new DummyReference("origin_ref"), excludedPathsForDeletion),
+                workdir,
+                new DummyReference("origin_ref"),
+                PathMatcherBuilder.create(workdir.getFileSystem(), excludedPathsForDeletion,
+                    ImmutableList.<String>of())),
             options.general.console());
   }
 

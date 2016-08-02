@@ -16,21 +16,21 @@ import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
-
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
@@ -91,7 +91,11 @@ public class GerritDestinationTest {
   private void process(DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
     WriterResult result = destination().newWriter()
-        .write(TransformResults.of(workdir, originRef, excludedDestinationPaths), console);
+        .write(TransformResults.of(workdir,
+            originRef,
+            PathMatcherBuilder.create(FileSystems.getDefault(),
+                excludedDestinationPaths,
+                ImmutableList.<String>of())), console);
     assertThat(result).isEqualTo(WriterResult.OK);
   }
 

@@ -19,9 +19,11 @@ import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -127,7 +129,10 @@ public class GitDestinationTest {
       DummyReference originRef,
       String baseline, boolean askForConfirmation)
       throws ConfigValidationException, RepoException, IOException {
-    TransformResult result = TransformResults.of(workdir, originRef, excludedDestinationPaths);
+    TransformResult result = TransformResults.of(workdir,
+        originRef,
+        PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths,
+            ImmutableList.<String>of()));
     if (baseline != null) {
       result = result.withBaseline(baseline);
     }
