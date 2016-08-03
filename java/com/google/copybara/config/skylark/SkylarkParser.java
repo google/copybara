@@ -15,6 +15,7 @@ import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.git.Git;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.EventHandler;
@@ -28,11 +29,14 @@ import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
 import com.google.devtools.build.lib.syntax.ValidationEnvironment;
 import com.google.devtools.build.lib.vfs.FileSystemUtils;
 import com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.annotation.Nullable;
 
 /**
  * An experiment that loads Copybara configs from bzl files.
@@ -47,6 +51,7 @@ public class SkylarkParser {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(Authoring.Module.class)
         .add(Core.class)
+        .add(Git.class)
         .addAll(modules).build();
 
     // Register module functions
@@ -62,7 +67,7 @@ public class SkylarkParser {
       throws IOException, ConfigValidationException, EnvironmentException {
     Core core;
     try {
-      Environment env = executeSkylark(content, options);
+      Environment env = executeSkylark(content, options, /*environment*/ null);
 
       core = (Core) env.getGlobals().get(Core.CORE_VAR);
     } catch (InterruptedException e) {
@@ -73,12 +78,13 @@ public class SkylarkParser {
   }
 
   @VisibleForTesting
-  public Environment executeSkylark(String content, Options options)
+  public Environment executeSkylark(
+      String content, Options options, @Nullable Map<String, String> environment)
       throws IOException, ConfigValidationException, InterruptedException {
     Console console = options.get(GeneralOptions.class).console();
     EventHandler eventHandler = new ConsoleEventHandler(console);
 
-    Frame globals = createGlobals(eventHandler, options);
+    Frame globals = createGlobals(eventHandler, options, environment);
     Environment env = createEnvironment(eventHandler, globals);
 
     BuildFileAST buildFileAST = parseFile(content, eventHandler, env);
@@ -136,8 +142,8 @@ public class SkylarkParser {
    *
    * <p>The returned object can be reused for different instances of environments.
    */
-  private Environment.Frame createGlobals(EventHandler eventHandler,
-      Options options) {
+  private Environment.Frame createGlobals(
+      EventHandler eventHandler, Options options, @Nullable  Map<String, String> environment) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK);
 
     for (Class<?> module : modules) {
@@ -147,6 +153,9 @@ public class SkylarkParser {
       // Add the options to the module that require them
       if (OptionsAwareModule.class.isAssignableFrom(module)) {
         ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(options);
+      }
+      if (EnvironmentAwareModule.class.isAssignableFrom(module)) {
+        ((EnvironmentAwareModule) getModuleGlobal(env, module)).setEnvironment(environment);
       }
     }
     env.mutability().close();

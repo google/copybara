@@ -70,7 +70,7 @@ public final class GitOrigin implements Origin<GitReference> {
     this.console = Preconditions.checkNotNull(console);
     this.repository = Preconditions.checkNotNull(repository);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
-    this.configRef = Preconditions.checkNotNull(configRef);
+    this.configRef = configRef;
     this.repoType = Preconditions.checkNotNull(repoType);
   }
 
@@ -255,16 +255,15 @@ public final class GitOrigin implements Origin<GitReference> {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("repository", repository)
         .add("repoUrl", repoUrl)
         .add("ref", configRef)
+        .add("repoType", repoType)
         .toString();
   }
 
   @DocElement(yamlName = "!GitOrigin", description = "A origin that represents a git repository",
       elementKind = Origin.class, flags = GitOptions.class)
   public final static class Yaml implements Origin.Yaml<GitReference> {
-    private  final Logger logger = Logger.getLogger(this.getClass().getCanonicalName());
     private String url;
     private String ref;
     private GitRepoType type = GitRepoType.GIT;

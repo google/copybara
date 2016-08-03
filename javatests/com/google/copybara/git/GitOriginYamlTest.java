@@ -3,7 +3,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -13,10 +12,8 @@ import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -33,30 +30,28 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GitOriginTest {
+public class GitOriginYamlTest {
 
-  private String url;
-  private String ref;
   private GitOrigin origin;
   private Path remote;
   private Path workdir;
   private String firstCommitRef;
+  private GitOrigin.Yaml yaml;
   private OptionsBuilder options;
   private Map<String, String> env;
 
-  @Rule public ExpectedException thrown = ExpectedException.none();
-
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
   private Path reposDir;
   private TestingConsole console;
-  private SkylarkTestExecutor skylark;
 
   @Before
   public void setup() throws Exception {
     remote = Files.createTempDirectory("remote");
     workdir = Files.createTempDirectory("workdir");
-
-    url = "file://" + remote.toFile().getAbsolutePath();
-    ref = "other";
+    yaml = new GitOrigin.Yaml();
+    yaml.setUrl("file://" + remote.toFile().getAbsolutePath());
+    yaml.setRef("other");
 
     options = new OptionsBuilder();
     console = new TestingConsole();
@@ -70,9 +65,7 @@ public class GitOriginTest {
     Path userHomeForTest = Files.createTempDirectory("home");
     env = Maps.newHashMap(System.getenv());
     env.put("HOME", userHomeForTest.toString());
-
-    skylark = new SkylarkTestExecutor(options, env, Git.class);
-    origin = gitOrigin();
+    origin = yaml.withOptions(options.build(), env);
 
     git("init");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
@@ -83,95 +76,8 @@ public class GitOriginTest {
     firstCommitRef = head.substring(0, head.length() -1);
   }
 
-  private GitOrigin gitOrigin()
-      throws ConfigValidationException {
-    return skylark.eval("result",
-        String.format("result = git.origin(\n"
-            + "    url = '%s',\n"
-            + "    ref = '%s',\n"
-            + ")", url, ref));
-  }
-
   private String git(String... params) throws RepoException {
     return origin.getRepository().git(remote, params).getStdout();
-  }
-
-  @Test
-  public void testGitOrigin() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.origin(\n"
-            + "    url = 'https://my-server.org/copybara',\n"
-            + "    ref = 'master',\n"
-            + ")");
-    assertThat(origin.toString())
-        .isEqualTo(
-            "GitOrigin{"
-                + "repoUrl=https://my-server.org/copybara, "
-                + "ref=master, "
-                + "repoType=GIT"
-                + "}");
-  }
-
-  @Test
-  public void testGitOriginWithEmptyRef() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.origin(\n"
-            + "    url = 'https://my-server.org/copybara',\n"
-            + ")");
-    assertThat(origin.toString())
-        .isEqualTo(
-            "GitOrigin{"
-                + "repoUrl=https://my-server.org/copybara, "
-                + "ref=null, "
-                + "repoType=GIT"
-                + "}");
-  }
-
-  @Test
-  public void testGerritOrigin() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.gerrit_origin(\n"
-            + "    url = 'https://gerrit-server.org/copybara',\n"
-            + "    ref = 'master',\n"
-            + ")");
-    assertThat(origin.toString())
-        .isEqualTo(
-            "GitOrigin{"
-                + "repoUrl=https://gerrit-server.org/copybara, "
-                + "ref=master, "
-                + "repoType=GERRIT"
-                + "}");
-  }
-
-  @Test
-  public void testGithubOrigin() throws Exception {
-    origin = skylark.eval("result",
-        "result = git.github_origin(\n"
-            + "    url = 'https://github.com/copybara',\n"
-            + "    ref = 'master',\n"
-            + ")");
-    assertThat(origin.toString())
-        .isEqualTo(
-            "GitOrigin{"
-                + "repoUrl=https://github.com/copybara, "
-                + "ref=master, "
-                + "repoType=GITHUB"
-                + "}");
-  }
-
-  @Test
-  public void testInvalidGithubUrl() throws Exception {
-    try {
-      skylark.eval("result",
-          "result = git.github_origin(\n"
-              + "    url = 'https://foo.com/copybara',\n"
-              + "    ref = 'master',\n"
-              + ")");
-      fail();
-    } catch (ConfigValidationException expected) {
-      console.assertThat()
-          .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
-    }
   }
 
   @Test
@@ -362,7 +268,7 @@ public class GitOriginTest {
 
     TestingConsole testConsole = new TestingConsole();
     options.setConsole(testConsole);
-    origin = gitOrigin();
+    origin = yaml.withOptions(options.build(), env);
 
     String newUrl = "file://" + remote.toFile().getAbsolutePath();
     Change<GitReference> cliHead = origin.change(origin.resolve(newUrl));
