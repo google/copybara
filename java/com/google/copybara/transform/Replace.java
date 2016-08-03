@@ -15,6 +15,8 @@ import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -222,5 +224,44 @@ public final class Replace implements Transformation {
     public void checkReversible() throws ConfigValidationException {
 
     }
+  }
+
+  public static Replace create(Location location, String before, String after,
+      Map<String, String> regexGroups, PathMatcherBuilder paths,
+      boolean multiline, TransformOptions transformOptions)
+      throws EvalException {
+    TemplateTokens beforeTokens;
+    // TODO(team): Revisit these ugly try/catchs and see if those functions can throw EvalException
+    try {
+      beforeTokens = TemplateTokens.parse(before);
+    } catch (ConfigValidationException e) {
+      throw new EvalException(location, "'before' field:" + e.getMessage());
+    }
+    TemplateTokens afterTokens;
+    try {
+      afterTokens = TemplateTokens.parse(after);
+    } catch (ConfigValidationException e) {
+      throw new EvalException(location, "'after' field:" + e.getMessage());
+    }
+
+    ImmutableMap.Builder<String, Pattern> parsed = new ImmutableMap.Builder<>();
+    for (Map.Entry<String, String> group : regexGroups.entrySet()) {
+      try {
+        parsed.put(group.getKey(), Pattern.compile(group.getValue()));
+      } catch (PatternSyntaxException e) {
+        throw new EvalException(location, "'regex_groups' includes invalid regex for key "
+            + group.getKey() + ": " + group.getValue(), e);
+      }
+    }
+
+    try {
+      beforeTokens.validateInterpolations(regexGroups.keySet());
+      afterTokens.validateInterpolations(regexGroups.keySet());
+    } catch (ConfigValidationException e) {
+      throw new EvalException(location, "'regex_groups' field:" + e.getMessage());
+    }
+
+    return new Replace(beforeTokens, afterTokens, parsed.build(), multiline, paths,
+        transformOptions);
   }
 }

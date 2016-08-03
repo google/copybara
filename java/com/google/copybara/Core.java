@@ -10,6 +10,7 @@ import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.config.skylark.OptionsAwareModule;
 import com.google.copybara.transform.Move;
+import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.transform.Transformation;
@@ -24,6 +25,7 @@ import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
+import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
 import com.google.devtools.build.lib.syntax.Type;
@@ -245,6 +247,48 @@ public class Core implements OptionsAwareModule {
   public static final BuiltinFunction MOVE = new BuiltinFunction("move") {
     public Move invoke(Core self, String before, String after, Location location) throws EvalException {
       return Move.fromConfig(before, after, self.transformOptions, location);
+    }
+  };
+
+  @SkylarkSignature(
+      name = "replace",
+      returnType = Replace.class,
+      doc = "Replace a text with another text using optional regex groups. This tranformer can be"
+          + " automatically reversed.",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "before", type = String.class,
+              doc = "The text before the transformation. Can contain references to regex groups."
+              + " For example \"foo${x}text\".<p>If '$' literal character needs to be match '$$'"
+              + " should be used. For example '$$FOO' would match the literal '$FOO'.</p>"),
+          @Param(name = "after", type = String.class,
+              doc = "The name of the file or directory after moving. If this is the empty"
+              + " string and 'before' is a directory, then all files in 'before' will be moved to"
+              + " the repo root, maintaining the directory tree inside 'before'."),
+          @Param(name = "regex_groups", type = SkylarkDict.class,
+              doc = "A set of named regexes that can be used to match part of the replaced text."
+                  + " For example {\"x\": \"[A-Za-z]+\"}", defaultValue = "{}"),
+          @Param(name = "paths", type = PathMatcherBuilder.class,
+              doc = "A glob expression relative to the workdir representing the files to apply"
+                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
+                  + " recursively. Defaults to match all the files recursively.",
+              defaultValue = "None", noneable = true),
+          @Param(name = "multiline", type = Boolean.class,
+              doc = "Whether to replace text that spans more than one line.",
+              defaultValue = "False"),
+      },
+      objectType = Core.class, useLocation = true)
+  public static final BuiltinFunction REPLACE = new BuiltinFunction("replace") {
+    public Replace invoke(Core self, String before, String after,
+        SkylarkDict<String, String> regexes, Object paths, Boolean multiline, Location location)
+        throws EvalException {
+      return Replace.create(location,
+          before,
+          after,
+          Type.STRING_DICT.convert(regexes, "regex_groups"),
+          convertFromNoneable(paths, PathMatcherBuilder.ALL_FILES),
+          multiline,
+          self.transformOptions);
     }
   };
 

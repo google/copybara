@@ -3,13 +3,11 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Core;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
@@ -26,12 +24,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public final class ReplaceTest {
+public final class ReplaceYamlTest {
 
+  private Replace.Yaml yaml;
   private OptionsBuilder options;
   private Path workdir;
   private TestingConsole console;
-  private SkylarkTestExecutor skylark;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -41,39 +39,32 @@ public final class ReplaceTest {
     FileSystem fs = Jimfs.newFileSystem();
     workdir = fs.getPath("/");
     Files.createDirectories(workdir);
+    yaml = new Replace.Yaml();
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class);
   }
 
   @Test
   public void invalidRegex() throws ConfigValidationException {
-    evalFails("core.replace(\n"
-            + "  before = '${foo}',\n"
-            + "  after = '${foo}bar',\n"
-            + "  regex_groups = {\n"
-            + "       'foo' : '(unfinished group',\n"
-            + "  },\n"
-            + ")",
-        "'regex_groups' includes invalid regex for key foo");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("'regexGroups' includes invalid regex for key foo");
+    yaml.setRegexGroups(ImmutableMap.of("foo", "(unfinished group"));
   }
 
   @Test
   public void missingReplacement() throws ConfigValidationException {
-    evalFails("core.replace(\n"
-            + "  before = 'asdf',\n"
-            + ")",
-        "missing mandatory positional argument 'after'");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'after'");
+    yaml.setBefore("asdf");
+    yaml.withOptions(options.build());
   }
 
   @Test
   public void testSimpleReplaceWithoutGroups() throws Exception {
-    Replace transformation =
-        eval("core.replace(\n"
-            + "  before = 'foo',\n"
-            + "  after  = 'bar',\n"
-            + ")");
+    yaml.setBefore("foo");
+    yaml.setAfter("bar");
+    Transformation transformation = yaml.withOptions(options.build());
 
     Path file1 = workdir.resolve("file1.txt");
     writeFile(file1, "foo");
@@ -97,13 +88,10 @@ public final class ReplaceTest {
 
   @Test
   public void testWithGroups() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo${middle}bar',\n"
-        + "  after = 'bar${middle}foo',\n"
-        + "  regex_groups = {\n"
-        + "       'middle' : '.*',"
-        + "  },\n"
-        + ")");
+    yaml.setBefore("foo${middle}bar");
+    yaml.setAfter("bar${middle}foo");
+    yaml.setRegexGroups(ImmutableMap.of("middle", ".*"));
+    Transformation transformation = yaml.withOptions(options.build());
 
     Path file1 = workdir.resolve("file1.txt");
     writeFile(file1, "fooBAZbar");
@@ -115,11 +103,10 @@ public final class ReplaceTest {
 
   @Test
   public void testWithGlob() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo',\n"
-        + "  after = 'bar',\n"
-        + "  paths = glob(['**.java']),\n"
-        + ")");
+    yaml.setBefore("foo");
+    yaml.setAfter("bar");
+    yaml.setPath("**.java");
+    Transformation transformation = yaml.withOptions(options.build());
 
     prepareGlobTree();
 
@@ -135,11 +122,10 @@ public final class ReplaceTest {
 
   @Test
   public void testWithGlobFolderPrefix() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo',\n"
-        + "  after = 'bar',\n"
-        + "  paths = glob(['folder/**.java']),\n"
-        + ")");
+    yaml.setBefore("foo");
+    yaml.setAfter("bar");
+    yaml.setPath("folder/**.java");
+    Transformation transformation = yaml.withOptions(options.build());
 
     prepareGlobTree();
 
@@ -153,14 +139,12 @@ public final class ReplaceTest {
         .containsFile("folder/subfolder/file1.java", "bar");
   }
 
-
   @Test
   public void testWithGlobFolderPrefixUnlikeBash() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'foo',\n"
-        + "  after = 'bar',\n"
-        + "  paths = glob(['folder/**/*.java']),\n"
-        + ")");
+    yaml.setBefore("foo");
+    yaml.setAfter("bar");
+    yaml.setPath("folder/**/*.java");
+    Transformation transformation = yaml.withOptions(options.build());
 
     prepareGlobTree();
 
@@ -178,20 +162,17 @@ public final class ReplaceTest {
 
   @Test
   public void testUsesTwoDifferentGroups() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'bef${a}ore${b}',\n"
-        + "  after = 'af${b}ter${a}',\n"
-        + "  regex_groups = {\n"
-        + "       'a' : 'a+',\n"
-        + "       'b' : '[bB]',\n"
-        + "  },\n"
-        + ")");
+    yaml.setBefore("bef${a}ore${b}");
+    yaml.setAfter("af${b}ter${a}");
+    yaml.setRegexGroups(ImmutableMap.of(
+            "a", "a+",
+            "b", "[bB]"));
 
     writeFile(workdir.resolve("before_and_after"), ""
         + "not a match: beforeB\n"
         + "is a match: befaaaaaoreB # trailing content\n");
 
-    transformation.transform(workdir, console);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertThatPath(workdir)
         .containsFile("before_and_after", ""
@@ -201,70 +182,64 @@ public final class ReplaceTest {
 
   @Test
   public void beforeUsesUndeclaredGroup() throws ConfigValidationException {
-    evalFails("core.replace(\n"
-            + "  before = 'foo${bar}${baz}',\n"
-            + "  after = 'foo${baz}',\n"
-            + "  regex_groups = {\n"
-            + "       'baz' : '.*',\n"
-            + "  },\n"
-            + ")",
-        "used but not defined: \\[bar\\]");
+    yaml.setBefore("foo${bar}${baz}");
+    yaml.setAfter("foo${baz}");
+    yaml.setRegexGroups(ImmutableMap.of("baz", ".*"));
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("used but not defined: [bar]");
+    yaml.withOptions(options.build());
   }
 
   @Test
   public void afterUsesUndeclaredGroup() throws ConfigValidationException {
-    evalFails("core.replace(\n"
-            + "  before = 'foo${bar}${iru}',\n"
-            + "  after = 'foo${bar}',\n"
-            + "  regex_groups = {\n"
-            + "       'bar' : '.*',\n"
-            + "  },\n"
-            + ")",
-        "used but not defined: \\[iru\\]");
+    yaml.setBefore("foo${bar}${iru}");
+    yaml.setAfter("foo${bar}");
+    yaml.setRegexGroups(ImmutableMap.of("bar", ".*"));
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("used but not defined: [iru]");
+    yaml.withOptions(options.build());
   }
 
   @Test
   public void beforeDoesNotUseADeclaredGroup() throws ConfigValidationException {
-    evalFails("core.replace(\n"
-            + "  before = 'foo${baz}',\n"
-            + "  after = 'foo${baz}${bar}',\n"
-            + "  regex_groups = {\n"
-            + "       'baz' : '.*',\n"
-            + "       'bar' : '[a-z]+',\n"
-            + "  },\n"
-            + ")",
-        "defined but not used: \\[bar\\]");
+    yaml.setBefore("foo${baz}");
+    yaml.setAfter("foo${baz}${bar}");
+    yaml.setRegexGroups(ImmutableMap.of(
+            "baz", ".*",
+            "bar", "[a-z]+"));
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("defined but not used: [bar]");
+    yaml.withOptions(options.build());
   }
 
   @Test
   public void afterDoesNotUseADeclaredGroup() throws ConfigValidationException {
-    evalFails("core.replace(\n"
-            + "  before = 'foo${baz}${bar}',\n"
-            + "  after = 'foo${baz}',\n"
-            + "  regex_groups = {\n"
-            + "       'baz' : '.*',\n"
-            + "       'bar' : '[a-z]+',\n"
-            + "  },\n"
-            + ")",
-        "defined but not used: \\[bar\\]");
+    yaml.setBefore("foo${baz}${bar}");
+    yaml.setAfter("foo${baz}");
+    yaml.setRegexGroups(ImmutableMap.of(
+            "baz", ".*",
+            "bar", "[a-z]+"));
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("defined but not used: [bar]");
+    yaml.withOptions(options.build());
   }
 
   @Test
   public void categoryComplementDoesNotSpanLine() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'bef${a}ore',\n"
-        + "  after = 'aft${a}er',\n"
-        + "  regex_groups = {\n"
-        + "       'a' : '[^/]+',\n"
-        + "  },\n"
-        + ")");
+    yaml.setBefore("bef${a}ore");
+    yaml.setAfter("aft${a}er");
+    yaml.setRegexGroups(ImmutableMap.of("a", "[^/]+"));
 
     writeFile(workdir.resolve("before_and_after"), ""
         + "obviously match: befASDFore/\n"
         + "should not match: bef\n"
         + "ore");
 
-    transformation.transform(workdir, console);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertThatPath(workdir)
         .containsFile("before_and_after", ""
@@ -275,14 +250,11 @@ public final class ReplaceTest {
 
   @Test
   public void multipleMatchesPerLine() throws Exception {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + ")");
-
+    yaml.setBefore("before");
+    yaml.setAfter("after");
     writeFile(workdir.resolve("before_and_after"), "before ... still before");
 
-    transformation.transform(workdir, console);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertThatPath(workdir)
         .containsFile("before_and_after", "after ... still after");
@@ -290,61 +262,45 @@ public final class ReplaceTest {
 
   @Test
   public void showOriginalTemplateInToString() throws ConfigValidationException {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'a${b}c',\n"
-        + "  after = 'c${b}a',\n"
-        + "  regex_groups = {\n"
-        + "       'b' : '.*',\n"
-        + "  },\n"
-        + ")");
-
-    String string = transformation.toString();
+    yaml.setBefore("a${b}c");
+    yaml.setAfter("c${b}a");
+    yaml.setRegexGroups(ImmutableMap.of("b", ".*"));
+    String string = yaml.withOptions(options.build()).toString();
     assertThat(string).contains("before=a${b}c");
     assertThat(string).contains("after=c${b}a");
   }
 
   @Test
   public void showOriginalGlobInToString() throws ConfigValidationException {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + "  paths = glob(['foo/**/bar.htm'])"
-        + ")");
-
-    String string = transformation.toString();
+    yaml.setBefore("before");
+    yaml.setAfter("after");
+    yaml.setPath("foo/**/bar.htm");
+    String string = yaml.withOptions(options.build()).toString();
     assertThat(string).contains("include=[foo/**/bar.htm], exclude=[]");
   }
 
   @Test
   public void showReasonableDefaultGlobInToString() throws ConfigValidationException {
-    Replace transformation = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + ")");
-
-    String string = transformation.toString();
+    yaml.setBefore("before");
+    yaml.setAfter("after");
+    String string = yaml.withOptions(options.build()).toString();
     assertThat(string).contains("include=[**], exclude=[]");
   }
 
   @Test
   public void showMultilineInToString() throws ConfigValidationException {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + "  multiline = True,\n"
-        + ")");
+    yaml.setBefore("before");
+    yaml.setAfter("after");
+    yaml.setMultiline(true);
 
+    Replace replace = yaml.withOptions(options.build());
     assertThat(replace.toString())
         .contains("multiline=true");
     assertThat(replace.reverse().toString())
         .contains("multiline=true");
 
-    replace = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after',\n"
-        + "  multiline = False,\n"
-        + ")");
-
+    yaml.setMultiline(false);
+    replace = yaml.withOptions(options.build());
     assertThat(replace.toString())
         .contains("multiline=false");
     assertThat(replace.reverse().toString())
@@ -353,36 +309,28 @@ public final class ReplaceTest {
 
   @Test
   public void nopReplaceShouldThrowException() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = \"this string doesn't appear anywhere in source\",\n"
-        + "  after = 'lulz',\n"
-        + ")");
+    yaml.setBefore("this string doesn't appear anywhere in source");
+    yaml.setAfter("lulz");
     thrown.expect(VoidTransformationException.class);
-    replace.transform(workdir, console);
+    yaml.withOptions(options.build()).transform(workdir, console);
   }
 
   @Test
   public void noopReplaceAsWarning() throws Exception {
     options.transform.noop_is_warning = true;
-    Replace replace = eval("core.replace(\n"
-        + "  before = \"BEFORE this string doesn't appear anywhere in source\",\n"
-        + "  after = 'lulz',\n"
-        + ")");
-
-    replace.transform(workdir, console);
+    yaml.setBefore("BEFORE this string doesn't appear anywhere in source");
+    yaml.setAfter("lulz");
+    yaml.withOptions(options.build()).transform(workdir, console);
     console.assertThat()
         .onceInLog(MessageType.WARNING, ".*BEFORE.*lulz.*didn't affect the workdir[.]");
   }
 
   @Test
   public void useDollarSignInAfter() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after$$',\n"
-        + ")");
-
+    yaml.setBefore("before");
+    yaml.setAfter("after$$");
     writeFile(workdir.resolve("before_and_after"), "before ... still before");
-    replace.transform(workdir, console);
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertThatPath(workdir)
         .containsFile("before_and_after", "after$ ... still after$");
@@ -390,39 +338,32 @@ public final class ReplaceTest {
 
   @Test
   public void useBackslashInAfter() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'before',\n"
-        + "  after = 'after\\\\',\n"
-        + ")");
-
+    yaml.setBefore("before");
+    yaml.setAfter("after\\");
     writeFile(workdir.resolve("before_and_after"), "before ... still before");
-    replace.transform(workdir, console);
+    yaml.withOptions(options.build()).transform(workdir, console);
+
     assertThatPath(workdir)
         .containsFile("before_and_after", "after\\ ... still after\\");
   }
 
   @Test
   public void useEscapedDollarInBeforeAndAfter() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'be$$fore',\n"
-        + "  after = 'after$$',\n"
-        + ")");
+    yaml.setBefore("be$$ore");
+    yaml.setAfter("after$$");
+    writeFile(workdir.resolve("before_and_after"), "be$ore ... still be$ore");
+    yaml.withOptions(options.build()).transform(workdir, console);
 
-    writeFile(workdir.resolve("before_and_after"), "be$fore ... still be$fore");
-    replace.transform(workdir, console);
     assertThatPath(workdir)
         .containsFile("before_and_after", "after$ ... still after$");
   }
 
   @Test
   public void useBackslashInBeforeAndAfter() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'be\\\\fore',\n"
-        + "  after = 'after\\\\',\n"
-        + ")");
-
-    writeFile(workdir.resolve("before_and_after"), "be\\fore ... still be\\fore");
-    replace.transform(workdir, console);
+    yaml.setBefore("be\\ore");
+    yaml.setAfter("after\\");
+    writeFile(workdir.resolve("before_and_after"), "be\\ore ... still be\\ore");
+    yaml.withOptions(options.build()).transform(workdir, console);
 
     assertThatPath(workdir)
         .containsFile("before_and_after", "after\\ ... still after\\");
@@ -430,15 +371,13 @@ public final class ReplaceTest {
 
   @Test
   public void reverse() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'x${foo}y',\n"
-        + "  after = 'y${foo}x',\n"
-        + "  regex_groups = {\n"
-        + "       'foo' : '[0-9]+',\n"
-        + "  },\n"
-        + ")");
+    yaml.setBefore("x${foo}y");
+    yaml.setAfter("y${foo}x");
+    yaml.setRegexGroups(ImmutableMap.of("foo", "[0-9]+"));
     writeFile(workdir.resolve("file"), "!@# y123x ...");
-    replace.reverse().transform(workdir, console);
+    yaml.withOptions(options.build())
+        .reverse()
+        .transform(workdir, console);
 
     assertThatPath(workdir)
         .containsFile("file", "!@# x123y ...");
@@ -446,31 +385,12 @@ public final class ReplaceTest {
 
   @Test
   public void multiline() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'foo\\nbar',\n"
-        + "  after = 'bar\\nfoo',\n"
-        + "  multiline = True,\n"
-        + ")");
-
+    yaml.setBefore("foo\nbar");
+    yaml.setAfter("bar\nfoo");
+    yaml.setMultiline(true);
     writeFile(workdir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
-    replace.transform(workdir, console);
-
-    assertThatPath(workdir)
-        .containsFile("file", "aaa bar\nfoo bbb bar\nfoo ccc");
-  }
-
-  @Test
-  public void multilinePythonLike() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = \"\"\"foo\n"
-        + "bar\"\"\",\n"
-        + "  after = \"\"\"bar\n"
-        + "foo\"\"\",\n"
-        + "  multiline = True,\n"
-        + ")");
-
-    writeFile(workdir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
-    replace.transform(workdir, console);
+    yaml.withOptions(options.build())
+        .transform(workdir, console);
 
     assertThatPath(workdir)
         .containsFile("file", "aaa bar\nfoo bbb bar\nfoo ccc");
@@ -478,40 +398,22 @@ public final class ReplaceTest {
 
   @Test
   public void multilineFieldActivatesRegexMultilineSemantics() throws Exception {
-    Replace replace = eval("core.replace(\n"
-        + "  before = 'foo${eol}',\n"
-        + "  after = 'bar${eol}',\n"
-        + "  regex_groups = {\n"
-        + "       'eol' : '$',\n"
-        + "  },\n"
-        + "  multiline = True,\n"
-        + ")");
-
+    yaml.setBefore("foo${eol}");
+    yaml.setRegexGroups(ImmutableMap.of("eol", "$"));
+    yaml.setAfter("bar${eol}");
+    yaml.setMultiline(true);
     writeFile(workdir.resolve("file"), ""
         + "a foo\n"
         + "b foo\n"
         + "c foo d\n");
-    replace.transform(workdir, console);
+    yaml.withOptions(options.build())
+        .transform(workdir, console);
 
     assertThatPath(workdir)
         .containsFile("file", ""
             + "a bar\n"
             + "b bar\n"
             + "c foo d\n");
-  }
-
-  private void evalFails(String replace, String expectedMsg)
-      throws ConfigValidationException {
-    try {
-      eval(replace);
-      fail();
-    } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR, "(.|\n)*" + expectedMsg + "(.|\n)*");
-    }
-  }
-
-  private Replace eval(String replace) throws ConfigValidationException {
-    return skylark.eval("r", "r = " + replace);
   }
 
   private void prepareGlobTree() throws IOException {

@@ -38,6 +38,10 @@ public final class PathMatcherBuilder {
   public static final PathMatcherBuilder EMPTY = new PathMatcherBuilder(ImmutableList.<String>of(),
       ImmutableList.<String>of());
 
+  public static final PathMatcherBuilder ALL_FILES = new PathMatcherBuilder(
+      ImmutableList.of("**"),
+      ImmutableList.<String>of());
+
   /**
    * Creates a function {@link PathMatcherBuilder} that when a {@link Path} is passed it returns a
    * {@link PathMatcher} relative to the path.
