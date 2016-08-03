@@ -17,7 +17,8 @@ abstract class AbstractDestinationYaml implements Destination.Yaml {
   /**
    * Indicates the URL to push to as well as the URL from which to get the parent commit.
    */
-  @DocField(description = "Indicates the URL to push to as well as the URL from which to get the parent commit")
+  @DocField(description = "Indicates the URL to push to as well as the URL from which to get the "
+      + "parent commit")
   public void setUrl(String url) {
     this.url = url;
   }

@@ -14,7 +14,6 @@ java.util.logging.SimpleFormatter.format=%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$
 EOF
 
 function copybara() {
-  # TODO(team): skylark. Remove flag
   $TEST_SRCDIR/copybara/java/com/google/copybara/copybara \
       --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" \
       --git-repo-storage "$repo_storage" \
@@ -150,8 +149,8 @@ EOF
   expect_log "-first version for drink"
   expect_log "+second version for drink and barooooo"
 }
-# TODO(team): skylark
-function DISABLED_test_git_iterative() {
+
+function test_git_iterative() {
   remote=$(temp_dir remote)
   repo_storage=$(temp_dir storage)
   workdir=$(temp_dir workdir)
@@ -320,8 +319,7 @@ function prepare_glob_tree() {
   )
 }
 
-# TODO(team): skylark
-function DISABLED_test_regex_with_path() {
+function test_regex_with_path() {
   prepare_glob_tree
 
   cat > copybara.bzl <<EOF
@@ -360,8 +358,7 @@ EOF
   )
 }
 
-# TODO(team): skylark
-function DISABLED_git_pull_request() {
+function git_pull_request() {
   sot=$(empty_git_bare_repo)
   public=$(empty_git_bare_repo)
 
@@ -432,12 +429,11 @@ EOF
   [[ -f three.txt ]] || fail "three.txt should exist after pr import"
   [[ -f pr.txt ]] || fail "pr.txt should exist after pr import"
   popd
-
 }
 
-# TODO(team): skylark
-function DISABLED_test_git_delete() {
+function test_git_delete() {
   remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
   destination=$(empty_git_bare_repo)
 
   ( cd $remote
@@ -484,8 +480,7 @@ EOF
   )
 }
 
-#TODO(team): skylark
-function DISABLED_test_reverse_sequence() {
+function test_reverse_sequence() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -631,8 +626,7 @@ EOF
   expect_in_file "bar" destination/test.txt
 }
 
-#TODO(team): skylark
-function DISABLED_test_file_move() {
+function test_file_move() {
   remote=$(temp_dir remote)
 
   ( cd $remote
@@ -670,7 +664,7 @@ EOF
   [[ ! -z destination/test2.txt ]] || fail "test2.txt should have been moved"
 }
 
-#TODO(team): skylark
+# TODO(malcon): The transformations are not validated in Core
 function DISABLED_test_invalid_transformations_in_config() {
   cat > copybara.bzl <<EOF
 core.project(name = "cbtest-invalid-xform")
@@ -678,23 +672,15 @@ core.project(name = "cbtest-invalid-xform")
 core.workflow(
     name = "default",
     origin = git.origin(
-      url = "file://$remote",
+      url = "file://foo/bar",
       ref = "master",
     ),
     destination = folder.destination(),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     transformations = [42],
 )
-
-name: "cbtest-invalid-xform"
-workflows:
-  - authoring:
-      defaultAuthor: {name: "Copybara Team", email: "no-reply@google.com"}
-      mode: PASS_THRU
-    transformations: [42]
 EOF
-  copybara copybara.bzl origin/master && fail "Should fail"
-  # TODO(team): skylark. message
+  copybara copybara.bzl default && fail "Should fail"
   expect_log "sequence field 'transformations' expects elements of type 'Transformation', but transformations\[0\] is of type 'integer' (value = 42)"
 }
 
@@ -733,8 +719,7 @@ function test_no_ansi_console() {
 }
 
 # Verify that Copybara fails if we try to read the input from the user from a writeOnly LogConsole
-#TODO(team): skylark
-function DISABLED_test_log_consonle_is_write_only() {
+function test_log_consonle_is_write_only() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -760,7 +745,7 @@ core.workflow(
       push = "master",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    ask_confirmation: True,
+    ask_for_confirmation = True,
 )
 EOF
   copybara copybara.bzl && fail "Should fail"

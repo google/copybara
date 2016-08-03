@@ -2,8 +2,11 @@ package com.google.copybara.testing;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.skylark.SkylarkParser;
+import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import com.google.devtools.build.lib.syntax.Environment;
 
 
@@ -45,5 +48,18 @@ public final class SkylarkTestExecutor {
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Should not happen: " + e.getMessage(), e);
     }
+  }
+
+  public void evalFails(String config, String expectedMsg) {
+    try {
+      eval("r", "r = " + config);
+      throw new RuntimeException("Eval should fail: " + config);
+    } catch (ConfigValidationException e) {
+      getConsole().assertThat().onceInLog(MessageType.ERROR, "(.|\n)*" + expectedMsg + "(.|\n)*");
+    }
+  }
+
+  private TestingConsole getConsole() {
+    return (TestingConsole) options.build().get(GeneralOptions.class).console();
   }
 }

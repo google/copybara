@@ -132,7 +132,6 @@ public final class GerritDestination implements Destination {
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       return new GerritDestination(
           new GitDestination(
-              configName,
               url, fetch,
               "refs/for/" + MoreObjects.firstNonNull(pushToRefsFor, fetch),
               options.get(GitOptions.class),

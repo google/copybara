@@ -4,7 +4,6 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
@@ -14,12 +13,12 @@ import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.git.GitDestination.Yaml;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -36,17 +35,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GitDestinationTest {
+public class GitDestinationYamlTest {
 
-  private String url;
-  private String fetch;
-  private String push;
-
+  private static final String CONFIG_NAME = "copybara_project";
+  private Yaml yaml;
   private Path repoGitDir;
   private OptionsBuilder options;
   private TestingConsole console;
   private ImmutableList<String> excludedDestinationPaths;
-  private SkylarkTestExecutor skylark;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -54,18 +50,16 @@ public class GitDestinationTest {
 
   @Before
   public void setup() throws Exception {
+    yaml = new Yaml();
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
-
+    yaml.setUrl("file://" + repoGitDir);
     git("init", "--bare", repoGitDir.toString());
     console = new TestingConsole();
     options = new OptionsBuilder().setConsole(console);
     options.git.gitCommitterEmail = "commiter@email";
     options.git.gitCommitterName = "Bara Kopi";
     excludedDestinationPaths = ImmutableList.of();
-
-    url = "file://" + repoGitDir;
-    skylark = new SkylarkTestExecutor(options, Git.class);
   }
 
   private GitRepository repo() {
@@ -80,54 +74,23 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void errorIfUrlMissing() throws ConfigValidationException {
-    skylark.evalFails(
-        "git.destination(\n"
-        + "    fetch = 'master',\n"
-        + "    push = 'master',\n"
-        + ")",
-        "url");
-  }
-
-  @Test
-  public void errorIfFetchMissing() throws ConfigValidationException {
-    skylark.evalFails(
-        "git.destination(\n"
-            + "    url = 'file:///foo',\n"
-            + "    push = 'master',\n"
-            + ")",
-        "fetch");
-  }
-
-  @Test
-  public void errorIfPushMissing() throws ConfigValidationException {
-    skylark.evalFails(
-        "git.destination(\n"
-            + "    url = 'file:///foo',\n"
-            + "    fetch = 'master',\n"
-            + ")",
-        "push");
+  public void errorIfPushToRefMissing() throws ConfigValidationException {
+    yaml.setFetch("master");
+    yaml.setUrl("file:///foo");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("push");
+    destinationFirstCommit();
   }
 
   private GitDestination destinationFirstCommit()
       throws ConfigValidationException {
     options.git.gitFirstCommit = true;
-    return evalDestination();
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private GitDestination destination() throws ConfigValidationException {
     options.git.gitFirstCommit = false;
-    return evalDestination();
-  }
-
-  private GitDestination evalDestination()
-      throws ConfigValidationException {
-    return skylark.eval("result",
-        String.format("result = git.destination(\n"
-            + "    url = '%s',\n"
-            + "    fetch = '%s',\n"
-            + "    push = '%s',\n"
-            + ")", url, fetch, push));
+    return yaml.withOptions(options.build(), CONFIG_NAME /*askConfirmation*/);
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {
@@ -184,8 +147,8 @@ public class GitDestinationTest {
 
   @Test
   public void processFirstCommit() throws Exception {
-    fetch = "testPullFromRef";
-    push = "testPushToRef";
+    yaml.setFetch("testPullFromRef");
+    yaml.setPush("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit(), new DummyReference("origin_ref"));
 
@@ -203,8 +166,8 @@ public class GitDestinationTest {
   public void processUserAborts() throws Exception {
     console = new TestingConsole()
         .respondNo();
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     thrown.expect(RepoException.class);
     thrown.expectMessage("User aborted execution: did not confirm diff changes");
@@ -216,8 +179,8 @@ public class GitDestinationTest {
   public void processUserConfirms() throws Exception {
     console = new TestingConsole()
         .respondYes();
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     processWithBaselineAndConfirmation(destinationFirstCommit(), new DummyReference("origin_ref"),
         /*baseline=*/null, /*askForConfirmation=*/true);
@@ -241,8 +204,8 @@ public class GitDestinationTest {
 
   @Test
   public void processEmptyCommit() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     DummyReference ref = new DummyReference("origin_ref");
     process(destinationFirstCommit(), ref);
@@ -253,8 +216,8 @@ public class GitDestinationTest {
 
   @Test
   public void processFetchRefDoesntExist() throws Exception {
-    fetch = "testPullFromRef";
-    push = "testPushToRef";
+    yaml.setFetch("testPullFromRef");
+    yaml.setPush("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     thrown.expect(RepoException.class);
@@ -264,8 +227,8 @@ public class GitDestinationTest {
 
   @Test
   public void processCommitDeletesAndAddsFiles() throws Exception {
-    fetch = "pullFromBar";
-    push = "pushToFoo";
+    yaml.setFetch("pullFromBar");
+    yaml.setPush("pushToFoo");
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
     process(destinationFirstCommit(), new DummyReference("origin_ref"));
@@ -288,8 +251,8 @@ public class GitDestinationTest {
 
   @Test
   public void previousImportReference() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Path file = workdir.resolve("test.txt");
 
@@ -314,8 +277,8 @@ public class GitDestinationTest {
 
   @Test
   public void previousImportReference_nonCopybaraCommitsSinceLastMigrate() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit(), new DummyReference("first_commit"));
@@ -335,8 +298,8 @@ public class GitDestinationTest {
 
   @Test
   public void previousImportReferenceIsBeforeACommitWithMultipleParents() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit(), new DummyReference("first_commit"));
@@ -367,8 +330,8 @@ public class GitDestinationTest {
 
   @Test
   public void writesOriginTimestampToAuthorField() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit(), new DummyReference("first_commit").withTimestamp(1414141414));
@@ -381,8 +344,8 @@ public class GitDestinationTest {
 
   @Test
   public void canOverrideCommitterName() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     options.git.gitCommitterName = "Bara Kopi";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -397,8 +360,8 @@ public class GitDestinationTest {
 
   @Test
   public void canOverrideCommitterEmail() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     options.git.gitCommitterEmail = "bara.bara@gocha.gocha";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -418,8 +381,8 @@ public class GitDestinationTest {
   public void gitUserNameMustBeConfigured() throws Exception {
     options.git.gitCommitterName = "";
     options.git.gitCommitterEmail = "foo@bara";
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
@@ -430,8 +393,8 @@ public class GitDestinationTest {
   public void gitUserEmailMustBeConfigured() throws Exception {
     options.git.gitCommitterName = "Foo Bara";
     options.git.gitCommitterEmail = "";
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
@@ -440,8 +403,8 @@ public class GitDestinationTest {
 
   @Test
   public void authorPropagated() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
@@ -455,8 +418,8 @@ public class GitDestinationTest {
 
   @Test
   public void canExcludeDestinationPathFromWorkflow() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     Files.write(scratchTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
@@ -476,8 +439,8 @@ public class GitDestinationTest {
 
   @Test
   public void excludedDestinationPathsIgnoreGitTreeFiles() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     Files.createDirectories(scratchTree.resolve("notgit"));
@@ -501,8 +464,8 @@ public class GitDestinationTest {
 
   @Test
   public void processWithBaseline() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
     DummyReference ref = new DummyReference("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -523,8 +486,8 @@ public class GitDestinationTest {
 
   @Test
   public void processWithBaselineSameFileConflict() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
     DummyReference ref = new DummyReference("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -541,8 +504,8 @@ public class GitDestinationTest {
 
   @Test
   public void processWithBaselineSameFileNoConflict() throws Exception {
-    fetch = "master";
-    push = "master";
+    yaml.setFetch("master");
+    yaml.setPush("master");
     String text = "";
     for (int i = 0; i < 1000; i++) {
       text += "Line " + i + "\n";
@@ -568,8 +531,8 @@ public class GitDestinationTest {
 
   @Test
   public void pushSequenceOfChangesToReviewBranch() throws Exception {
-    fetch = "master";
-    push = "refs_for_master";
+    yaml.setFetch("master");
+    yaml.setPush("refs_for_master");
 
     Destination.Writer writer = destinationFirstCommit().newWriter();
 

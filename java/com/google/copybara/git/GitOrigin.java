@@ -301,7 +301,7 @@ public final class GitOrigin implements Origin<GitReference> {
   /**
    * Builds a new {@link GitOrigin}.
    *
-   * <p>This method will be invoked both from Yaml and Skylark configurations.
+   * <p>This method is invoked both from Yaml and Skylark configurations.
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       Map<String, String> environment) {

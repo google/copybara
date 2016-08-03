@@ -3,7 +3,6 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static org.junit.Assert.fail;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
@@ -49,7 +48,7 @@ public final class ReplaceTest {
 
   @Test
   public void invalidRegex() throws ConfigValidationException {
-    evalFails("core.replace(\n"
+    skylark.evalFails("core.replace(\n"
             + "  before = '${foo}',\n"
             + "  after = '${foo}bar',\n"
             + "  regex_groups = {\n"
@@ -61,7 +60,7 @@ public final class ReplaceTest {
 
   @Test
   public void missingReplacement() throws ConfigValidationException {
-    evalFails("core.replace(\n"
+    skylark.evalFails("core.replace(\n"
             + "  before = 'asdf',\n"
             + ")",
         "missing mandatory positional argument 'after'");
@@ -201,7 +200,7 @@ public final class ReplaceTest {
 
   @Test
   public void beforeUsesUndeclaredGroup() throws ConfigValidationException {
-    evalFails("core.replace(\n"
+    skylark.evalFails("core.replace(\n"
             + "  before = 'foo${bar}${baz}',\n"
             + "  after = 'foo${baz}',\n"
             + "  regex_groups = {\n"
@@ -213,7 +212,7 @@ public final class ReplaceTest {
 
   @Test
   public void afterUsesUndeclaredGroup() throws ConfigValidationException {
-    evalFails("core.replace(\n"
+    skylark.evalFails("core.replace(\n"
             + "  before = 'foo${bar}${iru}',\n"
             + "  after = 'foo${bar}',\n"
             + "  regex_groups = {\n"
@@ -225,7 +224,7 @@ public final class ReplaceTest {
 
   @Test
   public void beforeDoesNotUseADeclaredGroup() throws ConfigValidationException {
-    evalFails("core.replace(\n"
+    skylark.evalFails("core.replace(\n"
             + "  before = 'foo${baz}',\n"
             + "  after = 'foo${baz}${bar}',\n"
             + "  regex_groups = {\n"
@@ -238,7 +237,7 @@ public final class ReplaceTest {
 
   @Test
   public void afterDoesNotUseADeclaredGroup() throws ConfigValidationException {
-    evalFails("core.replace(\n"
+    skylark.evalFails("core.replace(\n"
             + "  before = 'foo${baz}${bar}',\n"
             + "  after = 'foo${baz}',\n"
             + "  regex_groups = {\n"
@@ -498,16 +497,6 @@ public final class ReplaceTest {
             + "a bar\n"
             + "b bar\n"
             + "c foo d\n");
-  }
-
-  private void evalFails(String replace, String expectedMsg)
-      throws ConfigValidationException {
-    try {
-      eval(replace);
-      fail();
-    } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR, "(.|\n)*" + expectedMsg + "(.|\n)*");
-    }
   }
 
   private Replace eval(String replace) throws ConfigValidationException {

@@ -72,7 +72,7 @@ public class GitOriginTest {
     env.put("HOME", userHomeForTest.toString());
 
     skylark = new SkylarkTestExecutor(options, env, Git.class);
-    origin = gitOrigin();
+    origin = origin();
 
     git("init");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
@@ -83,8 +83,7 @@ public class GitOriginTest {
     firstCommitRef = head.substring(0, head.length() -1);
   }
 
-  private GitOrigin gitOrigin()
-      throws ConfigValidationException {
+  private GitOrigin origin() throws ConfigValidationException {
     return skylark.eval("result",
         String.format("result = git.origin(\n"
             + "    url = '%s',\n"
@@ -362,7 +361,7 @@ public class GitOriginTest {
 
     TestingConsole testConsole = new TestingConsole();
     options.setConsole(testConsole);
-    origin = gitOrigin();
+    origin = origin();
 
     String newUrl = "file://" + remote.toFile().getAbsolutePath();
     Change<GitReference> cliHead = origin.change(origin.resolve(newUrl));

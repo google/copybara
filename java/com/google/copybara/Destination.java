@@ -37,6 +37,7 @@ public interface Destination {
 
   interface Yaml {
 
+    // TODO(danielromero): Remove config name from all destinations
     Destination withOptions(Options options, String configName)
         throws ConfigValidationException;
   }

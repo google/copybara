@@ -55,7 +55,6 @@ public final class GitDestination implements Destination {
 
   private static final Logger logger = Logger.getLogger(GitDestination.class.getName());
 
-  private final String configName;
   private final String repoUrl;
   private final String fetch;
   private final String push;
@@ -64,10 +63,8 @@ public final class GitDestination implements Destination {
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
 
-  GitDestination(String configName, String repoUrl, String fetch, String push,
-      GitOptions gitOptions, boolean verbose, CommitGenerator commitGenerator,
-      ProcessPushOutput processPushOutput) {
-    this.configName = Preconditions.checkNotNull(configName);
+  GitDestination(String repoUrl, String fetch, String push, GitOptions gitOptions, boolean verbose,
+      CommitGenerator commitGenerator, ProcessPushOutput processPushOutput) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
@@ -108,8 +105,7 @@ public final class GitDestination implements Destination {
 
     @Override
     public WriterResult write(TransformResult transformResult, Console console) throws RepoException {
-      logger.log(Level.INFO,
-          "Exporting " + configName + " from " + transformResult.getPath() + " to: " + this);
+      logger.log(Level.INFO, "Exporting from " + transformResult.getPath() + " to: " + this);
 
       String baseline = transformResult.getBaseline();
       if (scratchClone == null) {
@@ -271,7 +267,6 @@ public final class GitDestination implements Destination {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("configName", configName)
         .add("repoUrl", repoUrl)
         .add("fetch", fetch)
         .add("push", push)
@@ -300,18 +295,26 @@ public final class GitDestination implements Destination {
     @Override
     public GitDestination withOptions(Options options, String configName)
         throws ConfigValidationException {
-      checkRequiredFields();
-      return new GitDestination(
-          configName,
-          url,
-          ConfigValidationException.checkNotMissing(fetch, "fetch"),
-          ConfigValidationException.checkNotMissing(push, "push"),
-          options.get(GitOptions.class),
-          options.get(GeneralOptions.class).isVerbose(),
-          new DefaultCommitGenerator(),
-          new ProcessPushOutput()
-      );
+      ConfigValidationException.checkNotMissing(url, "url");
+      ConfigValidationException.checkNotMissing(fetch, "fetch");
+      ConfigValidationException.checkNotMissing(push, "push");
+      return newGitDestination(options, url, fetch, push);
     }
+  }
+
+  /**
+   * Builds a new {@link GitDestination}.
+   *
+   * <p>This method is invoked both from Yaml and Skylark configurations.
+   */
+  static GitDestination newGitDestination(Options options, String url, String fetch, String push) {
+    return new GitDestination(
+        url, fetch, push,
+        options.get(GitOptions.class),
+        options.get(GeneralOptions.class).isVerbose(),
+        new DefaultCommitGenerator(),
+        new ProcessPushOutput()
+    );
   }
 
   /**

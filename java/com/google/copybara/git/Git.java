@@ -3,6 +3,7 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.copybara.Options;
+import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.skylark.EnvironmentAwareModule;
 import com.google.copybara.config.skylark.OptionsAwareModule;
 import com.google.devtools.build.lib.events.Location;
@@ -42,9 +43,9 @@ public class Git implements OptionsAwareModule, EnvironmentAwareModule {
               doc = "Represents the default reference that will be used for reading the revision "
                   + "from the git repository. For example: 'master'"),
       },
-      objectType = Git.class, useLocation = true)
+      objectType = Git.class)
   public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
-    public GitOrigin invoke(Git self, String url, Object ref, Location location)
+    public GitOrigin invoke(Git self, String url, Object ref)
         throws EvalException {
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
@@ -94,6 +95,35 @@ public class Git implements OptionsAwareModule, EnvironmentAwareModule {
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
           self.environment);
+    }
+  };
+
+  @SkylarkSignature(name = "destination", returnType = GitDestination.class,
+      doc = "Creates a commit in a git repository using the transformed worktree",
+      parameters = {
+          @Param(name = "self", type = Git.class, doc = "this object"),
+          @Param(name = "url", type = String.class,
+              doc = "Indicates the URL to push to as well as the URL from which to get the parent "
+                  + "commit"),
+          @Param(name = "fetch", type = String.class,
+              doc = "Indicates the ref from which to get the parent commit"),
+          @Param(name = "push", type = String.class,
+              doc = "Reference to use for pushing the change, for example 'master'"),
+      },
+      objectType = Git.class, useLocation = true)
+  public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination") {
+    public GitDestination invoke(Git self, String url, String fetch, String push, Location location)
+        throws EvalException {
+      if (url.isEmpty()) {
+        throw new EvalException(location, "Invalid empty field 'url'.");
+      }
+      if (fetch.isEmpty()) {
+        throw new EvalException(location, "Invalid empty field 'fetch'.");
+      }
+      if (push.isEmpty()) {
+        throw new EvalException(location, "Invalid empty field 'push'.");
+      }
+      return GitDestination.newGitDestination(self.options, url, fetch, push);
     }
   };
 
