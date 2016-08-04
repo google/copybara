@@ -1,9 +1,9 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.config.skylark.SkylarkUtil.checkNotEmpty;
 
 import com.google.copybara.Options;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.skylark.EnvironmentAwareModule;
 import com.google.copybara.config.skylark.OptionsAwareModule;
 import com.google.devtools.build.lib.events.Location;
@@ -114,16 +114,43 @@ public class Git implements OptionsAwareModule, EnvironmentAwareModule {
   public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination") {
     public GitDestination invoke(Git self, String url, String fetch, String push, Location location)
         throws EvalException {
-      if (url.isEmpty()) {
-        throw new EvalException(location, "Invalid empty field 'url'.");
-      }
-      if (fetch.isEmpty()) {
-        throw new EvalException(location, "Invalid empty field 'fetch'.");
-      }
-      if (push.isEmpty()) {
-        throw new EvalException(location, "Invalid empty field 'push'.");
-      }
-      return GitDestination.newGitDestination(self.options, url, fetch, push);
+      return GitDestination.newGitDestination(
+          self.options,
+          checkNotEmpty(url, "url", location),
+          checkNotEmpty(fetch, "fetch", location),
+          checkNotEmpty(push, "push", location));
+    }
+  };
+
+  @SkylarkSignature(name = "gerrit_destination", returnType = GerritDestination.class,
+      doc = "Creates a change in Gerrit using the transformed worktree. If this is used in "
+          + "iterative mode, then each commit pushed in a single Copybara invocation will have the "
+          + "correct commit parent. The reviews generated can then be easily done in the correct "
+          + "order without rebasing.",
+      parameters = {
+          @Param(name = "self", type = Git.class, doc = "this object"),
+          @Param(name = "url", type = String.class,
+              doc = "Indicates the URL to push to as well as the URL from which to get the parent "
+                  + "commit"),
+          @Param(name = "fetch", type = String.class,
+              doc = "Indicates the ref from which to get the parent commit"),
+          @Param(
+              name = "pushToRefsFor", type = String.class, noneable = true, defaultValue = "None",
+              doc = "Review branch to push the change to, for example setting this to 'feature_x'"
+                  + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
+                  + "'fetch' value."),
+      },
+      objectType = Git.class, useLocation = true)
+  public static final BuiltinFunction GERRIT_DESTINATION =
+      new BuiltinFunction("gerrit_destination") {
+    public GerritDestination invoke(
+        Git self, String url, String fetch, Object pushToRefsFor, Location location)
+        throws EvalException {
+      return GerritDestination.newGerritDestination(
+          self.options,
+          checkNotEmpty(url, "url", location),
+          checkNotEmpty(fetch, "fetch", location),
+          Type.STRING.convertOptional(pushToRefsFor, "pushToRefsFor"));
     }
   };
 

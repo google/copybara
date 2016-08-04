@@ -89,6 +89,13 @@ public final class GerritDestination implements Destination {
   }
 
   @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("gitDestination", gitDestination)
+        .toString();
+  }
+
+  @Override
   public Writer newWriter() {
     return gitDestination.newWriter();
   }
@@ -129,39 +136,44 @@ public final class GerritDestination implements Destination {
     public GerritDestination withOptions(Options options, String configName)
         throws ConfigValidationException {
       checkRequiredFields();
-      GeneralOptions generalOptions = options.get(GeneralOptions.class);
-      return new GerritDestination(
-          new GitDestination(
-              url, fetch,
-              "refs/for/" + MoreObjects.firstNonNull(pushToRefsFor, fetch),
-              options.get(GitOptions.class),
-              generalOptions.isVerbose(),
-              new CommitGenerator(options.get(GerritOptions.class)),
-              new GerritProcessPushOutput(generalOptions.console())));
+      return newGerritDestination(options, url, fetch, pushToRefsFor);
+    }
+  }
+
+  static GerritDestination newGerritDestination(
+      Options options, String url, String fetch, String pushToRefsFor) {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    return new GerritDestination(
+        new GitDestination(
+            url, fetch,
+            "refs/for/" + MoreObjects.firstNonNull(pushToRefsFor, fetch),
+            options.get(GitOptions.class),
+            generalOptions.isVerbose(),
+            new CommitGenerator(options.get(GerritOptions.class)),
+            new GerritProcessPushOutput(generalOptions.console())));
+  }
+
+  static class GerritProcessPushOutput extends ProcessPushOutput {
+
+    private static final Pattern GERRIT_URL_LINE = Pattern.compile(
+        ".*: *(http(s)?://[^ ]+)( .*)?");
+    private final Console console;
+
+    GerritProcessPushOutput(Console console) {
+      this.console = console;
     }
 
-    static class GerritProcessPushOutput extends ProcessPushOutput {
-
-      private static final Pattern GERRIT_URL_LINE = Pattern.compile(
-          ".*: *(http(s)?://[^ ]+)( .*)?");
-      private final Console console;
-
-      GerritProcessPushOutput(Console console) {
-        this.console = console;
-      }
-
-      @Override
-      void process(String output) {
-        List<String> lines = Splitter.on("\n").splitToList(output);
-        for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
-          String line = iterator.next();
-          if ((line.contains("New Changes") || line.contains("Updated Changes"))
-              && iterator.hasNext()) {
-            String next = iterator.next();
-            Matcher matcher = GERRIT_URL_LINE.matcher(next);
-            if (matcher.matches()) {
-              console.info("New Gerrit review created at " + matcher.group(1));
-            }
+    @Override
+    void process(String output) {
+      List<String> lines = Splitter.on("\n").splitToList(output);
+      for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
+        String line = iterator.next();
+        if ((line.contains("New Changes") || line.contains("Updated Changes"))
+            && iterator.hasNext()) {
+          String next = iterator.next();
+          Matcher matcher = GERRIT_URL_LINE.matcher(next);
+          if (matcher.matches()) {
+            console.info("New Gerrit review created at " + matcher.group(1));
           }
         }
       }

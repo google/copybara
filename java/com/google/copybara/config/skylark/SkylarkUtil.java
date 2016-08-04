@@ -44,4 +44,15 @@ public final class SkylarkUtil {
               Joiner.on(", ").join(enumType.getEnumConstants())));
     }
   }
+
+  /**
+   * Checks that a mandatory string field is not empty.
+   */
+  public static String checkNotEmpty(String value, String name, Location location)
+      throws EvalException {
+    if (value.isEmpty()) {
+      throw new EvalException(location, String.format("Invalid empty field '%s'.", name));
+    }
+    return value;
+  }
 }

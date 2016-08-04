@@ -4,7 +4,6 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
@@ -86,7 +85,7 @@ public class GitDestinationTest {
         + "    fetch = 'master',\n"
         + "    push = 'master',\n"
         + ")",
-        "url");
+        "missing mandatory positional argument 'url'");
   }
 
   @Test
@@ -96,7 +95,7 @@ public class GitDestinationTest {
             + "    url = 'file:///foo',\n"
             + "    push = 'master',\n"
             + ")",
-        "fetch");
+        "missing mandatory positional argument 'fetch'");
   }
 
   @Test
@@ -106,7 +105,7 @@ public class GitDestinationTest {
             + "    url = 'file:///foo',\n"
             + "    fetch = 'master',\n"
             + ")",
-        "push");
+        "missing mandatory positional argument 'push'");
   }
 
   private GitDestination destinationFirstCommit()

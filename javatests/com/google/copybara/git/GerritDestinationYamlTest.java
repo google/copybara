@@ -4,27 +4,23 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.git.GerritDestination.Yaml;
 import com.google.copybara.git.GerritDestination.GerritProcessPushOutput;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
-import com.google.copybara.util.console.testing.TestingConsole;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,37 +28,41 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class GerritDestinationTest {
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-  private String url;
-  private String fetch;
-  private String pushToRefsFor;
+@RunWith(JUnit4.class)
+public class GerritDestinationYamlTest {
+
+  private static final String CONFIG_NAME = "copybara_project";
+
+  private Yaml yaml;
   private Path repoGitDir;
   private Path workdir;
   private OptionsBuilder options;
-  private TestingConsole console;
+  private Console console;
   private ImmutableList<String> excludedDestinationPaths;
-  private SkylarkTestExecutor skylark;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws Exception {
+    yaml = new Yaml();
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
+    yaml.setUrl("file://" + repoGitDir);
     git("init", "--bare", repoGitDir.toString());
 
     options = new OptionsBuilder();
     options.git.gitCommitterEmail = "commiter@email";
     options.git.gitCommitterName = "Bara Kopi";
-    console = new TestingConsole();
-    options.setConsole(console);
+    console = options.general.console();
     excludedDestinationPaths = ImmutableList.of();
-
-    url = "file://" + repoGitDir;
-    skylark = new SkylarkTestExecutor(options, Git.class);
   }
 
   private GitRepository repo() {
@@ -77,19 +77,7 @@ public class GerritDestinationTest {
   }
 
   private GerritDestination destination() throws ConfigValidationException {
-    if (pushToRefsFor == null) {
-      return skylark.eval("result",
-          String.format("result = git.gerrit_destination(\n"
-              + "    url = '%s',\n"
-              + "    fetch = '%s',\n"
-              + ")", url, fetch));
-    }
-    return skylark.eval("result",
-        String.format("result = git.gerrit_destination(\n"
-            + "    url = '%s',\n"
-            + "    fetch = '%s',\n"
-            + "    pushToRefsFor = '%s',\n"
-            + ")", url, fetch, pushToRefsFor));
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private String lastCommitChangeIdLine() throws Exception {
@@ -116,7 +104,7 @@ public class GerritDestinationTest {
 
   @Test
   public void gerritChangeIdChangesBetweenCommits() throws Exception {
-    fetch = "master";
+    yaml.setFetch("master");
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
     options.git.gitFirstCommit = true;
@@ -135,7 +123,7 @@ public class GerritDestinationTest {
 
   @Test
   public void specifyChangeId() throws Exception {
-    fetch = "master";
+    yaml.setFetch("master");
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
 
@@ -160,7 +148,7 @@ public class GerritDestinationTest {
 
   @Test
   public void writesOriginTimestampToAuthorField() throws Exception {
-    fetch = "master";
+    yaml.setFetch("master");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
@@ -177,20 +165,20 @@ public class GerritDestinationTest {
 
   @Test
   public void validationErrorForMissingPullFromRef() throws Exception {
-    skylark.evalFails(
-        "git.gerrit_destination(\n"
-            + "    url = 'file:///foo',\n"
-            + ")",
-        "missing mandatory positional argument 'fetch'");
+    yaml = new Yaml();
+    yaml.setUrl("file:///foo");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'fetch'");
+    destination();
   }
 
   @Test
   public void validationErrorForMissingUrl() throws Exception {
-    skylark.evalFails(
-        "git.gerrit_destination(\n"
-            + "    fetch = 'master',\n"
-            + ")",
-        "missing mandatory positional argument 'url'");
+    yaml = new Yaml();
+    yaml.setFetch("master");
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'url'");
+    destination();
   }
 
   @Test
@@ -222,8 +210,8 @@ public class GerritDestinationTest {
 
   @Test
   public void testPushToNonDefaultRef() throws Exception {
-    fetch = "master";
-    pushToRefsFor = "testPushToRef";
+    yaml.setFetch("master");
+    yaml.setPushToRefsFor("testPushToRef");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
     process(new DummyReference("origin_ref"));
@@ -235,7 +223,7 @@ public class GerritDestinationTest {
 
   @Test
   public void testPushToNonMasterDefaultRef() throws Exception {
-    fetch = "fooze";
+    yaml.setFetch("fooze");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.git.gitFirstCommit = true;
     process(new DummyReference("origin_ref"));
@@ -247,7 +235,7 @@ public class GerritDestinationTest {
 
   @Test
   public void canExcludeDestinationPathFromWorkflow() throws Exception {
-    fetch = "master";
+    yaml.setFetch("master");
 
     Path scratchWorkTree = Files.createTempDirectory("GitDestinationTest-scratchWorkTree");
     Files.write(scratchWorkTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
