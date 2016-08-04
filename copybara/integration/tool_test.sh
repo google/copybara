@@ -62,8 +62,7 @@ function check_copybara_rev_id() {
    )
 }
 
-# TODO(team): skylark
-function DISABLED_test_git_tracking() {
+function test_git_tracking() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -100,8 +99,8 @@ core.workflow(
       core.replace(
         before = "f\${os}o",
         after = "bar\${os}",
-        regexGroups = {
-          os: "o+"
+        regex_groups = {
+          "os" : "o+"
         },
       )
     ],
@@ -219,8 +218,7 @@ function single_file_commit() {
   git rev-parse HEAD
 }
 
-# TODO(team): skylark
-function DISABLED_test_get_git_changes() {
+function test_get_git_changes() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -248,7 +246,7 @@ core.workflow(
       push = "master",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    include_change_list_notes: true,
+    include_changelist_notes = True,
 )
 EOF
 
@@ -545,8 +543,7 @@ EOF
   )
 }
 
-#TODO(team): skylark
-function DISABLED_test_local_dir_destination() {
+function test_local_dir_destination() {
   remote=$(temp_dir remote)
 
   ( cd $remote
@@ -559,6 +556,8 @@ function DISABLED_test_local_dir_destination() {
   mkdir destination
 
   cat > destination/copybara.bzl <<EOF
+core.project(name = "cbtest")
+
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -585,8 +584,7 @@ EOF
   [[ ! -f destination/dontkeep.txt ]] || fail "dontkeep.txt should be deleted"
 }
 
-#TODO(team): skylark
-function DISABLED_test_choose_non_default_workflow() {
+function test_choose_non_default_workflow() {
   remote=$(temp_dir remote)
 
   ( cd $remote
@@ -618,7 +616,7 @@ core.workflow(
     ),
     destination = folder.destination(),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    transforms = [core.replace('foo', 'bar')]
+    transformations = [core.replace("foo", "bar")]
 )
 EOF
 
