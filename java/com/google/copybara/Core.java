@@ -214,7 +214,8 @@ public class Core implements OptionsAwareModule {
           origin,
           destination,
           authoring,
-          Sequence.createSequence(ImmutableList.copyOf(transformations)),
+          Sequence.createSequence(ImmutableList.copyOf(
+              transformations.getContents(Transformation.class, "transformations"))),
           self.workflowOptions.getLastRevision(),
           self.generalOptions.console(),
           convertFromNoneable(excludeInOrigin, PathMatcherBuilder.EMPTY),

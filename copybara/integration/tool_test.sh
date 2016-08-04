@@ -662,8 +662,7 @@ EOF
   [[ ! -z destination/test2.txt ]] || fail "test2.txt should have been moved"
 }
 
-# TODO(malcon): The transformations are not validated in Core
-function DISABLED_test_invalid_transformations_in_config() {
+function test_invalid_transformations_in_config() {
   cat > copybara.bzl <<EOF
 core.project(name = "cbtest-invalid-xform")
 
@@ -679,7 +678,7 @@ core.workflow(
 )
 EOF
   copybara copybara.bzl default && fail "Should fail"
-  expect_log "sequence field 'transformations' expects elements of type 'Transformation', but transformations\[0\] is of type 'integer' (value = 42)"
+  expect_log "expected type transformation for 'transformations' element but got type int instead"
 }
 
 function test_command_help_flag() {
