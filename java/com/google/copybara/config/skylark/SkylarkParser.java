@@ -120,7 +120,7 @@ public class SkylarkParser {
     com.google.devtools.build.lib.vfs.Path config = fs.getPath("/config.bzl");
     FileSystemUtils.writeIsoLatin1(config, content);
 
-    return BuildFileAST.parseSkylarkFile(config, eventHandler, validationEnvironment);
+    return BuildFileAST.parseSkylarkFile(config, eventHandler);
   }
 
   /**
