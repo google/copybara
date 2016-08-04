@@ -13,6 +13,7 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.skylark.OptionsAwareModule;
 import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -143,6 +144,7 @@ public class FolderDestination implements Destination {
             @Param(name = "self", type = Module.class, doc = "this object"),
         },
         objectType = Module.class, useLocation = true, useEnvironment = true)
+    @UsesFlags(FolderDestinationOptions.class)
     public static final BuiltinFunction destination = new BuiltinFunction(DESTINATION_VAR) {
       public Destination invoke(Module self, Location location, Environment env)
           throws EvalException {

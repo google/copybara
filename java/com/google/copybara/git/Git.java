@@ -6,6 +6,7 @@ import static com.google.copybara.config.skylark.SkylarkUtil.checkNotEmpty;
 import com.google.copybara.Options;
 import com.google.copybara.config.skylark.EnvironmentAwareModule;
 import com.google.copybara.config.skylark.OptionsAwareModule;
+import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -14,9 +15,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Type;
-
 import java.util.Map;
-
 import javax.annotation.Nullable;
 
 /**
@@ -26,6 +25,7 @@ import javax.annotation.Nullable;
     name = "git",
     doc = "Set of functions to define Git origins and destinations.",
     category = SkylarkModuleCategory.BUILTIN)
+@UsesFlags(GitOptions.class)
 public class Git implements OptionsAwareModule, EnvironmentAwareModule {
 
   private Options options;

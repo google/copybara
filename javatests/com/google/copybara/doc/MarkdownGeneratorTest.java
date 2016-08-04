@@ -14,6 +14,7 @@ import com.google.copybara.doc.annotations.DocField;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.copybara.doc.yaml.YamlMarkdownGenerator;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.file.JavacFileManager;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
@@ -46,7 +47,7 @@ public class MarkdownGeneratorTest {
   @Before
   public void setup() throws IOException {
     tempDir = Files.createTempDir();
-    MarkdownGenerator markdownGenerator = new MarkdownGenerator();
+    YamlMarkdownGenerator markdownGenerator = new YamlMarkdownGenerator();
     Context context = new Context();
     // Magic happens here. It autoregisters in context.
     JavacFileManager jfm = new JavacFileManager(context, /*register=*/true, StandardCharsets.UTF_8);

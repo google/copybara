@@ -9,6 +9,7 @@ import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.config.skylark.OptionsAwareModule;
+import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
@@ -49,6 +50,7 @@ import java.util.Map;
     name = Core.CORE_VAR,
     doc = "Core functionality for creating workflows, and basic transformations.",
     category = SkylarkModuleCategory.BUILTIN)
+@UsesFlags(GeneralOptions.class)
 public class Core implements OptionsAwareModule {
 
   public static final String CORE_VAR = "core";
@@ -195,6 +197,7 @@ public class Core implements OptionsAwareModule {
               defaultValue = "False", positional = false),
       },
       objectType = Core.class, useLocation = true)
+  @UsesFlags({WorkflowOptions.class, TransformOptions.class})
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow",
       ImmutableList.of(
           MutableList.EMPTY,

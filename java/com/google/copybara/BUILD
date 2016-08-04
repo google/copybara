@@ -4,7 +4,7 @@ licenses(["unencumbered"])  # Owned by Google. No external contributions
 
 package(default_visibility = ["//visibility:public"])
 
-load(":docs.bzl", "doc_generator")
+load(":docs.bzl", "doc_generator", "skylark_doc_generator")
 
 export_files = [
     "doc.sh",
@@ -26,6 +26,11 @@ java_binary(
 )
 
 doc_generator(
+    name = "yaml_docs",
+    deps = [":copybara"],
+)
+
+skylark_doc_generator(
     name = "docs",
     deps = [":copybara"],
 )

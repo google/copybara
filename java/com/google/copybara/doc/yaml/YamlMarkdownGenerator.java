@@ -1,5 +1,5 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
-package com.google.copybara.doc;
+package com.google.copybara.doc.yaml;
 
 import com.google.auto.common.BasicAnnotationProcessor;
 import com.google.common.base.Joiner;
@@ -44,7 +44,7 @@ import javax.tools.StandardLocation;
  * Reads classes annotated with {@link DocElement} or {@link DocField} and generates Markdown
  * documentation.
  */
-public class MarkdownGenerator extends BasicAnnotationProcessor {
+public class YamlMarkdownGenerator extends BasicAnnotationProcessor {
 
   /**
    * Elements that doesn't make sense to have a h2 header since they are unique.
