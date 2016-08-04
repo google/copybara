@@ -87,8 +87,7 @@ public class Core implements OptionsAwareModule {
           @Param(name = "exclude", type = SkylarkList.class,
               generic1 = String.class, doc = "The list of glob patterns to exclude",
               defaultValue = "[]"),
-      },
-      objectType = Object.class)
+      })
   public static final BuiltinFunction GLOB = new BuiltinFunction("glob") {
     public PathMatcherBuilder invoke(SkylarkList include, SkylarkList exclude)
         throws EvalException, ConfigValidationException {
@@ -164,13 +163,13 @@ public class Core implements OptionsAwareModule {
               doc = "A globs relative to the workdir that will be excluded from the"
                   + " origin during the import. For example \"**.java\", all java files,"
                   + " recursively.",
-              defaultValue = "None", noneable = true, positional = false),
+              defaultValue = "glob([])", positional = false),
           @Param(name = "exclude_in_destination", type = PathMatcherBuilder.class,
               doc = "A glob relative to the root of the destination"
                   + " repository that will not be removed even if the file does not"
                   + " exist in the source. For example '**/BUILD', all BUILD files,"
                   + " recursively.",
-              defaultValue = "None", noneable = true, positional = false),
+              defaultValue = "glob([])", positional = false),
           @Param(name = "mode", type = String.class, doc = ""
               + "Workflow mode. Currently we support three modes:<br>"
               + "<ul>"
@@ -188,19 +187,29 @@ public class Core implements OptionsAwareModule {
               doc = "Indicates if the tool should try to to reverse all the transformations"
                   + " at the end to check that they are reversible.<br/>The default value is"
                   + " True for CHANGE_REQUEST mode. False otherwise",
-              defaultValue = "None", noneable = true, positional = false),
+              defaultValue = "True for CHANGE_REQUEST mode. False otherwise",
+              noneable = true, positional = false),
           @Param(name = "ask_for_confirmation", type = Boolean.class,
               doc = "Indicates that the tool should show the diff and require user's"
                   + " confirmation before making a change in the destination.",
               defaultValue = "False", positional = false),
       },
       objectType = Core.class, useLocation = true)
-  public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow") {
+  public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow",
+      ImmutableList.of(
+          MutableList.EMPTY,
+          PathMatcherBuilder.EMPTY,
+          PathMatcherBuilder.EMPTY,
+          "SQUASH",
+          false,
+          Runtime.NONE,
+          false
+      )) {
     public NoneType invoke(Core self, String workflowName,
         Origin<Reference> origin, Destination destination, Authoring authoring,
         SkylarkList<Transformation> transformations,
-        Object excludeInOrigin,
-        Object excludeInDestination,
+        PathMatcherBuilder excludeInOrigin,
+        PathMatcherBuilder excludeInDestination,
         String modeStr,
         Boolean includeChangelistNotes,
         Object reversibleCheckObj,
@@ -218,8 +227,8 @@ public class Core implements OptionsAwareModule {
               transformations.getContents(Transformation.class, "transformations"))),
           self.workflowOptions.getLastRevision(),
           self.generalOptions.console(),
-          convertFromNoneable(excludeInOrigin, PathMatcherBuilder.EMPTY),
-          convertFromNoneable(excludeInDestination, PathMatcherBuilder.EMPTY),
+          excludeInOrigin,
+          excludeInDestination,
           mode,
           includeChangelistNotes,
           self.workflowOptions,
@@ -274,21 +283,27 @@ public class Core implements OptionsAwareModule {
               doc = "A glob expression relative to the workdir representing the files to apply"
                   + " the transformation. For example, glob([\"**.java\"]), matches all java files"
                   + " recursively. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
+              defaultValue = "glob([\"**\"])"),
           @Param(name = "multiline", type = Boolean.class,
               doc = "Whether to replace text that spans more than one line.",
               defaultValue = "False"),
       },
       objectType = Core.class, useLocation = true)
-  public static final BuiltinFunction REPLACE = new BuiltinFunction("replace") {
+  public static final BuiltinFunction REPLACE = new BuiltinFunction("replace",
+      ImmutableList.of(
+          SkylarkDict.empty(),
+          PathMatcherBuilder.ALL_FILES,
+          false
+      )) {
     public Replace invoke(Core self, String before, String after,
-        SkylarkDict<String, String> regexes, Object paths, Boolean multiline, Location location)
+        SkylarkDict<String, String> regexes, PathMatcherBuilder paths, Boolean multiline,
+        Location location)
         throws EvalException {
       return Replace.create(location,
           before,
           after,
           Type.STRING_DICT.convert(regexes, "regex_groups"),
-          convertFromNoneable(paths, PathMatcherBuilder.ALL_FILES),
+          paths,
           multiline,
           self.transformOptions);
     }

@@ -32,15 +32,12 @@ public final class PathMatcherBuilder {
     this.exclude = exclude;
   }
 
-  /**
-   * Generates matchers that do not match any paths (i.e. return {@code false} for all paths).
-   */
-  public static final PathMatcherBuilder EMPTY = new PathMatcherBuilder(ImmutableList.<String>of(),
-      ImmutableList.<String>of());
+  /** Generates matchers that do not match any paths (i.e. return {@code false} for all paths). */
+  public static final PathMatcherBuilder EMPTY =
+      createUnvalidated(ImmutableList.<String>of(), ImmutableList.<String>of());
 
-  public static final PathMatcherBuilder ALL_FILES = new PathMatcherBuilder(
-      ImmutableList.of("**"),
-      ImmutableList.<String>of());
+  public static final PathMatcherBuilder ALL_FILES =
+      createUnvalidated(ImmutableList.of("**"), ImmutableList.<String>of());
 
   /**
    * Creates a function {@link PathMatcherBuilder} that when a {@link Path} is passed it returns a
@@ -72,6 +69,15 @@ public final class PathMatcherBuilder {
           includeCopy, excludeCopy, e.getMessage()), e);
     }
 
+    return createUnvalidated(includeCopy, excludeCopy);
+  }
+
+  /**
+   * Create a {@link PathMatcherBuilder} without validating the paths. Should only be used for
+   * hardcoded, known to work machers. Never for configuration or user input.
+   */
+  public static PathMatcherBuilder createUnvalidated(
+      ImmutableList<String> includeCopy, ImmutableList<String> excludeCopy) {
     return new PathMatcherBuilder(includeCopy, excludeCopy);
   }
 
