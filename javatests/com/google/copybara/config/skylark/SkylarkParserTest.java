@@ -123,6 +123,37 @@ public class SkylarkParserTest {
   }
 
   @Test
+  public void testTransformsAreOptional()
+      throws IOException, ConfigValidationException, EnvironmentException {
+    String configContent = ""
+        + "core.project(\n"
+        + "  name = 'mytest',\n"
+        + ")\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "   name = 'foo',\n"
+        + "   origin = mock.origin(\n"
+        + "      url = 'some_url',\n"
+        + "      branch = 'master',\n"
+        + "   ),\n"
+        + "   destination = mock.destination(\n"
+        + "      folder = 'some folder'\n"
+        + "   ),\n"
+        + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
+        + ")\n";
+
+    options.setWorkflowName("foo");
+    Config config = parser.loadConfig(configContent, options.build());
+
+    assertThat(config.getName()).isEqualTo("mytest");
+    Transformation transformation = config.getActiveWorkflow().transformation();
+    assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
+    ImmutableList<? extends Transformation> transformations =
+        ((Sequence) transformation).getSequence();
+    assertThat(transformations).isEmpty();
+  }
+
+  @Test
   public void testGenericOfSimpleTypes()
       throws IOException, ConfigValidationException, EnvironmentException {
     String configContent = ""

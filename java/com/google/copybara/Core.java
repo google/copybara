@@ -158,7 +158,8 @@ public class Core implements OptionsAwareModule {
               positional = false),
           @Param(name = "transformations", type = SkylarkList.class,
               generic1 = Transformation.class,
-              doc = "Where to read the migration code from.", positional = false),
+              doc = "Where to read the migration code from.", positional = false,
+              defaultValue = "[]"),
           @Param(name = "exclude_in_origin", type = PathMatcherBuilder.class,
               doc = "A globs relative to the workdir that will be excluded from the"
                   + " origin during the import. For example \"**.java\", all java files,"
