@@ -29,13 +29,11 @@ import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
 import com.google.devtools.build.lib.syntax.ValidationEnvironment;
 import com.google.devtools.build.lib.vfs.FileSystemUtils;
 import com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.annotation.Nullable;
 
 /**
@@ -56,10 +54,13 @@ public class SkylarkParser {
 
     // Register module functions
     for (Class<?> module : this.modules) {
-      logger.log(Level.INFO, "Registering module " + module.getName());
       // This method should be only called once for VM or at least not concurrently,
       // since it registers functions in an static HashMap.
-      SkylarkSignatureProcessor.configureSkylarkFunctions(module);
+      try {
+        SkylarkSignatureProcessor.configureSkylarkFunctions(module);
+      } catch (Exception e) {
+        throw new RuntimeException("Cannot register module " + module.getName(), e);
+      }
     }
   }
 
