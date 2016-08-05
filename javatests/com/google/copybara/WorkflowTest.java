@@ -41,6 +41,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+// TODO(malcon): Migrate this to Skylark
 @RunWith(JUnit4.class)
 public class WorkflowTest {
 
@@ -66,6 +67,7 @@ public class WorkflowTest {
   private ImmutableList<Transformation.Yaml> transformations =
       ImmutableList.<Transformation.Yaml>of(replace);
   private Path workdir;
+  private boolean includeReleaseNotes = false;
 
   @Before
   public void setup() throws IOException, ConfigValidationException {
@@ -90,6 +92,7 @@ public class WorkflowTest {
     yaml.setDestination(destination);
     yaml.setTransformations(transformations);
     yaml.setAuthoring(authoring.build());
+    yaml.setIncludeChangeListNotes(includeReleaseNotes);
     origin.addSimpleChange(/*timestamp*/ 42);
     return yaml.withOptions(options.build(), CONFIG_NAME);
   }
@@ -299,14 +302,22 @@ public class WorkflowTest {
 
   @Test
   public void usesDefaultAuthorForSquash() throws Exception {
-    // Squash always sets the default author
-    authoring.setMode(AuthoringMappingMode.PASS_THRU);
-    Workflow workflow = workflow();
+    // Squash always sets the default author for the commit but not in the release notes
+    authoring.setMode(AuthoringMappingMode.USE_DEFAULT);
+
     origin.addSimpleChange(/*timestamp*/ 1);
+    options.workflowOptions.lastRevision = origin.getHead();
+    origin.addSimpleChange(/*timestamp*/ 2);
+    origin.addSimpleChange(/*timestamp*/ 3);
+    includeReleaseNotes = true;
+
+    Workflow workflow = workflow();
+
     workflow.run(workdir, origin.getHead());
     assertThat(destination.processed).hasSize(1);
-    assertThat(Iterables.getOnlyElement(destination.processed).getAuthor())
-        .isEqualTo(DEFAULT_AUTHOR);
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary()).contains(DEFAULT_AUTHOR.toString());
+    assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
   @Test

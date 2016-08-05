@@ -347,5 +347,14 @@ public final class GitOrigin implements Origin<GitReference> {
     public Author resolve() {
       return author;
     }
+
+    /**
+     * WARNING: Do not change or override this method since we could leak
+     * non white-listed authors.
+     */
+    @Override
+    public final String toString() {
+      return super.toString() ;
+    }
   }
 }
