@@ -1,8 +1,8 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -12,7 +12,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import javax.annotation.Nullable;
 
 /**
  * Transformation the moves (renames) a single file or directory.
@@ -37,6 +36,14 @@ public class Move implements Transformation {
         validatePath(location, after),
         transformOptions);
   }
+
+  @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("before", before)
+          .add("after", after)
+          .toString();
+    }
 
   @Override
   public void transform(Path workdir, Console console) throws IOException, ValidationException {

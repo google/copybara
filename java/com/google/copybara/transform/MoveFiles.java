@@ -1,6 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
@@ -29,6 +30,13 @@ public class MoveFiles implements Transformation {
   private MoveFiles(List<MoveElement> paths, TransformOptions transformOptions) {
     this.paths = ImmutableList.copyOf(paths);
     this.transformOptions = Preconditions.checkNotNull(transformOptions);
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("paths", paths)
+        .toString();
   }
 
   @Override
