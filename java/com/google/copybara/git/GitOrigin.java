@@ -34,7 +34,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
@@ -318,12 +317,12 @@ public final class GitOrigin implements Origin<GitReference> {
   /**
    * An enhanced version of Change that contains the git parents.
    */
-  private class GitChange {
+  private static class GitChange {
 
     private final Change<GitReference> change;
     private final ImmutableList<GitReference> parents;
 
-    public GitChange(Change<GitReference> change, ImmutableList<GitReference> parents) {
+    GitChange(Change<GitReference> change, ImmutableList<GitReference> parents) {
       this.change = change;
       this.parents = parents;
     }

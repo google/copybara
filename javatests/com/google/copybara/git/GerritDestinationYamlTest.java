@@ -4,7 +4,6 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.WriterResult;
@@ -20,17 +19,16 @@ import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -106,13 +104,13 @@ public class GerritDestinationYamlTest {
   public void gerritChangeIdChangesBetweenCommits() throws Exception {
     yaml.setFetch("master");
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    Files.write(workdir.resolve("file"), "some content".getBytes(UTF_8));
     options.git.gitFirstCommit = true;
     process(new DummyReference("origin_ref"));
 
     String firstChangeIdLine = lastCommitChangeIdLine();
 
-    Files.write(workdir.resolve("file2"), "some more content".getBytes());
+    Files.write(workdir.resolve("file2"), "some more content".getBytes(UTF_8));
     git("branch", "master", "refs/for/master");
     options.git.gitFirstCommit = false;
     process(new DummyReference("origin_ref"));
@@ -125,7 +123,7 @@ public class GerritDestinationYamlTest {
   public void specifyChangeId() throws Exception {
     yaml.setFetch("master");
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    Files.write(workdir.resolve("file"), "some content".getBytes(UTF_8));
 
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
     options.git.gitFirstCommit = true;
@@ -136,7 +134,7 @@ public class GerritDestinationYamlTest {
 
     git("branch", "master", "refs/for/master");
 
-    Files.write(workdir.resolve("file"), "some different content".getBytes());
+    Files.write(workdir.resolve("file"), "some different content".getBytes(UTF_8));
 
     changeId = "Ibbbbbbbbbbccccccccccddddddddddeeeeeeeeee";
     options.git.gitFirstCommit = false;
@@ -150,14 +148,14 @@ public class GerritDestinationYamlTest {
   public void writesOriginTimestampToAuthorField() throws Exception {
     yaml.setFetch("master");
 
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
     options.git.gitFirstCommit = true;
     process(new DummyReference("first_commit").withTimestamp(355558888));
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 355558888);
 
     git("branch", "master", "refs/for/master");
 
-    Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
+    Files.write(workdir.resolve("test2.txt"), "some more content".getBytes(UTF_8));
     options.git.gitFirstCommit = false;
     process(new DummyReference("first_commit").withTimestamp(424242420));
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 424242420);
@@ -212,7 +210,7 @@ public class GerritDestinationYamlTest {
   public void testPushToNonDefaultRef() throws Exception {
     yaml.setFetch("master");
     yaml.setPushToRefsFor("testPushToRef");
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
     options.git.gitFirstCommit = true;
     process(new DummyReference("origin_ref"));
 
@@ -224,7 +222,7 @@ public class GerritDestinationYamlTest {
   @Test
   public void testPushToNonMasterDefaultRef() throws Exception {
     yaml.setFetch("fooze");
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
     options.git.gitFirstCommit = true;
     process(new DummyReference("origin_ref"));
 
