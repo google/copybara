@@ -2,6 +2,7 @@
 package com.google.copybara;
 
 import com.google.auto.value.AutoValue;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
@@ -71,6 +72,28 @@ public abstract class Workflow<R extends Origin.Reference> {
   abstract boolean reversibleCheck();
   abstract boolean verbose();
   abstract boolean askForConfirmation();
+
+  /**
+   * Overrides Autovalue {@code toString()}, filtering the fields that are not part of the
+   * configuration: Console is not part of the config, configName is in the parent, and
+   * lastRevisionFlag is a command-line flag.
+   */
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("name", name())
+        .add("origin", origin())
+        .add("destination", destination())
+        .add("authoring", authoring())
+        .add("transformation", transformation())
+        .add("excludedOriginPaths", excludedOriginPaths())
+        .add("excludedDestinationPaths", excludedDestinationPaths())
+        .add("mode", mode())
+        .add("includeChangeListNotes", includeChangeListNotes())
+        .add("reversibleCheck", reversibleCheck())
+        .add("askForConfirmation", askForConfirmation())
+        .toString();
+  }
 
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, EnvironmentException, ValidationException {
