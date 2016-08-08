@@ -51,6 +51,14 @@ public class Main {
     // We need a console before parsing the args because it could fail with wrong
     // arguments and we need to show the error.
     Console console = getConsole(args);
+    // Configure logs location correctly before anything else. We want to write to the
+    // correct location in case of any error.
+    FileSystem fs = FileSystems.getDefault();
+    try {
+      configureLog(fs);
+    } catch (IOException e) {
+      handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
+    }
     console.startupMessage();
 
     Copybara copybara = newCopybaraTool();
@@ -66,9 +74,8 @@ public class Main {
     jcommander.setProgramName("copybara");
 
     String version = copybara.getVersion();
-    FileSystem fs = FileSystems.getDefault();
+
     try {
-      configureLog(fs);
       logger.log(Level.INFO, "Copybara version: " + version);
       jcommander.parse(args);
       if (mainArgs.help) {
@@ -164,7 +171,7 @@ public class Main {
     return new AnsiConsole(System.in, System.err);
   }
 
-  private void configureLog(FileSystem fs) throws IOException {
+  protected void configureLog(FileSystem fs) throws IOException {
     String baseDir = getBaseExecDir();
     Files.createDirectories(fs.getPath(baseDir));
     if (System.getProperty("java.util.logging.config.file") == null) {
