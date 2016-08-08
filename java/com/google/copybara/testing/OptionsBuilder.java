@@ -11,6 +11,7 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
@@ -34,6 +35,8 @@ public class OptionsBuilder {
   public TransformOptions transform = new TransformOptions();
   public WorkflowOptions workflowOptions = new WorkflowOptions(
       /*changeBaseline=*/null, /*lastRevision=*/ null, "default");
+
+  public TestingOptions testingOptions = new TestingOptions();
 
   public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
     general = new GeneralOptions(FileSystems.getDefault(), /*verbose=*/true,
@@ -77,7 +80,8 @@ public class OptionsBuilder {
    * child classes, in which case it should also include the superclass' instances.
    */
   protected Iterable<Option> allOptions() {
-    return ImmutableList.of(general, localDestination, git, gerrit, transform, workflowOptions);
+    return ImmutableList
+        .of(general, localDestination, git, gerrit, transform, workflowOptions, testingOptions);
   }
 
   public final Options build() {

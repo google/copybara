@@ -6,24 +6,26 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.OriginalAuthor;
+import com.google.copybara.Workflow.Yaml;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
-import com.google.copybara.config.skylark.SkylarkParser;
+import com.google.copybara.testing.AuthoringYamlBuilder;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
-import com.google.copybara.testing.TestingModule;
+import com.google.copybara.transform.Replace;
+import com.google.copybara.transform.Transformation;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.copybara.util.console.testing.TestingConsole.Message;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -41,8 +43,9 @@ import org.junit.runners.JUnit4;
 
 // TODO(malcon): Migrate this to Skylark
 @RunWith(JUnit4.class)
-public class WorkflowTest {
+public class WorkflowYamlTest {
 
+  private static final String CONFIG_NAME = "copybara_project";
   private static final String PREFIX = "TRANSFORMED";
   private static final OriginalAuthor ORIGINAL_AUTHOR =
       new DummyOriginalAuthor("Foo Bar", "foo@bar.com");
@@ -51,91 +54,82 @@ public class WorkflowTest {
       new DummyOriginalAuthor("Secret Coder", "secret@coder.com");
   private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
 
+  private Yaml yaml;
   private DummyOrigin origin;
   private RecordsProcessCallDestination destination;
   private OptionsBuilder options;
-  private String authoring;
+  private Replace.Yaml replace = new Replace.Yaml();
+  private AuthoringYamlBuilder authoring;
   private TestingConsole console;
-  private SkylarkParser skylark;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-  private String transformations;
+  private ImmutableList<Transformation.Yaml> transformations =
+      ImmutableList.<Transformation.Yaml>of(replace);
   private Path workdir;
-  private boolean includeReleaseNotes;
-  private String excludedInOrigin;
-  private String excludedInDestination;
+  private boolean includeReleaseNotes = false;
 
   @Before
   public void setup() throws IOException, ConfigValidationException {
+    yaml = new Yaml();
     options = new OptionsBuilder();
-    authoring = "authoring.overwrite('" + DEFAULT_AUTHOR + "')";
-    includeReleaseNotes = false;
+    authoring = new AuthoringYamlBuilder();
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
-    origin = new DummyOrigin().setOriginalAuthor(ORIGINAL_AUTHOR);
-    excludedInOrigin = "glob([])";
-    excludedInDestination = "glob([])";
+    origin = new DummyOrigin()
+        .setOriginalAuthor(ORIGINAL_AUTHOR);
     destination = new RecordsProcessCallDestination();
-    transformations = "[\n"
-        + "        core.replace(\n"
-        + "             before = '${linestart}${number}',\n"
-        + "             after = '${linestart}" + PREFIX + "${number}',\n"
-        + "             regex_groups = {\n"
-        + "                 'number'    : '[0-9]+',\n"
-        + "                 'linestart' : '^',\n"
-        + "             },\n"
-        + "             multiline = True,"
-        + "        ),\n"
-        + "    ]";
+    replace.setBefore("${linestart}${number}");
+    replace.setAfter("${linestart}" + PREFIX + "${number}");
+    replace.setRegexGroups(ImmutableMap.of("number", "[0-9]+", "linestart", "^"));
+    replace.setMultiline(true);
     console = new TestingConsole();
     options.setConsole(console);
-    options.testingOptions.origin = origin;
-    options.testingOptions.destination = destination;
-    skylark = new SkylarkParser(ImmutableSet.<Class<?>>of(TestingModule.class));
   }
 
   private Workflow workflow() throws ConfigValidationException, IOException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring.build());
+    yaml.setIncludeChangeListNotes(includeReleaseNotes);
     origin.addSimpleChange(/*timestamp*/ 42);
-    return skylarkWorkflow("default", WorkflowMode.SQUASH);
-  }
-
-  private Workflow skylarkWorkflow(String name, WorkflowMode mode)
-      throws IOException, ConfigValidationException, EnvironmentException {
-    String config = ""
-        + "core.project( name = 'copybara_project')\n"
-        + "core.workflow(\n"
-        + "    name = '" + name + "',\n"
-        + "    origin = testing.origin(),\n"
-        + "    destination = testing.destination(),\n"
-        + "    exclude_in_origin = " + excludedInOrigin + ",\n"
-        + "    exclude_in_destination = " + excludedInDestination + ",\n"
-        + "    transformations = " + transformations + ",\n"
-        + "    authoring = " + authoring + ",\n"
-        + "    include_changelist_notes = " + (includeReleaseNotes ? "True" : "False") + ",\n"
-        + "    mode = '" + mode + "',\n"
-        + ")\n";
-    System.err.println(config);
-    return skylark.loadConfig(config, options.build()).getActiveWorkflow();
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
-      throws ConfigValidationException, EnvironmentException, IOException {
-    return iterativeWorkflow(previousRef, options.general.console());
+      throws ConfigValidationException, EnvironmentException {
+    return iterativeWorkflow(previousRef, destination, options.general.console());
   }
 
-  private Workflow iterativeWorkflow(@Nullable String previousRef, Console console)
-      throws ConfigValidationException, EnvironmentException, IOException {
+  private Workflow iterativeWorkflow(
+      @Nullable String previousRef, Destination.Yaml destination, Console console)
+      throws ConfigValidationException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.ITERATIVE);
+    yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring.build());
     options.workflowOptions.lastRevision = previousRef;
     options.general = new GeneralOptions(
         options.general.getFileSystem(), options.general.isVerbose(), console);
-    return skylarkWorkflow("default", WorkflowMode.ITERATIVE);
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   private Workflow changeRequestWorkflow(@Nullable String baseline)
-      throws ConfigValidationException, EnvironmentException, IOException {
+      throws ConfigValidationException, EnvironmentException {
+    return changeRequestWorkflow(baseline, authoring);
+  }
+
+  private Workflow changeRequestWorkflow(@Nullable String baseline, AuthoringYamlBuilder authoring)
+      throws ConfigValidationException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.CHANGE_REQUEST);
+    yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring.build());
     options.workflowOptions.changeBaseline = baseline;
-    return skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
+    return yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   @Test
@@ -145,9 +139,8 @@ public class WorkflowTest {
 
   @Test
   public void toStringIncludesName() throws Exception {
-    options.workflowOptions.setWorkflowName("toStringIncludesName");
-    assertThat(skylarkWorkflow("toStringIncludesName", WorkflowMode.SQUASH).toString())
-        .contains("toStringIncludesName");
+    yaml.setName("toStringIncludesName");
+    assertThat(workflow().toString()).contains("toStringIncludesName");
   }
 
   @Test
@@ -184,23 +177,25 @@ public class WorkflowTest {
         .setOriginalAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
-    whiteListAuthoring();
+    authoring = new AuthoringYamlBuilder();
+    authoring.setMode(AuthoringMappingMode.WHITELIST);
+    authoring.setWhitelist(ImmutableList.of(ORIGINAL_AUTHOR.getId()));
 
-    Workflow workflow = iterativeWorkflow("0");
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.ITERATIVE);
+    yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring.build());
+    options.workflowOptions.lastRevision = "0";
+    options.general = new GeneralOptions(
+        options.general.getFileSystem(), options.general.isVerbose(), options.general.console());
+    Workflow workflow = yaml.withOptions(options.build(), CONFIG_NAME);
 
     workflow.run(workdir, /*sourceRef=*/"0");
     assertThat(destination.processed).hasSize(2);
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
     assertThat(destination.processed.get(1).getAuthor()).isEqualTo(DEFAULT_AUTHOR);
-  }
-
-  private void whiteListAuthoring() {
-    authoring = ""
-        + "authoring.whitelisted(\n"
-        + "   default = '" + DEFAULT_AUTHOR + "',\n"
-        + "   whitelist = ['" + ORIGINAL_AUTHOR.getId() + "'],\n"
-        + ")";
   }
 
   @Test
@@ -212,19 +207,25 @@ public class WorkflowTest {
         .setOriginalAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
-    passThruAuthoring();
+    authoring = new AuthoringYamlBuilder();
+    authoring.setMode(AuthoringMappingMode.PASS_THRU);
 
-    iterativeWorkflow("0").run(workdir, /*sourceRef=*/"0");
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+    yaml.setMode(WorkflowMode.ITERATIVE);
+    yaml.setTransformations(transformations);
+    yaml.setAuthoring(authoring.build());
+    options.workflowOptions.lastRevision = "0";
+    options.general = new GeneralOptions(
+        options.general.getFileSystem(), options.general.isVerbose(), options.general.console());
+    Workflow workflow = yaml.withOptions(options.build(), CONFIG_NAME);
 
+    workflow.run(workdir, /*sourceRef=*/"0");
     assertThat(destination.processed).hasSize(2);
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
     assertThat(destination.processed.get(1).getAuthor())
         .isEqualTo(NOT_WHITELISTED_ORIGINAL_AUTHOR.resolve());
-  }
-
-  private void passThruAuthoring() {
-    authoring = "authoring.pass_thru('" + DEFAULT_AUTHOR + "')";
   }
 
   @Test
@@ -239,9 +240,8 @@ public class WorkflowTest {
     RecordsProcessCallDestination programmableDestination = new RecordsProcessCallDestination(
         WriterResult.OK, WriterResult.PROMPT_TO_CONTINUE, WriterResult.PROMPT_TO_CONTINUE);
 
-    options.testingOptions.destination = programmableDestination;
-
-    Workflow workflow = iterativeWorkflow(/*previousRef=*/"2", testConsole);
+    Workflow workflow =
+        iterativeWorkflow(/*previousRef=*/"2", programmableDestination, testConsole);
 
     try {
       workflow.run(workdir, /*sourceRef=*/"9");
@@ -265,7 +265,7 @@ public class WorkflowTest {
   @Test
   public void emptyTransformList() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
-    transformations = "[]";
+    transformations = ImmutableList.of();
     Workflow workflow = workflow();
     workflow.run(workdir, /*sourceRef=*/"0");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
@@ -303,6 +303,8 @@ public class WorkflowTest {
   @Test
   public void usesDefaultAuthorForSquash() throws Exception {
     // Squash always sets the default author for the commit but not in the release notes
+    authoring.setMode(AuthoringMappingMode.USE_DEFAULT);
+
     origin.addSimpleChange(/*timestamp*/ 1);
     options.workflowOptions.lastRevision = origin.getHead();
     origin.addSimpleChange(/*timestamp*/ 2);
@@ -334,13 +336,13 @@ public class WorkflowTest {
     Files.createDirectories(file.getParent());
     Files.write(file, new byte[]{});
 
-    excludedInOrigin = "glob(['" + outsideFolder + "'])";
-
+    yaml.setExcludedOriginPaths(ImmutableList.of(outsideFolder));
     try {
       workflow().run(workdir, origin.getHead());
       fail("should have thrown");
     } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR, "(\n|.)*is not relative to(\n|.)*");
+      // Expected.
+      assertThat(e.getMessage()).contains("is not relative to");
     }
     assertThatPath(workdir)
         .containsFiles(outsideFolder);
@@ -348,7 +350,7 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginPathDoesntExcludeDirectories() throws Exception {
-    excludedInOrigin = "glob(['folder'])";
+    yaml.setExcludedOriginPaths(ImmutableList.of("folder"));
     try {
       Workflow workflow = workflow();
       prepareOriginExcludes();
@@ -363,8 +365,8 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginPathRecursive() throws Exception {
-    excludedInOrigin = "glob(['folder/**'])";
-    transformations = "[]";
+    yaml.setExcludedOriginPaths(ImmutableList.of("folder/**"));
+    transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
@@ -377,8 +379,8 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginRecursiveByType() throws Exception {
-    excludedInOrigin = "glob(['folder/**/*.java'])";
-    transformations = "[]";
+    yaml.setExcludedOriginPaths(ImmutableList.of("folder/**/*.java"));
+    transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
@@ -390,8 +392,8 @@ public class WorkflowTest {
 
   @Test
   public void excludeOriginPathIterative() throws Exception {
-    excludedInOrigin = "glob(['folder/**/*.java'])";
-    transformations = "[]";
+    yaml.setExcludedOriginPaths(ImmutableList.of("folder/**/*.java"));
+    transformations = ImmutableList.of();
     prepareOriginExcludes();
     Workflow workflow = iterativeWorkflow(origin.getHead());
     prepareOriginExcludes();
@@ -411,21 +413,21 @@ public class WorkflowTest {
 
   @Test
   public void testOriginExcludesToString() throws Exception {
-    excludedInOrigin = "glob(['foo/**/bar.htm'])";
+    yaml.setExcludedOriginPaths(ImmutableList.of("foo/**/bar.htm"));
     String string = workflow().toString();
     assertThat(string).contains("foo/**/bar.htm");
   }
 
   @Test
   public void testDestinationExcludesToString() throws Exception {
-    excludedInDestination = "glob(['foo/**/bar.htm'])";
+    yaml.setExcludedDestinationPaths(ImmutableList.of("foo/**/bar.htm"));
     String string = workflow().toString();
     assertThat(string).contains("foo/**/bar.htm");
   }
 
   @Test
   public void testExcludedDestinationPathsPassedToDestination_iterative() throws Exception {
-    excludedInDestination = "glob(['foo', 'bar/**'])";
+    yaml.setExcludedDestinationPaths(ImmutableList.of("foo", "bar/**"));
     origin.addSimpleChange(/*timestamp*/ 42);
     Workflow workflow = iterativeWorkflow(origin.getHead());
     origin.addSimpleChange(/*timestamp*/ 4242);
@@ -442,7 +444,7 @@ public class WorkflowTest {
 
   @Test
   public void testExcludedDestinationPathsPassedToDestination_squash() throws Exception {
-    excludedInDestination = "glob(['foo', 'bar/**'])";
+    yaml.setExcludedDestinationPaths(ImmutableList.of("foo", "bar/**"));
     workflow().run(workdir, origin.getHead());
 
     assertThat(destination.processed).hasSize(1);
@@ -487,8 +489,9 @@ public class WorkflowTest {
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
         .addSimpleChange(1, "Second Change");
 
-    passThruAuthoring();
-    Workflow workflow = changeRequestWorkflow(null);
+    authoring = new AuthoringYamlBuilder();
+    authoring.setMode(AuthoringMappingMode.PASS_THRU);
+    Workflow workflow = changeRequestWorkflow(null, authoring);
     workflow.run(workdir, "1");
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
@@ -501,9 +504,11 @@ public class WorkflowTest {
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
         .addSimpleChange(1, "Second Change");
 
-    whiteListAuthoring();
-
-    changeRequestWorkflow(null).run(workdir, "0");
+    authoring = new AuthoringYamlBuilder();
+    authoring.setMode(AuthoringMappingMode.WHITELIST);
+    authoring.setWhitelist(ImmutableList.of(ORIGINAL_AUTHOR.getId()));
+    Workflow workflow = changeRequestWorkflow(null, authoring);
+    workflow.run(workdir, "0");
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
@@ -521,59 +526,36 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testNullAuthoring()
-      throws ConfigValidationException, EnvironmentException, IOException {
-    try {
-      skylark.loadConfig(""
-              + "core.project( name = 'copybara_project')\n"
-              + "core.workflow(\n"
-              + "    name = 'foo',\n"
-              + "    origin = testing.origin(),\n"
-              + "    destination = testing.destination(),\n"
-              + ")\n",
-          options.build());
-    } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
-          ".*missing mandatory positional argument 'authoring'.*");
-    }
+  public void testNullAuthoring() throws ConfigValidationException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setDestination(destination);
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'authoring'");
+
+    yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   @Test
-  public void testNullOrigin() throws ConfigValidationException, EnvironmentException, IOException {
-    try {
-      skylark.loadConfig(""
-              + "core.project( name = 'copybara_project')\n"
-              + "core.workflow(\n"
-              + "    name = 'foo',\n"
-              + "    authoring = " + authoring + "\n,"
-              + "    destination = testing.destination(),\n"
-              + ")\n",
-          options.build());
-    } catch (ConfigValidationException e) {
-      for (Message message : console.getMessages()) {
-        System.err.println(message);
-      }
-      console.assertThat().onceInLog(MessageType.ERROR,
-          ".*missing mandatory positional argument 'origin'.*");
-    }
+  public void testNullOrigin() throws ConfigValidationException, EnvironmentException {
+    yaml.setDestination(destination);
+    yaml.setAuthoring(authoring.build());
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'origin'");
+
+    yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   @Test
-  public void testNullDestination()
-      throws ConfigValidationException, EnvironmentException, IOException {
-    try {
-      skylark.loadConfig(""
-              + "core.project( name = 'copybara_project')\n"
-              + "core.workflow(\n"
-              + "    name = 'foo',\n"
-              + "    authoring = " + authoring + "\n,"
-              + "    origin = testing.origin(),\n"
-              + ")\n",
-          options.build());
-    } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
-          ".*missing mandatory positional argument 'destination'.*");
-    }
+  public void testNullDestination() throws ConfigValidationException, EnvironmentException {
+    yaml.setOrigin(origin);
+    yaml.setAuthoring(authoring.build());
+
+    thrown.expect(ConfigValidationException.class);
+    thrown.expectMessage("missing required field 'destination'");
+
+    yaml.withOptions(options.build(), CONFIG_NAME);
   }
 
   @Test

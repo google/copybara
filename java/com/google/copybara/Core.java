@@ -89,13 +89,19 @@ public class Core implements OptionsAwareModule {
           @Param(name = "exclude", type = SkylarkList.class,
               generic1 = String.class, doc = "The list of glob patterns to exclude",
               defaultValue = "[]"),
-      })
+      }, useLocation = true)
   public static final BuiltinFunction GLOB = new BuiltinFunction("glob") {
-    public PathMatcherBuilder invoke(SkylarkList include, SkylarkList exclude)
-        throws EvalException, ConfigValidationException {
-      return PathMatcherBuilder.create(FileSystems.getDefault(),
-          Type.STRING_LIST.convert(include, "include"),
-          Type.STRING_LIST.convert(exclude, "exclude"));
+    public PathMatcherBuilder invoke(SkylarkList include, SkylarkList exclude,
+        Location location)
+        throws EvalException {
+      try {
+        return PathMatcherBuilder.create(FileSystems.getDefault(),
+            Type.STRING_LIST.convert(include, "include"),
+            Type.STRING_LIST.convert(exclude, "exclude"));
+      } catch (ConfigValidationException e) {
+        // TODO(malcon): skylark, fix this exception wrapping once yaml removed
+        throw new EvalException(location, e.getMessage());
+      }
     }
   };
 
