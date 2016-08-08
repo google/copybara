@@ -98,7 +98,7 @@ public class FolderDestination implements Destination {
     public Destination withOptions(Options options, String configName)
         throws ConfigValidationException {
       return createDestination(options, configName,
-          options.get(GeneralOptions.class).getCwd());
+          options.get(GeneralOptions.class).getHomeDir());
     }
 
     private static final DateTimeFormatter FOLDER_DATE_FORMAT =
@@ -149,7 +149,7 @@ public class FolderDestination implements Destination {
       public Destination invoke(Module self, Location location, Environment env)
           throws EvalException {
         return createDestination(self.options, Core.getProjectNameOrFail(env, location),
-            self.options.get(GeneralOptions.class).getCwd());
+            self.options.get(GeneralOptions.class).getHomeDir());
       }
     };
 
@@ -160,8 +160,8 @@ public class FolderDestination implements Destination {
   }
 
   // TODO(team): Inline this once we get rid of yaml logic
-  private static Destination createDestination(Options options, String configName, Path cwd) {
-    Path defaultRootPath = cwd.resolve("copybara/out/");
+  private static Destination createDestination(Options options, String configName, Path homeDir) {
+    Path defaultRootPath = homeDir.resolve("copybara/out/");
     return Yaml.withOptions(options, configName, defaultRootPath);
   }
 }

@@ -24,9 +24,13 @@ import java.nio.file.FileSystems;
 public class OptionsBuilder {
 
   public GeneralOptions general =
-      new GeneralOptions(Jimfs.newFileSystem(), /*verbose=*/true,
-          LogConsole.readWriteConsole(System.in, System.out), /*skylark=*/false,
-          /*validate=*/false, StandardSystemProperty.USER_DIR.value());
+      new GeneralOptions(Jimfs.newFileSystem(),
+          /*verbose=*/true,
+          LogConsole.readWriteConsole(System.in, System.out),
+          /*skylark=*/false,
+          /*validate=*/false,
+          StandardSystemProperty.USER_DIR.value(),
+          StandardSystemProperty.USER_HOME.value());
 
   public FolderDestinationOptions localDestination =
       new FolderDestinationOptions();
@@ -46,14 +50,22 @@ public class OptionsBuilder {
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(general.getFileSystem(), general.isVerbose(), newConsole,
-        general.isSkylark(), general.isValidate(), general.getCwd().toString());
+        general.isSkylark(), general.isValidate(), general.getCwd().toString(),
+        general.getHomeDir().toString());
     return this;
   }
 
   public final OptionsBuilder setCurrentWorkDir(String cwd) {
     general = new GeneralOptions(
         general.getFileSystem(), general.isVerbose(), general.console(), general.isSkylark(),
-        general.isValidate(), cwd);
+        general.isValidate(), cwd,general.getHomeDir().toString());
+    return this;
+  }
+
+  public final OptionsBuilder setHomeDir(String homeDir) {
+    general = new GeneralOptions(
+        general.getFileSystem(), general.isVerbose(), general.console(), general.isSkylark(),
+        general.isValidate(), general.getCwd().toString(), homeDir);
     return this;
   }
 

@@ -104,7 +104,7 @@ public class FolderDestinationTest {
   @Test
   public void testDefaultRoot() throws Exception {
     Path defaultRootPath = Files.createTempDirectory("defaultRoot");
-    options.setCurrentWorkDir(defaultRootPath.toString());
+    options.setHomeDir(defaultRootPath.toString());
 
     write();
 

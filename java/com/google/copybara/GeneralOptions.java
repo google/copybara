@@ -22,23 +22,25 @@ public final class GeneralOptions implements Option {
   private final Console console;
   private final boolean skylark;
   private final boolean validate;
+  private final Path userHome;
   private final Path cwd;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
     this(fileSystem, verbose, console, /*skylark=*/false, /*validate=*/false,
-        StandardSystemProperty.USER_DIR.value());
+        StandardSystemProperty.USER_DIR.value(), StandardSystemProperty.USER_HOME.value());
   }
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console,
-      boolean skylark, boolean validate, String cwd) {
+      boolean skylark, boolean validate, String cwd, String userHome) {
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.skylark = skylark;
     this.validate = validate;
-    this.cwd = fileSystem.getPath(cwd);
+    this.cwd = Preconditions.checkNotNull(fileSystem.getPath(cwd));
+    this.userHome = Preconditions.checkNotNull(fileSystem.getPath(userHome));
   }
 
   public boolean isVerbose() {
@@ -68,6 +70,13 @@ public final class GeneralOptions implements Option {
     return cwd;
   }
 
+  /**
+   * Returns home directory
+   */
+  public Path getHomeDir() {
+    return userHome;
+  }
+
   @Parameters(separators = "=")
   public static final class Args {
     @Parameter(names = "-v", description = "Verbose output.")
@@ -89,7 +98,7 @@ public final class GeneralOptions implements Option {
     public GeneralOptions init(FileSystem fileSystem, Console console, boolean skylark)
         throws IOException {
       return new GeneralOptions(fileSystem, verbose, console, skylark, validate,
-          StandardSystemProperty.USER_DIR.value());
+          StandardSystemProperty.USER_DIR.value(), StandardSystemProperty.USER_HOME.value());
     }
   }
 }
