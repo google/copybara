@@ -3,9 +3,9 @@ package com.google.copybara.config;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.Destination;
 import com.google.copybara.EnvironmentException;
@@ -16,12 +16,19 @@ import com.google.copybara.RepoException;
 import com.google.copybara.Workflow;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.Reverse;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.util.console.Console;
-
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
@@ -32,15 +39,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.constructor.ConstructorException;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 @RunWith(JUnit4.class)
 public class YamlParserTest {
@@ -252,8 +250,9 @@ public class YamlParserTest {
     yaml.withOptions(options);
   }
 
-  private String readConfig() throws IOException {
-    return new String(Files.readAllBytes(fs.getPath("test")), StandardCharsets.UTF_8);
+  private MapConfigFile readConfig() throws IOException {
+    return new MapConfigFile(
+        ImmutableMap.of("copybara.yaml", Files.readAllBytes(fs.getPath("test"))), "copybara.yaml");
   }
 
   public static class MockOrigin implements Origin.Yaml<Reference>, Origin<Reference> {

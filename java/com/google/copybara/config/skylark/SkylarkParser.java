@@ -26,7 +26,6 @@ import com.google.devtools.build.lib.syntax.Environment.Frame;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
-import com.google.devtools.build.lib.syntax.ValidationEnvironment;
 import com.google.devtools.build.lib.vfs.FileSystemUtils;
 import com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem;
 import java.io.IOException;
@@ -64,7 +63,7 @@ public class SkylarkParser {
     }
   }
 
-  public Config loadConfig(String content, Options options)
+  public Config loadConfig(ConfigFile content, Options options)
       throws IOException, ConfigValidationException, EnvironmentException {
     Core core;
     try {
@@ -80,7 +79,7 @@ public class SkylarkParser {
 
   @VisibleForTesting
   public Environment executeSkylark(
-      String content, Options options, @Nullable Map<String, String> environment)
+      ConfigFile content, Options options, @Nullable Map<String, String> environment)
       throws IOException, ConfigValidationException, InterruptedException {
     Console console = options.get(GeneralOptions.class).console();
     EventHandler eventHandler = new ConsoleEventHandler(console);
@@ -88,7 +87,7 @@ public class SkylarkParser {
     Frame globals = createGlobals(eventHandler, options, environment);
     Environment env = createEnvironment(eventHandler, globals);
 
-    BuildFileAST buildFileAST = parseFile(content, eventHandler, env);
+    BuildFileAST buildFileAST = parseFile(content, eventHandler);
     // TODO(malcon): multifile support
     checkState(buildFileAST.getImports().isEmpty(),
         "load() statements are still not supported: %s", buildFileAST.getImports());
@@ -113,13 +112,12 @@ public class SkylarkParser {
     return new Config(checkNotMissing(projectName, "project"), workflow);
   }
 
-  private BuildFileAST parseFile(String content, EventHandler eventHandler, Environment env)
+  private BuildFileAST parseFile(ConfigFile content, EventHandler eventHandler)
       throws IOException {
-    ValidationEnvironment validationEnvironment = new ValidationEnvironment(env);
     InMemoryFileSystem fs = new InMemoryFileSystem();
     // TODO(malcon): Use real file name
     com.google.devtools.build.lib.vfs.Path config = fs.getPath("/config.bzl");
-    FileSystemUtils.writeIsoLatin1(config, content);
+    FileSystemUtils.writeContent(config, content.content());
 
     return BuildFileAST.parseSkylarkFile(config, eventHandler);
   }

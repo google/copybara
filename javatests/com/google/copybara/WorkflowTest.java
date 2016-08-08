@@ -6,16 +6,19 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.OriginalAuthor;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.config.skylark.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyOriginalAuthor;
+import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
@@ -116,7 +119,7 @@ public class WorkflowTest {
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
-    return skylark.loadConfig(config, options.build()).getActiveWorkflow();
+    return loadConfig(config).getActiveWorkflow();
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
@@ -524,31 +527,36 @@ public class WorkflowTest {
   public void testNullAuthoring()
       throws ConfigValidationException, EnvironmentException, IOException {
     try {
-      skylark.loadConfig(""
-              + "core.project( name = 'copybara_project')\n"
-              + "core.workflow(\n"
-              + "    name = 'foo',\n"
-              + "    origin = testing.origin(),\n"
-              + "    destination = testing.destination(),\n"
-              + ")\n",
-          options.build());
+      loadConfig(""
+          + "core.project( name = 'copybara_project')\n"
+          + "core.workflow(\n"
+          + "    name = 'foo',\n"
+          + "    origin = testing.origin(),\n"
+          + "    destination = testing.destination(),\n"
+          + ")\n");
     } catch (ConfigValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
           ".*missing mandatory positional argument 'authoring'.*");
     }
   }
 
+  private Config loadConfig(String content)
+      throws IOException, ConfigValidationException, EnvironmentException {
+    return skylark.loadConfig(
+        new MapConfigFile(ImmutableMap.of("copybara.bzl", content.getBytes()), "copybara.bzl"),
+        options.build());
+  }
+
   @Test
   public void testNullOrigin() throws ConfigValidationException, EnvironmentException, IOException {
     try {
-      skylark.loadConfig(""
-              + "core.project( name = 'copybara_project')\n"
-              + "core.workflow(\n"
-              + "    name = 'foo',\n"
-              + "    authoring = " + authoring + "\n,"
-              + "    destination = testing.destination(),\n"
-              + ")\n",
-          options.build());
+      loadConfig(""
+          + "core.project( name = 'copybara_project')\n"
+          + "core.workflow(\n"
+          + "    name = 'foo',\n"
+          + "    authoring = " + authoring + "\n,"
+          + "    destination = testing.destination(),\n"
+          + ")\n");
     } catch (ConfigValidationException e) {
       for (Message message : console.getMessages()) {
         System.err.println(message);
@@ -562,14 +570,13 @@ public class WorkflowTest {
   public void testNullDestination()
       throws ConfigValidationException, EnvironmentException, IOException {
     try {
-      skylark.loadConfig(""
-              + "core.project( name = 'copybara_project')\n"
-              + "core.workflow(\n"
-              + "    name = 'foo',\n"
-              + "    authoring = " + authoring + "\n,"
-              + "    origin = testing.origin(),\n"
-              + ")\n",
-          options.build());
+      loadConfig(""
+          + "core.project( name = 'copybara_project')\n"
+          + "core.workflow(\n"
+          + "    name = 'foo',\n"
+          + "    authoring = " + authoring + "\n,"
+          + "    origin = testing.origin(),\n"
+          + ")\n");
     } catch (ConfigValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
           ".*missing mandatory positional argument 'destination'.*");

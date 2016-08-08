@@ -57,7 +57,7 @@ public class YamlMarkdownGenerator extends BasicAnnotationProcessor {
   }
 
   @Override
-  protected Iterable<? extends ProcessingStep> initSteps() {
+  public Iterable<? extends ProcessingStep> initSteps() {
 
     return ImmutableList.of(new ProcessingStep() {
       @Override

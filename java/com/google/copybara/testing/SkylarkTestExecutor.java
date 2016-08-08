@@ -1,18 +1,17 @@
 package com.google.copybara.testing;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.skylark.ConfigFile;
 import com.google.copybara.config.skylark.SkylarkParser;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import com.google.devtools.build.lib.syntax.Environment;
-
-
 import java.io.IOException;
 import java.util.Map;
-
 import javax.annotation.Nullable;
 
 /**
@@ -41,7 +40,9 @@ public final class SkylarkTestExecutor {
   @SuppressWarnings("unchecked")
   public <T> T eval(String var, String config) throws ConfigValidationException {
     try {
-      Environment env = skylarkParser.executeSkylark(config, options.build(), environment);
+      ConfigFile configFile = new MapConfigFile(
+          ImmutableMap.of("copybara.bzl", config.getBytes()), "copybara.bzl");
+      Environment env = skylarkParser.executeSkylark(configFile, options.build(), environment);
       T t = (T) env.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;

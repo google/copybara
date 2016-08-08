@@ -8,6 +8,8 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.skylark.ConfigFile;
+import com.google.copybara.config.skylark.SimpleConfigFile;
 import com.google.copybara.config.skylark.SkylarkParser;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.ExitCode;
@@ -20,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -98,8 +99,8 @@ public class Main {
         Preconditions.checkArgument(generalOptions.isSkylark(),
             "Validate is only allowed in Skylark mode");
 
-        String skylarkContent = loadConfig(/*skylark=*/true, configPath);
-        String yamlContent = loadConfig(/*skylark=*/false,
+        ConfigFile skylarkContent = loadConfig(/*skylark=*/true, configPath);
+        ConfigFile yamlContent = loadConfig(/*skylark=*/false,
             configPath.getParent().resolve("copybara.yaml"));
         copybara.validate(options, skylarkContent, yamlContent, mainArgs.getWorkflowName());
       } else {
@@ -132,7 +133,7 @@ public class Main {
     }
   }
 
-  private String loadConfig(boolean skylark, Path configPath)
+  private ConfigFile loadConfig(boolean skylark, Path configPath)
       throws IOException, CommandLineException, ConfigValidationException {
     String expectedConfigName = COPYBARA_CONFIG_FILENAME;
     if (skylark) {
@@ -144,11 +145,12 @@ public class Main {
               expectedConfigName, configPath.getFileName()));
     }
 
-    try {
-      return new String(Files.readAllBytes(configPath), StandardCharsets.UTF_8);
-    } catch (NoSuchFileException e) {
+    // Treat the top level element specially since it is passed thru the command line.
+    if (!Files.exists(configPath)) {
       throw new CommandLineException("Configuration file not found: " + configPath);
     }
+
+    return new SimpleConfigFile(configPath.toAbsolutePath());
   }
 
   /**

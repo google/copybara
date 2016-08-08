@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.Options;
 import com.google.copybara.Workflow;
+import com.google.copybara.config.skylark.ConfigFile;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 
@@ -88,19 +89,20 @@ public final class YamlParser {
    * Load a YAML content, configure it with the program {@code Options} and return a {@link Config}
    * object.
    *
-   * @param configContents a UTF-8 string representing the configuration
+   * @param configFile a UTF-8 string representing the configuration
    * @param options the options passed to the Copybara command
    * @throws NoSuchFileException in case the config file cannot be found
    * @throws IOException if the config file cannot be load
    */
-  public Config parseConfig(String configContents, Options options)
+  @Deprecated
+  public Config parseConfig(ConfigFile configFile, Options options)
       throws IOException, ConfigValidationException, EnvironmentException {
     // TODO(matvore): The exceptions printed as a result of a bad configuration are hard to read.
     // It can include a long stack trace plus a nested cause. Find a way to make the error output
     // more digestable.
     Config.Yaml load;
     try {
-      load = (Config.Yaml) yaml.load(configContents);
+      load = (Config.Yaml) yaml.load(new String(configFile.content()));
     } catch (ConstructorException e) {
       throw new ConfigValidationException("Error parsing configuration", e);
     }

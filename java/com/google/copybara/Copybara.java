@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.YamlParser;
+import com.google.copybara.config.skylark.ConfigFile;
 import com.google.copybara.config.skylark.SkylarkParser;
 import com.google.copybara.folder.FolderDestination;
 import com.google.copybara.folder.FolderDestinationOptions;
@@ -92,7 +93,7 @@ public class Copybara {
     return "Unknown version";
   }
 
-  public void run(Options options, String configContents, String workflowName,
+  public void run(Options options, ConfigFile configContents, String workflowName,
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException, EnvironmentException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
@@ -111,7 +112,7 @@ public class Copybara {
     config.getActiveWorkflow().run(baseWorkdir, sourceRef);
   }
 
-  public void validate(Options options, String configContent, String yamlConfigContent,
+  public void validate(Options options, ConfigFile configContent, ConfigFile yamlConfigContent,
       String workflowName)
       throws RepoException, ValidationException, IOException, EnvironmentException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
@@ -150,7 +151,7 @@ public class Copybara {
     return ImmutableList.of();
   }
 
-  private Config parseConfig(boolean skylark, String configContents, Options options)
+  private Config parseConfig(boolean skylark, ConfigFile configContents, Options options)
       throws IOException, ConfigValidationException, EnvironmentException {
     if (skylark) {
       return skylarkParser.loadConfig(configContents, options);
@@ -158,7 +159,7 @@ public class Copybara {
     return loadYamlConfig(configContents, options);
   }
 
-  private Config loadYamlConfig(String configContents, Options options)
+  private Config loadYamlConfig(ConfigFile configContents, Options options)
       throws IOException, ConfigValidationException, EnvironmentException {
     return new YamlParser(getYamlTypeDescriptions()).parseConfig(configContents, options);
   }

@@ -4,6 +4,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.Destination;
@@ -13,6 +14,7 @@ import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.Transformation;
@@ -61,7 +63,7 @@ public class SkylarkParserTest {
       throws IOException, ConfigValidationException, EnvironmentException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("At least one workflow is required.");
-    parser.loadConfig("", options.build());
+    loadConfig("");
   }
 
   /**
@@ -99,7 +101,7 @@ public class SkylarkParserTest {
         + ")\n";
 
     options.setWorkflowName("foo42");
-    Config config = parser.loadConfig(configContent, options.build());
+    Config config = loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
     MockOrigin origin = (MockOrigin) config.getActiveWorkflow().origin();
@@ -120,6 +122,14 @@ public class SkylarkParserTest {
     MockTransform transformation2 = (MockTransform) transformations.get(1);
     assertThat(transformation2.field1).isEqualTo("baz");
     assertThat(transformation2.field2).isEqualTo("bee");
+  }
+
+  private Config loadConfig(String configContent)
+      throws IOException, ConfigValidationException, EnvironmentException {
+    return parser.loadConfig(
+        new MapConfigFile(ImmutableMap.of("copybara.bzl", configContent.getBytes()),
+            "copybara.bzl"),
+        options.build());
   }
 
   @Test
@@ -143,7 +153,7 @@ public class SkylarkParserTest {
         + ")\n";
 
     options.setWorkflowName("foo");
-    Config config = parser.loadConfig(configContent, options.build());
+    Config config = loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
     Transformation transformation = config.getActiveWorkflow().transformation();
@@ -182,7 +192,7 @@ public class SkylarkParserTest {
         + ")\n";
 
     try {
-      parser.loadConfig(configContent, options.build());
+      loadConfig(configContent);
       fail();
     } catch (ConfigValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
