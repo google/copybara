@@ -270,9 +270,6 @@ public final class GitDestination implements Destination {
         .add("repoUrl", repoUrl)
         .add("fetch", fetch)
         .add("push", push)
-        .add("gitOptions", gitOptions)
-        .add("verbose", verbose)
-        .add("commitGenerator", commitGenerator)
         .toString();
   }
 
