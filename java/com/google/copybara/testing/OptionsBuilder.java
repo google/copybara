@@ -32,6 +32,7 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,7 +48,8 @@ public class OptionsBuilder {
           /*verbose=*/true,
           LogConsole.readWriteConsole(System.in, System.out),
           /*skylark=*/
-          /*validate=*/false);
+          /*validate=*/false,
+          /*rootCfgPath=*/null);
 
   public FolderDestinationOptions localDestination = new FolderDestinationOptions();
   public GitOptions git = new GitOptions(StandardSystemProperty.USER_HOME.value());
@@ -61,22 +63,32 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "PWD", StandardSystemProperty.USER_DIR.value()),
         FileSystems.getDefault(), /*verbose=*/true,
-        LogConsole.readWriteConsole(System.in, System.out));
+        LogConsole.readWriteConsole(System.in, System.out), general.isValidate(),
+        general.getConfigRoot());
     return this;
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
-        general.isValidate());
+        general.isValidate(), general.getConfigRoot());
     return this;
   }
 
   public final OptionsBuilder setHomeDir(String homeDir) {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "HOME", homeDir),
-        general.getFileSystem(), general.isVerbose(), general.console(), general.isValidate());
+        general.getFileSystem(), general.isVerbose(), general.console(), general.isValidate(),
+        general.getConfigRoot());
     git = new GitOptions(homeDir);
+    return this;
+  }
+
+  public final OptionsBuilder setRootCfgPath(Path path) {
+    general = new GeneralOptions(
+        general.getEnvironment(),
+        general.getFileSystem(), general.isVerbose(), general.console(), general.isValidate(),
+        path);
     return this;
   }
 

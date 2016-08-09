@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * General options available for all the program classes.
@@ -33,32 +34,36 @@ import java.util.Map;
 public final class GeneralOptions implements Option {
 
   public static final String NOANSI = "--noansi";
+  public static final String CONFIG_ROOT_FLAG = "--config-root";
 
   private final Map<String, String> environment;
   private final FileSystem fileSystem;
   private final boolean verbose;
   private final Console console;
   private final boolean validate;
+  @Nullable
+  private final Path configRoot;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(System.getenv(), fileSystem, verbose, console, /*validate=*/false);
+    this(System.getenv(), fileSystem, verbose, console, /*validate=*/false, /*configRoot=*/null);
   }
 
   @VisibleForTesting
   public GeneralOptions(
       Map<String, String> environment, FileSystem fileSystem, boolean verbose, Console console) {
-    this(environment, fileSystem, verbose, console, /*validate=*/false);
+    this(environment, fileSystem, verbose, console, /*validate=*/false, /*configRoot=*/null);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
-      Console console, boolean validate) {
+      Console console, boolean validate, @Nullable Path configRoot) {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.validate = validate;
+    this.configRoot = configRoot;
   }
 
   public Map<String, String> getEnvironment() {
@@ -95,6 +100,11 @@ public final class GeneralOptions implements Option {
     return fileSystem.getPath(environment.get("HOME"));
   }
 
+  @Nullable
+  public Path getConfigRoot() {
+    return configRoot;
+  }
+
   @Parameters(separators = "=")
   public static final class Args {
     @Parameter(names = "-v", description = "Verbose output.")
@@ -110,13 +120,19 @@ public final class GeneralOptions implements Option {
         description = "Validate that the config is correct")
     boolean validate = false;
 
+    @Parameter(names = CONFIG_ROOT_FLAG,
+        description = "Configuration root path to be used for resolving absolute config labels"
+            + " like '//foo/bar'")
+    String configRoot;
+
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
     public GeneralOptions init(
         Map<String, String> environment, FileSystem fileSystem, Console console)
         throws IOException {
-      return new GeneralOptions(environment, fileSystem, verbose, console, validate);
+      Path root = configRoot != null ? fileSystem.getPath(configRoot) : null;
+      return new GeneralOptions(environment, fileSystem, verbose, console, validate, root);
     }
   }
 }

@@ -22,7 +22,7 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigFile;
-import com.google.copybara.config.SimpleConfigFile;
+import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 
 /**
  * Main class that invokes {@link Copybara} from command-line.
@@ -106,12 +107,13 @@ public class Main {
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
       if (generalOptions.isValidate()) {
-        ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath);
+        ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath,
+            generalOptions.getConfigRoot());
         copybara.validate(options, skylarkContent, mainArgs.getWorkflowName());
       } else {
         copybara.run(
             options,
-            loadConfig(configPath),
+            loadConfig(configPath, generalOptions.getConfigRoot()),
             mainArgs.getWorkflowName(),
             mainArgs.getBaseWorkdir(fs),
             mainArgs.getSourceRef());
@@ -146,7 +148,7 @@ public class Main {
     }
   }
 
-  private ConfigFile loadConfig(Path configPath)
+  private ConfigFile loadConfig(Path configPath, @Nullable Path rootCfgPath)
       throws IOException, CommandLineException, ConfigValidationException {
     String fileName = configPath.getFileName().toString();
 
@@ -159,8 +161,29 @@ public class Main {
     if (!Files.exists(configPath)) {
       throw new CommandLineException("Configuration file not found: " + configPath);
     }
+    Path root = rootCfgPath;
+    if (root == null) {
+      root = findConfigRootHeuristic(configPath);
+    }
+    return new PathBasedConfigFile(configPath.toAbsolutePath(), root);
+  }
 
-    return new SimpleConfigFile(configPath.toAbsolutePath());
+  /**
+   * Find the root path for resolving configuration file paths and resources. This method
+   * assumes that the .git containing directory is the root path.
+   *
+   * <p>This could be extended to other kind of source control systems.
+   */
+  @Nullable
+  protected Path findConfigRootHeuristic(Path configPath) {
+    Path parent = configPath.getParent();
+    while (parent != null) {
+      if (Files.isDirectory(parent.resolve(".git"))) {
+        return parent;
+      }
+      parent = parent.getParent();
+    }
+    return null;
   }
 
 

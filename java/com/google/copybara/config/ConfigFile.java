@@ -16,25 +16,44 @@
 
 package com.google.copybara.config;
 
+import com.google.copybara.util.FileUtil;
 import java.io.IOException;
 
 /**
  * An object representing a configuration file and that it can be used to resolve
  * other config files relative to this one.
  */
-public interface ConfigFile {
+public abstract class ConfigFile<T> {
+
+  private final String path;
+
+  /**
+   * Construct a config file using the passed path.
+   */
+  public ConfigFile(String path) {
+    this.path = path;
+  }
 
   /**
    * Resolve {@code label} relative to the current config file.
    *
    * @throws CannotResolveLabel if the label cannot be resolved to a content
    */
-  ConfigFile resolve(String label) throws CannotResolveLabel;
+  public final ConfigFile resolve(String label) throws CannotResolveLabel {
+    boolean isAbsolute = label.startsWith("//");
+    // Remove '//' for absolute paths
+    checkNormalized(isAbsolute ? label.substring(2) : label);
+    return createConfigFile(label, isAbsolute
+        ? relativeToRoot(label.substring(2))
+        : relativeToCurrentPath(label));
+  }
 
   /**
    * Resolved, non-relative name of the config file.
    */
-  String path();
+  public final String path() {
+    return path;
+  }
 
   /**
    * Get the contents of the file.
@@ -43,5 +62,33 @@ public interface ConfigFile {
    * method is call in order to allow the callers to check its own cache if they already have
    * {@link #path()} path.
    */
-  byte[] content() throws IOException;
+  public abstract byte[] content() throws IOException;
+
+  /**
+   * Resolves a label relative to the root config file, if present.
+   *
+   * @throws CannotResolveLabel if the root doesn't exist or the file cannot be resolved
+   */
+  protected abstract T relativeToRoot(String label) throws CannotResolveLabel;
+
+  /**
+   * Resolves a label relative to the current config file.
+   *
+   * @throws CannotResolveLabel if the root doesn't exist or the file cannot be resolved
+   */
+  protected abstract T relativeToCurrentPath(String label) throws CannotResolveLabel;
+
+  /**
+   * Perform additional validations and construct a ConfigFile object
+   */
+  protected abstract ConfigFile createConfigFile(String label, T resolved)
+      throws CannotResolveLabel;
+
+  private void checkNormalized(String label) throws CannotResolveLabel {
+    try {
+      FileUtil.checkNormalizedRelative(label);
+    } catch (Exception e) {
+      throw new CannotResolveLabel(String.format("Invalid label '%s': %s", label, e.getMessage()));
+    }
+  }
 }

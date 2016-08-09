@@ -810,4 +810,71 @@ EOF
   expect_log "LogConsole cannot read user input if system console is not present"
 }
 
+function run_multifile() {
+  config_folder=$1
+  shift
+  flags="$@"
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  pushd $remote
+  run_git init .
+  echo "first version for food and foooooo" > test.txt
+  mkdir subdir
+  echo "first version" > subdir/test.txt
+  run_git add test.txt subdir/test.txt
+  run_git commit -m "first commit"
+  first_commit=$(run_git rev-parse HEAD)
+  popd
+  mkdir -p $config_folder/foo/bar/baz
+  mkdir -p $config_folder/baz
+  # Just in case:
+  cat > $config_folder/baz/origin.bara.sky <<EOF
+  this shouldn't be loaded!
+EOF
+  cat > $config_folder/foo/remote.bara.sky <<EOF
+remote_var="file://$remote"
+EOF
+  cat > $config_folder/foo/bar/baz/origin.bara.sky <<EOF
+load("//foo/remote", "remote_var")
+remote_origin=git.origin( url = remote_var, ref = "master",)
+EOF
+  cat > $config_folder/foo/bar/copy.bara.sky <<EOF
+load("baz/origin", "remote_origin")
+core.project(name = "cbtest")
+
+core.workflow(
+    name = "default",
+    origin = remote_origin,
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+)
+EOF
+
+  copybara $config_folder/foo/bar/copy.bara.sky $flags
+
+  expect_log "Running Copybara for config 'cbtest', workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
+
+  [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
+}
+
+# Test that we can find the root when config is in a git repo
+function test_multifile_git_root() {
+  config_folder=$(temp_dir config)
+  pushd $config_folder
+  run_git init .
+  popd
+  run_multifile $config_folder
+}
+
+# Test that on non-git repos we can pass a flag to set the root
+function test_multifile_root_cfg_flag() {
+  config_folder=$(temp_dir config)
+  run_multifile $config_folder --config-root $config_folder
+}
+
 run_suite "Integration tests for Copybara code sharing tool."

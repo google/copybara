@@ -16,8 +16,9 @@
 
 package com.google.copybara.config;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.jimfs.Jimfs;
-import com.google.common.truth.Truth;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -30,7 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SimpleConfigFileTest {
+public class PathBasedConfigFileTest {
 
   private FileSystem fs;
 
@@ -50,22 +51,51 @@ public class SimpleConfigFileTest {
     Files.write(fs.getPath("/baz/foo"), "bazfoo".getBytes());
     Files.write(fs.getPath("/baz/bar"), "bazbar".getBytes());
 
-    ConfigFile fooConfig = new SimpleConfigFile(foo);
-    Truth.assertThat(fooConfig.content()).isEqualTo("foo".getBytes());
-    Truth.assertThat(fooConfig.path()).isEqualTo("/foo");
-    Truth.assertThat(fooConfig.resolve("bar").content()).isEqualTo("bar".getBytes());
+    ConfigFile fooConfig = new PathBasedConfigFile(foo, /*rootPath=*/null);
+    assertThat(fooConfig.content()).isEqualTo("foo".getBytes());
+    assertThat(fooConfig.path()).isEqualTo("/foo");
+    assertThat(fooConfig.resolve("bar").content()).isEqualTo("bar".getBytes());
 
     ConfigFile bazFooConfig = fooConfig.resolve("baz/foo");
-    Truth.assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes());
+    assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes());
     // Checks that the correct bar is resolved.
-    Truth.assertThat(bazFooConfig.resolve("bar").content()).isEqualTo("bazbar".getBytes());
+    assertThat(bazFooConfig.resolve("bar").content()).isEqualTo("bazbar".getBytes());
+  }
+
+  @Test
+  public void testResolveAbsolute() throws IOException, CannotResolveLabel {
+    Files.write(fs.getPath("/foo"), "foo".getBytes());
+    Files.createDirectories(fs.getPath("/baz"));
+    Files.write(fs.getPath("/baz/foo"), "bazfoo".getBytes());
+    Files.write(fs.getPath("/baz/bar"), "bazbar".getBytes());
+
+    ConfigFile fooConfig = new PathBasedConfigFile(fs.getPath("/foo"),
+        /*rootPath=*/fs.getPath("/"));
+    assertThat(fooConfig.content()).isEqualTo("foo".getBytes());
+    assertThat(fooConfig.path()).isEqualTo("/foo");
+
+    ConfigFile bazFooConfig = fooConfig.resolve("//baz/foo");
+    assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes());
+    assertThat(bazFooConfig.resolve("//baz/bar").content()).isEqualTo("bazbar".getBytes());
   }
 
   @Test
   public void testResolveFailure() throws IOException, CannotResolveLabel {
-    ConfigFile fooConfig = new SimpleConfigFile(Files.write(fs.getPath("/foo"), "foo".getBytes()));
+    ConfigFile fooConfig = new PathBasedConfigFile(
+        Files.write(fs.getPath("/foo"), "foo".getBytes()),
+        /*rootPath=*/null);
     thrown.expect(CannotResolveLabel.class);
     thrown.expectMessage("Cannot find 'bar'. '/bar' does not exist.");
     fooConfig.resolve("bar");
+  }
+
+  @Test
+  public void testAbsoluteResolveFailsIfNoRoot() throws IOException, CannotResolveLabel {
+    ConfigFile fooConfig = new PathBasedConfigFile(Files.write(fs.getPath("/foo"),
+        "foo".getBytes()),/*rootPath=*/null);
+    thrown.expect(CannotResolveLabel.class);
+    thrown.expectMessage("Absolute paths are not allowed because the root config path"
+        + " couldn't be automatically detected");
+    fooConfig.resolve("//bar");
   }
 }

@@ -16,11 +16,13 @@
 
 package com.google.copybara.config;
 
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.copybara.ConfigValidationException.checkCondition;
 import static com.google.copybara.ConfigValidationException.checkNotMissing;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring;
 import com.google.copybara.ConfigValidationException;
@@ -35,13 +37,16 @@ import com.google.devtools.build.lib.events.EventHandler;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.syntax.BuildFileAST;
 import com.google.devtools.build.lib.syntax.Environment;
+import com.google.devtools.build.lib.syntax.Environment.Extension;
 import com.google.devtools.build.lib.syntax.Environment.Frame;
 import com.google.devtools.build.lib.syntax.Mutability;
+import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
-import com.google.devtools.build.lib.vfs.FileSystemUtils;
-import com.google.devtools.build.lib.vfs.inmemoryfs.InMemoryFileSystem;
+import com.google.devtools.build.lib.vfs.PathFragment;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -53,6 +58,7 @@ import java.util.logging.Logger;
 public class SkylarkParser {
 
   private static final Logger logger = Logger.getLogger(SkylarkParser.class.getName());
+  private static final String BARA_SKY = ".bara.sky";
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
 
@@ -91,19 +97,63 @@ public class SkylarkParser {
   @VisibleForTesting
   public Environment executeSkylark(ConfigFile content, Options options)
       throws IOException, ConfigValidationException, InterruptedException {
-    Console console = options.get(GeneralOptions.class).console();
-    EventHandler eventHandler = new ConsoleEventHandler(console);
+    return new Evaluator(options).eval(content);
+  }
 
-    Frame globals = createGlobals(eventHandler, options, content);
-    Environment env = createEnvironment(eventHandler, globals);
+  /**
+   * An utility class for traversing and evaluating the config file dependency graph.
+   */
+  private final class Evaluator {
 
-    BuildFileAST buildFileAST = parseFile(content, eventHandler);
-    // TODO(copybara-team): multifile support
-    checkState(buildFileAST.getImports().isEmpty(),
-        "load() statements are still not supported: %s", buildFileAST.getImports());
+    private final LinkedHashSet<String> pending = new LinkedHashSet<>();
+    private final Map<String, Environment> loaded = new HashMap<>();
+    private final Options options;
+    private final Console console;
+    private final EventHandler eventHandler;
 
-    checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
-    return env;
+    private Evaluator(Options options) {
+      this.options = Preconditions.checkNotNull(options);
+      console = options.get(GeneralOptions.class).console();
+      eventHandler = new ConsoleEventHandler(console);
+    }
+
+    private Environment eval(ConfigFile content)
+        throws IOException, ConfigValidationException, InterruptedException {
+      if (pending.contains(content.path())) {
+        throw throwCycleError(content.path());
+      } else if (loaded.containsKey(content.path())) {
+        return loaded.get(content.path());
+      }
+      pending.add(content.path());
+
+      Frame globals = createGlobals(eventHandler, options, content);
+
+      BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
+          new InputSourceForConfigFile(content), eventHandler);
+
+      Map<String, Extension> imports = new HashMap<>();
+      for (String anImport : buildFileAST.getRawImports()) {
+        imports.put(anImport, new Extension(eval(content.resolve(anImport + BARA_SKY))));
+      }
+      Environment env = createEnvironment(eventHandler, globals, imports);
+
+      checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
+      pending.remove(content.path());
+      loaded.put(content.path(), env);
+      return env;
+    }
+
+    private ConfigValidationException throwCycleError(String cycleElement)
+        throws ConfigValidationException {
+      StringBuilder sb = new StringBuilder();
+      for (String element : pending) {
+        sb.append(element.equals(cycleElement) ? "* " : "  ");
+        sb.append(element).append("\n");
+      }
+      sb.append("* ").append(cycleElement).append("\n");
+      console.error("Cycle was detected in the configuration: \n" + sb);
+      throw new ConfigValidationException("Cycle was detected");
+    }
   }
 
   private Config createConfig(Options options, Map<String, Workflow<?>> workflows,
@@ -122,25 +172,17 @@ public class SkylarkParser {
     return new Config(checkNotMissing(projectName, "project"), workflow);
   }
 
-  private BuildFileAST parseFile(ConfigFile content, EventHandler eventHandler)
-      throws IOException {
-    InMemoryFileSystem fs = new InMemoryFileSystem();
-    // TODO(copybara-team): Use real file name
-    com.google.devtools.build.lib.vfs.Path config = fs.getPath("/config.bzl");
-    FileSystemUtils.writeContent(config, content.content());
-
-    return BuildFileAST.parseSkylarkFile(config, eventHandler);
-  }
-
   /**
    * Creates a Skylark environment making the {@code modules} available as global variables.
    *
    * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object so that
    * the module can construct objects that require options.
    */
-  static Environment createEnvironment(EventHandler eventHandler, Environment.Frame globals) {
+  private static Environment createEnvironment(EventHandler eventHandler, Frame globals,
+      Map<String, Extension> imports) {
     return Environment.builder(Mutability.create("CopybaraModules"))
         .setGlobals(globals)
+        .setImportedExtensions(imports)
         .setSkylark()
         .setEventHandler(eventHandler)
         .build();
@@ -153,7 +195,8 @@ public class SkylarkParser {
    */
   private Environment.Frame createGlobals(
       EventHandler eventHandler, Options options, ConfigFile configFile) {
-    Environment env = createEnvironment(eventHandler, Environment.SKYLARK);
+    Environment env = createEnvironment(eventHandler, Environment.SKYLARK,
+        ImmutableMap.<String, Extension>of());
 
     for (Class<?> module : modules) {
       logger.log(Level.INFO, "Creating variable for " + module.getName());
@@ -221,6 +264,28 @@ public class SkylarkParser {
           ? "<no location>"
           : event.getLocation().print();
       return location + ": " + event.getMessage();
+    }
+  }
+
+  private static class InputSourceForConfigFile extends ParserInputSource {
+
+    private final String content;
+    private final String path;
+
+    private InputSourceForConfigFile(ConfigFile content) throws IOException {
+
+      this.content = Preconditions.checkNotNull(new String(content.content(), UTF_8));
+      path = Preconditions.checkNotNull(content.path());
+    }
+
+    @Override
+    public char[] getContent() {
+      return content.toCharArray();
+    }
+
+    @Override
+    public PathFragment getPath() {
+      return new PathFragment(path);
     }
   }
 }

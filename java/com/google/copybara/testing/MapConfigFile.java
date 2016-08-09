@@ -20,44 +20,40 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.config.CannotResolveLabel;
 import com.google.copybara.config.ConfigFile;
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
 
 /**
  * A Config file implementation that uses a map for storing the internal data structure.
  */
-public class MapConfigFile implements ConfigFile {
+public class MapConfigFile extends ConfigFile<String> {
 
   private final ImmutableMap<String, byte[]> configFiles;
   private final String current;
 
   public MapConfigFile(ImmutableMap<String, byte[]> configFiles, String current) {
+    super(current);
     this.configFiles = configFiles;
     this.current = current;
   }
 
   @Override
-  public ConfigFile resolve(String label) throws CannotResolveLabel {
-    FileSystem fs = FileSystems.getDefault();
-    Path currentAsPath = fs.getPath(current);
-    Path child = fs.getPath(label);
-    if (child.isAbsolute() || !child.equals(child.normalize())) {
-      throw new CannotResolveLabel(
-          "Only includes of files in the same directory or subdirectories is allowed. No '..' are allowed: "
-              + label);
-    }
-    String resolved = currentAsPath.resolveSibling(child).toString();
-    if (!configFiles.containsKey(resolved)) {
-      throw new CannotResolveLabel(
-          String.format("Cannot find '%s'. '%s' does not exist.", label, resolved));
-    }
-    return new MapConfigFile(configFiles, resolved);
+  protected String relativeToRoot(String label) throws CannotResolveLabel {
+    return label;
   }
 
   @Override
-  public String path() {
-    return current;
+  protected String relativeToCurrentPath(String label) throws CannotResolveLabel {
+    int i = current.lastIndexOf("/");
+    return i == -1 ? label : current.substring(0, i) + "/" + label;
+  }
+
+  @Override
+  protected ConfigFile createConfigFile(String label, String resolved)
+      throws CannotResolveLabel {
+    if (!configFiles.containsKey(resolved)) {
+      throw new CannotResolveLabel(
+          String.format("Cannot resolve '%s': '%s' doesn't exist", label, resolved));
+    }
+    return new MapConfigFile(configFiles, resolved);
   }
 
   @Override

@@ -20,9 +20,11 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.ConfigValidationException;
@@ -50,6 +52,7 @@ import com.google.devtools.build.lib.syntax.Type;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -60,6 +63,13 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SkylarkParserTest {
+
+  private static final Function<String, byte[]> STRING_TO_BYTE = new Function<String, byte[]>() {
+    @Override
+    public byte[] apply(String s) {
+      return s.getBytes(UTF_8);
+    }
+  };
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -93,7 +103,7 @@ public class SkylarkParserTest {
   public void testParseConfigFile()
       throws IOException, ConfigValidationException {
     String configContent = ""
-        + "baz=42\n"
+        + "load('//foo/authoring','copy_author', 'baz')\n"
         + "some_url=\"https://so.me/random/url\"\n"
         + "\n"
         + "core.project(\n"
@@ -109,7 +119,7 @@ public class SkylarkParserTest {
         + "   destination = mock.destination(\n"
         + "      folder = \"some folder\"\n"
         + "   ),\n"
-        + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
+        + "   authoring = copy_author(),\n"
         + "   transformations = [\n"
         + "      mock.transform(field1 = \"foo\", field2 = \"bar\"),\n"
         + "      mock.transform(field1 = \"baz\", field2 = \"bee\"),\n"
@@ -119,7 +129,17 @@ public class SkylarkParserTest {
         + ")\n";
 
     options.setWorkflowName("foo42");
-    Config config = loadConfig(configContent);
+    Config config = loadConfigMultifile(configContent, ImmutableMap.of(
+        "foo/authoring.bara.sky", ""
+            + "load('bar', 'bar')\n"
+            + "baz=bar\n"
+            + "def copy_author():\n"
+            + "  return authoring.overwrite('Copybara <no-reply@google.com>')",
+        "foo/bar.bara.sky", ""
+            + "bar=42\n"
+            + "def copy_author():\n"
+            + "  return authoring.overwrite('Copybara <no-reply@google.com>')"
+    ));
 
     assertThat(config.getName()).isEqualTo("mytest");
     MockOrigin origin = (MockOrigin) config.getActiveWorkflow().origin();
@@ -142,10 +162,38 @@ public class SkylarkParserTest {
     assertThat(transformation2.field2).isEqualTo("bee");
   }
 
+  @Test
+  public void testParseConfigCycleError()
+      throws IOException, ConfigValidationException {
+    options.setWorkflowName("foo42");
+    try {
+      loadConfigMultifile("load('//foo','foo')", ImmutableMap.of(
+          "foo.bara.sky", "load('//bar', 'bar')",
+          "bar.bara.sky", "load('//copy', 'copy')"));
+      fail();
+    } catch (ConfigValidationException e) {
+      assertThat(e.getMessage()).contains("Cycle was detected");
+      console.assertThat().onceInLog(MessageType.ERROR,
+          "(?m)Cycle was detected in the configuration: \n"
+              + "\\* copy.bara.sky\n"
+              + "  foo.bara.sky\n"
+              + "  bar.bara.sky\n"
+              + "\\* copy.bara.sky\n");
+    }
+  }
+
   private Config loadConfig(String configContent)
       throws IOException, ConfigValidationException {
+    return loadConfigMultifile(configContent, ImmutableMap.<String, String>of());
+  }
+
+  private Config loadConfigMultifile(String configContent, Map<String, String> extraFiles)
+      throws IOException, ConfigValidationException {
     return parser.loadConfig(
-        new MapConfigFile(ImmutableMap.of("copy.bara.sky", configContent.getBytes()),
+        new MapConfigFile(ImmutableMap.<String, byte[]>builder()
+            .put("copy.bara.sky", configContent.getBytes())
+            .putAll(Maps.transformValues(extraFiles, STRING_TO_BYTE))
+            .build(),
             "copy.bara.sky"),
         options.build());
   }
@@ -236,13 +284,7 @@ public class SkylarkParserTest {
         + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
         + ")\n";
 
-    Config config = parser.loadConfig(
-        new MapConfigFile(
-            ImmutableMap.of(
-                "copy.bara.sky", configContent.getBytes(UTF_8),
-                "foo", "stuff_in_foo".getBytes(UTF_8)),
-            "copy.bara.sky"),
-        options.build());
+    Config config = loadConfigMultifile(configContent, ImmutableMap.of("foo", "stuff_in_foo"));
     assertThat(config.getName()).isEqualTo("stuff_in_foo");
   }
 
