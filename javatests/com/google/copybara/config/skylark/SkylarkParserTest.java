@@ -127,8 +127,8 @@ public class SkylarkParserTest {
   private Config loadConfig(String configContent)
       throws IOException, ConfigValidationException, EnvironmentException {
     return parser.loadConfig(
-        new MapConfigFile(ImmutableMap.of("copybara.bzl", configContent.getBytes()),
-            "copybara.bzl"),
+        new MapConfigFile(ImmutableMap.of("copy.bara.sky", configContent.getBytes()),
+            "copy.bara.sky"),
         options.build());
   }
 

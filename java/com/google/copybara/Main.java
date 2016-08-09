@@ -41,8 +41,12 @@ public class Main {
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
+  private static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
+  //TODO(team): remove
+  @Deprecated
   private static final String COPYBARA_CONFIG_FILENAME = "copybara.yaml";
-  private static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copybara.bzl";
+  @Deprecated
+  private static final String COPYBARA_OLD_SKYLARK_CONFIG_FILENAME = "copybara.bzl";
 
   public static void main(String[] args) {
     new Main().run(args);
@@ -89,7 +93,10 @@ public class Main {
       mainArgs.validateUnnamedArgs();
 
       GeneralOptions generalOptions = generalOptionsArgs.init(
-          fs, console, /*skylark=*/mainArgs.getConfigPath().endsWith(".bzl"));
+          fs, console,
+          // TODO(team): Don't allow .bzl
+          /*skylark=*/mainArgs.getConfigPath().endsWith(".bzl")
+              || mainArgs.getConfigPath().endsWith(".bara.sky"));
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
@@ -99,14 +106,14 @@ public class Main {
         Preconditions.checkArgument(generalOptions.isSkylark(),
             "Validate is only allowed in Skylark mode");
 
-        ConfigFile skylarkContent = loadConfig(/*skylark=*/true, configPath);
+        ConfigFile skylarkContent = loadConfig(/*skylark=*/true, configPath, console);
         ConfigFile yamlContent = loadConfig(/*skylark=*/false,
-            configPath.getParent().resolve("copybara.yaml"));
+            configPath.getParent().resolve("copybara.yaml"), console);
         copybara.validate(options, skylarkContent, yamlContent, mainArgs.getWorkflowName());
       } else {
         copybara.run(
             options,
-            loadConfig(generalOptions.isSkylark(), configPath),
+            loadConfig(generalOptions.isSkylark(), configPath, console),
             mainArgs.getWorkflowName(),
             mainArgs.getBaseWorkdir(fs),
             mainArgs.getSourceRef());
@@ -133,16 +140,21 @@ public class Main {
     }
   }
 
-  private ConfigFile loadConfig(boolean skylark, Path configPath)
+  private ConfigFile loadConfig(boolean skylark, Path configPath, Console console)
       throws IOException, CommandLineException, ConfigValidationException {
-    String expectedConfigName = COPYBARA_CONFIG_FILENAME;
+    String fileName = configPath.getFileName().toString();
     if (skylark) {
-      expectedConfigName = COPYBARA_SKYLARK_CONFIG_FILENAME;
-    }
-    if (!configPath.getFileName().toString().contentEquals(expectedConfigName)) {
-      throw new ConfigValidationException(
+      ConfigValidationException.checkCondition(
+          fileName.contentEquals(COPYBARA_OLD_SKYLARK_CONFIG_FILENAME)
+              || fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
           String.format("Copybara config file filename should be '%s' but it is '%s'.",
-              expectedConfigName, configPath.getFileName()));
+              COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName()));
+    } else {
+      if (!fileName.contentEquals(COPYBARA_CONFIG_FILENAME)) {
+        throw new ConfigValidationException(
+            String.format("Copybara config file filename should be '%s' but it is '%s'.",
+                COPYBARA_CONFIG_FILENAME, configPath.getFileName()));
+      }
     }
 
     // Treat the top level element specially since it is passed thru the command line.

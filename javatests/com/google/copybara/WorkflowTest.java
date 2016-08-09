@@ -543,7 +543,7 @@ public class WorkflowTest {
   private Config loadConfig(String content)
       throws IOException, ConfigValidationException, EnvironmentException {
     return skylark.loadConfig(
-        new MapConfigFile(ImmutableMap.of("copybara.bzl", content.getBytes()), "copybara.bzl"),
+        new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
         options.build());
   }
 

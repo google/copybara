@@ -76,7 +76,7 @@ function test_git_tracking() {
   first_commit=$(run_git rev-parse HEAD)
   popd
 
-    cat > copybara.bzl <<EOF
+    cat > copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -107,7 +107,7 @@ core.workflow(
 )
 EOF
 
-  copybara copybara.bzl
+  copybara copy.bara.sky
 
   expect_log "Running Copybara for config 'cbtest', workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
   expect_log 'Transform Replace food'
@@ -134,7 +134,7 @@ EOF
   second_commit=$(git rev-parse HEAD)
   popd
 
-  copybara copybara.bzl
+  copybara copy.bara.sky
 
   [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
   expect_in_file "second version for drink and barooooo" $workdir/checkout/test.txt
@@ -164,7 +164,7 @@ function test_git_iterative() {
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
 
   popd
-    cat > copybara.bzl <<EOF
+    cat > copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -183,7 +183,7 @@ core.workflow(
 )
 EOF
 
-  copybara copybara.bzl default $commit_three --last-rev $commit_one
+  copybara copy.bara.sky default $commit_three --last-rev $commit_one
 
   check_copybara_rev_id "$destination" "$commit_three"
 
@@ -193,7 +193,7 @@ EOF
   expect_not_log "commit two"
   expect_log "commit three"
 
-  copybara copybara.bzl default $commit_five
+  copybara copy.bara.sky default $commit_five
 
   check_copybara_rev_id "$destination" "$commit_five"
 
@@ -231,7 +231,7 @@ function test_get_git_changes() {
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
   popd
 
-    cat > copybara.bzl <<EOF
+    cat > copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -250,7 +250,7 @@ core.workflow(
 )
 EOF
 
-  copybara copybara.bzl default $commit_one
+  copybara copy.bara.sky default $commit_one
 
   check_copybara_rev_id "$destination" "$commit_one"
 
@@ -260,7 +260,7 @@ EOF
   # We only record changes when we know the previous version
   expect_not_log "commit one"
 
-  copybara copybara.bzl default $commit_four
+  copybara copy.bara.sky default $commit_four
 
   check_copybara_rev_id "$destination" "$commit_four"
 
@@ -274,7 +274,7 @@ EOF
   expect_log "$commit_four.*commit four"
   expect_not_log "commit five"
 
-  copybara copybara.bzl default $commit_five --last-rev $commit_three
+  copybara copy.bara.sky default $commit_five --last-rev $commit_three
 
   check_copybara_rev_id "$destination" "$commit_five"
 
@@ -320,7 +320,7 @@ function prepare_glob_tree() {
 function test_regex_with_path() {
   prepare_glob_tree
 
-  cat > copybara.bzl <<EOF
+  cat > copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -344,7 +344,7 @@ core.workflow(
     ],
 )
 EOF
-  copybara copybara.bzl
+  copybara copy.bara.sky
   ( cd $(mktemp -d)
     run_git clone $destination .
     expect_in_file "foo" test.txt
@@ -360,7 +360,7 @@ function git_pull_request() {
   sot=$(empty_git_bare_repo)
   public=$(empty_git_bare_repo)
 
-  cat > copybara.bzl <<EOF
+  cat > copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -402,7 +402,7 @@ EOF
   run_git push
   popd
 
-  copybara copybara.bzl export $commit_two
+  copybara copy.bara.sky export $commit_two
 
   # Check that we have exported correctly the tree state as in commit_two
   pushd $(mktemp -d)
@@ -416,7 +416,7 @@ EOF
   run_git push
   popd
 
-  copybara copybara.bzl import_change $pr_request
+  copybara copy.bara.sky import_change $pr_request
 
   # Check that the SoT contains the change from pr_request but that it has not reverted
   # commit_three (SoT was ahead of public).
@@ -446,7 +446,7 @@ function test_git_delete() {
     run_git commit -m "first commit"
   )
 
-  cat > copybara.bzl <<EOF
+  cat > copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -464,7 +464,7 @@ core.workflow(
     exclude_in_origin = glob(['**/*.java', 'subdir/**']),
 )
 EOF
-  copybara copybara.bzl
+  copybara copy.bara.sky
 
   ( cd $(mktemp -d)
     run_git clone $destination .
@@ -489,7 +489,7 @@ function test_reverse_sequence() {
     run_git commit -m "first commit"
   )
 
-  cat > copybara.bzl <<EOF
+  cat > copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 forward_transforms = [
@@ -526,14 +526,14 @@ core.workflow(
     transformations = core.reverse(forward_transforms),
 )
 EOF
-  copybara copybara.bzl forward
+  copybara copy.bara.sky forward
 
   ( cd $(mktemp -d)
     run_git clone $destination .
     [[ -f test.txt ]] || fail "/test.txt should exit"
     expect_in_file "barbee" test.txt
   )
-  copybara copybara.bzl reverse --git-first-commit
+  copybara copy.bara.sky reverse --git-first-commit
 
   ( cd $(mktemp -d)
     run_git clone $remote .
@@ -555,7 +555,7 @@ function test_local_dir_destination() {
   )
   mkdir destination
 
-  cat > destination/copybara.bzl <<EOF
+  cat > destination/copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -564,7 +564,7 @@ core.workflow(
       url = "file://$remote",
       ref = "master",
     ),
-    exclude_in_destination = glob(["copybara.bzl", "**.keep"]),
+    exclude_in_destination = glob(["copy.bara.sky", "**.keep"]),
     destination = folder.destination(),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
 )
@@ -575,10 +575,10 @@ EOF
   touch destination/folder/keepme.keep
   touch destination/dontkeep.txt
 
-  copybara destination/copybara.bzl --folder-dir destination
+  copybara destination/copy.bara.sky --folder-dir destination
 
   [[ -f destination/test.txt ]] || fail "test.txt should exist"
-  [[ -f destination/copybara.bzl ]] || fail "copybara.bzl should exist"
+  [[ -f destination/copy.bara.sky ]] || fail "copy.bara.sky should exist"
   [[ -f destination/keepme.keep ]] || fail "keepme.keep should exist"
   [[ -f destination/folder/keepme.keep ]] || fail "folder/keepme.keep should exist"
   [[ ! -f destination/dontkeep.txt ]] || fail "dontkeep.txt should be deleted"
@@ -595,7 +595,7 @@ function test_choose_non_default_workflow() {
   )
   mkdir destination
 
-  cat > destination/copybara.bzl <<EOF
+  cat > destination/copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -620,7 +620,7 @@ core.workflow(
 )
 EOF
 
-  copybara destination/copybara.bzl choochoochoose_me --folder-dir destination
+  copybara destination/copy.bara.sky choochoochoose_me --folder-dir destination
   expect_in_file "bar" destination/test.txt
 }
 
@@ -636,7 +636,7 @@ function test_file_move() {
   )
   mkdir destination
 
-  cat > destination/copybara.bzl <<EOF
+  cat > destination/copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -654,7 +654,7 @@ core.workflow(
 )
 EOF
 
-  copybara destination/copybara.bzl --folder-dir destination
+  copybara destination/copy.bara.sky --folder-dir destination
 
   expect_in_file "foo" destination/test1.moved
   expect_in_file "foo" destination/test2.moved
@@ -663,7 +663,7 @@ EOF
 }
 
 function test_invalid_transformations_in_config() {
-  cat > copybara.bzl <<EOF
+  cat > copy.bara.sky <<EOF
 core.project(name = "cbtest-invalid-xform")
 
 core.workflow(
@@ -677,7 +677,7 @@ core.workflow(
     transformations = [42],
 )
 EOF
-  copybara copybara.bzl default && fail "Should fail"
+  copybara copy.bara.sky default && fail "Should fail"
   expect_log "expected type transformation for 'transformations' element but got type int instead"
 }
 
@@ -689,7 +689,7 @@ function test_command_help_flag() {
 
 function test_command_copybara_filename_no_correct_name() {
   copybara somename.bzl && fail "Should fail"
-  expect_log "Copybara config file filename should be 'copybara.bzl'"
+  expect_log "Copybara config file filename should be 'copy.bara.sky'"
 }
 
 function test_command_too_few_args() {
@@ -705,13 +705,13 @@ function test_command_too_many_args() {
 }
 
 function test_config_not_found() {
-  copybara copybara.bzl origin/master && fail "Should fail"
-  expect_log "Configuration file not found: copybara.bzl"
+  copybara copy.bara.sky origin/master && fail "Should fail"
+  expect_log "Configuration file not found: copy.bara.sky"
 }
 
 #Verify that we instantiate LogConsole when System.console() is null
 function test_no_ansi_console() {
-  copybara copybara.bzl && fail "Should fail"
+  copybara copy.bara.sky && fail "Should fail"
   expect_log "^20[0-9]\{6\} .*"
 }
 
@@ -727,7 +727,7 @@ function test_log_consonle_is_write_only() {
     run_git commit -m "first commit"
   )
 
-  cat > copybara.bzl <<EOF
+  cat > copy.bara.sky <<EOF
 core.project(name = "cbtest")
 
 core.workflow(
@@ -745,7 +745,7 @@ core.workflow(
     ask_for_confirmation = True,
 )
 EOF
-  copybara copybara.bzl && fail "Should fail"
+  copybara copy.bara.sky && fail "Should fail"
   expect_log "LogConsole cannot read user input if system console is not present"
 }
 

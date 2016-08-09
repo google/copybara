@@ -41,7 +41,7 @@ public final class SkylarkTestExecutor {
   public <T> T eval(String var, String config) throws ConfigValidationException {
     try {
       ConfigFile configFile = new MapConfigFile(
-          ImmutableMap.of("copybara.bzl", config.getBytes()), "copybara.bzl");
+          ImmutableMap.of("copy.bara.sky", config.getBytes()), "copy.bara.sky");
       Environment env = skylarkParser.executeSkylark(configFile, options.build(), environment);
       T t = (T) env.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
