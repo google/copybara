@@ -18,7 +18,6 @@ import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
 
 /**
@@ -256,18 +254,18 @@ public class GitRepository {
       }
       throw new RepoException("Error on git command: " + commandOutputWithStatus.getStderr());
     } catch (BadExitStatusWithOutputException e) {
-      String stderr = e.stdErrAsString();
+      CommandOutput output = e.getOutput();
 
-      if (NOTHING_TO_COMMIT.matcher(e.stdOutAsString()).find()) {
+      if (NOTHING_TO_COMMIT.matcher(output.getStdout()).find()) {
         throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
             + "Is the change already migrated?");
-      } else if (FAILED_REBASE.matcher(e.stdErrAsString()).find()) {
-        System.out.println(e.stdOutAsString());
-        throw new RebaseConflictException(e.stdOutAsString());
+      } else if (FAILED_REBASE.matcher(output.getStderr()).find()) {
+        System.out.println(output.getStdout());
+        throw new RebaseConflictException(output.getStdout());
       }
 
       for (Pattern error : REF_NOT_FOUND_ERRORS) {
-        Matcher matcher = error.matcher(stderr);
+        Matcher matcher = error.matcher(output.getStderr());
         if (matcher.find()) {
           throw new CannotFindReferenceException(
               "Cannot find reference '" + matcher.group(1) + "'", e);
@@ -275,7 +273,7 @@ public class GitRepository {
       }
 
       throw new RepoException(
-          "Error executing 'git': " + e.getMessage() + ". Stderr: \n" + e.stdErrAsString(), e);
+          "Error executing 'git': " + e.getMessage() + ". Stderr: \n" + output.getStderr(), e);
     } catch (CommandException e) {
       throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }

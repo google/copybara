@@ -17,33 +17,15 @@ import java.nio.charset.StandardCharsets;
  */
 public class BadExitStatusWithOutputException extends AbnormalTerminationException {
 
-  private final byte[] stdOut;
-  private final byte[] stdErr;
+  private final CommandOutputWithStatus output;
 
   BadExitStatusWithOutputException(Command command, CommandResult result, String message,
-      byte[] stdOut, byte[] stdErr) {
+      byte[] stdout, byte[] stderr) {
     super(command, result, message);
-    this.stdOut = Preconditions.checkNotNull(stdOut);
-    this.stdErr = Preconditions.checkNotNull(stdErr);
+    this.output = new CommandOutputWithStatus(result.getTerminationStatus(), stdout, stderr);
   }
 
-  public byte[] stdOut() {
-    return stdOut;
-  }
-
-  public byte[] stdErr() {
-    return stdErr;
-  }
-
-  public String stdOutAsString() {
-    return asString(stdOut);
-  }
-
-  public String stdErrAsString() {
-    return asString(stdErr);
-  }
-
-  private static String asString(byte[] bytes) {
-    return new String(bytes, StandardCharsets.UTF_8);
+  public CommandOutputWithStatus getOutput() {
+    return output;
   }
 }

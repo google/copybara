@@ -40,12 +40,13 @@ public class DiffUtil {
       CommandUtil.executeCommand(cmd, verbose);
       return EMPTY_DIFF;
     } catch (BadExitStatusWithOutputException e) {
+      CommandOutput output = e.getOutput();
       // git diff returns exit status 0 when contents are identical, or 1 when they are different
-      if (!Strings.isNullOrEmpty(e.stdErrAsString())) {
+      if (!Strings.isNullOrEmpty(output.getStderr())) {
         throw new EnvironmentException(
-            "Error executing 'git diff': " + e.getMessage() + ". Stderr: \n" + e.stdErrAsString(), e);
+            "Error executing 'git diff': " + e.getMessage() + ". Stderr: \n" + output.getStderr(), e);
       }
-      return e.stdOut();
+      return output.getStdoutBytes();
     } catch (CommandException e) {
       throw new EnvironmentException("Error executing 'git diff'", e);
     }
@@ -68,7 +69,8 @@ public class DiffUtil {
       CommandUtil.executeCommand(cmd, diffContents, verbose);
     } catch (BadExitStatusWithOutputException e) {
       throw new EnvironmentException(
-          "Error executing 'patch': " + e.getMessage() + ". Stderr: \n" + e.stdErrAsString(), e);
+          "Error executing 'patch': " + e.getMessage() + ". Stderr: \n" + e.getOutput().getStderr(),
+          e);
     } catch (CommandException e) {
       throw new EnvironmentException("Error executing 'patch'", e);
     }

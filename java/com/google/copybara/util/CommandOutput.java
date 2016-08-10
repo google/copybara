@@ -25,6 +25,10 @@ public class CommandOutput {
     return new String(stdout, StandardCharsets.UTF_8);
   }
 
+  public byte[] getStdoutBytes() {
+    return stdout;
+  }
+
   public String getStderr() {
     return new String(stderr, StandardCharsets.UTF_8);
   }
