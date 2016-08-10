@@ -24,14 +24,14 @@ public class MapConfigFile implements ConfigFile {
   @Override
   public ConfigFile resolve(String label) throws CannotResolveLabel {
     FileSystem fs = FileSystems.getDefault();
-    Path currentAsPath = fs.getPath(current).getParent();
+    Path currentAsPath = fs.getPath(current);
     Path child = fs.getPath(label);
     if (child.isAbsolute() || !child.equals(child.normalize())) {
       throw new CannotResolveLabel(
           "Only includes of files in the same directory or subdirectories is allowed. No '..' are allowed: "
               + label);
     }
-    String resolved = currentAsPath.resolve(child).toString();
+    String resolved = currentAsPath.resolveSibling(child).toString();
     if (!configFiles.containsKey(resolved)) {
       throw new CannotResolveLabel(
           String.format("Cannot find '%s'. '%s' does not exist.", label, resolved));

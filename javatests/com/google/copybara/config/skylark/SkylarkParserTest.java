@@ -1,6 +1,7 @@
 package com.google.copybara.config.skylark;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -52,7 +53,7 @@ public class SkylarkParserTest {
 
   @Before
   public void setup() {
-    parser = new SkylarkParser(ImmutableSet.<Class<?>>of(Mock.class));
+    parser = new SkylarkParser(ImmutableSet.<Class<?>>of(Mock.class, MockLabelsAwareModule.class));
     options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
@@ -201,11 +202,69 @@ public class SkylarkParserTest {
     }
   }
 
+  @Test
+  public void testResolveLabel() throws Exception {
+    String configContent = ""
+        + "core.project(name = mock_labels_aware_module.read_foo())\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "   name = \"default\",\n"
+        + "   origin = mock.origin(\n"
+        + "      url = 'some_url',\n"
+        + "      branch = \"master\",\n"
+        + "   ),\n"
+        + "   destination = mock.destination(\n"
+        + "      folder = \"some folder\"\n"
+        + "   ),\n"
+        + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
+        + ")\n";
+
+    Config config = parser.loadConfig(
+        new MapConfigFile(
+            ImmutableMap.of(
+                "copy.bara.sky", configContent.getBytes(UTF_8),
+                "foo", "stuff_in_foo".getBytes(UTF_8)),
+            "copy.bara.sky"),
+        options.build());
+    assertThat(config.getName()).isEqualTo("stuff_in_foo");
+  }
+
   /**
    * TODO(malcon): Migrate SkylarkParserTest.testNonReversibleTransform
    */
   public void disabledTestNonReversibleTransform() {
 
+  }
+
+  @SkylarkModule(
+      name = "mock_labels_aware_module",
+      doc = "LabelsAwareModule for testing purposes",
+      category = SkylarkModuleCategory.BUILTIN,
+      documented = false)
+  public static class MockLabelsAwareModule implements LabelsAwareModule {
+    private ConfigFile configFile;
+
+    @Override
+    public void setConfigFile(ConfigFile configFile) {
+      this.configFile = configFile;
+    }
+
+    @SkylarkSignature(name = "read_foo", returnType = String.class,
+        doc = "Read 'foo' label from config file",
+        objectType = MockLabelsAwareModule.class,
+        parameters = {
+            @Param(name = "self", type = MockLabelsAwareModule.class, doc = "self"),
+        },
+        documented = false)
+    public static final BuiltinFunction READ_FOO = new BuiltinFunction("read_foo") {
+      public String invoke(MockLabelsAwareModule self) {
+        try {
+          return new String(self.configFile.resolve("foo").content(), UTF_8);
+        } catch (CannotResolveLabel|IOException inconceivable) {
+          throw new AssertionError(inconceivable);
+        }
+      }
+    };
   }
 
   @SkylarkModule(

@@ -84,7 +84,7 @@ public class SkylarkParser {
     Console console = options.get(GeneralOptions.class).console();
     EventHandler eventHandler = new ConsoleEventHandler(console);
 
-    Frame globals = createGlobals(eventHandler, options, environment);
+    Frame globals = createGlobals(eventHandler, options, environment, content);
     Environment env = createEnvironment(eventHandler, globals);
 
     BuildFileAST buildFileAST = parseFile(content, eventHandler);
@@ -142,7 +142,8 @@ public class SkylarkParser {
    * <p>The returned object can be reused for different instances of environments.
    */
   private Environment.Frame createGlobals(
-      EventHandler eventHandler, Options options, @Nullable  Map<String, String> environment) {
+      EventHandler eventHandler, Options options, @Nullable  Map<String, String> environment,
+      ConfigFile configFile) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK);
 
     for (Class<?> module : modules) {
@@ -155,6 +156,9 @@ public class SkylarkParser {
       }
       if (EnvironmentAwareModule.class.isAssignableFrom(module)) {
         ((EnvironmentAwareModule) getModuleGlobal(env, module)).setEnvironment(environment);
+      }
+      if (LabelsAwareModule.class.isAssignableFrom(module)) {
+        ((LabelsAwareModule) getModuleGlobal(env, module)).setConfigFile(configFile);
       }
     }
     env.mutability().close();
