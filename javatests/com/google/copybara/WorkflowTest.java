@@ -357,7 +357,7 @@ public class WorkflowTest {
       prepareOriginExcludes();
       workflow.run(workdir, origin.getHead());
       fail("Should fail because it could not delete anything.");
-    } catch (RepoException e) {
+    } catch (VoidOperationException e) {
       assertThat(e.getMessage()).contains("Nothing was deleted");
     }
     assertThatPath(workdir.resolve("checkout"))
@@ -389,6 +389,28 @@ public class WorkflowTest {
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt")
         .containsNoFiles("folder/subfolder/file.java");
+  }
+
+  @Test
+  public void excludedOriginNoopError() throws Exception {
+    excludedInOrigin = "glob(['I_dont_exist'])";
+    transformations = "[]";
+    Workflow workflow = workflow();
+    prepareOriginExcludes();
+    thrown.expect(VoidOperationException.class);
+    workflow.run(workdir, origin.getHead());
+  }
+
+  @Test
+  public void excludedOriginNoopWarning() throws Exception {
+    excludedInOrigin = "glob(['I_dont_exist'])";
+    transformations = "[]";
+    Workflow workflow = workflow();
+    prepareOriginExcludes();
+    options.workflowOptions.ignoreNoop = true;
+    workflow.run(workdir, origin.getHead());
+    console.assertThat().onceInLog(MessageType.WARNING,
+        ".*Nothing was deleted in the workdir for exclude_in_origin.*");
   }
 
   @Test

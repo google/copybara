@@ -356,7 +356,7 @@ public class WorkflowYamlTest {
       prepareOriginExcludes();
       workflow.run(workdir, origin.getHead());
       fail("Should fail because it could not delete anything.");
-    } catch (RepoException e) {
+    } catch (VoidOperationException e) {
       assertThat(e.getMessage()).contains("Nothing was deleted");
     }
     assertThatPath(workdir.resolve("checkout"))

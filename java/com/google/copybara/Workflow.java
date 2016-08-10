@@ -195,9 +195,8 @@ public abstract class Workflow<R extends Origin.Reference> {
             String.format("Removed %s files from workdir that were excluded", result));
 
         if (result == 0) {
-          throw new RepoException(
-              String.format("Nothing was deleted in the workdir for excludedOriginPaths: '%s'",
-                  pathMatcher));
+          workflowOptions().reportNoop(console(),
+              "Nothing was deleted in the workdir for exclude_in_origin: " + pathMatcher);
         }
       }
 
