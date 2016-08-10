@@ -7,7 +7,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -175,73 +174,6 @@ public final class Authoring {
         }
       }
       return ImmutableSet.copyOf(whitelist);
-    }
-  }
-  /**
-   * Config builder used by YAML.
-   */
-  @DocElement(yamlName = "!Authoring",
-      description = "Defines the authoring mapping between the origin and destination of the "
-          + "workflow.",
-      elementKind = Authoring.class)
-  public static final class Yaml {
-
-    private Author defaultAuthor;
-    private ImmutableSet<String> whitelist = ImmutableSet.of();
-    private AuthoringMappingMode mode = AuthoringMappingMode.USE_DEFAULT;
-
-
-    /**
-     * Sets the default author for commits in the destination.
-     *
-     * <p>This field cannot be empty, so there is always an author that can be used in the
-     * destination in case there is no mapping for an individual.
-     */
-    @DocField(description = "Sets the default author for commits in the destination.",
-        required = true)
-    public void setDefaultAuthor(Author.Yaml defaultAuthor) throws ConfigValidationException {
-      try {
-        this.defaultAuthor = defaultAuthor.create();
-      } catch (ConfigValidationException e) {
-        throw new ConfigValidationException("Invalid 'defaultAuthor'.", e);
-      }
-    }
-
-    @DocField(description = "Mode used for author mapping from origin to destination.",
-        required = false, defaultValue = "USE_DEFAULT")
-    public void setMode(AuthoringMappingMode mode) {
-      this.mode = mode;
-    }
-
-    /**
-     * Sets the mapping of whitelisted authors from origin to destination.
-     *
-     * TODO(danielromero): Load this mapping from an external file.
-     */
-    @DocField(description = "List of whitelisted authors in the origin. "
-        + "The authors must be unique.", required = false)
-    public void setWhitelist(List<String> whitelist) throws ConfigValidationException {
-      Set<String> uniqueAuthors = new HashSet<>();
-      for (String author : whitelist) {
-        if (!uniqueAuthors.add(author)) {
-          throw new ConfigValidationException(
-              String.format("Duplicated whitelist entry '%s'", author));
-        }
-      }
-      this.whitelist = ImmutableSet.copyOf(whitelist);
-    }
-
-    public Authoring withOptions()
-        throws ConfigValidationException, EnvironmentException {
-      if (this.defaultAuthor == null) {
-        throw new ConfigValidationException("Field 'defaultAuthor' cannot be empty.");
-      }
-      if (mode == AuthoringMappingMode.WHITELIST && whitelist.isEmpty()) {
-        throw new ConfigValidationException(
-            "Mode 'WHITELIST' requires a non-empty 'whitelist' field. "
-                + "For default mapping, use 'USE_DEFAULT' mode instead.");
-      }
-      return new Authoring(defaultAuthor, mode, whitelist);
     }
   }
 

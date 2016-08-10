@@ -7,11 +7,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.WriterResult;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
-import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.DiffUtil;
@@ -20,12 +16,9 @@ import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -312,145 +305,4 @@ public abstract class Workflow<R extends Origin.Reference> {
       throw new EnvironmentException("Error applying transformation: " + transformation, e);
     }
   }
-
-  /**
-   * Config builder used by YAML.
-   */
-  @DocElement(yamlName = "!Workflow",
-      description = "Defines a migration pipeline which can be invoked via the Copybara command.",
-      elementKind = Workflow.class)
-  public static final class Yaml {
-    private String name = "default";
-    private Origin.Yaml<?> origin;
-    private Destination.Yaml destination;
-    private WorkflowMode mode = WorkflowMode.SQUASH;
-    private boolean includeChangeListNotes = false;
-    private ImmutableList<Transformation.Yaml> transformations = ImmutableList.of();
-    private List<String> excludedOriginPaths = new ArrayList<>();
-    private List<String> excludedDestinationPaths = new ArrayList<>();
-    private Authoring.Yaml authoring;
-    private boolean askConfirmation;
-    private Boolean reversibleCheck;
-
-    public String getName() {
-      return name;
-    }
-
-    @DocField(description = "The name of the workflow.", required = false, defaultValue = "default")
-    public void setName(String name) {
-      this.name = name;
-    }
-
-    @DocField(description = "Where to read the migration code from.", required = true)
-    public void setOrigin(Origin.Yaml<?> origin) {
-      this.origin = origin;
-    }
-
-    @DocField(description = "Where to write the migration code to after transforms.",
-        required = true)
-    public void setDestination(Destination.Yaml destination) {
-      this.destination = destination;
-    }
-
-    @DocField(description = "Transformations to run on the migration code.",
-        required = false)
-    public void setTransformations(List<? extends Transformation.Yaml> transformations)
-        throws ConfigValidationException {
-      this.transformations = ImmutableList.<Transformation.Yaml>copyOf(transformations);
-    }
-
-    @DocField(
-        description = "A list of file globs relative to the workdir that will be excluded from the"
-        + " origin during the import. For example \"**.java\", all java files, recursively.",
-        required = false,
-        defaultValue = "[]")
-    public void setExcludedOriginPaths(List<String> excludedOriginPaths) {
-      this.excludedOriginPaths.clear();
-      this.excludedOriginPaths.addAll(excludedOriginPaths);
-    }
-
-    @DocField(
-        description = "A list of file globs relative to the root of the destination repository that"
-        + " will not be removed even if the file does not exist in the source. For example"
-        + " '**/BUILD', all BUILD files, recursively.",
-        required = false,
-        defaultValue = "[]")
-    public void setExcludedDestinationPaths(List<String> excludedDestinationPaths) {
-      this.excludedDestinationPaths.clear();
-      this.excludedDestinationPaths.addAll(excludedDestinationPaths);
-    }
-
-    @DocField(description = "Include a list of change list messages that were imported",
-        required = false, defaultValue = "false")
-    public void setIncludeChangeListNotes(boolean includeChangeListNotes) {
-      this.includeChangeListNotes = includeChangeListNotes;
-    }
-
-    @DocField(description = "Import/export mode of the changes. For example if the changes should "
-        + "be imported by squashing all the pending changes or imported individually",
-        required = false, defaultValue = "SQUASH")
-    public void setMode(WorkflowMode mode) {
-      this.mode = mode;
-    }
-
-    @DocField(description = "The author mapping configuration from origin to destination",
-        required = true)
-    public void setAuthoring(Authoring.Yaml authoring) throws ConfigValidationException {
-        this.authoring = authoring;
-    }
-
-    @DocField(description = "Indicates that the tool should show the diff and require user's "
-        + "confirmation before making a change in the destination.",
-        required = false, defaultValue = "false")
-    public void setAskConfirmation(boolean askConfirmation) {
-      this.askConfirmation = askConfirmation;
-    }
-
-    @DocField(description = "Indicates if the tool should try to to reverse all the transformations"
-        + " at the end to check that they are reversible.",
-        required = false, defaultValue = "true for CHANGE_REQUEST mode. False otherwise",
-        undocumented = true)
-    public void setReversibleCheck(boolean reversibleCheck) {
-      this.reversibleCheck = reversibleCheck;
-    }
-
-    public Workflow withOptions(Options options, String configName)
-        throws ConfigValidationException, EnvironmentException {
-
-      Sequence.Yaml sequence = new Sequence.Yaml();
-      sequence.setTransformations(this.transformations);
-      Transformation transformation = sequence.withOptions(options);
-
-      ConfigValidationException.checkNotMissing(this.authoring,"authoring");
-      ConfigValidationException.checkNotMissing(this.origin,"origin");
-      ConfigValidationException.checkNotMissing(this.destination,"destination");
-
-      if (reversibleCheck == null) {
-        reversibleCheck = mode == WorkflowMode.CHANGE_REQUEST;
-      }
-      if (reversibleCheck) {
-        // Check that we can reverse the transform since we will automatically reverse to check
-        // the reverse gives back the original input.
-        sequence.checkReversible();
-      }
-
-      Authoring authoring = this.authoring.withOptions();
-      Origin<?> origin = this.origin.withOptions(options);
-      Destination destination =
-          this.destination.withOptions(options, configName);
-      GeneralOptions generalOptions = options.get(GeneralOptions.class);
-      Console console = generalOptions.console();
-      WorkflowOptions workflowOptions = options.get(WorkflowOptions.class);
-      PathMatcherBuilder excludedOriginPaths = PathMatcherBuilder.create(
-          FileSystems.getDefault(), this.excludedOriginPaths, ImmutableList.<String>of());
-      PathMatcherBuilder excludedDestinationPaths = PathMatcherBuilder.create(
-          FileSystems.getDefault(), this.excludedDestinationPaths, ImmutableList.<String>of());
-      return new AutoValue_Workflow<>(configName, name, origin, destination, authoring, transformation,
-          workflowOptions.getLastRevision(), console,
-          excludedOriginPaths, excludedDestinationPaths, mode, includeChangeListNotes,
-          options.get(WorkflowOptions.class), reversibleCheck, generalOptions.isVerbose(),
-          askConfirmation);
-    }
-  }
-
 }

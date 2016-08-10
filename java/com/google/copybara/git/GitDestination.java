@@ -12,9 +12,6 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
-import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
@@ -273,36 +270,8 @@ public final class GitDestination implements Destination {
         .toString();
   }
 
-  @DocElement(yamlName = "!GitDestination",
-      description = "Creates a commit in a git repository using the transformed worktree",
-      elementKind = Destination.class, flags = {GitOptions.class})
-  public static final class Yaml extends AbstractDestinationYaml {
-    private String push;
-
-    /**
-     * Indicates the ref to push to after the repository has been updated. For instance, to create a
-     * Gerrit review, this can be {@code refs/for/master}. This can also be set to the same value as
-     * {@code defaultTrackingRef}.
-     */
-    @DocField(description = "Reference to use for pushing the change, for example 'master'")
-    public void setPush(String push) {
-      this.push = push;
-    }
-
-    @Override
-    public GitDestination withOptions(Options options, String configName)
-        throws ConfigValidationException {
-      ConfigValidationException.checkNotMissing(url, "url");
-      ConfigValidationException.checkNotMissing(fetch, "fetch");
-      ConfigValidationException.checkNotMissing(push, "push");
-      return newGitDestination(options, url, fetch, push);
-    }
-  }
-
   /**
    * Builds a new {@link GitDestination}.
-   *
-   * <p>This method is invoked both from Yaml and Skylark configurations.
    */
   static GitDestination newGitDestination(Options options, String url, String fetch, String push) {
     return new GitDestination(

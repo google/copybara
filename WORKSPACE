@@ -30,13 +30,6 @@ maven_jar(
 
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
-    name = "snakeyaml",
-    artifact = "org.yaml:snakeyaml:1.17",
-    sha1 = "7a27ea250c5130b2922b86dea63cbb1cc10a660c",
-)
-
-# LICENSE: The Apache Software License, Version 2.0
-maven_jar(
     name = "jcommander",
     artifact = "com.beust:jcommander:1.48",
     sha1 = "bfcb96281ea3b59d626704f74bc6d625ff51cbce",

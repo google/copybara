@@ -6,12 +6,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Author;
 import com.google.copybara.Destination;
-import com.google.copybara.Options;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.TransformResult;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -22,14 +20,13 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import javax.annotation.Nullable;
 
 /**
  * A destination for testing which doesn't write the workdir anywhere and simply records when
  * {@link Destination.Writer#write(TransformResult, Console)} is called and with what arguments.
  */
-public class RecordsProcessCallDestination implements Destination, Destination.Yaml {
+public class RecordsProcessCallDestination implements Destination {
 
   private final ArrayDeque<WriterResult> programmedResults;
 
@@ -83,11 +80,6 @@ public class RecordsProcessCallDestination implements Destination, Destination.Y
   @Override
   public String getLabelNameWhenOrigin() {
     return "Destination-RevId";
-  }
-
-  @Override
-  public Destination withOptions(Options options, String configName) {
-    return this;
   }
 
   public static class ProcessedChange {

@@ -35,21 +35,21 @@ java_library(
 
 java_plugin(
     name = "autovalue_plugin",
+    processor_class = "com.google.auto.value.processor.AutoValueProcessor",
     deps = [
         "@autovalue//jar",
     ],
-    processor_class = "com.google.auto.value.processor.AutoValueProcessor",
 )
 
 java_library(
     name = "autovalue",
+    exported_plugins = [
+        ":autovalue_plugin",
+    ],
     # TODO(matvore): What to export to give access to @AutoValue annotation
     # without depending on the processor at runtime?
     exports = [
         "@autovalue//jar",
-    ],
-    exported_plugins = [
-        ":autovalue_plugin",
     ],
 )
 
@@ -71,13 +71,6 @@ java_library(
     name = "joda_time",
     exports = [
         "@joda_time//jar",
-    ],
-)
-
-java_library(
-    name = "snakeyaml",
-    exports = [
-        "@snakeyaml//jar",
     ],
 )
 

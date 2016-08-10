@@ -4,18 +4,11 @@ package com.google.copybara.transform;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.EnvironmentException;
-import com.google.copybara.Options;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
-import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
-
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,40 +64,6 @@ public class Sequence implements Transformation {
   @Override
   public String describe() {
     return "sequence";
-  }
-
-  @DocElement(yamlName = "!Sequence", description = "A sequence of transformations. This is useful"
-      + " when you want to reuse the sequence in several workflows and be able to get the inverse"
-      + " of the sequence.", elementKind = Transformation.class)
-  public final static class Yaml implements Transformation.Yaml {
-
-    ImmutableList<Transformation.Yaml> transformations = ImmutableList.of();
-
-    @DocField(description = "Transformations to run on the migration code.",
-        required = false)
-    public void setTransformations(List<? extends Transformation.Yaml> transformations)
-        throws ConfigValidationException {
-      this.transformations = ImmutableList.<Transformation.Yaml>copyOf(transformations);
-    }
-
-    @Override
-    public Sequence withOptions(Options options)
-        throws ConfigValidationException, EnvironmentException {
-
-      ImmutableList.Builder<Transformation> transformations = new ImmutableList.Builder<>();
-      for (Transformation.Yaml yaml : this.transformations) {
-        transformations.add(yaml.withOptions(options));
-      }
-      return createSequence(transformations.build());
-
-    }
-
-    @Override
-    public void checkReversible() throws ConfigValidationException {
-      for (Transformation.Yaml transformation : transformations) {
-        transformation.checkReversible();
-      }
-    }
   }
 
   /**

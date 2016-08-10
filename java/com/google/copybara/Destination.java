@@ -1,13 +1,10 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-
 import java.io.IOException;
-
 import javax.annotation.Nullable;
 
 /**
@@ -33,13 +30,6 @@ public interface Destination {
      * were logged into the console. The caller should prompt confirmation to the user to continue.
      */
     PROMPT_TO_CONTINUE,
-  }
-
-  interface Yaml {
-
-    // TODO(danielromero): Remove config name from all destinations
-    Destination withOptions(Options options, String configName)
-        throws ConfigValidationException;
   }
 
   /**

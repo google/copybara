@@ -1,7 +1,6 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.folder;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.copybara.Core;
@@ -10,9 +9,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.skylark.OptionsAwareModule;
-import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
@@ -89,54 +86,17 @@ public class FolderDestination implements Destination {
     throw new UnsupportedOperationException(FOLDER_DESTINATION_NAME + " does not support labels");
   }
 
-  @DocElement(yamlName = FOLDER_DESTINATION_NAME, elementKind = Destination.class,
-      description = "A folder destination is a destination that puts the output in a folder.",
-      flags = FolderDestinationOptions.class)
-  public static class Yaml implements Destination.Yaml {
-
-    @Override
-    public Destination withOptions(Options options, String configName)
-        throws ConfigValidationException {
-      return createDestination(options, configName,
-          options.get(GeneralOptions.class).getHomeDir());
-    }
-
-    private static final DateTimeFormatter FOLDER_DATE_FORMAT =
-        new DateTimeFormatterBuilder().appendPattern("yyyy_MM_dd_HH_mm_ss").toFormatter();
-
-    @VisibleForTesting
-    static Destination withOptions(Options options, String configName, Path defaultRootPath) {
-      GeneralOptions generalOptions = options.get(GeneralOptions.class);
-      // Lets assume we are in the same filesystem for now...
-      FileSystem fs = generalOptions.getFileSystem();
-      String localFolderOption = options.get(FolderDestinationOptions.class).localFolder;
-      Path localFolder;
-      if (Strings.isNullOrEmpty(localFolderOption)) {
-        localFolder = defaultRootPath
-            .resolve(configName.replaceAll("[^A-Za-z0-9]", ""))
-            .resolve(DateTime.now().toString(FOLDER_DATE_FORMAT));
-        generalOptions.console().info(
-            String.format("Using folder '%s' in default root. Use --folder-dir to override.",
-                localFolder));
-      } else {
-        localFolder = fs.getPath(localFolderOption);
-        if (!localFolder.isAbsolute()) {
-          localFolder = generalOptions.getCwd().resolve(localFolder);
-        }
-      }
-      return new FolderDestination(localFolder);
-    }
-  }
-
   @SkylarkModule(
       name = "folder",
       doc = "Module for dealing with local filesytem folders",
       category = SkylarkModuleCategory.BUILTIN)
   public static class Module implements OptionsAwareModule {
 
-    private Options options;
-
     private static final String DESTINATION_VAR = "destination";
+    private static final DateTimeFormatter FOLDER_DATE_FORMAT =
+        new DateTimeFormatterBuilder().appendPattern("yyyy_MM_dd_HH_mm_ss").toFormatter();
+
+    private Options options;
 
     @SkylarkSignature(name = DESTINATION_VAR, returnType = Destination.class,
         doc = "A folder destination is a destination that puts the output in a folder",
@@ -148,8 +108,29 @@ public class FolderDestination implements Destination {
     public static final BuiltinFunction destination = new BuiltinFunction(DESTINATION_VAR) {
       public Destination invoke(Module self, Location location, Environment env)
           throws EvalException {
-        return createDestination(self.options, Core.getProjectNameOrFail(env, location),
-            self.options.get(GeneralOptions.class).getHomeDir());
+        Path defaultRootPath =
+            self.options.get(GeneralOptions.class).getHomeDir().resolve("copybara/out/");
+
+        GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
+        String configName = Core.getProjectNameOrFail(env, location);
+        // Lets assume we are in the same filesystem for now...
+        FileSystem fs = generalOptions.getFileSystem();
+        String localFolderOption = self.options.get(FolderDestinationOptions.class).localFolder;
+        Path localFolder;
+        if (Strings.isNullOrEmpty(localFolderOption)) {
+          localFolder = defaultRootPath
+              .resolve(configName.replaceAll("[^A-Za-z0-9]", ""))
+              .resolve(DateTime.now().toString(FOLDER_DATE_FORMAT));
+          generalOptions.console().info(
+              String.format("Using folder '%s' in default root. Use --folder-dir to override.",
+                  localFolder));
+        } else {
+          localFolder = fs.getPath(localFolderOption);
+          if (!localFolder.isAbsolute()) {
+            localFolder = generalOptions.getCwd().resolve(localFolder);
+          }
+        }
+        return new FolderDestination(localFolder);
       }
     };
 
@@ -157,11 +138,5 @@ public class FolderDestination implements Destination {
     public void setOptions(Options options) {
       this.options = options;
     }
-  }
-
-  // TODO(team): Inline this once we get rid of yaml logic
-  private static Destination createDestination(Options options, String configName, Path homeDir) {
-    Path defaultRootPath = homeDir.resolve("copybara/out/");
-    return Yaml.withOptions(options, configName, defaultRootPath);
   }
 }

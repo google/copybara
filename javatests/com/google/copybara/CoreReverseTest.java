@@ -12,7 +12,6 @@ import com.google.copybara.transform.Transformation;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.copybara.util.console.testing.TestingConsole.Message;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -25,9 +24,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 

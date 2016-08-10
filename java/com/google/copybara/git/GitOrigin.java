@@ -1,7 +1,6 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -17,15 +16,10 @@ import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
-import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
-
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,7 +28,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.Nullable;
 
 /**
@@ -260,47 +253,8 @@ public final class GitOrigin implements Origin<GitReference> {
         .toString();
   }
 
-  @DocElement(yamlName = "!GitOrigin", description = "A origin that represents a git repository",
-      elementKind = Origin.class, flags = GitOptions.class)
-  public final static class Yaml implements Origin.Yaml<GitReference> {
-    private String url;
-    private String ref;
-    private GitRepoType type = GitRepoType.GIT;
-
-    @DocField(description = "Indicates the URL of the git repository")
-    public void setUrl(String url) {
-      this.url = url;
-    }
-
-    @DocField(description = "Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'", required = false)
-    public void setRef(String ref) {
-      this.ref = ref;
-    }
-
-    @DocField(description = "Repository type. This knowledge allow Copybara to provide better"
-        + " experience/integration.", required = false)
-    public void setType(GitRepoType type) {
-      this.type = type;
-    }
-
-    @Override
-    public GitOrigin withOptions(Options options)
-        throws ConfigValidationException {
-      return withOptions(options, GitRepository.CURRENT_PROCESS_ENVIRONMENT);
-    }
-
-    @VisibleForTesting
-    GitOrigin withOptions(Options options, Map<String, String> environment)
-        throws ConfigValidationException {
-      ConfigValidationException.checkNotMissing(url, "url");
-      return newGitOrigin(options, url, ref, type, environment);
-    }
-  }
-
   /**
    * Builds a new {@link GitOrigin}.
-   *
-   * <p>This method is invoked both from Yaml and Skylark configurations.
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       Map<String, String> environment) {

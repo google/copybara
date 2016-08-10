@@ -14,11 +14,6 @@ import java.lang.annotation.Target;
 public @interface DocElement {
 
   /**
-   * Name used in the YAML configuration files. Like "!MyComponent".
-   */
-  String yamlName();
-
-  /**
    * Text explaining what the element does and how to use.
    */
   String description();

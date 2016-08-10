@@ -14,33 +14,6 @@ def _doc_impl(ctx):
          " ".join([f.path for f in jars])),
   )
 
-# Generates documentation by scanning the transitive set of dependencies of a Java binary.
-doc_generator = rule(
-    attrs = {
-        "elements": attr.string_list(default = [
-            "Config",
-            "Workflow",
-            "Origin",
-            "Destination",
-            "Transformation",
-            "Authoring",
-            "Author",
-        ]),
-        "deps": attr.label_list(allow_rules = [
-            "java_binary",
-            "java_library",
-        ]),
-        "_doc_tool": attr.label(
-            executable = True,
-            cfg = HOST_CFG,
-            allow_files = True,
-            default = Label("//java/com/google/copybara:doc.sh"),
-        ),
-    },
-    outputs = {"out": "%{name}.md"},
-    implementation = _doc_impl,
-)
-
 def _skylark_doc_impl(ctx):
   jars=[]
   for dep in ctx.attr.deps:
@@ -57,7 +30,7 @@ def _skylark_doc_impl(ctx):
   )
 
 # Generates documentation by scanning the transitive set of dependencies of a Java binary.
-skylark_doc_generator = rule(
+doc_generator = rule(
     attrs = {
       "deps": attr.label_list(allow_rules = [
         "java_binary",

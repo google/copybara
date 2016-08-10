@@ -4,11 +4,8 @@ package com.google.copybara.transform;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Options;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.config.NonReversibleValidationException;
-import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -17,7 +14,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -94,43 +90,6 @@ public class MoveFiles implements Transformation {
   @Override
   public String describe() {
     return "Renaming " + paths.size() + " file(s)";
-  }
-
-  @DocElement(yamlName = "!MoveFiles",
-      description = "Moves files between directories and renames files",
-      elementKind = Transformation.class)
-  public static class Yaml implements Transformation.Yaml {
-
-    private List<MoveElement> paths = new ArrayList<>();
-
-    @DocField(description = "Paths to rename/move. Use \"before:\" and \"after:\""
-        + " field names for each element", listType = MoveElement.class)
-    public void setPaths(List<MoveElement> paths) throws ConfigValidationException {
-      if (!this.paths.isEmpty()) {
-        throw new ConfigValidationException("'paths' already set: "+ this.paths );
-      }
-      this.paths = paths;
-      for (MoveElement path : paths) {
-        path.checkRequiredFields();
-      }
-    }
-
-    @Override
-    public MoveFiles withOptions(Options options) throws ConfigValidationException {
-      if (paths.isEmpty()) {
-        throw new ConfigValidationException(
-            "'paths' attribute is required and cannot be empty. At least one file"
-                + " movement/rename is needed.");
-      }
-      return new MoveFiles(paths, options.get(WorkflowOptions.class));
-    }
-
-    @Override
-    public void checkReversible() throws ConfigValidationException {
-      // TODO(malcon): Remove once internal asymmetry issue between origin/destination
-      // are solved.
-      throw new NonReversibleValidationException(this);
-    }
   }
 
   @SuppressWarnings("WeakerAccess")

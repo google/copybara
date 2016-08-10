@@ -2,13 +2,10 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.CannotFindReferenceException;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-
 import java.nio.file.Path;
-
 import javax.annotation.Nullable;
 
 /**
@@ -21,11 +18,6 @@ import javax.annotation.Nullable;
     doc = "A Origin represents a source control repository from which source is copied.",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
 public interface Origin<R extends Origin.Reference> {
-
-  interface Yaml<R extends Reference> {
-
-    Origin<R> withOptions(Options options) throws ConfigValidationException;
-  }
 
   /**
    * A reference of Origin. For example in Git it would be a referenc to a commit SHA-1.

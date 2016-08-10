@@ -1,9 +1,6 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
-import com.google.copybara.EnvironmentException;
-import com.google.copybara.Options;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -20,15 +17,6 @@ import java.nio.file.Path;
     doc = "A transformation to the workdir",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
 public interface Transformation {
-  interface Yaml {
-    Transformation withOptions(Options options)
-        throws ConfigValidationException, EnvironmentException;
-
-    /**
-     * Checks if the tranformation is reversible.
-     */
-    void checkReversible() throws ConfigValidationException;
-  }
 
   /**
    * Transforms the files inside {@code workdir}

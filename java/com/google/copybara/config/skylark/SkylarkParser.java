@@ -36,7 +36,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
- * An experiment that loads Copybara configs from bzl files.
+ * Loads Copybara configs out of Skylark files.
  */
 public class SkylarkParser {
 

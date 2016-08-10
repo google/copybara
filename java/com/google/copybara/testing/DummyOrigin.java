@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Change;
-import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import java.io.IOException;
@@ -24,7 +23,7 @@ import javax.annotation.Nullable;
  * An origin for testing with very basic features. It allows specifying the timestamp of references
  * and populates the workdir with a single file.
  */
-public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
+public class DummyOrigin implements Origin<DummyReference> {
 
   private static final OriginalAuthor DEFAULT_AUTHOR =
       new DummyOriginalAuthor("Dummy Author", "no-reply@dummy.com");
@@ -77,10 +76,6 @@ public class DummyOrigin implements Origin<DummyReference>, Origin.Yaml {
       throw new IllegalStateException("Empty respository");
     }
     return Integer.toString(changes.size() - 1);
-  }
-  @Override
-  public DummyOrigin withOptions(Options options) {
-    return this;
   }
 
   @Override

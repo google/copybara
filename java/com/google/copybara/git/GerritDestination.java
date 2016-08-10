@@ -12,17 +12,12 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
-import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.console.Console;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
 
 /**
@@ -111,33 +106,6 @@ public final class GerritDestination implements Destination {
   @Override
   public String getLabelNameWhenOrigin() {
     return GitRepository.GIT_ORIGIN_REV_ID;
-  }
-
-  @DocElement(yamlName = "!GerritDestination",
-      description = "Creates a change in Gerrit using the transformed worktree. If this is used in"
-      + " iterative mode, then each commit pushed in a single Copybara invocation will have the"
-      + " correct commit parent. The reviews generated can then be easily done in the correct order"
-      + " without rebasing.",
-      elementKind = Destination.class, flags = {GerritOptions.class, GitOptions.class})
-  public static final class Yaml extends AbstractDestinationYaml {
-
-    private String pushToRefsFor;
-
-    @DocField(
-        description = "Review branch to push the change to, for example setting this to 'feature_x'"
-        + " causes the destination to push to 'refs/for/feature_x'",
-        required = false,
-        defaultValue = "{fetch}")
-    public void setPushToRefsFor(String pushToRefsFor) {
-      this.pushToRefsFor = pushToRefsFor;
-    }
-
-    @Override
-    public GerritDestination withOptions(Options options, String configName)
-        throws ConfigValidationException {
-      checkRequiredFields();
-      return newGerritDestination(options, url, fetch, pushToRefsFor);
-    }
   }
 
   static GerritDestination newGerritDestination(

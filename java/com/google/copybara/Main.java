@@ -41,9 +41,6 @@ public class Main {
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
   private static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
-  //TODO(team): remove
-  @Deprecated
-  private static final String COPYBARA_OLD_SKYLARK_CONFIG_FILENAME = "copybara.bzl";
 
   public static void main(String[] args) {
     new Main().run(args);
@@ -90,10 +87,7 @@ public class Main {
       mainArgs.validateUnnamedArgs();
 
       GeneralOptions generalOptions = generalOptionsArgs.init(
-          fs, console,
-          // TODO(team): Don't allow .bzl
-          /*skylark=*/mainArgs.getConfigPath().endsWith(".bzl")
-              || mainArgs.getConfigPath().endsWith(".bara.sky"));
+          fs, console, mainArgs.getConfigPath().endsWith(".bara.sky"));
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
@@ -135,15 +129,8 @@ public class Main {
       throws IOException, CommandLineException, ConfigValidationException {
     String fileName = configPath.getFileName().toString();
 
-    // TODO(malcon): Remove this warning
-    if (fileName.contentEquals(COPYBARA_OLD_SKYLARK_CONFIG_FILENAME)) {
-      console.warn(String
-          .format("'%s' file name is deprecated and is going to be removed soon. Use '%s' instead",
-              COPYBARA_OLD_SKYLARK_CONFIG_FILENAME, COPYBARA_SKYLARK_CONFIG_FILENAME));
-    }
     ConfigValidationException.checkCondition(
-        fileName.contentEquals(COPYBARA_OLD_SKYLARK_CONFIG_FILENAME)
-            || fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
+        fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
         String.format("Copybara config file filename should be '%s' but it is '%s'.",
             COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName()));
 
