@@ -20,24 +20,22 @@ public final class GeneralOptions implements Option {
   private final FileSystem fileSystem;
   private final boolean verbose;
   private final Console console;
-  private final boolean skylark;
   private final boolean validate;
   private final Path userHome;
   private final Path cwd;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(fileSystem, verbose, console, /*skylark=*/false, /*validate=*/false,
+    this(fileSystem, verbose, console, /*validate=*/false,
         StandardSystemProperty.USER_DIR.value(), StandardSystemProperty.USER_HOME.value());
   }
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console,
-      boolean skylark, boolean validate, String cwd, String userHome) {
+      boolean validate, String cwd, String userHome) {
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
-    this.skylark = skylark;
     this.validate = validate;
     this.cwd = Preconditions.checkNotNull(fileSystem.getPath(cwd));
     this.userHome = Preconditions.checkNotNull(fileSystem.getPath(userHome));
@@ -53,10 +51,6 @@ public final class GeneralOptions implements Option {
 
   public FileSystem getFileSystem() {
     return fileSystem;
-  }
-
-  public boolean isSkylark() {
-    return skylark;
   }
 
   public boolean isValidate() {
@@ -97,7 +91,7 @@ public final class GeneralOptions implements Option {
      */
     public GeneralOptions init(FileSystem fileSystem, Console console, boolean skylark)
         throws IOException {
-      return new GeneralOptions(fileSystem, verbose, console, skylark, validate,
+      return new GeneralOptions(fileSystem, verbose, console, validate,
           StandardSystemProperty.USER_DIR.value(), StandardSystemProperty.USER_HOME.value());
     }
   }

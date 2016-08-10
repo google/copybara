@@ -13,17 +13,6 @@ sh_test(
     visibility = ["//visibility:public"],
 )
 
-sh_test(
-    name = "yaml_tool_test",
-    srcs = ["yaml_tool_test.sh"],
-    data = [
-        "//java/com/google/copybara",
-        "//third_party/bazel/bashunit",
-    ],
-    tags = ["local"],
-    visibility = ["//visibility:public"],
-)
-
 py_binary(
     name = "cram",
     srcs = ["cram.py"],

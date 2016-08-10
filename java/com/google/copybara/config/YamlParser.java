@@ -38,6 +38,7 @@ import java.util.Map;
 /**
  * A YAML parser for the configuration.
  */
+@Deprecated
 public final class YamlParser {
 
   // An instance of the snakeyaml reader which doesn't do any implicit conversions.

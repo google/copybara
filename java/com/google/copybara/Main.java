@@ -3,7 +3,6 @@ package com.google.copybara;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -43,8 +42,6 @@ public class Main {
   private static final Logger logger = Logger.getLogger(Main.class.getName());
   private static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
   //TODO(team): remove
-  @Deprecated
-  private static final String COPYBARA_CONFIG_FILENAME = "copybara.yaml";
   @Deprecated
   private static final String COPYBARA_OLD_SKYLARK_CONFIG_FILENAME = "copybara.bzl";
 
@@ -102,18 +99,12 @@ public class Main {
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
       if (generalOptions.isValidate()) {
-        // TODO(team): skylark remove this check
-        Preconditions.checkArgument(generalOptions.isSkylark(),
-            "Validate is only allowed in Skylark mode");
-
-        ConfigFile skylarkContent = loadConfig(/*skylark=*/true, configPath, console);
-        ConfigFile yamlContent = loadConfig(/*skylark=*/false,
-            configPath.getParent().resolve("copybara.yaml"), console);
-        copybara.validate(options, skylarkContent, yamlContent, mainArgs.getWorkflowName());
+        ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath, console);
+        copybara.validate(options, skylarkContent, mainArgs.getWorkflowName());
       } else {
         copybara.run(
             options,
-            loadConfig(generalOptions.isSkylark(), configPath, console),
+            loadConfig(configPath, console),
             mainArgs.getWorkflowName(),
             mainArgs.getBaseWorkdir(fs),
             mainArgs.getSourceRef());
@@ -140,22 +131,21 @@ public class Main {
     }
   }
 
-  private ConfigFile loadConfig(boolean skylark, Path configPath, Console console)
+  private ConfigFile loadConfig(Path configPath, Console console)
       throws IOException, CommandLineException, ConfigValidationException {
     String fileName = configPath.getFileName().toString();
-    if (skylark) {
-      ConfigValidationException.checkCondition(
-          fileName.contentEquals(COPYBARA_OLD_SKYLARK_CONFIG_FILENAME)
-              || fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
-          String.format("Copybara config file filename should be '%s' but it is '%s'.",
-              COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName()));
-    } else {
-      if (!fileName.contentEquals(COPYBARA_CONFIG_FILENAME)) {
-        throw new ConfigValidationException(
-            String.format("Copybara config file filename should be '%s' but it is '%s'.",
-                COPYBARA_CONFIG_FILENAME, configPath.getFileName()));
-      }
+
+    // TODO(malcon): Remove this warning
+    if (fileName.contentEquals(COPYBARA_OLD_SKYLARK_CONFIG_FILENAME)) {
+      console.warn(String
+          .format("'%s' file name is deprecated and is going to be removed soon. Use '%s' instead",
+              COPYBARA_OLD_SKYLARK_CONFIG_FILENAME, COPYBARA_SKYLARK_CONFIG_FILENAME));
     }
+    ConfigValidationException.checkCondition(
+        fileName.contentEquals(COPYBARA_OLD_SKYLARK_CONFIG_FILENAME)
+            || fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
+        String.format("Copybara config file filename should be '%s' but it is '%s'.",
+            COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName()));
 
     // Treat the top level element specially since it is passed thru the command line.
     if (!Files.exists(configPath)) {
