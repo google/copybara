@@ -6,6 +6,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
+import com.google.copybara.VoidOperationException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -356,13 +357,13 @@ public final class ReplaceTest {
         + "  before = \"this string doesn't appear anywhere in source\",\n"
         + "  after = 'lulz',\n"
         + ")");
-    thrown.expect(VoidTransformationException.class);
+    thrown.expect(VoidOperationException.class);
     replace.transform(workdir, console);
   }
 
   @Test
   public void noopReplaceAsWarning() throws Exception {
-    options.transform.noop_is_warning = true;
+    options.workflowOptions.ignoreNoop = true;
     Replace replace = eval("core.replace(\n"
         + "  before = \"BEFORE this string doesn't appear anywhere in source\",\n"
         + "  after = 'lulz',\n"

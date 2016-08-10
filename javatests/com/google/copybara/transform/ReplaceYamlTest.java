@@ -6,6 +6,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.VoidOperationException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -311,13 +312,13 @@ public final class ReplaceYamlTest {
   public void nopReplaceShouldThrowException() throws Exception {
     yaml.setBefore("this string doesn't appear anywhere in source");
     yaml.setAfter("lulz");
-    thrown.expect(VoidTransformationException.class);
+    thrown.expect(VoidOperationException.class);
     yaml.withOptions(options.build()).transform(workdir, console);
   }
 
   @Test
   public void noopReplaceAsWarning() throws Exception {
-    options.transform.noop_is_warning = true;
+    options.workflowOptions.ignoreNoop = true;
     yaml.setBefore("BEFORE this string doesn't appear anywhere in source");
     yaml.setAfter("lulz");
     yaml.withOptions(options.build()).transform(workdir, console);

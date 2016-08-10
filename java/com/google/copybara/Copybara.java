@@ -12,7 +12,6 @@ import com.google.copybara.folder.FolderDestination;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitOptions;
-import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -50,7 +49,6 @@ public class Copybara {
         new FolderDestinationOptions(),
         new GitOptions(),
         new GerritOptions(),
-        new TransformOptions(),
         new WorkflowOptions());
   }
 

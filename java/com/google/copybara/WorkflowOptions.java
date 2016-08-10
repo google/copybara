@@ -5,6 +5,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import com.beust.jcommander.Parameter;
+import com.google.copybara.util.console.Console;
 import java.util.Objects;
 
 /**
@@ -22,6 +23,21 @@ public class WorkflowOptions implements Option {
   @Parameter(names = "--last-rev",
       description = "Last revision that was migrated to the destination")
   String lastRevision;
+
+  @Parameter(names = "--ignore-noop")
+  public boolean ignoreNoop = false;
+
+  /**
+   * Reports that some operation is a no-op. This will either throw an exception or report the
+   * incident to the console, depending on the options.
+   */
+  public void reportNoop(Console console, String message) throws VoidOperationException {
+    if (ignoreNoop) {
+      console.warn(message);
+    } else {
+      throw new VoidOperationException(message);
+    }
+  }
 
   private String workflowName;
 

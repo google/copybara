@@ -13,7 +13,6 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
-import com.google.copybara.transform.TransformOptions;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.devtools.build.lib.events.Location;
@@ -57,14 +56,12 @@ public class Core implements OptionsAwareModule {
 
   private final Map<String, Workflow<?>> workflows = new HashMap<>();
   private GeneralOptions generalOptions;
-  private TransformOptions transformOptions;
   private WorkflowOptions workflowOptions;
   private String projectName;
 
   @Override
   public void setOptions(Options options) {
     generalOptions = options.get(GeneralOptions.class);
-    transformOptions = options.get(TransformOptions.class);
     workflowOptions = options.get(WorkflowOptions.class);
   }
 
@@ -203,7 +200,7 @@ public class Core implements OptionsAwareModule {
               defaultValue = "False", positional = false),
       },
       objectType = Core.class, useLocation = true)
-  @UsesFlags({WorkflowOptions.class, TransformOptions.class})
+  @UsesFlags({WorkflowOptions.class})
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow",
       ImmutableList.of(
           MutableList.EMPTY,
@@ -266,7 +263,7 @@ public class Core implements OptionsAwareModule {
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction MOVE = new BuiltinFunction("move") {
     public Move invoke(Core self, String before, String after, Location location) throws EvalException {
-      return Move.fromConfig(before, after, self.transformOptions, location);
+      return Move.fromConfig(before, after, self.workflowOptions, location);
     }
   };
 
@@ -314,7 +311,7 @@ public class Core implements OptionsAwareModule {
           Type.STRING_DICT.convert(regexes, "regex_groups"),
           paths,
           multiline,
-          self.transformOptions);
+          self.workflowOptions);
     }
   };
 

@@ -3,6 +3,7 @@ package com.google.copybara.transform;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.copybara.WorkflowOptions;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -20,21 +21,21 @@ public class Move implements Transformation {
 
   private final String before;
   private final String after;
-  private final TransformOptions transformOptions;
+  private final WorkflowOptions workflowOptions;
 
-  private Move(String before, String after, TransformOptions transformOptions) {
+  private Move(String before, String after, WorkflowOptions workflowOptions) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
-    this.transformOptions = Preconditions.checkNotNull(transformOptions);
+    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
   }
 
   public static Move fromConfig(
-      String before, String after, TransformOptions transformOptions, Location location)
+      String before, String after, WorkflowOptions workflowOptions, Location location)
       throws EvalException {
     return new Move(
         validatePath(location, before),
         validatePath(location, after),
-        transformOptions);
+        workflowOptions);
   }
 
   @Override
@@ -50,7 +51,7 @@ public class Move implements Transformation {
       console.progress("Moving " + this.before);
       Path before = workdir.resolve(this.before);
       if (!Files.exists(before)) {
-        transformOptions.reportNoop(
+        workflowOptions.reportNoop(
             console,
             String.format("Error moving '%s'. It doesn't exist in the workdir", this.before));
         return;
@@ -73,7 +74,7 @@ public class Move implements Transformation {
 
   @Override
   public Transformation reverse() {
-    return new Move(after, before, transformOptions);
+    return new Move(after, before, workflowOptions);
   }
 
   private void createParentDirs(Path after) throws IOException, ValidationException {

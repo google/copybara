@@ -73,7 +73,7 @@ public class MoveTest {
 
   @Test
   public void testDoesntExistAsWarning() throws Exception {
-    options.transform.noop_is_warning = true;
+    options.workflowOptions.ignoreNoop = true;
 
     Move mover = skylark.<Move>eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");

@@ -97,7 +97,7 @@ public class MoveFilesYamlTest {
         createMove("one", "two")));
     Files.write(workdir.resolve("one"), new byte[]{});
 
-    options.transform.noop_is_warning = true;
+    options.workflowOptions.ignoreNoop = true;
     MoveFiles mover = yaml.withOptions(options.build());
     mover.transform(workdir, console);
 

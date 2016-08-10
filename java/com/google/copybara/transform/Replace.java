@@ -10,6 +10,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Options;
+import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
@@ -64,18 +65,18 @@ public final class Replace implements Transformation {
   private final ImmutableMap<String, Pattern> regexGroups;
   private final boolean multiline;
   private final PathMatcherBuilder fileMatcherBuilder;
-  private final TransformOptions transformOptions;
+  private final WorkflowOptions workflowOptions;
 
   private Replace(TemplateTokens before, TemplateTokens after,
       ImmutableMap<String, Pattern> regexGroups, boolean multiline,
       PathMatcherBuilder fileMatcherBuilder,
-      TransformOptions transformOptions) {
+      WorkflowOptions workflowOptions) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.regexGroups = Preconditions.checkNotNull(regexGroups);
     this.multiline = multiline;
     this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
-    this.transformOptions = Preconditions.checkNotNull(transformOptions);
+    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
   }
 
   @Override
@@ -135,7 +136,7 @@ public final class Replace implements Transformation {
     if (visitor.error != null) {
       throw visitor.error;
     } else if (!visitor.somethingWasChanged) {
-      transformOptions.reportNoop(
+      workflowOptions.reportNoop(
           console,
           "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");
     }
@@ -150,7 +151,7 @@ public final class Replace implements Transformation {
 
   @Override
   public Replace reverse() {
-    return new Replace(after, before, regexGroups, multiline, fileMatcherBuilder, transformOptions);
+    return new Replace(after, before, regexGroups, multiline, fileMatcherBuilder, workflowOptions);
   }
 
   @DocElement(yamlName = "!Replace", description = "Replace a text with another text using optional regex groups. This tranformer can be automatically reversed with !Reverse.", elementKind = Transformation.class)
@@ -217,7 +218,7 @@ public final class Replace implements Transformation {
       return new Replace(before, after, regexGroups, multiline,
           PathMatcherBuilder.create(
               FileSystems.getDefault(), ImmutableList.of(path), ImmutableList.<String>of()),
-          options.get(TransformOptions.class));
+          options.get(WorkflowOptions.class));
     }
 
     @Override
@@ -228,7 +229,7 @@ public final class Replace implements Transformation {
 
   public static Replace create(Location location, String before, String after,
       Map<String, String> regexGroups, PathMatcherBuilder paths,
-      boolean multiline, TransformOptions transformOptions)
+      boolean multiline, WorkflowOptions workflowOptions)
       throws EvalException {
     TemplateTokens beforeTokens;
     // TODO(team): Revisit these ugly try/catchs and see if those functions can throw EvalException
@@ -262,6 +263,6 @@ public final class Replace implements Transformation {
     }
 
     return new Replace(beforeTokens, afterTokens, parsed.build(), multiline, paths,
-        transformOptions);
+        workflowOptions);
   }
 }
