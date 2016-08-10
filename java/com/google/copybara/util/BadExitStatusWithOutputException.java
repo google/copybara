@@ -1,12 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util;
 
-import com.google.common.base.Preconditions;
 import com.google.devtools.build.lib.shell.AbnormalTerminationException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandResult;
-
-import java.nio.charset.StandardCharsets;
 
 /**
  * An exception that represents a program that did not exit with 0 exit code.
