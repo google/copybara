@@ -3,10 +3,8 @@ package com.google.copybara.testing;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Author;
 import com.google.copybara.Change;
 import com.google.copybara.RepoException;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -17,7 +15,7 @@ import org.junit.runners.JUnit4;
 public class DummyOriginTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testResolveNullReturnsHead() throws Exception {

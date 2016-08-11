@@ -28,12 +28,11 @@ public class AuthoringTest {
   public ExpectedException thrown = ExpectedException.none();
 
   private SkylarkTestExecutor skylark;
-  private OptionsBuilder options;
   private TestingConsole console;
 
   @Before
   public void setUp() throws Exception {
-    options = new OptionsBuilder();
+    OptionsBuilder options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
     skylark = new SkylarkTestExecutor(options);

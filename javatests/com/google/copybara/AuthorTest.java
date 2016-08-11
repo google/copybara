@@ -14,7 +14,7 @@ import org.junit.runners.JUnit4;
 public class AuthorTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testParse() throws Exception {

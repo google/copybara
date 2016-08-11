@@ -30,7 +30,7 @@ public class MoveTest {
   private SkylarkTestExecutor skylark;
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException {
@@ -45,7 +45,7 @@ public class MoveTest {
 
   @Test
   public void testMoveAndItsReverse() throws Exception {
-    Move mover = skylark.<Move>eval("m", ""
+    Move mover = skylark.eval("m", ""
         + "m = core.move(before = 'one.before', after = 'folder/one.after'\n"
         + ")");
     Files.write(workdir.resolve("one.before"), new byte[]{});
@@ -64,7 +64,7 @@ public class MoveTest {
 
   @Test
   public void testDoesntExist() throws Exception {
-    Move mover = skylark.<Move>eval("m", ""
+    Move mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
@@ -75,7 +75,7 @@ public class MoveTest {
   public void testDoesntExistAsWarning() throws Exception {
     options.workflowOptions.ignoreNoop = true;
 
-    Move mover = skylark.<Move>eval("m", ""
+    Move mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");
 
     mover.transform(workdir, console);
@@ -87,7 +87,7 @@ public class MoveTest {
   @Test
   public void testAbsoluteBefore() throws Exception {
     try {
-      Move mover = skylark.<Move>eval("m", ""
+      skylark.eval("m", ""
           + "m = core.move(before = '/blablabla', after = 'other')\n");
       Assert.fail();
     } catch (ConfigValidationException expected) {}
@@ -99,7 +99,7 @@ public class MoveTest {
   @Test
   public void testAbsoluteAfter() throws Exception {
     try {
-      Move mover = skylark.<Move>eval("m", ""
+      skylark.eval("m", ""
           + "m = core.move(after = '/blablabla', before = 'other')\n");
       Assert.fail();
     } catch (ConfigValidationException expected) {}
@@ -111,7 +111,7 @@ public class MoveTest {
   @Test
   public void testDotDot() throws Exception {
     try {
-      Move mover = skylark.<Move>eval("m", ""
+      skylark.eval("m", ""
           + "m = core.move(after = '../blablabla', before = 'other')\n");
       Assert.fail();
     } catch (ConfigValidationException expected) {}
@@ -124,7 +124,7 @@ public class MoveTest {
   public void testDestinationExist() throws Exception {
     Files.write(workdir.resolve("one"), new byte[]{});
     Files.write(workdir.resolve("two"), new byte[]{});
-    Move mover = skylark.<Move>eval("m", "m = core.move(before = 'one', after = 'two')\n");
+    Move mover = skylark.eval("m", "m = core.move(before = 'one', after = 'two')\n");
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot move file to '/test-workdir/two' because it already exists");
     mover.transform(workdir, console);
@@ -134,7 +134,7 @@ public class MoveTest {
   public void testDestinationExistDirectory() throws Exception {
     Files.createDirectories(workdir.resolve("folder"));
     Files.write(workdir.resolve("one"), new byte[]{});
-    Move mover = skylark.<Move>eval("m", "m = core.move(before = 'one', after = 'folder/two')\n");
+    Move mover = skylark.eval("m", "m = core.move(before = 'one', after = 'folder/two')\n");
     mover.transform(workdir, console);
 
     assertThatPath(workdir)
@@ -144,7 +144,7 @@ public class MoveTest {
 
   @Test
   public void testMoveToWorkdirRoot() throws Exception {
-    Move mover = skylark.<Move>eval("m",
+    Move mover = skylark.eval("m",
         "m = core.move(before = 'third_party/java', after = '')\n");
     Files.createDirectories(workdir.resolve("third_party/java/org"));
     Files.write(workdir.resolve("third_party/java/one.java"), new byte[]{});
@@ -171,7 +171,7 @@ public class MoveTest {
    */
   @Test
   public void testMoveDir() throws Exception {
-    Move mover = skylark.<Move>eval("m",
+    Move mover = skylark.eval("m",
         "m = core.move(before = 'third_party/java', after = 'foo')\n");
     Files.createDirectories(workdir.resolve("third_party/java/org"));
     Files.createDirectories(workdir.resolve("foo"));
@@ -187,7 +187,7 @@ public class MoveTest {
 
   @Test
   public void testMoveFromWorkdirRootToSubdir() throws Exception {
-    Move mover = skylark.<Move>eval("m",
+    Move mover = skylark.eval("m",
         "m = core.move(before = '', after = 'third_party/java')\n");
     Files.write(workdir.resolve("file.java"), new byte[]{});
     mover.transform(workdir, console);
@@ -199,7 +199,7 @@ public class MoveTest {
 
   @Test
   public void testCannotMoveFromRootToAlreadyExistingDir() throws Exception {
-    Move mover = skylark.<Move>eval("m",
+    Move mover = skylark.eval("m",
         "m = core.move(before = '', after = 'third_party/java')\n");
     Files.createDirectories(workdir.resolve("third_party/java"));
     Files.write(workdir.resolve("third_party/java/bar.java"), new byte[]{});

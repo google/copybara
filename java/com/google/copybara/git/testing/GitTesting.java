@@ -1,14 +1,12 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.git.testing;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.FileSubjects;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

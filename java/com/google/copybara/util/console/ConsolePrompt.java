@@ -4,8 +4,6 @@ package com.google.copybara.util.console;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.Console.PromptPrinter;
-
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Scanner;
 

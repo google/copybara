@@ -38,7 +38,7 @@ public class DummyOrigin implements Origin<DummyReference> {
 
   public static final String LABEL_NAME = "DummyOrigin-RevId";
 
-  public List<DummyReference> changes = new ArrayList<>();
+  public final List<DummyReference> changes = new ArrayList<>();
 
   /**
    * Sets the author to use for the following changes that get added.

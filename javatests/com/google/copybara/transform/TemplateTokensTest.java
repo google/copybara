@@ -15,7 +15,7 @@ import org.junit.runners.JUnit4;
 public final class TemplateTokensTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   private void assertParse(String raw, String templateValue, String toStringValue)
       throws ConfigValidationException {

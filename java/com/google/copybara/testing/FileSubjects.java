@@ -48,7 +48,7 @@ public class FileSubjects {
 
   public static class PathSubject extends Subject<PathSubject, Path> {
 
-    private Set<Path> whitelistedPaths = new HashSet<>();
+    private final Set<Path> whitelistedPaths = new HashSet<>();
 
     PathSubject(FailureStrategy failureStrategy, Path target) {
       super(failureStrategy, target);

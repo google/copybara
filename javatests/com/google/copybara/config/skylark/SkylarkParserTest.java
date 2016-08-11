@@ -45,7 +45,7 @@ import org.junit.runners.JUnit4;
 public class SkylarkParserTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   private SkylarkParser parser;
   private OptionsBuilder options;
@@ -53,7 +53,7 @@ public class SkylarkParserTest {
 
   @Before
   public void setup() {
-    parser = new SkylarkParser(ImmutableSet.<Class<?>>of(Mock.class, MockLabelsAwareModule.class));
+    parser = new SkylarkParser(ImmutableSet.of(Mock.class, MockLabelsAwareModule.class));
     options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
@@ -400,9 +400,9 @@ public class SkylarkParserTest {
 
   public static class MockTransform implements Transformation {
 
-    private String field1;
-    private String field2;
-    private List<String> list;
+    private final String field1;
+    private final String field2;
+    private final List<String> list;
 
     public MockTransform(String field1, String field2, List<String> list) {
       this.field1 = field1;

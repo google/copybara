@@ -42,11 +42,9 @@ public class GitOriginTest {
   private Path workdir;
   private String firstCommitRef;
   private OptionsBuilder options;
-  private Map<String, String> env;
 
-  @Rule public ExpectedException thrown = ExpectedException.none();
+  @Rule public final ExpectedException thrown = ExpectedException.none();
 
-  private Path reposDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
 
@@ -62,13 +60,13 @@ public class GitOriginTest {
     console = new TestingConsole();
     options = new OptionsBuilder().setConsole(console);
 
-    reposDir = Files.createTempDirectory("repos_repo");
+    Path reposDir = Files.createTempDirectory("repos_repo");
     options.git.gitRepoStorage = reposDir.toString();
 
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");
-    env = Maps.newHashMap(System.getenv());
+    Map<String, String> env = Maps.newHashMap(System.getenv());
     env.put("HOME", userHomeForTest.toString());
 
     skylark = new SkylarkTestExecutor(options, env, Git.class);

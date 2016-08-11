@@ -86,19 +86,18 @@ public class Main {
       }
       mainArgs.validateUnnamedArgs();
 
-      GeneralOptions generalOptions = generalOptionsArgs.init(
-          fs, console, mainArgs.getConfigPath().endsWith(".bara.sky"));
+      GeneralOptions generalOptions = generalOptionsArgs.init(fs, console);
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
       if (generalOptions.isValidate()) {
-        ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath, console);
+        ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath);
         copybara.validate(options, skylarkContent, mainArgs.getWorkflowName());
       } else {
         copybara.run(
             options,
-            loadConfig(configPath, console),
+            loadConfig(configPath),
             mainArgs.getWorkflowName(),
             mainArgs.getBaseWorkdir(fs),
             mainArgs.getSourceRef());
@@ -125,7 +124,7 @@ public class Main {
     }
   }
 
-  private ConfigFile loadConfig(Path configPath, Console console)
+  private ConfigFile loadConfig(Path configPath)
       throws IOException, CommandLineException, ConfigValidationException {
     String fileName = configPath.getFileName().toString();
 

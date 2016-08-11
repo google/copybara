@@ -19,7 +19,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class ConsoleTest {
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void ansiConsolePromptReturnsTrue() throws Exception {

@@ -9,11 +9,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.Options;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -21,7 +18,6 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,7 +91,6 @@ public final class Replace implements Transformation {
     final Pattern afterRegex = after.toRegex(regexGroups);
     private final PathMatcher pathMatcher;
     boolean somethingWasChanged;
-    ValidationException error = null;
     TransformVisitor(PathMatcher pathMatcher) {
 
       this.pathMatcher = pathMatcher;
@@ -133,9 +128,7 @@ public final class Replace implements Transformation {
   public void transform(Path workdir, Console console) throws IOException, ValidationException {
     TransformVisitor visitor = new TransformVisitor(fileMatcherBuilder.relativeTo(workdir));
     Files.walkFileTree(workdir, visitor);
-    if (visitor.error != null) {
-      throw visitor.error;
-    } else if (!visitor.somethingWasChanged) {
+    if (!visitor.somethingWasChanged) {
       workflowOptions.reportNoop(
           console,
           "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");

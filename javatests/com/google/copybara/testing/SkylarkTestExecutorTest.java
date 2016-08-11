@@ -21,14 +21,12 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public final class SkylarkTestExecutorTest {
 
-  private OptionsBuilder options;
-  private TestingConsole console;
   private SkylarkTestExecutor skylark;
 
   @Before
   public void setup() {
-    console = new TestingConsole();
-    options = new OptionsBuilder();
+    TestingConsole console = new TestingConsole();
+    OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console);
     skylark = new SkylarkTestExecutor(options, DummyModule.class);
   }

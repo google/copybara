@@ -20,7 +20,7 @@ import java.nio.file.Path;
 public class MainArgumentsTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   private MainArguments mainArguments;
   private FileSystem fs;

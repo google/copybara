@@ -24,12 +24,11 @@ public class PathMatcherBuilderTest {
   public ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private SkylarkTestExecutor skylark;
-  private OptionsBuilder options;
 
   @Before
   public void setup() throws IOException, RepoException {
     workdir = Files.createTempDirectory("workdir");
-    options = new OptionsBuilder().setWorkdirToRealTempDir();
+    OptionsBuilder options = new OptionsBuilder().setWorkdirToRealTempDir();
     skylark = new SkylarkTestExecutor(options);
   }
 

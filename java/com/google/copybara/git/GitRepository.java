@@ -187,7 +187,7 @@ public class GitRepository {
     Preconditions.checkState(Files.isDirectory(gitDir),
         "git repository dir '%s' doesn't exist or is not a directory", gitDir);
 
-    List<String> allArgv = new ArrayList<String>();
+    List<String> allArgv = new ArrayList<>();
 
     allArgv.add("--git-dir=" + gitDir);
     Path cwd = gitDir;

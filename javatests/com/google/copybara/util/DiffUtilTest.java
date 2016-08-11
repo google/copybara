@@ -1,12 +1,13 @@
 package com.google.copybara.util;
 
-import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.copybara.EnvironmentException;
-import com.google.copybara.testing.FileSubjects;
-
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -15,18 +16,13 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 @RunWith(JUnit4.class)
 public class DiffUtilTest {
 
   // Command requires the working dir as a File, and Jimfs does not support Path.toFile()
-  @Rule public TemporaryFolder tmpFolder = new TemporaryFolder();
+  @Rule public final TemporaryFolder tmpFolder = new TemporaryFolder();
 
-  @Rule public ExpectedException thrown = ExpectedException.none();
+  @Rule public final ExpectedException thrown = ExpectedException.none();
 
   private Path left;
   private Path right;

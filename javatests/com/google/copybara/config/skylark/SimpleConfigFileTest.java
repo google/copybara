@@ -19,7 +19,7 @@ public class SimpleConfigFileTest {
   private FileSystem fs;
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() {

@@ -18,6 +18,7 @@ public final class SkylarkUtil {
    * Converts an object that can be the NoneType to the actual object if it is not
    * or returns the default value if none.
    */
+  @SuppressWarnings("unchecked")
   public static <T> T convertFromNoneable(Object obj, @Nullable T defaultValue) {
     if (EvalUtils.isNullOrNone(obj)) {
       return defaultValue;

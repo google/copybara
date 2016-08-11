@@ -19,7 +19,7 @@ import org.junit.runners.JUnit4;
 public class GerritOptionsTest {
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
 
   private GerritOptions options;
   private JCommander jcommander;

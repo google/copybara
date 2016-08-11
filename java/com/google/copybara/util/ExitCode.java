@@ -31,7 +31,7 @@ public enum ExitCode {
    */
   INTERNAL_ERROR(31);
 
-  private int code;
+  private final int code;
 
   ExitCode(int code) {
     this.code = code;

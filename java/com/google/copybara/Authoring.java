@@ -106,7 +106,7 @@ public final class Authoring {
         objectType = Module.class, useLocation = true)
     public static final BuiltinFunction OVERWRITE = new BuiltinFunction("overwrite") {
       public Authoring invoke(String defaultAuthor, Location location)
-          throws EvalException, ConfigValidationException {
+          throws EvalException {
         return new Authoring(parseAuthoring(location, defaultAuthor),
             AuthoringMappingMode.USE_DEFAULT,
             ImmutableSet.<String>of());

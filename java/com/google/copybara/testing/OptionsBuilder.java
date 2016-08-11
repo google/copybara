@@ -31,8 +31,7 @@ public class OptionsBuilder {
           StandardSystemProperty.USER_DIR.value(),
           StandardSystemProperty.USER_HOME.value());
 
-  public FolderDestinationOptions localDestination =
-      new FolderDestinationOptions();
+  public FolderDestinationOptions localDestination = new FolderDestinationOptions();
   public GitOptions git = new GitOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowOptions workflowOptions = new WorkflowOptions(

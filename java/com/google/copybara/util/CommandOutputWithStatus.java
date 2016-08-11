@@ -5,8 +5,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.devtools.build.lib.shell.TerminationStatus;
 
-import java.nio.charset.StandardCharsets;
-
 /**
  * A class that contains a {@link com.google.devtools.build.lib.shell.Command} result.
  *

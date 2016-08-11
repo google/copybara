@@ -16,7 +16,7 @@ import org.junit.runners.JUnit4;
 public final class TestingConsoleTest {
 
   @Rule
-  public ExpectedException expectedException = ExpectedException.none();
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private TestingConsole console;
 

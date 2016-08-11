@@ -62,7 +62,7 @@ public class WorkflowTest {
   private SkylarkParser skylark;
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public final ExpectedException thrown = ExpectedException.none();
   private String transformations;
   private Path workdir;
   private boolean includeReleaseNotes;

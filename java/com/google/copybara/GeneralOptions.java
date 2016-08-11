@@ -89,7 +89,7 @@ public final class GeneralOptions implements Option {
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
-    public GeneralOptions init(FileSystem fileSystem, Console console, boolean skylark)
+    public GeneralOptions init(FileSystem fileSystem, Console console)
         throws IOException {
       return new GeneralOptions(fileSystem, verbose, console, validate,
           StandardSystemProperty.USER_DIR.value(), StandardSystemProperty.USER_HOME.value());

@@ -31,13 +31,12 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public final class CoreReverseTest {
 
-  private OptionsBuilder options;
   private SkylarkTestExecutor skylark;
   private TestingConsole console;
 
   @Before
   public void setup() throws IOException {
-    options = new OptionsBuilder();
+    OptionsBuilder options = new OptionsBuilder();
     skylark = new SkylarkTestExecutor(options, Mock.class);
     console = new TestingConsole();
     options.setConsole(console);
