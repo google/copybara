@@ -69,7 +69,8 @@ public class LogSubjects {
           matches.add(message);
         }
       }
-      assertWithMessage(regex + " matches " + matches.size() + " times. Expected 1")
+      assertWithMessage(regex + " matches " + matches.size() + " times. Expected 1. "
+          + "Do you have [] or other unescaped chars in the regex?")
           .that(matches).hasSize(1);
       return this;
     }
@@ -79,8 +80,9 @@ public class LogSubjects {
           .that(messages)
           .isNotEmpty();
       Message next = messages.removeFirst();
-      assertThat(next.getText())
-          .matches(regex);
+      assertWithMessage(regex + " does not match " + next.getText()
+          + ". Do you have [] or other unescaped chars in the regex?")
+          .that(next.getText()).matches(regex);
       if (type != null) {
         assertWithMessage("type of message with text: " + next.getText())
             .that(next.getType())
