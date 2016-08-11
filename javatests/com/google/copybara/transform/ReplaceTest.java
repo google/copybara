@@ -3,18 +3,19 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
 import com.google.copybara.TransformWork;
 import com.google.copybara.VoidOperationException;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -242,16 +243,27 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void afterDoesNotUseADeclaredGroup() throws ConfigValidationException {
-    skylark.evalFails("core.replace(\n"
-            + "  before = 'foo${baz}${bar}',\n"
-            + "  after = 'foo${baz}',\n"
-            + "  regex_groups = {\n"
-            + "       'baz' : '.*',\n"
-            + "       'bar' : '[a-z]+',\n"
-            + "  },\n"
-            + ")",
-        "defined but not used: \\[bar\\]");
+  public void afterDoesNotUseADeclaredGroup() throws Exception {
+
+    String transform = ""
+        + "core.replace(\n"
+        + "  before = 'foo${baz}${bar}',\n"
+        + "  after = 'foo${baz}',\n"
+        + "  regex_groups = {\n"
+        + "       'baz' : '[0-9]+',\n"
+        + "       'bar' : '[a-z]+',\n"
+        + "  },\n"
+        + ")";
+
+    // Not using all the groups in after is OK if we don't reverse the replace in the config
+    Replace replace = skylark.eval("r", "r = " + transform);
+    Files.write(workdir.resolve("foo"), "foo123abc".getBytes(UTF_8));
+    replace.transform(workdir, console);
+    FileSubjects.assertThatPath(workdir)
+        .containsFile("foo","foo123");
+
+    // But it fails if we ask for the reverse
+    skylark.evalFails("core.reverse([" + transform + "])", "defined but not used: \\[bar\\]");
   }
 
   @Test
@@ -332,7 +344,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void showMultilineInToString() throws ConfigValidationException {
+  public void showMultilineInToString() throws Exception {
     Replace replace = eval("core.replace(\n"
         + "  before = 'before',\n"
         + "  after = 'after',\n"
@@ -519,6 +531,6 @@ public final class ReplaceTest {
   }
 
   private Path writeFile(Path path, String text) throws IOException {
-    return Files.write(path, text.getBytes(StandardCharsets.UTF_8));
+    return Files.write(path, text.getBytes(UTF_8));
   }
 }

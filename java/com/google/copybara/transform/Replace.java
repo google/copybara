@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.TransformWork;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -57,6 +58,7 @@ public final class Replace implements Transformation {
 
   private static final Logger logger = Logger.getLogger(Replace.class.getName());
 
+  private final Location location;
   private final TemplateTokens before;
   private final TemplateTokens after;
   private final ImmutableMap<String, Pattern> regexGroups;
@@ -64,10 +66,11 @@ public final class Replace implements Transformation {
   private final PathMatcherBuilder fileMatcherBuilder;
   private final WorkflowOptions workflowOptions;
 
-  private Replace(TemplateTokens before, TemplateTokens after,
+  private Replace(Location location, TemplateTokens before, TemplateTokens after,
       ImmutableMap<String, Pattern> regexGroups, boolean multiline,
       PathMatcherBuilder fileMatcherBuilder,
       WorkflowOptions workflowOptions) {
+    this.location = location;
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.regexGroups = Preconditions.checkNotNull(regexGroups);
@@ -146,8 +149,15 @@ public final class Replace implements Transformation {
   }
 
   @Override
-  public Replace reverse() {
-    return new Replace(after, before, regexGroups, multiline, fileMatcherBuilder, workflowOptions);
+  public Replace reverse() throws NonReversibleValidationException {
+    try {
+      after.validateInterpolations(location, "regex_groups", regexGroups.keySet(),
+          /*ignoreNotUsed=*/ false);
+    } catch (EvalException e) {
+      throw new NonReversibleValidationException(location, e.getMessage());
+    }
+    return new Replace(location, after, before, regexGroups, multiline, fileMatcherBuilder,
+        workflowOptions);
   }
 
   public static Replace create(Location location, String before, String after,
@@ -178,14 +188,17 @@ public final class Replace implements Transformation {
       }
     }
 
-    try {
-      beforeTokens.validateInterpolations(regexGroups.keySet());
-      afterTokens.validateInterpolations(regexGroups.keySet());
-    } catch (ConfigValidationException e) {
-      throw new EvalException(location, "'regex_groups' field:" + e.getMessage());
-    }
+    beforeTokens.validateInterpolations(location, "regex_groups", regexGroups.keySet(),
+        /*ignoreNotUsed=*/false);
+    // Don't validate non-used interpolations since they are only relevant for reversable
+    // transformations. And those are eagerly validated during config loading, because
+    // when asking for the reverse 'after' is used as 'before', and it gets validated
+    // with the check above.
+    afterTokens
+        .validateInterpolations(location, "regex_groups", regexGroups.keySet(),
+            /*ignoreNotUsed=*/true);
 
-    return new Replace(beforeTokens, afterTokens, parsed.build(), multiline, paths,
+    return new Replace(location, beforeTokens, afterTokens, parsed.build(), multiline, paths,
         workflowOptions);
   }
 }

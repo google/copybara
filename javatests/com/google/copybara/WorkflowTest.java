@@ -633,7 +633,7 @@ public class WorkflowTest {
     try {
       workflow.run(workdir, "1");
       fail();
-    } catch (NonReversibleValidationException e) {
+    } catch (ConfigValidationException e) {
       assertThat(e).hasMessage("Workflow 'default' is not reversible");
     }
     console.assertThat()

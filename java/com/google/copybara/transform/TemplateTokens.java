@@ -6,7 +6,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.copybara.config.ConfigValidationException;
-
+import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -119,11 +120,11 @@ public final class TemplateTokens {
   /**
    * Checks that the set of interpolated tokens matches {@code definedInterpolations}.
    *
-   * @throws ConfigValidationException if the set of interpolations in this does not match the set
+   * @throws EvalException if the set of interpolations in this does not match the set
    * passed
    */
-  public void validateInterpolations(Set<String> definedInterpolations)
-      throws ConfigValidationException {
+  public void validateInterpolations(Location location, String field,
+      Set<String> definedInterpolations, boolean ignoreNotUsed) throws EvalException {
     Set<String> used = new HashSet<>();
     for (Token token : tokens) {
       if (token.type == TokenType.INTERPOLATION) {
@@ -132,13 +133,16 @@ public final class TemplateTokens {
     }
     Set<String> undefined = Sets.difference(used, definedInterpolations);
     if (!undefined.isEmpty()) {
-      throw new ConfigValidationException(
-          "Following interpolations are used but not defined: " + undefined);
+      throw new EvalException(location, String.format(
+          "'%s' field: Following interpolations are used but not defined: %s", field, undefined));
+    }
+    if (ignoreNotUsed) {
+      return;
     }
     Set<String> unused = Sets.difference(definedInterpolations, used);
     if (!unused.isEmpty()) {
-      throw new ConfigValidationException(
-          "Following interpolations are defined but not used: " + unused);
+      throw new EvalException(location, String.format(
+          "'%s' field: Following interpolations are defined but not used: %s", field, unused));
     }
   }
 

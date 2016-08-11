@@ -7,6 +7,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.transform.Transformation;
 import com.google.copybara.transform.ValidationException;
@@ -214,7 +215,7 @@ public abstract class Workflow<R extends Origin.Reference> {
         if (!diff.trim().isEmpty()) {
           console().error("Non reversible transformations:\n"
               + DiffUtil.colorize(console(), diff));
-          throw new NonReversibleValidationException(String.format(
+          throw new ConfigValidationException(String.format(
               "Workflow '%s' is not reversible", workflowOptions().getWorkflowName()));
         }
       }

@@ -136,7 +136,7 @@ public final class CoreReverseTest {
       if (reverse != null) {
         return reverse;
       }
-      throw new NonReversibleValidationException(text + " is not reversible");
+      throw new NonReversibleValidationException(/*location=*/null, text + " is not reversible");
     }
 
     @Override
