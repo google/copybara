@@ -223,14 +223,24 @@ public class Core implements OptionsAwareModule {
         Location location)
         throws EvalException {
       WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
+      Sequence sequenceTransform = Sequence.createSequence(ImmutableList.copyOf(
+          transformations.getContents(Transformation.class, "transformations")));
+      Transformation reverseTransform = null;
+      if (convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
+        try {
+          reverseTransform = sequenceTransform.reverse();
+        } catch (NonReversibleValidationException e) {
+          throw new EvalException(location, e.getMessage());
+        }
+      }
+
       self.workflows.put(workflowName, new AutoValue_Workflow<>(
           getProjectNameOrFailInternal(self, location),
           workflowName,
           origin,
           destination,
           authoring,
-          Sequence.createSequence(ImmutableList.copyOf(
-              transformations.getContents(Transformation.class, "transformations"))),
+          sequenceTransform,
           self.workflowOptions.getLastRevision(),
           self.generalOptions.console(),
           excludeInOrigin,
@@ -238,7 +248,7 @@ public class Core implements OptionsAwareModule {
           mode,
           includeChangelistNotes,
           self.workflowOptions,
-          convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST),
+          reverseTransform,
           self.generalOptions.isVerbose(),
           askForConfirmation));
       return Runtime.NONE;

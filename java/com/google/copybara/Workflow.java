@@ -62,7 +62,9 @@ public abstract class Workflow<R extends Origin.Reference> {
   abstract WorkflowMode mode();
   abstract boolean includeChangeListNotes();
   abstract WorkflowOptions workflowOptions();
-  abstract boolean reversibleCheck();
+
+  @Nullable
+  abstract Transformation reverseTransformForCheck();
   abstract boolean verbose();
   abstract boolean askForConfirmation();
 
@@ -83,7 +85,7 @@ public abstract class Workflow<R extends Origin.Reference> {
         .add("excludedDestinationPaths", excludedDestinationPaths())
         .add("mode", mode())
         .add("includeChangeListNotes", includeChangeListNotes())
-        .add("reversibleCheck", reversibleCheck())
+        .add("reverseTransformForCheck", reverseTransformForCheck())
         .add("askForConfirmation", askForConfirmation())
         .toString();
   }
@@ -194,7 +196,7 @@ public abstract class Workflow<R extends Origin.Reference> {
       }
 
       Path originCopy = null;
-      if (reversibleCheck()) {
+      if (reverseTransformForCheck() != null) {
         console().progress("Making a copy or the workdir for reverse checking");
         originCopy = Files.createDirectories(workdir.resolve("origin"));
         FileUtil.copyFilesRecursively(checkoutDir, originCopy);
@@ -202,11 +204,11 @@ public abstract class Workflow<R extends Origin.Reference> {
 
       transform(transformation(), checkoutDir, processConsole);
 
-      if (reversibleCheck()) {
+      if (reverseTransformForCheck() != null) {
         console().progress("Checking that the transformations can be reverted");
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse);
-        transform(transformation().reverse(), reverse, processConsole);
+        transform(reverseTransformForCheck(), reverse, processConsole);
         String diff = new String(DiffUtil.diff(originCopy, reverse, verbose()),
             StandardCharsets.UTF_8);
         if (!diff.trim().isEmpty()) {
