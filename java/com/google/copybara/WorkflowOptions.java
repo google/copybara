@@ -1,10 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara;
 
+import com.beust.jcommander.Parameter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-
-import com.beust.jcommander.Parameter;
 import com.google.copybara.util.console.Console;
 import java.util.Objects;
 
@@ -24,7 +23,10 @@ public class WorkflowOptions implements Option {
       description = "Last revision that was migrated to the destination")
   String lastRevision;
 
-  @Parameter(names = "--ignore-noop")
+  @Parameter(names = "--ignore-noop",
+      description = "Only warn about operations/transforms that didn't have any effect."
+          + " For example: A transform that didn't modify any file, non-existent origin"
+          + " directories, etc.")
   public boolean ignoreNoop = false;
 
   /**
