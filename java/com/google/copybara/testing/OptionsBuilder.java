@@ -53,13 +53,6 @@ public class OptionsBuilder {
     return this;
   }
 
-  public final OptionsBuilder setCurrentWorkDir(String cwd) {
-    general = new GeneralOptions(
-        general.getFileSystem(), general.isVerbose(), general.console(),
-        general.isValidate(), cwd,general.getHomeDir().toString());
-    return this;
-  }
-
   public final OptionsBuilder setHomeDir(String homeDir) {
     general = new GeneralOptions(
         general.getFileSystem(), general.isVerbose(), general.console(),
@@ -75,13 +68,13 @@ public class OptionsBuilder {
 
   public final OptionsBuilder setChangeBaseline(String changeBaseline) {
     workflowOptions = new WorkflowOptions(
-        changeBaseline, workflowOptions.getLastRevision(), workflowOptions.getChangeBaseline());
+        changeBaseline, workflowOptions.getLastRevision(), workflowOptions.getWorkflowName());
     return this;
   }
 
   public final OptionsBuilder setLastRevision(String lastRevision) {
     workflowOptions = new WorkflowOptions(
-        workflowOptions.getChangeBaseline(), lastRevision, workflowOptions.getChangeBaseline());
+        workflowOptions.getChangeBaseline(), lastRevision, workflowOptions.getWorkflowName());
     return this;
   }
 
