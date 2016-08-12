@@ -3,8 +3,6 @@ package com.google.copybara;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import com.google.common.base.StandardSystemProperty;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.skylark.ConfigFile;
@@ -15,9 +13,7 @@ import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -26,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 /**
@@ -36,8 +31,6 @@ import java.util.logging.Logger;
  * to invoke {@link Copybara}.
  */
 public class Main {
-
-  private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
   private static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
@@ -52,15 +45,15 @@ public class Main {
     Console console = getConsole(args);
     // Configure logs location correctly before anything else. We want to write to the
     // correct location in case of any error.
+    Copybara copybara = newCopybaraTool(console);
+
     FileSystem fs = FileSystems.getDefault();
     try {
-      configureLog(fs);
+      copybara.configureLogging(fs);
     } catch (IOException e) {
       handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
     }
     console.startupMessage();
-
-    Copybara copybara = newCopybaraTool();
 
     final MainArguments mainArgs = new MainArguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
@@ -144,8 +137,8 @@ public class Main {
   /**
    * Returns a new instance of {@link Copybara}.
    */
-  protected Copybara newCopybaraTool() {
-    return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES));
+  protected Copybara newCopybaraTool(Console console) {
+    return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES), console);
   }
 
   private Console getConsole(String[] args) {
@@ -159,46 +152,6 @@ public class Main {
       return LogConsole.readWriteConsole(System.in, System.err);
     }
     return new AnsiConsole(System.in, System.err);
-  }
-
-  protected void configureLog(FileSystem fs) throws IOException {
-    String baseDir = getBaseExecDir();
-    Files.createDirectories(fs.getPath(baseDir));
-    if (System.getProperty("java.util.logging.config.file") == null) {
-      LogManager.getLogManager().readConfiguration(new ByteArrayInputStream((
-          "handlers=java.util.logging.FileHandler\n"
-              + ".level=INFO\n"
-              + "java.util.logging.FileHandler.level=INFO\n"
-              + "java.util.logging.FileHandler.pattern="
-              + baseDir + "/copybara-%g.log\n"
-              + "java.util.logging.FileHandler.count=10\n"
-              + "java.util.logging.FileHandler.formatter=java.util.logging.SimpleFormatter\n"
-              + "java.util.logging.SimpleFormatter.format="
-              + "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %2$s %5$s%6$s%n")
-          .getBytes(StandardCharsets.UTF_8)
-      ));
-    }
-
-  }
-
-  /**
-   * Returns the base directory to be used by Copybara to write execution related files (Like
-   * logs).
-   */
-  private String getBaseExecDir() {
-    String userHome = StandardSystemProperty.USER_HOME.value();
-
-    switch (StandardSystemProperty.OS_NAME.value()) {
-      case "Linux":
-        String xdgCacheHome = System.getenv("XDG_CACHE_HOME");
-        return Strings.isNullOrEmpty(xdgCacheHome)
-            ? userHome + "/.cache/" + COPYBARA_NAMESPACE
-            : xdgCacheHome + COPYBARA_NAMESPACE;
-      case "Mac OS X":
-        return userHome + "/Library/Logs/" + COPYBARA_NAMESPACE;
-      default:
-        return "/var/tmp/" + COPYBARA_NAMESPACE;
-    }
   }
 
   private void printCauseChain(Console console, Throwable e) {
