@@ -55,8 +55,8 @@ public class FolderDestinationTest {
             TransformResults.of(
                 workdir,
                 new DummyReference("origin_ref"),
-                PathMatcherBuilder.create(workdir.getFileSystem(), excludedPathsForDeletion,
-                    ImmutableList.<String>of())),
+                new PathMatcherBuilder(
+                    excludedPathsForDeletion, ImmutableList.<String>of())),
             options.general.console());
   }
 

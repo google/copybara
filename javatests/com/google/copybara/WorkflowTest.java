@@ -31,6 +31,7 @@ import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -343,10 +344,27 @@ public class WorkflowTest {
       workflow().run(workdir, origin.getHead());
       fail("should have thrown");
     } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR, "(\n|.)*is not relative to(\n|.)*");
+      console.assertThat()
+          .onceInLog(MessageType.ERROR,
+              "(\n|.)*path has unexpected [.] or [.][.] components(\n|.)*");
     }
     assertThatPath(workdir)
         .containsFiles(outsideFolder);
+  }
+
+  @Test
+  public void invalidExcludedOriginGlob() throws Exception {
+    prepareOriginExcludes();
+    excludedInOrigin = "glob(['{'])";
+
+    try {
+      workflow().run(workdir, origin.getHead());
+      fail("should have thrown");
+    } catch (ConfigValidationException e) {
+      console.assertThat()
+          .onceInLog(MessageType.ERROR,
+              "(\n|.)*Cannot create a glob from: include='\\[\\{\\]' (\n|.)*");
+    }
   }
 
   @Test

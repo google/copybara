@@ -86,38 +86,23 @@ public class MoveTest {
 
   @Test
   public void testAbsoluteBefore() throws Exception {
-    try {
-      skylark.eval("m", ""
-          + "m = core.move(before = '/blablabla', after = 'other')\n");
-      Assert.fail();
-    } catch (ConfigValidationException expected) {}
-
-    console.assertThat()
-        .onceInLog(MessageType.ERROR, ".*'/blablabla'.*is not a relative path.*");
+    skylark.evalFails(
+        "core.move(before = '/blablabla', after = 'other')\n",
+        "path must be relative.*/blablabla");
   }
 
   @Test
   public void testAbsoluteAfter() throws Exception {
-    try {
-      skylark.eval("m", ""
-          + "m = core.move(after = '/blablabla', before = 'other')\n");
-      Assert.fail();
-    } catch (ConfigValidationException expected) {}
-
-    console.assertThat()
-        .onceInLog(MessageType.ERROR, ".*'/blablabla'.*is not a relative path.*");
+    skylark.evalFails(
+        "core.move(after = '/blablabla', before = 'other')\n",
+        "path must be relative.*/blablabla");
   }
 
   @Test
   public void testDotDot() throws Exception {
-    try {
-      skylark.eval("m", ""
-          + "m = core.move(after = '../blablabla', before = 'other')\n");
-      Assert.fail();
-    } catch (ConfigValidationException expected) {}
-
-    console.assertThat()
-        .onceInLog(MessageType.ERROR, ".*'[.][.]/blablabla'.*contains unexpected [.][.].*");
+    skylark.evalFails(
+        "core.move(after = '../blablabla', before = 'other')\n",
+        "path has unexpected [.] or [.][.] components.*[.][.]/blablabla");
   }
 
   @Test

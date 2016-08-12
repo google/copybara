@@ -3,7 +3,6 @@ package com.google.copybara.util;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -13,6 +12,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 /**
  * Utility methods for files
@@ -32,6 +32,33 @@ public final class FileUtil {
   };
 
   private FileUtil() {}
+
+  private static final Pattern RELATIVISM = Pattern.compile("(.*/)?[.][.]?(/.*)?");
+
+  /**
+   * Checks that the given path is relative and does not contain any {@code .} or {@code ..}
+   * components.
+   *
+   * @returns the {@code path} passed
+   */
+  public static String checkNormalizedRelative(String path) {
+    Preconditions.checkArgument(!RELATIVISM.matcher(path).matches(),
+        "path has unexpected . or .. components: %s", path);
+    Preconditions.checkArgument(!path.startsWith("/"),
+        "path must be relative, but it starts with /: %s", path);
+    return path;
+  }
+
+  /**
+   * Checks that the given path is relative and does not contain any {@code .} or {@code ..}
+   * components.
+   *
+   * @returns the {@code path} passed
+   */
+  public static Path checkNormalizedRelative(Path path) {
+    checkNormalizedRelative(path.toString());
+    return path;
+  }
 
   /**
    * Copies files from {@code from} directory to {@code to} directory. If any file exist in the

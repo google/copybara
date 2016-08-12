@@ -6,7 +6,6 @@ import static com.google.copybara.config.skylark.SkylarkUtil.stringToEnum;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.config.skylark.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -29,8 +28,8 @@ import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
 import com.google.devtools.build.lib.syntax.Type;
-import java.nio.file.FileSystems;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -91,13 +90,14 @@ public class Core implements OptionsAwareModule {
     public PathMatcherBuilder invoke(SkylarkList include, SkylarkList exclude,
         Location location)
         throws EvalException {
+      List<String> includeStrings = Type.STRING_LIST.convert(include, "include");
+      List<String> excludeStrings = Type.STRING_LIST.convert(exclude, "exclude");
       try {
-        return PathMatcherBuilder.create(FileSystems.getDefault(),
-            Type.STRING_LIST.convert(include, "include"),
-            Type.STRING_LIST.convert(exclude, "exclude"));
-      } catch (ConfigValidationException e) {
-        // TODO(malcon): skylark, fix this exception wrapping once yaml removed
-        throw new EvalException(location, e.getMessage());
+        return new PathMatcherBuilder(includeStrings, excludeStrings);
+      } catch (IllegalArgumentException e) {
+        throw new EvalException(location, String.format(
+                "Cannot create a glob from: include='%s' and exclude='%s': %s",
+                includeStrings, excludeStrings, e.getMessage()), e);
       }
     }
   };

@@ -168,8 +168,8 @@ public class GitDestinationTest {
       throws ConfigValidationException, RepoException, IOException {
     TransformResult result = TransformResults.of(workdir,
         originRef,
-        PathMatcherBuilder.create(FileSystems.getDefault(), excludedDestinationPaths,
-            ImmutableList.<String>of()));
+        new PathMatcherBuilder(
+            excludedDestinationPaths, ImmutableList.<String>of()));
     if (baseline != null) {
       result = result.withBaseline(baseline);
     }

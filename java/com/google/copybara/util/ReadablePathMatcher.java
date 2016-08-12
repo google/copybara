@@ -35,14 +35,9 @@ public final class ReadablePathMatcher implements PathMatcher {
    *
    * For example a glob "dir/**.java" would match any java file inside {@code path}/dir directory.
    */
-  public static ReadablePathMatcher relativeGlob(Path path, String glob)
-      throws ConfigValidationException {
-    Path resolved = path.resolve(glob);
-    if (!resolved.normalize().startsWith(path)) {
-      throw new ConfigValidationException(
-          String.format("glob '%s' is not relative to '%s'", glob, path));
-    }
+  public static ReadablePathMatcher relativeGlob(Path path, String glob) {
+    FileUtil.checkNormalizedRelative(glob);
     return new ReadablePathMatcher(
-        path.getFileSystem().getPathMatcher("glob:" + resolved), glob);
+        path.getFileSystem().getPathMatcher("glob:" + path.resolve(glob)), glob);
   }
 }

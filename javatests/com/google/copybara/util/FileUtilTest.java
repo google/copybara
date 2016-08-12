@@ -4,18 +4,75 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableSet;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class FileUtilTest {
+
+  @Rule public final ExpectedException thrown = ExpectedException.none();
+
+  @Test
+  public void checkRelativism_string_absolute() {
+    thrown.expect(IllegalArgumentException.class);
+    FileUtil.checkNormalizedRelative("/foo");
+  }
+
+  @Test
+  public void checkRelativism_path_absolute() {
+    thrown.expect(IllegalArgumentException.class);
+    FileUtil.checkNormalizedRelative(Paths.get("/foo"));
+  }
+
+  @Test
+  public void checkRelativism_oneDot() {
+    thrown.expect(IllegalArgumentException.class);
+    FileUtil.checkNormalizedRelative("foo/./bar");
+  }
+
+  @Test
+  public void checkRelativism_twoDots() {
+    thrown.expect(IllegalArgumentException.class);
+    FileUtil.checkNormalizedRelative("foo/../bar");
+  }
+
+  @Test
+  public void checkRelativism_path_twoDotsAtStart() {
+    thrown.expect(IllegalArgumentException.class);
+    FileUtil.checkNormalizedRelative(Paths.get("../bar"));
+  }
+
+  @Test
+  public void checkRelativism_twoDotsAtEnd() {
+    thrown.expect(IllegalArgumentException.class);
+    FileUtil.checkNormalizedRelative(Paths.get("bar/.."));
+  }
+
+  @Test
+  public void checkRelativism_oneDotAtStart() {
+    thrown.expect(IllegalArgumentException.class);
+    FileUtil.checkNormalizedRelative("./foo");
+  }
+
+  @Test
+  public void checkRelativism_oneDotAtEnd() {
+    thrown.expect(IllegalArgumentException.class);
+    FileUtil.checkNormalizedRelative("foo/.");
+  }
+
+  @Test
+  public void checkRelativism_succeedsForDotInValidComponent() {
+    FileUtil.checkNormalizedRelative("foo/.emacs.d");
+    FileUtil.checkNormalizedRelative("foo/bar.baz");
+  }
 
   @Test
   public void testCopy() throws Exception {

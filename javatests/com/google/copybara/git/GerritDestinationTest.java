@@ -108,9 +108,10 @@ public class GerritDestinationTest {
     WriterResult result = destination().newWriter()
         .write(TransformResults.of(workdir,
             originRef,
-            PathMatcherBuilder.create(FileSystems.getDefault(),
+            new PathMatcherBuilder(
                 excludedDestinationPaths,
-                ImmutableList.<String>of())), console);
+                ImmutableList.<String>of())),
+            console);
     assertThat(result).isEqualTo(WriterResult.OK);
   }
 

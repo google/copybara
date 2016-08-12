@@ -4,6 +4,7 @@ package com.google.copybara.transform;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.WorkflowOptions;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -93,16 +94,11 @@ public class Move implements Transformation {
     return "Moving " + before;
   }
 
-  private static final Path basePath = FileSystems.getDefault().getPath("/workdir");
-
-  static String validatePath(Location location, String strPath) throws EvalException {
-    Path resolved = basePath.resolve(strPath);
-    Path normalized = resolved.normalize();
-
-    if (!resolved.toString().equals(normalized.toString()) || !normalized.startsWith(basePath)) {
-      throw new EvalException(location,
-          "'" + strPath + "' is not a relative path or contains unexpected ..");
+  private static String validatePath(Location location, String strPath) throws EvalException {
+    try {
+      return FileUtil.checkNormalizedRelative(strPath);
+    } catch (IllegalArgumentException e) {
+      throw new EvalException(location, "'" + strPath + "' is not a valid path", e);
     }
-    return strPath;
   }
 }
