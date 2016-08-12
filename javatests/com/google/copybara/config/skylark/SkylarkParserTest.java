@@ -13,6 +13,7 @@ import com.google.copybara.EnvironmentException;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformWork;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.MapConfigFile;
@@ -411,7 +412,7 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public void transform(Path workdir, Console console) throws IOException {
+    public void transform(TransformWork work, Console console) throws IOException {
       throw new UnsupportedOperationException();
     }
 

@@ -6,6 +6,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
+import com.google.copybara.TransformWork;
 import com.google.copybara.VoidOperationException;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -29,7 +30,7 @@ import org.junit.runners.JUnit4;
 public final class ReplaceTest {
 
   private OptionsBuilder options;
-  private Path workdir;
+  private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
 
@@ -39,12 +40,16 @@ public final class ReplaceTest {
   @Before
   public void setup() throws IOException {
     FileSystem fs = Jimfs.newFileSystem();
-    workdir = fs.getPath("/");
-    Files.createDirectories(workdir);
+    checkoutDir = fs.getPath("/");
+    Files.createDirectories(checkoutDir);
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
     skylark = new SkylarkTestExecutor(options, Core.class);
+  }
+
+  private void transform(Replace replace) throws IOException, ValidationException {
+    replace.transform(new TransformWork(checkoutDir, "testmsg"), console);
   }
 
   @Test
@@ -75,16 +80,16 @@ public final class ReplaceTest {
             + "  after  = 'bar',\n"
             + ")");
 
-    Path file1 = workdir.resolve("file1.txt");
+    Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "foo");
-    Path file2 = workdir.resolve("file2.txt");
+    Path file2 = checkoutDir.resolve("file2.txt");
     writeFile(file2, "foo\nbaz\nfoo");
-    Path file3 = workdir.resolve("file3.txt");
+    Path file3 = checkoutDir.resolve("file3.txt");
     writeFile(file3, "bazbazbaz");
     BasicFileAttributes before = Files.readAttributes(file3, BasicFileAttributes.class);
-    transformation.transform(workdir, console);
+    transform(transformation);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file1.txt", "bar")
         .containsFile("file2.txt", "bar\nbaz\nbar")
         .containsFile("file3.txt", "bazbazbaz");
@@ -105,11 +110,11 @@ public final class ReplaceTest {
         + "  },\n"
         + ")");
 
-    Path file1 = workdir.resolve("file1.txt");
+    Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "fooBAZbar");
-    transformation.transform(workdir, console);
+    transform(transformation);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file1.txt", "barBAZfoo");
   }
 
@@ -123,9 +128,9 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir, console);
+    transform(transformation);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file1.txt", "foo")
         .containsFile("file1.java", "bar")
         .containsFile("folder/file1.txt", "foo")
@@ -143,9 +148,9 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir, console);
+    transform(transformation);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file1.txt", "foo")
         .containsFile("file1.java", "foo")
         .containsFile("folder/file1.txt", "foo")
@@ -164,9 +169,9 @@ public final class ReplaceTest {
 
     prepareGlobTree();
 
-    transformation.transform(workdir, console);
+    transform(transformation);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file1.txt", "foo")
         .containsFile("file1.java", "foo")
         .containsFile("folder/file1.txt", "foo")
@@ -187,13 +192,13 @@ public final class ReplaceTest {
         + "  },\n"
         + ")");
 
-    writeFile(workdir.resolve("before_and_after"), ""
+    writeFile(checkoutDir.resolve("before_and_after"), ""
         + "not a match: beforeB\n"
         + "is a match: befaaaaaoreB # trailing content\n");
 
-    transformation.transform(workdir, console);
+    transform(transformation);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("before_and_after", ""
                 + "not a match: beforeB\n"
                 + "is a match: afBteraaaaa # trailing content\n");
@@ -259,14 +264,14 @@ public final class ReplaceTest {
         + "  },\n"
         + ")");
 
-    writeFile(workdir.resolve("before_and_after"), ""
+    writeFile(checkoutDir.resolve("before_and_after"), ""
         + "obviously match: befASDFore/\n"
         + "should not match: bef\n"
         + "ore");
 
-    transformation.transform(workdir, console);
+    transform(transformation);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("before_and_after", ""
             + "obviously match: aftASDFer/\n"
             + "should not match: bef\n"
@@ -280,11 +285,11 @@ public final class ReplaceTest {
         + "  after = 'after',\n"
         + ")");
 
-    writeFile(workdir.resolve("before_and_after"), "before ... still before");
+    writeFile(checkoutDir.resolve("before_and_after"), "before ... still before");
 
-    transformation.transform(workdir, console);
+    transform(transformation);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("before_and_after", "after ... still after");
   }
 
@@ -358,7 +363,7 @@ public final class ReplaceTest {
         + "  after = 'lulz',\n"
         + ")");
     thrown.expect(VoidOperationException.class);
-    replace.transform(workdir, console);
+    transform(replace);
   }
 
   @Test
@@ -369,7 +374,7 @@ public final class ReplaceTest {
         + "  after = 'lulz',\n"
         + ")");
 
-    replace.transform(workdir, console);
+    transform(replace);
     console.assertThat()
         .onceInLog(MessageType.WARNING, ".*BEFORE.*lulz.*didn't affect the workdir[.]");
   }
@@ -381,10 +386,10 @@ public final class ReplaceTest {
         + "  after = 'after$$',\n"
         + ")");
 
-    writeFile(workdir.resolve("before_and_after"), "before ... still before");
-    replace.transform(workdir, console);
+    writeFile(checkoutDir.resolve("before_and_after"), "before ... still before");
+    transform(replace);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("before_and_after", "after$ ... still after$");
   }
 
@@ -395,9 +400,9 @@ public final class ReplaceTest {
         + "  after = 'after\\\\',\n"
         + ")");
 
-    writeFile(workdir.resolve("before_and_after"), "before ... still before");
-    replace.transform(workdir, console);
-    assertThatPath(workdir)
+    writeFile(checkoutDir.resolve("before_and_after"), "before ... still before");
+    transform(replace);
+    assertThatPath(checkoutDir)
         .containsFile("before_and_after", "after\\ ... still after\\");
   }
 
@@ -408,9 +413,9 @@ public final class ReplaceTest {
         + "  after = 'after$$',\n"
         + ")");
 
-    writeFile(workdir.resolve("before_and_after"), "be$fore ... still be$fore");
-    replace.transform(workdir, console);
-    assertThatPath(workdir)
+    writeFile(checkoutDir.resolve("before_and_after"), "be$fore ... still be$fore");
+    transform(replace);
+    assertThatPath(checkoutDir)
         .containsFile("before_and_after", "after$ ... still after$");
   }
 
@@ -421,10 +426,10 @@ public final class ReplaceTest {
         + "  after = 'after\\\\',\n"
         + ")");
 
-    writeFile(workdir.resolve("before_and_after"), "be\\fore ... still be\\fore");
-    replace.transform(workdir, console);
+    writeFile(checkoutDir.resolve("before_and_after"), "be\\fore ... still be\\fore");
+    transform(replace);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("before_and_after", "after\\ ... still after\\");
   }
 
@@ -437,10 +442,10 @@ public final class ReplaceTest {
         + "       'foo' : '[0-9]+',\n"
         + "  },\n"
         + ")");
-    writeFile(workdir.resolve("file"), "!@# y123x ...");
-    replace.reverse().transform(workdir, console);
+    writeFile(checkoutDir.resolve("file"), "!@# y123x ...");
+    transform(replace.reverse());
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file", "!@# x123y ...");
   }
 
@@ -452,10 +457,10 @@ public final class ReplaceTest {
         + "  multiline = True,\n"
         + ")");
 
-    writeFile(workdir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
-    replace.transform(workdir, console);
+    writeFile(checkoutDir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
+    transform(replace);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file", "aaa bar\nfoo bbb bar\nfoo ccc");
   }
 
@@ -469,10 +474,10 @@ public final class ReplaceTest {
         + "  multiline = True,\n"
         + ")");
 
-    writeFile(workdir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
-    replace.transform(workdir, console);
+    writeFile(checkoutDir.resolve("file"), "aaa foo\nbar bbb foo\nbar ccc");
+    transform(replace);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file", "aaa bar\nfoo bbb bar\nfoo ccc");
   }
 
@@ -487,13 +492,13 @@ public final class ReplaceTest {
         + "  multiline = True,\n"
         + ")");
 
-    writeFile(workdir.resolve("file"), ""
+    writeFile(checkoutDir.resolve("file"), ""
         + "a foo\n"
         + "b foo\n"
         + "c foo d\n");
-    replace.transform(workdir, console);
+    transform(replace);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("file", ""
             + "a bar\n"
             + "b bar\n"
@@ -505,12 +510,12 @@ public final class ReplaceTest {
   }
 
   private void prepareGlobTree() throws IOException {
-    writeFile(workdir.resolve("file1.txt"), "foo");
-    writeFile(workdir.resolve("file1.java"), "foo");
-    Files.createDirectories(workdir.resolve("folder/subfolder"));
-    writeFile(workdir.resolve("folder/file1.txt"), "foo");
-    writeFile(workdir.resolve("folder/file1.java"), "foo");
-    writeFile(workdir.resolve("folder/subfolder/file1.java"), "foo");
+    writeFile(checkoutDir.resolve("file1.txt"), "foo");
+    writeFile(checkoutDir.resolve("file1.java"), "foo");
+    Files.createDirectories(checkoutDir.resolve("folder/subfolder"));
+    writeFile(checkoutDir.resolve("folder/file1.txt"), "foo");
+    writeFile(checkoutDir.resolve("folder/file1.java"), "foo");
+    writeFile(checkoutDir.resolve("folder/subfolder/file1.java"), "foo");
   }
 
   private Path writeFile(Path path, String text) throws IOException {

@@ -4,6 +4,7 @@ package com.google.copybara.transform;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.TransformWork;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
@@ -26,7 +27,8 @@ public class Sequence implements Transformation {
   }
 
   @Override
-  public void transform(Path workdir, Console console) throws IOException, ValidationException {
+  public void transform(TransformWork work, Console console)
+      throws IOException, ValidationException {
     for (int i = 0; i < sequence.size(); i++) {
       Transformation transformation = sequence.get(i);
       String transformMsg = String.format(
@@ -35,7 +37,7 @@ public class Sequence implements Transformation {
       logger.log(Level.INFO, transformMsg);
 
       console.progress(transformMsg);
-      transformation.transform(workdir, new ProgressPrefixConsole(transformMsg + ": ", console));
+      transformation.transform(work, new ProgressPrefixConsole(transformMsg + ": ", console));
     }
   }
 

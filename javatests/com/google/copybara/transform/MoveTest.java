@@ -4,6 +4,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
+import com.google.copybara.TransformWork;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -25,7 +26,7 @@ import org.junit.runners.JUnit4;
 public class MoveTest {
 
   private OptionsBuilder options;
-  private Path workdir;
+  private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
 
@@ -35,12 +36,16 @@ public class MoveTest {
   @Before
   public void setup() throws IOException {
     FileSystem fs = Jimfs.newFileSystem();
-    workdir = fs.getPath("/test-workdir");
-    Files.createDirectories(workdir);
+    checkoutDir = fs.getPath("/test-checkoutDir");
+    Files.createDirectories(checkoutDir);
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
     skylark = new SkylarkTestExecutor(options, Core.class, Move.class);
+  }
+
+  private void transform(Move mover) throws IOException, ValidationException {
+    mover.transform(new TransformWork(checkoutDir, "testmsg"), console);
   }
 
   @Test
@@ -48,16 +53,16 @@ public class MoveTest {
     Move mover = skylark.eval("m", ""
         + "m = core.move(before = 'one.before', after = 'folder/one.after'\n"
         + ")");
-    Files.write(workdir.resolve("one.before"), new byte[]{});
-    mover.transform(workdir, console);
+    Files.write(checkoutDir.resolve("one.before"), new byte[]{});
+    transform(mover);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFiles("folder/one.after")
         .containsNoMoreFiles();
 
-    mover.reverse().transform(workdir, console);
+    transform(mover.reverse());
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFiles("one.before")
         .containsNoMoreFiles();
   }
@@ -68,7 +73,7 @@ public class MoveTest {
         + "m = core.move(before = 'blablabla', after = 'other')\n");
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
-    mover.transform(workdir, console);
+    transform(mover);
   }
 
   @Test
@@ -78,7 +83,7 @@ public class MoveTest {
     Move mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");
 
-    mover.transform(workdir, console);
+    transform(mover);
 
     console.assertThat()
         .onceInLog(MessageType.WARNING, ".*blablabla.*doesn't exist.*");
@@ -107,37 +112,37 @@ public class MoveTest {
 
   @Test
   public void testDestinationExist() throws Exception {
-    Files.write(workdir.resolve("one"), new byte[]{});
-    Files.write(workdir.resolve("two"), new byte[]{});
+    Files.write(checkoutDir.resolve("one"), new byte[]{});
+    Files.write(checkoutDir.resolve("two"), new byte[]{});
     Move mover = skylark.eval("m", "m = core.move(before = 'one', after = 'two')\n");
     thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot move file to '/test-workdir/two' because it already exists");
-    mover.transform(workdir, console);
+    thrown.expectMessage("Cannot move file to '/test-checkoutDir/two' because it already exists");
+    transform(mover);
   }
 
   @Test
   public void testDestinationExistDirectory() throws Exception {
-    Files.createDirectories(workdir.resolve("folder"));
-    Files.write(workdir.resolve("one"), new byte[]{});
+    Files.createDirectories(checkoutDir.resolve("folder"));
+    Files.write(checkoutDir.resolve("one"), new byte[]{});
     Move mover = skylark.eval("m", "m = core.move(before = 'one', after = 'folder/two')\n");
-    mover.transform(workdir, console);
+    transform(mover);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFiles("folder/two")
         .containsNoMoreFiles();
   }
 
   @Test
-  public void testMoveToWorkdirRoot() throws Exception {
+  public void testMoveToCheckoutDirRoot() throws Exception {
     Move mover = skylark.eval("m",
         "m = core.move(before = 'third_party/java', after = '')\n");
-    Files.createDirectories(workdir.resolve("third_party/java/org"));
-    Files.write(workdir.resolve("third_party/java/one.java"), new byte[]{});
-    Files.write(workdir.resolve("third_party/java/org/two.java"), new byte[]{});
+    Files.createDirectories(checkoutDir.resolve("third_party/java/org"));
+    Files.write(checkoutDir.resolve("third_party/java/one.java"), new byte[]{});
+    Files.write(checkoutDir.resolve("third_party/java/org/two.java"), new byte[]{});
 
-    mover.transform(workdir, console);
+    transform(mover);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFiles("one.java", "org/two.java")
         .containsNoMoreFiles();
   }
@@ -158,26 +163,26 @@ public class MoveTest {
   public void testMoveDir() throws Exception {
     Move mover = skylark.eval("m",
         "m = core.move(before = 'third_party/java', after = 'foo')\n");
-    Files.createDirectories(workdir.resolve("third_party/java/org"));
-    Files.createDirectories(workdir.resolve("foo"));
-    Files.write(workdir.resolve("third_party/java/one.java"), new byte[]{});
-    Files.write(workdir.resolve("third_party/java/org/two.java"), new byte[]{});
+    Files.createDirectories(checkoutDir.resolve("third_party/java/org"));
+    Files.createDirectories(checkoutDir.resolve("foo"));
+    Files.write(checkoutDir.resolve("third_party/java/one.java"), new byte[]{});
+    Files.write(checkoutDir.resolve("third_party/java/org/two.java"), new byte[]{});
 
-    mover.transform(workdir, console);
+    transform(mover);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFiles("foo/one.java", "foo/org/two.java")
         .containsNoMoreFiles();
   }
 
   @Test
-  public void testMoveFromWorkdirRootToSubdir() throws Exception {
+  public void testMoveFromCheckoutDirRootToSubdir() throws Exception {
     Move mover = skylark.eval("m",
         "m = core.move(before = '', after = 'third_party/java')\n");
-    Files.write(workdir.resolve("file.java"), new byte[]{});
-    mover.transform(workdir, console);
+    Files.write(checkoutDir.resolve("file.java"), new byte[]{});
+    transform(mover);
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFiles("third_party/java/file.java")
         .containsNoMoreFiles();
   }
@@ -186,14 +191,14 @@ public class MoveTest {
   public void testCannotMoveFromRootToAlreadyExistingDir() throws Exception {
     Move mover = skylark.eval("m",
         "m = core.move(before = '', after = 'third_party/java')\n");
-    Files.createDirectories(workdir.resolve("third_party/java"));
-    Files.write(workdir.resolve("third_party/java/bar.java"), new byte[]{});
-    Files.write(workdir.resolve("third_party/java/foo.java"), new byte[]{});
+    Files.createDirectories(checkoutDir.resolve("third_party/java"));
+    Files.write(checkoutDir.resolve("third_party/java/bar.java"), new byte[]{});
+    Files.write(checkoutDir.resolve("third_party/java/foo.java"), new byte[]{});
 
     thrown.expect(ValidationException.class);
     thrown.expectMessage(
-        "Files already exist in " + workdir + "/third_party/java: [bar.java, foo.java]");
-    mover.transform(workdir, console);
+        "Files already exist in " + checkoutDir + "/third_party/java: [bar.java, foo.java]");
+    transform(mover);
   }
 
   @Test

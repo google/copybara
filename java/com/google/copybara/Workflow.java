@@ -202,13 +202,13 @@ public abstract class Workflow<R extends Origin.Reference> {
         FileUtil.copyFilesRecursively(checkoutDir, originCopy);
       }
 
-      transform(transformation(), checkoutDir, processConsole);
+      transform(transformation(), new TransformWork(checkoutDir, message), processConsole);
 
       if (reverseTransformForCheck() != null) {
         console().progress("Checking that the transformations can be reverted");
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse);
-        transform(reverseTransformForCheck(), reverse, processConsole);
+        transform(reverseTransformForCheck(), new TransformWork(reverse, message), processConsole);
         String diff = new String(DiffUtil.diff(originCopy, reverse, verbose()),
             StandardCharsets.UTF_8);
         if (!diff.trim().isEmpty()) {
@@ -298,11 +298,11 @@ public abstract class Workflow<R extends Origin.Reference> {
     }
   }
 
-  private void transform(Transformation transformation, Path checkout, Console console)
+  private void transform(Transformation transformation, TransformWork work, Console console)
       throws ValidationException, EnvironmentException {
     // Runs the transformation for the workflow
     try {
-      transformation.transform(checkout, console);
+      transformation.transform(work, console);
     } catch (IOException e) {
       throw new EnvironmentException("Error applying transformation: " + transformation, e);
     }

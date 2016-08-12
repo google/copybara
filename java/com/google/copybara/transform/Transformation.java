@@ -1,11 +1,11 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
+import com.google.copybara.TransformWork;
 import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -19,12 +19,12 @@ import java.nio.file.Path;
 public interface Transformation {
 
   /**
-   * Transforms the files inside {@code workdir}
+   * Transforms the files inside the checkout dir specified by {@code work}.
    *
    * @throws IOException if an error occur during the access to the files
    * @throws ValidationException if an error attributable to the user happened
    */
-  void transform(Path workdir, Console console) throws IOException, ValidationException;
+  void transform(TransformWork work, Console console) throws IOException, ValidationException;
 
   /**
    * Returns a transformation which runs this transformation in reverse.

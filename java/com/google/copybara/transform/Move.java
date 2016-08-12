@@ -3,6 +3,7 @@ package com.google.copybara.transform;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.copybara.TransformWork;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
@@ -48,16 +49,16 @@ public class Move implements Transformation {
     }
 
   @Override
-  public void transform(Path workdir, Console console) throws IOException, ValidationException {
+  public void transform(TransformWork work, Console console) throws IOException, ValidationException {
       console.progress("Moving " + this.before);
-      Path before = workdir.resolve(this.before);
+      Path before = work.getCheckoutDir().resolve(this.before);
       if (!Files.exists(before)) {
         workflowOptions.reportNoop(
             console,
             String.format("Error moving '%s'. It doesn't exist in the workdir", this.before));
         return;
       }
-      Path after = workdir.resolve(this.after);
+      Path after = work.getCheckoutDir().resolve(this.after);
       if (Files.isDirectory(after, LinkOption.NOFOLLOW_LINKS)
           && after.startsWith(before)) {
         // When moving from a parent dir to a sub-directory, make sure after doesn't already have
@@ -74,7 +75,7 @@ public class Move implements Transformation {
   }
 
   @Override
-  public Transformation reverse() {
+  public Move reverse() {
     return new Move(after, before, workflowOptions);
   }
 

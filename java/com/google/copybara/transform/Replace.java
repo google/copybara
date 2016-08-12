@@ -9,6 +9,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.TransformWork;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.util.PathMatcherBuilder;
@@ -125,9 +126,11 @@ public final class Replace implements Transformation {
   }
 
   @Override
-  public void transform(Path workdir, Console console) throws IOException, ValidationException {
-    TransformVisitor visitor = new TransformVisitor(fileMatcherBuilder.relativeTo(workdir));
-    Files.walkFileTree(workdir, visitor);
+  public void transform(TransformWork work, Console console)
+      throws IOException, ValidationException {
+    Path checkoutDir = work.getCheckoutDir();
+    TransformVisitor visitor = new TransformVisitor(fileMatcherBuilder.relativeTo(checkoutDir));
+    Files.walkFileTree(checkoutDir, visitor);
     if (!visitor.somethingWasChanged) {
       workflowOptions.reportNoop(
           console,

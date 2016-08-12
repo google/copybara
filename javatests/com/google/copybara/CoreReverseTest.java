@@ -127,7 +127,7 @@ public final class CoreReverseTest {
     }
 
     @Override
-    public void transform(Path workdir, Console console) throws IOException, ValidationException {
+    public void transform(TransformWork work, Console console) {
       throw new UnsupportedOperationException();
     }
 
