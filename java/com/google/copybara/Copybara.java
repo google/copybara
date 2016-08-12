@@ -32,14 +32,6 @@ public class Copybara {
 
   private final SkylarkParser skylarkParser;
 
-  /**
-   * Delete this method once imported and fixed
-   */
-  @Deprecated
-  public Copybara() {
-    skylarkParser = null;
-  }
-
   public Copybara(SkylarkParser skylarkParser) {
     this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
   }
