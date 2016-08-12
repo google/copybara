@@ -257,9 +257,9 @@ public final class ReplaceTest {
 
     // Not using all the groups in after is OK if we don't reverse the replace in the config
     Replace replace = skylark.eval("r", "r = " + transform);
-    Files.write(workdir.resolve("foo"), "foo123abc".getBytes(UTF_8));
-    replace.transform(workdir, console);
-    FileSubjects.assertThatPath(workdir)
+    Files.write(checkoutDir.resolve("foo"), "foo123abc".getBytes(UTF_8));
+    transform(replace);
+    FileSubjects.assertThatPath(checkoutDir)
         .containsFile("foo","foo123");
 
     // But it fails if we ask for the reverse
