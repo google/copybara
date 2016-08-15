@@ -2,7 +2,7 @@ package com.google.copybara.testing;
 
 import com.google.copybara.Option;
 import com.google.copybara.Options;
-import com.google.copybara.config.skylark.OptionsAwareModule;
+import com.google.copybara.config.OptionsAwareModule;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;

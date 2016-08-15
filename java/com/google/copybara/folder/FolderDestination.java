@@ -9,7 +9,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
-import com.google.copybara.config.skylark.OptionsAwareModule;
+import com.google.copybara.config.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;

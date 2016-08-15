@@ -1,4 +1,4 @@
-package com.google.copybara.config.skylark;
+package com.google.copybara.config;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.copybara.ConfigValidationException.checkCondition;

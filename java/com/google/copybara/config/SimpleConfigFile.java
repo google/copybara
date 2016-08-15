@@ -1,4 +1,4 @@
-package com.google.copybara.config.skylark;
+package com.google.copybara.config;
 
 import com.google.common.base.Preconditions;
 import java.io.IOException;

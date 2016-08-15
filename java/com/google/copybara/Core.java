@@ -1,12 +1,12 @@
 package com.google.copybara;
 
-import static com.google.copybara.config.skylark.SkylarkUtil.convertFromNoneable;
-import static com.google.copybara.config.skylark.SkylarkUtil.stringToEnum;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
-import com.google.copybara.config.skylark.OptionsAwareModule;
+import com.google.copybara.config.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;

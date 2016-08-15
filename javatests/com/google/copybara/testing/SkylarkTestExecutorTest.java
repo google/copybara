@@ -3,9 +3,9 @@ package com.google.copybara.testing;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.copybara.config.skylark.CannotResolveLabel;
-import com.google.copybara.config.skylark.ConfigFile;
-import com.google.copybara.config.skylark.LabelsAwareModule;
+import com.google.copybara.config.CannotResolveLabel;
+import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;

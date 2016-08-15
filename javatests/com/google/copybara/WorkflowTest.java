@@ -13,7 +13,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.config.Config;
-import com.google.copybara.config.skylark.SkylarkParser;
+import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.MapConfigFile;

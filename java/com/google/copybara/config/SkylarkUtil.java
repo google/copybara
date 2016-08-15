@@ -1,4 +1,4 @@
-package com.google.copybara.config.skylark;
+package com.google.copybara.config;
 
 import com.beust.jcommander.internal.Nullable;
 import com.google.common.base.Joiner;

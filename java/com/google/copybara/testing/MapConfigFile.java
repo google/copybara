@@ -1,8 +1,8 @@
 package com.google.copybara.testing;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.config.skylark.CannotResolveLabel;
-import com.google.copybara.config.skylark.ConfigFile;
+import com.google.copybara.config.CannotResolveLabel;
+import com.google.copybara.config.ConfigFile;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
