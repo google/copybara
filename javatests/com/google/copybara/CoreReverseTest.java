@@ -4,12 +4,8 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
-import com.google.copybara.config.ConfigValidationException;
-import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.transform.Transformation;
-import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;

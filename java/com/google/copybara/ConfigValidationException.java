@@ -1,7 +1,5 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
-package com.google.copybara.config;
-
-import com.google.copybara.transform.ValidationException;
+package com.google.copybara;
 
 /**
  * Indicates that the data in the configuration is not valid or some error occurred during

@@ -3,7 +3,6 @@ package com.google.copybara;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.copybara.config.ConfigValidationException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

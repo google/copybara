@@ -11,7 +11,7 @@ java_library(
         "//visibility:public",
     ],
     deps = [
-        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/util/console",
         "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:truth",

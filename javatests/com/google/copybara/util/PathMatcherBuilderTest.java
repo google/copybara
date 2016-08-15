@@ -2,8 +2,8 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.copybara.ConfigValidationException;
 import com.google.copybara.RepoException;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import java.io.IOException;

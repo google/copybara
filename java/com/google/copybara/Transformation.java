@@ -1,8 +1,6 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
-package com.google.copybara.transform;
+package com.google.copybara;
 
-import com.google.copybara.TransformWork;
-import com.google.copybara.config.NonReversibleValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;

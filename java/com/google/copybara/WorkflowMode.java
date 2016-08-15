@@ -10,7 +10,6 @@ import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.transform.ValidationException;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 
 import java.io.IOException;

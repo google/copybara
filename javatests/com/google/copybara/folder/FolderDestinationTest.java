@@ -4,9 +4,9 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;

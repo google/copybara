@@ -2,7 +2,6 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.git.CannotFindReferenceException;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.nio.file.Path;
@@ -82,7 +81,6 @@ public interface Origin<R extends Origin.Reference> {
    * Returns a change identified by {@code ref}.
    *
    * @param ref current reference to transform.
-   * @throws CannotFindReferenceException if the ref is invalid.
    * @throws RepoException if any error happens during the computation of the diff.
    */
   Change<R> change(R ref) throws RepoException;

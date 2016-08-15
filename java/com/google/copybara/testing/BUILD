@@ -15,7 +15,10 @@ java_library(
         "//visibility:public",
     ],
     deps = [
+        "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:guava",
         "//third_party:jimfs",

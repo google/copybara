@@ -4,12 +4,13 @@ package com.google.copybara.transform;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
-import com.google.copybara.config.NonReversibleValidationException;
+import com.google.copybara.Transformation;
+import com.google.copybara.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

@@ -4,6 +4,8 @@ package com.google.copybara.transform;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
+import com.google.copybara.Transformation;
+import com.google.copybara.ValidationException;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;

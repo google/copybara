@@ -6,7 +6,6 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Origin.OriginalAuthor;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;

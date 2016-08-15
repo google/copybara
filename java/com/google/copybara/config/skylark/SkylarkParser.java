@@ -1,12 +1,13 @@
 package com.google.copybara.config.skylark;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.copybara.config.ConfigValidationException.checkCondition;
-import static com.google.copybara.config.ConfigValidationException.checkNotMissing;
+import static com.google.copybara.ConfigValidationException.checkCondition;
+import static com.google.copybara.ConfigValidationException.checkNotMissing;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring;
+import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Core;
 import com.google.copybara.EnvironmentException;
 import com.google.copybara.GeneralOptions;
@@ -14,7 +15,6 @@ import com.google.copybara.Options;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.Config;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.Git;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;

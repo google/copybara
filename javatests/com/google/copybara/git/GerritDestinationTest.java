@@ -6,9 +6,9 @@ import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.RepoException;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.git.GerritDestination.GerritProcessPushOutput;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
@@ -22,7 +22,6 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;

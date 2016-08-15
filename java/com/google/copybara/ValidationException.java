@@ -1,5 +1,5 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
-package com.google.copybara.transform;
+package com.google.copybara;
 
 /**
  * Indicates that the configuration is wrong or some error attributable to the user happened. For

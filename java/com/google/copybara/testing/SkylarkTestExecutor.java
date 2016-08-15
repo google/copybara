@@ -6,7 +6,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.ConfigValidationException;
 import com.google.copybara.config.skylark.ConfigFile;
 import com.google.copybara.config.skylark.SkylarkParser;
 import com.google.copybara.util.console.testing.TestingConsole;

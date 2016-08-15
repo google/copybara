@@ -3,7 +3,7 @@ package com.google.copybara.testing;
 
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
-import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.ConfigValidationException;
 import com.google.copybara.util.PathMatcherBuilder;
 import java.nio.file.Path;
 

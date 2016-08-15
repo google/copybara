@@ -1,6 +1,6 @@
 package com.google.copybara.config.skylark;
 
-import com.google.copybara.config.ConfigValidationException;
+import com.google.copybara.ConfigValidationException;
 
 /**
  * An exception thrown when a dependency expressed as a label in a content cannot be resolved.

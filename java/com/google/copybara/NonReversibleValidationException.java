@@ -1,7 +1,6 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
-package com.google.copybara.config;
+package com.google.copybara;
 
-import com.google.copybara.transform.Transformation;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 
