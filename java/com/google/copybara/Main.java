@@ -120,6 +120,13 @@ public class Main {
           "Unexpected error (please file a bug): " + e.getMessage(),
           e);
     }
+
+    try {
+      shutdown();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      handleUnexpectedError(console, ExitCode.INTERRUPTED, "Execution was interrupted.", e);
+    }
   }
 
   private ConfigFile loadConfig(Path configPath)
@@ -145,6 +152,11 @@ public class Main {
   protected Copybara newCopybaraTool() {
     return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES));
   }
+
+  /**
+   * Performs cleanup tasks after executing Copybara.
+   */
+  protected void shutdown() throws InterruptedException {}
 
   private Console getConsole(String[] args) {
     // If System.console() is not present, we are forced to use LogConsole

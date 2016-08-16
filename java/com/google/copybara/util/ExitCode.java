@@ -22,6 +22,10 @@ public enum ExitCode {
    */
   REPOSITORY_ERROR(3),
   /**
+   * Execution was interrupted.
+   */
+  INTERRUPTED(8),
+  /**
    * Any error transient or permanent due to the environment (Error accessing the network,
    * filesystem errors, etc.)
    */
