@@ -75,6 +75,13 @@ java_library(
 )
 
 java_library(
+    name = "junit",
+    exports = [
+        "@junit//jar",
+    ],
+)
+
+java_library(
     name = "shell",
     exports = [
         "//third_party/bazel:shell",

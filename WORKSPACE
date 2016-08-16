@@ -71,6 +71,13 @@ new_http_archive(
     url = "https://pypi.python.org/packages/source/c/cram/cram-0.7.tar.gz",
 )
 
+# LICENSE: Common Public License 1.0
+maven_jar(
+    name = "junit",
+    artifact = "junit:junit:4.11",
+    sha1 = "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
+)
+
 # LICENSE: The Apache Software License, Version 2.0
 http_archive(
     name = "io_bazel",

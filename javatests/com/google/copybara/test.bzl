@@ -9,6 +9,12 @@ def all_tests(tests, deps, tags=[]):
       srcs = [file],
       javacopts = ["-Xlint:unchecked", "-source", "1.7"],
       test_class = test_class,
-      deps = deps,
+      deps = deps + [
+          # These deps are automatically included with Bazel, but not with the
+          # internal BUILD system. So add them explicitly here.
+          "//third_party:guava",
+          "//third_party:jsr305",
+          "//third_party:junit",
+      ],
       tags = tags,
     )
