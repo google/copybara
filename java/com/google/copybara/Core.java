@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
@@ -221,8 +222,7 @@ public class Core implements OptionsAwareModule {
         Location location)
         throws EvalException {
       WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
-      Sequence sequenceTransform = Sequence.createSequence(ImmutableList.copyOf(
-          transformations.getContents(Transformation.class, "transformations")));
+      Sequence sequenceTransform = Sequence.fromConfig(transformations, "transformations");
       Transformation reverseTransform = null;
       if (convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
         try {
@@ -320,6 +320,34 @@ public class Core implements OptionsAwareModule {
           paths,
           multiline,
           self.workflowOptions);
+    }
+  };
+
+  @SkylarkSignature(
+      name = "transform",
+      returnType = Transformation.class,
+      doc = "Creates a transformation with a particular, manually-specified, reversal, where the"
+      + " forward version and reversed version of the transform are represented as lists of"
+      + " transforms. The is useful if a transformation does not automatically reverse, or if the"
+      + " automatic reversal does not work for some reason.",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "transformations",
+              type = SkylarkList.class, generic1 = Transformation.class,
+              doc = "The list of transformations to run as a result of running this"
+              + " transformation."),
+          @Param(name = "reversal", type = SkylarkList.class, generic1 = Transformation.class,
+              doc = "The list of transformations to run as a result of running this"
+              + " transformation in reverse.", named = true, positional = false),
+      },
+      objectType = Core.class)
+  public static final BuiltinFunction TRANSFORM = new BuiltinFunction("transform") {
+    public Transformation invoke(Core self,
+        SkylarkList<Transformation> transformations,
+        SkylarkList<Transformation> reversal) throws EvalException {
+      return new ExplicitReversal(
+          Sequence.fromConfig(transformations, "transformations"),
+          Sequence.fromConfig(reversal, "reversal"));
     }
   };
 
