@@ -8,15 +8,14 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.copybara.Change;
+import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.RepoException;
-import com.google.copybara.config.ConfigValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

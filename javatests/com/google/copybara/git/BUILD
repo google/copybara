@@ -6,16 +6,16 @@ licenses(["unencumbered"])  # Owned by Google. No external contributions
 
 all_tests(
     tags = ["local"],
-    tests = glob(["git/*Test.java"]),
+    tests = glob(["**/*.java"]),
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/git/testing",
         "//java/com/google/copybara/testing",
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:jcommander",
-        "//third_party:joda_time",
-        "//third_party:shell",
         "//third_party:truth",
     ],
 )
