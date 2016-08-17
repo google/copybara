@@ -13,6 +13,7 @@ def all_tests(tests, deps, tags=[]):
           # These deps are automatically included with Bazel, but not with the
           # internal BUILD system. So add them explicitly here.
           "//third_party:guava",
+          "//third_party:joda_time",
           "//third_party:jsr305",
           "//third_party:junit",
       ],
