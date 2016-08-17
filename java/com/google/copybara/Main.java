@@ -58,20 +58,20 @@ public class Main {
     }
     console.startupMessage();
 
-    Copybara copybara = newCopybaraTool();
-
-    final MainArguments mainArgs = new MainArguments();
-    GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-    List<Option> allOptions = new ArrayList<>(copybara.getAllOptions());
-    JCommander jcommander = new JCommander(ImmutableList.builder()
-        .addAll(allOptions)
-        .add(mainArgs)
-        .add(generalOptionsArgs)
-        .build());
-    jcommander.setProgramName("copybara");
-
+    JCommander jcommander = new JCommander();
     String version = getVersion();
+    MainArguments mainArgs = new MainArguments();
+    GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
     try {
+      Copybara copybara = newCopybaraTool();
+      List<Option> allOptions = new ArrayList<>(copybara.getAllOptions());
+      jcommander.addObject(ImmutableList.builder()
+          .addAll(allOptions)
+          .add(mainArgs)
+          .add(generalOptionsArgs)
+          .build());
+      jcommander.setProgramName("copybara");
+
       logger.log(Level.INFO, "Copybara version: " + version);
       jcommander.parse(args);
       if (mainArgs.help) {
@@ -87,7 +87,7 @@ public class Main {
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
-      final Path configPath = fs.getPath(mainArgs.getConfigPath());
+      Path configPath = fs.getPath(mainArgs.getConfigPath());
       if (generalOptions.isValidate()) {
         ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath);
         copybara.validate(options, skylarkContent, mainArgs.getWorkflowName());
@@ -163,8 +163,10 @@ public class Main {
 
   /**
    * Returns a new instance of {@link Copybara}.
+   *
+   * @throws EnvironmentException If the tool could not be instantiated for environmental reasons.
    */
-  protected Copybara newCopybaraTool() {
+  protected Copybara newCopybaraTool() throws EnvironmentException {
     return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES));
   }
 
