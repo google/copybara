@@ -42,21 +42,6 @@ public class Copybara {
         new WorkflowOptions());
   }
 
-  /**
-   * Returns a short String representing the version of the binary
-   */
-  protected String getVersion() {
-    return "Unknown version";
-  }
-
-  /**
-   * Returns a String (can be multiline) representing all the information about who and when the
-   * Copybara was built.
-   */
-  protected String getBinaryInfo() {
-    return "Unknown version";
-  }
-
   public void run(Options options, ConfigFile configContents, String workflowName,
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException, EnvironmentException {

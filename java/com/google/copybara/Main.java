@@ -70,8 +70,7 @@ public class Main {
         .build());
     jcommander.setProgramName("copybara");
 
-    String version = copybara.getVersion();
-
+    String version = getVersion();
     try {
       logger.log(Level.INFO, "Copybara version: " + version);
       jcommander.parse(args);
@@ -79,7 +78,7 @@ public class Main {
         System.out.print(usage(jcommander, version));
         return;
       } else if (mainArgs.version) {
-        System.out.println(copybara.getBinaryInfo());
+        System.out.println(getBinaryInfo());
         return;
       }
       mainArgs.validateUnnamedArgs();
@@ -144,6 +143,22 @@ public class Main {
     }
 
     return new SimpleConfigFile(configPath.toAbsolutePath());
+  }
+
+
+  /**
+   * Returns a short String representing the version of the binary
+   */
+  protected String getVersion() {
+    return "Unknown version";
+  }
+
+  /**
+   * Returns a String (can be multiline) representing all the information about who and when the
+   * Copybara was built.
+   */
+  protected String getBinaryInfo() {
+    return "Unknown version";
   }
 
   /**
