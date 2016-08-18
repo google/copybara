@@ -3,7 +3,6 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
-import com.google.copybara.EnvironmentException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -161,7 +160,7 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "new foo\n");
     writeFile(destination, "file1.txt", "foo\nmore foo\n");
 
-    thrown.expect(EnvironmentException.class);
+    thrown.expect(IOException.class);
     thrown.expectMessage("error: patch failed: file1.txt:1\n"
         + "error: file1.txt: patch does not apply");
 

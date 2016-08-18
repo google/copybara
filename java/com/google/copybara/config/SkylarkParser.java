@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring;
 import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Core;
-import com.google.copybara.EnvironmentException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Workflow;
@@ -64,7 +63,7 @@ public class SkylarkParser {
   }
 
   public Config loadConfig(ConfigFile content, Options options)
-      throws IOException, ConfigValidationException, EnvironmentException {
+      throws IOException, ConfigValidationException {
     Core core;
     try {
       Environment env = executeSkylark(content, options, /*environment*/ null);

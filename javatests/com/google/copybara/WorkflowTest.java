@@ -95,13 +95,13 @@ public class WorkflowTest {
     skylark = new SkylarkParser(ImmutableSet.<Class<?>>of(TestingModule.class));
   }
 
-  private Workflow workflow() throws ConfigValidationException, IOException, EnvironmentException {
+  private Workflow workflow() throws ConfigValidationException, IOException {
     origin.addSimpleChange(/*timestamp*/ 42);
     return skylarkWorkflow("default", WorkflowMode.SQUASH);
   }
 
   private Workflow skylarkWorkflow(String name, WorkflowMode mode)
-      throws IOException, ConfigValidationException, EnvironmentException {
+      throws IOException, ConfigValidationException {
     String config = ""
         + "core.project( name = 'copybara_project')\n"
         + "core.workflow(\n"
@@ -120,12 +120,12 @@ public class WorkflowTest {
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
-      throws ConfigValidationException, EnvironmentException, IOException {
+      throws ConfigValidationException, IOException {
     return iterativeWorkflow(previousRef, options.general.console());
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef, Console console)
-      throws ConfigValidationException, EnvironmentException, IOException {
+      throws ConfigValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
     options.general = new GeneralOptions(
         options.general.getFileSystem(), options.general.isVerbose(), console);
@@ -133,7 +133,7 @@ public class WorkflowTest {
   }
 
   private Workflow changeRequestWorkflow(@Nullable String baseline)
-      throws ConfigValidationException, EnvironmentException, IOException {
+      throws ConfigValidationException, IOException {
     options.workflowOptions.changeBaseline = baseline;
     return skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
   }
@@ -561,7 +561,7 @@ public class WorkflowTest {
 
   @Test
   public void testNullAuthoring()
-      throws ConfigValidationException, EnvironmentException, IOException {
+      throws ConfigValidationException, IOException {
     try {
       loadConfig(""
           + "core.project( name = 'copybara_project')\n"
@@ -577,14 +577,14 @@ public class WorkflowTest {
   }
 
   private Config loadConfig(String content)
-      throws IOException, ConfigValidationException, EnvironmentException {
+      throws IOException, ConfigValidationException {
     return skylark.loadConfig(
         new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
         options.build());
   }
 
   @Test
-  public void testNullOrigin() throws ConfigValidationException, EnvironmentException, IOException {
+  public void testNullOrigin() throws ConfigValidationException, IOException {
     try {
       loadConfig(""
           + "core.project( name = 'copybara_project')\n"
@@ -604,7 +604,7 @@ public class WorkflowTest {
 
   @Test
   public void testNullDestination()
-      throws ConfigValidationException, EnvironmentException, IOException {
+      throws ConfigValidationException, IOException {
     try {
       loadConfig(""
           + "core.project( name = 'copybara_project')\n"
@@ -621,7 +621,7 @@ public class WorkflowTest {
 
   @Test
   public void nonReversibleButCheckReverseSet()
-      throws IOException, EnvironmentException, ValidationException, RepoException {
+      throws IOException, ValidationException, RepoException {
     origin
         .singleFileChange(0, "one commit", "foo.txt", "1")
         .singleFileChange(1, "one commit", "test.txt", "1\nTRANSFORMED42");

@@ -44,7 +44,7 @@ public class Copybara {
 
   public void run(Options options, ConfigFile configContents, String workflowName,
       Path baseWorkdir, @Nullable String sourceRef)
-      throws RepoException, ValidationException, IOException, EnvironmentException {
+      throws RepoException, ValidationException, IOException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Preconditions.checkArgument(!generalOptions.isValidate(), "Call validate() instead");
@@ -58,7 +58,7 @@ public class Copybara {
   }
 
   public void validate(Options options, ConfigFile configContent, String workflowName)
-      throws RepoException, ValidationException, IOException, EnvironmentException {
+      throws RepoException, ValidationException, IOException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
     Config config = skylarkParser.loadConfig(configContent, options);
     Console console = options.get(GeneralOptions.class).console();

@@ -4,12 +4,11 @@ package com.google.copybara.util;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.copybara.EnvironmentException;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-
+import java.io.IOException;
 import java.nio.file.Path;
 
 /**
@@ -25,8 +24,7 @@ public class DiffUtil {
    * <p>Returns the diff as an encoding-independent {@code byte[]} that can be write to a file or
    * fed directly into {@link DiffUtil#patch}.
    */
-  public static byte[] diff(Path one, Path other, boolean verbose)
-      throws EnvironmentException {
+  public static byte[] diff(Path one, Path other, boolean verbose) throws IOException {
     Preconditions.checkArgument(one.getParent().equals(other.getParent()),
         "Paths 'one' and 'other' must be sibling directories.");
     Path root = one.getParent();
@@ -43,12 +41,12 @@ public class DiffUtil {
       CommandOutput output = e.getOutput();
       // git diff returns exit status 0 when contents are identical, or 1 when they are different
       if (!Strings.isNullOrEmpty(output.getStderr())) {
-        throw new EnvironmentException(
+        throw new IOException(
             "Error executing 'git diff': " + e.getMessage() + ". Stderr: \n" + output.getStderr(), e);
       }
       return output.getStdoutBytes();
     } catch (CommandException e) {
-      throw new EnvironmentException("Error executing 'git diff'", e);
+      throw new IOException("Error executing 'patch'", e);
     }
   }
 
@@ -57,8 +55,7 @@ public class DiffUtil {
    *
    * <p>{@code diffContents} is the result of invoking {@link DiffUtil#diff}.
    */
-  public static void patch(Path rootDir, byte[] diffContents, boolean verbose)
-      throws EnvironmentException {
+  public static void patch(Path rootDir, byte[] diffContents, boolean verbose) throws IOException {
     // TODO(danielromero): Think if it makes sense to throw EmptyChangeException here
     if (diffContents.length == 0) {
       return;
@@ -68,11 +65,11 @@ public class DiffUtil {
     try {
       CommandUtil.executeCommand(cmd, diffContents, verbose);
     } catch (BadExitStatusWithOutputException e) {
-      throw new EnvironmentException(
+      throw new IOException(
           "Error executing 'patch': " + e.getMessage() + ". Stderr: \n" + e.getOutput().getStderr(),
           e);
     } catch (CommandException e) {
-      throw new EnvironmentException("Error executing 'patch'", e);
+      throw new IOException("Error executing 'patch'", e);
     }
   }
 

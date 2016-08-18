@@ -38,17 +38,17 @@ doc_generator(
     deps = [":copybara"],
 )
 
-# TODO(matvore): Put Destination.java in this set.
 BASE_SRCS = [
     "Author.java",
     "Change.java",
     "ConfigValidationException.java",
-    "EnvironmentException.java",
+    "Destination.java",
     "NonReversibleValidationException.java",
     "Option.java",
     "Origin.java",
     "RepoException.java",
     "Transformation.java",
+    "TransformResult.java",
     "TransformWork.java",
     "ValidationException.java",
     "VoidOperationException.java",
@@ -60,6 +60,7 @@ java_library(
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,
     deps = [
+        "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",
         "//third_party:jcommander",

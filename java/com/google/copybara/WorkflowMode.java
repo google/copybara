@@ -26,7 +26,7 @@ public enum WorkflowMode {
   SQUASH {
     @Override
     <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
-        throws RepoException, IOException, EnvironmentException, ValidationException {
+        throws RepoException, IOException, ValidationException {
       runHelper.migrate(
           runHelper.getResolvedRef(),
           // SQUASH workflows always use the default author
@@ -43,7 +43,7 @@ public enum WorkflowMode {
   ITERATIVE {
     @Override
     <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
-        throws RepoException, IOException, EnvironmentException, ValidationException {
+        throws RepoException, IOException, ValidationException {
       ImmutableList<Change<R>> changes = runHelper.changesSinceLastImport();
       int changeNumber = 1;
       UnmodifiableIterator<Change<R>> changesIterator = changes.iterator();
@@ -76,7 +76,7 @@ public enum WorkflowMode {
   CHANGE_REQUEST {
     @Override
     <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
-        throws RepoException, IOException, EnvironmentException, ValidationException {
+        throws RepoException, IOException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
@@ -115,11 +115,11 @@ public enum WorkflowMode {
   MIRROR {
     @Override
     <R extends Origin.Reference> void run(Workflow<R>.RunHelper helper)
-        throws RepoException, IOException, EnvironmentException, ValidationException {
+        throws RepoException, IOException, ValidationException {
       throw new UnsupportedOperationException("WorkflowMode 'MIRROR' not implemented.");
     }
   };
 
   abstract <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
-      throws RepoException, IOException, EnvironmentException, ValidationException;
+      throws RepoException, IOException, ValidationException;
 }

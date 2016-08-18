@@ -109,7 +109,7 @@ public class Main {
     } catch (ValidationException e) {
       printCauseChain(console, e);
       System.exit(ExitCode.CONFIGURATION_ERROR.getCode());
-    } catch (EnvironmentException | IOException e) {
+    } catch (IOException e) {
       handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
     } catch (RuntimeException e) {
       // This usually indicates a serious programming error that will require Copybara team

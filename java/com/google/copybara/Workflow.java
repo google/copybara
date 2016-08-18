@@ -88,7 +88,7 @@ public abstract class Workflow<R extends Origin.Reference> {
   }
 
   public void run(Path workdir, @Nullable String sourceRef)
-      throws RepoException, IOException, EnvironmentException, ValidationException {
+      throws RepoException, IOException, ValidationException {
     console().progress("Cleaning working directory");
     FileUtil.deleteAllFilesRecursively(workdir);
 
@@ -162,13 +162,13 @@ public abstract class Workflow<R extends Origin.Reference> {
      * @return The result of this migration
      */
     WriterResult migrate(R ref, Author author, Console processConsole, String message)
-        throws EnvironmentException, IOException, RepoException, ValidationException {
+        throws IOException, RepoException, ValidationException {
       return migrate(ref, author, processConsole, message, /*destinationBaseline=*/ null);
     }
 
     WriterResult migrate(R ref, Author author, Console processConsole, String message,
         @Nullable String destinationBaseline)
-        throws EnvironmentException, IOException, RepoException, ValidationException {
+        throws IOException, RepoException, ValidationException {
       processConsole.progress("Cleaning working directory");
       FileUtil.deleteAllFilesRecursively(workdir);
       Path checkoutDir = workdir.resolve("checkout");
@@ -199,13 +199,13 @@ public abstract class Workflow<R extends Origin.Reference> {
         FileUtil.copyFilesRecursively(checkoutDir, originCopy);
       }
 
-      transform(transformation(), new TransformWork(checkoutDir, message), processConsole);
+      transformation().transform(new TransformWork(checkoutDir, message), processConsole);
 
       if (reverseTransformForCheck() != null) {
         console().progress("Checking that the transformations can be reverted");
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse);
-        transform(reverseTransformForCheck(), new TransformWork(reverse, message), processConsole);
+        reverseTransformForCheck().transform(new TransformWork(reverse, message), processConsole);
         String diff = new String(DiffUtil.diff(originCopy, reverse, verbose()),
             StandardCharsets.UTF_8);
         if (!diff.trim().isEmpty()) {
@@ -292,16 +292,6 @@ public abstract class Workflow<R extends Origin.Reference> {
       }
 
       return result.toString();
-    }
-  }
-
-  private void transform(Transformation transformation, TransformWork work, Console console)
-      throws ValidationException, EnvironmentException {
-    // Runs the transformation for the workflow
-    try {
-      transformation.transform(work, console);
-    } catch (IOException e) {
-      throw new EnvironmentException("Error applying transformation: " + transformation, e);
     }
   }
 }

@@ -10,7 +10,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Destination;
-import com.google.copybara.EnvironmentException;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
@@ -62,7 +61,7 @@ public class SkylarkParserTest {
 
   @Test
   public void requireAtLeastOneWorkflow()
-      throws IOException, ConfigValidationException, EnvironmentException {
+      throws IOException, ConfigValidationException {
     thrown.expect(ConfigValidationException.class);
     thrown.expectMessage("At least one workflow is required.");
     loadConfig("");
@@ -75,7 +74,7 @@ public class SkylarkParserTest {
    */
   @Test
   public void testParseConfigFile()
-      throws IOException, ConfigValidationException, EnvironmentException {
+      throws IOException, ConfigValidationException {
     String configContent = ""
         + "baz=42\n"
         + "some_url=\"https://so.me/random/url\"\n"
@@ -127,7 +126,7 @@ public class SkylarkParserTest {
   }
 
   private Config loadConfig(String configContent)
-      throws IOException, ConfigValidationException, EnvironmentException {
+      throws IOException, ConfigValidationException {
     return parser.loadConfig(
         new MapConfigFile(ImmutableMap.of("copy.bara.sky", configContent.getBytes()),
             "copy.bara.sky"),
@@ -136,7 +135,7 @@ public class SkylarkParserTest {
 
   @Test
   public void testTransformsAreOptional()
-      throws IOException, ConfigValidationException, EnvironmentException {
+      throws IOException, ConfigValidationException {
     String configContent = ""
         + "core.project(\n"
         + "  name = 'mytest',\n"
@@ -167,7 +166,7 @@ public class SkylarkParserTest {
 
   @Test
   public void testGenericOfSimpleTypes()
-      throws IOException, ConfigValidationException, EnvironmentException {
+      throws IOException, ConfigValidationException {
     String configContent = ""
         + "baz=42\n"
         + "some_url=\"https://so.me/random/url\"\n"
