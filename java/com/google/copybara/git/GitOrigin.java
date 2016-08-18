@@ -16,10 +16,13 @@ import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.util.BadExitStatusWithOutputException;
+import com.google.copybara.util.CommandOutputWithStatus;
+import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.console.Console;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
+import com.google.copybara.util.console.Consoles;
+import com.google.devtools.build.lib.shell.Command;
+import com.google.devtools.build.lib.shell.CommandException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,6 +32,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 /**
  * A class for manipulating Git repositories
@@ -56,14 +62,22 @@ public final class GitOrigin implements Origin<GitReference> {
   private final String configRef;
   private final Console console;
   private final GitRepoType repoType;
+  private final GitOptions gitOptions;
+  private final boolean verbose;
+  @Nullable
+  private final Map<String, String> environment;
 
   private GitOrigin(Console console, GitRepository repository, String repoUrl,
-      @Nullable String configRef, GitRepoType repoType) {
+      @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions, boolean verbose,
+      @Nullable Map<String, String> environment) {
     this.console = Preconditions.checkNotNull(console);
     this.repository = Preconditions.checkNotNull(repository);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.configRef = configRef;
     this.repoType = Preconditions.checkNotNull(repoType);
+    this.gitOptions = gitOptions;
+    this.verbose = verbose;
+    this.environment = environment;
   }
 
   public GitRepository getRepository() {
@@ -78,6 +92,27 @@ public final class GitOrigin implements Origin<GitReference> {
   @Override
   public void checkout(GitReference ref, Path workdir) throws RepoException {
     repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", ref.asString());
+    if (!Strings.isNullOrEmpty(gitOptions.gitOriginCheckoutHook)) {
+      runCheckoutOrigin(workdir);
+    }
+  }
+
+  private void runCheckoutOrigin(Path workdir) throws RepoException {
+    try {
+      CommandOutputWithStatus result = CommandUtil.executeCommand(
+          new Command(new String[]{gitOptions.gitOriginCheckoutHook},
+              environment, workdir.toFile()), verbose);
+      Consoles.logLines(console, "git.origin hook (Stdout): ", result.getStdout());
+      Consoles.logLines(console, "git.origin hook (Stderr): ", result.getStderr());
+    } catch (BadExitStatusWithOutputException e) {
+      Consoles.logLines(console, "git.origin hook (Stdout): ", e.getOutput().getStdout());
+      Consoles.logLines(console, "git.origin hook (Stderr): ", e.getOutput().getStderr());
+      throw new RepoException(
+          "Error executing the git checkout hook: " + gitOptions.gitOriginCheckoutHook, e);
+    } catch (CommandException e) {
+      throw new RepoException(
+          "Error executing the git checkout hook: " + gitOptions.gitOriginCheckoutHook, e);
+    }
   }
 
   @Override
@@ -265,7 +300,10 @@ public final class GitOrigin implements Origin<GitReference> {
     Console console = options.get(GeneralOptions.class).console();
 
     return new GitOrigin(
-        console, GitRepository.bareRepo(gitDir, options, environment), url, ref, type);
+        console, GitRepository.bareRepo(gitDir, options, environment), url, ref, type,
+        options.get(GitOptions.class),
+        options.get(GeneralOptions.class).isVerbose(),
+        environment);
   }
 
   /**

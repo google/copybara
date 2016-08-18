@@ -30,6 +30,12 @@ public final class GitOptions implements Option {
       description = "Ignore that the fetch reference doesn't exist when pushing to destination")
   boolean gitFirstCommit = false;
 
+  @Parameter(names = "--git-origin-checkout-hook",
+      description = "A command to be executed when a checkout happens for a git origin."
+          + " DON'T USE IT. The only intention is to run tools that gather dependencies"
+          + " after the checkout.", hidden = true)
+  String gitOriginCheckoutHook = null;
+
   public GitOptions(String homeDir) {
     this.gitRepoStorage = homeDir + "/.copybara/repos";
   }

@@ -221,7 +221,9 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       Element flagClass = flag.asElement();
       for (Element member : flagClass.getEnclosedElements()) {
         Parameter flagAnnotation = member.getAnnotation(Parameter.class);
-        if (flagAnnotation == null || !(member instanceof VariableElement)) {
+        if (flagAnnotation == null
+            || !(member instanceof VariableElement)
+            || flagAnnotation.hidden()) {
           continue;
         }
         VariableElement field = (VariableElement) member;

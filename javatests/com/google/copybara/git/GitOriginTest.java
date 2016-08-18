@@ -3,9 +3,11 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.copybara.Change;
 import com.google.copybara.ConfigValidationException;
@@ -17,9 +19,9 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,7 @@ public class GitOriginTest {
   private String ref;
   private GitOrigin origin;
   private Path remote;
-  private Path workdir;
+  private Path checkoutDir;
   private String firstCommitRef;
   private OptionsBuilder options;
 
@@ -50,7 +52,7 @@ public class GitOriginTest {
   @Before
   public void setup() throws Exception {
     remote = Files.createTempDirectory("remote");
-    workdir = Files.createTempDirectory("workdir");
+    checkoutDir = Files.createTempDirectory("checkout");
 
     url = "file://" + remote.toFile().getAbsolutePath();
     ref = "other";
@@ -171,8 +173,8 @@ public class GitOriginTest {
   @Test
   public void testCheckout() throws IOException, RepoException {
     // Check that we get can checkout a branch
-    origin.checkout(origin.resolve("master"), workdir);
-    Path testFile = workdir.resolve("test.txt");
+    origin.checkout(origin.resolve("master"), checkoutDir);
+    Path testFile = checkoutDir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
@@ -181,7 +183,7 @@ public class GitOriginTest {
     git("add", "test.txt");
     git("commit", "-m", "second commit");
 
-    origin.checkout(origin.resolve("master"), workdir);
+    origin.checkout(origin.resolve("master"), checkoutDir);
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("new content");
 
@@ -189,24 +191,55 @@ public class GitOriginTest {
     Files.delete(remote.resolve("test.txt"));
     git("rm", "test.txt");
     git("commit", "-m", "third commit");
-    origin.checkout(origin.resolve("master"), workdir);
+    origin.checkout(origin.resolve("master"), checkoutDir);
 
     assertThat(Files.exists(testFile)).isFalse();
   }
 
   @Test
+  public void testGitOriginWithHook() throws Exception {
+    Path hook = Files.createTempFile("script", "script");
+    Files.write(hook, "touch hook.txt".getBytes(UTF_8));
+
+    Files.setPosixFilePermissions(hook, ImmutableSet.<PosixFilePermission>builder()
+        .addAll(Files.getPosixFilePermissions(hook))
+        .add(PosixFilePermission.OWNER_EXECUTE).build());
+
+    options.git.gitOriginCheckoutHook = hook.toAbsolutePath().toString();
+    origin = origin();
+    origin.checkout(origin.resolve("master"), checkoutDir);
+    assertThatPath(checkoutDir).containsFile("hook.txt", "");
+  }
+
+  @Test
+  public void testGitOriginWithHookExitError() throws Exception {
+    Path hook = Files.createTempFile("script", "script");
+    Files.write(hook, "exit 1".getBytes(UTF_8));
+
+    Files.setPosixFilePermissions(hook, ImmutableSet.<PosixFilePermission>builder()
+        .addAll(Files.getPosixFilePermissions(hook))
+        .add(PosixFilePermission.OWNER_EXECUTE).build());
+
+    options.git.gitOriginCheckoutHook = hook.toAbsolutePath().toString();
+    origin = origin();
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("Error executing the git checkout hook");
+    origin.checkout(origin.resolve("master"), checkoutDir);
+  }
+
+  @Test
   public void testCheckoutWithLocalModifications() throws IOException, RepoException {
     GitReference master = origin.resolve("master");
-    origin.checkout(master, workdir);
-    Path testFile = workdir.resolve("test.txt");
+    origin.checkout(master, checkoutDir);
+    Path testFile = checkoutDir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
     Files.delete(testFile);
 
-    origin.checkout(master, workdir);
+    origin.checkout(master, checkoutDir);
 
-    // The deletion in the workdir should not matter, since we should override in the next
+    // The deletion in the checkoutDir should not matter, since we should override in the next
     // checkout
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
   }
@@ -214,8 +247,8 @@ public class GitOriginTest {
   @Test
   public void testCheckoutOfARef() throws IOException, RepoException {
     GitReference reference = origin.resolve(firstCommitRef);
-    origin.checkout(reference, workdir);
-    Path testFile = workdir.resolve("test.txt");
+    origin.checkout(reference, checkoutDir);
+    Path testFile = checkoutDir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
   }
@@ -361,11 +394,11 @@ public class GitOriginTest {
     String newUrl = "file://" + remote.toFile().getAbsolutePath();
     Change<GitReference> cliHead = origin.change(origin.resolve(newUrl));
 
-    origin.checkout(cliHead.getReference(), workdir);
+    origin.checkout(cliHead.getReference(), checkoutDir);
 
     assertThat(cliHead.firstLineMessage()).isEqualTo("a change from somewhere");
 
-    assertThatPath(workdir)
+    assertThatPath(checkoutDir)
         .containsFile("cli_remote.txt", "some change")
         .containsNoMoreFiles();
 
@@ -442,7 +475,7 @@ public class GitOriginTest {
 
   private void singleFileCommit(String author, String commitMessage, String fileName,
       String fileContent) throws IOException, RepoException {
-    Files.write(remote.resolve(fileName), fileContent.getBytes(StandardCharsets.UTF_8));
+    Files.write(remote.resolve(fileName), fileContent.getBytes(UTF_8));
     git("add", fileName);
     git("commit", "-m", commitMessage, "--author=" + author);
   }
