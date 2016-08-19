@@ -518,6 +518,47 @@ public final class ReplaceTest {
             + "c foo d\n");
   }
 
+  @Test
+  public void firstOnlyLineByLine() throws Exception {
+    Replace replace = eval(""
+        + "core.replace("
+        + "  before = 'foo',"
+        + "  after = 'bar',"
+        + "  first_only = True,"
+        + ")");
+
+    writeFile(checkoutDir.resolve("file"), ""
+        + "foo x y foo\n"
+        + "foo\n");
+    transform(replace);
+
+    assertThatPath(checkoutDir)
+        .containsFile("file", ""
+            + "bar x y foo\n"
+            + "bar\n");
+  }
+
+  @Test
+  public void firstOnlyMultiline() throws Exception {
+    Replace replace = eval(""
+        + "core.replace("
+        + "  before = 'foo',"
+        + "  after = 'bar',"
+        + "  first_only = True,"
+        + "  multiline = True,"
+        + ")");
+
+    writeFile(checkoutDir.resolve("file"), ""
+        + "foo x y foo\n"
+        + "foo\n");
+    transform(replace);
+
+    assertThatPath(checkoutDir)
+        .containsFile("file", ""
+            + "bar x y foo\n"
+            + "foo\n");
+  }
+
   private Replace eval(String replace) throws ConfigValidationException {
     return skylark.eval("r", "r = " + replace);
   }

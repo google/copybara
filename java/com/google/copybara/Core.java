@@ -298,6 +298,11 @@ public class Core implements OptionsAwareModule {
                   + " the transformation. For example, glob([\"**.java\"]), matches all java files"
                   + " recursively. Defaults to match all the files recursively.",
               defaultValue = "glob([\"**\"])"),
+          @Param(name = "first_only", type = Boolean.class,
+              doc = "If true, only replaces the first instance rather than all. In single line"
+              + " mode, replaces the first instance on each line. In multiline mode, replaces the"
+              + " first instance in each file.",
+              defaultValue = "False"),
           @Param(name = "multiline", type = Boolean.class,
               doc = "Whether to replace text that spans more than one line.",
               defaultValue = "False"),
@@ -307,17 +312,19 @@ public class Core implements OptionsAwareModule {
       ImmutableList.of(
           SkylarkDict.empty(),
           PathMatcherBuilder.ALL_FILES,
+          false,
           false
       )) {
     public Replace invoke(Core self, String before, String after,
-        SkylarkDict<String, String> regexes, PathMatcherBuilder paths, Boolean multiline,
-        Location location)
-        throws EvalException {
+        SkylarkDict<String, String> regexes, PathMatcherBuilder paths, Boolean firstOnly,
+        Boolean multiline,
+        Location location) throws EvalException {
       return Replace.create(location,
           before,
           after,
           Type.STRING_DICT.convert(regexes, "regex_groups"),
           paths,
+          firstOnly,
           multiline,
           self.workflowOptions);
     }

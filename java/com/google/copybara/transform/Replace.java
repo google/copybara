@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -64,18 +65,20 @@ public final class Replace implements Transformation {
   private final TemplateTokens before;
   private final TemplateTokens after;
   private final ImmutableMap<String, Pattern> regexGroups;
+  private final boolean firstOnly;
   private final boolean multiline;
   private final PathMatcherBuilder fileMatcherBuilder;
   private final WorkflowOptions workflowOptions;
 
   private Replace(Location location, TemplateTokens before, TemplateTokens after,
-      ImmutableMap<String, Pattern> regexGroups, boolean multiline,
+      ImmutableMap<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
       PathMatcherBuilder fileMatcherBuilder,
       WorkflowOptions workflowOptions) {
     this.location = location;
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.regexGroups = Preconditions.checkNotNull(regexGroups);
+    this.firstOnly = firstOnly;
     this.multiline = multiline;
     this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
@@ -87,6 +90,7 @@ public final class Replace implements Transformation {
         .add("before", before.template())
         .add("after", after.template())
         .add("regexGroups", regexGroups)
+        .add("firstOnly", firstOnly)
         .add("multiline", multiline)
         .add("path", fileMatcherBuilder)
         .toString();
@@ -116,8 +120,13 @@ public final class Replace implements Transformation {
           : Splitter.on('\n').splitToList(originalFileContent);
 
       List<String> newRanges = new ArrayList<>(originalRanges.size());
-      for (String line : originalRanges) {
-        newRanges.add(beforeRegex.matcher(line).replaceAll(after.template()));
+      for (String range : originalRanges) {
+        Matcher matcher = beforeRegex.matcher(range);
+        if (firstOnly) {
+          newRanges.add(matcher.replaceFirst(after.template()));
+        } else {
+          newRanges.add(matcher.replaceAll(after.template()));
+        }
       }
       if (!originalRanges.equals(newRanges)) {
         somethingWasChanged = true;
@@ -158,13 +167,13 @@ public final class Replace implements Transformation {
     } catch (EvalException e) {
       throw new NonReversibleValidationException(location, e.getMessage());
     }
-    return new Replace(location, after, before, regexGroups, multiline, fileMatcherBuilder,
-        workflowOptions);
+    return new Replace(location, after, before, regexGroups, firstOnly, multiline,
+        fileMatcherBuilder, workflowOptions);
   }
 
   public static Replace create(Location location, String before, String after,
       Map<String, String> regexGroups, PathMatcherBuilder paths,
-      boolean multiline, WorkflowOptions workflowOptions)
+      boolean firstOnly, boolean multiline, WorkflowOptions workflowOptions)
       throws EvalException {
     TemplateTokens beforeTokens;
     // TODO(team): Revisit these ugly try/catchs and see if those functions can throw EvalException
@@ -200,7 +209,7 @@ public final class Replace implements Transformation {
         .validateInterpolations(location, "regex_groups", regexGroups.keySet(),
             /*ignoreNotUsed=*/true);
 
-    return new Replace(location, beforeTokens, afterTokens, parsed.build(), multiline, paths,
-        workflowOptions);
+    return new Replace(location, beforeTokens, afterTokens, parsed.build(), firstOnly, multiline,
+        paths, workflowOptions);
   }
 }
