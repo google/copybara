@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -60,9 +61,10 @@ public class Main {
 
     Copybara copybara = newCopybaraTool();
 
+    Map<String, String> environment = System.getenv();
     final MainArguments mainArgs = new MainArguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-    List<Option> allOptions = new ArrayList<>(copybara.getAllOptions());
+    List<Option> allOptions = new ArrayList<>(copybara.getAllOptions(environment));
     JCommander jcommander = new JCommander(ImmutableList.builder()
         .addAll(allOptions)
         .add(mainArgs)
@@ -83,7 +85,7 @@ public class Main {
       }
       mainArgs.validateUnnamedArgs();
 
-      GeneralOptions generalOptions = generalOptionsArgs.init(fs, console);
+      GeneralOptions generalOptions = generalOptionsArgs.init(environment, fs, console);
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
@@ -211,6 +213,9 @@ public class Main {
    * logs).
    */
   private String getBaseExecDir() {
+    // In this case we are not using GeneralOptions.getEnvironment() because we still haven't built
+    // the options, but it's fine. This is the tool's Main and is also injecting System.getEnv()
+    // to the options, so the value is the same.
     String userHome = StandardSystemProperty.USER_HOME.value();
 
     switch (StandardSystemProperty.OS_NAME.value()) {

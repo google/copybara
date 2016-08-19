@@ -23,22 +23,12 @@ import javax.annotation.Nullable;
 public final class SkylarkTestExecutor {
 
   private final OptionsBuilder options;
-  @Nullable
-  private final Map<String, String> environment;
   private final SkylarkParser skylarkParser;
   private final Map<String, byte[]> extraConfigFiles = new HashMap<>();
 
   public SkylarkTestExecutor(OptionsBuilder options, Class<?>... modules) {
     skylarkParser = new SkylarkParser(ImmutableSet.copyOf(modules));
     this.options = options;
-    this.environment = null;
-  }
-
-  public SkylarkTestExecutor(
-      OptionsBuilder options, @Nullable Map<String, String> environment, Class<?>... modules) {
-    skylarkParser = new SkylarkParser(ImmutableSet.copyOf(modules));
-    this.options = options;
-    this.environment = environment;
   }
 
   public SkylarkTestExecutor addExtraConfigFile(String key, String content) {
@@ -57,7 +47,7 @@ public final class SkylarkTestExecutor {
               .put("copy.bara.sky", config.getBytes())
               .build(),
           "copy.bara.sky");
-      Environment env = skylarkParser.executeSkylark(configFile, options.build(), environment);
+      Environment env = skylarkParser.executeSkylark(configFile, options.build());
       T t = (T) env.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;

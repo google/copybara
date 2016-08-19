@@ -5,11 +5,12 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.StandardSystemProperty;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * General options available for all the program classes.
@@ -17,28 +18,36 @@ import java.nio.file.Path;
 public final class GeneralOptions implements Option {
 
   public static final String NOANSI = "--noansi";
+
+  private final Map<String, String> environment;
   private final FileSystem fileSystem;
   private final boolean verbose;
   private final Console console;
   private final boolean validate;
-  private final Path userHome;
-  private final Path cwd;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(fileSystem, verbose, console, /*validate=*/false,
-        StandardSystemProperty.USER_DIR.value(), StandardSystemProperty.USER_HOME.value());
+    this(System.getenv(), fileSystem, verbose, console, /*validate=*/false);
   }
 
   @VisibleForTesting
-  public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console,
-      boolean validate, String cwd, String userHome) {
+  public GeneralOptions(
+      Map<String, String> environment, FileSystem fileSystem, boolean verbose, Console console) {
+    this(environment, fileSystem, verbose, console, /*validate=*/false);
+  }
+
+  @VisibleForTesting
+  public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
+      Console console, boolean validate) {
+    this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.validate = validate;
-    this.cwd = Preconditions.checkNotNull(fileSystem.getPath(cwd));
-    this.userHome = Preconditions.checkNotNull(fileSystem.getPath(userHome));
+  }
+
+  public Map<String, String> getEnvironment() {
+    return environment;
   }
 
   public boolean isVerbose() {
@@ -61,14 +70,14 @@ public final class GeneralOptions implements Option {
    * Returns current working directory
    */
   public Path getCwd() {
-    return cwd;
+    return fileSystem.getPath(environment.get("PWD"));
   }
 
   /**
    * Returns home directory
    */
   public Path getHomeDir() {
-    return userHome;
+    return fileSystem.getPath(environment.get("HOME"));
   }
 
   @Parameters(separators = "=")
@@ -89,10 +98,10 @@ public final class GeneralOptions implements Option {
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
-    public GeneralOptions init(FileSystem fileSystem, Console console)
+    public GeneralOptions init(
+        Map<String, String> environment, FileSystem fileSystem, Console console)
         throws IOException {
-      return new GeneralOptions(fileSystem, verbose, console, validate,
-          StandardSystemProperty.USER_DIR.value(), StandardSystemProperty.USER_HOME.value());
+      return new GeneralOptions(environment, fileSystem, verbose, console, validate);
     }
   }
 }

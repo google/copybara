@@ -2,7 +2,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 
 import com.google.common.base.Strings;
 import com.google.copybara.RepoException;
@@ -35,7 +34,7 @@ public class GitRepoTypeTest {
     repoGitDir = Files.createTempDirectory("testRepo");
     fileRepoDir = Files.createTempDirectory("fileRepo");
     // We mock by default to avoid accidental network calls.
-    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, CURRENT_PROCESS_ENVIRONMENT) {
+    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, System.getenv()) {
       /**
        * Avoid calling github or any external network call
        */
@@ -57,13 +56,12 @@ public class GitRepoTypeTest {
   }
 
   private void disableFetchMocks() throws RepoException {
-    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, CURRENT_PROCESS_ENVIRONMENT);
+    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, System.getenv());
     testRepo.initGitDir();
   }
 
   private void prepareFileRepo() throws RepoException, IOException {
-    fileRepo = new GitRepository(fileRepoDir, fileRepoDir, /*verbose=*/true,
-        CURRENT_PROCESS_ENVIRONMENT);
+    fileRepo = new GitRepository(fileRepoDir, fileRepoDir, /*verbose=*/true, System.getenv());
     fileRepo.git(fileRepoDir, "init");
     Files.write(fileRepoDir.resolve("foo"), new byte[]{});
 

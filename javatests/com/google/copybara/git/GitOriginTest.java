@@ -65,10 +65,8 @@ public class GitOriginTest {
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");
-    Map<String, String> env = Maps.newHashMap(System.getenv());
-    env.put("HOME", userHomeForTest.toString());
-
-    skylark = new SkylarkTestExecutor(options, env, Git.class);
+    options.setHomeDir(userHomeForTest.toString());
+    skylark = new SkylarkTestExecutor(options, Git.class);
     origin = origin();
 
     git("init");

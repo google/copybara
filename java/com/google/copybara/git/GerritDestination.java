@@ -16,6 +16,7 @@ import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.console.Console;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -109,7 +110,8 @@ public final class GerritDestination implements Destination {
   }
 
   static GerritDestination newGerritDestination(
-      Options options, String url, String fetch, String pushToRefsFor) {
+      Options options, String url, String fetch, String pushToRefsFor,
+      Map<String, String> environment) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     return new GerritDestination(
         new GitDestination(
@@ -118,7 +120,8 @@ public final class GerritDestination implements Destination {
             options.get(GitOptions.class),
             generalOptions.isVerbose(),
             new CommitGenerator(options.get(GerritOptions.class)),
-            new GerritProcessPushOutput(generalOptions.console())));
+            new GerritProcessPushOutput(generalOptions.console()),
+            environment));
   }
 
   static class GerritProcessPushOutput extends ProcessPushOutput {

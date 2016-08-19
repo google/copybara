@@ -2,6 +2,7 @@ package com.google.copybara.folder;
 
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.ConfigValidationException;
@@ -38,7 +39,9 @@ public class FolderDestinationTest {
   @Before
   public void setup() throws IOException, RepoException {
     workdir = Files.createTempDirectory("workdir");
-    options = new OptionsBuilder().setWorkdirToRealTempDir();
+    options = new OptionsBuilder()
+        .setWorkdirToRealTempDir()
+        .setHomeDir(StandardSystemProperty.USER_HOME.value());
     Files.createDirectory(workdir.resolve("dir"));
     Files.write(workdir.resolve("test.txt"), new byte[]{});
     Files.write(workdir.resolve("dir/file.txt"), new byte[]{});

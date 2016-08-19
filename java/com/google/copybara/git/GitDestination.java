@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -59,9 +60,11 @@ public final class GitDestination implements Destination {
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
+  private final Map<String, String> environment;
 
   GitDestination(String repoUrl, String fetch, String push, GitOptions gitOptions, boolean verbose,
-      CommitGenerator commitGenerator, ProcessPushOutput processPushOutput) {
+      CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
+      Map<String, String> environment) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
@@ -69,6 +72,7 @@ public final class GitDestination implements Destination {
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
+    this.environment = environment;
   }
 
   /**
@@ -167,7 +171,7 @@ public final class GitDestination implements Destination {
   }
 
   private GitRepository cloneBaseline() throws RepoException {
-    GitRepository scratchClone = GitRepository.initScratchRepo(verbose);
+    GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment);
     try {
       scratchClone.simpleCommand("fetch", repoUrl, fetch);
       if (gitOptions.gitFirstCommit) {
@@ -273,14 +277,15 @@ public final class GitDestination implements Destination {
   /**
    * Builds a new {@link GitDestination}.
    */
-  static GitDestination newGitDestination(Options options, String url, String fetch, String push) {
+  static GitDestination newGitDestination(Options options, String url, String fetch, String push,
+      Map<String, String> environment) {
     return new GitDestination(
         url, fetch, push,
         options.get(GitOptions.class),
         options.get(GeneralOptions.class).isVerbose(),
         new DefaultCommitGenerator(),
-        new ProcessPushOutput()
-    );
+        new ProcessPushOutput(),
+        environment);
   }
 
   /**

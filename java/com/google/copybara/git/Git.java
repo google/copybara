@@ -3,8 +3,8 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.config.EnvironmentAwareModule;
 import com.google.copybara.config.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.events.Location;
@@ -15,8 +15,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Type;
-import java.util.Map;
-import javax.annotation.Nullable;
 
 /**
  * Main module that groups all the functions that create Git origins and destinations.
@@ -26,11 +24,9 @@ import javax.annotation.Nullable;
     doc = "Set of functions to define Git origins and destinations.",
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(GitOptions.class)
-public class Git implements OptionsAwareModule, EnvironmentAwareModule {
+public class Git implements OptionsAwareModule {
 
   private Options options;
-  @Nullable
-  private Map<String, String> environment;
 
   @SkylarkSignature(name = "origin", returnType = GitOrigin.class,
       doc = "Defines a standard Git origin. For Git specific origins use: github_origin or "
@@ -49,7 +45,7 @@ public class Git implements OptionsAwareModule, EnvironmentAwareModule {
         throws EvalException {
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
-          self.environment);
+          self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
 
@@ -70,7 +66,7 @@ public class Git implements OptionsAwareModule, EnvironmentAwareModule {
       // TODO(danielromero): Validate that URL is a Gerrit one
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GERRIT,
-          self.environment);
+          self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
 
@@ -94,7 +90,7 @@ public class Git implements OptionsAwareModule, EnvironmentAwareModule {
 
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
-          self.environment);
+          self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
 
@@ -118,7 +114,8 @@ public class Git implements OptionsAwareModule, EnvironmentAwareModule {
           self.options,
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
-          checkNotEmpty(push, "push", location));
+          checkNotEmpty(push, "push", location),
+          self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
 
@@ -150,17 +147,13 @@ public class Git implements OptionsAwareModule, EnvironmentAwareModule {
           self.options,
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
-          Type.STRING.convertOptional(pushToRefsFor, "pushToRefsFor"));
+          Type.STRING.convertOptional(pushToRefsFor, "pushToRefsFor"),
+          self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
 
   @Override
   public void setOptions(Options options) {
     this.options = checkNotNull(options);
-  }
-
-  @Override
-  public void setEnvironment(@Nullable Map<String, String> environment) {
-    this.environment = environment;
   }
 }

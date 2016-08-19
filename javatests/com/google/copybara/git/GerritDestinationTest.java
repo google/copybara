@@ -2,7 +2,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.git.GitRepository.CURRENT_PROCESS_ENVIRONMENT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -65,8 +64,7 @@ public class GerritDestinationTest {
   }
 
   private GitRepository repo() {
-    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true,
-        CURRENT_PROCESS_ENVIRONMENT);
+    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true, System.getenv());
   }
 
   private String git(String... argv) throws RepoException {

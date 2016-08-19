@@ -13,7 +13,6 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowOptions;
-import com.google.copybara.config.Config;
 import com.google.copybara.git.Git;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
@@ -32,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
 
 /**
  * Loads Copybara configs out of Skylark files.
@@ -66,7 +64,7 @@ public class SkylarkParser {
       throws IOException, ConfigValidationException {
     Core core;
     try {
-      Environment env = executeSkylark(content, options, /*environment*/ null);
+      Environment env = executeSkylark(content, options);
 
       core = (Core) env.getGlobals().get(Core.CORE_VAR);
     } catch (InterruptedException e) {
@@ -77,13 +75,12 @@ public class SkylarkParser {
   }
 
   @VisibleForTesting
-  public Environment executeSkylark(
-      ConfigFile content, Options options, @Nullable Map<String, String> environment)
+  public Environment executeSkylark(ConfigFile content, Options options)
       throws IOException, ConfigValidationException, InterruptedException {
     Console console = options.get(GeneralOptions.class).console();
     EventHandler eventHandler = new ConsoleEventHandler(console);
 
-    Frame globals = createGlobals(eventHandler, options, environment, content);
+    Frame globals = createGlobals(eventHandler, options, content);
     Environment env = createEnvironment(eventHandler, globals);
 
     BuildFileAST buildFileAST = parseFile(content, eventHandler);
@@ -141,8 +138,7 @@ public class SkylarkParser {
    * <p>The returned object can be reused for different instances of environments.
    */
   private Environment.Frame createGlobals(
-      EventHandler eventHandler, Options options, @Nullable  Map<String, String> environment,
-      ConfigFile configFile) {
+      EventHandler eventHandler, Options options, ConfigFile configFile) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK);
 
     for (Class<?> module : modules) {
@@ -152,9 +148,6 @@ public class SkylarkParser {
       // Add the options to the module that require them
       if (OptionsAwareModule.class.isAssignableFrom(module)) {
         ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(options);
-      }
-      if (EnvironmentAwareModule.class.isAssignableFrom(module)) {
-        ((EnvironmentAwareModule) getModuleGlobal(env, module)).setEnvironment(environment);
       }
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
         ((LabelsAwareModule) getModuleGlobal(env, module)).setConfigFile(configFile);

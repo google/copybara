@@ -7,7 +7,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
@@ -36,11 +35,6 @@ public class GitRepository {
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
 
-  // When used as the environment parameter in GitRepository construction it will
-  // pass the current process environment as-is.
-  @Nullable
-  static final Map<String, String> CURRENT_PROCESS_ENVIRONMENT = null;
-
   private static final Pattern FAILED_REBASE = Pattern.compile("Failed to merge in the changes");
   private static final Pattern NOTHING_TO_COMMIT = Pattern.compile(
       "nothing to commit, working directory clean");
@@ -65,29 +59,29 @@ public class GitRepository {
   private final @Nullable Path workTree;
 
   private final boolean verbose;
-  // The environment to be passed to git. When the value is null, it will pass the current
-  // process environment as-is.
-  @Nullable
-  private final ImmutableMap<String, String> environment;
+  private final Map<String, String> environment;
 
-  GitRepository(Path gitDir, @Nullable Path workTree, boolean verbose,
-      @Nullable Map<String, String> environment) {
+  GitRepository(
+      Path gitDir, @Nullable Path workTree, boolean verbose, Map<String, String> environment) {
     this.gitDir = Preconditions.checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
-    this.environment = environment == null ? null : ImmutableMap.copyOf(environment);
+    this.environment = Preconditions.checkNotNull(environment);
   }
 
-  public static GitRepository bareRepo(Path gitDir, Options options,
-      @Nullable Map<String, String> environment) {
+  public static GitRepository bareRepo(
+      Path gitDir, Options options, Map<String, String> environment) {
     return new GitRepository(
         gitDir,/*workTree=*/null, options.get(GeneralOptions.class).isVerbose(), environment);
   }
 
   /**
-   * Initializes a new repository in a temporary directory. The new repo is not bare.
+   * Initializes a new repository in a temporary directory using the given environment vars.
+   *
+   * <p>The new repo is not bare.
    */
-  public static GitRepository initScratchRepo(boolean verbose) throws RepoException {
+  public static GitRepository initScratchRepo(boolean verbose, Map<String, String> environment)
+      throws RepoException {
     Path scratchWorkTree;
     try {
       scratchWorkTree = Files.createTempDirectory("copybara-makeScratchClone");
@@ -95,16 +89,17 @@ public class GitRepository {
       throw new RepoException("Could not make temporary directory for scratch repo", e);
     }
 
-    return initScratchRepo(verbose, scratchWorkTree);
+    return initScratchRepo(verbose, scratchWorkTree, environment);
   }
 
   /**
    * Initializes a new repository in the given directory. The new repo is not bare.
    */
   @VisibleForTesting
-  public static GitRepository initScratchRepo(boolean verbose, Path path) throws RepoException {
+  public static GitRepository initScratchRepo(
+      boolean verbose, Path path, Map<String, String> environment) throws RepoException {
     GitRepository repository =
-        new GitRepository(path.resolve(".git"), path, verbose, CURRENT_PROCESS_ENVIRONMENT);
+        new GitRepository(path.resolve(".git"), path, verbose, environment);
     repository.git(path, "init", ".");
     return repository;
   }
