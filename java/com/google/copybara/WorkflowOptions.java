@@ -2,6 +2,7 @@
 package com.google.copybara;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.Console;
@@ -10,6 +11,7 @@ import java.util.Objects;
 /**
  * Arguments for {@link Workflow} components.
  */
+@Parameters(separators = "=")
 public class WorkflowOptions implements Option {
 
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
