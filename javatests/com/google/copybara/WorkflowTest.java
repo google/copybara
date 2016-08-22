@@ -263,6 +263,20 @@ public class WorkflowTest {
   }
 
   @Test
+  public void iterativeSkipCommits() throws Exception {
+    options.workflowOptions.ignoreEmptyChanges = true;
+    origin.singleFileChange(0, "one", "file.txt", "a");
+    origin.singleFileChange(1, "two", "file.txt", "b");
+    origin.singleFileChange(2, "three", "file.txt", "b");
+    origin.singleFileChange(3, "four", "file.txt", "c");
+    transformations = "[]";
+    destination.failOnEmptyChange = true;
+    Workflow workflow = iterativeWorkflow(/*previousRef=*/"0");
+    workflow.run(workdir, /*sourceRef=*/"3");
+    assertThat(destination.processed.get(1).getContent("file.txt")).isEqualTo("c");
+  }
+
+  @Test
   public void emptyTransformList() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = "[]";

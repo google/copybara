@@ -43,6 +43,7 @@ BASE_SRCS = [
     "Change.java",
     "ConfigValidationException.java",
     "Destination.java",
+    "EmptyChangeException.java",
     "NonReversibleValidationException.java",
     "Option.java",
     "Origin.java",

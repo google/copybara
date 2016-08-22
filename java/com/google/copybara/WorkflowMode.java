@@ -11,7 +11,6 @@ import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.ProgressPrefixConsole;
-
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -52,11 +51,21 @@ public enum WorkflowMode {
         String prefix = String.format(
             "Change %d of %d (%s): ",
             changeNumber, changes.size(), change.getReference().asString());
-        WriterResult result = runHelper.migrate(
-            change.getReference(),
-            runHelper.getAuthoring().resolve(change.getOriginalAuthor()),
-            new ProgressPrefixConsole(prefix, runHelper.getConsole()),
-            change.getMessage());
+        WriterResult result;
+        try {
+          result = runHelper.migrate(
+              change.getReference(),
+              runHelper.getAuthoring().resolve(change.getOriginalAuthor()),
+              new ProgressPrefixConsole(prefix, runHelper.getConsole()),
+              change.getMessage());
+        } catch (EmptyChangeException e) {
+          if (runHelper.workflowOptions().ignoreEmptyChanges) {
+            runHelper.getConsole().warn(e.getMessage());
+            result = WriterResult.OK;
+          } else {
+            throw e;
+          }
+        }
 
         if (result == WriterResult.PROMPT_TO_CONTINUE && changesIterator.hasNext()) {
           // Use the regular console to log prompt and final message, it will be easier to spot

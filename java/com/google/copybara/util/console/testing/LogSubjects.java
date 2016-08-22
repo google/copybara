@@ -3,6 +3,7 @@ package com.google.copybara.util.console.testing;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.base.Joiner;
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.Subject;
 import com.google.common.truth.SubjectFactory;
@@ -69,8 +70,11 @@ public class LogSubjects {
           matches.add(message);
         }
       }
-      assertWithMessage(regex + " matches " + matches.size() + " times. Expected 1. "
-          + "Do you have [] or other unescaped chars in the regex?")
+      assertWithMessage(regex + " was not found in log. "
+          + "Do you have [] or other unescaped chars in the regex? Existing messages:"
+          + "\n--------\n"
+          + Joiner.on("\n").join(messages)
+          + "\n--------\n")
           .that(matches).hasSize(1);
       return this;
     }

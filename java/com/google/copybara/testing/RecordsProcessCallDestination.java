@@ -6,6 +6,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Author;
 import com.google.copybara.Destination;
+import com.google.copybara.EmptyChangeException;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.TransformResult;
 import com.google.copybara.util.PathMatcherBuilder;
@@ -36,9 +37,18 @@ public class RecordsProcessCallDestination implements Destination {
     this.programmedResults = new ArrayDeque<>(Arrays.asList(results));
   }
 
+  public boolean failOnEmptyChange = false;
+
   private class WriterImpl implements Writer {
     @Override
-    public WriterResult write(TransformResult transformResult, Console console) {
+    public WriterResult write(TransformResult transformResult, Console console)
+        throws EmptyChangeException {
+      if (failOnEmptyChange
+          && !processed.isEmpty()
+          && processed.get(processed.size() - 1).workdir
+          .equals(copyWorkdir(transformResult.getPath()))) {
+        throw new EmptyChangeException("Change did not produce a result");
+      }
       processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
           transformResult.getBaseline()));
       return programmedResults.isEmpty()

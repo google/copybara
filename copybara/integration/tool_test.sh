@@ -290,6 +290,53 @@ EOF
   expect_log "$commit_five.*commit five"
 }
 
+function test_can_skip_empty_commit() {
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  pushd $remote
+  run_git init .
+  commit_master=$(single_file_commit "last rev commit" file2.txt "origin")
+  commit_one=$(single_file_commit "commit one" file.txt "foooo")
+  # Because we exclude file2.txt this is effectively an empty commit in the destination
+  commit_two=$(single_file_commit "commit two" file2.txt "bar")
+  commit_three=$(single_file_commit "commit three" file.txt "baaaz")
+  popd
+
+    cat > copy.bara.sky <<EOF
+core.project(name = "cbtest")
+
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "master",
+    ),
+    exclude_in_origin = glob(["file2.txt"]),
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "ITERATIVE",
+)
+EOF
+
+  copybara copy.bara.sky default $commit_three --ignore-empty-changes --last-rev $commit_master
+
+  expect_log "Migration of the revision resulted in an empty change"
+
+  check_copybara_rev_id "$destination" "$commit_three"
+
+  ( cd $destination
+    run_git log > $TEST_log
+  )
+  expect_log "commit one"
+  expect_not_log "commit two"
+  expect_log "commit three"
+}
+
 function empty_git_bare_repo() {
   repo=$(temp_dir repo)
   cd $repo
