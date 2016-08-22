@@ -113,10 +113,13 @@ public final class GerritDestination implements Destination {
       Options options, String url, String fetch, String pushToRefsFor,
       Map<String, String> environment) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    if (pushToRefsFor.isEmpty()) {
+      pushToRefsFor = fetch;
+    }
     return new GerritDestination(
         new GitDestination(
             url, fetch,
-            "refs/for/" + MoreObjects.firstNonNull(pushToRefsFor, fetch),
+            "refs/for/" + pushToRefsFor,
             options.get(GitOptions.class),
             generalOptions.isVerbose(),
             new CommitGenerator(options.get(GerritOptions.class)),

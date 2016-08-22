@@ -3,6 +3,7 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 
+import com.google.common.base.MoreObjects;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.OptionsAwareModule;
@@ -131,8 +132,12 @@ public class GitModule implements OptionsAwareModule {
                   + "commit"),
           @Param(name = "fetch", type = String.class,
               doc = "Indicates the ref from which to get the parent commit"),
+          // TODO(matvore): Refactor existing users and remove 'pushToRefsFor' param.
           @Param(
-              name = "pushToRefsFor", type = String.class, noneable = true, defaultValue = "None",
+              name = "pushToRefsFor", type = String.class, defaultValue = "''",
+              doc = "For compatibility only. Use 'push_to_refs_for' instead."),
+          @Param(
+              name = "push_to_refs_for", type = String.class, defaultValue = "''",
               doc = "Review branch to push the change to, for example setting this to 'feature_x'"
                   + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
                   + "'fetch' value."),
@@ -141,13 +146,16 @@ public class GitModule implements OptionsAwareModule {
   public static final BuiltinFunction GERRIT_DESTINATION =
       new BuiltinFunction("gerrit_destination") {
     public GerritDestination invoke(
-        GitModule self, String url, String fetch, Object pushToRefsFor, Location location)
-        throws EvalException {
+        GitModule self, String url, String fetch, String pushToRefsForCompat, String pushToRefsFor,
+        Location location) throws EvalException {
+      if (!pushToRefsForCompat.isEmpty() && !pushToRefsFor.isEmpty()) {
+        throw new EvalException(location, "do not use pushToRefsFor; use push_to_refs_for instead");
+      }
       return GerritDestination.newGerritDestination(
           self.options,
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
-          Type.STRING.convertOptional(pushToRefsFor, "pushToRefsFor"),
+          pushToRefsForCompat + pushToRefsFor,
           self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
