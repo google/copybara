@@ -1,5 +1,8 @@
 package com.google.copybara.git;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import com.google.common.collect.ImmutableMap;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,5 +28,13 @@ public class GitRepositoryTest {
     thrown.expect(CannotFindReferenceException.class);
     thrown.expectMessage("Cannot find reference 'foo'");
     repository.simpleCommand("checkout", "foo");
+  }
+
+  @Test
+  public void testGitBinaryResolution() throws Exception {
+    assertThat(GitRepository.resolveGitBinary(ImmutableMap.<String, String>of()))
+        .isEqualTo("git");
+    assertThat(GitRepository.resolveGitBinary(ImmutableMap.of("GIT_EXEC_PATH", "/some/path")))
+        .isEqualTo("/some/path/git");
   }
 }

@@ -18,6 +18,7 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -238,7 +239,7 @@ public class GitRepository {
    */
   public CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
     List<String> allParams = new ArrayList<>();
-    allParams.add("git");
+    allParams.add(resolveGitBinary(environment));
     Iterables.addAll(allParams, params);
     try {
       CommandOutputWithStatus commandOutputWithStatus =
@@ -272,6 +273,27 @@ public class GitRepository {
     } catch (CommandException e) {
       throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Returns a String representing the git binary to be executed.
+   *
+   * <p>The env var {@code GIT_EXEC_PATH} determines where Git looks for its sub-programs, but also
+   * the regular git binaries (git, git-upload-pack, etc) are duplicated in {@code GIT_EXEC_PATH}.
+   *
+   * <p>If the env var is not set, then we will execute "git", that it will be resolved in the path
+   * as usual.
+   */
+  @VisibleForTesting
+  static String resolveGitBinary(Map<String, String> environment) {
+    if (environment.containsKey("GIT_EXEC_PATH")) {
+      return FileSystems.getDefault()
+          .getPath(environment.get("GIT_EXEC_PATH"))
+          .resolve("git")
+          .toAbsolutePath()
+          .toString();
+    }
+    return "git";
   }
 
   @Override
