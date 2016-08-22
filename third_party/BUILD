@@ -82,6 +82,13 @@ java_library(
 )
 
 java_library(
+    name = "re2j",
+    exports = [
+        "@re2j//jar",
+    ],
+)
+
+java_library(
     name = "shell",
     exports = [
         "//third_party/bazel:shell",

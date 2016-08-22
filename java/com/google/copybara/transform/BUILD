@@ -10,6 +10,7 @@ java_library(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",
+        "//third_party:re2j",
         "//third_party:skylark-lang",
     ],
 )

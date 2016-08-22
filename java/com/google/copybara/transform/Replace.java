@@ -1,15 +1,9 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.transform;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.ConfigValidationException;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -19,23 +13,13 @@ import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
  * A source code transformation which replaces a regular expression with some other string.
@@ -59,9 +43,6 @@ import java.util.regex.PatternSyntaxException;
  */
 public final class Replace implements Transformation {
 
-  private static final Logger logger = Logger.getLogger(Replace.class.getName());
-
-  private final Location location;
   private final TemplateTokens before;
   private final TemplateTokens after;
   private final ImmutableMap<String, Pattern> regexGroups;
@@ -70,14 +51,13 @@ public final class Replace implements Transformation {
   private final PathMatcherBuilder fileMatcherBuilder;
   private final WorkflowOptions workflowOptions;
 
-  private Replace(Location location, TemplateTokens before, TemplateTokens after,
-      ImmutableMap<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
+  private Replace(TemplateTokens before, TemplateTokens after,
+      Map<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
       PathMatcherBuilder fileMatcherBuilder,
       WorkflowOptions workflowOptions) {
-    this.location = location;
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
-    this.regexGroups = Preconditions.checkNotNull(regexGroups);
+    this.regexGroups = ImmutableMap.copyOf(regexGroups);
     this.firstOnly = firstOnly;
     this.multiline = multiline;
     this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
@@ -87,8 +67,8 @@ public final class Replace implements Transformation {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("before", before.template())
-        .add("after", after.template())
+        .add("before", before)
+        .add("after", after)
         .add("regexGroups", regexGroups)
         .add("firstOnly", firstOnly)
         .add("multiline", multiline)
@@ -96,54 +76,14 @@ public final class Replace implements Transformation {
         .toString();
   }
 
-  private final class TransformVisitor extends SimpleFileVisitor<Path> {
-    final Pattern beforeRegex = before.toRegex(regexGroups);
-    final Pattern afterRegex = after.toRegex(regexGroups);
-    private final PathMatcher pathMatcher;
-    boolean somethingWasChanged;
-    TransformVisitor(PathMatcher pathMatcher) {
-
-      this.pathMatcher = pathMatcher;
-    }
-
-    @Override
-    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      if (!Files.isRegularFile(file) || !pathMatcher.matches(file)) {
-        return FileVisitResult.CONTINUE;
-      }
-      logger.log(
-          Level.INFO, String.format("apply s/%s/%s/ to %s", beforeRegex, after.template(), file));
-
-      String originalFileContent = new String(Files.readAllBytes(file), UTF_8);
-      List<String> originalRanges = multiline
-          ? ImmutableList.of(originalFileContent)
-          : Splitter.on('\n').splitToList(originalFileContent);
-
-      List<String> newRanges = new ArrayList<>(originalRanges.size());
-      for (String range : originalRanges) {
-        Matcher matcher = beforeRegex.matcher(range);
-        if (firstOnly) {
-          newRanges.add(matcher.replaceFirst(after.template()));
-        } else {
-          newRanges.add(matcher.replaceAll(after.template()));
-        }
-      }
-      if (!originalRanges.equals(newRanges)) {
-        somethingWasChanged = true;
-        try (Writer writer = new OutputStreamWriter(Files.newOutputStream(file), UTF_8)) {
-          Joiner.on('\n').appendTo(writer, newRanges);
-        }
-      }
-
-      return FileVisitResult.CONTINUE;
-    }
-  }
-
   @Override
   public void transform(TransformWork work, Console console)
       throws IOException, ValidationException {
     Path checkoutDir = work.getCheckoutDir();
-    TransformVisitor visitor = new TransformVisitor(fileMatcherBuilder.relativeTo(checkoutDir));
+    ReplaceVisitor visitor = new ReplaceVisitor(
+        before.getBefore(), after.after(before),
+        fileMatcherBuilder.relativeTo(checkoutDir),
+        firstOnly, multiline);
     Files.walkFileTree(checkoutDir, visitor);
     if (!visitor.somethingWasChanged) {
       workflowOptions.reportNoop(
@@ -156,40 +96,25 @@ public final class Replace implements Transformation {
   public String describe() {
     // before should be almost always unique so it is good enough for identifying the
     // transform.
-    return "Replace " + before.template();
+    return "Replace " + before;
   }
 
   @Override
   public Replace reverse() throws NonReversibleValidationException {
     try {
-      after.validateInterpolations(location, "regex_groups", regexGroups.keySet(),
-          /*ignoreNotUsed=*/ false);
+      after.validateUnused();
     } catch (EvalException e) {
-      throw new NonReversibleValidationException(location, e.getMessage());
+      throw new NonReversibleValidationException(e.getLocation(), e.getMessage());
     }
-    return new Replace(location, after, before, regexGroups, firstOnly, multiline,
-        fileMatcherBuilder, workflowOptions);
+    return new Replace(
+        after, before, regexGroups, firstOnly, multiline, fileMatcherBuilder, workflowOptions);
   }
 
   public static Replace create(Location location, String before, String after,
       Map<String, String> regexGroups, PathMatcherBuilder paths,
       boolean firstOnly, boolean multiline, WorkflowOptions workflowOptions)
       throws EvalException {
-    TemplateTokens beforeTokens;
-    // TODO(team): Revisit these ugly try/catchs and see if those functions can throw EvalException
-    try {
-      beforeTokens = TemplateTokens.parse(before);
-    } catch (ConfigValidationException e) {
-      throw new EvalException(location, "'before' field:" + e.getMessage());
-    }
-    TemplateTokens afterTokens;
-    try {
-      afterTokens = TemplateTokens.parse(after);
-    } catch (ConfigValidationException e) {
-      throw new EvalException(location, "'after' field:" + e.getMessage());
-    }
-
-    ImmutableMap.Builder<String, Pattern> parsed = new ImmutableMap.Builder<>();
+    Map<String, Pattern> parsed = new HashMap<>();
     for (Map.Entry<String, String> group : regexGroups.entrySet()) {
       try {
         parsed.put(group.getKey(), Pattern.compile(group.getValue()));
@@ -199,17 +124,17 @@ public final class Replace implements Transformation {
       }
     }
 
-    beforeTokens.validateInterpolations(location, "regex_groups", regexGroups.keySet(),
-        /*ignoreNotUsed=*/false);
-    // Don't validate non-used interpolations since they are only relevant for reversable
+    TemplateTokens beforeTokens = new TemplateTokens(location, before, parsed);
+    TemplateTokens afterTokens = new TemplateTokens(location, after, parsed);
+
+    beforeTokens.validateUnused();
+
+    // Don't validate non-used interpolations in after since they are only relevant for reversable
     // transformations. And those are eagerly validated during config loading, because
     // when asking for the reverse 'after' is used as 'before', and it gets validated
     // with the check above.
-    afterTokens
-        .validateInterpolations(location, "regex_groups", regexGroups.keySet(),
-            /*ignoreNotUsed=*/true);
 
-    return new Replace(location, beforeTokens, afterTokens, parsed.build(), firstOnly, multiline,
-        paths, workflowOptions);
+    return new Replace(
+        beforeTokens, afterTokens, parsed, firstOnly, multiline, paths, workflowOptions);
   }
 }

@@ -215,7 +215,7 @@ public final class ReplaceTest {
             + "       'baz' : '.*',\n"
             + "  },\n"
             + ")",
-        "used but not defined: \\[bar\\]");
+        "used but not defined: bar");
   }
 
   @Test
@@ -227,7 +227,7 @@ public final class ReplaceTest {
             + "       'bar' : '.*',\n"
             + "  },\n"
             + ")",
-        "used but not defined: \\[iru\\]");
+        "used but not defined: iru");
   }
 
   @Test
@@ -539,6 +539,39 @@ public final class ReplaceTest {
   }
 
   @Test
+  public void repeatGroupInBeforeTemplate() throws Exception {
+    skylark.evalFails(""
+        + "core.replace("
+        + "  before = '${a}x${b}${a}',"
+        + "  after = '${a}y${b}',"
+        + "  regex_groups = {"
+        + "       'a' : '[0-9]',"
+        + "       'b' : '[LMNOP]',"
+        + "  },\n"
+        + ")",
+        "Regex group is used in template multiple times");
+  }
+
+  @Test
+  public void nestedGroups() throws Exception {
+    Replace replace = skylark.eval("r", "r = "
+        + "core.replace("
+        + "  before = 'a${x}b${y}',"
+        + "  after = '${x}${y}',"
+        + "  regex_groups = {'x': 'f(oo)+(d)?', 'y': 'y+'},"
+        + ")");
+    writeFile(checkoutDir.resolve("file"), ""
+        + "afoooodbyyy # matches\n"
+        + "afooodbyyy # no match (odd number of o)\n");
+    transform(replace);
+
+    assertThatPath(checkoutDir)
+        .containsFile("file", ""
+            + "foooodyyy # matches\n"
+            + "afooodbyyy # no match (odd number of o)\n");
+  }
+
+  @Test
   public void firstOnlyMultiline() throws Exception {
     Replace replace = eval(""
         + "core.replace("
@@ -557,6 +590,36 @@ public final class ReplaceTest {
         .containsFile("file", ""
             + "bar x y foo\n"
             + "foo\n");
+  }
+
+  @Test
+  public void emptyInterpolatedName() throws ConfigValidationException {
+    skylark.evalFails(""
+        + "core.replace("
+        + "  before = 'foo${}bar',"
+        + "  after = 'ok',"
+        + ")",
+        "Expect non-empty interpolated value name");
+  }
+
+  @Test
+  public void unterminatedInterpolation() throws ConfigValidationException {
+    skylark.evalFails(""
+        + "core.replace("
+        + "  before = 'foo${bar',"
+        + "  after = 'ok',"
+        + ")",
+        "Unterminated '[$][{]'");
+  }
+
+  @Test
+  public void badCharacterFollowingDollar() throws ConfigValidationException {
+    skylark.evalFails(""
+        + "core.replace("
+        + "  before = 'foo$bar',"
+        + "  after = 'ok',"
+        + ")",
+        "Expect [$] or [{] after every [$]");
   }
 
   private Replace eval(String replace) throws ConfigValidationException {

@@ -88,3 +88,10 @@ http_archive(
     sha256 = "de95ede85a9a12d60cc8aff635ed1ba3d938a4b8649e6c5285a53e63de434e87",
     strip_prefix = "bazel-c77b00f1a927fd2e321c80a24b6eb9539f5ac8b1",
 )
+
+# LICENSE: New BSD
+maven_jar(
+    name = "re2j",
+    artifact = "com.google.re2j:re2j:1.1",
+    sha1 = "d716952ab58aa4369ea15126505a36544d50a333",
+)
