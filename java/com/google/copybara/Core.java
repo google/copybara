@@ -19,6 +19,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
+import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -53,6 +54,7 @@ import java.util.Map;
 public class Core implements OptionsAwareModule {
 
   public static final String CORE_VAR = "core";
+  public static final String MESSAGE_TRANSFORMERS_FIELD = "metadata_transformations";
 
   private final Map<String, Workflow<?>> workflows = new HashMap<>();
   private GeneralOptions generalOptions;
@@ -207,8 +209,14 @@ public class Core implements OptionsAwareModule {
               doc = "Indicates that the tool should show the diff and require user's"
                   + " confirmation before making a change in the destination.",
               defaultValue = "False", positional = false),
+          @Param(name = MESSAGE_TRANSFORMERS_FIELD, type = SkylarkList.class,
+              generic1 = BaseFunction.class,
+              doc = "The list of functions for creating the message used in the destination."
+                  + " The functions will be called in order and the ctx object will be passed"
+                  + " to the next function. This allows to concatenate modifications.",
+              defaultValue = "Built-in transformers", positional = false),
       },
-      objectType = Core.class, useLocation = true)
+      objectType = Core.class, useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow",
       ImmutableList.of(
@@ -220,7 +228,8 @@ public class Core implements OptionsAwareModule {
           "SQUASH",
           false,
           Runtime.NONE,
-          false
+          false,
+          MutableList.EMPTY
       )) {
     // This converts a "FOO_files"/"exclude_in_FOO" pair of arguments to a single glob matcher.
     // Only one or neither argument in the pair can be specified.
@@ -251,7 +260,9 @@ public class Core implements OptionsAwareModule {
         Boolean includeChangelistNotes,
         Object reversibleCheckObj,
         Boolean askForConfirmation,
-        Location location)
+        SkylarkList<BaseFunction> messageTransformer,
+        Location location,
+        Environment env)
         throws EvalException {
       WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
       Sequence sequenceTransform = Sequence.fromConfig(transformations, "transformations");
@@ -289,7 +300,9 @@ public class Core implements OptionsAwareModule {
           self.workflowOptions,
           reverseTransform,
           self.generalOptions.isVerbose(),
-          askForConfirmation));
+          askForConfirmation,
+          ImmutableList.copyOf(messageTransformer),
+          env));
       return Runtime.NONE;
     }
   };

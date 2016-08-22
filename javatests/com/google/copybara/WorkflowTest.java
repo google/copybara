@@ -665,6 +665,118 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testMessageTransformerForSquash() throws Exception {
+    runWorkflowForMessageTransform(WorkflowMode.SQUASH, /*thirdTransform=*/null);
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary())
+        .isEqualTo(""
+            + "CHANGE: third commit (2) by Foo Baz\n"
+            + "CHANGE: second commit (1) by Foo Bar\n"
+            + "\n"
+            + "BAR = foo\n");
+    assertThat(change.getAuthor().toString()).isEqualTo("Someone <someone@somewhere.com>");
+  }
+
+  @Test
+  public void testMessageTransformerForIterative() throws Exception {
+    runWorkflowForMessageTransform(WorkflowMode.ITERATIVE, /*thirdTransform=*/null);
+    ProcessedChange secondCommit = destination.processed.get(0);
+    assertThat(secondCommit.getChangesSummary())
+        .isEqualTo(""
+            + "CHANGE: second commit (1) by Foo Bar\n"
+            + "\n"
+            + "BAR = foo\n");
+    assertThat(secondCommit.getAuthor().toString()).isEqualTo("Someone <someone@somewhere.com>");
+    ProcessedChange thirdCommit = destination.processed.get(1);
+    assertThat(thirdCommit.getChangesSummary())
+        .isEqualTo(""
+            + "CHANGE: third commit (2) by Foo Baz\n"
+            + "\n"
+            + "BAR = foo\n");
+    assertThat(thirdCommit.getAuthor().toString()).isEqualTo("Someone <someone@somewhere.com>");
+  }
+
+  @Test
+  public void testMessageTransformerForIterativeWithMigrated() throws Exception {
+    runWorkflowForMessageTransform(WorkflowMode.ITERATIVE, ""
+        + "def third(ctx):\n"
+        + "  msg = ''\n"
+        + "  for c in ctx.migrated_changes():\n"
+        + "    msg+='PREV: %s (%s) by %s\\n' %  (c.message(), c.ref(), c.author().name())\n"
+        + "  ctx.set_message(ctx.message() + '\\nPREVIOUS CHANGES:\\n' + msg)\n");
+    ProcessedChange secondCommit = destination.processed.get(0);
+    System.out.println(secondCommit.getChangesSummary());
+    assertThat(secondCommit.getChangesSummary())
+        .isEqualTo(""
+            + "CHANGE: second commit (1) by Foo Bar\n"
+            + "\n"
+            + "BAR = foo\n"
+            + "\n"
+            + "PREVIOUS CHANGES:\n");
+    assertThat(secondCommit.getAuthor().toString()).isEqualTo("Someone <someone@somewhere.com>");
+    ProcessedChange thirdCommit = destination.processed.get(1);
+    System.out.println(thirdCommit.getChangesSummary());
+    assertThat(thirdCommit.getChangesSummary())
+        .isEqualTo(""
+            + "CHANGE: third commit (2) by Foo Baz\n"
+            + "\n"
+            + "BAR = foo\n"
+            + "\n"
+            + "PREVIOUS CHANGES:\n"
+            + "PREV: second commit (1) by Foo Bar\n");
+    assertThat(thirdCommit.getAuthor().toString()).isEqualTo("Someone <someone@somewhere.com>");
+  }
+
+  @Test
+  public void testMessageTransformerForChangeRequest() throws Exception {
+    options.workflowOptions.changeBaseline = "1";
+    runWorkflowForMessageTransform(WorkflowMode.CHANGE_REQUEST, /*thirdTransform=*/null);
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary())
+        .isEqualTo(""
+            + "CHANGE: third commit (2) by Foo Baz\n"
+            + "\n"
+            + "BAR = foo\n");
+    assertThat(change.getAuthor().toString()).isEqualTo("Someone <someone@somewhere.com>");
+  }
+
+  private void runWorkflowForMessageTransform(WorkflowMode mode, @Nullable String thirdTransform)
+      throws IOException, RepoException, ValidationException {
+    origin.addSimpleChange(0, "first commit")
+        .setOriginalAuthor(new DummyOriginalAuthor("Foo Bar", "foo@bar.com"))
+        .addSimpleChange(1, "second commit")
+        .setOriginalAuthor(new DummyOriginalAuthor("Foo Baz", "foo@baz.com"))
+        .addSimpleChange(2, "third commit");
+
+    options.workflowOptions.lastRevision = "0";
+    passThruAuthoring();
+
+    Config config = loadConfig(""
+        + "core.project( name = 'copybara_project')\n"
+        + "\n"
+        + "def first(ctx):\n"
+        + "  msg =''\n"
+        + "  for c in ctx.current_changes():\n"
+        + "    msg+='CHANGE: %s (%s) by %s\\n' %  (c.message(), c.ref(), c.author().name())\n"
+        + "  ctx.set_message(msg)\n"
+        + "def second(ctx):\n"
+        + "  ctx.set_message(ctx.message() +'\\nBAR = foo\\n')\n"
+        + "  ctx.set_author(new_author('Someone <someone@somewhere.com>'))\n"
+        + "\n"
+        + (thirdTransform == null ? "" : thirdTransform)
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin =  testing.origin(),\n"
+        + "    authoring = " + authoring + "\n,"
+        + "    destination = testing.destination(),\n"
+        + "    mode = '" + mode + "',\n"
+        + "    metadata_transformations = [\n"
+        + "      first, second" + (thirdTransform == null ? "" : ", third") + "]\n"
+        + ")\n");
+    config.getActiveWorkflow().run(workdir, "2");
+  }
+
+  @Test
   public void testNullDestination()
       throws ConfigValidationException, IOException {
     try {

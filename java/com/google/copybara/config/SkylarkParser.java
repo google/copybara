@@ -124,7 +124,7 @@ public class SkylarkParser {
    * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object so that
    * the module can construct objects that require options.
    */
-  private Environment createEnvironment(EventHandler eventHandler, Environment.Frame globals) {
+  static Environment createEnvironment(EventHandler eventHandler, Environment.Frame globals) {
     return Environment.builder(Mutability.create("CopybaraModules"))
         .setGlobals(globals)
         .setSkylark()

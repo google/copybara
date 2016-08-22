@@ -121,6 +121,19 @@ public final class Authoring {
       }
     }
 
+    @SkylarkSignature(name = "new_author", returnType = Author.class,
+        doc = "Create a new author from a string with the form 'name <foo@bar.com>'",
+        parameters = {
+            @Param(name = "author_string", type = String.class,
+                doc = "A string representation of the author with the form 'name <foo@bar.com>'"),
+        }, useLocation = true)
+    public static final BuiltinFunction NEW_AUTHOR = new BuiltinFunction("new_author") {
+      public Author invoke(String authorString, Location location)
+          throws EvalException {
+        return parseAuthoring(location, authorString);
+      }
+    };
+
     @SkylarkSignature(name = "pass_thru", returnType = Authoring.class,
         doc = "Use the origin author as the author in the destination, no whitelisting.",
         parameters = {

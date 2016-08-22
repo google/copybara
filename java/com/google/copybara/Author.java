@@ -3,6 +3,9 @@ package com.google.copybara;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,6 +15,9 @@ import java.util.regex.Pattern;
  *
  * <p>Author is lenient in name or email validation.
  */
+@SkylarkModule(name = "author",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc = "Represents the author of a change")
 public final class Author {
 
   private static final Pattern AUTHOR_PARSER = Pattern.compile("(?<name>[^<]+)<(?<email>[^>]+)>");
@@ -27,6 +33,7 @@ public final class Author {
   /**
    * Returns the name of the author.
    */
+  @SkylarkCallable(name = "name", doc = "The name of the author")
   public String getName() {
     return name;
   }
@@ -34,6 +41,7 @@ public final class Author {
   /**
    * Returns the email address of the author.
    */
+  @SkylarkCallable(name = "email", doc = "The email of the author")
   public String getEmail() {
     return email;
   }
