@@ -290,7 +290,6 @@ public class GitRepository {
       return FileSystems.getDefault()
           .getPath(environment.get("GIT_EXEC_PATH"))
           .resolve("git")
-          .toAbsolutePath()
           .toString();
     }
     return "git";
