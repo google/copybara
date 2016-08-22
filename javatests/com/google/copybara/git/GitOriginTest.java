@@ -68,7 +68,7 @@ public class GitOriginTest {
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");
     options.setHomeDir(userHomeForTest.toString());
-    skylark = new SkylarkTestExecutor(options, Git.class);
+    skylark = new SkylarkTestExecutor(options, GitModule.class);
     origin = origin();
 
     git("init");

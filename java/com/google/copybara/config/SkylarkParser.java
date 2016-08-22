@@ -13,7 +13,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowOptions;
-import com.google.copybara.git.Git;
+import com.google.copybara.git.GitModule;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.EventHandler;
@@ -45,7 +45,7 @@ public class SkylarkParser {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(Authoring.Module.class)
         .add(Core.class)
-        .add(Git.class)
+        .add(GitModule.class)
         .addAll(modules).build();
 
     // Register module functions

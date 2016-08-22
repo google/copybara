@@ -60,7 +60,7 @@ public class GerritDestinationTest {
     excludedDestinationPaths = ImmutableList.of();
 
     url = "file://" + repoGitDir;
-    skylark = new SkylarkTestExecutor(options, Git.class);
+    skylark = new SkylarkTestExecutor(options, GitModule.class);
   }
 
   private GitRepository repo() {
