@@ -37,8 +37,6 @@ public class GitRepository {
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
 
   private static final Pattern FAILED_REBASE = Pattern.compile("Failed to merge in the changes");
-  private static final Pattern NOTHING_TO_COMMIT = Pattern.compile(
-      "nothing to commit, working directory clean");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
       ImmutableList.of(
           Pattern.compile("pathspec '(.+)' did not match any file"),
@@ -170,6 +168,18 @@ public class GitRepository {
     }
   }
 
+  void commit(GitRepository alternate, String author,
+      long timestamp, String message)
+      throws RepoException {
+    CommandOutput status = alternate.simpleCommand("status", "--porcelain");
+    if (status.getStdout().trim().isEmpty()) {
+      throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
+          + "Is the change already migrated?");
+    }
+    alternate.simpleCommand("commit", "--author", author, "--date", timestamp + " +0000",
+        "-m", message);
+  }
+
   /**
    * Runs a {@code git} command with the {@code --git-dir} and (if non-bare) {@code --work-tree}
    * args set, and returns the {@link CommandOutput} if the command execution was successful.
@@ -252,10 +262,7 @@ public class GitRepository {
     } catch (BadExitStatusWithOutputException e) {
       CommandOutput output = e.getOutput();
 
-      if (NOTHING_TO_COMMIT.matcher(output.getStdout()).find()) {
-        throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
-            + "Is the change already migrated?");
-      } else if (FAILED_REBASE.matcher(output.getStderr()).find()) {
+      if (FAILED_REBASE.matcher(output.getStderr()).find()) {
         System.out.println(output.getStdout());
         throw new RebaseConflictException(output.getStdout());
       }

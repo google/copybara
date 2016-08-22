@@ -153,10 +153,8 @@ public final class GitDestination implements Destination {
         }
       }
 
-      alternate.simpleCommand("commit",
-          "--author", transformResult.getAuthor().toString(),
-          "--date", transformResult.getTimestamp() + " +0000",
-          "-m", commitGenerator.message(transformResult, alternate));
+      alternate.commit(alternate, transformResult.getAuthor().toString(),
+          transformResult.getTimestamp(), commitGenerator.message(transformResult, alternate));
       console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
 
       if (baseline != null) {
