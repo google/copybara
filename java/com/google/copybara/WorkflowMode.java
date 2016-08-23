@@ -59,12 +59,8 @@ public enum WorkflowMode {
               new ProgressPrefixConsole(prefix, runHelper.getConsole()),
               change.getMessage());
         } catch (EmptyChangeException e) {
-          if (runHelper.workflowOptions().ignoreEmptyChanges) {
-            runHelper.getConsole().warn(e.getMessage());
-            result = WriterResult.OK;
-          } else {
-            throw e;
-          }
+          runHelper.getConsole().warn(e.getMessage());
+          result = WriterResult.OK;
         }
 
         if (result == WriterResult.PROMPT_TO_CONTINUE && changesIterator.hasNext()) {

@@ -264,7 +264,6 @@ public class WorkflowTest {
 
   @Test
   public void iterativeSkipCommits() throws Exception {
-    options.workflowOptions.ignoreEmptyChanges = true;
     origin.singleFileChange(0, "one", "file.txt", "a");
     origin.singleFileChange(1, "two", "file.txt", "b");
     origin.singleFileChange(2, "three", "file.txt", "b");

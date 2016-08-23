@@ -323,7 +323,7 @@ core.workflow(
 )
 EOF
 
-  copybara copy.bara.sky default $commit_three --ignore-empty-changes --last-rev $commit_master
+  copybara copy.bara.sky default $commit_three --last-rev $commit_master
 
   expect_log "Migration of the revision resulted in an empty change"
 

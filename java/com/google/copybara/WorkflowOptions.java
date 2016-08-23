@@ -31,10 +31,6 @@ public class WorkflowOptions implements Option {
           + " directories, etc.")
   public boolean ignoreNoop = false;
 
-  @Parameter(names = "--ignore-empty-changes",
-      description = "If the resulted change is an empty one, skip it instead of throwing an error")
-  public boolean ignoreEmptyChanges = false;
-
   /**
    * Reports that some operation is a no-op. This will either throw an exception or report the
    * incident to the console, depending on the options.
