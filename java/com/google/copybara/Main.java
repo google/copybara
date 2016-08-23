@@ -106,6 +106,7 @@ public class Main {
       System.err.print(usage(jcommander, version));
       System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
     } catch (RepoException e) {
+      logger.log(Level.SEVERE, "Repository exception", e);
       printCauseChain(console, e);
       System.exit(ExitCode.REPOSITORY_ERROR.getCode());
     } catch (ValidationException e) {
