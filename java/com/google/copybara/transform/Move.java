@@ -8,12 +8,12 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.PathMatcherBuilder;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -25,20 +25,25 @@ public class Move implements Transformation {
 
   private final String before;
   private final String after;
+  private final PathMatcherBuilder paths;
   private final WorkflowOptions workflowOptions;
 
-  private Move(String before, String after, WorkflowOptions workflowOptions) {
+  private Move(String before, String after, PathMatcherBuilder paths,
+      WorkflowOptions workflowOptions) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
+    this.paths = paths;
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
   }
 
   public static Move fromConfig(
-      String before, String after, WorkflowOptions workflowOptions, Location location)
+      String before, String after, WorkflowOptions workflowOptions, PathMatcherBuilder paths,
+      Location location)
       throws EvalException {
     return new Move(
         validatePath(location, before),
         validatePath(location, after),
+        paths,
         workflowOptions);
   }
 
@@ -69,7 +74,14 @@ public class Move implements Transformation {
       }
       createParentDirs(after);
       try {
-        Files.walkFileTree(before, new MovingVisitor(before, after));
+        boolean beforeIsDir = Files.isDirectory(before);
+        if (paths != PathMatcherBuilder.ALL_FILES && !beforeIsDir) {
+          throw new ValidationException(
+              "Cannot use user defined 'paths' filter when the 'before' is not a directory: "
+                  + paths);
+        }
+        Files.walkFileTree(before,
+            new MovingVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null));
       } catch (FileAlreadyExistsException e) {
         throw new ValidationException(
             String.format("Cannot move file to '%s' because it already exists", e.getFile()));
@@ -78,7 +90,7 @@ public class Move implements Transformation {
 
   @Override
   public Move reverse() {
-    return new Move(after, before, workflowOptions);
+    return new Move(after, before, paths, workflowOptions);
   }
 
   private void createParentDirs(Path after) throws IOException, ValidationException {

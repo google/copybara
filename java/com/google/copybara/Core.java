@@ -266,12 +266,19 @@ public class Core implements OptionsAwareModule {
         @Param(name = "after", type = String.class, doc = ""
             + "The name of the file or directory after moving. If this is the empty"
             + " string and 'before' is a directory, then all files in 'before' will be moved to"
-            + " the repo root, maintaining the directory tree inside 'before'.")
+            + " the repo root, maintaining the directory tree inside 'before'."),
+          @Param(name = "paths", type = PathMatcherBuilder.class,
+              doc = "A glob expression relative to 'before' if it represents a directory."
+                  + " Only files matching the expression will be moved. For example,"
+                  + " glob([\"**.java\"]), matches all java files recursively inside"
+                  + " 'before' folder. Defaults to match all the files recursively.",
+              defaultValue = "glob([\"**\"])"),
       },
       objectType = Core.class, useLocation = true)
-  public static final BuiltinFunction MOVE = new BuiltinFunction("move") {
-    public Move invoke(Core self, String before, String after, Location location) throws EvalException {
-      return Move.fromConfig(before, after, self.workflowOptions, location);
+  public static final BuiltinFunction MOVE = new BuiltinFunction("move",
+      ImmutableList.<Object>of(PathMatcherBuilder.ALL_FILES)) {
+    public Move invoke(Core self, String before, String after, PathMatcherBuilder paths, Location location) throws EvalException {
+      return Move.fromConfig(before, after, self.workflowOptions, paths, location);
     }
   };
 

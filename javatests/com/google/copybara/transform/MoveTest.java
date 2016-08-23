@@ -69,6 +69,35 @@ public class MoveTest {
   }
 
   @Test
+  public void testMoveAndItsReverseWithPaths() throws Exception {
+    Move mover = skylark.eval("m", "m = "
+        + "core.move("
+        + "    before = 'foo',"
+        + "    after = 'folder/bar',"
+        + "    paths = glob(['**.java'])"
+        + ")");
+    Files.createDirectories(checkoutDir.resolve("foo/other"));
+    Files.write(checkoutDir.resolve("foo/a.java"), new byte[]{});
+    Files.write(checkoutDir.resolve("foo/other/b.java"), new byte[]{});
+    Files.write(checkoutDir.resolve("foo/c.txt"), new byte[]{});
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo/c.txt")
+        .containsFiles("folder/bar/a.java")
+        .containsFiles("folder/bar/other/b.java")
+        .containsNoMoreFiles();
+
+    transform(mover.reverse());
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo/a.java")
+        .containsFiles("foo/other/b.java")
+        .containsFiles("foo/c.txt")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testDoesntExist() throws Exception {
     Move mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");

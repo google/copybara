@@ -6,8 +6,10 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import javax.annotation.Nullable;
 
 /**
  * A visitor which moves files recursively from the path it is visiting.
@@ -15,10 +17,13 @@ import java.nio.file.attribute.BasicFileAttributes;
 final class MovingVisitor extends SimpleFileVisitor<Path> {
   private final Path before;
   private final Path after;
+  @Nullable
+  private final PathMatcher pathMatcher;
 
-  MovingVisitor(Path before, Path after) {
+  MovingVisitor(Path before, Path after, @Nullable PathMatcher pathMatcher) {
     this.before = before;
     this.after = after;
+    this.pathMatcher = pathMatcher;
   }
 
   @Override
@@ -30,10 +35,12 @@ final class MovingVisitor extends SimpleFileVisitor<Path> {
 
   @Override
   public FileVisitResult visitFile(Path source, BasicFileAttributes attrs) throws IOException {
-    Path relative = before.relativize(source);
-    Path dest = after.resolve(relative);
-    Files.createDirectories(dest.getParent());
-    Files.move(source, dest, LinkOption.NOFOLLOW_LINKS);
+    if (pathMatcher==null || pathMatcher.matches(source)) {
+      Path relative = before.relativize(source);
+      Path dest = after.resolve(relative);
+      Files.createDirectories(dest.getParent());
+      Files.move(source, dest, LinkOption.NOFOLLOW_LINKS);
+    }
     return FileVisitResult.CONTINUE;
   }
 }
