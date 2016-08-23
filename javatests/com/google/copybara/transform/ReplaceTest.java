@@ -622,6 +622,32 @@ public final class ReplaceTest {
         "Expect [$] or [{] after every [$]");
   }
 
+  @Test
+  public void multilineScrub() throws Exception {
+    // The regex here has unnecessary constructs but it is based on a real-world use case.
+    Replace replace = eval(""
+        + "core.replace("
+        + "  before = '${x}',"
+        + "  after = '',"
+        + "  multiline = True,"
+        + "  regex_groups = {'x': '(?m)^.*BEGIN SCRUB[\\w\\W]*?END SCRUB.*$\\n'},"
+        + ")");
+
+    writeFile(checkoutDir.resolve("file"), ""
+        + "foo x y foo\n"
+        + "BEGIN SCRUB\n"
+        + "foo super secret++++\n"
+        + "asldkfjlskdfj\n"
+        + "END SCRUB\n"
+        + "foo\n");
+    transform(replace);
+
+    assertThatPath(checkoutDir)
+        .containsFile("file", ""
+            + "foo x y foo\n"
+            + "foo\n");
+  }
+
   private Replace eval(String replace) throws ConfigValidationException {
     return skylark.eval("r", "r = " + replace);
   }
