@@ -79,11 +79,10 @@ public class Core implements OptionsAwareModule {
           + " pattern in include and does not match any of the patterns in exclude.",
       parameters = {
           @Param(name = "include", type = SkylarkList.class,
-              generic1 = String.class, doc = "The list of glob patterns to include",
-              defaultValue = "[]"),
+              generic1 = String.class, doc = "The list of glob patterns to include"),
           @Param(name = "exclude", type = SkylarkList.class,
               generic1 = String.class, doc = "The list of glob patterns to exclude",
-              defaultValue = "[]"),
+              defaultValue = "[]", named = true, positional = false),
       }, useLocation = true)
   public static final BuiltinFunction GLOB = new BuiltinFunction("glob") {
     public PathMatcherBuilder invoke(SkylarkList include, SkylarkList exclude,
