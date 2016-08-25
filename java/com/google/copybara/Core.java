@@ -13,6 +13,7 @@ import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -222,19 +223,19 @@ public class Core implements OptionsAwareModule {
           Runtime.NONE,
           false
       )) {
-    // This converts a "FOO_files"/"excluded_in_FOO" pair of arguments to a single glob matcher.
+    // This converts a "FOO_files"/"exclude_in_FOO" pair of arguments to a single glob matcher.
     // Only one or neither argument in the pair can be specified.
     // TODO(matvore): Get all configurations using the positive specification method and remove
-    // support for excluded_in_FOO specifiers.
+    // support for exclude_in_FOO specifiers.
     private PathMatcherBuilder convertFileSpecifier(
-        Location location, Object positiveSpecifier, Object excludedSpecifier)
+        Location location, Object positiveSpecifier, Object excludeSpecifier)
         throws EvalException {
-      if (!EvalUtils.isNullOrNone(excludedSpecifier)) {
+      if (!EvalUtils.isNullOrNone(excludeSpecifier)) {
         if (!EvalUtils.isNullOrNone(positiveSpecifier)) {
           throw new EvalException(location, "Do not use exclude_in_{destination|origin} in new"
               + " Copybara configs. Use only {destination|origin}_files.");
         }
-        return new PathMatcherBuilder(ImmutableList.of("**"), (PathMatcherBuilder) excludedSpecifier);
+        return new PathMatcherBuilder(ImmutableList.of("**"), (PathMatcherBuilder) excludeSpecifier);
       } else {
         return convertFromNoneable(positiveSpecifier, PathMatcherBuilder.ALL_FILES);
       }
@@ -264,6 +265,15 @@ public class Core implements OptionsAwareModule {
         }
       }
 
+      Console console = self.generalOptions.console();
+      if (!EvalUtils.isNullOrNone(excludeInOrigin)) {
+        console.warn("core.workflow(exclude_in_origin) arg is deprecated, use"
+            + " origin_files = glob(['**'], exclude = [exclude globs]) instead");
+      }
+      if (!EvalUtils.isNullOrNone(excludeInDestination)) {
+        console.warn("core.workflow(exclude_in_destination) arg is deprecated, use"
+            + " destination_files = glob(['**'], exclude = [exclude globs]) instead");
+      }
       self.workflows.put(workflowName, new AutoValue_Workflow<>(
           getProjectNameOrFailInternal(self, location),
           workflowName,
@@ -272,7 +282,7 @@ public class Core implements OptionsAwareModule {
           authoring,
           sequenceTransform,
           self.workflowOptions.getLastRevision(),
-          self.generalOptions.console(),
+          console,
           convertFileSpecifier(location, originFiles, excludeInOrigin),
           convertFileSpecifier(location, destinationFiles, excludeInDestination),
           mode,

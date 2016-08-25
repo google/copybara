@@ -21,7 +21,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
-import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.Message;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
@@ -55,7 +54,7 @@ public class WorkflowTest {
   private RecordsProcessCallDestination destination;
   private OptionsBuilder options;
   private String authoring;
-  private TestingConsole console;
+
   private SkylarkParser skylark;
 
   @Rule
@@ -92,11 +91,14 @@ public class WorkflowTest {
         + "             multiline = True,"
         + "        ),\n"
         + "    ]";
-    console = new TestingConsole();
-    options.setConsole(console);
+    options.setConsole(new TestingConsole());
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     skylark = new SkylarkParser(ImmutableSet.<Class<?>>of(TestingModule.class));
+  }
+
+  private TestingConsole console() {
+    return (TestingConsole) options.general.console();
   }
 
   private Workflow workflow() throws ConfigValidationException, IOException {
@@ -127,14 +129,9 @@ public class WorkflowTest {
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
       throws ConfigValidationException, IOException {
-    return iterativeWorkflow(previousRef, options.general.console());
-  }
-
-  private Workflow iterativeWorkflow(@Nullable String previousRef, Console console)
-      throws ConfigValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
     options.general = new GeneralOptions(
-        options.general.getFileSystem(), options.general.isVerbose(), console);
+        options.general.getFileSystem(), options.general.isVerbose(), console());
     return skylarkWorkflow("default", WorkflowMode.ITERATIVE);
   }
 
@@ -239,7 +236,7 @@ public class WorkflowTest {
       origin.addSimpleChange(timestamp);
     }
 
-    TestingConsole testConsole = new TestingConsole()
+    console()
         .respondYes()
         .respondNo();
     RecordsProcessCallDestination programmableDestination = new RecordsProcessCallDestination(
@@ -247,7 +244,7 @@ public class WorkflowTest {
 
     options.testingOptions.destination = programmableDestination;
 
-    Workflow workflow = iterativeWorkflow(/*previousRef=*/"2", testConsole);
+    Workflow workflow = iterativeWorkflow(/*previousRef=*/"2");
 
     try {
       workflow.run(workdir, /*sourceRef=*/"9");
@@ -359,7 +356,7 @@ public class WorkflowTest {
       workflow().run(workdir, origin.getHead());
       fail("should have thrown");
     } catch (ConfigValidationException e) {
-      console.assertThat()
+      console().assertThat()
           .onceInLog(MessageType.ERROR,
               "(\n|.)*path has unexpected [.] or [.][.] components(\n|.)*");
     }
@@ -376,7 +373,7 @@ public class WorkflowTest {
       workflow().run(workdir, origin.getHead());
       fail("should have thrown");
     } catch (ConfigValidationException e) {
-      console.assertThat()
+      console().assertThat()
           .onceInLog(MessageType.ERROR,
               "(\n|.)*Cannot create a glob from: include='\\[\\{\\]' (\n|.)*");
     }
@@ -442,7 +439,7 @@ public class WorkflowTest {
     prepareOriginExcludes();
     options.workflowOptions.ignoreNoop = true;
     workflow.run(workdir, origin.getHead());
-    console.assertThat().onceInLog(MessageType.WARNING,
+    console().assertThat().onceInLog(MessageType.WARNING,
         ".*Nothing was deleted in the workdir for origin_files.*");
   }
 
@@ -510,6 +507,21 @@ public class WorkflowTest {
     assertThat(matcher.matches(workdir.resolve("foo"))).isFalse();
     assertThat(matcher.matches(workdir.resolve("foo/indir"))).isTrue();
     assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
+
+    console().assertThat()
+        .onceInLog(MessageType.WARNING, ".*exclude_in_destination.*arg is deprecated.*");
+  }
+
+  @Test
+  public void testExcludedOriginPaths_showDeprecationWarning() throws Exception {
+    excludedInOrigin = "glob(['foo', 'bar/**'])";
+    options.workflowOptions.ignoreNoop = true;
+    workflow().run(workdir, origin.getHead());
+
+    assertThat(destination.processed).hasSize(1);
+
+    console().assertThat()
+        .onceInLog(MessageType.WARNING, ".*exclude_in_origin.*arg is deprecated.*");
   }
 
   @Test
@@ -566,7 +578,7 @@ public class WorkflowTest {
 
     assertThat(change.getBaseline()).isEqualTo("42");
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
-    console.assertThat()
+    console().assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
@@ -605,7 +617,7 @@ public class WorkflowTest {
     Workflow workflow = changeRequestWorkflow("24");
     workflow.run(workdir, "1");
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
-    console.assertThat()
+    console().assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }
 
@@ -621,7 +633,7 @@ public class WorkflowTest {
           + "    destination = testing.destination(),\n"
           + ")\n");
     } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
+      console().assertThat().onceInLog(MessageType.ERROR,
           ".*missing mandatory positional argument 'authoring'.*");
     }
   }
@@ -644,10 +656,10 @@ public class WorkflowTest {
           + "    destination = testing.destination(),\n"
           + ")\n");
     } catch (ConfigValidationException e) {
-      for (Message message : console.getMessages()) {
+      for (Message message : console().getMessages()) {
         System.err.println(message);
       }
-      console.assertThat().onceInLog(MessageType.ERROR,
+      console().assertThat().onceInLog(MessageType.ERROR,
           ".*missing mandatory positional argument 'origin'.*");
     }
   }
@@ -664,7 +676,7 @@ public class WorkflowTest {
           + "    origin = testing.origin(),\n"
           + ")\n");
     } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
+      console().assertThat().onceInLog(MessageType.ERROR,
           ".*missing mandatory positional argument 'destination'.*");
     }
   }
@@ -682,7 +694,7 @@ public class WorkflowTest {
     } catch (ConfigValidationException e) {
       assertThat(e).hasMessage("Workflow 'default' is not reversible");
     }
-    console.assertThat()
+    console().assertThat()
         .onceInLog(MessageType.PROGRESS, "Checking that the transformations can be reverted");
   }
 
