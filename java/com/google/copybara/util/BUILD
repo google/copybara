@@ -12,4 +12,9 @@ java_library(
         "//third_party:shell",
         "//third_party:skylark-lang",
     ],
+    javacopts = [
+        "-Xlint:unchecked",
+        "-source",
+        "1.7",
+    ],
 )

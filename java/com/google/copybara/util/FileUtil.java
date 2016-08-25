@@ -125,7 +125,7 @@ public final class FileUtil {
    * A {@link PathMatcher} that returns true if any of the delegate {@code pathMatchers} returns
    * true.
    */
-  static PathMatcher anyPathMatcher(ImmutableList<PathMatcher> pathMatchers) {
+  static PathMatcher anyPathMatcher(final ImmutableList<PathMatcher> pathMatchers) {
     return new PathMatcher() {
       @Override
       public boolean matches(Path path) {
