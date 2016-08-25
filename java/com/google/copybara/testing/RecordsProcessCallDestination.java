@@ -9,7 +9,7 @@ import com.google.copybara.Destination;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.TransformResult;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -138,7 +138,7 @@ public class RecordsProcessCallDestination implements Destination {
       return workdir.containsKey(fileName);
     }
 
-    public PathMatcherBuilder getDestinationFiles() {
+    public Glob getDestinationFiles() {
       return transformResult.getDestinationFiles();
     }
 

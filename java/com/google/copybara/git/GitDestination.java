@@ -13,7 +13,7 @@ import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.util.DiffUtil;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -191,7 +191,7 @@ public final class GitDestination implements Destination {
     private final GitRepository repo;
     private final PathMatcher matcher;
 
-    AddExcludedFilesToIndexVisitor(GitRepository repo, PathMatcherBuilder matcherBuilder) {
+    AddExcludedFilesToIndexVisitor(GitRepository repo, Glob matcherBuilder) {
       this.repo = repo;
       this.matcher = matcherBuilder.relativeTo(repo.getWorkTree());
     }

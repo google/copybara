@@ -19,7 +19,7 @@ import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
@@ -165,7 +165,7 @@ public class GitDestinationTest {
       throws ConfigValidationException, RepoException, IOException {
     TransformResult result = TransformResults.of(workdir,
         originRef,
-        new PathMatcherBuilder(ImmutableList.of("**"), excludedDestinationPaths));
+        new Glob(ImmutableList.of("**"), excludedDestinationPaths));
     if (baseline != null) {
       result = result.withBaseline(baseline);
     }

@@ -12,7 +12,7 @@ import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,7 +58,7 @@ public class FolderDestinationTest {
             TransformResults.of(
                 workdir,
                 new DummyReference("origin_ref"),
-                new PathMatcherBuilder(ImmutableList.of("**"), excludedPathsForDeletion)),
+                new Glob(ImmutableList.of("**"), excludedPathsForDeletion)),
             options.general.console());
   }
 

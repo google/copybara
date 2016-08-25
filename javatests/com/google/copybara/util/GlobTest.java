@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class PathMatcherBuilderTest {
+public class GlobTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -89,7 +89,7 @@ public class PathMatcherBuilderTest {
 
   private PathMatcher createPathMatcher(final String expression)
       throws ConfigValidationException {
-    PathMatcherBuilder result = skylark.eval("result", "result=" + expression);
+    Glob result = skylark.eval("result", "result=" + expression);
     return result.relativeTo(workdir);
   }
 

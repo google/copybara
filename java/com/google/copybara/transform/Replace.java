@@ -9,7 +9,7 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.WorkflowOptions;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -48,12 +48,12 @@ public final class Replace implements Transformation {
   private final ImmutableMap<String, Pattern> regexGroups;
   private final boolean firstOnly;
   private final boolean multiline;
-  private final PathMatcherBuilder fileMatcherBuilder;
+  private final Glob fileMatcherBuilder;
   private final WorkflowOptions workflowOptions;
 
   private Replace(TemplateTokens before, TemplateTokens after,
       Map<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
-      PathMatcherBuilder fileMatcherBuilder,
+      Glob fileMatcherBuilder,
       WorkflowOptions workflowOptions) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
@@ -111,7 +111,7 @@ public final class Replace implements Transformation {
   }
 
   public static Replace create(Location location, String before, String after,
-      Map<String, String> regexGroups, PathMatcherBuilder paths,
+      Map<String, String> regexGroups, Glob paths,
       boolean firstOnly, boolean multiline, WorkflowOptions workflowOptions)
       throws EvalException {
     Map<String, Pattern> parsed = new HashMap<>();

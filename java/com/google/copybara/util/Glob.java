@@ -22,12 +22,12 @@ import javax.annotation.Nullable;
     doc = "Glob returns a list of every file in the workdir that matches at least one"
         + " pattern in include and does not match any of the patterns in exclude.",
     category = SkylarkModuleCategory.BUILTIN)
-public final class PathMatcherBuilder {
+public final class Glob {
 
   private final ImmutableList<String> include;
-  @Nullable private final PathMatcherBuilder exclude;
+  @Nullable private final Glob exclude;
 
-  public PathMatcherBuilder(Iterable<String> include, @Nullable PathMatcherBuilder exclude) {
+  public Glob(Iterable<String> include, @Nullable Glob exclude) {
     this.include = ImmutableList.copyOf(include);
     this.exclude = exclude;
 
@@ -39,7 +39,7 @@ public final class PathMatcherBuilder {
   }
 
   /**
-   * Creates a function {@link PathMatcherBuilder} that when a {@link Path} is passed it returns a
+   * Creates a function {@link Glob} that when a {@link Path} is passed it returns a
    * {@link PathMatcher} relative to the path.
    *
    * @param include list of strings representing the globs to include/match
@@ -47,16 +47,16 @@ public final class PathMatcherBuilder {
    *
    * @throws IllegalArgumentException if any glob is not valid
    */
-  public PathMatcherBuilder(Iterable<String> include, Iterable<String> exclude) {
+  public Glob(Iterable<String> include, Iterable<String> exclude) {
     this(ImmutableList.copyOf(include),
-        Iterables.isEmpty(exclude) ? null : new PathMatcherBuilder(exclude));
+        Iterables.isEmpty(exclude) ? null : new Glob(exclude));
   }
 
-  public PathMatcherBuilder(Iterable<String> include) {
-    this(include, (PathMatcherBuilder) null);
+  public Glob(Iterable<String> include) {
+    this(include, (Glob) null);
   }
 
-  public static final PathMatcherBuilder ALL_FILES = new PathMatcherBuilder(ImmutableList.of("**"));
+  public static final Glob ALL_FILES = new Glob(ImmutableList.of("**"));
 
   public PathMatcher relativeTo(Path path) {
     ImmutableList.Builder<PathMatcher> includeList = ImmutableList.builder();
@@ -100,7 +100,7 @@ public final class PathMatcherBuilder {
 
     @Override
     public String toString() {
-      return PathMatcherBuilder.this.toString();
+      return Glob.this.toString();
     }
   }
 }

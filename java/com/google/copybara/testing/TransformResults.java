@@ -4,7 +4,7 @@ package com.google.copybara.testing;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ConfigValidationException;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import java.nio.file.Path;
 
 /**
@@ -17,7 +17,7 @@ public class TransformResults {
    * Creates an instance with reasonable defaults for testing.
    */
   public static TransformResult of(
-      Path path, DummyReference originRef, PathMatcherBuilder destinationFiles)
+      Path path, DummyReference originRef, Glob destinationFiles)
       throws ConfigValidationException, RepoException {
     return new TransformResult(
         path, originRef, originRef.getOriginalAuthor().resolve(), "test summary\n",
@@ -29,6 +29,6 @@ public class TransformResults {
    */
   public static TransformResult of(Path path, DummyReference originRef)
       throws ConfigValidationException, RepoException {
-    return of(path, originRef, PathMatcherBuilder.ALL_FILES);
+    return of(path, originRef, Glob.ALL_FILES);
   }
 }

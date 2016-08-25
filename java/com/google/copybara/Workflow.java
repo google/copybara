@@ -9,7 +9,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -54,8 +54,8 @@ public abstract class Workflow<R extends Origin.Reference> {
 
   @Nullable abstract String lastRevisionFlag();
   abstract Console console();
-  abstract PathMatcherBuilder originFiles();
-  abstract PathMatcherBuilder destinationFiles();
+  abstract Glob originFiles();
+  abstract Glob destinationFiles();
   abstract WorkflowMode mode();
   abstract boolean includeChangeListNotes();
   abstract WorkflowOptions workflowOptions();

@@ -8,7 +8,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.util.FileUtil;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -25,11 +25,10 @@ public class Move implements Transformation {
 
   private final String before;
   private final String after;
-  private final PathMatcherBuilder paths;
+  private final Glob paths;
   private final WorkflowOptions workflowOptions;
 
-  private Move(String before, String after, PathMatcherBuilder paths,
-      WorkflowOptions workflowOptions) {
+  private Move(String before, String after, Glob paths, WorkflowOptions workflowOptions) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.paths = paths;
@@ -37,7 +36,7 @@ public class Move implements Transformation {
   }
 
   public static Move fromConfig(
-      String before, String after, WorkflowOptions workflowOptions, PathMatcherBuilder paths,
+      String before, String after, WorkflowOptions workflowOptions, Glob paths,
       Location location)
       throws EvalException {
     return new Move(
@@ -75,7 +74,7 @@ public class Move implements Transformation {
       createParentDirs(after);
       try {
         boolean beforeIsDir = Files.isDirectory(before);
-        if (paths != PathMatcherBuilder.ALL_FILES && !beforeIsDir) {
+        if (paths != Glob.ALL_FILES && !beforeIsDir) {
           throw new ValidationException(
               "Cannot use user defined 'paths' filter when the 'before' is not a directory: "
                   + paths);

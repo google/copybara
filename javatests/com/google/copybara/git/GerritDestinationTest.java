@@ -15,7 +15,7 @@ import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.LogConsole;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.ByteArrayOutputStream;
@@ -102,7 +102,7 @@ public class GerritDestinationTest {
         .write(
             TransformResults.of(
                 workdir, originRef,
-                new PathMatcherBuilder(ImmutableList.of("**"), excludedDestinationPaths)),
+                new Glob(ImmutableList.of("**"), excludedDestinationPaths)),
             console);
     assertThat(result).isEqualTo(WriterResult.OK);
   }

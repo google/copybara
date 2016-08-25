@@ -3,7 +3,7 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
@@ -18,7 +18,7 @@ public final class TransformResult {
   private final Author author;
   private final long timestamp;
   private final String summary;
-  private final PathMatcherBuilder destinationFiles;
+  private final Glob destinationFiles;
   @Nullable
   private final String baseline;
   private final boolean askForConfirmation;
@@ -30,14 +30,14 @@ public final class TransformResult {
   }
 
   public TransformResult(Path path, Reference originRef, Author author, String summary,
-      PathMatcherBuilder destinationFiles) throws RepoException {
+      Glob destinationFiles) throws RepoException {
     this(path, originRef, author,
         readTimestampOrCurrentTime(originRef), summary, destinationFiles,
         /*baseline=*/ null, /*askForConfirmation=*/ false);
   }
 
   private TransformResult(Path path, Reference originRef, Author author, long timestamp,
-      String summary, PathMatcherBuilder destinationFiles, @Nullable String baseline,
+      String summary, Glob destinationFiles, @Nullable String baseline,
       boolean askForConfirmation) {
     this.path = Preconditions.checkNotNull(path);
     this.originRef = Preconditions.checkNotNull(originRef);
@@ -103,7 +103,7 @@ public final class TransformResult {
    * A path matcher which matches files in the destination that should be kept even if they don't
    * exist in the source.
    */
-  public PathMatcherBuilder getDestinationFiles() {
+  public Glob getDestinationFiles() {
     return destinationFiles;
   }
 

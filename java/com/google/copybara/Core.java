@@ -12,7 +12,7 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
-import com.google.copybara.util.PathMatcherBuilder;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -76,7 +76,7 @@ public class Core implements OptionsAwareModule {
 
   @SkylarkSignature(
       name = "glob",
-      returnType = PathMatcherBuilder.class,
+      returnType = Glob.class,
       doc = "Glob returns a list of every file in the workdir that matches at least one"
           + " pattern in include and does not match any of the patterns in exclude.",
       parameters = {
@@ -87,13 +87,12 @@ public class Core implements OptionsAwareModule {
               defaultValue = "[]", named = true, positional = false),
       }, useLocation = true)
   public static final BuiltinFunction GLOB = new BuiltinFunction("glob") {
-    public PathMatcherBuilder invoke(SkylarkList include, SkylarkList exclude,
-        Location location)
+    public Glob invoke(SkylarkList include, SkylarkList exclude, Location location)
         throws EvalException {
       List<String> includeStrings = Type.STRING_LIST.convert(include, "include");
       List<String> excludeStrings = Type.STRING_LIST.convert(exclude, "exclude");
       try {
-        return new PathMatcherBuilder(includeStrings, excludeStrings);
+        return new Glob(includeStrings, excludeStrings);
       } catch (IllegalArgumentException e) {
         throw new EvalException(location, String.format(
                 "Cannot create a glob from: include='%s' and exclude='%s': %s",
@@ -164,18 +163,18 @@ public class Core implements OptionsAwareModule {
               generic1 = Transformation.class,
               doc = "Where to read the migration code from.", positional = false,
               defaultValue = "[]"),
-          @Param(name = "exclude_in_origin", type = PathMatcherBuilder.class,
+          @Param(name = "exclude_in_origin", type = Glob.class,
               doc = "For compatibility purposes only. Use origin_files instead.",
               defaultValue = "N/A", positional = false, noneable = true),
-          @Param(name = "exclude_in_destination", type = PathMatcherBuilder.class,
+          @Param(name = "exclude_in_destination", type = Glob.class,
               doc = "For compatibility purposes only. Use detination_files instead.",
               defaultValue = "N/A", positional = false, noneable = true),
-          @Param(name = "origin_files", type = PathMatcherBuilder.class,
+          @Param(name = "origin_files", type = Glob.class,
               doc = "A glob relative to the workdir that will be read from the"
               + " origin during the import. For example glob([\"**.java\"]), all java files,"
               + " recursively, which excludes all other file types.",
               defaultValue = "glob(['**'])", positional = false, noneable = true),
-          @Param(name = "destination_files", type = PathMatcherBuilder.class,
+          @Param(name = "destination_files", type = Glob.class,
               doc = "A glob relative to the root of the destination repository that matches"
               + " files that are part of the migration. Files NOT matching this glob will never"
               + " be removed, even if the file does not exist in the source. For example"
@@ -227,7 +226,7 @@ public class Core implements OptionsAwareModule {
     // Only one or neither argument in the pair can be specified.
     // TODO(matvore): Get all configurations using the positive specification method and remove
     // support for exclude_in_FOO specifiers.
-    private PathMatcherBuilder convertFileSpecifier(
+    private Glob convertFileSpecifier(
         Location location, Object positiveSpecifier, Object excludeSpecifier)
         throws EvalException {
       if (!EvalUtils.isNullOrNone(excludeSpecifier)) {
@@ -235,9 +234,9 @@ public class Core implements OptionsAwareModule {
           throw new EvalException(location, "Do not use exclude_in_{destination|origin} in new"
               + " Copybara configs. Use only {destination|origin}_files.");
         }
-        return new PathMatcherBuilder(ImmutableList.of("**"), (PathMatcherBuilder) excludeSpecifier);
+        return new Glob(ImmutableList.of("**"), (Glob) excludeSpecifier);
       } else {
-        return convertFromNoneable(positiveSpecifier, PathMatcherBuilder.ALL_FILES);
+        return convertFromNoneable(positiveSpecifier, Glob.ALL_FILES);
       }
     }
 
@@ -309,7 +308,7 @@ public class Core implements OptionsAwareModule {
             + "The name of the file or directory after moving. If this is the empty"
             + " string and 'before' is a directory, then all files in 'before' will be moved to"
             + " the repo root, maintaining the directory tree inside 'before'."),
-          @Param(name = "paths", type = PathMatcherBuilder.class,
+          @Param(name = "paths", type = Glob.class,
               doc = "A glob expression relative to 'before' if it represents a directory."
                   + " Only files matching the expression will be moved. For example,"
                   + " glob([\"**.java\"]), matches all java files recursively inside"
@@ -318,8 +317,8 @@ public class Core implements OptionsAwareModule {
       },
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction MOVE = new BuiltinFunction("move",
-      ImmutableList.<Object>of(PathMatcherBuilder.ALL_FILES)) {
-    public Move invoke(Core self, String before, String after, PathMatcherBuilder paths, Location location) throws EvalException {
+      ImmutableList.<Object>of(Glob.ALL_FILES)) {
+    public Move invoke(Core self, String before, String after, Glob paths, Location location) throws EvalException {
       return Move.fromConfig(before, after, self.workflowOptions, paths, location);
     }
   };
@@ -342,7 +341,7 @@ public class Core implements OptionsAwareModule {
           @Param(name = "regex_groups", type = SkylarkDict.class,
               doc = "A set of named regexes that can be used to match part of the replaced text."
                   + " For example {\"x\": \"[A-Za-z]+\"}", defaultValue = "{}"),
-          @Param(name = "paths", type = PathMatcherBuilder.class,
+          @Param(name = "paths", type = Glob.class,
               doc = "A glob expression relative to the workdir representing the files to apply"
                   + " the transformation. For example, glob([\"**.java\"]), matches all java files"
                   + " recursively. Defaults to match all the files recursively.",
@@ -360,12 +359,12 @@ public class Core implements OptionsAwareModule {
   public static final BuiltinFunction REPLACE = new BuiltinFunction("replace",
       ImmutableList.of(
           SkylarkDict.empty(),
-          PathMatcherBuilder.ALL_FILES,
+          Glob.ALL_FILES,
           false,
           false
       )) {
     public Replace invoke(Core self, String before, String after,
-        SkylarkDict<String, String> regexes, PathMatcherBuilder paths, Boolean firstOnly,
+        SkylarkDict<String, String> regexes, Glob paths, Boolean firstOnly,
         Boolean multiline,
         Location location) throws EvalException {
       return Replace.create(location,
