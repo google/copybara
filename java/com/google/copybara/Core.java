@@ -21,6 +21,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
@@ -163,16 +164,26 @@ public class Core implements OptionsAwareModule {
               doc = "Where to read the migration code from.", positional = false,
               defaultValue = "[]"),
           @Param(name = "exclude_in_origin", type = PathMatcherBuilder.class,
-              doc = "A globs relative to the workdir that will be excluded from the"
-                  + " origin during the import. For example \"**.java\", all java files,"
-                  + " recursively.",
-              defaultValue = "glob([])", positional = false),
+              doc = "For compatibility purposes only. Use origin_files instead.",
+              defaultValue = "N/A", positional = false, noneable = true),
           @Param(name = "exclude_in_destination", type = PathMatcherBuilder.class,
-              doc = "A glob relative to the root of the destination"
-                  + " repository that will not be removed even if the file does not"
-                  + " exist in the source. For example '**/BUILD', all BUILD files,"
-                  + " recursively.",
-              defaultValue = "glob([])", positional = false),
+              doc = "For compatibility purposes only. Use detination_files instead.",
+              defaultValue = "N/A", positional = false, noneable = true),
+          @Param(name = "origin_files", type = PathMatcherBuilder.class,
+              doc = "A glob relative to the workdir that will be read from the"
+              + " origin during the import. For example glob([\"**.java\"]), all java files,"
+              + " recursively, which excludes all other file types.",
+              defaultValue = "glob(['**'])", positional = false, noneable = true),
+          @Param(name = "destination_files", type = PathMatcherBuilder.class,
+              doc = "A glob relative to the root of the destination repository that matches"
+              + " files that are part of the migration. Files NOT matching this glob will never"
+              + " be removed, even if the file does not exist in the source. For example"
+              + " glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when"
+              + " the origin does not have any BUILD files. You can also use this to limit the"
+              + " migration to a subdirectory of the destination,"
+              + " e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files"
+              + " in java/src.",
+              defaultValue = "glob(['**'])", positional = false, noneable = true),
           @Param(name = "mode", type = String.class, doc = ""
               + "Workflow mode. Currently we support three modes:<br>"
               + "<ul>"
@@ -202,18 +213,40 @@ public class Core implements OptionsAwareModule {
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow",
       ImmutableList.of(
           MutableList.EMPTY,
-          PathMatcherBuilder.EMPTY,
-          PathMatcherBuilder.EMPTY,
+          Runtime.NONE,
+          Runtime.NONE,
+          Runtime.NONE,
+          Runtime.NONE,
           "SQUASH",
           false,
           Runtime.NONE,
           false
       )) {
+    // This converts a "FOO_files"/"excluded_in_FOO" pair of arguments to a single glob matcher.
+    // Only one or neither argument in the pair can be specified.
+    // TODO(matvore): Get all configurations using the positive specification method and remove
+    // support for excluded_in_FOO specifiers.
+    private PathMatcherBuilder convertFileSpecifier(
+        Location location, Object positiveSpecifier, Object excludedSpecifier)
+        throws EvalException {
+      if (!EvalUtils.isNullOrNone(excludedSpecifier)) {
+        if (!EvalUtils.isNullOrNone(positiveSpecifier)) {
+          throw new EvalException(location, "Do not use exclude_in_{destination|origin} in new"
+              + " Copybara configs. Use only {destination|origin}_files.");
+        }
+        return new PathMatcherBuilder(ImmutableList.of("**"), (PathMatcherBuilder) excludedSpecifier);
+      } else {
+        return convertFromNoneable(positiveSpecifier, PathMatcherBuilder.ALL_FILES);
+      }
+    }
+
     public NoneType invoke(Core self, String workflowName,
         Origin<Reference> origin, Destination destination, Authoring authoring,
         SkylarkList<Transformation> transformations,
-        PathMatcherBuilder excludeInOrigin,
-        PathMatcherBuilder excludeInDestination,
+        Object excludeInOrigin,
+        Object excludeInDestination,
+        Object originFiles,
+        Object destinationFiles,
         String modeStr,
         Boolean includeChangelistNotes,
         Object reversibleCheckObj,
@@ -240,8 +273,8 @@ public class Core implements OptionsAwareModule {
           sequenceTransform,
           self.workflowOptions.getLastRevision(),
           self.generalOptions.console(),
-          excludeInOrigin,
-          excludeInDestination,
+          convertFileSpecifier(location, originFiles, excludeInOrigin),
+          convertFileSpecifier(location, destinationFiles, excludeInDestination),
           mode,
           includeChangelistNotes,
           self.workflowOptions,

@@ -54,8 +54,8 @@ public abstract class Workflow<R extends Origin.Reference> {
 
   @Nullable abstract String lastRevisionFlag();
   abstract Console console();
-  abstract PathMatcherBuilder excludedOriginPaths();
-  abstract PathMatcherBuilder excludedDestinationPaths();
+  abstract PathMatcherBuilder originFiles();
+  abstract PathMatcherBuilder destinationFiles();
   abstract WorkflowMode mode();
   abstract boolean includeChangeListNotes();
   abstract WorkflowOptions workflowOptions();
@@ -78,8 +78,8 @@ public abstract class Workflow<R extends Origin.Reference> {
         .add("destination", destination())
         .add("authoring", authoring())
         .add("transformation", transformation())
-        .add("excludedOriginPaths", excludedOriginPaths())
-        .add("excludedDestinationPaths", excludedDestinationPaths())
+        .add("originFiles", originFiles())
+        .add("destinationFiles", destinationFiles ())
         .add("mode", mode())
         .add("includeChangeListNotes", includeChangeListNotes())
         .add("reverseTransformForCheck", reverseTransformForCheck())
@@ -178,17 +178,18 @@ public abstract class Workflow<R extends Origin.Reference> {
       origin().checkout(ref, checkoutDir);
 
       // Remove excluded origin files.
-      if (!excludedOriginPaths().isEmpty()) {
-        PathMatcher pathMatcher = excludedOriginPaths().relativeTo(checkoutDir);
+      if (!originFiles().isAllFiles()) {
+        PathMatcher pathMatcher = originFiles().relativeTo(checkoutDir);
         processConsole.progress("Removing excluded origin files");
 
-        int result = FileUtil.deleteFilesRecursively(checkoutDir, pathMatcher);
+        int result = FileUtil.deleteFilesRecursively(
+            checkoutDir, FileUtil.notPathMatcher(pathMatcher));
         logger.log(Level.INFO,
             String.format("Removed %s files from workdir that were excluded", result));
 
         if (result == 0) {
           workflowOptions().reportNoop(console(),
-              "Nothing was deleted in the workdir for exclude_in_origin: " + pathMatcher);
+              "Nothing was deleted in the workdir for origin_files: " + originFiles());
         }
       }
 
@@ -217,7 +218,7 @@ public abstract class Workflow<R extends Origin.Reference> {
       }
 
       TransformResult transformResult =
-          new TransformResult(checkoutDir, ref, author, message, excludedDestinationPaths());
+          new TransformResult(checkoutDir, ref, author, message, destinationFiles());
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }

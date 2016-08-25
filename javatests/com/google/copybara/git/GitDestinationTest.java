@@ -165,8 +165,7 @@ public class GitDestinationTest {
       throws ConfigValidationException, RepoException, IOException {
     TransformResult result = TransformResults.of(workdir,
         originRef,
-        new PathMatcherBuilder(
-            excludedDestinationPaths, ImmutableList.<String>of()));
+        new PathMatcherBuilder(ImmutableList.of("**"), excludedDestinationPaths));
     if (baseline != null) {
       result = result.withBaseline(baseline);
     }

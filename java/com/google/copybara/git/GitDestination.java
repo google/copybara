@@ -138,7 +138,7 @@ public final class GitDestination implements Destination {
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
       alternate.simpleCommand("add", "--all");
 
-      new AddMatchingFilesToIndexVisitor(scratchClone, transformResult.getExcludedDestinationPaths())
+      new AddExcludedFilesToIndexVisitor(scratchClone, transformResult.getDestinationFiles())
           .walk();
 
       alternate.commit(alternate, transformResult.getAuthor().toString(),
@@ -187,11 +187,11 @@ public final class GitDestination implements Destination {
    * A walker which adds all files matching a PathMatcher to the index of a Git repo using
    * {@code git add}.
    */
-  private static final class AddMatchingFilesToIndexVisitor extends SimpleFileVisitor<Path> {
+  private static final class AddExcludedFilesToIndexVisitor extends SimpleFileVisitor<Path> {
     private final GitRepository repo;
     private final PathMatcher matcher;
 
-    AddMatchingFilesToIndexVisitor(GitRepository repo, PathMatcherBuilder matcherBuilder) {
+    AddExcludedFilesToIndexVisitor(GitRepository repo, PathMatcherBuilder matcherBuilder) {
       this.repo = repo;
       this.matcher = matcherBuilder.relativeTo(repo.getWorkTree());
     }
@@ -205,7 +205,7 @@ public final class GitDestination implements Destination {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      if (matcher.matches(file)) {
+      if (!matcher.matches(file)) {
         try {
           repo.simpleCommand("add", file.toString());
         } catch (RepoException e) {

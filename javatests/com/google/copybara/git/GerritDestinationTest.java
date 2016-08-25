@@ -99,11 +99,10 @@ public class GerritDestinationTest {
   private void process(DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
     WriterResult result = destination().newWriter()
-        .write(TransformResults.of(workdir,
-            originRef,
-            new PathMatcherBuilder(
-                excludedDestinationPaths,
-                ImmutableList.<String>of())),
+        .write(
+            TransformResults.of(
+                workdir, originRef,
+                new PathMatcherBuilder(ImmutableList.of("**"), excludedDestinationPaths)),
             console);
     assertThat(result).isEqualTo(WriterResult.OK);
   }

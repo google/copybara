@@ -3,6 +3,7 @@ package com.google.copybara.util;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -124,7 +125,7 @@ public final class FileUtil {
    * A {@link PathMatcher} that returns true if any of the delegate {@code pathMatchers} returns
    * true.
    */
-  static PathMatcher anyPathMatcher(final Iterable<PathMatcher> pathMatchers) {
+  static PathMatcher anyPathMatcher(ImmutableList<PathMatcher> pathMatchers) {
     return new PathMatcher() {
       @Override
       public boolean matches(Path path) {

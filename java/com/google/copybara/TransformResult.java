@@ -18,7 +18,7 @@ public final class TransformResult {
   private final Author author;
   private final long timestamp;
   private final String summary;
-  private final PathMatcherBuilder excludedDestinationPaths;
+  private final PathMatcherBuilder destinationFiles;
   @Nullable
   private final String baseline;
   private final boolean askForConfirmation;
@@ -30,21 +30,21 @@ public final class TransformResult {
   }
 
   public TransformResult(Path path, Reference originRef, Author author, String summary,
-      PathMatcherBuilder excludedDestinationPaths) throws RepoException {
+      PathMatcherBuilder destinationFiles) throws RepoException {
     this(path, originRef, author,
-        readTimestampOrCurrentTime(originRef), summary, excludedDestinationPaths,
+        readTimestampOrCurrentTime(originRef), summary, destinationFiles,
         /*baseline=*/ null, /*askForConfirmation=*/ false);
   }
 
   private TransformResult(Path path, Reference originRef, Author author, long timestamp,
-      String summary, PathMatcherBuilder excludedDestinationPaths, @Nullable String baseline,
+      String summary, PathMatcherBuilder destinationFiles, @Nullable String baseline,
       boolean askForConfirmation) {
     this.path = Preconditions.checkNotNull(path);
     this.originRef = Preconditions.checkNotNull(originRef);
     this.author = Preconditions.checkNotNull(author);
     this.timestamp = timestamp;
     this.summary = Preconditions.checkNotNull(summary);
-    this.excludedDestinationPaths = Preconditions.checkNotNull(excludedDestinationPaths);
+    this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
     this.baseline = baseline;
     this.askForConfirmation = askForConfirmation;
   }
@@ -53,13 +53,13 @@ public final class TransformResult {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
         this.path, this.originRef, this.author, this.timestamp, this.summary,
-        this.excludedDestinationPaths, newBaseline, this.askForConfirmation);
+        this.destinationFiles, newBaseline, this.askForConfirmation);
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
     return new TransformResult(
         this.path, this.originRef, this.author, this.timestamp, this.summary,
-        this.excludedDestinationPaths, this.baseline, askForConfirmation);
+        this.destinationFiles, this.baseline, askForConfirmation);
   }
 
   /**
@@ -100,11 +100,11 @@ public final class TransformResult {
   }
 
   /**
-   * A path matcher which matches files in the destination that should not be deleted even if they
-   * don't exist in source.
+   * A path matcher which matches files in the destination that should be kept even if they don't
+   * exist in the source.
    */
-  public PathMatcherBuilder getExcludedDestinationPaths() {
-    return excludedDestinationPaths;
+  public PathMatcherBuilder getDestinationFiles() {
+    return destinationFiles;
   }
 
   /**

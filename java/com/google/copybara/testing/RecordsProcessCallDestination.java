@@ -138,8 +138,8 @@ public class RecordsProcessCallDestination implements Destination {
       return workdir.containsKey(fileName);
     }
 
-    public PathMatcherBuilder getExcludedDestinationPaths() {
-      return transformResult.getExcludedDestinationPaths();
+    public PathMatcherBuilder getDestinationFiles() {
+      return transformResult.getDestinationFiles();
     }
 
     @Override

@@ -65,6 +65,8 @@ public class WorkflowTest {
   private boolean includeReleaseNotes;
   private String excludedInOrigin;
   private String excludedInDestination;
+  private String originFiles;
+  private String destinationFiles;
 
   @Before
   public void setup() throws IOException, ConfigValidationException {
@@ -74,8 +76,10 @@ public class WorkflowTest {
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
     origin = new DummyOrigin().setOriginalAuthor(ORIGINAL_AUTHOR);
-    excludedInOrigin = "glob([])";
-    excludedInDestination = "glob([])";
+    excludedInOrigin = "None";
+    excludedInDestination = "None";
+    originFiles = "None";
+    destinationFiles = "None";
     destination = new RecordsProcessCallDestination();
     transformations = "[\n"
         + "        core.replace(\n"
@@ -110,6 +114,8 @@ public class WorkflowTest {
         + "    destination = testing.destination(),\n"
         + "    exclude_in_origin = " + excludedInOrigin + ",\n"
         + "    exclude_in_destination = " + excludedInDestination + ",\n"
+        + "    origin_files = " + originFiles + ",\n"
+        + "    destination_files = " + destinationFiles + ",\n"
         + "    transformations = " + transformations + ",\n"
         + "    authoring = " + authoring + ",\n"
         + "    include_changelist_notes = " + (includeReleaseNotes ? "True" : "False") + ",\n"
@@ -347,7 +353,7 @@ public class WorkflowTest {
     Files.createDirectories(file.getParent());
     Files.write(file, new byte[]{});
 
-    excludedInOrigin = "glob(['" + outsideFolder + "'])";
+    originFiles = "glob(['" + outsideFolder + "'])";
 
     try {
       workflow().run(workdir, origin.getHead());
@@ -364,7 +370,7 @@ public class WorkflowTest {
   @Test
   public void invalidExcludedOriginGlob() throws Exception {
     prepareOriginExcludes();
-    excludedInOrigin = "glob(['{'])";
+    originFiles = "glob(['{'])";
 
     try {
       workflow().run(workdir, origin.getHead());
@@ -378,7 +384,7 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginPathDoesntExcludeDirectories() throws Exception {
-    excludedInOrigin = "glob(['folder'])";
+    originFiles = "glob(['**'], exclude = ['folder'])";
     try {
       Workflow workflow = workflow();
       prepareOriginExcludes();
@@ -393,7 +399,7 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginPathRecursive() throws Exception {
-    excludedInOrigin = "glob(['folder/**'])";
+    originFiles = "glob(['**'], exclude = ['folder/**'])";
     transformations = "[]";
     Workflow workflow = workflow();
     prepareOriginExcludes();
@@ -407,7 +413,7 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginRecursiveByType() throws Exception {
-    excludedInOrigin = "glob(['folder/**/*.java'])";
+    originFiles = "glob(['**'], exclude = ['folder/**/*.java'])";
     transformations = "[]";
     Workflow workflow = workflow();
     prepareOriginExcludes();
@@ -420,7 +426,7 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginNoopError() throws Exception {
-    excludedInOrigin = "glob(['I_dont_exist'])";
+    originFiles = "glob(['**'], exclude = ['I_dont_exist'])";
     transformations = "[]";
     Workflow workflow = workflow();
     prepareOriginExcludes();
@@ -430,19 +436,19 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginNoopWarning() throws Exception {
-    excludedInOrigin = "glob(['I_dont_exist'])";
+    originFiles = "glob(['**'], exclude = ['I_dont_exist'])";
     transformations = "[]";
     Workflow workflow = workflow();
     prepareOriginExcludes();
     options.workflowOptions.ignoreNoop = true;
     workflow.run(workdir, origin.getHead());
     console.assertThat().onceInLog(MessageType.WARNING,
-        ".*Nothing was deleted in the workdir for exclude_in_origin.*");
+        ".*Nothing was deleted in the workdir for origin_files.*");
   }
 
   @Test
   public void excludeOriginPathIterative() throws Exception {
-    excludedInOrigin = "glob(['folder/**/*.java'])";
+    originFiles = "glob(['**'], exclude = ['folder/**/*.java'])";
     transformations = "[]";
     prepareOriginExcludes();
     Workflow workflow = iterativeWorkflow(origin.getHead());
@@ -463,14 +469,14 @@ public class WorkflowTest {
 
   @Test
   public void testOriginExcludesToString() throws Exception {
-    excludedInOrigin = "glob(['foo/**/bar.htm'])";
+    originFiles = "glob(['**'], exclude = ['foo/**/bar.htm'])";
     String string = workflow().toString();
     assertThat(string).contains("foo/**/bar.htm");
   }
 
   @Test
   public void testDestinationExcludesToString() throws Exception {
-    excludedInDestination = "glob(['foo/**/bar.htm'])";
+    destinationFiles = "glob(['**'], exclude = ['foo/**/bar.htm'])";
     String string = workflow().toString();
     assertThat(string).contains("foo/**/bar.htm");
   }
@@ -485,11 +491,11 @@ public class WorkflowTest {
 
     assertThat(destination.processed).hasSize(1);
 
-    PathMatcher matcher = destination.processed.get(0).getExcludedDestinationPaths()
+    PathMatcher matcher = destination.processed.get(0).getDestinationFiles()
         .relativeTo(workdir);
-    assertThat(matcher.matches(workdir.resolve("foo"))).isTrue();
-    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isFalse();
-    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
   }
 
   @Test
@@ -499,11 +505,42 @@ public class WorkflowTest {
 
     assertThat(destination.processed).hasSize(1);
 
-    PathMatcher matcher = destination.processed.get(0).getExcludedDestinationPaths()
+    PathMatcher matcher = destination.processed.get(0).getDestinationFiles()
         .relativeTo(workdir);
-    assertThat(matcher.matches(workdir.resolve("foo"))).isTrue();
-    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isFalse();
-    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
+  }
+
+  @Test
+  public void testDestinationFilesPassedToDestination_iterative() throws Exception {
+    destinationFiles = "glob(['**'], exclude = ['foo', 'bar/**'])";
+    origin.addSimpleChange(/*timestamp*/ 42);
+    Workflow workflow = iterativeWorkflow(origin.getHead());
+    origin.addSimpleChange(/*timestamp*/ 4242);
+    workflow.run(workdir, origin.getHead());
+
+    assertThat(destination.processed).hasSize(1);
+
+    PathMatcher matcher = destination.processed.get(0).getDestinationFiles()
+        .relativeTo(workdir);
+    assertThat(matcher.matches(workdir.resolve("foo"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
+  }
+
+  @Test
+  public void testDestinationFilesPassedToDestination_squash() throws Exception {
+    destinationFiles = "glob(['**'], exclude = ['foo', 'bar/**'])";
+    workflow().run(workdir, origin.getHead());
+
+    assertThat(destination.processed).hasSize(1);
+
+    PathMatcher matcher = destination.processed.get(0).getDestinationFiles()
+        .relativeTo(workdir);
+    assertThat(matcher.matches(workdir.resolve("foo"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
   }
 
   @Test

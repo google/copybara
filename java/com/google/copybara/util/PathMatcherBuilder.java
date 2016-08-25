@@ -1,8 +1,7 @@
 // Copyright 2016 Google Inc. All Rights Reserved.
 package com.google.copybara.util;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -10,6 +9,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import javax.annotation.Nullable;
 
 /**
  * A {@link PathMatcher} builder that creates a PathMatcher relative to a {@link Path}.
@@ -25,7 +25,18 @@ import java.nio.file.PathMatcher;
 public final class PathMatcherBuilder {
 
   private final ImmutableList<String> include;
-  private final ImmutableList<String> exclude;
+  @Nullable private final PathMatcherBuilder exclude;
+
+  public PathMatcherBuilder(Iterable<String> include, @Nullable PathMatcherBuilder exclude) {
+    this.include = ImmutableList.copyOf(include);
+    this.exclude = exclude;
+
+    // Validate the paths so that they don't contain invalid patterns.
+    for (String glob : include) {
+      FileUtil.checkNormalizedRelative(glob);
+      FileSystems.getDefault().getPathMatcher("glob:" + glob);
+    }
+  }
 
   /**
    * Creates a function {@link PathMatcherBuilder} that when a {@link Path} is passed it returns a
@@ -37,48 +48,39 @@ public final class PathMatcherBuilder {
    * @throws IllegalArgumentException if any glob is not valid
    */
   public PathMatcherBuilder(Iterable<String> include, Iterable<String> exclude) {
-    this.include = ImmutableList.copyOf(include);
-    this.exclude = ImmutableList.copyOf(exclude);
-
-    // Validate the paths so that they don't contain invalid patterns.
-    for (String glob : Iterables.concat(include, exclude)) {
-      FileUtil.checkNormalizedRelative(glob);
-      FileSystems.getDefault().getPathMatcher("glob:" + glob);
-    }
+    this(ImmutableList.copyOf(include),
+        Iterables.isEmpty(exclude) ? null : new PathMatcherBuilder(exclude));
   }
 
-  /** Generates matchers that do not match any paths (i.e. return {@code false} for all paths). */
-  public static final PathMatcherBuilder EMPTY =
-      new PathMatcherBuilder(ImmutableList.<String>of(), ImmutableList.<String>of());
+  public PathMatcherBuilder(Iterable<String> include) {
+    this(include, (PathMatcherBuilder) null);
+  }
 
-  public static final PathMatcherBuilder ALL_FILES =
-      new PathMatcherBuilder(ImmutableList.of("**"), ImmutableList.<String>of());
+  public static final PathMatcherBuilder ALL_FILES = new PathMatcherBuilder(ImmutableList.of("**"));
 
   public PathMatcher relativeTo(Path path) {
-    Preconditions.checkNotNull((Iterable<String>) include, "include argument cannot be null");
-    Preconditions.checkNotNull((Iterable<String>) exclude, "exclude argument cannot be null");
     ImmutableList.Builder<PathMatcher> includeList = ImmutableList.builder();
     for (String path1 : include) {
       includeList.add(ReadablePathMatcher.relativeGlob(path, path1));
     }
-    ImmutableList.Builder<PathMatcher> excludeList = ImmutableList.builder();
-    for (String path1 : exclude) {
-      excludeList.add(ReadablePathMatcher.relativeGlob(path, path1));
-    }
-
+    PathMatcher excludeMatcher = (exclude == null)
+        ? FileUtil.anyPathMatcher(ImmutableList.<PathMatcher>of())
+        : exclude.relativeTo(path);
     return new GlobPathMatcher(
         FileUtil.anyPathMatcher(includeList.build()),
-        FileUtil.anyPathMatcher(excludeList.build()));
+        excludeMatcher);
   }
 
-  public boolean isEmpty() {
-    return include.isEmpty();
+  public boolean isAllFiles() {
+    return include.equals(ImmutableList.of("**")) && exclude == null;
   }
 
   @Override
   public String toString() {
-    return "glob(include=[" + Joiner.on(", ").join(include) + "], "
-        + "exclude=[" + Joiner.on(", ").join(exclude) + "])";
+    return MoreObjects.toStringHelper(this)
+        .add("include", include)
+        .add("exclude", exclude)
+        .toString();
   }
 
   private class GlobPathMatcher implements PathMatcher {

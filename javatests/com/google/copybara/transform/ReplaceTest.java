@@ -330,7 +330,7 @@ public final class ReplaceTest {
         + ")");
 
     String string = transformation.toString();
-    assertThat(string).contains("include=[foo/**/bar.htm], exclude=[]");
+    assertThat(string).contains("include=[foo/**/bar.htm], exclude=null");
   }
 
   @Test
@@ -341,7 +341,7 @@ public final class ReplaceTest {
         + ")");
 
     String string = transformation.toString();
-    assertThat(string).contains("include=[**], exclude=[]");
+    assertThat(string).contains("include=[**], exclude=null");
   }
 
   @Test

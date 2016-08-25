@@ -65,8 +65,7 @@ public class FolderDestination implements Destination {
       console.progress("FolderDestination: deleting previous data from " + localFolder);
 
       FileUtil.deleteFilesRecursively(localFolder,
-          FileUtil.notPathMatcher(
-              transformResult.getExcludedDestinationPaths().relativeTo(localFolder)));
+          transformResult.getDestinationFiles().relativeTo(localFolder));
 
       console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);
       FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder);
