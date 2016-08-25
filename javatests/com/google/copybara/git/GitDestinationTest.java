@@ -77,11 +77,11 @@ public class GitDestinationTest {
 
   @Test
   public void errorIfUrlMissing() throws ConfigValidationException {
-    skylark.evalFails(
-        "git.destination(\n"
-        + "    fetch = 'master',\n"
-        + "    push = 'master',\n"
-        + ")",
+    skylark.evalFails(""
+            + "git.destination(\n"
+            + "    fetch = 'master',\n"
+            + "    push = 'master',\n"
+            + ")",
         "missing mandatory positional argument 'url'");
   }
 
@@ -209,6 +209,21 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void processEmptyDiff() throws Exception {
+    console = new TestingConsole().respondYes();
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    processWithBaselineAndConfirmation(destinationFirstCommit(), new DummyReference("origin_ref1"),
+        /*baseline=*/null, /*askForConfirmation=*/true);
+
+    thrown.expect(EmptyChangeException.class);
+    // process empty change. Shouldn't ask anything.
+    processWithBaselineAndConfirmation(destination(), new DummyReference("origin_ref2"),
+        /*baseline=*/null, /*askForConfirmation=*/true);
+  }
+
+  @Test
   public void processUserConfirms() throws Exception {
     console = new TestingConsole()
         .respondYes();
@@ -218,18 +233,23 @@ public class GitDestinationTest {
     processWithBaselineAndConfirmation(destinationFirstCommit(), new DummyReference("origin_ref"),
         /*baseline=*/null, /*askForConfirmation=*/true);
 
+    String change = git("--git-dir", repoGitDir.toString(), "show", "HEAD");
+    // Validate that we really have pushed the commit.
+    assertThat(change).contains("test summary");
+    System.out.println(change);
     console.assertThat()
         .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching file:.*")
-        .matchesNext(MessageType.PROGRESS, "Git Destination: Adding files for push")
-        .equalsNext(MessageType.INFO, "\n"
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Creating a local commit")
+        // Validate that we showed the confirmation
+        .matchesNext(MessageType.INFO, "(?m)(\n|.)*test summary(\n|.)+"
             + "diff --git a/test.txt b/test.txt\n"
             + "new file mode 100644\n"
-            + "index 0000000..f0eec86\n"
+            + "index 0000000\\.\\.f0eec86\n"
             + "--- /dev/null\n"
-            + "+++ b/test.txt\n"
-            + "@@ -0,0 +1 @@\n"
-            + "+some content\n"
-            + "\\ No newline at end of file\n")
+            + "\\+\\+\\+ b/test.txt\n"
+            + "@@ -0,0 \\+1 @@\n"
+            + "\\+some content\n"
+            + "\\\\ No newline at end of file\n")
         .matchesNext(MessageType.WARNING, "Proceed with push to.*[?]")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Pushing to .*")
         .containsNoMoreMessages();

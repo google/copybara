@@ -134,17 +134,24 @@ public final class GitDestination implements Destination {
         verifyUserInfoConfigured(scratchClone);
       }
 
-      console.progress("Git Destination: Adding files for push");
+      console.progress("Git Destination: Creating a local commit");
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
       alternate.simpleCommand("add", "--all");
 
       new AddMatchingFilesToIndexVisitor(scratchClone, transformResult.getExcludedDestinationPaths())
           .walk();
 
+      alternate.commit(alternate, transformResult.getAuthor().toString(),
+          transformResult.getTimestamp(), commitGenerator.message(transformResult, alternate));
+
+      if (baseline != null) {
+        alternate.rebase("FETCH_HEAD");
+      }
+
       if (transformResult.isAskForConfirmation()) {
         // The git repo contains the staged changes at this point. Git diff writes to Stdout
         console.info(DiffUtil.colorize(
-            console, alternate.simpleCommand("diff", "--staged").getStdout()));
+            console, alternate.simpleCommand("show", "HEAD").getStdout()));
         if (!console.promptConfirmation(
             String.format("Proceed with push to %s %s?", repoUrl, push))) {
           console.warn("Migration aborted by user.");
@@ -152,15 +159,7 @@ public final class GitDestination implements Destination {
               "User aborted execution: did not confirm diff changes.");
         }
       }
-
-      alternate.commit(alternate, transformResult.getAuthor().toString(),
-          transformResult.getTimestamp(), commitGenerator.message(transformResult, alternate));
       console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
-
-      if (baseline != null) {
-        alternate.rebase("FETCH_HEAD");
-      }
-
       // Git push writes to Stderr
       processPushOutput.process(
           alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push).getStderr());
