@@ -53,7 +53,7 @@ public class Copybara {
     Console console = generalOptions.console();
     console.progress("Validating configuration");
 
-    validate(options, configContents, workflowName);
+    validateConfig(options, config);
 
     config.getActiveWorkflow().run(baseWorkdir, sourceRef);
   }
@@ -62,6 +62,10 @@ public class Copybara {
       throws RepoException, ValidationException, IOException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
     Config config = skylarkParser.loadConfig(configContent, options);
+    validateConfig(options, config);
+  }
+
+  private void validateConfig(Options options, Config config) throws ValidationException {
     Console console = options.get(GeneralOptions.class).console();
     List<String> validationMessages = validateConfig(config);
     if (!validationMessages.isEmpty()) {
