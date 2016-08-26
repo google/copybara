@@ -41,7 +41,7 @@ public class GitDestinationTest {
   private Path repoGitDir;
   private OptionsBuilder options;
   private TestingConsole console;
-  private ImmutableList<String> excludedDestinationPaths;
+  private Glob destinationFiles;
   private SkylarkTestExecutor skylark;
 
   @Rule
@@ -58,7 +58,7 @@ public class GitDestinationTest {
     options = new OptionsBuilder().setConsole(console);
     options.git.gitCommitterEmail = "commiter@email";
     options.git.gitCommitterName = "Bara Kopi";
-    excludedDestinationPaths = ImmutableList.of();
+    destinationFiles = new Glob(ImmutableList.of("**"));
 
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options, GitModule.class);
@@ -162,9 +162,7 @@ public class GitDestinationTest {
       DummyReference originRef,
       String baseline, boolean askForConfirmation)
       throws ConfigValidationException, RepoException, IOException {
-    TransformResult result = TransformResults.of(workdir,
-        originRef,
-        new Glob(ImmutableList.of("**"), excludedDestinationPaths));
+    TransformResult result = TransformResults.of(workdir, originRef, destinationFiles);
     if (baseline != null) {
       result = result.withBaseline(baseline);
     }
@@ -275,7 +273,7 @@ public class GitDestinationTest {
 
     Files.delete(workdir.resolve("excluded"));
 
-    excludedDestinationPaths = ImmutableList.of("excluded");
+    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("excluded"));
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("empty change");
     process(destination(), new DummyReference("origin_ref"));
@@ -496,7 +494,7 @@ public class GitDestinationTest {
         .simpleCommand("commit", "-m", "message");
 
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
-    excludedDestinationPaths = ImmutableList.of("excluded.txt");
+    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
     process(destination(), new DummyReference("ref"));
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("excluded.txt", "some content")
@@ -520,7 +518,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
 
     // Make sure this glob does not cause .git/HEAD to be added.
-    excludedDestinationPaths = ImmutableList.of("**/HEAD");
+    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("**/HEAD"));
 
     process(destination(), new DummyReference("ref"));
     GitTesting.assertThatCheckout(repo(), "master")
@@ -624,5 +622,44 @@ public class GitDestinationTest {
         .containsFile("test42", "42")
         .containsFile("test99", "99")
         .containsNoMoreFiles();
+  }
+
+  private void checkSubmoduleInDestination() throws Exception {
+    fetch = "master";
+    push = "master";
+
+    GitRepository submodule = GitRepository.initScratchRepo(/*verbose=*/true, System.getenv());
+
+    Files.write(submodule.getWorkTree().resolve("foo"), new byte[] {1});
+    submodule.simpleCommand("add", "foo");
+    submodule.simpleCommand("commit", "-m", "dummy commit");
+
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
+    GitRepository scratchRepo = repo().withWorkTree(scratchTree);
+    scratchRepo.simpleCommand("submodule", "add", "file://" + submodule.getWorkTree(), "submodule");
+    scratchRepo.simpleCommand("commit", "-m", "commit submodule");
+
+    Files.write(workdir.resolve("test42"), new byte[] {42});
+    Destination.Writer writer = destination().newWriter();
+    WriterResult result = writer.write(
+        TransformResults.of(workdir, new DummyReference("ref1"), destinationFiles),
+        console);
+    assertThat(result).isEqualTo(WriterResult.OK);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFiles(".gitmodules", "submodule");
+  }
+
+  @Test
+  public void submoduleInDestination_negativeDestinationFilesGlob() throws Exception {
+    destinationFiles =
+        new Glob(ImmutableList.of("**"), ImmutableList.of(".gitmodules", "submodule"));
+    checkSubmoduleInDestination();
+  }
+
+  @Test
+  public void submoduleInDestination_positiveDestinationFilesGlob() throws Exception {
+    destinationFiles = new Glob(ImmutableList.of("test42"));
+    checkSubmoduleInDestination();
   }
 }
