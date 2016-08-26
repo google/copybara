@@ -171,7 +171,7 @@ public class GitRepository {
   void commit(GitRepository alternate, String author,
       long timestamp, String message)
       throws RepoException {
-    CommandOutput status = alternate.simpleCommand("status", "--porcelain");
+    CommandOutput status = alternate.simpleCommand("diff", "--staged");
     if (status.getStdout().trim().isEmpty()) {
       throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
           + "Is the change already migrated?");

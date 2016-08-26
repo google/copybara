@@ -266,6 +266,22 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void processEmptyCommitWithExcludes() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("excluded"), "some content".getBytes());
+    repo().withWorkTree(workdir).simpleCommand("add", "excluded");
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "first commit");
+
+    Files.delete(workdir.resolve("excluded"));
+
+    excludedDestinationPaths = ImmutableList.of("excluded");
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage("empty change");
+    process(destination(), new DummyReference("origin_ref"));
+  }
+
+  @Test
   public void processFetchRefDoesntExist() throws Exception {
     fetch = "testPullFromRef";
     push = "testPushToRef";
