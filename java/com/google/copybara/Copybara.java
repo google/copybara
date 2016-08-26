@@ -10,6 +10,7 @@ import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.folder.FolderDestination;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritOptions;
+import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -27,7 +28,8 @@ import javax.annotation.Nullable;
 public class Copybara {
 
   protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.<Class<?>>of(
-      FolderDestination.Module.class);
+      FolderDestination.Module.class,
+      GitModule.class);
 
   private final SkylarkParser skylarkParser;
 
