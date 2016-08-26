@@ -5,7 +5,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -71,21 +70,18 @@ public final class Authoring {
   }
 
   /**
-   * Resolves an origin author to a destination one.
+   * Returns true if the user can be safely used.
    */
-  public Author resolve(OriginalAuthor originalAuthor) {
+  public boolean useAuthor(String userId) {
     switch (mode) {
       case PASS_THRU:
-        return originalAuthor.resolve();
+        return true;
       case USE_DEFAULT:
-        return defaultAuthor;
+        return false;
       case WHITELIST:
-        return whitelist.contains(originalAuthor.getId())
-            ? originalAuthor.resolve()
-            : defaultAuthor;
+        return whitelist.contains(userId);
       default:
-        throw new IllegalStateException(
-            String.format("Mode '%s' not implemented.", mode));
+        throw new IllegalStateException(String.format("Mode '%s' not implemented.", mode));
     }
   }
 

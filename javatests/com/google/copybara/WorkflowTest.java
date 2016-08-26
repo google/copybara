@@ -11,11 +11,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.WriterResult;
-import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;
-import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
@@ -43,11 +41,10 @@ import org.junit.runners.JUnit4;
 public class WorkflowTest {
 
   private static final String PREFIX = "TRANSFORMED";
-  private static final OriginalAuthor ORIGINAL_AUTHOR =
-      new DummyOriginalAuthor("Foo Bar", "foo@bar.com");
-  private static final Author CONTRIBUTOR = ORIGINAL_AUTHOR.resolve();
-  private static final DummyOriginalAuthor NOT_WHITELISTED_ORIGINAL_AUTHOR =
-      new DummyOriginalAuthor("Secret Coder", "secret@coder.com");
+  private static final Author ORIGINAL_AUTHOR =
+      new Author("Foo Bar", "foo@bar.com");
+  private static final Author NOT_WHITELISTED_ORIGINAL_AUTHOR =
+      new Author("Secret Coder", "secret@coder.com");
   private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
 
   private DummyOrigin origin;
@@ -74,7 +71,7 @@ public class WorkflowTest {
     includeReleaseNotes = false;
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
-    origin = new DummyOrigin().setOriginalAuthor(ORIGINAL_AUTHOR);
+    origin = new DummyOrigin().setAuthor(ORIGINAL_AUTHOR);
     excludedInOrigin = "None";
     excludedInDestination = "None";
     originFiles = "None";
@@ -182,9 +179,9 @@ public class WorkflowTest {
   public void iterativeWorkflowTest_whitelistAuthoring() throws Exception {
     origin
         .addSimpleChange(0)
-        .setOriginalAuthor(ORIGINAL_AUTHOR)
+        .setAuthor(ORIGINAL_AUTHOR)
         .addSimpleChange(1)
-        .setOriginalAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
+        .setAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
     whiteListAuthoring();
@@ -194,7 +191,7 @@ public class WorkflowTest {
     workflow.run(workdir, /*sourceRef=*/"0");
     assertThat(destination.processed).hasSize(2);
 
-    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
     assertThat(destination.processed.get(1).getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -202,7 +199,7 @@ public class WorkflowTest {
     authoring = ""
         + "authoring.whitelisted(\n"
         + "   default = '" + DEFAULT_AUTHOR + "',\n"
-        + "   whitelist = ['" + ORIGINAL_AUTHOR.getId() + "'],\n"
+        + "   whitelist = ['" + ORIGINAL_AUTHOR.getEmail() + "'],\n"
         + ")";
   }
 
@@ -210,9 +207,9 @@ public class WorkflowTest {
   public void iterativeWorkflowTest_passThruAuthoring() throws Exception {
     origin
         .addSimpleChange(0)
-        .setOriginalAuthor(ORIGINAL_AUTHOR)
+        .setAuthor(ORIGINAL_AUTHOR)
         .addSimpleChange(1)
-        .setOriginalAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
+        .setAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
     passThruAuthoring();
@@ -221,9 +218,8 @@ public class WorkflowTest {
 
     assertThat(destination.processed).hasSize(2);
 
-    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
-    assertThat(destination.processed.get(1).getAuthor())
-        .isEqualTo(NOT_WHITELISTED_ORIGINAL_AUTHOR.resolve());
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
+    assertThat(destination.processed.get(1).getAuthor()).isEqualTo(NOT_WHITELISTED_ORIGINAL_AUTHOR);
   }
 
   private void passThruAuthoring() {
@@ -592,13 +588,13 @@ public class WorkflowTest {
     Workflow workflow = changeRequestWorkflow(null);
     workflow.run(workdir, "1");
 
-    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(CONTRIBUTOR);
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
   }
 
   @Test
   public void changeRequest_whitelistAuthoring() throws Exception {
     origin
-        .setOriginalAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
+        .setAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
         .addSimpleChange(1, "Second Change");
 
@@ -743,9 +739,9 @@ public class WorkflowTest {
   private void runWorkflowForMessageTransform(WorkflowMode mode, @Nullable String thirdTransform)
       throws IOException, RepoException, ValidationException {
     origin.addSimpleChange(0, "first commit")
-        .setOriginalAuthor(new DummyOriginalAuthor("Foo Bar", "foo@bar.com"))
+        .setAuthor(new Author("Foo Bar", "foo@bar.com"))
         .addSimpleChange(1, "second commit")
-        .setOriginalAuthor(new DummyOriginalAuthor("Foo Baz", "foo@baz.com"))
+        .setAuthor(new Author("Foo Baz", "foo@baz.com"))
         .addSimpleChange(2, "third commit");
 
     options.workflowOptions.lastRevision = "0";

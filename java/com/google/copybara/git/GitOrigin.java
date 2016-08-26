@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.Author;
+import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
@@ -134,25 +135,27 @@ public final class GitOrigin implements Origin<GitReference> {
 
   @Override
   public ImmutableList<Change<GitReference>> changes(@Nullable GitReference fromRef,
-      GitReference toRef) throws RepoException {
+      GitReference toRef, Authoring authoring) throws RepoException {
 
     String refRange = fromRef == null
         ? toRef.asString()
         : fromRef.asString() + ".." + toRef.asString();
 
-    return asChanges(new QueryChanges().run(refRange));
+    return asChanges(new QueryChanges(authoring).run(refRange));
   }
 
 
   @Override
-  public Change<GitReference> change(GitReference ref) throws RepoException {
+  public Change<GitReference> change(GitReference ref, Authoring authoring) throws RepoException {
     // The limit=1 flag guarantees that only one change is returned
-    return Iterables.getOnlyElement(asChanges(new QueryChanges().limit(1).run(ref.asString())));
+    return Iterables
+        .getOnlyElement(asChanges(new QueryChanges(authoring).limit(1).run(ref.asString())));
   }
 
   @Override
-  public void visitChanges(GitReference start, ChangesVisitor visitor) throws RepoException {
-    QueryChanges queryChanges = new QueryChanges().limit(1);
+  public void visitChanges(GitReference start, ChangesVisitor visitor, Authoring authoring)
+      throws RepoException {
+    QueryChanges queryChanges = new QueryChanges(authoring).limit(1);
 
     ImmutableList<GitChange> result = queryChanges.run(start.asString());
     if (result.isEmpty()) {
@@ -169,6 +172,12 @@ public final class GitOrigin implements Origin<GitReference> {
   }
 
   private class QueryChanges {
+
+    private final Authoring authoring;
+
+    public QueryChanges(Authoring authoring) {
+      this.authoring = authoring;
+    }
 
     private int limit = -1;
 
@@ -218,18 +227,22 @@ public final class GitOrigin implements Origin<GitReference> {
           parents.add(repository.createReferenceFromCompleteSha1(commitReferences.next()));
         }
         String line = rawLines.next();
-        OriginalAuthor originalAuthor = null;
+        Author author = null;
         DateTime date = null;
         while (!line.isEmpty()) {
           if (line.startsWith("Author: ")) {
             String authorStr = line.substring("Author: ".length()).trim();
-            originalAuthor = new GitOriginalAuthor(authorStr);
+
+            Author parsedUser = GitAuthorParser.parse(authorStr);
+            author = authoring.useAuthor(parsedUser.getEmail())
+                ? parsedUser
+                : authoring.getDefaultAuthor();
           } else if (line.startsWith("Date: ")) {
             date = dateFormatter.parseDateTime(line.substring("Date: ".length()).trim());
           }
           line = rawLines.next();
         }
-        Preconditions.checkState(originalAuthor != null || date != null,
+        Preconditions.checkState(author != null || date != null,
             "Could not find author and/or date for commitReferences %s in log\n:%s", rawCommitLine,
             log);
         StringBuilder message = new StringBuilder();
@@ -253,7 +266,7 @@ public final class GitOrigin implements Origin<GitReference> {
           message.append(s, GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
         }
         Change<GitReference> change = new Change<>(
-            ref, originalAuthor, message.toString(), date, ImmutableMap.copyOf(labels));
+            ref, author, message.toString(), date, ImmutableMap.copyOf(labels));
         builder.add(new GitChange(change, parents.build()));
       }
       // Return older commit first.
@@ -317,36 +330,6 @@ public final class GitOrigin implements Origin<GitReference> {
     GitChange(Change<GitReference> change, ImmutableList<GitReference> parents) {
       this.change = change;
       this.parents = parents;
-    }
-  }
-
-  /**
-   * Git implementation of {@link OriginalAuthor} that parses the author from the Git logs.
-   */
-  private static class GitOriginalAuthor implements OriginalAuthor {
-    private final Author author;
-
-    private GitOriginalAuthor(String authorStr) {
-      this.author = GitAuthorParser.parse(authorStr);
-    }
-
-    @Override
-    public String getId() {
-      return author.getEmail();
-    }
-
-    @Override
-    public Author resolve() {
-      return author;
-    }
-
-    /**
-     * WARNING: Do not change or override this method since we could leak
-     * non white-listed authors.
-     */
-    @Override
-    public final String toString() {
-      return super.toString() ;
     }
   }
 }

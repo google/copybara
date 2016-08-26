@@ -72,18 +72,21 @@ public interface Origin<R extends Origin.Reference> {
    * @param fromRef the reference used in the latest invocation. If null it means that no
    * previous ref could be found or that the destination didn't store the ref.
    * @param toRef current reference to transform.
+   * @param authoring the authoring object used for constructing the Author objects.
    * @throws CannotComputeChangesException if the change list cannot be computed.
    * @throws RepoException if any error happens during the computation of the diff.
    */
-  ImmutableList<Change<R>> changes(@Nullable R fromRef, R toRef) throws RepoException;
+  ImmutableList<Change<R>> changes(@Nullable R fromRef, R toRef, Authoring authoring)
+      throws RepoException;
 
   /**
    * Returns a change identified by {@code ref}.
    *
    * @param ref current reference to transform.
+   * @param authoring the authoring object used for constructing the Author objects.
    * @throws RepoException if any error happens during the computation of the diff.
    */
-  Change<R> change(R ref) throws RepoException;
+  Change<R> change(R ref, Authoring authoring) throws RepoException;
 
   /**
    * Visit the parents of {@code start} reference recursively and call the visitor for each change.
@@ -92,11 +95,12 @@ public interface Origin<R extends Origin.Reference> {
    *
    * <p>It is up to the Origin how and what changes it provides to the function.
    */
-  void visitChanges(R start, ChangesVisitor visitor) throws RepoException;
+  void visitChanges(R start, ChangesVisitor visitor, Authoring authoring) throws RepoException;
 
   /**
    * A visitor of changes. An implementation of this interface is provided to the {@link
-   * #visitChanges(Reference, ChangesVisitor)} methods to visit changes in Origin history.
+   * #visitChanges(Reference, ChangesVisitor, Authoring)} methods to visit changes in Origin
+   * history.
    */
   interface ChangesVisitor {
 
@@ -108,7 +112,8 @@ public interface Origin<R extends Origin.Reference> {
   }
 
   /**
-   * The result type for the function passed to {@link #visitChanges(Reference, ChangesVisitor)}. }
+   * The result type for the function passed to {@link #visitChanges(Reference, ChangesVisitor,
+   * Authoring)}. }
    */
   enum VisitResult {
     /**
@@ -128,20 +133,4 @@ public interface Origin<R extends Origin.Reference> {
    * reference. For example "Git-RevId".
    */
   String getLabelName();
-
-  /**
-   * Represents the original author of the change in the origin.
-   */
-  interface OriginalAuthor {
-
-    /**
-     * Returns the unique identifier of this author in the {@link Origin}.
-     */
-    String getId();
-
-    /**
-     * Resolves this {@link OriginalAuthor} into an {@link Author}.
-     */
-    Author resolve();
-  }
 }

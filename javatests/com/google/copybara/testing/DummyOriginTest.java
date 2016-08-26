@@ -3,6 +3,10 @@ package com.google.copybara.testing;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.copybara.Author;
+import com.google.copybara.Authoring;
+import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
 import com.google.copybara.RepoException;
 import org.junit.Rule;
@@ -36,7 +40,9 @@ public class DummyOriginTest {
         .addSimpleChange(/*timestamp*/ 4242, "foo msg");
 
     ImmutableList<Change<DummyReference>> changes =
-        origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0"));
+        origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0"),
+            new Authoring(new Author("foo", "default.example.com"),
+                AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of()));
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getMessage()).isEqualTo("foo msg");
   }
@@ -64,18 +70,20 @@ public class DummyOriginTest {
   @Test
   public void canSetAuthorOfIndividualChanges() throws Exception {
     DummyOrigin origin = new DummyOrigin()
-        .setOriginalAuthor(new DummyOriginalAuthor("Dummy Origin", "dummy_origin@google.com"))
+        .setAuthor(new Author("Dummy Origin", "dummy_origin@google.com"))
         .addSimpleChange(/*timestamp*/ 42)
-        .setOriginalAuthor(new DummyOriginalAuthor("Wise Origin", "wise_origin@google.com"))
+        .setAuthor(new Author("Wise Origin", "wise_origin@google.com"))
         .addSimpleChange(/*timestamp*/ 999);
 
     ImmutableList<Change<DummyReference>> changes =
-        origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"));
+        origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"),
+            new Authoring(new Author("foo", "default.example.com"),
+                AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of()));
 
     assertThat(changes).hasSize(2);
-    assertThat(changes.get(0).getOriginalAuthor())
-        .isEqualTo(new DummyOriginalAuthor("Dummy Origin", "dummy_origin@google.com"));
-    assertThat(changes.get(1).getOriginalAuthor())
-        .isEqualTo(new DummyOriginalAuthor("Wise Origin", "wise_origin@google.com"));
+    assertThat(changes.get(0).getAuthor())
+        .isEqualTo(new Author("Dummy Origin", "dummy_origin@google.com"));
+    assertThat(changes.get(1).getAuthor())
+        .isEqualTo(new Author("Wise Origin", "wise_origin@google.com"));
   }
 }

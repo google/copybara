@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Destination;
@@ -15,7 +16,6 @@ import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.config.Config;
 import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.Sequence;
@@ -351,17 +351,18 @@ public class SkylarkParserTest {
 
     @Override
     public ImmutableList<Change<Reference>> changes(
-        @Nullable Reference fromRef, Reference toRef) throws RepoException {
+        @Nullable Reference fromRef, Reference toRef, Authoring authoring) throws RepoException {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Change<Reference> change(Reference ref) throws RepoException {
+    public Change<Reference> change(Reference ref, Authoring authoring) throws RepoException {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public void visitChanges(Reference start, ChangesVisitor visitor) throws RepoException {
+    public void visitChanges(Reference start, ChangesVisitor visitor, Authoring authoring)
+        throws RepoException {
       throw new UnsupportedOperationException();
     }
 

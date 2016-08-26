@@ -8,7 +8,9 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
+import com.google.copybara.Author;
+import com.google.copybara.Authoring;
+import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
 import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Origin.ChangesVisitor;
@@ -24,7 +26,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Rule;
@@ -43,7 +44,9 @@ public class GitOriginTest {
   private Path checkoutDir;
   private String firstCommitRef;
   private OptionsBuilder options;
-
+  private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
+      AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
+  
   @Rule public final ExpectedException thrown = ExpectedException.none();
 
   private TestingConsole console;
@@ -263,14 +266,14 @@ public class GitOriginTest {
     singleFileCommit(author, "change4", "test.txt", "some content4");
 
     ImmutableList<Change<GitReference>> changes = origin
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"), authoring);
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("change2\n");
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
     for (Change<GitReference> change : changes) {
-      assertThat(change.getOriginalAuthor().getId()).isEqualTo("john@name.com");
+      assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
     }
@@ -279,7 +282,7 @@ public class GitOriginTest {
   @Test
   public void testNoChanges() throws IOException, RepoException {
     ImmutableList<Change<GitReference>> changes = origin
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"), authoring);
 
     assertThat(changes).isEmpty();
   }
@@ -290,9 +293,9 @@ public class GitOriginTest {
     singleFileCommit(author, "change2", "test.txt", "some content2");
 
     GitReference lastCommitRef = getLastCommitRef();
-    Change<GitReference> change = origin.change(lastCommitRef);
+    Change<GitReference> change = origin.change(lastCommitRef, authoring);
 
-    assertThat(change.getOriginalAuthor().getId()).isEqualTo("john@name.com");
+    assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
     assertThat(change.firstLineMessage()).isEqualTo("change2");
     assertThat(change.getReference().asString()).isEqualTo(lastCommitRef.asString());
   }
@@ -307,7 +310,7 @@ public class GitOriginTest {
         + "foo: baz\n";
     singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
 
-    Change<GitReference> change = origin.change(getLastCommitRef());
+    Change<GitReference> change = origin.change(getLastCommitRef(), authoring);
     // We keep the last label. The probability that the last one is a label and the first one
     // is just description is very high.
     assertThat(change.getLabels()).containsEntry("foo", "baz");
@@ -346,7 +349,7 @@ public class GitOriginTest {
                 ? VisitResult.CONTINUE
                 : VisitResult.TERMINATE;
           }
-        });
+        }, authoring);
 
     assertThat(visited).hasSize(2);
     assertThat(visited.get(0).firstLineMessage()).isEqualTo("three");
@@ -365,7 +368,7 @@ public class GitOriginTest {
             visited.add(input);
             return VisitResult.CONTINUE;
           }
-        });
+        }, authoring);
 
     // We don't visit 'feature' branch since the visit is using --first-parent. Maybe we have
     // to revisit this in the future.
@@ -392,7 +395,7 @@ public class GitOriginTest {
     origin = origin();
 
     String newUrl = "file://" + remote.toFile().getAbsolutePath();
-    Change<GitReference> cliHead = origin.change(origin.resolve(newUrl));
+    Change<GitReference> cliHead = origin.change(origin.resolve(newUrl), authoring);
 
     origin.checkout(cliHead.getReference(), checkoutDir);
 
@@ -416,14 +419,14 @@ public class GitOriginTest {
     createBranchMerge(author);
 
     ImmutableList<Change<GitReference>> changes = origin
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"), authoring);
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
     assertThat(changes.get(1).getMessage()).isEqualTo("master2\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("Merge branch 'feature'\n");
     for (Change<GitReference> change : changes) {
-      assertThat(change.getOriginalAuthor().getId()).isEqualTo("john@name.com");
+      assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
       assertThat(change.getDate()).isAtLeast(beforeTime);
       assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
     }
@@ -462,9 +465,9 @@ public class GitOriginTest {
     git("commit", "-m", "second commit");
     GitReference secondRef = origin.resolve("HEAD");
 
-    assertThat(origin.change(firstRef).getMessage()).contains("first file");
-    assertThat(origin.changes(null, secondRef)).hasSize(2);
-    assertThat(origin.changes(firstRef, secondRef)).hasSize(1);
+    assertThat(origin.change(firstRef, authoring).getMessage()).contains("first file");
+    assertThat(origin.changes(null, secondRef, authoring)).hasSize(2);
+    assertThat(origin.changes(firstRef, secondRef, authoring)).hasSize(1);
   }
 
   private GitReference getLastCommitRef() throws RepoException {

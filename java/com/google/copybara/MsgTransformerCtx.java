@@ -1,7 +1,5 @@
 package com.google.copybara;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.copybara.Origin.Reference;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -23,18 +21,15 @@ public class MsgTransformerCtx<R extends Reference> {
 
   private String message;
   private Author author;
-  private final Iterable<Change<R>> currentChanges;
-  private final Iterable<Change<R>> alreadyMigrated;
-  private final Authoring authoring;
+  private final MutableList<Change<R>> currentChanges;
+  private final MutableList<Change<R>> alreadyMigrated;
 
-  public MsgTransformerCtx(String message, Author author,
-      Iterable<Change<R>> currentChanges, Iterable<Change<R>> alreadyMigrated,
-      Authoring authoring) {
+  public MsgTransformerCtx(String message, Author author, Iterable<Change<R>> currentChanges,
+      Iterable<Change<R>> alreadyMigrated) {
     this.message = message;
     this.author = author;
-    this.currentChanges = currentChanges;
-    this.alreadyMigrated = alreadyMigrated;
-    this.authoring = authoring;
+    this.currentChanges = new MutableList<>(currentChanges);
+    this.alreadyMigrated = new MutableList<>(alreadyMigrated);
   }
 
   @SkylarkCallable(name = "message", doc = "Message to be used in the change")
@@ -58,30 +53,14 @@ public class MsgTransformerCtx<R extends Reference> {
   }
 
   @SkylarkCallable(name = "current_changes", doc = "List of changes that will be migrated")
-  public SkylarkList<SkylarkChange> getChanges() {
-    return new MutableList<>(Iterables.transform(currentChanges, new SkylarkChangeConverter()));
+  public SkylarkList<Change<R>> getChanges() {
+    return currentChanges;
   }
 
   @SkylarkCallable(name = "migrated_changes", doc =
       "List of changes that where migrated in previous Copybara executions or if using ITERATIVE"
           + " mode in previous iterations of this workflow.")
-  public SkylarkList<SkylarkChange> getMigratedChanges() {
-    return new MutableList<>(Iterables.transform(alreadyMigrated, new SkylarkChangeConverter()));
-  }
-
-  /**
-   * Change to SkylarkChange converter. Temporary class until we merge both
-   * classes.
-   */
-  private class SkylarkChangeConverter implements Function<Change<?>, SkylarkChange> {
-
-    @Override
-    public SkylarkChange apply(Change<?> change) {
-      return new SkylarkChange(
-          authoring.resolve(change.getOriginalAuthor()),
-          change.getReference().asString(),
-          change.getMessage(),
-          change.getLabels());
-    }
+  public SkylarkList<Change<R>> getMigratedChanges() {
+    return alreadyMigrated;
   }
 }

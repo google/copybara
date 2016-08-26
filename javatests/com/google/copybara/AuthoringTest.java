@@ -5,8 +5,6 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring.AuthoringMappingMode;
-import com.google.copybara.Origin.OriginalAuthor;
-import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -41,7 +39,8 @@ public class AuthoringTest {
   public void overwriteTest() throws Exception {
     Authoring authoring = skylark.eval("result",
         "result = authoring.overwrite('foo bar <baz@bar.com>')");
-    assertThat(authoring).isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
+    assertThat(authoring)
+        .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
         AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of()));
   }
 
@@ -49,7 +48,8 @@ public class AuthoringTest {
   public void passThruTest() throws Exception {
     Authoring authoring = skylark.eval("result",
         "result = authoring.pass_thru('foo bar <baz@bar.com>')");
-    assertThat(authoring).isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
+    assertThat(authoring)
+        .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
         AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of()));
   }
 
@@ -59,7 +59,8 @@ public class AuthoringTest {
         + "result = authoring.whitelisted(\n"
         + "    default = 'foo bar <baz@bar.com>',\n"
         + "    whitelist = ['foo', 'bar'])");
-    assertThat(authoring).isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
+    assertThat(authoring)
+        .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
         AuthoringMappingMode.WHITELIST, ImmutableSet.of("foo", "bar")));
   }
 
@@ -101,28 +102,24 @@ public class AuthoringTest {
 
   @Test
   public void testResolve_use_default() throws Exception {
-    Authoring authoring = new Authoring(
-        DEFAULT_AUTHOR, AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of());
-    assertThat(authoring.resolve(new DummyOriginalAuthor("foo bar", "baz@bar.com")))
-        .isEqualTo(DEFAULT_AUTHOR);
+    Authoring authoring = new Authoring(DEFAULT_AUTHOR, AuthoringMappingMode.USE_DEFAULT,
+        ImmutableSet.<String>of());
+    assertThat(authoring.useAuthor("baz@bar.com")).isFalse();
   }
 
   @Test
   public void testResolve_pass_thru() throws Exception {
-    Authoring authoring = new Authoring(
-        DEFAULT_AUTHOR, AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
-    OriginalAuthor contributor = new DummyOriginalAuthor("foo bar", "baz@bar.com");
-    assertThat(authoring.resolve(contributor)).isEqualTo(new Author("foo bar", "baz@bar.com"));
+    Authoring authoring = new Authoring(DEFAULT_AUTHOR, AuthoringMappingMode.PASS_THRU,
+        ImmutableSet.<String>of());
+    assertThat(authoring.useAuthor("baz@bar.com")).isTrue();
   }
 
   @Test
   public void testResolve_whitelist() throws Exception {
     Authoring authoring = new Authoring(
         DEFAULT_AUTHOR, AuthoringMappingMode.WHITELIST, ImmutableSet.of("baz@bar.com"));
-    OriginalAuthor contributor = new DummyOriginalAuthor("foo bar", "baz@bar.com");
-    assertThat(authoring.resolve(contributor)).isEqualTo(new Author("foo bar", "baz@bar.com"));
-    assertThat(authoring.resolve(new DummyOriginalAuthor("John", "john@someemail.com")))
-        .isEqualTo(DEFAULT_AUTHOR);
+    assertThat(authoring.useAuthor("baz@bar.com")).isTrue();
+    assertThat(authoring.useAuthor("john@someemail.com")).isFalse();
   }
 
   private void asssertErrorMessage(String skylarkCode, final String errorMsg) {

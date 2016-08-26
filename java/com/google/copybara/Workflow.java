@@ -257,7 +257,7 @@ public abstract class Workflow<R extends Origin.Reference> {
                 "Previous revision label %s could not be found in %s and --last-rev flag"
                 + " was not passed", origin().getLabelName(), destination()));
       }
-      return origin().changes(getLastRev(), resolvedRef);
+      return origin().changes(getLastRev(), resolvedRef, authoring());
     }
 
     /**
@@ -299,9 +299,8 @@ public abstract class Workflow<R extends Origin.Reference> {
     MsgTransformerCtx<R> transformMetadata(String defaultMessage,
         Author author, Iterable<Change<R>> currentChanges, Iterable<Change<R>> alreadyMigrated)
         throws ValidationException {
-      MsgTransformerCtx<R> ctx = new MsgTransformerCtx<>(
-          defaultMessage, author, currentChanges, alreadyMigrated,
-          authoring());
+      MsgTransformerCtx<R> ctx = new MsgTransformerCtx<>(defaultMessage, author, currentChanges,
+          alreadyMigrated);
       for (BaseFunction func : Workflow.this.messageTransformers()) {
         try {
           Object result = func.call(ImmutableList.<Object>of(ctx),/*kwargs=*/null,/*ast*/null,

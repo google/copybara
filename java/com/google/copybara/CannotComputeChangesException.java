@@ -4,7 +4,7 @@ package com.google.copybara;
 import com.google.copybara.Origin.Reference;
 
 /**
- * Exceptions that happen when {@link Origin#changes(Reference, Reference)} cannot compute the
+ * Exceptions that happen when {@link Origin#changes(Reference, Reference, Authoring)} cannot compute the
  * changes between two references.
  */
 public class CannotComputeChangesException extends RepoException {

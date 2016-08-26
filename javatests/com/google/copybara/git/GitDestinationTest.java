@@ -14,7 +14,6 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
-import com.google.copybara.testing.DummyOriginalAuthor;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -461,7 +460,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     DummyReference firstCommit = new DummyReference("first_commit")
-        .withOriginalAuthor(new DummyOriginalAuthor("Foo Bar", "foo@bar.com"))
+        .withAuthor(new Author("Foo Bar", "foo@bar.com"))
         .withTimestamp(1414141414);
     process(destinationFirstCommit(), firstCommit);
 

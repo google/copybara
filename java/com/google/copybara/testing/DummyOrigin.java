@@ -4,6 +4,8 @@ package com.google.copybara.testing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Author;
+import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
@@ -25,15 +27,14 @@ import javax.annotation.Nullable;
  */
 public class DummyOrigin implements Origin<DummyReference> {
 
-  private static final OriginalAuthor DEFAULT_AUTHOR =
-      new DummyOriginalAuthor("Dummy Author", "no-reply@dummy.com");
+  private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
   private final FileSystem fs;
-  private OriginalAuthor originalAuthor;
+  private Author author;
 
   public DummyOrigin() {
     this.fs = Jimfs.newFileSystem();
-    this.originalAuthor = DEFAULT_AUTHOR;
+    this.author = DEFAULT_AUTHOR;
   }
 
   public static final String LABEL_NAME = "DummyOrigin-RevId";
@@ -43,8 +44,8 @@ public class DummyOrigin implements Origin<DummyReference> {
   /**
    * Sets the author to use for the following changes that get added.
    */
-  public DummyOrigin setOriginalAuthor(OriginalAuthor originalAuthor) {
-    this.originalAuthor = originalAuthor;
+  public DummyOrigin setAuthor(Author author) {
+    this.author = author;
     return this;
   }
 
@@ -67,7 +68,7 @@ public class DummyOrigin implements Origin<DummyReference> {
   }
 
   public DummyOrigin addChange(long timestamp, Path path, String message) {
-    changes.add(new DummyReference("" + changes.size(), message, originalAuthor, path, timestamp));
+    changes.add(new DummyReference("" + changes.size(), message, author, path, timestamp));
     return this;
   }
 
@@ -115,14 +116,15 @@ public class DummyOrigin implements Origin<DummyReference> {
 
   @Override
   public ImmutableList<Change<DummyReference>> changes(
-      DummyReference oldRef, @Nullable DummyReference newRef) throws RepoException {
+      DummyReference oldRef, @Nullable DummyReference newRef, Authoring authoring)
+      throws RepoException {
 
     int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
 
     ImmutableList.Builder<Change<DummyReference>> result = ImmutableList.builder();
     while (current < changes.size()) {
       DummyReference ref = changes.get(current);
-      result.add(ref.toChange());
+      result.add(ref.toChange(authoring));
       if (newRef == ref) {
         break;
       }
@@ -132,7 +134,8 @@ public class DummyOrigin implements Origin<DummyReference> {
   }
 
   @Override
-  public Change<DummyReference> change(DummyReference ref) throws RepoException {
+  public Change<DummyReference> change(DummyReference ref, Authoring authoring)
+      throws RepoException {
     int idx = Integer.parseInt(ref.asString());
     DummyReference dummyRef;
     try {
@@ -140,18 +143,19 @@ public class DummyOrigin implements Origin<DummyReference> {
     } catch (IndexOutOfBoundsException e) {
       throw new RepoException(String.format("Reference '%s' not found", ref));
     }
-    return dummyRef.toChange();
+    return dummyRef.toChange(authoring);
   }
 
   @Override
-  public void visitChanges(DummyReference start, ChangesVisitor visitor) throws RepoException {
+  public void visitChanges(DummyReference start, ChangesVisitor visitor, Authoring authoring)
+      throws RepoException {
     boolean found = false;
     for (DummyReference change : Lists.reverse(changes)) {
       if (change.equals(start)) {
         found = true;
       }
       if (found) {
-        if (visitor.visit(change.toChange()) == VisitResult.TERMINATE) {
+        if (visitor.visit(change.toChange(authoring)) == VisitResult.TERMINATE) {
           return;
         }
       }

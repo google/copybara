@@ -3,18 +3,16 @@ package com.google.copybara.testing;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.Author;
+import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Origin;
-import com.google.copybara.Origin.OriginalAuthor;
 import com.google.copybara.RepoException;
-
-import org.joda.time.DateTime;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import javax.annotation.Nullable;
+import org.joda.time.DateTime;
 
 /**
  * A reference of a change used for testing. This can be used with a {@link DummyOrigin} instance or
@@ -22,12 +20,11 @@ import javax.annotation.Nullable;
  */
 public class DummyReference implements Origin.Reference {
 
-  private static final OriginalAuthor DEFAULT_AUTHOR =
-      new DummyOriginalAuthor("Dummy Author", "no-reply@dummy.com");
+  private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
   private final String reference;
   private final String message;
-  private final OriginalAuthor originalAuthor;
+  private final Author author;
   final Path changesBase;
   private final Long timestamp;
   private final ImmutableMap<String, String> labels;
@@ -38,11 +35,11 @@ public class DummyReference implements Origin.Reference {
   }
 
   DummyReference(
-      String reference, String message, OriginalAuthor originalAuthor, Path changesBase,
+      String reference, String message, Author author, Path changesBase,
       @Nullable Long timestamp) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
-    this.originalAuthor = Preconditions.checkNotNull(originalAuthor);
+    this.author = Preconditions.checkNotNull(author);
     this.changesBase = Preconditions.checkNotNull(changesBase);
     this.timestamp = timestamp;
 
@@ -61,12 +58,12 @@ public class DummyReference implements Origin.Reference {
    */
   public DummyReference withTimestamp(long newTimestamp) {
     return new DummyReference(
-        this.reference, this.message, this.originalAuthor, this.changesBase, newTimestamp);
+        this.reference, this.message, this.author, this.changesBase, newTimestamp);
   }
 
-  public DummyReference withOriginalAuthor(OriginalAuthor originalAuthor) {
+  public DummyReference withAuthor(Author newAuthor) {
     return new DummyReference(
-        this.reference, this.message, originalAuthor, this.changesBase, this.timestamp);
+        this.reference, this.message, newAuthor, this.changesBase, this.timestamp);
   }
 
   @Nullable
@@ -85,11 +82,14 @@ public class DummyReference implements Origin.Reference {
     return DummyOrigin.LABEL_NAME;
   }
 
-  Change<DummyReference> toChange() {
-    return new Change<>(this, originalAuthor, message, new DateTime(timestamp), labels);
+  Change<DummyReference> toChange(Authoring authoring) {
+    Author safeAuthor = authoring.useAuthor(this.author.getEmail())
+        ? this.author
+        : authoring.getDefaultAuthor();
+    return new Change<>(this, safeAuthor, message, new DateTime(timestamp), labels);
   }
 
-  public OriginalAuthor getOriginalAuthor() {
-    return originalAuthor;
+  public Author getAuthor() {
+    return author;
   }
 }

@@ -20,7 +20,7 @@ public class TransformResults {
       Path path, DummyReference originRef, Glob destinationFiles)
       throws ConfigValidationException, RepoException {
     return new TransformResult(
-        path, originRef, originRef.getOriginalAuthor().resolve(), "test summary\n",
+        path, originRef, originRef.getAuthor(), "test summary\n",
         destinationFiles);
   }
 

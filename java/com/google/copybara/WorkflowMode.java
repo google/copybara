@@ -67,7 +67,7 @@ public enum WorkflowMode {
         for (Change<R> change : changes) {
           defaultMsg.append(String.format("  - %s %s by %s\n",
               change.getReference().asString(), change.firstLineMessage(),
-              runHelper.getAuthoring().resolve(change.getOriginalAuthor())));
+              change.getAuthor()));
         }
       }
       return runHelper.transformMetadata(defaultMsg.toString(), defaultAuthor, changes.reverse(),
@@ -94,7 +94,7 @@ public enum WorkflowMode {
             changeNumber, changes.size(), change.getReference().asString());
         WriterResult result;
         try {
-          Author author = runHelper.getAuthoring().resolve(change.getOriginalAuthor());
+          Author author = change.getAuthor();
           MsgTransformerCtx<R> ctx = runHelper.transformMetadata(
               change.getMessage(), author, ImmutableList.of(change), migrated);
           runHelper.transformMetadata(change.getMessage(), author, ImmutableList.of(change),
@@ -142,7 +142,7 @@ public enum WorkflowMode {
             }
             return VisitResult.CONTINUE;
           }
-        });
+        }, runHelper.getAuthoring());
       }
 
       if (Strings.isNullOrEmpty(requestParent.get())) {
@@ -151,9 +151,10 @@ public enum WorkflowMode {
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
-      Change<R> change = runHelper.getOrigin().change(runHelper.getResolvedRef());
-      Author author = runHelper.getAuthoring().resolve(change.getOriginalAuthor());
-      MsgTransformerCtx<R> ctx = runHelper.transformMetadata(change.getMessage(), author,
+      Change<R> change = runHelper.getOrigin().change(
+          runHelper.getResolvedRef(), runHelper.getAuthoring());
+      MsgTransformerCtx<R> ctx = runHelper.transformMetadata(change.getMessage(),
+          change.getAuthor(),
           ImmutableList.of(change), ImmutableList.<Change<R>>of());
       runHelper.migrate(
           runHelper.getResolvedRef(),
