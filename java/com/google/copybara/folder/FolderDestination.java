@@ -27,6 +27,7 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.config.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -61,14 +62,28 @@ public class FolderDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter() {
-    return new WriterImpl();
+  public Writer newWriter(Glob destinationFiles) {
+    return new WriterImpl(destinationFiles);
   }
 
   private class WriterImpl implements Writer {
+
+    final Glob destinationFiles;
+
+    WriterImpl(Glob destinationFiles) {
+      this.destinationFiles = destinationFiles;
+    }
+
+    @Nullable
+    @Override
+    public String getPreviousRef(String labelName) {
+      // Not supported
+      return null;
+    }
+
     @Override
     public WriterResult write(TransformResult transformResult, Console console)
-      throws RepoException, IOException {
+        throws RepoException, IOException {
       console.progress("FolderDestination: creating " + localFolder);
       try {
         Files.createDirectories(localFolder);
@@ -79,20 +94,12 @@ public class FolderDestination implements Destination {
       }
       console.progress("FolderDestination: deleting previous data from " + localFolder);
 
-      FileUtil.deleteFilesRecursively(localFolder,
-          transformResult.getDestinationFiles().relativeTo(localFolder));
+      FileUtil.deleteFilesRecursively(localFolder, destinationFiles.relativeTo(localFolder));
 
       console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);
       FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder);
       return WriterResult.OK;
     }
-  }
-
-  @Nullable
-  @Override
-  public String getPreviousRef(String labelName) {
-    // Not supported
-    return null;
   }
 
   @Override

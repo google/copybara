@@ -24,6 +24,7 @@ all_tests(
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/transform",
+        "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:jimfs",

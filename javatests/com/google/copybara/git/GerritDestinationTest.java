@@ -113,11 +113,10 @@ public class GerritDestinationTest {
 
   private void process(DummyReference originRef)
       throws ConfigValidationException, RepoException, IOException {
-    WriterResult result = destination().newWriter()
+    WriterResult result = destination()
+        .newWriter(new Glob(ImmutableList.of("**"), excludedDestinationPaths))
         .write(
-            TransformResults.of(
-                workdir, originRef,
-                new Glob(ImmutableList.of("**"), excludedDestinationPaths)),
+            TransformResults.of(workdir, originRef),
             console);
     assertThat(result).isEqualTo(WriterResult.OK);
   }

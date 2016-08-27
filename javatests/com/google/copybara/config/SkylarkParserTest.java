@@ -35,6 +35,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.Sequence;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
@@ -398,13 +399,7 @@ public class SkylarkParserTest {
 
 
     @Override
-    public Writer newWriter() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Nullable
-    @Override
-    public String getPreviousRef(String labelName) throws RepoException {
+    public Writer newWriter(Glob destinationFiles) {
       throw new UnsupportedOperationException();
     }
 

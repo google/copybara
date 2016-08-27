@@ -69,12 +69,11 @@ public class FolderDestinationTest {
     skylark.<Destination>eval("dest", String.format(""
         + "core.project( name = '%s')\n"
         + "dest = folder.destination()", CONFIG_NAME))
-        .newWriter()
+        .newWriter(new Glob(ImmutableList.of("**"), excludedPathsForDeletion))
         .write(
             TransformResults.of(
                 workdir,
-                new DummyReference("origin_ref"),
-                new Glob(ImmutableList.of("**"), excludedPathsForDeletion)),
+                new DummyReference("origin_ref")),
             options.general.console());
   }
 

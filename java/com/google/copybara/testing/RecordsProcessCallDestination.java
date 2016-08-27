@@ -55,6 +55,21 @@ public class RecordsProcessCallDestination implements Destination {
   public boolean failOnEmptyChange = false;
 
   private class WriterImpl implements Writer {
+
+    final Glob destinationFiles;
+
+    WriterImpl(Glob destinationFiles) {
+      this.destinationFiles = destinationFiles;
+    }
+
+    @Nullable
+    @Override
+    public String getPreviousRef(String labelName) {
+      return processed.isEmpty()
+          ? null
+          : processed.get(processed.size() - 1).getOriginRef().asString();
+    }
+
     @Override
     public WriterResult write(TransformResult transformResult, Console console)
         throws EmptyChangeException {
@@ -65,7 +80,7 @@ public class RecordsProcessCallDestination implements Destination {
         throw new EmptyChangeException("Change did not produce a result");
       }
       processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
-          transformResult.getBaseline()));
+          transformResult.getBaseline(), destinationFiles));
       return programmedResults.isEmpty()
           ? WriterResult.OK
           : programmedResults.removeFirst();
@@ -90,16 +105,8 @@ public class RecordsProcessCallDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter() {
-    return new WriterImpl();
-  }
-
-  @Nullable
-  @Override
-  public String getPreviousRef(String labelName) {
-    return processed.isEmpty()
-        ? null
-        : processed.get(processed.size() - 1).getOriginRef().asString();
+  public Writer newWriter(Glob destinationFiles) {
+    return new WriterImpl(destinationFiles);
   }
 
   @Override
@@ -112,12 +119,14 @@ public class RecordsProcessCallDestination implements Destination {
     private final TransformResult transformResult;
     private final ImmutableMap<String, String> workdir;
     private final String baseline;
+    private final Glob destinationFiles;
 
     private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir,
-        String baseline) {
+        String baseline, Glob destinationFiles) {
       this.transformResult = Preconditions.checkNotNull(transformResult);
       this.workdir = Preconditions.checkNotNull(workdir);
       this.baseline = baseline;
+      this.destinationFiles = destinationFiles;
     }
 
     public long getTimestamp() {
@@ -154,7 +163,7 @@ public class RecordsProcessCallDestination implements Destination {
     }
 
     public Glob getDestinationFiles() {
-      return transformResult.getDestinationFiles();
+      return destinationFiles;
     }
 
     @Override

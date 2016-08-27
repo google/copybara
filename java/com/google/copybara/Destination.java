@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -57,6 +58,19 @@ public interface Destination {
    * changes where each change is the following change's parent.
    */
   interface Writer {
+
+    /**
+     * Returns the latest origin ref that was pushed to this destination.
+     *
+     * <p>Returns null if the last origin ref cannot be identified or the destination doesn't
+     * support this feature. This requires that the {@code Destination} stores information about
+     * the origin ref.
+     *
+     * <p>This method may have undefined behavior if called after {@link #write(TransformResult)}.
+     */
+    @Nullable
+    String getPreviousRef(String labelName) throws RepoException;
+
     /**
      * Writes the fully-transformed repository stored at {@code workdir} to this destination.
      * @param transformResult what to write to the destination
@@ -64,28 +78,19 @@ public interface Destination {
      */
     WriterResult write(TransformResult transformResult, Console console)
         throws RepoException, IOException;
-
   }
 
   /**
    * Creates a writer which is capable of writing to this destination. This writer may maintain
    * state between writing of revisions.
    *
-   * <p>Implementors should not attempt to do non-trivial work in this method. Instead, start-up
-   * work should be done in {@link Writer#write(TransformResult, Console)} where a {@link Console}
-   * reference is available.
-   */
-  Writer newWriter();
-
-  /**
-   * Returns the latest origin ref that was pushed to this destination.
+   * <p>This method should only do trivial initialization of the writer, since it does not have
+   * access to a {@link Console}.
    *
-   * <p>Returns null if the last origin ref cannot be identified or the destination doesn't support
-   * this feature. This requires that the {@code Destination} stores information about the origin
-   * ref.
+   * @param destinationFiles A path matcher which matches files in the destination that should be
+   *     deleted if they don't exist in the source.
    */
-  @Nullable
-  String getPreviousRef(String labelName) throws RepoException;
+  Writer newWriter(Glob destinationFiles);
 
   /**
    * Given a reverse workflow with an {@code Origin} than is of the same type as this destination,

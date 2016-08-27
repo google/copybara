@@ -18,7 +18,6 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
-import com.google.copybara.util.Glob;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
@@ -33,7 +32,6 @@ public final class TransformResult {
   private final Author author;
   private final long timestamp;
   private final String summary;
-  private final Glob destinationFiles;
   @Nullable
   private final String baseline;
   private final boolean askForConfirmation;
@@ -44,22 +42,21 @@ public final class TransformResult {
         ? refTimestamp : TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
   }
 
-  public TransformResult(Path path, Reference originRef, Author author, String summary,
-      Glob destinationFiles) throws RepoException {
+  public TransformResult(Path path, Reference originRef, Author author, String summary)
+      throws RepoException {
     this(path, originRef, author,
-        readTimestampOrCurrentTime(originRef), summary, destinationFiles,
+        readTimestampOrCurrentTime(originRef), summary,
         /*baseline=*/ null, /*askForConfirmation=*/ false);
   }
 
   private TransformResult(Path path, Reference originRef, Author author, long timestamp,
-      String summary, Glob destinationFiles, @Nullable String baseline,
+      String summary, @Nullable String baseline,
       boolean askForConfirmation) {
     this.path = Preconditions.checkNotNull(path);
     this.originRef = Preconditions.checkNotNull(originRef);
     this.author = Preconditions.checkNotNull(author);
     this.timestamp = timestamp;
     this.summary = Preconditions.checkNotNull(summary);
-    this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
     this.baseline = baseline;
     this.askForConfirmation = askForConfirmation;
   }
@@ -68,13 +65,13 @@ public final class TransformResult {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
         this.path, this.originRef, this.author, this.timestamp, this.summary,
-        this.destinationFiles, newBaseline, this.askForConfirmation);
+        newBaseline, this.askForConfirmation);
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
     return new TransformResult(
         this.path, this.originRef, this.author, this.timestamp, this.summary,
-        this.destinationFiles, this.baseline, askForConfirmation);
+        this.baseline, askForConfirmation);
   }
 
   /**
@@ -112,14 +109,6 @@ public final class TransformResult {
    */
   public String getSummary() {
     return summary;
-  }
-
-  /**
-   * A path matcher which matches files in the destination that should be kept even if they don't
-   * exist in the source.
-   */
-  public Glob getDestinationFiles() {
-    return destinationFiles;
   }
 
   /**

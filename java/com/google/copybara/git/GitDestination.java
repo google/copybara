@@ -112,12 +112,51 @@ public final class GitDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter() {
-    return new WriterImpl();
+  public Writer newWriter(Glob destinationFiles) {
+    return new WriterImpl(destinationFiles);
   }
 
   private class WriterImpl implements Writer {
+
     @Nullable private GitRepository scratchClone;
+    private final Glob destinationFiles;
+
+    WriterImpl(Glob destinationFiles) {
+      this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
+    }
+
+    @Nullable
+    @Override
+    public String getPreviousRef(String labelName) throws RepoException {
+      if (gitOptions.gitFirstCommit) {
+        return null;
+      }
+      GitRepository gitRepository = cloneBaseline();
+      String commit = gitRepository.revParse("FETCH_HEAD");
+      String labelPrefix = labelName + ": ";
+      // Look at commits in reverse chronological order, starting from FETCH_HEAD.
+      while (!commit.isEmpty()) {
+        // Get commit message body.
+        String body = gitRepository.simpleCommand("log", "--no-color", "--format=%b", commit, "-1")
+            .getStdout();
+        for (String line : body.split("\n")) {
+          if (line.startsWith(labelPrefix)) {
+            return line.substring(labelPrefix.length());
+          }
+        }
+
+        // Get parent hash.
+        commit = gitRepository.simpleCommand("log", "--no-color", "--format=%P", commit, "-1")
+            .getStdout().trim();
+        if (commit.indexOf(' ') != -1) {
+          throw new RepoException(
+              "Found commit with multiple parents (merge commit) when looking for "
+              + labelName + ". Please invoke Copybara with the --last-rev flag.");
+        }
+      }
+
+      return null;
+    }
 
     @Override
     public WriterResult write(TransformResult transformResult, Console console) throws RepoException {
@@ -153,8 +192,7 @@ public final class GitDestination implements Destination {
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
       alternate.simpleCommand("add", "--all");
 
-      new AddExcludedFilesToIndexVisitor(scratchClone, transformResult.getDestinationFiles())
-          .walk();
+      new AddExcludedFilesToIndexVisitor(scratchClone, destinationFiles).walk();
 
       alternate.commit(alternate, transformResult.getAuthor().toString(),
           transformResult.getTimestamp(), commitGenerator.message(transformResult, alternate));
@@ -204,11 +242,11 @@ public final class GitDestination implements Destination {
    */
   private static final class AddExcludedFilesToIndexVisitor extends SimpleFileVisitor<Path> {
     private final GitRepository repo;
-    private final PathMatcher matcher;
+    private final PathMatcher destinationFiles;
 
-    AddExcludedFilesToIndexVisitor(GitRepository repo, Glob matcherBuilder) {
+    AddExcludedFilesToIndexVisitor(GitRepository repo, Glob destinationFilesBuilder) {
       this.repo = repo;
-      this.matcher = matcherBuilder.relativeTo(repo.getWorkTree());
+      this.destinationFiles = destinationFilesBuilder.relativeTo(repo.getWorkTree());
     }
 
     private void git(String command, Path path) throws IOException {
@@ -225,7 +263,7 @@ public final class GitDestination implements Destination {
       if (dir.equals(repo.getGitDir())) {
         return FileVisitResult.SKIP_SUBTREE;
       }
-      if (!dir.equals(repo.getWorkTree()) && !matcher.matches(dir)) {
+      if (!dir.equals(repo.getWorkTree()) && !destinationFiles.matches(dir)) {
         // This may be a submodule directory, so add it back. I'm not sure why, but "reset" is
         // required here - because right now the dir deletion appears as staged for commit.
         git("reset", dir);
@@ -236,7 +274,7 @@ public final class GitDestination implements Destination {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      if (!matcher.matches(file)) {
+      if (!destinationFiles.matches(file)) {
         git("add", file);
       }
       return FileVisitResult.CONTINUE;
@@ -249,39 +287,6 @@ public final class GitDestination implements Destination {
         throw new RepoException("Error when adding excludedDestinationPaths to destination.", e);
       }
     }
-  }
-
-  @Nullable
-  @Override
-  public String getPreviousRef(String labelName) throws RepoException {
-    if (gitOptions.gitFirstCommit) {
-      return null;
-    }
-    GitRepository gitRepository = cloneBaseline();
-    String commit = gitRepository.revParse("FETCH_HEAD");
-    String labelPrefix = labelName + ": ";
-    // Look at commits in reverse chronological order, starting from FETCH_HEAD.
-    while (!commit.isEmpty()) {
-      // Get commit message body.
-      String body = gitRepository.simpleCommand("log", "--no-color", "--format=%b", commit, "-1")
-          .getStdout();
-      for (String line : body.split("\n")) {
-        if (line.startsWith(labelPrefix)) {
-          return line.substring(labelPrefix.length());
-        }
-      }
-
-      // Get parent hash.
-      commit = gitRepository.simpleCommand("log", "--no-color", "--format=%P", commit, "-1")
-          .getStdout().trim();
-      if (commit.indexOf(' ') != -1) {
-        throw new RepoException(
-            "Found commit with multiple parents (merge commit) when looking for "
-            + labelName + ". Please invoke Copybara with the --last-rev flag.");
-      }
-    }
-
-    return null;
   }
 
   @Override

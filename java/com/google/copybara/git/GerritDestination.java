@@ -28,6 +28,7 @@ import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.util.Iterator;
 import java.util.List;
@@ -107,16 +108,11 @@ public final class GerritDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter() {
-    return gitDestination.newWriter();
-  }
-
-  @Nullable
-  @Override
-  public String getPreviousRef(String labelName) throws RepoException {
-    // This doesn't make sense for Gerrit since we do not plan to use previous ref for
-    // pull requests.
-    return null;
+  public Writer newWriter(Glob destinationFiles) {
+    // TODO(matvore): Return a writer that doesn't support getPreviousRef()?
+    // That method doesn't make sense for Gerrit since we do not plan to use previous ref for pull
+    // requests.
+    return gitDestination.newWriter(destinationFiles);
   }
 
   @Override

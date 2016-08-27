@@ -150,7 +150,7 @@ public abstract class Workflow<R extends Origin.Reference> {
     RunHelper(Path workdir, R resolvedRef) {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
-      this.writer = destination().newWriter();
+      this.writer = destination().newWriter(destinationFiles());
     }
 
     R getResolvedRef() {
@@ -251,8 +251,7 @@ public abstract class Workflow<R extends Origin.Reference> {
         }
       }
 
-      TransformResult transformResult =
-          new TransformResult(checkoutDir, ref, author, message, destinationFiles());
+      TransformResult transformResult = new TransformResult(checkoutDir, ref, author, message);
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
@@ -295,7 +294,7 @@ public abstract class Workflow<R extends Origin.Reference> {
         }
       }
 
-      String previousRef = destination().getPreviousRef(origin().getLabelName());
+      String previousRef = writer.getPreviousRef(origin().getLabelName());
       return (previousRef == null) ? null : origin().resolve(previousRef);
     }
 
