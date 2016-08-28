@@ -1,3 +1,17 @@
+# Copyright 2016 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 workspace(name = "copybara")
 
 # LICENSE: The Apache Software License, Version 2.0
@@ -81,7 +95,7 @@ maven_jar(
 # LICENSE: The Apache Software License, Version 2.0
 http_archive(
     name = "io_bazel",
-    # TODO(malcon): Revisit to try to depend on a tag instead
+    # TODO(copybara-team): Revisit to try to depend on a tag instead
     # Currently we depend on a specific commit, otherwise the sha-256 would be changing all the
     # times.
     url = "https://github.com/bazelbuild/bazel/archive/c77b00f1a927fd2e321c80a24b6eb9539f5ac8b1.zip",

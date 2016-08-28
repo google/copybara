@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.copybara.config;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -82,7 +98,7 @@ public class SkylarkParser {
     Environment env = createEnvironment(eventHandler, globals);
 
     BuildFileAST buildFileAST = parseFile(content, eventHandler);
-    // TODO(malcon): multifile support
+    // TODO(copybara-team): multifile support
     checkState(buildFileAST.getImports().isEmpty(),
         "load() statements are still not supported: %s", buildFileAST.getImports());
 
@@ -101,7 +117,7 @@ public class SkylarkParser {
     checkCondition(workflow != null, String.format(
         "No workflow with '%s' name exists. Valid workflows: %s",
         workflowName, workflows.keySet()));
-    //TODO(team): After skylark migration config should have all the workflows and we should
+    //TODO(copybara-team): After skylark migration config should have all the workflows and we should
     // move the validation above outside of the loading.
     return new Config(checkNotMissing(projectName, "project"), workflow);
   }
@@ -109,7 +125,7 @@ public class SkylarkParser {
   private BuildFileAST parseFile(ConfigFile content, EventHandler eventHandler)
       throws IOException {
     InMemoryFileSystem fs = new InMemoryFileSystem();
-    // TODO(malcon): Use real file name
+    // TODO(copybara-team): Use real file name
     com.google.devtools.build.lib.vfs.Path config = fs.getPath("/config.bzl");
     FileSystemUtils.writeContent(config, content.content());
 

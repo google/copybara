@@ -1,4 +1,19 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+/*
+ * Copyright (C) 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.copybara.git;
 
 import static com.google.copybara.util.CommandUtil.executeCommand;
@@ -120,7 +135,7 @@ public class GitRepository {
     // Github doesn't support it. So what we do is fetch the default refspec (see the comment
     // bellow) and hope the sha1 is reachable from heads.
     if (isSha1Reference(ref)) {
-      // TODO(malcon): For now we get the default refspec, but we should make this
+      // TODO(copybara-team): For now we get the default refspec, but we should make this
       // configurable. Otherwise it is not going to work with Gerrit.
       simpleCommand("fetch", "-f", url);
       return resolveReference(ref);
