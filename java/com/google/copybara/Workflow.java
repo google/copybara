@@ -141,6 +141,7 @@ public abstract class Workflow<R extends Origin.Reference> {
   final class RunHelper {
     private final Path workdir;
     final R resolvedRef;
+    private final Origin.Reader<R> reader;
     private final Destination.Writer writer;
 
     /**
@@ -150,6 +151,7 @@ public abstract class Workflow<R extends Origin.Reference> {
     RunHelper(Path workdir, R resolvedRef) {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
+      this.reader = origin().newReader(originFiles(), authoring());
       this.writer = destination().newWriter(destinationFiles());
     }
 
@@ -180,8 +182,8 @@ public abstract class Workflow<R extends Origin.Reference> {
       return destination();
     }
 
-    Origin<R> getOrigin() {
-      return origin();
+    Origin.Reader<R> getReader() {
+      return reader;
     }
 
     /**
@@ -209,7 +211,7 @@ public abstract class Workflow<R extends Origin.Reference> {
       Files.createDirectories(checkoutDir);
 
       processConsole.progress("Checking out the change");
-      origin().checkout(ref, checkoutDir);
+      reader.checkout(ref, checkoutDir);
 
       // Remove excluded origin files.
       if (!originFiles().isAllFiles()) {
@@ -271,7 +273,7 @@ public abstract class Workflow<R extends Origin.Reference> {
                 "Previous revision label %s could not be found in %s and --last-rev flag"
                 + " was not passed", origin().getLabelName(), destination()));
       }
-      return origin().changes(getLastRev(), resolvedRef, authoring());
+      return reader.changes(getLastRev(), resolvedRef);
     }
 
     /**

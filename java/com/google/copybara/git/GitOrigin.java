@@ -35,6 +35,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandUtil;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Consoles;
 import com.google.devtools.build.lib.shell.Command;
@@ -100,17 +101,68 @@ public final class GitOrigin implements Origin<GitReference> {
     return repository;
   }
 
-  /**
-   * Creates a worktree with the contents of the git reference
-   *
-   * <p>Any content in the workdir is removed/overwritten.
-   */
-  @Override
-  public void checkout(GitReference ref, Path workdir) throws RepoException {
-    repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", ref.asString());
-    if (!Strings.isNullOrEmpty(gitOptions.gitOriginCheckoutHook)) {
-      runCheckoutOrigin(workdir);
+  private class ReaderImpl implements Reader<GitReference> {
+
+    final Authoring authoring;
+
+    ReaderImpl(Authoring authoring) {
+      this.authoring = Preconditions.checkNotNull(authoring);
     }
+
+    /**
+     * Creates a worktree with the contents of the git reference
+     *
+     * <p>Any content in the workdir is removed/overwritten.
+     */
+    @Override
+    public void checkout(GitReference ref, Path workdir) throws RepoException {
+      repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", ref.asString());
+      if (!Strings.isNullOrEmpty(gitOptions.gitOriginCheckoutHook)) {
+        runCheckoutOrigin(workdir);
+      }
+    }
+
+    @Override
+    public ImmutableList<Change<GitReference>> changes(@Nullable GitReference fromRef,
+        GitReference toRef) throws RepoException {
+
+      String refRange = fromRef == null
+          ? toRef.asString()
+          : fromRef.asString() + ".." + toRef.asString();
+
+      return asChanges(new QueryChanges(authoring).run(refRange));
+    }
+
+    @Override
+    public Change<GitReference> change(GitReference ref) throws RepoException {
+      // The limit=1 flag guarantees that only one change is returned
+      return Iterables
+          .getOnlyElement(asChanges(new QueryChanges(authoring).limit(1).run(ref.asString())));
+    }
+
+    @Override
+    public void visitChanges(GitReference start, ChangesVisitor visitor) throws RepoException {
+      QueryChanges queryChanges = new QueryChanges(authoring).limit(1);
+
+      ImmutableList<GitChange> result = queryChanges.run(start.asString());
+      if (result.isEmpty()) {
+        throw new CannotFindReferenceException("Cannot find reference " + start.asString());
+      }
+      GitChange current = Iterables.getOnlyElement(result);
+      while (current != null) {
+        if (visitor.visit(current.change) == VisitResult.TERMINATE
+            || current.parents.isEmpty()) {
+          break;
+        }
+        current = Iterables.getOnlyElement(queryChanges.run(current.parents.get(0).asString()));
+      }
+    }
+  }
+
+  @Override
+  public Reader<GitReference> newReader(Glob originFiles, Authoring authoring) {
+    // TODO(matvore): Use originFiles to determine the depot trees from which to read.
+    return new ReaderImpl(authoring);
   }
 
   private void runCheckoutOrigin(Path workdir) throws RepoException {
@@ -146,44 +198,6 @@ public final class GitOrigin implements Origin<GitReference> {
       ref = reference;
     }
     return repoType.resolveRef(repository, repoUrl, ref, console);
-  }
-
-  @Override
-  public ImmutableList<Change<GitReference>> changes(@Nullable GitReference fromRef,
-      GitReference toRef, Authoring authoring) throws RepoException {
-
-    String refRange = fromRef == null
-        ? toRef.asString()
-        : fromRef.asString() + ".." + toRef.asString();
-
-    return asChanges(new QueryChanges(authoring).run(refRange));
-  }
-
-
-  @Override
-  public Change<GitReference> change(GitReference ref, Authoring authoring) throws RepoException {
-    // The limit=1 flag guarantees that only one change is returned
-    return Iterables
-        .getOnlyElement(asChanges(new QueryChanges(authoring).limit(1).run(ref.asString())));
-  }
-
-  @Override
-  public void visitChanges(GitReference start, ChangesVisitor visitor, Authoring authoring)
-      throws RepoException {
-    QueryChanges queryChanges = new QueryChanges(authoring).limit(1);
-
-    ImmutableList<GitChange> result = queryChanges.run(start.asString());
-    if (result.isEmpty()) {
-      throw new CannotFindReferenceException("Cannot find reference " + start.asString());
-    }
-    GitChange current = Iterables.getOnlyElement(result);
-    while (current != null) {
-      if (visitor.visit(current.change) == VisitResult.TERMINATE
-          || current.parents.isEmpty()) {
-        break;
-      }
-      current = Iterables.getOnlyElement(queryChanges.run(current.parents.get(0).asString()));
-    }
   }
 
   private class QueryChanges {

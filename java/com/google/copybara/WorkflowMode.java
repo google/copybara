@@ -148,7 +148,7 @@ public enum WorkflowMode {
           runHelper.workflowOptions().changeBaseline);
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
-        runHelper.getOrigin().visitChanges(runHelper.getResolvedRef(), new ChangesVisitor() {
+        runHelper.getReader().visitChanges(runHelper.getResolvedRef(), new ChangesVisitor() {
           @Override
           public VisitResult visit(Change<?> change) {
             if (change.getLabels().containsKey(originLabelName)) {
@@ -157,7 +157,7 @@ public enum WorkflowMode {
             }
             return VisitResult.CONTINUE;
           }
-        }, runHelper.getAuthoring());
+        });
       }
 
       if (Strings.isNullOrEmpty(requestParent.get())) {
@@ -166,8 +166,7 @@ public enum WorkflowMode {
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
-      Change<R> change = runHelper.getOrigin().change(
-          runHelper.getResolvedRef(), runHelper.getAuthoring());
+      Change<R> change = runHelper.getReader().change(runHelper.getResolvedRef());
       MsgTransformerCtx<R> ctx = runHelper.transformMetadata(change.getMessage(),
           change.getAuthor(),
           ImmutableList.of(change), ImmutableList.<Change<R>>of());

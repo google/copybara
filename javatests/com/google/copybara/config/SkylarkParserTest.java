@@ -357,29 +357,12 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public void checkout(Reference ref, Path workdir) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Reference resolve(@Nullable String reference) throws RepoException {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public ImmutableList<Change<Reference>> changes(
-        @Nullable Reference fromRef, Reference toRef, Authoring authoring) throws RepoException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Change<Reference> change(Reference ref, Authoring authoring) throws RepoException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void visitChanges(Reference start, ChangesVisitor visitor, Authoring authoring)
-        throws RepoException {
+    public Origin.Reader<Reference> newReader(Glob originFiles, Authoring authoring) {
       throw new UnsupportedOperationException();
     }
 

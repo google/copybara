@@ -24,7 +24,9 @@ import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
+import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
+import com.google.copybara.util.Glob;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -55,10 +57,11 @@ public class DummyOriginTest {
     DummyOrigin origin = new DummyOrigin()
         .addSimpleChange(/*timestamp*/ 4242, "foo msg");
 
+    Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
+        AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of());
+    Reader<DummyReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
     ImmutableList<Change<DummyReference>> changes =
-        origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0"),
-            new Authoring(new Author("foo", "default.example.com"),
-                AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of()));
+        reader.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0"));
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getMessage()).isEqualTo("foo msg");
   }
@@ -91,10 +94,10 @@ public class DummyOriginTest {
         .setAuthor(new Author("Wise Origin", "wise_origin@google.com"))
         .addSimpleChange(/*timestamp*/ 999);
 
-    ImmutableList<Change<DummyReference>> changes =
-        origin.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"),
-            new Authoring(new Author("foo", "default.example.com"),
-                AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of()));
+    Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
+        AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
+    ImmutableList<Change<DummyReference>> changes = origin.newReader(Glob.ALL_FILES, authoring)
+        .changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"));
 
     assertThat(changes).hasSize(2);
     assertThat(changes.get(0).getAuthor())

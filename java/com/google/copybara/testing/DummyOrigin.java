@@ -16,6 +16,7 @@
 
 package com.google.copybara.testing;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
@@ -24,6 +25,7 @@ import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
@@ -95,24 +97,6 @@ public class DummyOrigin implements Origin<DummyReference> {
   }
 
   @Override
-  public void checkout(final DummyReference ref, final Path workdir) throws RepoException {
-    try {
-      Files.walkFileTree(ref.changesBase, new SimpleFileVisitor<Path>() {
-        @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-            throws IOException {
-          Path destination = workdir.resolve(ref.changesBase.relativize(file).toString());
-          Files.createDirectories(destination.getParent());
-          Files.write(destination, Files.readAllBytes(file));
-          return FileVisitResult.CONTINUE;
-        }
-      });
-    } catch (IOException e) {
-      throw new RepoException("Error copying files", e);
-    }
-  }
-
-  @Override
   public DummyReference resolve(@Nullable final String reference) throws RepoException {
     int idx = changes.size() - 1;
     if (reference != null) {
@@ -129,56 +113,84 @@ public class DummyOrigin implements Origin<DummyReference> {
     return changes.get(idx);
   }
 
-  @Override
-  public ImmutableList<Change<DummyReference>> changes(
-      DummyReference oldRef, @Nullable DummyReference newRef, Authoring authoring)
-      throws RepoException {
+  private class ReaderImpl implements Reader<DummyReference> {
 
-    int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
+    final Authoring authoring;
 
-    ImmutableList.Builder<Change<DummyReference>> result = ImmutableList.builder();
-    while (current < changes.size()) {
-      DummyReference ref = changes.get(current);
-      result.add(ref.toChange(authoring));
-      if (newRef == ref) {
-        break;
-      }
-      current++;
+    ReaderImpl(Authoring authoring) {
+      this.authoring = Preconditions.checkNotNull(authoring);
     }
-    return result.build();
-  }
 
-  @Override
-  public Change<DummyReference> change(DummyReference ref, Authoring authoring)
-      throws RepoException {
-    int idx = Integer.parseInt(ref.asString());
-    DummyReference dummyRef;
-    try {
-      dummyRef = changes.get(idx);
-    } catch (IndexOutOfBoundsException e) {
-      throw new RepoException(String.format("Reference '%s' not found", ref));
-    }
-    return dummyRef.toChange(authoring);
-  }
-
-  @Override
-  public void visitChanges(DummyReference start, ChangesVisitor visitor, Authoring authoring)
-      throws RepoException {
-    boolean found = false;
-    for (DummyReference change : Lists.reverse(changes)) {
-      if (change.equals(start)) {
-        found = true;
+    @Override
+    public void checkout(final DummyReference ref, final Path workdir) throws RepoException {
+      try {
+        Files.walkFileTree(ref.changesBase, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                throws IOException {
+              Path destination = workdir.resolve(ref.changesBase.relativize(file).toString());
+              Files.createDirectories(destination.getParent());
+              Files.write(destination, Files.readAllBytes(file));
+              return FileVisitResult.CONTINUE;
+            }
+          });
+      } catch (IOException e) {
+        throw new RepoException("Error copying files", e);
       }
-      if (found) {
-        if (visitor.visit(change.toChange(authoring)) == VisitResult.TERMINATE) {
-          return;
+    }
+
+    @Override
+    public ImmutableList<Change<DummyReference>> changes(
+        DummyReference oldRef, @Nullable DummyReference newRef) throws RepoException {
+
+      int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
+
+      ImmutableList.Builder<Change<DummyReference>> result = ImmutableList.builder();
+      while (current < changes.size()) {
+        DummyReference ref = changes.get(current);
+        result.add(ref.toChange(authoring));
+        if (newRef == ref) {
+          break;
+        }
+        current++;
+      }
+      return result.build();
+    }
+
+    @Override
+    public Change<DummyReference> change(DummyReference ref) throws RepoException {
+      int idx = Integer.parseInt(ref.asString());
+      DummyReference dummyRef;
+      try {
+        dummyRef = changes.get(idx);
+      } catch (IndexOutOfBoundsException e) {
+        throw new RepoException(String.format("Reference '%s' not found", ref));
+      }
+      return dummyRef.toChange(authoring);
+    }
+
+    @Override
+    public void visitChanges(DummyReference start, ChangesVisitor visitor) throws RepoException {
+      boolean found = false;
+      for (DummyReference change : Lists.reverse(changes)) {
+        if (change.equals(start)) {
+          found = true;
+        }
+        if (found) {
+          if (visitor.visit(change.toChange(authoring)) == VisitResult.TERMINATE) {
+            return;
+          }
         }
       }
+      if (!found) {
+        throw new RepoException(
+            "Could not find " + start.asString() + " reference in the repository");
+      }
     }
-    if (!found) {
-      throw new RepoException(
-          "Could not find " + start.asString() + " reference in the repository");
-    }
+  }
+
+  public Reader<DummyReference> newReader(Glob originFiles, Authoring authoring) {
+    return new ReaderImpl(authoring);
   }
 
   @Override
