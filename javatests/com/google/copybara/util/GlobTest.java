@@ -18,6 +18,7 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.ConfigValidationException;
 import com.google.copybara.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -28,17 +29,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GlobTest {
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private SkylarkTestExecutor skylark;
 
@@ -68,6 +65,16 @@ public class GlobTest {
   @Test
   public void errorForNotNamingExclude() throws Exception {
     skylark.evalFails("glob(['bar/*'], ['bar/foo'])", "too many [(]2[)] positional arguments");
+  }
+
+  @Test
+  public void errorForEmptyIncludePath() throws Exception {
+    skylark.evalFails("glob([''])", "unexpected empty string in glob list");
+  }
+
+  @Test
+  public void errorForEmptyExcludePath() throws Exception {
+    skylark.evalFails("glob(['foo'], exclude = [''])", "unexpected empty string in glob list");
   }
 
   @Test
@@ -103,10 +110,64 @@ public class GlobTest {
     assertThat(pathMatcher.matches(workdir.resolve("GeneratedSome.java"))).isFalse();
   }
 
+  @Test
+  public void testRoots() {
+    assertThat(new Glob(ImmutableList.<String>of()).roots())
+        .isEmpty();
+    assertThat(new Glob(ImmutableList.of("**")).roots())
+        .containsExactly("");
+    assertThat(new Glob(ImmutableList.of("foo/**")).roots())
+        .containsExactly("foo");
+    assertThat(new Glob(ImmutableList.of("foo/**", "**")).roots())
+        .containsExactly("");
+    assertThat(new Glob(ImmutableList.of("foo/*.java")).roots())
+        .containsExactly("foo");
+
+    // If we include a single file in root, then the all-encompassing root list must include the
+    // repo root.
+    assertThat(new Glob(ImmutableList.of("foo")).roots())
+        .containsExactly("");
+  }
+
+  @Test
+  public void testRoots_prunesMultipleSegments() {
+    assertThat(new Glob(ImmutableList.of("foo/*/bar")).roots())
+        .containsExactly("foo");
+  }
+
+  @Test
+  public void testRoots_understandsEscaping() {
+    assertThat(new Glob(ImmutableList.of("foo\\*/*.java")).roots())
+        .containsExactly("foo*");
+    assertThat(new Glob(ImmutableList.of("foo\\*/bar")).roots())
+        .containsExactly("foo*");
+    assertThat(new Glob(ImmutableList.of("foo\\{/bar")).roots())
+        .containsExactly("foo{");
+  }
+
+  @Test
+  public void testRoots_obscureMeta() {
+    assertThat(new Glob(ImmutableList.of("foo/bar{baz/baz}")).roots())
+        .containsExactly("foo");
+    assertThat(new Glob(ImmutableList.of("baz/bar[az]/etc")).roots())
+        .containsExactly("baz");
+    assertThat(new Glob(ImmutableList.of("baz/bar.???/etc")).roots())
+        .containsExactly("baz");
+  }
+
+  @Test
+  public void testRoots_mergeRedundant() {
+    assertThat(new Glob(ImmutableList.of("foo/bar/baz", "foo/bar")).roots())
+        .containsExactly("foo");
+    assertThat(new Glob(ImmutableList.of("foo/bar/bag", "foo/bar/baz", "foo/bar")).roots())
+        .containsExactly("foo");
+    assertThat(new Glob(ImmutableList.of("foo/barbar/mer", "foo/bar/mer")).roots())
+        .containsExactly("foo/bar", "foo/barbar");
+  }
+
   private PathMatcher createPathMatcher(final String expression)
       throws ConfigValidationException {
     Glob result = skylark.eval("result", "result=" + expression);
     return result.relativeTo(workdir);
   }
-
 }
