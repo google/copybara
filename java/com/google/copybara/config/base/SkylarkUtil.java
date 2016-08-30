@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.google.copybara.config;
+package com.google.copybara.config.base;
 
-import com.beust.jcommander.internal.Nullable;
 import com.google.common.base.Joiner;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
+import javax.annotation.Nullable;
 
 /**
  * Utilities for dealing with Skylark parameter objects and converting them to Java ones.

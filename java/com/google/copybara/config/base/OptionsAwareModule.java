@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.config;
+package com.google.copybara.config.base;
 
 import com.google.copybara.Options;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;

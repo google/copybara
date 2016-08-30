@@ -21,6 +21,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -50,7 +51,7 @@ public final class CoreTransformTest {
   }
 
   private void transform(Transformation transform) throws IOException, ValidationException {
-    transform.transform(new TransformWork(checkoutDir, "testmsg"), console);
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg"), console);
   }
 
   @Test

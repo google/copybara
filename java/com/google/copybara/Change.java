@@ -54,17 +54,17 @@ public final class Change<R extends Origin.Reference> {
     return reference;
   }
 
-  @SkylarkCallable(name = "ref", doc = "A string identifier of the change.")
+  @SkylarkCallable(name = "ref", doc = "A string identifier of the change.", structField = true)
   public String refAsString() {
     return reference.asString();
   }
 
-  @SkylarkCallable(name = "author", doc = "The author of the change")
+  @SkylarkCallable(name = "author", doc = "The author of the change", structField = true)
   public Author getAuthor() {
     return author;
   }
 
-  @SkylarkCallable(name = "message", doc = "The message of the change")
+  @SkylarkCallable(name = "message", doc = "The message of the change", structField = true)
   public String getMessage() {
     return message;
   }
@@ -80,7 +80,8 @@ public final class Change<R extends Origin.Reference> {
   /**
    * Returns the first line of the change. Usually a summary.
    */
-  @SkylarkCallable(name = "first_line_message", doc = "The message of the change")
+  @SkylarkCallable(name = "first_line_message", doc = "The message of the change"
+      , structField = true)
   public String firstLineMessage() {
     int idx = message.indexOf('\n');
     return idx == -1 ? message : message.substring(0, idx);

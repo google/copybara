@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.google.copybara.config;
+package com.google.copybara;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.copybara.Workflow;
 import java.util.Objects;
 
 /**

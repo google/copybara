@@ -29,6 +29,7 @@ import com.google.copybara.VoidOperationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
@@ -66,7 +67,7 @@ public final class ReplaceTest {
   }
 
   private void transform(Replace replace) throws IOException, ValidationException {
-    replace.transform(new TransformWork(checkoutDir, "testmsg"), console);
+    replace.transform(TransformWorks.of(checkoutDir, "testmsg"), console);
   }
 
   @Test

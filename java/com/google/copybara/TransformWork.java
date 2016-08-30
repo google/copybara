@@ -17,20 +17,33 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.nio.file.Path;
 
 /**
  * Contains information related to an on-going process of repository transformation.
+ *
+ * This object is passed to the user defined functions in Skylark so that they can personalize the
+ * commit message, change the author or in the future run custom transformations.
  */
+@SkylarkModule(name = "TransformWork",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc = "Data about the set of changes that are being migrated. "
+        + "It includes information about changes like: the author to be used for commit, "
+        + "change message, etc. You receive a TransformWork object as an argument to the <code>"
+        + "transformations</code> functions used in <code>core.workflow</code>")
 public final class TransformWork {
 
   private final Path checkoutDir;
-  private final String summary;
+  private Metadata metadata;
+  private final Changes changes;
 
-  public TransformWork(Path checkoutDir, String summary) {
+  public TransformWork(Path checkoutDir, Metadata metadata, Changes changes) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
-    this.summary = Preconditions.checkNotNull(summary);
+    this.metadata = Preconditions.checkNotNull(metadata);
+    this.changes = changes;
   }
 
   /**
@@ -44,7 +57,31 @@ public final class TransformWork {
    * A description of the migrated changes to include in the destination's change description. The
    * destination may add more boilerplate text or metadata.
    */
-  public String getSummary() {
-    return summary;
+  @SkylarkCallable(name = "message", doc = "Message to be used in the change", structField = true)
+  public String getMessage() {
+    return metadata.getMessage();
+  }
+
+  @SkylarkCallable(name = "author", doc = "Author to be used in the change", structField = true)
+  public Author getAuthor() {
+    return metadata.getAuthor();
+  }
+
+  @SkylarkCallable(name = "set_message", doc = "Update the message to be used in the change")
+  public void setMessage(String message) {
+    this.metadata = new Metadata(Preconditions.checkNotNull(message, "Message cannot be null"),
+        metadata.getAuthor());
+  }
+
+  @SkylarkCallable(name = "set_author", doc = "Update the author to be used in the change")
+  public void setAuthor(Author author) {
+    this.metadata = new Metadata(metadata.getMessage(),
+        Preconditions.checkNotNull(author, "Author cannot be null"));
+  }
+
+  @SkylarkCallable(name = "changes", doc = "List of changes that will be migrated",
+      structField = true)
+  public Changes getChanges() {
+    return changes;
   }
 }

@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.WriterResult;
-import com.google.copybara.config.Config;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.MapConfigFile;
@@ -51,7 +50,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-// TODO(copybara-team): Migrate this to Skylark
 @RunWith(JUnit4.class)
 public class WorkflowTest {
 
@@ -712,9 +710,9 @@ public class WorkflowTest {
     runWorkflowForMessageTransform(WorkflowMode.ITERATIVE, ""
         + "def third(ctx):\n"
         + "  msg = ''\n"
-        + "  for c in ctx.migrated_changes():\n"
-        + "    msg+='PREV: %s (%s) by %s\\n' %  (c.message(), c.ref(), c.author().name())\n"
-        + "  ctx.set_message(ctx.message() + '\\nPREVIOUS CHANGES:\\n' + msg)\n");
+        + "  for c in ctx.changes.migrated:\n"
+        + "    msg+='PREV: %s (%s) by %s\\n' %  (c.message, c.ref, c.author.name)\n"
+        + "  ctx.set_message(ctx.message + '\\nPREVIOUS CHANGES:\\n' + msg)\n");
     ProcessedChange secondCommit = destination.processed.get(0);
     System.out.println(secondCommit.getChangesSummary());
     assertThat(secondCommit.getChangesSummary())
@@ -767,11 +765,11 @@ public class WorkflowTest {
         + "\n"
         + "def first(ctx):\n"
         + "  msg =''\n"
-        + "  for c in ctx.current_changes():\n"
-        + "    msg+='CHANGE: %s (%s) by %s\\n' %  (c.message(), c.ref(), c.author().name())\n"
+        + "  for c in ctx.changes.current:\n"
+        + "    msg+='CHANGE: %s (%s) by %s\\n' %  (c.message, c.ref, c.author.name)\n"
         + "  ctx.set_message(msg)\n"
         + "def second(ctx):\n"
-        + "  ctx.set_message(ctx.message() +'\\nBAR = foo\\n')\n"
+        + "  ctx.set_message(ctx.message +'\\nBAR = foo\\n')\n"
         + "  ctx.set_author(new_author('Someone <someone@somewhere.com>'))\n"
         + "\n"
         + (thirdTransform == null ? "" : thirdTransform)
@@ -781,7 +779,7 @@ public class WorkflowTest {
         + "    authoring = " + authoring + "\n,"
         + "    destination = testing.destination(),\n"
         + "    mode = '" + mode + "',\n"
-        + "    metadata_transformations = [\n"
+        + "    transformations = [\n"
         + "      first, second" + (thirdTransform == null ? "" : ", third") + "]\n"
         + ")\n");
     config.getActiveWorkflow().run(workdir, "2");

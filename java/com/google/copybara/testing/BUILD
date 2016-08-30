@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 licenses(["notice"])  # Apache 2.0
 
 java_library(
@@ -30,6 +29,7 @@ java_library(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/config/base",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",

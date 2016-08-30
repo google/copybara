@@ -48,7 +48,7 @@ public final class Author {
   /**
    * Returns the name of the author.
    */
-  @SkylarkCallable(name = "name", doc = "The name of the author")
+  @SkylarkCallable(name = "name", doc = "The name of the author", structField = true)
   public String getName() {
     return name;
   }
@@ -56,7 +56,7 @@ public final class Author {
   /**
    * Returns the email address of the author.
    */
-  @SkylarkCallable(name = "email", doc = "The email of the author")
+  @SkylarkCallable(name = "email", doc = "The email of the author", structField = true)
   public String getEmail() {
     return email;
   }

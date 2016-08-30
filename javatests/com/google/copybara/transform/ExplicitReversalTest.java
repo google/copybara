@@ -17,10 +17,12 @@
 package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.file.Paths.get;
 
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
+import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -73,7 +75,7 @@ public final class ExplicitReversalTest {
 
   private void transform(Transformation transformation) throws IOException, ValidationException {
     transformation.transform(
-        new TransformWork(Paths.get("/foo"), "test msg"),
+        TransformWorks.of(get("/foo"), "test msg"),
         new TestingConsole());
   }
 

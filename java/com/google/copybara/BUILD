@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 licenses(["notice"])  # Apache 2.0
 
 package(default_visibility = ["//visibility:public"])
@@ -58,13 +57,16 @@ BASE_SRCS = [
     "ConfigValidationException.java",
     "Destination.java",
     "EmptyChangeException.java",
+    "Metadata.java",
     "NonReversibleValidationException.java",
     "Option.java",
+    "Options.java",
     "Origin.java",
     "RepoException.java",
     "Transformation.java",
     "TransformResult.java",
     "TransformWork.java",
+    "Changes.java",
     "ValidationException.java",
     "VoidOperationException.java",
     "WorkflowOptions.java",
@@ -95,6 +97,7 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         ":base",
+        "//java/com/google/copybara/config/base",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/util",

@@ -25,8 +25,11 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
+import com.google.devtools.build.lib.syntax.BaseFunction;
+import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.SkylarkType;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -89,14 +92,25 @@ public class Sequence implements Transformation {
   /**
    * Create a sequence from Skylark that avoids nesting a single sequence twice.
    * @param description a description of the argument being converted, such as its name
+   * @param env skylark environment for user defined transformations
    */
-  public static Sequence fromConfig(SkylarkList<Transformation> elements, String description)
+  public static Sequence fromConfig(SkylarkList<?> elements, String description, Environment env)
       throws EvalException {
     //Avoid nesting one sequence inside another sequence
     if (elements.size() == 1 && elements.get(0) instanceof Sequence) {
       return (Sequence) elements.get(0);
     }
-    return new Sequence(
-        ImmutableList.copyOf(elements.getContents(Transformation.class, description)));
+
+    ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
+    for (Object element : elements) {
+
+      if (element instanceof BaseFunction) {
+        transformations.add(new SkylarkTransformation((BaseFunction) element, env));
+        continue;
+      }
+      SkylarkType.checkType(element, Transformation.class, "'" + description + "' element");
+      transformations.add((Transformation) element);
+    }
+    return new Sequence(transformations.build());
   }
 }

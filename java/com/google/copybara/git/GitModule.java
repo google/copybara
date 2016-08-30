@@ -17,12 +17,11 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
+import static com.google.copybara.config.base.SkylarkUtil.checkNotEmpty;
 
-import com.google.common.base.MoreObjects;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.config.OptionsAwareModule;
+import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;

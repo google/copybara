@@ -17,21 +17,15 @@
 package com.google.copybara;
 
 import com.google.auto.value.AutoValue;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.BaseFunction;
-import com.google.devtools.build.lib.syntax.Environment;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -78,16 +72,12 @@ public abstract class Workflow<R extends Origin.Reference> {
   abstract Glob originFiles();
   abstract Glob destinationFiles();
   abstract WorkflowMode mode();
-  abstract boolean includeChangeListNotes();
   abstract WorkflowOptions workflowOptions();
 
   @Nullable
   abstract Transformation reverseTransformForCheck();
   abstract boolean verbose();
   abstract boolean askForConfirmation();
-
-  abstract ImmutableList<BaseFunction> messageTransformers();
-  abstract Environment environment();
 
   /**
    * Overrides Autovalue {@code toString()}, filtering the fields that are not part of the
@@ -105,11 +95,8 @@ public abstract class Workflow<R extends Origin.Reference> {
         .add("originFiles", originFiles())
         .add("destinationFiles", destinationFiles ())
         .add("mode", mode())
-        .add("includeChangeListNotes", includeChangeListNotes())
         .add("reverseTransformForCheck", reverseTransformForCheck())
         .add("askForConfirmation", askForConfirmation())
-        .add("messageTransformer",
-            Iterables.transform(messageTransformers(), new BaseFunctionToName()))
         .toString();
   }
 
@@ -128,14 +115,6 @@ public abstract class Workflow<R extends Origin.Reference> {
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
     mode().run(new RunHelper(workdir, resolvedRef));
-  }
-
-  private static class BaseFunctionToName implements Function<BaseFunction, String> {
-
-    @Override
-    public String apply(BaseFunction baseFunction) {
-      return baseFunction.getName();
-    }
   }
 
   final class RunHelper {
@@ -191,19 +170,20 @@ public abstract class Workflow<R extends Origin.Reference> {
      * files, transforming the code, and writing to the destination. This writes to the destination
      * exactly once.
      * @param ref reference to the version which will be written to the destination
-     * @param author the author that the destination change will be attributed to
      * @param processConsole console to use to print progress messages
-     * @param message change message to write to the destination
+     * @param metadata metadata of the change to be migrated
+     * @param changes changes included in this migration
      *
      * @return The result of this migration
      */
-    WriterResult migrate(R ref, Author author, Console processConsole, String message)
+    WriterResult migrate(R ref, Console processConsole, Metadata metadata,
+        Changes changes)
         throws IOException, RepoException, ValidationException {
-      return migrate(ref, author, processConsole, message, /*destinationBaseline=*/ null);
+      return migrate(ref, processConsole, metadata, changes, /*destinationBaseline=*/ null);
     }
 
-    WriterResult migrate(R ref, Author author, Console processConsole, String message,
-        @Nullable String destinationBaseline)
+    WriterResult migrate(R ref, Console processConsole,
+        Metadata metadata, Changes changes, @Nullable String destinationBaseline)
         throws IOException, RepoException, ValidationException {
       processConsole.progress("Cleaning working directory");
       FileUtil.deleteAllFilesRecursively(workdir);
@@ -236,13 +216,16 @@ public abstract class Workflow<R extends Origin.Reference> {
         FileUtil.copyFilesRecursively(checkoutDir, originCopy);
       }
 
-      transformation().transform(new TransformWork(checkoutDir, message), processConsole);
+      TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes);
+      transformation().transform(transformWork, processConsole);
 
       if (reverseTransformForCheck() != null) {
         console().progress("Checking that the transformations can be reverted");
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse);
-        reverseTransformForCheck().transform(new TransformWork(reverse, message), processConsole);
+        reverseTransformForCheck().transform(
+            new TransformWork(reverse, metadata, changes),
+            processConsole);
         String diff = new String(DiffUtil.diff(originCopy, reverse, verbose()),
             StandardCharsets.UTF_8);
         if (!diff.trim().isEmpty()) {
@@ -253,7 +236,10 @@ public abstract class Workflow<R extends Origin.Reference> {
         }
       }
 
-      TransformResult transformResult = new TransformResult(checkoutDir, ref, author, message);
+      // TODO(malcon): Pass metadata object instead
+      TransformResult transformResult = new TransformResult(checkoutDir, ref,
+          transformWork.getAuthor(),
+          transformWork.getMessage());
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
@@ -298,42 +284,6 @@ public abstract class Workflow<R extends Origin.Reference> {
 
       String previousRef = writer.getPreviousRef(origin().getLabelName());
       return (previousRef == null) ? null : origin().resolve(previousRef);
-    }
-
-    String configName() {
-      return Workflow.this.configName();
-    }
-
-    boolean includeChangeListNotes() {
-      return Workflow.this.includeChangeListNotes();
-    }
-
-    /**
-     * Create change message from the changes. If it cannot be computed, use
-     * the default message.
-     */
-    MsgTransformerCtx<R> transformMetadata(String defaultMessage,
-        Author author, Iterable<Change<R>> currentChanges, Iterable<Change<R>> alreadyMigrated)
-        throws ValidationException {
-      MsgTransformerCtx<R> ctx = new MsgTransformerCtx<>(defaultMessage, author, currentChanges,
-          alreadyMigrated);
-      for (BaseFunction func : Workflow.this.messageTransformers()) {
-        try {
-          Object result = func.call(ImmutableList.<Object>of(ctx),/*kwargs=*/null,/*ast*/null,
-              environment());
-          if (!(result instanceof NoneType)) {
-            throw new ValidationException("Message transformer functions should not return"
-                + " anything, but '" + func.getName() + "' returned:" + result);
-          }
-        } catch (EvalException e) {
-          throw new ValidationException("Error while executing the message transformer "
-              + func.getName(), e);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new RuntimeException("This should not happen.", e);
-        }
-      }
-      return ctx;
     }
   }
 }

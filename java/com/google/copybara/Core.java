@@ -16,18 +16,19 @@
 
 package com.google.copybara;
 
-import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
-import static com.google.copybara.config.SkylarkUtil.stringToEnum;
+import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.base.SkylarkUtil.stringToEnum;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
-import com.google.copybara.config.OptionsAwareModule;
+import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
+import com.google.copybara.transform.metadata.MetadataSquashNotes;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -35,7 +36,6 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
-import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -178,7 +178,7 @@ public class Core implements OptionsAwareModule {
               doc = "The author mapping configuration from origin to destination.",
               positional = false),
           @Param(name = "transformations", type = SkylarkList.class,
-              generic1 = Transformation.class,
+              generic1 = Object.class,
               doc = "Where to read the migration code from.", positional = false,
               defaultValue = "[]"),
           @Param(name = "exclude_in_origin", type = Glob.class,
@@ -213,7 +213,8 @@ public class Core implements OptionsAwareModule {
               + "</ul>",
               defaultValue = "\"SQUASH\"", positional = false),
           @Param(name = "include_changelist_notes", type = Boolean.class,
-              doc = "Include a list of change list messages that were imported",
+              doc = "Include a list of change list messages that were imported."
+                  + "**DEPRECATED**: This method is about to be removed.",
               defaultValue = "False", positional = false),
           @Param(name = "reversible_check", type = Boolean.class,
               doc = "Indicates if the tool should try to to reverse all the transformations"
@@ -225,12 +226,6 @@ public class Core implements OptionsAwareModule {
               doc = "Indicates that the tool should show the diff and require user's"
                   + " confirmation before making a change in the destination.",
               defaultValue = "False", positional = false),
-          @Param(name = MESSAGE_TRANSFORMERS_FIELD, type = SkylarkList.class,
-              generic1 = BaseFunction.class,
-              doc = "The list of functions for creating the message used in the destination."
-                  + " The functions will be called in order and the ctx object will be passed"
-                  + " to the next function. This allows to concatenate modifications.",
-              defaultValue = "Built-in transformers", positional = false),
       },
       objectType = Core.class, useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -267,7 +262,7 @@ public class Core implements OptionsAwareModule {
 
     public NoneType invoke(Core self, String workflowName,
         Origin<Reference> origin, Destination destination, Authoring authoring,
-        SkylarkList<Transformation> transformations,
+        SkylarkList<?> transformations,
         Object excludeInOrigin,
         Object excludeInDestination,
         Object originFiles,
@@ -276,12 +271,27 @@ public class Core implements OptionsAwareModule {
         Boolean includeChangelistNotes,
         Object reversibleCheckObj,
         Boolean askForConfirmation,
-        SkylarkList<BaseFunction> messageTransformer,
         Location location,
         Environment env)
         throws EvalException {
       WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
-      Sequence sequenceTransform = Sequence.fromConfig(transformations, "transformations");
+      Console console = self.generalOptions.console();
+      String projectName = getProjectNameOrFailInternal(self, location);
+
+      // TODO(copybara-team): Remove this and the field once clients migrated.
+      if (includeChangelistNotes && mode == WorkflowMode.SQUASH) {
+        console.warn("'include_changelist_notes' field is deprecated. Use metadata.squash_notes()"
+            + " transformation instead");
+        MetadataSquashNotes squashNotes = new MetadataSquashNotes(
+            "Imports '" + projectName + "'.\n\n"
+                + "This change was generated by Copybara (go/copybara).\n", 100,/*compact=*/true,
+            /*oldestFirst*/false);
+        transformations = MutableList.concat(
+            MutableList.<Transformation>of(env, squashNotes),
+            new MutableList<>(transformations), env);
+      }
+
+      Sequence sequenceTransform = Sequence.fromConfig(transformations, "transformations", env);
       Transformation reverseTransform = null;
       if (convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
         try {
@@ -291,7 +301,6 @@ public class Core implements OptionsAwareModule {
         }
       }
 
-      Console console = self.generalOptions.console();
       if (!EvalUtils.isNullOrNone(excludeInOrigin)) {
         console.warn("core.workflow(exclude_in_origin) arg is deprecated, use"
             + " origin_files = glob(['**'], exclude = [exclude globs]) instead");
@@ -301,7 +310,7 @@ public class Core implements OptionsAwareModule {
             + " destination_files = glob(['**'], exclude = [exclude globs]) instead");
       }
       self.workflows.put(workflowName, new AutoValue_Workflow<>(
-          getProjectNameOrFailInternal(self, location),
+          projectName,
           workflowName,
           origin,
           destination,
@@ -312,13 +321,10 @@ public class Core implements OptionsAwareModule {
           convertFileSpecifier(location, originFiles, excludeInOrigin),
           convertFileSpecifier(location, destinationFiles, excludeInDestination),
           mode,
-          includeChangelistNotes,
           self.workflowOptions,
           reverseTransform,
           self.generalOptions.isVerbose(),
-          askForConfirmation,
-          ImmutableList.copyOf(messageTransformer),
-          env));
+          askForConfirmation));
       return Runtime.NONE;
     }
   };
@@ -424,14 +430,14 @@ public class Core implements OptionsAwareModule {
               doc = "The list of transformations to run as a result of running this"
               + " transformation in reverse.", named = true, positional = false),
       },
-      objectType = Core.class)
+      objectType = Core.class, useEnvironment = true)
   public static final BuiltinFunction TRANSFORM = new BuiltinFunction("transform") {
     public Transformation invoke(Core self,
         SkylarkList<Transformation> transformations,
-        SkylarkList<Transformation> reversal) throws EvalException {
+        SkylarkList<Transformation> reversal, Environment env) throws EvalException {
       return new ExplicitReversal(
-          Sequence.fromConfig(transformations, "transformations"),
-          Sequence.fromConfig(reversal, "reversal"));
+          Sequence.fromConfig(transformations, "transformations", env),
+          Sequence.fromConfig(reversal, "reversal", env));
     }
   };
 

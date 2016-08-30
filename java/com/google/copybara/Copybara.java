@@ -19,7 +19,6 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.folder.FolderDestination;
@@ -27,6 +26,7 @@ import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -44,7 +44,8 @@ public class Copybara {
 
   protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.<Class<?>>of(
       FolderDestination.Module.class,
-      GitModule.class);
+      GitModule.class,
+      MetadataModule.class);
 
   private final SkylarkParser skylarkParser;
 
