@@ -148,7 +148,7 @@ public abstract class Workflow<R extends Origin.Reference> {
      * @param workdir working directory to use for the transformations
      * @param resolvedRef reference to migrate
      */
-    RunHelper(Path workdir, R resolvedRef) {
+    RunHelper(Path workdir, R resolvedRef) throws ValidationException {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
       this.reader = origin().newReader(originFiles(), authoring());

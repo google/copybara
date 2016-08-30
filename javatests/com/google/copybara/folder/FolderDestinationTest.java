@@ -21,9 +21,9 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.testing.DummyReference;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -65,7 +65,7 @@ public class FolderDestinationTest {
     skylark = new SkylarkTestExecutor(options, FolderDestination.Module.class);
   }
 
-  private void write() throws ConfigValidationException, RepoException, IOException {
+  private void write() throws ValidationException, RepoException, IOException {
     skylark.<Destination>eval("dest", String.format(""
         + "core.project( name = '%s')\n"
         + "dest = folder.destination()", CONFIG_NAME))
@@ -78,8 +78,7 @@ public class FolderDestinationTest {
   }
 
   @Test
-  public void testDeleteWithEmptyExcludes()
-      throws IOException, ConfigValidationException, RepoException {
+  public void testDeleteWithEmptyExcludes() throws Exception {
     workdir = Files.createTempDirectory("workdir");
     Path localFolder = Files.createTempDirectory("local_folder");
 

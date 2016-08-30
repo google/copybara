@@ -126,8 +126,10 @@ public interface Origin<R extends Origin.Reference> {
    *     {@link Origin} implementations may choose to optimize operations on the repo based on the
    *     glob.
    * @param authoring the authoring object used for constructing the Author objects.
+   * @throws ValidationException if the reader could not be created because of a user error. For
+   *     instance, the origin cannot be used with the given {@code originFiles}.
    */
-  Reader<R> newReader(Glob originFiles, Authoring authoring);
+  Reader<R> newReader(Glob originFiles, Authoring authoring) throws ValidationException;
 
   /**
    * A visitor of changes. An implementation of this interface is provided to the {@link
