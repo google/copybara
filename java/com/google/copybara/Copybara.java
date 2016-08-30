@@ -95,18 +95,6 @@ public class Copybara {
     }
   }
 
-  private void runConfigValidation(Config config, Console console) throws ConfigValidationException {
-    List<String> validationMessages = validateConfig(config);
-    if (!validationMessages.isEmpty()) {
-      console.error("Configuration is invalid:");
-      for (String validationMessage : validationMessages) {
-        console.error(validationMessage);
-      }
-      throw new ConfigValidationException(
-          "Error validating configuration: Configuration is invalid.");
-    }
-  }
-
   /**
    * Returns a list of validation error messages, if any, for the given configuration.
    */
