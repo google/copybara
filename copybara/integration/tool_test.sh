@@ -854,7 +854,6 @@ core.workflow(
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
 )
 EOF
-  echo "PATH: $config_folder"
   cd $config_folder
   copybara foo/bar/copy.bara.sky $flags
 
