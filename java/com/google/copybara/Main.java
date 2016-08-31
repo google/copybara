@@ -163,7 +163,7 @@ public class Main {
     }
     Path root = rootCfgPath;
     if (root == null) {
-      root = findConfigRootHeuristic(configPath);
+      root = findConfigRootHeuristic(configPath.toAbsolutePath());
     }
     return new PathBasedConfigFile(configPath.toAbsolutePath(), root);
   }

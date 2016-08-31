@@ -854,8 +854,9 @@ core.workflow(
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
 )
 EOF
-
-  copybara $config_folder/foo/bar/copy.bara.sky $flags
+  echo "PATH: $config_folder"
+  cd $config_folder
+  copybara foo/bar/copy.bara.sky $flags
 
   expect_log "Running Copybara for config 'cbtest', workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
 
