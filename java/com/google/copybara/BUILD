@@ -57,6 +57,7 @@ BASE_SRCS = [
     "Destination.java",
     "EmptyChangeException.java",
     "Metadata.java",
+    "LabelFinder.java",
     "NonReversibleValidationException.java",
     "Option.java",
     "Options.java",
@@ -83,6 +84,7 @@ java_library(
         "//third_party:jcommander",
         "//third_party:joda_time",
         "//third_party:jsr305",
+        "//third_party:re2j",
         "//third_party:skylark-lang",
     ],
 )

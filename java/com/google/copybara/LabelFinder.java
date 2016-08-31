@@ -17,9 +17,8 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 
 /**
  * A simple label finder/parser for labels like:
@@ -30,17 +29,25 @@ import java.util.regex.Pattern;
  */
 public class LabelFinder {
 
-  private static final Pattern labelPattern = Pattern.compile("(^[\\w-]+) *[:=] *(.*)");
+  private static final String VALID_LABEL_EXPR = "([\\w-]+)";
+
+  static final Pattern VALID_LABEL = Pattern.compile(VALID_LABEL_EXPR);
+
+  private static final Pattern URL = Pattern.compile(VALID_LABEL + "://.*");
+
+  private static final Pattern LABEL_PATTERN = Pattern.compile(
+      "^" + VALID_LABEL_EXPR + " *[:=] ?(.*)");
   private final Matcher matcher;
   private final String label;
 
   public LabelFinder(String line) {
-    matcher = labelPattern.matcher(line);
+    matcher = LABEL_PATTERN.matcher(line);
     this.label = line;
   }
 
   public boolean isLabel() {
-    return matcher.matches();
+    // It is a label if it looks like a label but it doesn't look like a url (foo://bar)
+    return matcher.matches() && !URL.matcher(label).matches();
   }
 
   public String getName() {

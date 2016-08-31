@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.SkylarkDict;
 import org.joda.time.DateTime;
 
 /**
@@ -67,6 +68,13 @@ public final class Change<R extends Origin.Reference> {
   @SkylarkCallable(name = "message", doc = "The message of the change", structField = true)
   public String getMessage() {
     return message;
+  }
+
+  @SkylarkCallable(name = "labels", doc = "A dictionary with the labels detected for the change."
+      + " Note that this is an heuristic and it could include things that are not labels.",
+      structField = true)
+  public SkylarkDict<String, String> getLabelsForSkylark() {
+    return SkylarkDict.copyOf(/*environment=*/null, labels);
   }
 
   public DateTime getDate() {
