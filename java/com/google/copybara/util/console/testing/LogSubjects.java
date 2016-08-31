@@ -77,21 +77,29 @@ public class LogSubjects {
 
     /**
      * Assert that a regex text message appears once in the console output for a certain message
-     * * {@code type}.
+     * {@code type}.
      */
     public LogSubject onceInLog(MessageType type, String regex) {
+      return timesInLog(1, type, regex);
+    }
+
+    /**
+     * Assert that a regex text message appears some number of times in the console output for a
+     * certain message {@code type}.
+     */
+    public LogSubject timesInLog(int times, MessageType type, String regex) {
       List<Message> matches = new ArrayList<>();
       for (Message message : messages) {
         if (message.getType().equals(type) && message.getText().matches(regex)) {
           matches.add(message);
         }
       }
-      assertWithMessage(regex + " was not found in log. "
-          + "Do you have [] or other unescaped chars in the regex? Existing messages:"
+      assertWithMessage(regex + " was not found in log the expected number of times (" + times + ")"
+          + " Do you have [] or other unescaped chars in the regex? Existing messages:"
           + "\n--------\n"
           + Joiner.on("\n").join(messages)
           + "\n--------\n")
-          .that(matches).hasSize(1);
+          .that(matches).hasSize(times);
       return this;
     }
 

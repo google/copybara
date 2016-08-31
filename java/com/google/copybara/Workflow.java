@@ -194,19 +194,14 @@ public abstract class Workflow<R extends Origin.Reference> {
       reader.checkout(ref, checkoutDir);
 
       // Remove excluded origin files.
-      if (!originFiles().isAllFiles()) {
-        PathMatcher pathMatcher = originFiles().relativeTo(checkoutDir);
-        processConsole.progress("Removing excluded origin files");
+      PathMatcher originFiles = originFiles().relativeTo(checkoutDir);
+      processConsole.progress("Removing excluded origin files");
 
-        int result = FileUtil.deleteFilesRecursively(
-            checkoutDir, FileUtil.notPathMatcher(pathMatcher));
-        logger.log(Level.INFO,
-            String.format("Removed %s files from workdir that were excluded", result));
-
-        if (result == 0) {
-          workflowOptions().reportNoop(console(),
-              "Nothing was deleted in the workdir for origin_files: " + originFiles());
-        }
+      int deleted = FileUtil.deleteFilesRecursively(
+          checkoutDir, FileUtil.notPathMatcher(originFiles));
+      if (deleted != 0) {
+        processConsole.info(
+            String.format("Removed %d files from workdir that do not match origin_files", deleted));
       }
 
       Path originCopy = null;

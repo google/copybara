@@ -94,10 +94,6 @@ public final class Glob {
         excludeMatcher);
   }
 
-  public boolean isAllFiles() {
-    return include.equals(ImmutableList.of("**")) && exclude == null;
-  }
-
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)

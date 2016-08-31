@@ -390,15 +390,13 @@ public class WorkflowTest {
 
   @Test
   public void excludedOriginPathDoesntExcludeDirectories() throws Exception {
+    // Ignore transforms that have no effect
+    options.workflowOptions.ignoreNoop = true;
+
     originFiles = "glob(['**'], exclude = ['folder'])";
-    try {
-      Workflow workflow = workflow();
-      prepareOriginExcludes();
-      workflow.run(workdir, origin.getHead());
-      fail("Should fail because it could not delete anything.");
-    } catch (VoidOperationException e) {
-      assertThat(e.getMessage()).contains("Nothing was deleted");
-    }
+    Workflow workflow = workflow();
+    prepareOriginExcludes();
+    workflow.run(workdir, origin.getHead());
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder/file.txt", "folder2/file.txt");
   }
@@ -431,25 +429,14 @@ public class WorkflowTest {
   }
 
   @Test
-  public void excludedOriginNoopError() throws Exception {
+  public void originFilesNothingRemovedNoopNothingInLog() throws Exception {
     originFiles = "glob(['**'], exclude = ['I_dont_exist'])";
     transformations = "[]";
     Workflow workflow = workflow();
     prepareOriginExcludes();
-    thrown.expect(VoidOperationException.class);
     workflow.run(workdir, origin.getHead());
-  }
-
-  @Test
-  public void excludedOriginNoopWarning() throws Exception {
-    originFiles = "glob(['**'], exclude = ['I_dont_exist'])";
-    transformations = "[]";
-    Workflow workflow = workflow();
-    prepareOriginExcludes();
-    options.workflowOptions.ignoreNoop = true;
-    workflow.run(workdir, origin.getHead());
-    console().assertThat().onceInLog(MessageType.WARNING,
-        ".*Nothing was deleted in the workdir for origin_files.*");
+    console().assertThat()
+        .timesInLog(0, MessageType.INFO, "Removed .* files from workdir");
   }
 
   @Test
