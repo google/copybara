@@ -21,7 +21,6 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Core;
 import com.google.copybara.TransformWork;
 import com.google.copybara.ValidationException;
@@ -71,7 +70,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void invalidRegex() throws ConfigValidationException {
+  public void invalidRegex() throws ValidationException {
     skylark.evalFails("core.replace(\n"
             + "  before = '${foo}',\n"
             + "  after = '${foo}bar',\n"
@@ -83,7 +82,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void missingReplacement() throws ConfigValidationException {
+  public void missingReplacement() throws ValidationException {
     skylark.evalFails("core.replace(\n"
             + "  before = 'asdf',\n"
             + ")",
@@ -223,7 +222,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void beforeUsesUndeclaredGroup() throws ConfigValidationException {
+  public void beforeUsesUndeclaredGroup() throws ValidationException {
     skylark.evalFails("core.replace(\n"
             + "  before = 'foo${bar}${baz}',\n"
             + "  after = 'foo${baz}',\n"
@@ -235,7 +234,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void afterUsesUndeclaredGroup() throws ConfigValidationException {
+  public void afterUsesUndeclaredGroup() throws ValidationException {
     skylark.evalFails("core.replace(\n"
             + "  before = 'foo${bar}${iru}',\n"
             + "  after = 'foo${bar}',\n"
@@ -247,7 +246,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void beforeDoesNotUseADeclaredGroup() throws ConfigValidationException {
+  public void beforeDoesNotUseADeclaredGroup() throws ValidationException {
     skylark.evalFails("core.replace(\n"
             + "  before = 'foo${baz}',\n"
             + "  after = 'foo${baz}${bar}',\n"
@@ -323,7 +322,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void showOriginalTemplateInToString() throws ConfigValidationException {
+  public void showOriginalTemplateInToString() throws ValidationException {
     Replace transformation = eval("core.replace(\n"
         + "  before = 'a${b}c',\n"
         + "  after = 'c${b}a',\n"
@@ -338,7 +337,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void showOriginalGlobInToString() throws ConfigValidationException {
+  public void showOriginalGlobInToString() throws ValidationException {
     Replace transformation = eval("core.replace(\n"
         + "  before = 'before',\n"
         + "  after = 'after',\n"
@@ -350,7 +349,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void showReasonableDefaultGlobInToString() throws ConfigValidationException {
+  public void showReasonableDefaultGlobInToString() throws ValidationException {
     Replace transformation = eval("core.replace(\n"
         + "  before = 'before',\n"
         + "  after = 'after',\n"
@@ -609,7 +608,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void emptyInterpolatedName() throws ConfigValidationException {
+  public void emptyInterpolatedName() throws ValidationException {
     skylark.evalFails(""
         + "core.replace("
         + "  before = 'foo${}bar',"
@@ -619,7 +618,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void unterminatedInterpolation() throws ConfigValidationException {
+  public void unterminatedInterpolation() throws ValidationException {
     skylark.evalFails(""
         + "core.replace("
         + "  before = 'foo${bar',"
@@ -629,7 +628,7 @@ public final class ReplaceTest {
   }
 
   @Test
-  public void badCharacterFollowingDollar() throws ConfigValidationException {
+  public void badCharacterFollowingDollar() throws ValidationException {
     skylark.evalFails(""
         + "core.replace("
         + "  before = 'foo$bar',"
@@ -664,7 +663,7 @@ public final class ReplaceTest {
             + "foo\n");
   }
 
-  private Replace eval(String replace) throws ConfigValidationException {
+  private Replace eval(String replace) throws ValidationException {
     return skylark.eval("r", "r = " + replace);
   }
 

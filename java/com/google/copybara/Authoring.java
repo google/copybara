@@ -117,20 +117,11 @@ public final class Authoring {
     public static final BuiltinFunction OVERWRITE = new BuiltinFunction("overwrite") {
       public Authoring invoke(String defaultAuthor, Location location)
           throws EvalException {
-        return new Authoring(parseAuthoring(location, defaultAuthor),
+        return new Authoring(Author.parse(location, defaultAuthor),
             AuthoringMappingMode.USE_DEFAULT,
             ImmutableSet.<String>of());
       }
     };
-
-    private static Author parseAuthoring(Location location, String defaultAuthor)
-        throws EvalException {
-      try {
-        return Author.parse(defaultAuthor);
-      } catch (ConfigValidationException e) {
-        throw new EvalException(location, e.getMessage());
-      }
-    }
 
     @SkylarkSignature(name = "new_author", returnType = Author.class,
         doc = "Create a new author from a string with the form 'name <foo@bar.com>'",
@@ -141,7 +132,7 @@ public final class Authoring {
     public static final BuiltinFunction NEW_AUTHOR = new BuiltinFunction("new_author") {
       public Author invoke(String authorString, Location location)
           throws EvalException {
-        return parseAuthoring(location, authorString);
+        return Author.parse(location, authorString);
       }
     };
 
@@ -156,7 +147,7 @@ public final class Authoring {
     public static final BuiltinFunction PASS_THRU = new BuiltinFunction("pass_thru") {
       public Authoring invoke(String defaultAuthor, Location location)
           throws EvalException {
-        return new Authoring(parseAuthoring(location, defaultAuthor),
+        return new Authoring(Author.parse(location, defaultAuthor),
             AuthoringMappingMode.PASS_THRU,
             ImmutableSet.<String>of());
       }
@@ -177,7 +168,7 @@ public final class Authoring {
       public Authoring invoke(String defaultAuthor, SkylarkList<String> whitelist,
           Location location)
           throws EvalException {
-        return new Authoring(parseAuthoring(location, defaultAuthor),
+        return new Authoring(Author.parse(location, defaultAuthor),
             AuthoringMappingMode.WHITELIST,
             createWhitelist(location, Type.STRING_LIST.convert(whitelist, "whitelist")));
       }

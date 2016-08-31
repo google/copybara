@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.testing.EqualsTester;
+import com.google.devtools.build.lib.syntax.EvalException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -33,17 +34,17 @@ public class AuthorTest {
 
   @Test
   public void testParse() throws Exception {
-    Author author = Author.parse("Foo Bar <foo@bar.com>");
+    Author author = Author.parse(/*location*/ null, "Foo Bar <foo@bar.com>");
     assertThat(author.getName()).isEqualTo("Foo Bar");
     assertThat(author.getEmail()).isEqualTo("foo@bar.com");
   }
 
   @Test
   public void testWrongEmailFormat() throws Exception {
-    thrown.expect(ConfigValidationException.class);
+    thrown.expect(EvalException.class);
     thrown.expectMessage(
         "Author 'foo-bar' doesn't match the expected format 'name <mail@example.com>");
-    Author.parse("foo-bar");
+    Author.parse(/*location*/ null, "foo-bar");
   }
 
   @Test

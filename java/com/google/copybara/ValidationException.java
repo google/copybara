@@ -29,4 +29,26 @@ public class ValidationException extends Exception {
   public ValidationException(String message, Throwable cause) {
     super(message, cause);
   }
+
+  /**
+   * Checks that a field has been supplied. A field is considered supplied if it is not
+   * {@code null}.
+   *
+   * @param value the value of the field
+   * @param fieldName the name of the field to use in the exception message
+   * @throws ValidationException if {@code value} is {@code null}
+   */
+  public static <T> T checkNotMissing(T value, String fieldName) throws ValidationException {
+    if (value == null) {
+      throw new ValidationException(String.format("missing required field '%s'", fieldName));
+    }
+    return value;
+  }
+
+  public static void checkCondition(boolean condition, String msg)
+      throws ValidationException {
+    if (!condition) {
+      throw new ValidationException(msg);
+    }
+  }
 }

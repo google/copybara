@@ -19,7 +19,7 @@ package com.google.copybara.transform;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.ConfigValidationException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.Core;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -252,7 +252,7 @@ public class MoveTest {
     try {
       skylark.<Move>eval("m", "m = core.move(after = 'third_party/java')\n");
       Assert.fail();
-    } catch (ConfigValidationException expected) {}
+    } catch (ValidationException expected) {}
 
     console.assertThat()
         .onceInLog(MessageType.ERROR, ".*missing mandatory .* 'before'.*");
@@ -263,7 +263,7 @@ public class MoveTest {
     try {
       skylark.<Move>eval("m", "m = core.move(before = 'third_party/java')\n");
       Assert.fail();
-    } catch (ConfigValidationException expected) {}
+    } catch (ValidationException expected) {}
 
     console.assertThat()
         .onceInLog(MessageType.ERROR, ".*missing mandatory .* 'after'.*");

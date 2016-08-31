@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Author;
 import com.google.copybara.Config;
-import com.google.copybara.ConfigValidationException;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.WorkflowMode;
@@ -64,7 +63,7 @@ public class MetadataModuleTest {
   private Path workdir;
 
   @Before
-  public void setup() throws IOException, ConfigValidationException {
+  public void setup() throws Exception {
     options = new OptionsBuilder();
     authoring = "authoring.overwrite('" + DEFAULT_AUTHOR + "')";
     workdir = Files.createTempDirectory("workdir");
@@ -82,8 +81,7 @@ public class MetadataModuleTest {
     authoring = "authoring.pass_thru('" + DEFAULT_AUTHOR + "')";
   }
 
-  private Config loadConfig(String content)
-      throws IOException, ConfigValidationException {
+  private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
         new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
         options.build());

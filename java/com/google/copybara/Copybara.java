@@ -91,7 +91,7 @@ public class Copybara {
       for (String validationMessage : validationMessages) {
         console.error(validationMessage);
       }
-      throw new ConfigValidationException(
+      throw new ValidationException(
           "Error validating configuration: Configuration is invalid.");
     }
   }

@@ -27,13 +27,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.copybara.Authoring;
 import com.google.copybara.Config;
-import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Destination;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.ValidationException;
 import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.transform.Sequence;
@@ -87,8 +87,8 @@ public class SkylarkParserTest {
 
   @Test
   public void requireAtLeastOneWorkflow()
-      throws IOException, ConfigValidationException {
-    thrown.expect(ConfigValidationException.class);
+      throws IOException, ValidationException {
+    thrown.expect(ValidationException.class);
     thrown.expectMessage("At least one workflow is required.");
     loadConfig("");
   }
@@ -100,7 +100,7 @@ public class SkylarkParserTest {
    */
   @Test
   public void testParseConfigFile()
-      throws IOException, ConfigValidationException {
+      throws IOException, ValidationException {
     String configContent = ""
         + "load('//foo/authoring','copy_author', 'baz')\n"
         + "some_url=\"https://so.me/random/url\"\n"
@@ -163,14 +163,14 @@ public class SkylarkParserTest {
 
   @Test
   public void testParseConfigCycleError()
-      throws IOException, ConfigValidationException {
+      throws IOException, ValidationException {
     options.setWorkflowName("foo42");
     try {
       loadConfigMultifile("load('//foo','foo')", ImmutableMap.of(
           "foo.bara.sky", "load('//bar', 'bar')",
           "bar.bara.sky", "load('//copy', 'copy')"));
       fail();
-    } catch (ConfigValidationException e) {
+    } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Cycle was detected");
       console.assertThat().onceInLog(MessageType.ERROR,
           "(?m)Cycle was detected in the configuration: \n"
@@ -182,12 +182,12 @@ public class SkylarkParserTest {
   }
 
   private Config loadConfig(String configContent)
-      throws IOException, ConfigValidationException {
+      throws IOException, ValidationException {
     return loadConfigMultifile(configContent, ImmutableMap.<String, String>of());
   }
 
   private Config loadConfigMultifile(String configContent, Map<String, String> extraFiles)
-      throws IOException, ConfigValidationException {
+      throws IOException, ValidationException {
     return parser.loadConfig(
         new MapConfigFile(ImmutableMap.<String, byte[]>builder()
             .put("copy.bara.sky", configContent.getBytes())
@@ -199,7 +199,7 @@ public class SkylarkParserTest {
 
   @Test
   public void testTransformsAreOptional()
-      throws IOException, ConfigValidationException {
+      throws IOException, ValidationException {
     String configContent = ""
         + "core.project(\n"
         + "  name = 'mytest',\n"
@@ -230,7 +230,7 @@ public class SkylarkParserTest {
 
   @Test
   public void testGenericOfSimpleTypes()
-      throws IOException, ConfigValidationException {
+      throws IOException, ValidationException {
     String configContent = ""
         + "baz=42\n"
         + "some_url=\"https://so.me/random/url\"\n"
@@ -259,7 +259,7 @@ public class SkylarkParserTest {
     try {
       loadConfig(configContent);
       fail();
-    } catch (ConfigValidationException e) {
+    } catch (ValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
           "(\n|.)*expected value of type 'string' for element 1 of list, but got True \\(bool\\)"
               + "(\n|.)*");

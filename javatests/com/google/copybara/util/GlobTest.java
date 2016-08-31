@@ -19,7 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.ConfigValidationException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -79,7 +79,7 @@ public class GlobTest {
 
   @Test
   public void testSimpleInclude()
-      throws IOException, ConfigValidationException, RepoException {
+      throws IOException, ValidationException, RepoException {
     PathMatcher pathMatcher = createPathMatcher("glob(['foo','bar'])");
     assertThat(pathMatcher.matches(workdir.resolve("foo"))).isTrue();
     assertThat(pathMatcher.matches(workdir.resolve("bar"))).isTrue();
@@ -88,7 +88,7 @@ public class GlobTest {
 
   @Test
   public void testSimpleIncludeWithExclusion()
-      throws IOException, ConfigValidationException, RepoException {
+      throws IOException, ValidationException, RepoException {
     PathMatcher pathMatcher = createPathMatcher("glob(['b*','foo'], exclude =['baz'])");
     assertThat(pathMatcher.matches(workdir.resolve("foo"))).isTrue();
     assertThat(pathMatcher.matches(workdir.resolve("bar"))).isTrue();
@@ -97,7 +97,7 @@ public class GlobTest {
 
   @Test
   public void testWithDirs()
-      throws IOException, ConfigValidationException, RepoException {
+      throws IOException, ValidationException, RepoException {
     PathMatcher pathMatcher = createPathMatcher(""
         + "glob(\n"
         + "  include = ['**/*.java'], \n"
@@ -166,7 +166,7 @@ public class GlobTest {
   }
 
   private PathMatcher createPathMatcher(final String expression)
-      throws ConfigValidationException {
+      throws ValidationException {
     Glob result = skylark.eval("result", "result=" + expression);
     return result.relativeTo(workdir);
   }

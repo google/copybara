@@ -21,7 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
-import com.google.copybara.ConfigValidationException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.Destination;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.EmptyChangeException;
@@ -90,7 +90,7 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void errorIfUrlMissing() throws ConfigValidationException {
+  public void errorIfUrlMissing() throws ValidationException {
     skylark.evalFails(""
             + "git.destination(\n"
             + "    fetch = 'master',\n"
@@ -100,7 +100,7 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void errorIfFetchMissing() throws ConfigValidationException {
+  public void errorIfFetchMissing() throws ValidationException {
     skylark.evalFails(
         "git.destination(\n"
             + "    url = 'file:///foo',\n"
@@ -110,7 +110,7 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void errorIfPushMissing() throws ConfigValidationException {
+  public void errorIfPushMissing() throws ValidationException {
     skylark.evalFails(
         "git.destination(\n"
             + "    url = 'file:///foo',\n"
@@ -120,18 +120,18 @@ public class GitDestinationTest {
   }
 
   private GitDestination destinationFirstCommit()
-      throws ConfigValidationException {
+      throws ValidationException {
     options.git.gitFirstCommit = true;
     return evalDestination();
   }
 
-  private GitDestination destination() throws ConfigValidationException {
+  private GitDestination destination() throws ValidationException {
     options.git.gitFirstCommit = false;
     return evalDestination();
   }
 
   private GitDestination evalDestination()
-      throws ConfigValidationException {
+      throws ValidationException {
     return skylark.eval("result",
         String.format("result = git.destination(\n"
             + "    url = '%s',\n"
@@ -162,13 +162,13 @@ public class GitDestinationTest {
   }
 
   private void process(Destination.Writer writer, DummyReference originRef)
-      throws ConfigValidationException, RepoException, IOException {
+      throws ValidationException, RepoException, IOException {
     processWithBaseline(writer, originRef, /*baseline=*/ null);
   }
 
   private void processWithBaseline(Destination.Writer writer, DummyReference originRef,
       String baseline)
-      throws RepoException, ConfigValidationException, IOException {
+      throws RepoException, ValidationException, IOException {
     processWithBaselineAndConfirmation(writer, originRef, baseline,
         /*askForConfirmation*/false);
   }
@@ -176,7 +176,7 @@ public class GitDestinationTest {
   private void processWithBaselineAndConfirmation(Destination.Writer writer,
       DummyReference originRef,
       String baseline, boolean askForConfirmation)
-      throws ConfigValidationException, RepoException, IOException {
+      throws ValidationException, RepoException, IOException {
     TransformResult result = TransformResults.of(workdir, originRef);
     if (baseline != null) {
       result = result.withBaseline(baseline);

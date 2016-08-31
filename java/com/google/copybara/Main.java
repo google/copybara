@@ -149,10 +149,10 @@ public class Main {
   }
 
   private ConfigFile loadConfig(Path configPath, @Nullable Path rootCfgPath)
-      throws IOException, CommandLineException, ConfigValidationException {
+      throws IOException, CommandLineException, ValidationException {
     String fileName = configPath.getFileName().toString();
 
-    ConfigValidationException.checkCondition(
+    ValidationException.checkCondition(
         fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
         String.format("Copybara config file filename should be '%s' but it is '%s'.",
             COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName()));

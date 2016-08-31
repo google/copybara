@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.ConfigValidationException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GerritDestination.GerritProcessPushOutput;
@@ -89,7 +89,7 @@ public class GerritDestinationTest {
         .getStdout();
   }
 
-  private GerritDestination destination() throws ConfigValidationException {
+  private GerritDestination destination() throws ValidationException {
     return skylark.eval("result", "result = "
         + "git.gerrit_destination(\n"
         + "    url = '" + url + "',\n"
@@ -112,7 +112,7 @@ public class GerritDestinationTest {
   }
 
   private void process(DummyReference originRef)
-      throws ConfigValidationException, RepoException, IOException {
+      throws ValidationException, RepoException, IOException {
     WriterResult result = destination()
         .newWriter(new Glob(ImmutableList.of("**"), excludedDestinationPaths))
         .write(

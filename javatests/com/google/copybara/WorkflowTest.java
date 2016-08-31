@@ -78,7 +78,7 @@ public class WorkflowTest {
   private String destinationFiles;
 
   @Before
-  public void setup() throws IOException, ConfigValidationException {
+  public void setup() throws Exception {
     options = new OptionsBuilder();
     authoring = "authoring.overwrite('" + DEFAULT_AUTHOR + "')";
     includeReleaseNotes = false;
@@ -111,13 +111,13 @@ public class WorkflowTest {
     return (TestingConsole) options.general.console();
   }
 
-  private Workflow workflow() throws ConfigValidationException, IOException {
+  private Workflow workflow() throws ValidationException, IOException {
     origin.addSimpleChange(/*timestamp*/ 42);
     return skylarkWorkflow("default", WorkflowMode.SQUASH);
   }
 
   private Workflow skylarkWorkflow(String name, WorkflowMode mode)
-      throws IOException, ConfigValidationException {
+      throws IOException, ValidationException {
     String config = ""
         + "core.project( name = 'copybara_project')\n"
         + "core.workflow(\n"
@@ -138,7 +138,7 @@ public class WorkflowTest {
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
-      throws ConfigValidationException, IOException {
+      throws ValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
     options.general = new GeneralOptions(
         options.general.getFileSystem(), options.general.isVerbose(), console());
@@ -146,7 +146,7 @@ public class WorkflowTest {
   }
 
   private Workflow changeRequestWorkflow(@Nullable String baseline)
-      throws ConfigValidationException, IOException {
+      throws ValidationException, IOException {
     options.workflowOptions.changeBaseline = baseline;
     return skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
   }
@@ -364,7 +364,7 @@ public class WorkflowTest {
     try {
       workflow().run(workdir, origin.getHead());
       fail("should have thrown");
-    } catch (ConfigValidationException e) {
+    } catch (ValidationException e) {
       console().assertThat()
           .onceInLog(MessageType.ERROR,
               "(\n|.)*path has unexpected [.] or [.][.] components(\n|.)*");
@@ -381,7 +381,7 @@ public class WorkflowTest {
     try {
       workflow().run(workdir, origin.getHead());
       fail("should have thrown");
-    } catch (ConfigValidationException e) {
+    } catch (ValidationException e) {
       console().assertThat()
           .onceInLog(MessageType.ERROR,
               "(\n|.)*Cannot create a glob from: include='\\[\\{\\]' (\n|.)*");
@@ -631,8 +631,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testNullAuthoring()
-      throws ConfigValidationException, IOException {
+  public void testNullAuthoring() throws Exception {
     try {
       loadConfig(""
           + "core.project( name = 'copybara_project')\n"
@@ -641,21 +640,21 @@ public class WorkflowTest {
           + "    origin = testing.origin(),\n"
           + "    destination = testing.destination(),\n"
           + ")\n");
-    } catch (ConfigValidationException e) {
+      fail();
+    } catch (ValidationException e) {
       console().assertThat().onceInLog(MessageType.ERROR,
           ".*missing mandatory positional argument 'authoring'.*");
     }
   }
 
-  private Config loadConfig(String content)
-      throws IOException, ConfigValidationException {
+  private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
         new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
         options.build());
   }
 
   @Test
-  public void testNullOrigin() throws ConfigValidationException, IOException {
+  public void testNullOrigin() throws Exception {
     try {
       loadConfig(""
           + "core.project( name = 'copybara_project')\n"
@@ -664,7 +663,8 @@ public class WorkflowTest {
           + "    authoring = " + authoring + "\n,"
           + "    destination = testing.destination(),\n"
           + ")\n");
-    } catch (ConfigValidationException e) {
+      fail();
+    } catch (ValidationException e) {
       for (Message message : console().getMessages()) {
         System.err.println(message);
       }
@@ -786,8 +786,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testNullDestination()
-      throws ConfigValidationException, IOException {
+  public void testNullDestination() throws Exception {
     try {
       loadConfig(""
           + "core.project( name = 'copybara_project')\n"
@@ -796,15 +795,15 @@ public class WorkflowTest {
           + "    authoring = " + authoring + "\n,"
           + "    origin = testing.origin(),\n"
           + ")\n");
-    } catch (ConfigValidationException e) {
+      fail();
+    } catch (ValidationException e) {
       console().assertThat().onceInLog(MessageType.ERROR,
           ".*missing mandatory positional argument 'destination'.*");
     }
   }
 
   @Test
-  public void nonReversibleButCheckReverseSet()
-      throws IOException, ValidationException, RepoException {
+  public void nonReversibleButCheckReverseSet() throws Exception {
     origin
         .singleFileChange(0, "one commit", "foo.txt", "1")
         .singleFileChange(1, "one commit", "test.txt", "1\nTRANSFORMED42");
@@ -812,7 +811,7 @@ public class WorkflowTest {
     try {
       workflow.run(workdir, "1");
       fail();
-    } catch (ConfigValidationException e) {
+    } catch (ValidationException e) {
       assertThat(e).hasMessage("Workflow 'default' is not reversible");
     }
     console().assertThat()

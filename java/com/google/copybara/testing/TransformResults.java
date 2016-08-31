@@ -16,7 +16,7 @@
 
 package com.google.copybara.testing;
 
-import com.google.copybara.ConfigValidationException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import java.nio.file.Path;
@@ -31,7 +31,7 @@ public class TransformResults {
    * Creates an instance with reasonable defaults for testing.
    */
   public static TransformResult of(Path path, DummyReference originRef)
-      throws ConfigValidationException, RepoException {
+      throws ValidationException, RepoException {
     return new TransformResult(path, originRef, originRef.getAuthor(), "test summary\n");
   }
 }

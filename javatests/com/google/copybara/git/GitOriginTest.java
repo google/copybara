@@ -27,7 +27,7 @@ import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
-import com.google.copybara.ConfigValidationException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.VisitResult;
@@ -104,7 +104,7 @@ public class GitOriginTest {
     return origin.newReader(Glob.ALL_FILES, authoring);
   }
 
-  private GitOrigin origin() throws ConfigValidationException {
+  private GitOrigin origin() throws ValidationException {
     return skylark.eval("result",
         String.format("result = git.origin(\n"
             + "    url = '%s',\n"
@@ -188,7 +188,7 @@ public class GitOriginTest {
               + "    ref = 'master',\n"
               + ")");
       fail();
-    } catch (ConfigValidationException expected) {
+    } catch (ValidationException expected) {
       console.assertThat()
           .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
     }
@@ -407,7 +407,7 @@ public class GitOriginTest {
    * Check that we can overwrite the git url using the CLI option and that we show a message
    */
   @Test
-  public void testGitUrlOverwrite() throws ConfigValidationException, IOException, RepoException {
+  public void testGitUrlOverwrite() throws ValidationException, IOException, RepoException {
     remote = Files.createTempDirectory("cliremote");
     git("init");
     Files.write(remote.resolve("cli_remote.txt"), "some change".getBytes());

@@ -17,14 +17,12 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -82,7 +80,7 @@ public class AuthoringTest {
 
   @Test
   public void testWhitelistMappingDuplicates() throws Exception {
-    asssertErrorMessage(""
+    skylark.evalFails(""
             + "authoring.whitelisted(\n"
             + "  default = 'Copybara <no-reply@google.com>',\n"
             + "  whitelist = ['foo', 'foo']\n"
@@ -92,14 +90,14 @@ public class AuthoringTest {
 
   @Test
   public void testDefaultAuthorNotEmpty() throws Exception {
-    asssertErrorMessage("authoring.overwrite()\n",
+    skylark.evalFails("authoring.overwrite()\n",
         "insufficient arguments received by overwrite\\(default: string\\)");
   }
 
 
   @Test
   public void testInvalidDefaultAuthor() throws Exception {
-    asssertErrorMessage(""
+    skylark.evalFails(""
             + "authoring.overwrite(\n"
             + "    default = 'invalid')\n",
         "Author 'invalid' doesn't match the expected format 'name <mail@example.com>");
@@ -107,7 +105,7 @@ public class AuthoringTest {
 
   @Test
   public void testWhitelistNotEmpty() throws Exception {
-    asssertErrorMessage(""
+    skylark.evalFails(""
             + "authoring.whitelisted(\n"
             + "  default = 'Copybara <no-reply@google.com>',\n"
             + "  whitelist = []\n"
@@ -136,14 +134,5 @@ public class AuthoringTest {
         DEFAULT_AUTHOR, AuthoringMappingMode.WHITELIST, ImmutableSet.of("baz@bar.com"));
     assertThat(authoring.useAuthor("baz@bar.com")).isTrue();
     assertThat(authoring.useAuthor("john@someemail.com")).isFalse();
-  }
-
-  private void asssertErrorMessage(String skylarkCode, final String errorMsg) {
-    try {
-      skylark.eval("result", "result = " + skylarkCode);
-      fail();
-    } catch (ConfigValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR, ".*" + errorMsg + ".*");
-    }
   }
 }

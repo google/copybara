@@ -231,7 +231,7 @@ public abstract class Workflow<R extends Origin.Reference> {
         if (!diff.trim().isEmpty()) {
           console().error("Non reversible transformations:\n"
               + DiffUtil.colorize(console(), diff));
-          throw new ConfigValidationException(String.format(
+          throw new ValidationException(String.format(
               "Workflow '%s' is not reversible", workflowOptions().getWorkflowName()));
         }
       }

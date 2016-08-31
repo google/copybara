@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.ConfigValidationException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -55,7 +55,7 @@ public final class SkylarkTestExecutor {
   }
 
   @SuppressWarnings("unchecked")
-  public <T> T eval(String var, String config) throws ConfigValidationException {
+  public <T> T eval(String var, String config) throws ValidationException {
     try {
       ConfigFile configFile = new MapConfigFile(
           new ImmutableMap.Builder<String, byte[]>()
@@ -76,7 +76,7 @@ public final class SkylarkTestExecutor {
     try {
       eval("r", "r = " + config);
       throw new RuntimeException("Eval should fail: " + config);
-    } catch (ConfigValidationException e) {
+    } catch (ValidationException e) {
       getConsole().assertThat().onceInLog(MessageType.ERROR, "(.|\n)*" + expectedMsg + "(.|\n)*");
     }
   }

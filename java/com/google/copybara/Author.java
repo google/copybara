@@ -18,9 +18,11 @@ package com.google.copybara;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,10 +86,10 @@ public final class Author {
   }
 
   /** Parse author from a String in the format of: "name <foo@bar.com>" */
-  public static Author parse(String authorStr) throws ConfigValidationException {
+  public static Author parse(Location location, String authorStr) throws EvalException {
     Matcher matcher = AUTHOR_PARSER.matcher(authorStr);
     if (!matcher.matches()) {
-      throw new ConfigValidationException("Author '" + authorStr
+      throw new EvalException(location, "Author '" + authorStr
           + "' doesn't match the expected format 'name <mail@example.com>");
     }
     return new Author(matcher.group("name").trim(), matcher.group("email").trim());

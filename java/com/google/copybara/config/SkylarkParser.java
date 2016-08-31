@@ -16,8 +16,8 @@
 
 package com.google.copybara.config;
 
-import static com.google.copybara.ConfigValidationException.checkCondition;
-import static com.google.copybara.ConfigValidationException.checkNotMissing;
+import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.ValidationException.checkNotMissing;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -26,10 +26,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring;
 import com.google.copybara.Config;
-import com.google.copybara.ConfigValidationException;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.ValidationException;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.base.OptionsAwareModule;
@@ -83,7 +83,7 @@ public class SkylarkParser {
   }
 
   public Config loadConfig(ConfigFile content, Options options)
-      throws IOException, ConfigValidationException {
+      throws IOException, ValidationException {
     Core core;
     try {
       Environment env = executeSkylark(content, options);
@@ -98,7 +98,7 @@ public class SkylarkParser {
 
   @VisibleForTesting
   public Environment executeSkylark(ConfigFile content, Options options)
-      throws IOException, ConfigValidationException, InterruptedException {
+      throws IOException, ValidationException, InterruptedException {
     return new Evaluator(options).eval(content);
   }
 
@@ -120,7 +120,7 @@ public class SkylarkParser {
     }
 
     private Environment eval(ConfigFile content)
-        throws IOException, ConfigValidationException, InterruptedException {
+        throws IOException, ValidationException, InterruptedException {
       if (pending.contains(content.path())) {
         throw throwCycleError(content.path());
       } else if (loaded.containsKey(content.path())) {
@@ -145,8 +145,8 @@ public class SkylarkParser {
       return env;
     }
 
-    private ConfigValidationException throwCycleError(String cycleElement)
-        throws ConfigValidationException {
+    private ValidationException throwCycleError(String cycleElement)
+        throws ValidationException {
       StringBuilder sb = new StringBuilder();
       for (String element : pending) {
         sb.append(element.equals(cycleElement) ? "* " : "  ");
@@ -154,13 +154,13 @@ public class SkylarkParser {
       }
       sb.append("* ").append(cycleElement).append("\n");
       console.error("Cycle was detected in the configuration: \n" + sb);
-      throw new ConfigValidationException("Cycle was detected");
+      throw new ValidationException("Cycle was detected");
     }
   }
 
   private Config createConfig(Options options, Map<String, Workflow<?>> workflows,
       String projectName)
-      throws ConfigValidationException {
+      throws ValidationException {
 
     checkCondition(!workflows.isEmpty(), "At least one workflow is required.");
 

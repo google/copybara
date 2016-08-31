@@ -82,7 +82,7 @@ public final class CoreReverseTest {
     try {
       skylark.<List<Transformation>>eval("foo", "foo = core.reverse([42])");
       fail();
-    } catch (ConfigValidationException e) {
+    } catch (ValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
           ".*expected type transformation for 'transformations' element but got type int"
               + " instead.*");
@@ -97,7 +97,7 @@ public final class CoreReverseTest {
           + "   mock.transform('bar'),\n"
           + "])");
       fail();
-    } catch (ConfigValidationException e) {
+    } catch (ValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR, ".*foo is not reversible.*");
     }
   }
