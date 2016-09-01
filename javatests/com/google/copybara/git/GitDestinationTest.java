@@ -21,12 +21,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
-import com.google.copybara.ValidationException;
 import com.google.copybara.Destination;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.ValidationException;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
@@ -336,6 +336,30 @@ public class GitDestinationTest {
     assertCommitCount(2, "pushToFoo");
 
     assertCommitHasOrigin("pushToFoo", "origin_ref");
+  }
+
+  @Test
+  public void doNotDeleteIncludedFilesInNonMatchingSubdir() throws Exception {
+    fetch = "master";
+    push = "master";
+
+    Files.createDirectories(workdir.resolve("foo"));
+    Files.write(workdir.resolve("foo/bar"), "content".getBytes(UTF_8));
+    repo().withWorkTree(workdir).simpleCommand("add", "foo/bar");
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "message");
+
+    Files.write(workdir.resolve("foo/baz"), "content".getBytes(UTF_8));
+
+    // Note the glob foo/** does not match the directory itself called 'foo',
+    // only the contents.
+    destinationFiles = new Glob(ImmutableList.of("foo/**"));
+    process(destination().newWriter(destinationFiles),
+        new DummyReference("origin_ref"));
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo/bar", "content")
+        .containsFile("foo/baz", "content")
+        .containsNoMoreFiles();
   }
 
   @Test
