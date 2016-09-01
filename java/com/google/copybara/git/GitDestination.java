@@ -258,18 +258,10 @@ public final class GitDestination implements Destination {
     }
 
     @Override
-    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-        throws IOException {
-      if (dir.equals(repo.getGitDir())) {
-        return FileVisitResult.SKIP_SUBTREE;
-      }
-      if (!dir.equals(repo.getWorkTree()) && !destinationFiles.matches(dir)) {
-        // This may be a submodule directory, so add it back. I'm not sure why, but "reset" is
-        // required here - because right now the dir deletion appears as staged for commit.
-        git("reset", dir);
-        git("add", dir);
-      }
-      return FileVisitResult.CONTINUE;
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+      return dir.equals(repo.getGitDir())
+          ? FileVisitResult.SKIP_SUBTREE
+          : FileVisitResult.CONTINUE;
     }
 
     @Override

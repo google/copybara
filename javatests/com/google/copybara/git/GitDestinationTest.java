@@ -602,7 +602,7 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void processWithBaselineSameFileNoConflict() throws Exception { 
+  public void processWithBaselineSameFileNoConflict() throws Exception {
     fetch = "master";
     push = "master";
     String text = "";
@@ -657,44 +657,5 @@ public class GitDestinationTest {
         .containsFile("test42", "42")
         .containsFile("test99", "99")
         .containsNoMoreFiles();
-  }
-
-  private void checkSubmoduleInDestination() throws Exception {
-    fetch = "master";
-    push = "master";
-
-    GitRepository submodule = GitRepository.initScratchRepo(/*verbose=*/true, System.getenv());
-
-    Files.write(submodule.getWorkTree().resolve("foo"), new byte[] {1});
-    submodule.simpleCommand("add", "foo");
-    submodule.simpleCommand("commit", "-m", "dummy commit");
-
-    Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
-    GitRepository scratchRepo = repo().withWorkTree(scratchTree);
-    scratchRepo.simpleCommand("submodule", "add", "file://" + submodule.getWorkTree(), "submodule");
-    scratchRepo.simpleCommand("commit", "-m", "commit submodule");
-
-    Files.write(workdir.resolve("test42"), new byte[] {42});
-    Destination.Writer writer = destination().newWriter(destinationFiles);
-    WriterResult result = writer.write(
-        TransformResults.of(workdir, new DummyReference("ref1")),
-        console);
-    assertThat(result).isEqualTo(WriterResult.OK);
-
-    GitTesting.assertThatCheckout(repo(), "master")
-        .containsFiles(".gitmodules", "submodule");
-  }
-
-  @Test
-  public void submoduleInDestination_negativeDestinationFilesGlob() throws Exception {
-    destinationFiles =
-        new Glob(ImmutableList.of("**"), ImmutableList.of(".gitmodules", "submodule"));
-    checkSubmoduleInDestination();
-  }
-
-  @Test
-  public void submoduleInDestination_positiveDestinationFilesGlob() throws Exception {
-    destinationFiles = new Glob(ImmutableList.of("test42"));
-    checkSubmoduleInDestination();
   }
 }
