@@ -31,12 +31,6 @@ import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -159,7 +153,8 @@ public final class GitDestination implements Destination {
     }
 
     @Override
-    public WriterResult write(TransformResult transformResult, Console console) throws RepoException {
+    public WriterResult write(TransformResult transformResult, Console console)
+        throws IOException, RepoException {
       logger.log(Level.INFO, "Exporting from " + transformResult.getPath() + " to: " + this);
 
       String baseline = transformResult.getBaseline();
@@ -188,11 +183,17 @@ public final class GitDestination implements Destination {
         verifyUserInfoConfigured(scratchClone);
       }
 
+      // Get the submodules before we stage them for deletion with
+      // alternate.simpleCommand(add --all)
+      AddExcludedFilesToIndexVisitor excludedAdder =
+          new AddExcludedFilesToIndexVisitor(scratchClone, destinationFiles);
+      excludedAdder.findSubmodules(console);
+
       console.progress("Git Destination: Creating a local commit");
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
       alternate.simpleCommand("add", "--all");
 
-      new AddExcludedFilesToIndexVisitor(scratchClone, destinationFiles).walk();
+      excludedAdder.add();
 
       alternate.commit(alternate, transformResult.getAuthor().toString(),
           transformResult.getTimestamp(), commitGenerator.message(transformResult, alternate));
@@ -234,51 +235,6 @@ public final class GitDestination implements Destination {
       }
     }
     return scratchClone;
-  }
-
-  /**
-   * A walker which adds all files matching a PathMatcher to the index of a Git repo using
-   * {@code git add}.
-   */
-  private static final class AddExcludedFilesToIndexVisitor extends SimpleFileVisitor<Path> {
-    private final GitRepository repo;
-    private final PathMatcher destinationFiles;
-
-    AddExcludedFilesToIndexVisitor(GitRepository repo, Glob destinationFilesBuilder) {
-      this.repo = repo;
-      this.destinationFiles = destinationFilesBuilder.relativeTo(repo.getWorkTree());
-    }
-
-    private void git(String command, Path path) throws IOException {
-      try {
-        repo.simpleCommand(command, "--", path.toString());
-      } catch (RepoException e) {
-        throw new IOException(e);
-      }
-    }
-
-    @Override
-    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-      return dir.equals(repo.getGitDir())
-          ? FileVisitResult.SKIP_SUBTREE
-          : FileVisitResult.CONTINUE;
-    }
-
-    @Override
-    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      if (!destinationFiles.matches(file)) {
-        git("add", file);
-      }
-      return FileVisitResult.CONTINUE;
-    }
-
-    void walk() throws RepoException {
-      try {
-        Files.walkFileTree(repo.getWorkTree(), this);
-      } catch (IOException e) {
-        throw new RepoException("Error when adding excludedDestinationPaths to destination.", e);
-      }
-    }
   }
 
   @Override
