@@ -638,6 +638,15 @@ public final class ReplaceTest {
   }
 
   @Test
+  public void noCharacterFollowingDollar() throws ValidationException {
+    skylark.evalFails("core.replace(\n"
+            + "  before = 'foo$',\n"
+            + "  after = 'ok',\n"
+            + ")",
+        "Expect [$] or [{] after every [$]");
+  }
+
+  @Test
   public void multilineScrub() throws Exception {
     // The regex here has unnecessary constructs but it is based on a real-world use case.
     Replace replace = eval(""

@@ -136,6 +136,9 @@ final class TemplateTokens {
           currentLiteral.append(thisChar);
           continue;
         }
+        if (c >= template.length()) {
+          throw new EvalException(location, "Expect $ or { after every $ in string: " + template);
+        }
         thisChar = template.charAt(c);
         c++;
         switch (thisChar) {
