@@ -16,11 +16,14 @@
 
 package com.google.copybara.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -29,15 +32,23 @@ import javax.annotation.Nullable;
  */
 public class PathBasedConfigFile extends ConfigFile<Path> {
 
+  private static final Logger logger = Logger.getLogger(PathBasedConfigFile.class.getName());
+
   private final Path path;
   @Nullable
   private final Path rootPath;
+  private final boolean logFileContent;
 
   public PathBasedConfigFile(Path path, @Nullable Path rootPath) {
+    this(path, rootPath, /*logFileContent=*/false);
+  }
+
+  private PathBasedConfigFile(Path path, @Nullable Path rootPath, boolean logFileContent) {
     super(path.toString());
-    this.rootPath = rootPath;
     Preconditions.checkArgument(path.isAbsolute());
     this.path = path;
+    this.rootPath = rootPath;
+    this.logFileContent = logFileContent;
   }
 
   @Override
@@ -68,8 +79,16 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
     return new PathBasedConfigFile(resolved, rootPath);
   }
 
+  public PathBasedConfigFile withContentLogging() {
+    return new PathBasedConfigFile(path, rootPath, /*logFileContent=*/true);
+  }
+
   @Override
   public byte[] content() throws IOException {
-    return Files.readAllBytes(path);
+    byte[] bytes = Files.readAllBytes(path);
+    if (logFileContent) {
+      logger.info(String.format("Content of '%s':\n%s", path, new String(bytes, UTF_8)));
+    }
+    return bytes;
   }
 }

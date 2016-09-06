@@ -165,7 +165,7 @@ public class Main {
     if (root == null) {
       root = findConfigRootHeuristic(configPath.toAbsolutePath());
     }
-    return new PathBasedConfigFile(configPath.toAbsolutePath(), root);
+    return new PathBasedConfigFile(configPath.toAbsolutePath(), root).withContentLogging();
   }
 
   /**
