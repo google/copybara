@@ -29,7 +29,6 @@ import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -180,11 +179,11 @@ public enum WorkflowMode {
         try {
           // Reverse since changesSinceLastImport returns the first commit to import
           // first.
-          cached = new MutableList<>(runHelper.changesSinceLastImport().reverse());
+          cached = SkylarkList.createImmutable(runHelper.changesSinceLastImport().reverse());
         } catch (RepoException e) {
           logger.log(Level.WARNING, "Previous reference couldn't be resolved."
               + " Cannot compute the set of changes in the migration");
-          cached = new MutableList<>(ImmutableList.<Change<?>>of());
+          cached = SkylarkList.createImmutable(ImmutableList.<Change<?>>of());
         }
       }
       return cached;
@@ -192,7 +191,7 @@ public enum WorkflowMode {
 
     @Override
     public SkylarkList<? extends Change<?>> getMigrated() {
-      return new MutableList<>(ImmutableList.<Change<?>>of());
+      return SkylarkList.createImmutable(ImmutableList.<Change<?>>of());
     }
   }
 
@@ -200,13 +199,13 @@ public enum WorkflowMode {
       documented = false)
   private static class ComputedChanges extends Changes {
 
-    private final MutableList<? extends Change<?>> current;
-    private final MutableList<? extends Change<?>> migrated;
+    private final SkylarkList<? extends Change<?>> current;
+    private final SkylarkList<? extends Change<?>> migrated;
 
     private ComputedChanges(Iterable<? extends Change<?>> current,
         Iterable<? extends Change<?>> migrated) {
-      this.current = new MutableList<>(current);
-      this.migrated = new MutableList<>(migrated);
+      this.current = SkylarkList.createImmutable(current);
+      this.migrated = SkylarkList.createImmutable(migrated);
     }
 
     @Override
