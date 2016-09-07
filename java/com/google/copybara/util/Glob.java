@@ -21,6 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -103,7 +104,7 @@ public final class Glob {
   }
 
   /**
-   * Calculates a list of paths which recursively contain all files that could possibly match a file
+   * Calculates a set of paths which recursively contain all files that could possibly match a file
    * in this glob. Generally, this returns the include paths but removing all segments that have a
    * metacharacter and following segments.
    *
@@ -118,7 +119,7 @@ public final class Glob {
    * This function will return a single string: {@code "foo"}.
    *
    * <p>If the include paths potentially include files in the root directory or use metacharacters
-   * to specify the top level directory, a list with only the empty string is returned. For
+   * to specify the top level directory, a set with only the empty string is returned. For
    * instance, the following include globs will cause {@code [""]} (and no other string) to be
    * returned:
    *
@@ -132,7 +133,7 @@ public final class Glob {
    * may store metadata at {root}/INFO for every root. See the documentation of the destination or
    * origin you are using for more information.
    */
-  public ImmutableList<String> roots() {
+  public ImmutableSet<String> roots() {
     List<String> roots = new ArrayList<>();
 
     for (String includePath : this.include) {
@@ -145,7 +146,7 @@ public final class Glob {
       }
       components.removeLast();
       if (components.isEmpty()) {
-        return ImmutableList.of("");
+        return ImmutableSet.of("");
       }
       roots.add(Joiner.on('/').join(components));
     }
@@ -161,7 +162,7 @@ public final class Glob {
       }
     }
 
-    return ImmutableList.copyOf(roots);
+    return ImmutableSet.copyOf(roots);
   }
 
   private String unescape(String pathComponent) {

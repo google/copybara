@@ -159,6 +159,8 @@ public class GlobTest {
   public void testRoots_mergeRedundant() {
     assertThat(new Glob(ImmutableList.of("foo/bar/baz", "foo/bar")).roots())
         .containsExactly("foo");
+    assertThat(new Glob(ImmutableList.of("foo/bar/baz", "foo/bar/mer")).roots())
+        .containsExactly("foo/bar");
     assertThat(new Glob(ImmutableList.of("foo/bar/bag", "foo/bar/baz", "foo/bar")).roots())
         .containsExactly("foo");
     assertThat(new Glob(ImmutableList.of("foo/barbar/mer", "foo/bar/mer")).roots())
