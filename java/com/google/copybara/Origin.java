@@ -94,7 +94,6 @@ public interface Origin<R extends Origin.Reference> {
      * @param fromRef the reference used in the latest invocation. If null it means that no
      * previous ref could be found or that the destination didn't store the ref.
      * @param toRef current reference to transform.
-     * @throws CannotComputeChangesException if the change list cannot be computed.
      * @throws RepoException if any error happens during the computation of the diff.
      */
     ImmutableList<Change<R>> changes(@Nullable R fromRef, R toRef) throws RepoException;
