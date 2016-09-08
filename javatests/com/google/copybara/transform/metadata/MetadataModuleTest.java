@@ -26,6 +26,7 @@ import com.google.copybara.Author;
 import com.google.copybara.Config;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowMode;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;
@@ -89,7 +90,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForSquashCompact() throws Exception {
-    runWorkflowForMessageTransform(WorkflowMode.SQUASH, ""
+    runWorkflow(WorkflowMode.SQUASH, ""
         + "metadata.squash_notes("
         + "  prefix = 'Importing foo project:\\n\\n',"
         + "  oldest_first = True,"
@@ -106,7 +107,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForSquashReverse() throws Exception {
-    runWorkflowForMessageTransform(WorkflowMode.SQUASH, ""
+    runWorkflow(WorkflowMode.SQUASH, ""
         + "metadata.squash_notes("
         + "  prefix = 'Importing foo project:\\n\\n'"
         + ")");
@@ -122,7 +123,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testMessageTransformerForSquashExtended() throws Exception {
-    runWorkflowForMessageTransform(WorkflowMode.SQUASH, ""
+    runWorkflow(WorkflowMode.SQUASH, ""
         + "metadata.squash_notes("
         + "  prefix = 'Importing foo project:\\n',"
         + "  compact = False\n"
@@ -146,8 +147,73 @@ public class MetadataModuleTest {
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
-  private void runWorkflowForMessageTransform(WorkflowMode mode, String... transforms)
+
+  @Test
+  public void testsSaveAuthor() throws Exception {
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
+    origin.setAuthor(new Author("keep me", "keep@me.com"))
+        .addSimpleChange(0, "A change");
+    wf.run(workdir, /*sourceRef=*/null);
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR=keep me <keep@me.com>");
+  }
+
+  @Test
+  public void testsSaveAuthorOtherLabel() throws Exception {
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author('OTHER_LABEL')");
+    origin.setAuthor(new Author("keep me", "keep@me.com"))
+        .addSimpleChange(0, "A change");
+    wf.run(workdir, /*sourceRef=*/null);
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).contains("OTHER_LABEL=keep me <keep@me.com>");
+    assertThat(change.getChangesSummary()).doesNotContain("ORIGINAL_AUTHOR");
+  }
+
+  @Test
+  public void testsSaveReplaceAuthor() throws Exception {
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
+    origin.setAuthor(new Author("keep me", "keep@me.com"))
+        .addSimpleChange(0, "A change\n\nORIGINAL_AUTHOR=bye bye <bye@bye.com>");
+    wf.run(workdir, /*sourceRef=*/null);
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR=keep me <keep@me.com>");
+    assertThat(change.getChangesSummary()).doesNotContain("bye bye");
+  }
+
+  @Test
+  public void testRestoreAuthor() throws Exception {
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author()");
+    origin.setAuthor(new Author("remove me", "remove@me.com"))
+        .addSimpleChange(0, "A change\n\nORIGINAL_AUTHOR=restore me <restore@me.com>\n");
+    wf.run(workdir, /*sourceRef=*/null);
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
+    assertThat(change.getChangesSummary()).doesNotContain("ORIGINAL_AUTHOR");
+    assertThat(change.getAuthor().toString()).isEqualTo("restore me <restore@me.com>");
+  }
+
+  @Test
+  public void testRestoreAuthorOtherLabel() throws Exception {
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL')");
+    origin.setAuthor(new Author("remove me", "remove@me.com"))
+        .addSimpleChange(0, "A change\n\n"
+            + "OTHER_LABEL=restore me <restore@me.com>\n"
+            + "ORIGINAL_AUTHOR=no no <no@no.com>\n");
+    wf.run(workdir, /*sourceRef=*/null);
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
+    assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR=no no <no@no.com>");
+    assertThat(change.getChangesSummary()).doesNotContain("OTHER_LABEL");
+    assertThat(change.getAuthor().toString()).isEqualTo("restore me <restore@me.com>");
+  }
+
+  private void runWorkflow(WorkflowMode mode, String... transforms)
       throws IOException, RepoException, ValidationException {
+    createWorkflow(mode, transforms).run(workdir, "2");
+  }
+
+  private Workflow createWorkflow(WorkflowMode mode, String... transforms)
+      throws IOException, ValidationException {
     origin.addSimpleChange(0, "first commit\n\nExtended text")
         .setAuthor(new Author("Foo Bar", "foo@bar.com"))
         .addSimpleChange(1, "second commit\n\nExtended text")
@@ -167,6 +233,6 @@ public class MetadataModuleTest {
         + "    mode = '" + mode + "',\n"
         + "    transformations = [" + Joiner.on(", ").join(transforms) + "]\n"
         + ")\n");
-    config.getActiveWorkflow().run(workdir, "2");
+    return config.getActiveWorkflow();
   }
 }

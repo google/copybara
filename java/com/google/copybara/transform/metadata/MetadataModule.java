@@ -74,4 +74,37 @@ public class MetadataModule {
     }
   };
 
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "save_author", returnType = Transformation.class,
+      doc = "For a given change, store a copy of the author as a label with the name."
+          + " ORIGINAL_AUTHOR",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "label", type = String.class,
+              doc = "The label to use for storing the author",
+              defaultValue = "'ORIGINAL_AUTHOR'"),
+      }, objectType = MetadataModule.class, useLocation = true)
+  static final BuiltinFunction SAVE_ORIGINAL_AUTHOR = new BuiltinFunction("save_author") {
+    public Transformation invoke(MetadataModule self, String label, Location location)
+        throws EvalException {
+      return new SaveOriginalAuthor(label);
+    }
+  };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "restore_author", returnType = Transformation.class,
+      doc = "For a given change, restore the author present in the ORIGINAL_AUTHOR label as the"
+          + " author of the change.",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "label", type = String.class,
+              doc = "The label to use for restoring the author",
+              defaultValue = "'ORIGINAL_AUTHOR'"),
+      }, objectType = MetadataModule.class, useLocation = true)
+  static final BuiltinFunction RESTORE_ORIGINAL_AUTHOR = new BuiltinFunction("restore_author") {
+    public Transformation invoke(MetadataModule self, String label, Location location)
+        throws EvalException {
+      return new RestoreOriginalAuthor(label);
+    }
+  };
 }

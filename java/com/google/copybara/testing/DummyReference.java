@@ -16,6 +16,7 @@
 
 package com.google.copybara.testing;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Author;
@@ -106,5 +107,17 @@ public class DummyReference implements Origin.Reference {
 
   public Author getAuthor() {
     return author;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("reference", reference)
+        .add("message", message)
+        .add("author", author)
+        .add("changesBase", changesBase)
+        .add("timestamp", timestamp)
+        .add("labels", labels)
+        .toString();
   }
 }
