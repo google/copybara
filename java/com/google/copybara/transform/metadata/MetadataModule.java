@@ -76,8 +76,8 @@ public class MetadataModule {
 
   @SuppressWarnings("unused")
   @SkylarkSignature(name = "save_author", returnType = Transformation.class,
-      doc = "For a given change, store a copy of the author as a label with the name."
-          + " ORIGINAL_AUTHOR",
+      doc = "For a given change, store a copy of the author as a label with the name"
+          + " ORIGINAL_AUTHOR.",
       parameters = {
           @Param(name = "self", type = MetadataModule.class, doc = "this object"),
           @Param(name = "label", type = String.class,
