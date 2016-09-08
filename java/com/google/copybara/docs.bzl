@@ -52,7 +52,7 @@ doc_generator = rule(
       ]),
       "_doc_tool": attr.label(
           executable = True,
-          cfg = HOST_CFG,
+          cfg = "host",
           allow_files = True,
           default = Label("//java/com/google/copybara:doc_skylark.sh"),
       ),
