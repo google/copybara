@@ -19,9 +19,15 @@ licenses(["notice"])  # Apache 2.0
 java_library(
     name = "transform",
     srcs = glob(["**/*.java"]),
+    javacopts = [
+        "-Xlint:unchecked",
+        "-source",
+        "1.7",
+    ],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/config/base",
+        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",
