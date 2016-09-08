@@ -81,7 +81,7 @@ public final class TransformWork {
   }
 
   /**
-   * If a label group is already present( one or more labels preceded by an empty line or '--' and
+   * If a label group is already present (one or more labels preceded by an empty line or '--' and
    * no more text except for empty lines after that) we inject the label at the end of the label
    * group.
    *
@@ -89,7 +89,7 @@ public final class TransformWork {
    * the message.
    *
    * <p>The injection is supposed to work for the vast majority of common cases but there might be
-   * cases that cannot be detected. In those cases it will be appended at the end.
+   * cases that cannot be detected. In those cases it will be appended to the end.
    */
   @SkylarkCallable(name = "add_label", doc = "Add a label to the end of the description")
   public void addLabel(String label, String value) {
