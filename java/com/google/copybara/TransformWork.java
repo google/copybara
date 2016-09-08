@@ -81,13 +81,15 @@ public final class TransformWork {
   }
 
   /**
-   * This code, while a bit complicated, allows our users to inject labels in the 'expected'
-   * location most of the times. If a label group is already present( one or more labels preceded
-   * by an empty line or '--' and no more text except for empty lines after that) we inject the
-   * label at the end of the label group.
+   * If a label group is already present( one or more labels preceded by an empty line or '--' and
+   * no more text except for empty lines after that) we inject the label at the end of the label
+   * group.
    *
-   * If we cannot find an existing label group we add an empty line and the label at the end of
+   * <p>If we cannot find an existing label group we add an empty line and the label at the end of
    * the message.
+   *
+   * <p>The injection is supposed to work for the vast majority of common cases but there might be
+   * cases that cannot be detected. In those cases it will be appended at the end.
    */
   @SkylarkCallable(name = "add_label", doc = "Add a label to the end of the description")
   public void addLabel(String label, String value) {
