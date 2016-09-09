@@ -48,15 +48,17 @@ public class Copybara {
       MetadataModule.class);
 
   private final SkylarkParser skylarkParser;
+  private final String homeDir;
 
-  public Copybara(SkylarkParser skylarkParser) {
+  public Copybara(SkylarkParser skylarkParser, String homeDir) {
     this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
+    this.homeDir = Preconditions.checkNotNull(homeDir);
   }
 
-  protected List<Option> getAllOptions(Map<String, String> environment) {
+  protected List<Option> getAllOptions() {
     return ImmutableList.of(
         new FolderDestinationOptions(),
-        new GitOptions(environment.get("HOME")),
+        new GitOptions(homeDir),
         new GerritOptions(),
         new WorkflowOptions());
   }

@@ -77,10 +77,9 @@ public class Main {
 
     Copybara copybara = newCopybaraTool();
 
-    Map<String, String> environment = System.getenv();
     final MainArguments mainArgs = new MainArguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-    List<Option> allOptions = new ArrayList<>(copybara.getAllOptions(environment));
+    List<Option> allOptions = new ArrayList<>(copybara.getAllOptions());
     JCommander jcommander = new JCommander(ImmutableList.builder()
         .addAll(allOptions)
         .add(mainArgs)
@@ -101,7 +100,7 @@ public class Main {
       }
       mainArgs.validateUnnamedArgs();
 
-      GeneralOptions generalOptions = generalOptionsArgs.init(environment, fs, console);
+      GeneralOptions generalOptions = generalOptionsArgs.init(System.getenv(), fs, console);
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
@@ -206,7 +205,7 @@ public class Main {
    * Returns a new instance of {@link Copybara}.
    */
   protected Copybara newCopybaraTool() {
-    return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES));
+    return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES), System.getenv("HOME"));
   }
 
   /**
