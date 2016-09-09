@@ -31,7 +31,6 @@ import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
