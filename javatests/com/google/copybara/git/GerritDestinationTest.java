@@ -51,7 +51,6 @@ public class GerritDestinationTest {
   private String url;
   private String fetch;
   private String pushToRefsFor;
-  private String pushToRefsForCompat;
   private Path repoGitDir;
   private Path workdir;
   private OptionsBuilder options;
@@ -94,8 +93,6 @@ public class GerritDestinationTest {
         + "git.gerrit_destination(\n"
         + "    url = '" + url + "',\n"
         + "    fetch = '" + fetch + "',\n"
-        + "    " + (pushToRefsForCompat == null
-            ? "" : "pushToRefsFor = '" + pushToRefsForCompat + "',")
         + "    " + (pushToRefsFor == null ? "" : "push_to_refs_for = '" + pushToRefsFor + "',")
         + ")");
   }
@@ -228,19 +225,6 @@ public class GerritDestinationTest {
   }
 
   @Test
-  public void testPushToNonDefaultRef_compatArg() throws Exception {
-    fetch = "master";
-    pushToRefsForCompat = "testPushToRef";
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    options.git.gitFirstCommit = true;
-    process(new DummyReference("origin_ref"));
-
-    // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/testPushToRef");
-    assertThat(showResult).contains("some content");
-  }
-
-  @Test
   public void testPushToNonDefaultRef() throws Exception {
     fetch = "master";
     pushToRefsFor = "testPushToRef";
@@ -251,18 +235,6 @@ public class GerritDestinationTest {
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/testPushToRef");
     assertThat(showResult).contains("some content");
-  }
-
-  @Test
-  public void testPushToNonDefaultRef_setTwoArgsIsError() throws Exception {
-    skylark.evalFails(""
-        + "git.gerrit_destination("
-        + "    url = 'http://gerrit.com/foo/bar',"
-        + "    fetch = 'mst',"
-        + "    pushToRefsFor = 'destbr',"
-        + "    push_to_refs_for = 'destbr',"
-        + ")",
-        "do not use pushToRefsFor; use push_to_refs_for instead");
   }
 
   @Test

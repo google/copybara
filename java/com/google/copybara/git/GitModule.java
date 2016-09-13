@@ -147,10 +147,6 @@ public class GitModule implements OptionsAwareModule {
                   + "commit"),
           @Param(name = "fetch", type = String.class,
               doc = "Indicates the ref from which to get the parent commit"),
-          // TODO(copybara-team): Refactor existing users and remove 'pushToRefsFor' param.
-          @Param(
-              name = "pushToRefsFor", type = String.class, defaultValue = "''",
-              doc = "For compatibility only. Use 'push_to_refs_for' instead."),
           @Param(
               name = "push_to_refs_for", type = String.class, defaultValue = "''",
               doc = "Review branch to push the change to, for example setting this to 'feature_x'"
@@ -161,16 +157,13 @@ public class GitModule implements OptionsAwareModule {
   public static final BuiltinFunction GERRIT_DESTINATION =
       new BuiltinFunction("gerrit_destination") {
     public GerritDestination invoke(
-        GitModule self, String url, String fetch, String pushToRefsForCompat, String pushToRefsFor,
+        GitModule self, String url, String fetch, String pushToRefsFor,
         Location location) throws EvalException {
-      if (!pushToRefsForCompat.isEmpty() && !pushToRefsFor.isEmpty()) {
-        throw new EvalException(location, "do not use pushToRefsFor; use push_to_refs_for instead");
-      }
       return GerritDestination.newGerritDestination(
           self.options,
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
-          pushToRefsForCompat + pushToRefsFor,
+          pushToRefsFor,
           self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
