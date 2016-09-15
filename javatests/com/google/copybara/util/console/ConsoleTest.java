@@ -90,7 +90,7 @@ public class ConsoleTest {
     Console console = LogConsole.readWriteConsole(
         new ByteArrayInputStream(new byte[]{}),new PrintStream(new ByteArrayOutputStream()));
 
-    thrown.expect(RuntimeException.class);
+    thrown.expect(IOException.class);
     console.promptConfirmation("Proceed?");
   }
 

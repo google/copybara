@@ -17,6 +17,7 @@
 package com.google.copybara.util.console;
 
 import com.google.common.base.Preconditions;
+import java.io.IOException;
 
 /**
  * A console that delegates to another console but adds a prefix to the progress messages
@@ -57,7 +58,7 @@ public class ProgressPrefixConsole implements Console {
   }
 
   @Override
-  public boolean promptConfirmation(String message) {
+  public boolean promptConfirmation(String message) throws IOException {
     return delegate.promptConfirmation(message);
   }
 

@@ -19,6 +19,7 @@ package com.google.copybara.util.console;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.Console.PromptPrinter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Scanner;
 
@@ -38,7 +39,7 @@ class ConsolePrompt {
     this.promptPrinter = Preconditions.checkNotNull(promptPrinter);
   }
 
-  boolean promptConfirmation(String message) {
+  boolean promptConfirmation(String message) throws IOException {
     Scanner scanner = new Scanner(input);
     promptPrinter.print(message);
     while (scanner.hasNextLine()) {
@@ -51,7 +52,6 @@ class ConsolePrompt {
       }
       promptPrinter.print(message);
     }
-    // TODO(copybara-team): This should really be IOException
-    throw new RuntimeException("EOF while reading from the input");
+    throw new IOException("EOF while reading from the input");
   }
 }

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 
@@ -130,7 +131,7 @@ public final class TestingConsole implements Console {
   }
 
   @Override
-  public boolean promptConfirmation(String message) {
+  public boolean promptConfirmation(String message) throws IOException {
     Preconditions.checkState(!programmedResponses.isEmpty(), "No more programmed responses.");
     warn(message);
     return programmedResponses.removeFirst() == PromptResponse.YES;

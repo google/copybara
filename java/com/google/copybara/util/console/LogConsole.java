@@ -18,6 +18,7 @@ package com.google.copybara.util.console;
 
 import com.google.common.base.Preconditions;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
@@ -80,7 +81,7 @@ public class LogConsole implements Console {
   }
 
   @Override
-  public boolean promptConfirmation(String message) {
+  public boolean promptConfirmation(String message) throws IOException {
     Preconditions.checkState(input != null,
         "LogConsole cannot read user input if system console is not present.");
     return new ConsolePrompt(input, new PromptPrinter() {

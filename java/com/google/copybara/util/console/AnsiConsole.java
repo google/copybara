@@ -23,6 +23,7 @@ import static com.google.copybara.util.console.AnsiColor.YELLOW;
 
 import com.google.common.base.Preconditions;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 
@@ -92,7 +93,7 @@ public final class AnsiConsole implements Console {
   }
 
   @Override
-  public boolean promptConfirmation(String message) {
+  public boolean promptConfirmation(String message) throws IOException {
     return new ConsolePrompt(input, new PromptPrinter() {
       @Override
       public void print(String message) {

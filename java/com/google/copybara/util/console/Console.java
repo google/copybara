@@ -16,6 +16,8 @@
 
 package com.google.copybara.util.console;
 
+import java.io.IOException;
+
 /**
  * Write user messages to the console
  */
@@ -52,7 +54,7 @@ public interface Console {
   /**
    * Returns true if this Console's input registers Y/y after showing the prompt message.
    */
-  boolean promptConfirmation(String message);
+  boolean promptConfirmation(String message) throws IOException;
 
   /**
    * Given a message and a console that support colors, return a string that prints the message in
