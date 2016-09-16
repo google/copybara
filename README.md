@@ -49,6 +49,7 @@ you need:
 We are still working on the documentation. Here are some resources:
 
   * [Reference documentation](docs/reference.md)
+  * [Examples](docs/examples.md)
 
 ## Optional tips
 
