@@ -24,7 +24,7 @@ java_plugin(
     javacopts = [
         "-Xlint:unchecked",
         "-source",
-        "1.7",
+        "1.8",
     ],
     processor_class = "com.google.copybara.doc.skylark.MarkdownGenerator",
     visibility = [
@@ -45,7 +45,7 @@ java_library(
     javacopts = [
         "-Xlint:unchecked",
         "-source",
-        "1.7",
+        "1.8",
     ],
     visibility = [
         "//visibility:public",

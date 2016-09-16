@@ -22,7 +22,7 @@ java_library(
     javacopts = [
         "-Xlint:unchecked",
         "-source",
-        "1.7",
+        "1.8",
     ],
     deps = [
         "//java/com/google/copybara:base",

@@ -21,7 +21,7 @@ def all_tests(tests, deps, tags=[]):
     native.java_test(
       name = file[:-5],
       srcs = [file],
-      javacopts = ["-Xlint:unchecked", "-source", "1.7"],
+      javacopts = ["-Xlint:unchecked", "-source", "1.8"],
       test_class = test_class,
       deps = deps + [
           # These deps are automatically included with Bazel, but not with the

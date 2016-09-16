@@ -19,7 +19,7 @@ java_library(
     name = "testing",
     testonly = 1,
     srcs = glob(["**/*.java"]),
-    javacopts = ["-Xlint:unchecked", "-source", "1.7"],
+    javacopts = ["-Xlint:unchecked", "-source", "1.8"],
     visibility = [
         "//visibility:public",
     ],

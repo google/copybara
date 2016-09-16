@@ -21,7 +21,7 @@ java_library(
     javacopts = [
         "-Xlint:unchecked",
         "-source",
-        "1.7",
+        "1.8",
     ],
     visibility = [
         "//visibility:public",
