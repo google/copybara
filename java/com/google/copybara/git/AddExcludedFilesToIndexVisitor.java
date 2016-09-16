@@ -48,7 +48,7 @@ final class AddExcludedFilesToIndexVisitor extends SimpleFileVisitor<Path> {
    * for deletion.
    */
   void findSubmodules(Console console) throws RepoException {
-    addBackSubmodules = new ArrayList<String>();
+    addBackSubmodules = new ArrayList<>();
 
     String submoduleStatus = repo.simpleCommand("submodule", "status").getStdout();
     for (String line : Splitter.on('\n').omitEmptyStrings().split(submoduleStatus)) {

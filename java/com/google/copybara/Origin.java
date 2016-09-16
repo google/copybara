@@ -158,7 +158,7 @@ public interface Origin<R extends Origin.Reference> {
      * Stop. Origin will not pass more changes to the visitor function. Usually used because the
      * function found what it was looking for (For example a commit with a label).
      */
-    TERMINATE;
+    TERMINATE
   }
 
   /**

@@ -62,7 +62,7 @@ public final class TestingConsole implements Console {
   }
 
   public enum MessageType {
-    ERROR, WARNING, INFO, PROGRESS;
+    ERROR, WARNING, INFO, PROGRESS
   }
 
   private final Console outputConsole = LogConsole.writeOnlyConsole(System.out);

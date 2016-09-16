@@ -21,7 +21,6 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.util.console.Console;
-import com.google.re2j.Pattern;
 import java.io.IOException;
 
 /**

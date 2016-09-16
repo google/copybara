@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
  */
 public class Copybara {
 
-  protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.<Class<?>>of(
+  protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
       FolderDestination.Module.class,
       GitModule.class,
       MetadataModule.class);

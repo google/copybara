@@ -35,7 +35,7 @@ import java.util.Set;
  */
 final class TemplateTokens {
   private enum TokenType {
-    LITERAL, INTERPOLATION;
+    LITERAL, INTERPOLATION
   }
 
   /**

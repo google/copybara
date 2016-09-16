@@ -20,7 +20,6 @@ import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
-import java.nio.file.Path;
 
 /**
  * Interface implemented by all source code transformations.

@@ -31,7 +31,6 @@ import com.google.devtools.build.lib.syntax.Environment;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nullable;
 
 /**
  * Utility class for running a simple skylark code and getting back a declared variable.
