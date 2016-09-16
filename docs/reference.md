@@ -40,7 +40,7 @@ The authors mapping between an origin and a destination
 
 Use the default author for all the submits in the destination.
 
-`authoring_class authoring.overwrite(default)`
+`authoring_class overwrite(default)`
 
 ### Parameters:
 
@@ -53,7 +53,7 @@ default|`string`<br><p>The default author for commits in the destination</p>
 
 Create a new author from a string with the form 'name <foo@bar.com>'
 
-`author authoring.new_author(author_string)`
+`author new_author(author_string)`
 
 ### Parameters:
 
@@ -66,7 +66,7 @@ author_string|`string`<br><p>A string representation of the author with the form
 
 Use the origin author as the author in the destination, no whitelisting.
 
-`authoring_class authoring.pass_thru(default)`
+`authoring_class pass_thru(default)`
 
 ### Parameters:
 
@@ -79,7 +79,7 @@ default|`string`<br><p>The default author for commits in the destination. This i
 
 Create an individual or team that contributes code.
 
-`authoring_class authoring.whitelisted(default, whitelist)`
+`authoring_class whitelisted(default, whitelist)`
 
 ### Parameters:
 
@@ -128,7 +128,7 @@ Core transformations for the change metadata
 
 Generate a message that includes a constant prefix text and a list of changes included in the squash change.
 
-`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, oldest_first=False)`
+`transformation squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, oldest_first=False)`
 
 ### Parameters:
 
@@ -144,7 +144,7 @@ oldest_first|`boolean`<br><p>If set to true, the list shows the oldest changes f
 
 For a given change, store a copy of the author as a label with the name ORIGINAL_AUTHOR.
 
-`transformation metadata.save_author(label='ORIGINAL_AUTHOR')`
+`transformation save_author(label='ORIGINAL_AUTHOR')`
 
 ### Parameters:
 
@@ -157,7 +157,7 @@ label|`string`<br><p>The label to use for storing the author</p>
 
 For a given change, restore the author present in the ORIGINAL_AUTHOR label as the author of the change.
 
-`transformation metadata.restore_author(label='ORIGINAL_AUTHOR')`
+`transformation restore_author(label='ORIGINAL_AUTHOR')`
 
 ### Parameters:
 
@@ -175,7 +175,7 @@ Core functionality for creating workflows, and basic transformations.
 
 Glob returns a list of every file in the workdir that matches at least one pattern in include and does not match any of the patterns in exclude.
 
-`glob core.glob(include, exclude=[])`
+`glob glob(include, exclude=[])`
 
 ### Parameters:
 
@@ -189,7 +189,7 @@ exclude|`sequence of string`<br><p>The list of glob patterns to exclude</p>
 
 General configuration of the project. Like the name.
 
-`core.project(name)`
+`project(name)`
 
 ### Parameters:
 
@@ -202,7 +202,7 @@ name|`string`<br><p>The name of the configuration.</p>
 
 Given a list of transformations, returns the list of transformations equivalent to undoing all the transformations
 
-`sequence core.reverse(transformations)`
+`sequence reverse(transformations)`
 
 ### Parameters:
 
@@ -215,7 +215,7 @@ transformations|`sequence of transformation`<br><p>The transformations to revers
 
 Defines a migration pipeline which can be invoked via the Copybara command.
 
-`core.workflow(name, origin, destination, authoring, transformations=[], exclude_in_origin=N/A, exclude_in_destination=N/A, origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", include_changelist_notes=False, reversible_check=True for CHANGE_REQUEST mode. False otherwise, ask_for_confirmation=False)`
+`workflow(name, origin, destination, authoring, transformations=[], exclude_in_origin=N/A, exclude_in_destination=N/A, origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", include_changelist_notes=False, reversible_check=True for CHANGE_REQUEST mode. False otherwise, ask_for_confirmation=False)`
 
 ### Parameters:
 
@@ -250,7 +250,7 @@ Name | Type | Description
 
 Moves files between directories and renames files
 
-`move core.move(before, after, paths=glob(["**"]))`
+`move move(before, after, paths=glob(["**"]))`
 
 ### Parameters:
 
@@ -265,7 +265,7 @@ paths|`glob`<br><p>A glob expression relative to 'before' if it represents a dir
 
 Replace a text with another text using optional regex groups. This tranformer can be automatically reversed.
 
-`replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False)`
+`replace replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False)`
 
 ### Parameters:
 
@@ -283,7 +283,7 @@ multiline|`boolean`<br><p>Whether to replace text that spans more than one line.
 
 Creates a transformation with a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.
 
-`transformation core.transform(transformations, reversal)`
+`transformation transform(transformations, reversal)`
 
 ### Parameters:
 
@@ -302,7 +302,7 @@ Module for dealing with local filesytem folders
 
 A folder destination is a destination that puts the output in a folder
 
-`destination folder.destination()`
+`destination destination()`
 
 
 
@@ -332,7 +332,7 @@ Name | Type | Description
 
 Defines a standard Git origin. For Git specific origins use: github_origin or gerrit_origin.
 
-`gitOrigin git.origin(url, ref=None)`
+`gitOrigin origin(url, ref=None)`
 
 ### Parameters:
 
@@ -346,7 +346,7 @@ ref|`string`<br><p>Represents the default reference that will be used for readin
 
 Defines a Git origin of type Gerrit.
 
-`gitOrigin git.gerrit_origin(url, ref=None)`
+`gitOrigin gerrit_origin(url, ref=None)`
 
 ### Parameters:
 
@@ -360,7 +360,7 @@ ref|`string`<br><p>Represents the default reference that will be used for readin
 
 Defines a Git origin of type Github.
 
-`gitOrigin git.github_origin(url, ref=None)`
+`gitOrigin github_origin(url, ref=None)`
 
 ### Parameters:
 
@@ -374,7 +374,7 @@ ref|`string`<br><p>Represents the default reference that will be used for readin
 
 Creates a commit in a git repository using the transformed worktree
 
-`gitDestination git.destination(url, fetch, push)`
+`gitDestination destination(url, fetch, push)`
 
 ### Parameters:
 
@@ -389,7 +389,7 @@ push|`string`<br><p>Reference to use for pushing the change, for example 'master
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for='')`
+`gerritDestination gerrit_destination(url, fetch, push_to_refs_for='')`
 
 ### Parameters:
 

@@ -152,10 +152,17 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     if (!returnTypeStr.equals("")) {
       sb.append(returnTypeStr).append(" ");
     }
-    sb.append(skyModule.name()).append(".").append(functionName).append("(");
+
+    DeclaredType objectType = signature.getClassValue("objectType");
+
+    if (objectType.equals(module)) {
+      sb.append(skyModule.name()).append(".");
+    }
+
+    sb.append(functionName).append("(");
 
     List<AnnotationValue> params = signature.getValue("parameters");
-    DeclaredType objectType = signature.getClassValue("objectType");
+
 
     StringBuilder longDescription = new StringBuilder();
     int startIndex = firstParamIsSelf(module, skyModule, objectType) ? 1 : 0;
