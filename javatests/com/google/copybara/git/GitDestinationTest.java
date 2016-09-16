@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
 import com.google.copybara.Destination;
+import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
@@ -360,6 +361,35 @@ public class GitDestinationTest {
         .containsFile("foo/bar", "content")
         .containsFile("foo/baz", "content")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void lastRevOnlyForAffectedRoots() throws Exception {
+    fetch = "master";
+    push = "master";
+
+    Files.createDirectories(workdir.resolve("foo"));
+    Files.createDirectories(workdir.resolve("bar"));
+    Files.createDirectories(workdir.resolve("baz"));
+
+    Files.write(workdir.resolve("foo/one"), "content".getBytes(UTF_8));
+    Files.write(workdir.resolve("bar/one"), "content".getBytes(UTF_8));
+    Files.write(workdir.resolve("baz/one"), "content".getBytes(UTF_8));
+
+    DummyReference ref1 = new DummyReference("first");
+
+    Writer writer1 = destinationFirstCommit().newWriter(
+        new Glob(ImmutableList.of("foo/**", "bar/**")));
+    process(writer1, ref1);
+
+    Files.write(workdir.resolve("baz/one"), "content2".getBytes(UTF_8));
+    DummyReference ref2 = new DummyReference("second");
+
+    Writer writer2 = destination().newWriter(new Glob(ImmutableList.of("baz/**")));
+    process(writer2, ref2);
+
+    assertThat(writer1.getPreviousRef(ref1.getLabelName())).isEqualTo(ref1.asString());
+    assertThat(writer2.getPreviousRef(ref2.getLabelName())).isEqualTo(ref2.asString());
   }
 
   @Test

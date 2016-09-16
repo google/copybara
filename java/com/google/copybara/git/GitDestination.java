@@ -21,6 +21,8 @@ import static com.google.copybara.git.GitOptions.GIT_FIRST_COMMIT_FLAG;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
@@ -31,6 +33,7 @@ import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,6 +43,8 @@ import javax.annotation.Nullable;
  * A Git repository destination.
  */
 public final class GitDestination implements Destination {
+
+  private static final ImmutableSet<String> SINGLE_ROOT_WITHOUT_FOLDER = ImmutableSet.of("");
 
   interface CommitGenerator {
     /**
@@ -125,14 +130,15 @@ public final class GitDestination implements Destination {
       if (gitOptions.gitFirstCommit) {
         return null;
       }
+      ImmutableSet<String> roots = destinationFiles.roots();
       GitRepository gitRepository = cloneBaseline();
       String commit = gitRepository.revParse("FETCH_HEAD");
       String labelPrefix = labelName + ": ";
       // Look at commits in reverse chronological order, starting from FETCH_HEAD.
       while (!commit.isEmpty()) {
         // Get commit message body.
-        String body = gitRepository.simpleCommand("log", "--no-color", "--format=%b", commit, "-1")
-            .getStdout();
+        String body = gitRepository.simpleCommand(
+            createPreviousRefLogCommand(roots, commit, "--format=%b")).getStdout();
         for (String line : body.split("\n")) {
           if (line.startsWith(labelPrefix)) {
             return line.substring(labelPrefix.length());
@@ -140,8 +146,8 @@ public final class GitDestination implements Destination {
         }
 
         // Get parent hash.
-        commit = gitRepository.simpleCommand("log", "--no-color", "--format=%P", commit, "-1")
-            .getStdout().trim();
+        commit = gitRepository.simpleCommand(
+            createPreviousRefLogCommand(roots, commit, "--format=%P")).getStdout().trim();
         if (commit.indexOf(' ') != -1) {
           throw new RepoException(
               "Found commit with multiple parents (merge commit) when looking for "
@@ -150,6 +156,16 @@ public final class GitDestination implements Destination {
       }
 
       return null;
+    }
+
+    private String[] createPreviousRefLogCommand(ImmutableSet<String> roots, String commit,
+        String format) {
+      List<String> args = Lists.newArrayList("log", "--no-color", format, commit, "-1");
+      if (!roots.isEmpty() && !roots.equals(SINGLE_ROOT_WITHOUT_FOLDER)) {
+        args.add("--");
+        args.addAll(roots);
+      }
+      return args.toArray(new String[args.size()]);
     }
 
     @Override
