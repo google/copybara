@@ -7,7 +7,7 @@ under ``$GIT/third_party/copybara``.
 Assuming you have an existing git repository. For the example in ``/tmp/foo``. But it could be
 a remote one:
 
-```
+```bash
 mkdir /tmp/foo
 cd /tmp/foo
 git init --bare .
@@ -15,7 +15,7 @@ git init --bare .
 
 Create a ``copy.bara.sky`` config file like:
 
-```
+```python
 core.project(name = "example")
 
 url = "https://github.com/google/copybara.git"
@@ -43,7 +43,7 @@ core.workflow(
 
 Invoke the tool like:
 
-```
+```bash
 copybara copy.bara.sky --git-first-commit
 ```
 
@@ -61,7 +61,7 @@ We could use core.replace to do it. Here we look for ``//third_party/bazel/bashu
 and we replace it with the correct destination one just for BUILD files:
 
 
-```
+```python
 core.project(name = "example")
 
 url = "https://github.com/google/copybara.git"
