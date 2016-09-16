@@ -34,12 +34,21 @@ Copybara is similar to MOE, which is a tool to synchronize between source code r
 Copybara’s design has learned much from MOE, and will have ongoing support. MOE will not be
 deprecated until Copybara is able to provide satisfactory services to MOE customers.
 
-## Getting Started
+## Getting Started using Copybara
+
+Copybara doesn't have a release process yet, so you need to compile from HEAD. In order to do that
+you need:
 
   * [Install JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
   * [Install Bazel](http://bazel.io/docs/install.html).
   * Build: *bazel build //java/com/google/copybara*.
-  * Tests: *bazel test //...*.
+  * Tests: *bazel test //...* if you want to ensure you are not using a broken version.
+
+## Documentation
+
+We are still working on the documentation. Here are some resources:
+
+  * [Reference documentation](docs/reference.md)
 
 ## Optional tips
 

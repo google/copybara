@@ -1,0 +1,6 @@
+#!/bin/bash
+bazel build java/com/google/copybara:docs
+mkdir -p docs
+cp bazel-bin/java/com/google/copybara/docs.md docs/reference.md
+git add docs/reference.md
+git commit docs/reference.md -m "Update reference documentation to latest version"
