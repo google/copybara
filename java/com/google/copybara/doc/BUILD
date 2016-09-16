@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 licenses(["notice"])  # Apache 2.0
 
 java_plugin(
@@ -34,6 +33,7 @@ java_plugin(
         "//third_party:autocommon",
         "//third_party:guava",
         "//third_party:jcommander",
+        "//third_party:jsr305",
         "//third_party:skylark-lang",
     ],
 )

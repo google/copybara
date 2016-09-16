@@ -17,7 +17,6 @@
 package com.google.copybara.doc.skylark;
 
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.internal.Nullable;
 import com.google.auto.common.BasicAnnotationProcessor;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
@@ -39,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import javax.annotation.Nullable;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
