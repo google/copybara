@@ -31,7 +31,7 @@ public class LabelFinder {
 
   private static final String VALID_LABEL_EXPR = "([\\w-]+)";
 
-  static final Pattern VALID_LABEL = Pattern.compile(VALID_LABEL_EXPR);
+  public static final Pattern VALID_LABEL = Pattern.compile(VALID_LABEL_EXPR);
 
   private static final Pattern URL = Pattern.compile(VALID_LABEL + "://.*");
 

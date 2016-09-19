@@ -107,4 +107,29 @@ public class MetadataModule {
       return new RestoreOriginalAuthor(label);
     }
   };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "add_header", returnType = Transformation.class,
+      doc = "Adds a header line to the commit message. Any variable present in the message in the"
+          + " form of ${LABEL_NAME} will be replaced by the corresponding label in the message."
+          + " Note that this requires that the label is already in the message or in any of the"
+          + " changes being imported. The label in the message takes priority over the ones in"
+          + " the list of original messages of changes imported.\n",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "text", type = String.class,
+              doc = "The header text to include in the message. For example "
+                  + "'[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL}"
+                  + " to the corresponding label."),
+          @Param(name = "ignore_if_label_not_found", type = Boolean.class,
+              doc = "If a label used in the template is not found, ignore the error and"
+                  + " don't add the header. By default it will stop the migration and fail.",
+              defaultValue = "False"),
+      }, objectType = MetadataModule.class, useLocation = true)
+  static final BuiltinFunction ADD_HEADER = new BuiltinFunction("add_header") {
+    public Transformation invoke(MetadataModule self, String header, Boolean ignoreIfLabelNotFound,
+        Location location) throws EvalException {
+      return new AddHeader(header, ignoreIfLabelNotFound);
+    }
+  };
 }

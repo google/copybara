@@ -76,6 +76,13 @@ public class MetadataModuleTest {
     options.testingOptions.destination = destination;
     skylark = new SkylarkParser(
         ImmutableSet.of(TestingModule.class, MetadataModule.class));
+    origin.addSimpleChange(0, "first commit\n\nExtended text")
+        .setAuthor(new Author("Foo Bar", "foo@bar.com"))
+        .addSimpleChange(1, "second commit\n\nExtended text")
+        .setAuthor(new Author("Foo Baz", "foo@baz.com"))
+        .addSimpleChange(2, "third commit\n\nExtended text");
+
+    options.setLastRevision("0");
   }
 
   private void passThruAuthoring() {
@@ -207,6 +214,59 @@ public class MetadataModuleTest {
     assertThat(change.getAuthor().toString()).isEqualTo("restore me <restore@me.com>");
   }
 
+  @Test
+  public void testAddHeader() throws Exception {
+    options.setLastRevision(origin.getHead());
+
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.add_header('[HEADER with ${LABEL}]')");
+
+    origin.addSimpleChange(0, ""
+        + "A change\n"
+        + "\n"
+        + "LABEL=some label\n");
+
+    wf.run(workdir, /*sourceRef=*/null);
+
+    ProcessedChange change = Iterables.getLast(destination.processed);
+
+    assertThat(change.getChangesSummary()).isEqualTo(""
+        + "[HEADER with some label]\n"
+        + "A change\n"
+        + "\n"
+        + "LABEL=some label\n");
+  }
+
+  @Test
+  public void testAddHeaderLabelNotFound() throws Exception {
+    options.setLastRevision(origin.getHead());
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.add_header('[HEADER with ${LABEL}]')");
+    origin.addSimpleChange(0, "foo");
+
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("Cannot find label 'LABEL'");
+
+    wf.run(workdir, /*sourceRef=*/null);
+  }
+
+  @Test
+  public void testAddHeaderLabelNotFoundIgnore() throws Exception {
+    options.setLastRevision(origin.getHead());
+
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.add_header('[HEADER with ${LABEL}]', "
+            + "ignore_if_label_not_found = True)");
+
+    origin.addSimpleChange(0, "A change\n");
+
+    wf.run(workdir, /*sourceRef=*/null);
+
+    ProcessedChange change = Iterables.getLast(destination.processed);
+
+    assertThat(change.getChangesSummary()).isEqualTo("A change\n");
+  }
+
   private void runWorkflow(WorkflowMode mode, String... transforms)
       throws IOException, RepoException, ValidationException {
     createWorkflow(mode, transforms).run(workdir, "2");
@@ -214,13 +274,6 @@ public class MetadataModuleTest {
 
   private Workflow createWorkflow(WorkflowMode mode, String... transforms)
       throws IOException, ValidationException {
-    origin.addSimpleChange(0, "first commit\n\nExtended text")
-        .setAuthor(new Author("Foo Bar", "foo@bar.com"))
-        .addSimpleChange(1, "second commit\n\nExtended text")
-        .setAuthor(new Author("Foo Baz", "foo@baz.com"))
-        .addSimpleChange(2, "third commit\n\nExtended text");
-
-    options.setLastRevision("0");
     passThruAuthoring();
 
     Config config = loadConfig(""
