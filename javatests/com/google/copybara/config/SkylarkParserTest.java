@@ -20,11 +20,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.copybara.Authoring;
 import com.google.copybara.Config;
 import com.google.copybara.Destination;
@@ -52,6 +50,8 @@ import com.google.devtools.build.lib.syntax.Type;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -63,15 +63,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SkylarkParserTest {
 
-  private static final Function<String, byte[]> STRING_TO_BYTE = new Function<String, byte[]>() {
-    @Override
-    public byte[] apply(String s) {
-      return s.getBytes(UTF_8);
-    }
-  };
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
+  @Rule public final ExpectedException thrown = ExpectedException.none();
 
   private SkylarkParser parser;
   private OptionsBuilder options;
@@ -191,7 +183,8 @@ public class SkylarkParserTest {
     return parser.loadConfig(
         new MapConfigFile(ImmutableMap.<String, byte[]>builder()
             .put("copy.bara.sky", configContent.getBytes())
-            .putAll(Maps.transformValues(extraFiles, STRING_TO_BYTE))
+            .putAll(extraFiles.entrySet().stream()
+                .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().getBytes(UTF_8))))
             .build(),
             "copy.bara.sky"),
         options.build());
