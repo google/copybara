@@ -155,7 +155,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
     DeclaredType objectType = signature.getClassValue("objectType");
 
-    if (objectType.equals(module)) {
+    if (objectType.toString().equals(module.toString())) {
       sb.append(skyModule.name()).append(".");
     }
 

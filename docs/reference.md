@@ -166,6 +166,21 @@ Parameter | Description
 label|`string`<br><p>The label to use for restoring the author</p>
 
 
+## add_header
+
+Adds a header line to the commit message. Any variable present in the message in the form of ${LABEL_NAME} will be replaced by the corresponding label in the message. Note that this requires that the label is already in the message or in any of the changes being imported. The label in the message takes priority over the ones in the list of original messages of changes imported.
+
+
+`transformation metadata.add_header(text, ignore_if_label_not_found=False)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+text|`string`<br><p>The header text to include in the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
+ignore_if_label_not_found|`boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
+
+
 
 # core
 
@@ -265,7 +280,7 @@ paths|`glob`<br><p>A glob expression relative to 'before' if it represents a dir
 
 Replace a text with another text using optional regex groups. This tranformer can be automatically reversed.
 
-`replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False)`
+`replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False)`
 
 ### Parameters:
 
@@ -277,6 +292,7 @@ regex_groups|`dict`<br><p>A set of named regexes that can be used to match part 
 paths|`glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 first_only|`boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 multiline|`boolean`<br><p>Whether to replace text that spans more than one line.</p>
+repeated_groups|`boolean`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
 
 
 ## transform
