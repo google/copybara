@@ -221,6 +221,48 @@ public final class ReplaceTest {
   }
 
   @Test
+  public void testWithRepeatedGroups() throws Exception {
+    Replace transformation = eval("core.replace(\n"
+        + "  before = 'foo/${a}/${a}',\n"
+        + "  after = '${a}',\n"
+        + "  regex_groups = {\n"
+        + "       'a' : '[a-z]+',\n"
+        + "  },\n"
+        + "  repeated_groups = True,\n"
+        + ")");
+
+    writeFile(checkoutDir.resolve("before_and_after"), ""
+        + "foo/bar/bar\n"
+        + "foo/bar/baz\n"
+        + "foo/baz/baz\n");
+
+    transform(transformation);
+
+    assertThatPath(checkoutDir)
+        .containsFile("before_and_after", ""
+            + "bar\n"
+            + "foo/bar/baz\n"
+            + "baz\n");
+  }
+
+  @Test
+  public void testNoBacktracking() throws Exception {
+    Replace transformation = eval("core.replace(\n"
+        + "  before = 'foo/${a}${a}',\n"
+        + "  after = '${a}',\n"
+        + "  regex_groups = {\n"
+        + "       'a' : '[a-z]+',\n"
+        + "  },\n"
+        + "  repeated_groups = True,\n"
+        + ")");
+
+    writeFile(checkoutDir.resolve("before_and_after"), "foo/barbar\n");
+    // Because we don't use backtracking this repeated group is expected to fail.
+    thrown.expect(VoidOperationException.class);
+    transform(transformation);
+  }
+
+  @Test
   public void beforeUsesUndeclaredGroup() throws ValidationException {
     skylark.evalFails("core.replace(\n"
             + "  before = 'foo${bar}${baz}',\n"

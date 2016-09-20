@@ -391,6 +391,12 @@ public class Core implements OptionsAwareModule {
           @Param(name = "multiline", type = Boolean.class,
               doc = "Whether to replace text that spans more than one line.",
               defaultValue = "False"),
+          @Param(name = "repeated_groups", type = Boolean.class,
+              doc = "Allow to use a group multiple times. For example foo${repeated}/${repeated}."
+                  + " Note that this mechanism doesn't use backtracking. In other words, the group"
+                  + " instances are treated as different groups in regex construction and then a"
+                  + " validation is done after that.",
+              defaultValue = "False"),
       },
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction REPLACE = new BuiltinFunction("replace",
@@ -398,12 +404,11 @@ public class Core implements OptionsAwareModule {
           SkylarkDict.empty(),
           Glob.ALL_FILES,
           false,
-          false
-      )) {
+          false,
+          false)) {
     public Replace invoke(Core self, String before, String after,
         SkylarkDict<String, String> regexes, Glob paths, Boolean firstOnly,
-        Boolean multiline,
-        Location location) throws EvalException {
+        Boolean multiline, Boolean repeatedGroups, Location location) throws EvalException {
       return Replace.create(location,
           before,
           after,
@@ -411,6 +416,7 @@ public class Core implements OptionsAwareModule {
           paths,
           firstOnly,
           multiline,
+          repeatedGroups,
           self.workflowOptions);
     }
   };

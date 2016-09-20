@@ -63,11 +63,13 @@ public final class Replace implements Transformation {
   private final ImmutableMap<String, Pattern> regexGroups;
   private final boolean firstOnly;
   private final boolean multiline;
+  private final boolean repeatedGroups;
   private final Glob fileMatcherBuilder;
   private final WorkflowOptions workflowOptions;
 
   private Replace(TemplateTokens before, TemplateTokens after,
       Map<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
+      boolean repeatedGroups,
       Glob fileMatcherBuilder,
       WorkflowOptions workflowOptions) {
     this.before = Preconditions.checkNotNull(before);
@@ -75,6 +77,7 @@ public final class Replace implements Transformation {
     this.regexGroups = ImmutableMap.copyOf(regexGroups);
     this.firstOnly = firstOnly;
     this.multiline = multiline;
+    this.repeatedGroups = repeatedGroups;
     this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
   }
@@ -95,10 +98,10 @@ public final class Replace implements Transformation {
   public void transform(TransformWork work, Console console)
       throws IOException, ValidationException {
     Path checkoutDir = work.getCheckoutDir();
+
     ReplaceVisitor visitor = new ReplaceVisitor(
-        before.getBefore(), after.after(before),
-        fileMatcherBuilder.relativeTo(checkoutDir),
-        firstOnly, multiline);
+        before.replacer(after, firstOnly, multiline),
+        fileMatcherBuilder.relativeTo(checkoutDir));
     Files.walkFileTree(checkoutDir, visitor);
     if (!visitor.somethingWasChanged) {
       workflowOptions.reportNoop(
@@ -121,13 +124,15 @@ public final class Replace implements Transformation {
     } catch (EvalException e) {
       throw new NonReversibleValidationException(e.getLocation(), e.getMessage());
     }
-    return new Replace(
-        after, before, regexGroups, firstOnly, multiline, fileMatcherBuilder, workflowOptions);
+    //TODO remove repeatedGroups boolean?
+    return new Replace(after, before, regexGroups, firstOnly, multiline, repeatedGroups,
+        fileMatcherBuilder, workflowOptions);
   }
 
   public static Replace create(Location location, String before, String after,
-      Map<String, String> regexGroups, Glob paths,
-      boolean firstOnly, boolean multiline, WorkflowOptions workflowOptions)
+      Map<String, String> regexGroups, Glob paths, boolean firstOnly, boolean multiline,
+      boolean repeatedGroups,
+      WorkflowOptions workflowOptions)
       throws EvalException {
     Map<String, Pattern> parsed = new HashMap<>();
     for (Map.Entry<String, String> group : regexGroups.entrySet()) {
@@ -139,8 +144,8 @@ public final class Replace implements Transformation {
       }
     }
 
-    TemplateTokens beforeTokens = new TemplateTokens(location, before, parsed);
-    TemplateTokens afterTokens = new TemplateTokens(location, after, parsed);
+    TemplateTokens beforeTokens = new TemplateTokens(location, before, parsed, repeatedGroups);
+    TemplateTokens afterTokens = new TemplateTokens(location, after, parsed, repeatedGroups);
 
     beforeTokens.validateUnused();
 
@@ -150,6 +155,7 @@ public final class Replace implements Transformation {
     // with the check above.
 
     return new Replace(
-        beforeTokens, afterTokens, parsed, firstOnly, multiline, paths, workflowOptions);
+        beforeTokens, afterTokens, parsed, firstOnly, multiline, repeatedGroups, paths,
+        workflowOptions);
   }
 }

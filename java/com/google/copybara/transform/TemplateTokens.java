@@ -16,17 +16,23 @@
 
 package com.google.copybara.transform;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -54,20 +60,20 @@ final class TemplateTokens {
   private final Location location;
   private final String template;
   private final Pattern before;
-  private final ImmutableMap<String, Integer> groupIndexes;
+  private final Multimap<String, Integer> groupIndexes;
   private final ImmutableList<Token> tokens;
   private final Set<String> unusedGroups;
 
-  TemplateTokens(Location location, String template, Map<String, Pattern> regexGroups)
-      throws EvalException {
+  TemplateTokens(Location location, String template, Map<String, Pattern> regexGroups,
+      boolean repeatedGroups) throws EvalException {
     this.location = location;
     this.template = Preconditions.checkNotNull(template);
 
     Builder builder = new Builder();
     builder.location = location;
     builder.parse(template);
-    this.before = builder.buildBefore(regexGroups);
-    this.groupIndexes = ImmutableMap.copyOf(builder.groupIndexes);
+    this.before = builder.buildBefore(regexGroups, repeatedGroups);
+    this.groupIndexes = ArrayListMultimap.create(builder.groupIndexes);
     this.tokens = ImmutableList.copyOf(builder.tokens);
     this.unusedGroups = Sets.difference(regexGroups.keySet(), groupIndexes.keySet());
   }
@@ -78,6 +84,73 @@ final class TemplateTokens {
    */
   Pattern getBefore() {
     return before;
+  }
+
+  Replacer replacer(TemplateTokens after, boolean firstOnly, boolean multiline) {
+    return new Replacer(after, firstOnly, multiline);
+  }
+
+  class Replacer {
+
+    private final TemplateTokens after;
+    private final boolean firstOnly;
+    private final boolean multiline;
+    private final String afterReplaceTemplate;
+    private final Multimap<String, Integer> repeatedGroups = ArrayListMultimap.create();
+
+    private Replacer(TemplateTokens after, boolean firstOnly, boolean multiline) {
+      this.after = after;
+      afterReplaceTemplate = this.after.after(TemplateTokens.this);
+      // Precomputed the repeated groups as this should be used only on rare occasions and we
+      // don't want to iterate over the map for every line.
+      for (Entry<String, Collection<Integer>> e : groupIndexes.asMap().entrySet()) {
+        if (e.getValue().size() > 1) {
+          repeatedGroups.putAll(e.getKey(), e.getValue());
+        }
+      }
+      this.firstOnly = firstOnly;
+      this.multiline = multiline;
+    }
+
+    String replace(String content) {
+      List<String> originalRanges = multiline
+          ? ImmutableList.of(content)
+          : Splitter.on('\n').splitToList(content);
+
+      List<String> newRanges = new ArrayList<>(originalRanges.size());
+      for (String line : originalRanges) {
+        newRanges.add(replaceLine(line));
+      }
+      return Joiner.on('\n').join(newRanges);
+    }
+
+    private String replaceLine(String line) {
+      Matcher matcher = before.matcher(line);
+      StringBuffer sb = new StringBuffer();
+      while (matcher.find()) {
+        for (Collection<Integer> groupIndexes : repeatedGroups.asMap().values()) {
+          // Check that all the references of the repeated group match the same string
+          Iterator<Integer> iterator = groupIndexes.iterator();
+          String value = matcher.group(iterator.next());
+          while (iterator.hasNext()) {
+            if (!value.equals(matcher.group(iterator.next()))) {
+              return line;
+            }
+          }
+        }
+        matcher.appendReplacement(sb, afterReplaceTemplate);
+        if (firstOnly) {
+          break;
+        }
+      }
+      matcher.appendTail(sb);
+      return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+      return String.format("s/%s/%s/%s", TemplateTokens.this, after, firstOnly ? "" : "g");
+    }
   }
 
   /**
@@ -92,7 +165,7 @@ final class TemplateTokens {
     for (Token token : tokens) {
       switch (token.type) {
         case INTERPOLATION:
-          template.append("$").append(before.groupIndexes.get(token.value));
+          template.append("$").append(before.groupIndexes.get(token.value).iterator().next());
           break;
         case LITERAL:
           for (int c = 0; c < token.value.length(); c++) {
@@ -117,7 +190,7 @@ final class TemplateTokens {
 
   private static class Builder {
     List<Token> tokens = new ArrayList<>();
-    Map<String, Integer> groupIndexes = new HashMap<>();
+    Multimap<String, Integer> groupIndexes = ArrayListMultimap.create();
     Location location;
 
     /**
@@ -173,8 +246,10 @@ final class TemplateTokens {
      *
      * @param regexesByInterpolationName map from group name to the regex to interpolate when the
      * group is mentioned
+     * @param repeatedGroups true if a regex group is allowed to be used multiple times
      */
-    Pattern buildBefore(Map<String, Pattern> regexesByInterpolationName) throws EvalException {
+    Pattern buildBefore(Map<String, Pattern> regexesByInterpolationName, boolean repeatedGroups)
+        throws EvalException {
       StringBuilder fullPattern = new StringBuilder();
       int groupCount = 1;
       for (Token token : tokens) {
@@ -186,10 +261,11 @@ final class TemplateTokens {
                   location, "Interpolation is used but not defined: " + token.value);
             }
             fullPattern.append(String.format("(%s)", subPattern.pattern()));
-            if (groupIndexes.put(token.value, groupCount) != null) {
+            if (groupIndexes.get(token.value).size() > 0 && !repeatedGroups) {
               throw new EvalException(
                   location, "Regex group is used in template multiple times: " + token.value);
             }
+            groupIndexes.put(token.value, groupCount);
             groupCount += subPattern.groupCount() + 1;
             break;
           case LITERAL:

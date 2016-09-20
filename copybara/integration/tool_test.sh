@@ -125,8 +125,8 @@ EOF
 
   expect_log "Running Copybara for config 'cbtest', workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
   expect_log 'Transform Replace food'
-  expect_log 'apply s/food/drink/ to .*/test.txt$'
-  expect_log 'apply s/food/drink/ to .*/subdir/test.txt$'
+  expect_log 'apply s/food/drink/g to .*/test.txt$'
+  expect_log 'apply s/food/drink/g to .*/subdir/test.txt$'
   expect_not_log 'apply .* to .*/subdir$'
   expect_log 'Transform Replace f\${os}o'
   expect_log 'Exporting .* to:'
