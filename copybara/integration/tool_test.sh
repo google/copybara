@@ -765,6 +765,56 @@ function test_command_too_many_args() {
   expect_log 'Usage: copybara \[options\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
 }
 
+
+function setup_reversible_check_workflow() {
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  pushd $remote
+  run_git init .
+  echo "Is the reverse of the reverse forward?" > test.txt
+  run_git add test.txt
+  run_git commit -m "first commit"
+  first_commit=$(run_git rev-parse HEAD)
+  popd
+
+    cat > copy.bara.sky <<EOF
+core.project(name = "cbtest")
+
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "master",
+    ),
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    reversible_check = True,
+    transformations = [
+      core.replace(
+        before = "reverse",
+        after  = "forward"
+      )
+    ],
+)
+EOF
+}
+
+function test_reversible_check() {
+  setup_reversible_check_workflow
+  copybara copy.bara.sky && fail "Should fail"
+  expect_log "ERROR: Workflow 'default' is not reversible"
+}
+
+function test_disable_reversible_check() {
+  setup_reversible_check_workflow
+  copybara --disable-reversible-check copy.bara.sky
+}
+
 function test_config_not_found() {
   copybara copy.bara.sky origin/master && fail "Should fail"
   expect_log "Configuration file not found: copy.bara.sky"

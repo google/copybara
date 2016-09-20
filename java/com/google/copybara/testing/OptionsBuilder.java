@@ -49,7 +49,8 @@ public class OptionsBuilder {
           LogConsole.readWriteConsole(System.in, System.out),
           /*skylark=*/
           /*validate=*/false,
-          /*rootCfgPath=*/null);
+          /*rootCfgPath=*/null,
+          /*forceReversibleCheck=*/false);
 
   public FolderDestinationOptions localDestination = new FolderDestinationOptions();
   public GitOptions git = new GitOptions(StandardSystemProperty.USER_HOME.value());
@@ -64,14 +65,14 @@ public class OptionsBuilder {
         updateEnvironment(general.getEnvironment(), "PWD", StandardSystemProperty.USER_DIR.value()),
         FileSystems.getDefault(), /*verbose=*/true,
         LogConsole.readWriteConsole(System.in, System.out), general.isValidate(),
-        general.getConfigRoot());
+        general.getConfigRoot(), general.isDisableReversibleCheck());
     return this;
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
-        general.isValidate(), general.getConfigRoot());
+        general.isValidate(), general.getConfigRoot(), general.isDisableReversibleCheck());
     return this;
   }
 
@@ -79,7 +80,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "HOME", homeDir),
         general.getFileSystem(), general.isVerbose(), general.console(), general.isValidate(),
-        general.getConfigRoot());
+        general.getConfigRoot(), general.isDisableReversibleCheck());
     git = new GitOptions(homeDir);
     return this;
   }
@@ -88,7 +89,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(), general.isValidate(),
-        path);
+        path, general.isDisableReversibleCheck());
     return this;
   }
 

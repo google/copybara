@@ -41,29 +41,34 @@ public final class GeneralOptions implements Option {
   private final boolean verbose;
   private final Console console;
   private final boolean validate;
+  private final boolean disableReversibleCheck;
   @Nullable
   private final Path configRoot;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(System.getenv(), fileSystem, verbose, console, /*validate=*/false, /*configRoot=*/null);
+    this(System.getenv(), fileSystem, verbose, console, /*validate=*/false, /*configRoot=*/null,
+        /*disableReversibleCheck=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(
       Map<String, String> environment, FileSystem fileSystem, boolean verbose, Console console) {
-    this(environment, fileSystem, verbose, console, /*validate=*/false, /*configRoot=*/null);
+    this(environment, fileSystem, verbose, console, /*validate=*/false, /*configRoot=*/null,
+        /*disableReversibleCheck=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
-      Console console, boolean validate, @Nullable Path configRoot) {
+      Console console, boolean validate, @Nullable Path configRoot, boolean disableReversibleCheck)
+  {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.validate = validate;
     this.configRoot = configRoot;
+    this.disableReversibleCheck = disableReversibleCheck;
   }
 
   public Map<String, String> getEnvironment() {
@@ -84,6 +89,10 @@ public final class GeneralOptions implements Option {
 
   public boolean isValidate() {
     return validate;
+  }
+
+  public boolean isDisableReversibleCheck() {
+    return disableReversibleCheck;
   }
 
   /**
@@ -125,6 +134,11 @@ public final class GeneralOptions implements Option {
             + " like '//foo/bar'")
     String configRoot;
 
+    @Parameter(names = "--disable-reversible-check",
+        description = "If set, all workflows will be executed without reversible_check, overriding"
+            + " the  workflow config and the normal behavior for CHANGE_REQUEST mode.")
+    boolean disableReversibleCheck = false;
+
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
@@ -132,7 +146,8 @@ public final class GeneralOptions implements Option {
         Map<String, String> environment, FileSystem fileSystem, Console console)
         throws IOException {
       Path root = configRoot != null ? fileSystem.getPath(configRoot) : null;
-      return new GeneralOptions(environment, fileSystem, verbose, console, validate, root);
+      return new GeneralOptions(environment, fileSystem, verbose, console, validate, root,
+          disableReversibleCheck);
     }
   }
 }

@@ -295,7 +295,8 @@ public class Core implements OptionsAwareModule {
 
       Sequence sequenceTransform = Sequence.fromConfig(transformations, "transformations", env);
       Transformation reverseTransform = null;
-      if (convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
+      if (!self.generalOptions.isDisableReversibleCheck() &&
+              convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
         try {
           reverseTransform = sequenceTransform.reverse();
         } catch (NonReversibleValidationException e) {
