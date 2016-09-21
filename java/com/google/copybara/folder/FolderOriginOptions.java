@@ -25,10 +25,15 @@ import com.google.copybara.Option;
  * Arguments for FolderDestination
  */
 @Parameters(separators = "=")
-public final class FolderDestinationOptions implements Option {
+public final class FolderOriginOptions implements Option {
 
-  @Parameter(names = "--folder-dir",
-      description = "Local directory to put the output of the transformation")
+  @Parameter(names = "--folder-origin-author",
+      description = "Author of the change being migrated from folder.origin()")
   @VisibleForTesting
-  public String localFolder = null;
+  public String author = "Copybara <noreply@copybara.io>";
+
+  @Parameter(names = "--folder-origin-message",
+      description = "Message of the change being migrated from folder.origin()")
+  @VisibleForTesting
+  public String message = "Copybara code migration";
 }

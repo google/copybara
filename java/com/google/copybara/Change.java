@@ -24,6 +24,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.time.ZonedDateTime;
+import java.util.Objects;
 
 /**
  * Represents a change in a Repository
@@ -103,5 +104,26 @@ public final class Change<R extends Origin.Reference> {
         .add("dateTime", dateTime)
         .add("message", message)
         .toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Change<?> change = (Change<?>) o;
+    return Objects.equals(reference, change.reference) &&
+        Objects.equals(author, change.author) &&
+        Objects.equals(message, change.message) &&
+        Objects.equals(dateTime, change.dateTime) &&
+        Objects.equals(labels, change.labels);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(reference, author, message, dateTime, labels);
   }
 }

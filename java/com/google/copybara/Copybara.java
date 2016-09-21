@@ -23,6 +23,7 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
+import com.google.copybara.folder.FolderOriginOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
@@ -57,6 +58,7 @@ public class Copybara {
   protected List<Option> getAllOptions() {
     return ImmutableList.of(
         new FolderDestinationOptions(),
+        new FolderOriginOptions(),
         new GitOptions(homeDir),
         new GerritOptions(),
         new WorkflowOptions());

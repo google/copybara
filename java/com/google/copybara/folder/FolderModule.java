@@ -1,10 +1,12 @@
 package com.google.copybara.folder;
 
 import com.google.common.base.Strings;
+import com.google.copybara.Author;
 import com.google.copybara.Core;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.events.Location;
@@ -35,6 +37,7 @@ public class FolderModule implements OptionsAwareModule {
 
   private Options options;
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = DESTINATION_VAR, returnType = Destination.class,
       doc = "A folder destination is a destination that puts the output in a folder",
       parameters = {
@@ -42,7 +45,7 @@ public class FolderModule implements OptionsAwareModule {
       },
       objectType = FolderModule.class, useLocation = true, useEnvironment = true)
   @UsesFlags(FolderDestinationOptions.class)
-  public static final BuiltinFunction destination = new BuiltinFunction(DESTINATION_VAR) {
+  public static final BuiltinFunction DESTINATION = new BuiltinFunction(DESTINATION_VAR) {
     @SuppressWarnings("unused")
     public Destination invoke(FolderModule self, Location location, Environment env)
         throws EvalException {
@@ -69,6 +72,28 @@ public class FolderModule implements OptionsAwareModule {
         }
       }
       return new FolderDestination(localFolder);
+    }
+  };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "origin", returnType = FolderOrigin.class,
+      doc = "A folder origin is a origin that uses a folder as input",
+      parameters = {
+          @Param(name = "self", type = FolderModule.class, doc = "this object"),
+      },
+      objectType = FolderModule.class, useLocation = true, useEnvironment = true)
+  @UsesFlags(FolderOriginOptions.class)
+  public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
+    @SuppressWarnings("unused")
+    public FolderOrigin invoke(FolderModule self, Location location, Environment env)
+        throws EvalException {
+
+      GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
+      // Lets assume we are in the same filesystem for now...
+      FileSystem fs = generalOptions.getFileSystem();
+      return new FolderOrigin(fs,
+          Author.parse(location, self.options.get(FolderOriginOptions.class).author),
+          self.options.get(FolderOriginOptions.class).message);
     }
   };
 
