@@ -41,9 +41,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -283,7 +283,7 @@ public class GitOriginTest {
   @Test
   public void testChanges() throws IOException, RepoException {
     // Need to "round" it since git doesn't store the milliseconds
-    DateTime beforeTime = DateTime.now().minusSeconds(1);
+    ZonedDateTime beforeTime = ZonedDateTime.now().minusSeconds(1);
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "change2", "test.txt", "some content2");
     singleFileCommit(author, "change3", "test.txt", "some content3");
@@ -298,8 +298,8 @@ public class GitOriginTest {
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
     for (Change<GitReference> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
-      assertThat(change.getDate()).isAtLeast(beforeTime);
-      assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
+      assertThat(change.getDateTime()).isAtLeast(beforeTime);
+      assertThat(change.getDateTime()).isAtMost(ZonedDateTime.now().plusSeconds(1));
     }
   }
 
@@ -438,7 +438,7 @@ public class GitOriginTest {
   @Test
   public void testChangesMerge() throws IOException, RepoException {
     // Need to "round" it since git doesn't store the milliseconds
-    DateTime beforeTime = DateTime.now().minusSeconds(1);
+    ZonedDateTime beforeTime = ZonedDateTime.now().minusSeconds(1);
 
     String author = "John Name <john@name.com>";
     createBranchMerge(author);
@@ -452,8 +452,8 @@ public class GitOriginTest {
     assertThat(changes.get(2).getMessage()).isEqualTo("Merge branch 'feature'\n");
     for (Change<GitReference> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
-      assertThat(change.getDate()).isAtLeast(beforeTime);
-      assertThat(change.getDate()).isAtMost(DateTime.now().plusSeconds(1));
+      assertThat(change.getDateTime()).isAtLeast(beforeTime);
+      assertThat(change.getDateTime()).isAtMost(ZonedDateTime.now().plusSeconds(1));
     }
   }
 

@@ -17,9 +17,8 @@ import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Main module that groups all the functions related to folders.
@@ -31,8 +30,8 @@ import org.joda.time.format.DateTimeFormatterBuilder;
 public class FolderModule implements OptionsAwareModule {
 
   private static final String DESTINATION_VAR = "destination";
-  private static final DateTimeFormatter FOLDER_DATE_FORMAT =
-      new DateTimeFormatterBuilder().appendPattern("yyyy_MM_dd_HH_mm_ss").toFormatter();
+  private static final DateTimeFormatter FOLDER_DATE_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss");
 
   private Options options;
 
@@ -59,7 +58,7 @@ public class FolderModule implements OptionsAwareModule {
       if (Strings.isNullOrEmpty(localFolderOption)) {
         localFolder = defaultRootPath
             .resolve(configName.replaceAll("[^A-Za-z0-9]", ""))
-            .resolve(DateTime.now().toString(FOLDER_DATE_FORMAT));
+            .resolve(LocalDateTime.now().format(FOLDER_DATE_FORMATTER));
         generalOptions.console().info(
             String.format("Using folder '%s' in default root. Use --folder-dir to override.",
                 localFolder));

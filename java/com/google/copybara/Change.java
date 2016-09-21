@@ -23,7 +23,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
 
 /**
  * Represents a change in a Repository
@@ -36,15 +36,15 @@ public final class Change<R extends Origin.Reference> {
   private final R reference;
   private final Author author;
   private final String message;
-  private final DateTime date;
+  private final ZonedDateTime dateTime;
   private final ImmutableMap<String, String> labels;
 
-  public Change(R reference, Author author, String message, DateTime date,
+  public Change(R reference, Author author, String message, ZonedDateTime dateTime,
       ImmutableMap<String, String> labels) {
     this.reference = Preconditions.checkNotNull(reference);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
-    this.date = date;
+    this.dateTime = dateTime;
     this.labels = labels;
   }
 
@@ -77,8 +77,8 @@ public final class Change<R extends Origin.Reference> {
     return SkylarkDict.copyOf(/*environment=*/null, labels);
   }
 
-  public DateTime getDate() {
-    return date;
+  public ZonedDateTime getDateTime() {
+    return dateTime;
   }
 
   public ImmutableMap<String, String> getLabels() {
@@ -100,7 +100,7 @@ public final class Change<R extends Origin.Reference> {
     return MoreObjects.toStringHelper(this)
         .add("reference", reference.asString())
         .add("author", author)
-        .add("date", date)
+        .add("dateTime", dateTime)
         .add("message", message)
         .toString();
   }

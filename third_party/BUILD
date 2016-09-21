@@ -68,13 +68,6 @@ java_library(
 )
 
 java_library(
-    name = "joda_time",
-    exports = [
-        "@joda_time//jar",
-    ],
-)
-
-java_library(
     name = "junit",
     exports = [
         "@junit//jar",

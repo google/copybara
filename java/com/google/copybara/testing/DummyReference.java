@@ -27,8 +27,10 @@ import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import javax.annotation.Nullable;
-import org.joda.time.DateTime;
 
 /**
  * A reference of a change used for testing. This can be used with a {@link DummyOrigin} instance or
@@ -102,7 +104,8 @@ public class DummyReference implements Origin.Reference {
     Author safeAuthor = authoring.useAuthor(this.author.getEmail())
         ? this.author
         : authoring.getDefaultAuthor();
-    return new Change<>(this, safeAuthor, message, new DateTime(timestamp), labels);
+    return new Change<>(this, safeAuthor, message,
+        ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()), labels);
   }
 
   public Author getAuthor() {

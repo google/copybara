@@ -42,6 +42,7 @@ import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -49,9 +50,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 
 /**
  * A class for manipulating Git repositories
@@ -60,9 +58,6 @@ public final class GitOrigin implements Origin<GitReference> {
 
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
-
-  private static final DateTimeFormatter dateFormatter = DateTimeFormat.forPattern(
-      "yyyy-MM-dd'T'HH:mm:ssZ");
 
   private static final String GIT_LOG_COMMENT_PREFIX = "    ";
   private final GitRepository repository;
@@ -257,21 +252,20 @@ public final class GitOrigin implements Origin<GitReference> {
         }
         String line = rawLines.next();
         Author author = null;
-        DateTime date = null;
+        ZonedDateTime dateTime = null;
         while (!line.isEmpty()) {
           if (line.startsWith("Author: ")) {
             String authorStr = line.substring("Author: ".length()).trim();
-
             Author parsedUser = GitAuthorParser.parse(authorStr);
             author = authoring.useAuthor(parsedUser.getEmail())
                 ? parsedUser
                 : authoring.getDefaultAuthor();
           } else if (line.startsWith("Date: ")) {
-            date = dateFormatter.parseDateTime(line.substring("Date: ".length()).trim());
+            dateTime = ZonedDateTime.parse(line.substring("Date: ".length()).trim());
           }
           line = rawLines.next();
         }
-        Preconditions.checkState(author != null || date != null,
+        Preconditions.checkState(author != null || dateTime != null,
             "Could not find author and/or date for commitReferences %s in log\n:%s", rawCommitLine,
             log);
         StringBuilder message = new StringBuilder();
@@ -295,7 +289,7 @@ public final class GitOrigin implements Origin<GitReference> {
           message.append(s, GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
         }
         Change<GitReference> change = new Change<>(
-            ref, author, message.toString(), date, ImmutableMap.copyOf(labels));
+            ref, author, message.toString(), dateTime, ImmutableMap.copyOf(labels));
         builder.add(new GitChange(change, parents.build()));
       }
       // Return older commit first.
