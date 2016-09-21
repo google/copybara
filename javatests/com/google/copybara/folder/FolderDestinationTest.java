@@ -62,7 +62,7 @@ public class FolderDestinationTest {
     Files.write(workdir.resolve("test.txt"), new byte[]{});
     Files.write(workdir.resolve("dir/file.txt"), new byte[]{});
     excludedPathsForDeletion = ImmutableList.of();
-    skylark = new SkylarkTestExecutor(options, FolderDestination.Module.class);
+    skylark = new SkylarkTestExecutor(options, FolderModule.class);
   }
 
   private void write() throws ValidationException, RepoException, IOException {

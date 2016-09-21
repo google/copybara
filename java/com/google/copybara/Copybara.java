@@ -21,8 +21,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.SkylarkParser;
-import com.google.copybara.folder.FolderDestination;
 import com.google.copybara.folder.FolderDestinationOptions;
+import com.google.copybara.folder.FolderModule;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
@@ -42,7 +42,7 @@ import javax.annotation.Nullable;
 public class Copybara {
 
   protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
-      FolderDestination.Module.class,
+      FolderModule.class,
       GitModule.class,
       MetadataModule.class);
 
