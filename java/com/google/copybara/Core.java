@@ -29,6 +29,7 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
+import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.transform.metadata.MetadataSquashNotes;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -245,8 +246,8 @@ public class Core implements OptionsAwareModule {
       )) {
     // This converts a "FOO_files"/"exclude_in_FOO" pair of arguments to a single glob matcher.
     // Only one or neither argument in the pair can be specified.
-    // TODO(copybara-team): Get all configurations using the positive specification method and remove
-    // support for exclude_in_FOO specifiers.
+    // TODO(copybara-team): Get all configurations using the positive specification method and
+    // remove support for exclude_in_FOO specifiers.
     private Glob convertFileSpecifier(
         Location location, Object positiveSpecifier, Object excludeSpecifier)
         throws EvalException {
@@ -356,7 +357,8 @@ public class Core implements OptionsAwareModule {
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction MOVE = new BuiltinFunction("move",
       ImmutableList.<Object>of(Glob.ALL_FILES)) {
-    public Move invoke(Core self, String before, String after, Glob paths, Location location) throws EvalException {
+    public Move invoke(Core self, String before, String after, Glob paths, Location location)
+        throws EvalException {
       return Move.fromConfig(before, after, self.workflowOptions, paths, location);
     }
   };
@@ -418,6 +420,43 @@ public class Core implements OptionsAwareModule {
           firstOnly,
           multiline,
           repeatedGroups,
+          self.workflowOptions);
+    }
+  };
+
+  @SkylarkSignature(
+      name = "verify_match",
+      returnType = VerifyMatch.class,
+      doc = "Verifies that a RegEx matches (or not matches) the specified files. Does not, " +
+          "transform anything, but will stop the workflow if it fails.",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "regex", type = String.class,
+              doc = "The regex pattern to verify. To satisfy the validation, there has to be at"
+                  + "least one (or no matches if verify_no_match) match in each of the files "
+                  + "included in paths. The re2j pattern will be applied in multiline mode, i.e."
+                  + " '^' refers to the beginning of a file and '$' to its end."),
+          @Param(name = "paths", type = Glob.class,
+              doc = "A glob expression relative to the workdir representing the files to apply"
+              + " the transformation. For example, glob([\"**.java\"]), matches all java files"
+              + " recursively. Defaults to match all the files recursively.",
+              defaultValue = "glob([\"**\"])"),
+          @Param(name = "verify_no_match", type = Boolean.class,
+              doc = "If true, the transformation will verify that the RegEx does not match.",
+              defaultValue = "False"),
+      },
+      objectType = Core.class, useLocation = true)
+  public static final BuiltinFunction VERIFY_MATCH = new BuiltinFunction("verify_match",
+      ImmutableList.of(
+          Glob.ALL_FILES,
+          false
+      )) {
+    public VerifyMatch invoke(Core self, String regex, Glob paths, Boolean verifyNoMatch,
+        Location location) throws EvalException {
+      return VerifyMatch.create(location,
+          regex,
+          paths,
+          verifyNoMatch,
           self.workflowOptions);
     }
   };

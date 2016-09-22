@@ -927,4 +927,34 @@ function test_multifile_root_cfg_flag() {
   run_multifile $config_folder --config-root $config_folder
 }
 
+function test_verify_match() {
+  prepare_glob_tree
+
+  cat > copy.bara.sky <<EOF
+core.project(name = "cbtest")
+
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "master",
+    ),
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    transformations = [
+        core.verify_match(
+            regex = "bar",
+            paths = glob(['**.java']),
+            verify_no_match = True
+        )
+    ],
+)
+EOF
+  copybara copy.bara.sky
+}
+
 run_suite "Integration tests for Copybara code sharing tool."
