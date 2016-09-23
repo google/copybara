@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
-import com.google.copybara.WorkflowOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -42,14 +41,11 @@ public final class VerifyMatch implements Transformation {
   private final Pattern pattern;
   private final boolean verifyNoMatch;
   private final Glob fileMatcherBuilder;
-  private final WorkflowOptions workflowOptions;
 
-  private VerifyMatch(Pattern pattern, boolean verifyNoMatch, Glob fileMatcherBuilder,
-      WorkflowOptions workflowOptions) {
+  private VerifyMatch(Pattern pattern, boolean verifyNoMatch, Glob fileMatcherBuilder) {
     this.pattern = Preconditions.checkNotNull(pattern);
     this.verifyNoMatch = verifyNoMatch;
     this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
-    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
   }
 
   @Override
@@ -89,14 +85,13 @@ public final class VerifyMatch implements Transformation {
   }
 
   public static VerifyMatch create(Location location, String regEx, Glob paths,
-      boolean verifyNoMatch, WorkflowOptions workflowOptions)
-      throws EvalException {
+      boolean verifyNoMatch) throws EvalException {
     Pattern parsed;
     try {
       parsed = Pattern.compile(regEx, Pattern.MULTILINE);
     } catch (PatternSyntaxException e) {
       throw new EvalException(location, String.format("Regex '%s' is invalid.", regEx), e);
     }
-    return new VerifyMatch(parsed, verifyNoMatch, paths, workflowOptions);
+    return new VerifyMatch(parsed, verifyNoMatch, paths);
   }
 }

@@ -456,8 +456,7 @@ public class Core implements OptionsAwareModule {
       return VerifyMatch.create(location,
           regex,
           paths,
-          verifyNoMatch,
-          self.workflowOptions);
+          verifyNoMatch);
     }
   };
 
