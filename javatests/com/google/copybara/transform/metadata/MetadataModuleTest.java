@@ -17,6 +17,7 @@
 package com.google.copybara.transform.metadata;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -36,6 +37,7 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -62,6 +64,7 @@ public class MetadataModuleTest {
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
+  private TestingConsole testingConsole;
 
   @Before
   public void setup() throws Exception {
@@ -83,6 +86,8 @@ public class MetadataModuleTest {
         .addSimpleChange(2, "third commit\n\nExtended text");
 
     options.setLastRevision("0");
+    testingConsole = new TestingConsole();
+    options.setConsole(testingConsole);
   }
 
   private void passThruAuthoring() {
@@ -265,6 +270,50 @@ public class MetadataModuleTest {
     ProcessedChange change = Iterables.getLast(destination.processed);
 
     assertThat(change.getChangesSummary()).isEqualTo("A change\n");
+  }
+
+  @Test
+  public void testScrubber() throws Exception {
+    checkScrubber("foo\nbar\nfooooo", "metadata.scrubber('foo+\\n?')", "bar\n");
+  }
+
+  @Test
+  public void testScrubberFail() throws Exception {
+    try {
+      checkScrubber("not important", "metadata.scrubber('(')", "not important");
+      fail();
+    } catch (ValidationException e) {
+      testingConsole.assertThat().onceInLog(MessageType.ERROR,
+          "(.|\n)*error parsing regexp: missing closing \\)(.|\n)*");
+    }
+  }
+
+  @Test
+  public void testScrubberForTags() throws Exception {
+    checkScrubber(
+        "this\nis\nvery confidential<public>but this is public\nvery public\n</public>"
+            + "\nand this is a secret too\n",
+        "metadata.scrubber('^(?:\\n|.)*<public>((?:\\n|.)*)</public>(?:\\n|.)*$', "
+            + "replacement = '$1')",
+        "but this is public\nvery public\n");
+  }
+
+  @Test
+  public void testScrubberForLabel() throws Exception {
+    checkScrubber(
+        "this is public\nvery public\nCONFIDENTIAL:"
+            + "\nand this\nis a secret\n",
+        "metadata.scrubber('(^|\\n)CONFIDENTIAL:(.|\\n)*')",
+        "this is public\nvery public");
+  }
+
+  private void checkScrubber(String commitMsg, String scrubber, String expectedMsg)
+      throws IOException, ValidationException, RepoException {
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, scrubber);
+    origin.addSimpleChange(0, commitMsg);
+    wf.run(workdir, /*sourceRef=*/null);
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).isEqualTo(expectedMsg);
   }
 
   private void runWorkflow(WorkflowMode mode, String... transforms)

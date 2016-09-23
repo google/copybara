@@ -25,6 +25,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
 
 /**
  * Metadata module for manipulating metadata of the changes. This is intended to be used by the
@@ -125,11 +127,38 @@ public class MetadataModule {
               doc = "If a label used in the template is not found, ignore the error and"
                   + " don't add the header. By default it will stop the migration and fail.",
               defaultValue = "False"),
-      }, objectType = MetadataModule.class, useLocation = true)
+      }, objectType = MetadataModule.class)
   static final BuiltinFunction ADD_HEADER = new BuiltinFunction("add_header") {
-    public Transformation invoke(MetadataModule self, String header, Boolean ignoreIfLabelNotFound,
-        Location location) throws EvalException {
+    public Transformation invoke(MetadataModule self, String header, Boolean ignoreIfLabelNotFound)
+        throws EvalException {
       return new AddHeader(header, ignoreIfLabelNotFound);
+    }
+  };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "scrubber", returnType = Transformation.class,
+      doc = "Removes part of the change message using a regex",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "regex", type = String.class,
+              doc = "Any text matching the regex will be removed. Note that the regex is"
+                  + " runs in multiline mode."),
+          @Param(name = "replacement", type = String.class,
+              doc = "Text replacement for the matching substrings. References to regex group"
+                  + " numbers can be used in the form of $1, $2, etc.",
+              defaultValue = "''"),
+      }, objectType = MetadataModule.class, useLocation = true)
+  static final BuiltinFunction SCRUB = new BuiltinFunction("scrubber") {
+    public Transformation invoke(MetadataModule self, String regex, String replacement,
+        Location location)
+        throws EvalException {
+      Pattern pattern;
+      try {
+        pattern = Pattern.compile(regex, Pattern.MULTILINE);
+      } catch (PatternSyntaxException e) {
+        throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
+      }
+      return new Scrubber(pattern, replacement);
     }
   };
 }
