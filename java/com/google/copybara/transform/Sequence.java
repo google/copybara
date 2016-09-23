@@ -50,6 +50,14 @@ public class Sequence implements Transformation {
   @Override
   public void transform(TransformWork work, Console console)
       throws IOException, ValidationException {
+    if (sequence.size() == 1) {
+      Transformation transform = sequence.get(0);
+      logger.log(Level.INFO, transform.describe());
+      console.progress(transform.describe());
+      transform.transform(work, console);
+      return;
+    }
+
     for (int i = 0; i < sequence.size(); i++) {
       Transformation transformation = sequence.get(i);
       String transformMsg = String.format(
@@ -90,27 +98,25 @@ public class Sequence implements Transformation {
   }
 
   /**
-   * Create a sequence from Skylark that avoids nesting a single sequence twice.
+   * Create a sequence from a list of native and Skylark transforms.
    * @param description a description of the argument being converted, such as its name
    * @param env skylark environment for user defined transformations
    */
   public static Sequence fromConfig(SkylarkList<?> elements, String description, Environment env)
       throws EvalException {
-    //Avoid nesting one sequence inside another sequence
-    if (elements.size() == 1 && elements.get(0) instanceof Sequence) {
-      return (Sequence) elements.get(0);
-    }
-
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
     for (Object element : elements) {
-
-      if (element instanceof BaseFunction) {
-        transformations.add(new SkylarkTransformation((BaseFunction) element, env));
-        continue;
-      }
-      SkylarkType.checkType(element, Transformation.class, "'" + description + "' element");
-      transformations.add((Transformation) element);
+      transformations.add(convertToTransformation(description, env, element));
     }
     return new Sequence(transformations.build());
+  }
+
+  private static Transformation convertToTransformation(String description, Environment env,
+      Object element) throws EvalException {
+    if (element instanceof BaseFunction) {
+      return new SkylarkTransformation((BaseFunction) element, env);
+    }
+    SkylarkType.checkType(element, Transformation.class, "'" + description + "' element");
+    return (Transformation) element;
   }
 }
