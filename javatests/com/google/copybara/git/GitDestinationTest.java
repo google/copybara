@@ -81,7 +81,11 @@ public class GitDestinationTest {
   }
 
   private GitRepository repo() {
-    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true, System.getenv());
+    return repoForPath(repoGitDir);
+  }
+
+  private GitRepository repoForPath(Path path) {
+    return new GitRepository(path, /*workTree=*/null, /*verbose=*/true, System.getenv());
   }
 
   private String git(String... argv) throws RepoException {
@@ -487,6 +491,23 @@ public class GitDestinationTest {
     process(destination().newWriter(destinationFiles),
         new DummyReference("second_commit").withTimestamp(1515151515));
     GitTesting.assertAuthorTimestamp(repo(), "master", 1515151515);
+  }
+
+  @Test
+  public void canOverrideUrl() throws Exception {
+    Path newDestination = Files.createTempDirectory("canOverrideUrl");
+    git("init", "--bare", newDestination.toString());
+    fetch = "master";
+    push = "master";
+
+    options.gitDestination.url = "file://" + newDestination.toAbsolutePath();
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    process(destinationFirstCommit().newWriter(destinationFiles),
+        new DummyReference("first_commit"));
+    GitTesting.assertCommitterLineMatches(repoForPath(newDestination),
+        "master", "Bara Kopi <.*> [-+ 0-9]+");
+    // No branches were created in the config file url.
+    assertThat(repo().simpleCommand("branch").getStdout()).isEqualTo("");
   }
 
   @Test

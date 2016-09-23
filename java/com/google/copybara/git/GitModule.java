@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.base.SkylarkUtil.checkNotEmpty;
 
+import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.base.OptionsAwareModule;
@@ -129,17 +130,22 @@ public class GitModule implements OptionsAwareModule {
   public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination") {
     public GitDestination invoke(GitModule self, String url, String fetch, String push,
         Location location) throws EvalException {
+      GitDestinationOptions destinationOptions = self.options.get(GitDestinationOptions.class);
       return new GitDestination(
-          checkNotEmpty(url, "url", location),
+          checkNotEmpty(destinationUrl(url, destinationOptions), "url", location),
           checkNotEmpty(fetch, "fetch", location),
           checkNotEmpty(push, "push", location),
-          self.options.get(GitDestinationOptions.class),
+          destinationOptions,
           self.options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator(),
           new ProcessPushOutput(),
           self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
+
+  private static String destinationUrl(String url, GitDestinationOptions destinationOptions) {
+    return Strings.isNullOrEmpty(destinationOptions.url) ? url : destinationOptions.url;
+  }
 
   @SkylarkSignature(name = "gerrit_destination", returnType = GerritDestination.class,
       doc = "Creates a change in Gerrit using the transformed worktree. If this is used in "

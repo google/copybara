@@ -41,4 +41,8 @@ public final class GitDestinationOptions implements Option {
   @Parameter(names = FIRST_COMMIT_FLAG,
       description = "Ignore that the fetch reference doesn't exist when pushing to destination")
   boolean firstCommit = false;
+
+  @Parameter(names = "--git-destination-url",
+      description = "If set, overrides the git destination URL.")
+  String url = null;
 }
