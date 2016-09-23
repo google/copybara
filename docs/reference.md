@@ -181,6 +181,20 @@ text|`string`<br><p>The header text to include in the message. For example '[Imp
 ignore_if_label_not_found|`boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
 
 
+## scrubber
+
+Removes part of the change message using a regex
+
+`transformation metadata.scrubber(regex, replacement='')`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+regex|`string`<br><p>Any text matching the regex will be removed. Note that the regex is runs in multiline mode.</p>
+replacement|`string`<br><p>Text replacement for the matching substrings. References to regex group numbers can be used in the form of $1, $2, etc.</p>
+
+
 
 # core
 
@@ -295,6 +309,21 @@ multiline|`boolean`<br><p>Whether to replace text that spans more than one line.
 repeated_groups|`boolean`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
 
 
+## verify_match
+
+Verifies that a RegEx matches (or not matches) the specified files. Does not, transform anything, but will stop the workflow if it fails.
+
+`verifyMatch core.verify_match(regex, paths=glob(["**"]), verify_no_match=False)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+regex|`string`<br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end.</p>
+paths|`glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+verify_no_match|`boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
+
+
 ## transform
 
 Creates a transformation with a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.
@@ -328,6 +357,21 @@ Name | Type | Description
 ---- | ----------- | -----------
 --folder-dir | *string* | Local directory to put the output of the transformation
 
+## origin
+
+A folder origin is a origin that uses a folder as input
+
+`folderOrigin folder.origin()`
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--folder-origin-author | *string* | Author of the change being migrated from folder.origin()
+--folder-origin-message | *string* | Message of the change being migrated from folder.origin()
+
 
 # git
 
@@ -339,10 +383,7 @@ Set of functions to define Git origins and destinations.
 
 Name | Type | Description
 ---- | ----------- | -----------
---git-committer-name | *string* | If set, overrides the committer name for the generated commits.
---git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits.
 --git-repo-storage | *string* | Location of the storage path for git repositories
---git-first-commit | *boolean* | Ignore that the fetch reference doesn't exist when pushing to destination
 
 ## origin
 
@@ -401,6 +442,17 @@ fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
 push|`string`<br><p>Reference to use for pushing the change, for example 'master'</p>
 
 
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
+--git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+--git-first-commit | *boolean* | Ignore that the fetch reference doesn't exist when pushing to destination
+--git-destination-url | *string* | If set, overrides the git destination URL.
+
 ## gerrit_destination
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
@@ -415,5 +467,16 @@ url|`string`<br><p>Indicates the URL to push to as well as the URL from which to
 fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
 push_to_refs_for|`string`<br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
 
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
+--git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+--git-first-commit | *boolean* | Ignore that the fetch reference doesn't exist when pushing to destination
+--git-destination-url | *string* | If set, overrides the git destination URL.
 
 
