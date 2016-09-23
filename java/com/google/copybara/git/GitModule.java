@@ -23,6 +23,8 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
+import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -123,14 +125,18 @@ public class GitModule implements OptionsAwareModule {
               doc = "Reference to use for pushing the change, for example 'master'"),
       },
       objectType = GitModule.class, useLocation = true)
+  @UsesFlags(GitDestinationOptions.class)
   public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination") {
     public GitDestination invoke(GitModule self, String url, String fetch, String push,
         Location location) throws EvalException {
-      return GitDestination.newGitDestination(
-          self.options,
+      return new GitDestination(
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
           checkNotEmpty(push, "push", location),
+          self.options.get(GitDestinationOptions.class),
+          self.options.get(GeneralOptions.class).isVerbose(),
+          new DefaultCommitGenerator(),
+          new ProcessPushOutput(),
           self.options.get(GeneralOptions.class).getEnvironment());
     }
   };
@@ -154,6 +160,7 @@ public class GitModule implements OptionsAwareModule {
                   + "'fetch' value."),
       },
       objectType = GitModule.class, useLocation = true)
+  @UsesFlags(GitDestinationOptions.class)
   public static final BuiltinFunction GERRIT_DESTINATION =
       new BuiltinFunction("gerrit_destination") {
     public GerritDestination invoke(

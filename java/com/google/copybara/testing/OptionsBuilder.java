@@ -27,6 +27,7 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderOriginOptions;
 import com.google.copybara.git.GerritOptions;
+import com.google.copybara.git.GitDestinationOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.util.console.Console;
@@ -58,6 +59,7 @@ public class OptionsBuilder {
   public FolderOriginOptions folderOrigin = new FolderOriginOptions();
 
   public GitOptions git = new GitOptions(StandardSystemProperty.USER_HOME.value());
+  public GitDestinationOptions gitDestination = new GitDestinationOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowOptions workflowOptions = new WorkflowOptions(
       /*changeBaseline=*/null, /*lastRevision=*/ null, "default");
@@ -121,7 +123,8 @@ public class OptionsBuilder {
    */
   protected Iterable<Option> allOptions() {
     return ImmutableList
-        .of(general, localDestination, folderOrigin, git, gerrit, workflowOptions, testingOptions);
+        .of(general, localDestination, folderOrigin, git, gitDestination, gerrit, workflowOptions,
+            testingOptions);
   }
 
   public final Options build() {

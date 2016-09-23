@@ -82,7 +82,7 @@ public class GitOriginTest {
     options = new OptionsBuilder().setConsole(console);
 
     Path reposDir = Files.createTempDirectory("repos_repo");
-    options.git.gitRepoStorage = reposDir.toString();
+    options.git.repoStorage = reposDir.toString();
 
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
@@ -230,7 +230,7 @@ public class GitOriginTest {
         .addAll(Files.getPosixFilePermissions(hook))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
 
-    options.git.gitOriginCheckoutHook = hook.toAbsolutePath().toString();
+    options.git.originCheckoutHook = hook.toAbsolutePath().toString();
     origin = origin();
     newReader().checkout(origin.resolve("master"), checkoutDir);
     assertThatPath(checkoutDir).containsFile("hook.txt", "");
@@ -245,7 +245,7 @@ public class GitOriginTest {
         .addAll(Files.getPosixFilePermissions(hook))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
 
-    options.git.gitOriginCheckoutHook = hook.toAbsolutePath().toString();
+    options.git.originCheckoutHook = hook.toAbsolutePath().toString();
     origin = origin();
     Reader<GitReference> reader = newReader();
     thrown.expect(RepoException.class);

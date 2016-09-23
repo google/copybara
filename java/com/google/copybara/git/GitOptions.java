@@ -16,42 +16,29 @@
 
 package com.google.copybara.git;
 
-import com.google.copybara.Option;
-
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.copybara.Option;
 
 /**
- * Arguments for {@link GitDestination}, {@link GitOrigin}, and other Git components.
+ * Common arguments for {@link GitDestination}, {@link GitOrigin}, and other Git components.
  */
 @Parameters(separators = "=")
 public final class GitOptions implements Option {
 
-  static final String GIT_FIRST_COMMIT_FLAG = "--git-first-commit";
-
-  @Parameter(names = "--git-committer-name",
-      description = "If set, overrides the committer name for the generated commits.")
-  String gitCommitterName = "";
-
-  @Parameter(names = "--git-committer-email",
-      description = "If set, overrides the committer e-mail for the generated commits.")
-  String gitCommitterEmail = "";
-
+  // Not used by git.destination but it will be at some point to make fetches more efficient.
   @Parameter(names = "--git-repo-storage",
       description = "Location of the storage path for git repositories")
-  String gitRepoStorage;
+  String repoStorage;
 
-  @Parameter(names = GIT_FIRST_COMMIT_FLAG,
-      description = "Ignore that the fetch reference doesn't exist when pushing to destination")
-  boolean gitFirstCommit = false;
-
+  // TODO(malcon): Move to GitOriginOptions. But fine for now since it's not documented.
   @Parameter(names = "--git-origin-checkout-hook",
       description = "A command to be executed when a checkout happens for a git origin."
           + " DON'T USE IT. The only intention is to run tools that gather dependencies"
           + " after the checkout.", hidden = true)
-  String gitOriginCheckoutHook = null;
+  String originCheckoutHook = null;
 
   public GitOptions(String homeDir) {
-    this.gitRepoStorage = homeDir + "/.copybara/repos";
+    this.repoStorage = homeDir + "/.copybara/repos";
   }
 }

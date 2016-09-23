@@ -72,8 +72,8 @@ public class GitDestinationTest {
     git("init", "--bare", repoGitDir.toString());
     console = new TestingConsole();
     options = new OptionsBuilder().setConsole(console);
-    options.git.gitCommitterEmail = "commiter@email";
-    options.git.gitCommitterName = "Bara Kopi";
+    options.gitDestination.committerEmail = "commiter@email";
+    options.gitDestination.committerName = "Bara Kopi";
     destinationFiles = new Glob(ImmutableList.of("**"));
 
     url = "file://" + repoGitDir;
@@ -122,12 +122,12 @@ public class GitDestinationTest {
 
   private GitDestination destinationFirstCommit()
       throws ValidationException {
-    options.git.gitFirstCommit = true;
+    options.gitDestination.firstCommit = true;
     return evalDestination();
   }
 
   private GitDestination destination() throws ValidationException {
-    options.git.gitFirstCommit = false;
+    options.gitDestination.firstCommit = false;
     return evalDestination();
   }
 
@@ -494,13 +494,13 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
 
-    options.git.gitCommitterName = "Bara Kopi";
+    options.gitDestination.committerName = "Bara Kopi";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
         new DummyReference("first_commit").withTimestamp(1414141414));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Bara Kopi <.*> [-+ 0-9]+");
 
-    options.git.gitCommitterName = "Piko Raba";
+    options.gitDestination.committerName = "Piko Raba";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     process(destination().newWriter(destinationFiles),
         new DummyReference("second_commit").withTimestamp(1414141490));
@@ -512,7 +512,7 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
 
-    options.git.gitCommitterEmail = "bara.bara@gocha.gocha";
+    options.gitDestination.committerEmail = "bara.bara@gocha.gocha";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     process(destinationFirstCommit().newWriter(destinationFiles),
@@ -520,7 +520,7 @@ public class GitDestinationTest {
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <bara[.]bara@gocha[.]gocha> [-+ 0-9]+");
 
-    options.git.gitCommitterEmail = "kupo.kupo@tan.kou";
+    options.gitDestination.committerEmail = "kupo.kupo@tan.kou";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     process(destination().newWriter(destinationFiles),
         new DummyReference("second_commit").withTimestamp(1414141490));
@@ -530,8 +530,8 @@ public class GitDestinationTest {
 
   @Test
   public void gitUserNameMustBeConfigured() throws Exception {
-    options.git.gitCommitterName = "";
-    options.git.gitCommitterEmail = "foo@bara";
+    options.gitDestination.committerName = "";
+    options.gitDestination.committerEmail = "foo@bara";
     fetch = "master";
     push = "master";
 
@@ -543,8 +543,8 @@ public class GitDestinationTest {
 
   @Test
   public void gitUserEmailMustBeConfigured() throws Exception {
-    options.git.gitCommitterName = "Foo Bara";
-    options.git.gitCommitterEmail = "";
+    options.gitDestination.committerName = "Foo Bara";
+    options.gitDestination.committerEmail = "";
     fetch = "master";
     push = "master";
 

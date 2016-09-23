@@ -65,8 +65,8 @@ public final class SubmodulesInDestinationTest {
     git("init", "--bare", repoGitDir.toString());
     console = new TestingConsole();
     options = new OptionsBuilder().setConsole(console);
-    options.git.gitCommitterEmail = "commiter@email";
-    options.git.gitCommitterName = "Bara Kopi";
+    options.gitDestination.committerEmail = "commiter@email";
+    options.gitDestination.committerName = "Bara Kopi";
     destinationFiles = new Glob(ImmutableList.of("**"));
 
     url = "file://" + repoGitDir;

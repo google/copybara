@@ -112,7 +112,7 @@ public final class GitOrigin implements Origin<GitReference> {
     @Override
     public void checkout(GitReference ref, Path workdir) throws RepoException {
       repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", ref.asString());
-      if (!Strings.isNullOrEmpty(gitOptions.gitOriginCheckoutHook)) {
+      if (!Strings.isNullOrEmpty(gitOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
       }
     }
@@ -163,7 +163,7 @@ public final class GitOrigin implements Origin<GitReference> {
   private void runCheckoutOrigin(Path workdir) throws RepoException {
     try {
       CommandOutputWithStatus result = CommandUtil.executeCommand(
-          new Command(new String[]{gitOptions.gitOriginCheckoutHook},
+          new Command(new String[]{gitOptions.originCheckoutHook},
               environment, workdir.toFile()), verbose);
       Consoles.logLines(console, "git.origin hook (Stdout): ", result.getStdout());
       Consoles.logLines(console, "git.origin hook (Stderr): ", result.getStderr());
@@ -171,10 +171,10 @@ public final class GitOrigin implements Origin<GitReference> {
       Consoles.logLines(console, "git.origin hook (Stdout): ", e.getOutput().getStdout());
       Consoles.logLines(console, "git.origin hook (Stderr): ", e.getOutput().getStderr());
       throw new RepoException(
-          "Error executing the git checkout hook: " + gitOptions.gitOriginCheckoutHook, e);
+          "Error executing the git checkout hook: " + gitOptions.originCheckoutHook, e);
     } catch (CommandException e) {
       throw new RepoException(
-          "Error executing the git checkout hook: " + gitOptions.gitOriginCheckoutHook, e);
+          "Error executing the git checkout hook: " + gitOptions.originCheckoutHook, e);
     }
   }
 
@@ -331,7 +331,7 @@ public final class GitOrigin implements Origin<GitReference> {
       Map<String, String> environment) {
     GitOptions gitConfig = options.get(GitOptions.class);
 
-    Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.gitRepoStorage);
+    Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.repoStorage);
     Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
     Console console = options.get(GeneralOptions.class).console();
 

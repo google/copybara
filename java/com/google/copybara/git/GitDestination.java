@@ -16,7 +16,7 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.git.GitOptions.GIT_FIRST_COMMIT_FLAG;
+import static com.google.copybara.git.GitDestinationOptions.FIRST_COMMIT_FLAG;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -54,7 +54,7 @@ public final class GitDestination implements Destination {
         throws RepoException;
   }
 
-  private static final class DefaultCommitGenerator implements CommitGenerator {
+  static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
     public String message(TransformResult transformResult, GitRepository repo) {
       return String.format("%s\n%s: %s\n",
@@ -70,19 +70,19 @@ public final class GitDestination implements Destination {
   private final String repoUrl;
   private final String fetch;
   private final String push;
-  private final GitOptions gitOptions;
+  private final GitDestinationOptions destinationOptions;
   private final boolean verbose;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
   private final Map<String, String> environment;
 
-  GitDestination(String repoUrl, String fetch, String push, GitOptions gitOptions, boolean verbose,
-      CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-      Map<String, String> environment) {
+  GitDestination(String repoUrl, String fetch, String push,
+      GitDestinationOptions destinationOptions, boolean verbose, CommitGenerator commitGenerator,
+      ProcessPushOutput processPushOutput, Map<String, String> environment) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
-    this.gitOptions = Preconditions.checkNotNull(gitOptions);
+    this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
     this.verbose = verbose;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
@@ -127,7 +127,7 @@ public final class GitDestination implements Destination {
     @Nullable
     @Override
     public String getPreviousRef(String labelName) throws RepoException {
-      if (gitOptions.gitFirstCommit) {
+      if (destinationOptions.firstCommit) {
         return null;
       }
       ImmutableSet<String> roots = destinationFiles.roots();
@@ -178,23 +178,23 @@ public final class GitDestination implements Destination {
         console.progress("Git Destination: Fetching " + repoUrl);
 
         scratchClone = cloneBaseline();
-        if (gitOptions.gitFirstCommit && baseline != null) {
+        if (destinationOptions.firstCommit && baseline != null) {
           throw new RepoException(
-              "Cannot use " + GIT_FIRST_COMMIT_FLAG + " and a previous baseline (" + baseline
+              "Cannot use " + FIRST_COMMIT_FLAG + " and a previous baseline (" + baseline
               + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
         }
-        if (!gitOptions.gitFirstCommit) {
+        if (!destinationOptions.firstCommit) {
           console.progress("Git Destination: Checking out " + fetch);
           // If baseline is not null we sync first to the baseline and apply the changes on top of
           // that. Then we will rebase the new change to FETCH_HEAD.
           scratchClone.simpleCommand("checkout", "-q", baseline != null ? baseline : "FETCH_HEAD");
         }
 
-        if (!Strings.isNullOrEmpty(gitOptions.gitCommitterName)) {
-          scratchClone.simpleCommand("config", "user.name", gitOptions.gitCommitterName);
+        if (!Strings.isNullOrEmpty(destinationOptions.committerName)) {
+          scratchClone.simpleCommand("config", "user.name", destinationOptions.committerName);
         }
-        if (!Strings.isNullOrEmpty(gitOptions.gitCommitterEmail)) {
-          scratchClone.simpleCommand("config", "user.email", gitOptions.gitCommitterEmail);
+        if (!Strings.isNullOrEmpty(destinationOptions.committerEmail)) {
+          scratchClone.simpleCommand("config", "user.email", destinationOptions.committerEmail);
         }
         verifyUserInfoConfigured(scratchClone);
       }
@@ -241,11 +241,11 @@ public final class GitDestination implements Destination {
     GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment);
     try {
       scratchClone.simpleCommand("fetch", repoUrl, fetch);
-      if (gitOptions.gitFirstCommit) {
+      if (destinationOptions.firstCommit) {
         throw new RepoException("'" + fetch + "' already exists in '" + repoUrl + "'.");
       }
     } catch (CannotFindReferenceException e) {
-      if (!gitOptions.gitFirstCommit) {
+      if (!destinationOptions.firstCommit) {
         throw new RepoException("'" + fetch + "' doesn't exist in '" + repoUrl
             + "'. Use --git-first-commit flag if you want to push anyway");
       }
@@ -265,20 +265,6 @@ public final class GitDestination implements Destination {
         .add("fetch", fetch)
         .add("push", push)
         .toString();
-  }
-
-  /**
-   * Builds a new {@link GitDestination}.
-   */
-  static GitDestination newGitDestination(Options options, String url, String fetch, String push,
-      Map<String, String> environment) {
-    return new GitDestination(
-        url, fetch, push,
-        options.get(GitOptions.class),
-        options.get(GeneralOptions.class).isVerbose(),
-        new DefaultCommitGenerator(),
-        new ProcessPushOutput(),
-        environment);
   }
 
   /**
