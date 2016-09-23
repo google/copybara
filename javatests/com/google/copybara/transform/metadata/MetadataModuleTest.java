@@ -17,6 +17,7 @@
 package com.google.copybara.transform.metadata;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
@@ -96,7 +97,8 @@ public class MetadataModuleTest {
 
   private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
-        new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
+        new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8))
+            , "copy.bara.sky"),
         options.build());
   }
 
@@ -309,7 +311,7 @@ public class MetadataModuleTest {
 
   private void checkScrubber(String commitMsg, String scrubber, String expectedMsg)
       throws IOException, ValidationException, RepoException {
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, scrubber);
+    Workflow<?> wf = createWorkflow(WorkflowMode.ITERATIVE, scrubber);
     origin.addSimpleChange(0, commitMsg);
     wf.run(workdir, /*sourceRef=*/null);
     ProcessedChange change = Iterables.getLast(destination.processed);
