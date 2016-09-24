@@ -19,14 +19,24 @@ package com.google.copybara;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -78,6 +88,38 @@ public final class TransformWork {
   public void setMessage(String message) {
     this.metadata = new Metadata(Preconditions.checkNotNull(message, "Message cannot be null"),
         metadata.getAuthor());
+  }
+
+  @SkylarkCallable(
+      // TODO(malcon): Implement for transforms
+      name = "run", doc = "Run a glob or a transform. For example:<br>"
+      + "<code>ctx.run(glob(['**.java']))</code>",
+      parameters = {
+          @Param(name = "runnable", type = Object.class,
+              doc = "A glob or a transform (Transforms still not implemented)"),
+      })
+  public Object run(Object runnable) throws EvalException, IOException, ValidationException {
+    if (runnable instanceof Glob) {
+      PathMatcher pathMatcher = ((Glob) runnable).relativeTo(checkoutDir);
+
+      return SkylarkList.createImmutable(Files.walk(checkoutDir)
+          .filter(Files::isRegularFile)
+          .filter(pathMatcher::matches)
+          .map(checkoutDir::relativize)
+          .map(CheckoutPath::new)
+          .collect(Collectors.toList()));
+    }
+    throw new EvalException(null, String
+        .format("Only globs can be run, but '%s' is of type %s", runnable, runnable.getClass()));
+  }
+
+  @SkylarkCallable(
+      name = "new_path", doc = "Create a new path",
+      parameters = {
+          @Param(name = "path", type = String.class, doc = "The string representing the path"),
+      })
+  public CheckoutPath newPath(String path) throws FuncallException {
+    return CheckoutPath.create(checkoutDir.getFileSystem().getPath(path));
   }
 
   /**

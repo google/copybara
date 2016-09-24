@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.Config;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.ValidationException;
 import com.google.copybara.config.ConfigFile;
@@ -56,19 +57,26 @@ public final class SkylarkTestExecutor {
   @SuppressWarnings("unchecked")
   public <T> T eval(String var, String config) throws ValidationException {
     try {
-      ConfigFile configFile = new MapConfigFile(
-          new ImmutableMap.Builder<String, byte[]>()
-              .putAll(extraConfigFiles)
-              .put("copy.bara.sky", config.getBytes())
-              .build(),
-          "copy.bara.sky");
-      Environment env = skylarkParser.executeSkylark(configFile, options.build());
+      Environment env = skylarkParser.executeSkylark(createConfigFile(config), options.build());
       T t = (T) env.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Should not happen: " + e.getMessage(), e);
     }
+  }
+
+  public Config loadConfig(String configContent) throws IOException, ValidationException {
+    return skylarkParser.loadConfig(createConfigFile(configContent), options.build());
+  }
+
+  private ConfigFile createConfigFile(String configContent) {
+    return new MapConfigFile(
+        new ImmutableMap.Builder<String, byte[]>()
+            .putAll(extraConfigFiles)
+            .put("copy.bara.sky", configContent.getBytes(UTF_8))
+            .build(),
+        "copy.bara.sky");
   }
 
   public void evalFails(String config, String expectedMsg) {

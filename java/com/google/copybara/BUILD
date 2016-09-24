@@ -54,6 +54,7 @@ BASE_SRCS = [
     "Author.java",
     "Authoring.java",
     "Change.java",
+    "CheckoutPath.java",
     "Destination.java",
     "EmptyChangeException.java",
     "Metadata.java",

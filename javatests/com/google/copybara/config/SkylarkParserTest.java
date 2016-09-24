@@ -21,8 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Authoring;
 import com.google.copybara.Config;
 import com.google.copybara.Destination;
@@ -32,8 +30,8 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
-import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -49,9 +47,6 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -65,14 +60,14 @@ public class SkylarkParserTest {
 
   @Rule public final ExpectedException thrown = ExpectedException.none();
 
-  private SkylarkParser parser;
+  private SkylarkTestExecutor parser;
   private OptionsBuilder options;
   private TestingConsole console;
 
   @Before
   public void setup() {
-    parser = new SkylarkParser(ImmutableSet.of(Mock.class, MockLabelsAwareModule.class));
     options = new OptionsBuilder();
+    parser = new SkylarkTestExecutor(options, Mock.class, MockLabelsAwareModule.class);
     console = new TestingConsole();
     options.setConsole(console);
   }
@@ -82,7 +77,7 @@ public class SkylarkParserTest {
       throws IOException, ValidationException {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("At least one workflow is required.");
-    loadConfig("");
+    parser.loadConfig("");
   }
 
   /**
@@ -120,17 +115,17 @@ public class SkylarkParserTest {
         + ")\n";
 
     options.setWorkflowName("foo42");
-    Config config = loadConfigMultifile(configContent, ImmutableMap.of(
-        "foo/authoring.bara.sky", ""
-            + "load('bar', 'bar')\n"
-            + "baz=bar\n"
-            + "def copy_author():\n"
-            + "  return authoring.overwrite('Copybara <no-reply@google.com>')",
-        "foo/bar.bara.sky", ""
-            + "bar=42\n"
-            + "def copy_author():\n"
-            + "  return authoring.overwrite('Copybara <no-reply@google.com>')"
-    ));
+    parser.addExtraConfigFile("foo/authoring.bara.sky", ""
+        + "load('bar', 'bar')\n"
+        + "baz=bar\n"
+        + "def copy_author():\n"
+        + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
+    parser.addExtraConfigFile("foo/bar.bara.sky", ""
+        + "bar=42\n"
+        + "def copy_author():\n"
+        + "  return authoring.overwrite('Copybara <no-reply@google.com>')"
+    );
+    Config config = parser.loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
     MockOrigin origin = (MockOrigin) config.getActiveWorkflow().origin();
@@ -158,9 +153,9 @@ public class SkylarkParserTest {
       throws IOException, ValidationException {
     options.setWorkflowName("foo42");
     try {
-      loadConfigMultifile("load('//foo','foo')", ImmutableMap.of(
-          "foo.bara.sky", "load('//bar', 'bar')",
-          "bar.bara.sky", "load('//copy', 'copy')"));
+      parser.addExtraConfigFile("foo.bara.sky", "load('//bar', 'bar')");
+      parser.addExtraConfigFile("bar.bara.sky", "load('//copy', 'copy')");
+      parser.loadConfig("load('//foo','foo')");
       fail();
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Cycle was detected");
@@ -171,23 +166,6 @@ public class SkylarkParserTest {
               + "  bar.bara.sky\n"
               + "\\* copy.bara.sky\n");
     }
-  }
-
-  private Config loadConfig(String configContent)
-      throws IOException, ValidationException {
-    return loadConfigMultifile(configContent, ImmutableMap.<String, String>of());
-  }
-
-  private Config loadConfigMultifile(String configContent, Map<String, String> extraFiles)
-      throws IOException, ValidationException {
-    return parser.loadConfig(
-        new MapConfigFile(ImmutableMap.<String, byte[]>builder()
-            .put("copy.bara.sky", configContent.getBytes())
-            .putAll(extraFiles.entrySet().stream()
-                .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().getBytes(UTF_8))))
-            .build(),
-            "copy.bara.sky"),
-        options.build());
   }
 
   @Test
@@ -211,7 +189,7 @@ public class SkylarkParserTest {
         + ")\n";
 
     options.setWorkflowName("foo");
-    Config config = loadConfig(configContent);
+    Config config = parser.loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
     Transformation transformation = config.getActiveWorkflow().transformation();
@@ -250,7 +228,7 @@ public class SkylarkParserTest {
         + ")\n";
 
     try {
-      loadConfig(configContent);
+      parser.loadConfig(configContent);
       fail();
     } catch (ValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
@@ -276,7 +254,8 @@ public class SkylarkParserTest {
         + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
         + ")\n";
 
-    Config config = loadConfigMultifile(configContent, ImmutableMap.of("foo", "stuff_in_foo"));
+    parser.addExtraConfigFile("foo", "stuff_in_foo");
+    Config config = parser.loadConfig(configContent);
     assertThat(config.getName()).isEqualTo("stuff_in_foo");
   }
 
@@ -300,6 +279,7 @@ public class SkylarkParserTest {
       this.configFile = configFile;
     }
 
+    @SuppressWarnings("unused")
     @SkylarkSignature(name = "read_foo", returnType = String.class,
         doc = "Read 'foo' label from config file",
         objectType = MockLabelsAwareModule.class,
@@ -433,6 +413,7 @@ public class SkylarkParserTest {
     private final String field2;
     private final List<String> list;
 
+    @SuppressWarnings("WeakerAccess")
     public MockTransform(String field1, String field2, List<String> list) {
       this.field1 = field1;
       this.field2 = field2;

@@ -44,6 +44,7 @@ public class TransformWorks {
           public SkylarkList<? extends Change<?>> getMigrated() {
             throw new UnsupportedOperationException();
           }
+          // TODO(malcon): Pass this from test.
         });
   }
 
