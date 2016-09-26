@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
-import com.google.copybara.util.console.Console;
 import java.io.IOException;
 
 /**
@@ -39,9 +38,9 @@ public final class ExplicitReversal implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work, Console console)
+  public void transform(TransformWork work)
       throws IOException, ValidationException {
-    forward.transform(work, console);
+    forward.transform(work);
   }
 
   @Override

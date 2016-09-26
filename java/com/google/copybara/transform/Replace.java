@@ -25,7 +25,6 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Pattern;
@@ -95,7 +94,7 @@ public final class Replace implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work, Console console)
+  public void transform(TransformWork work)
       throws IOException, ValidationException {
     Path checkoutDir = work.getCheckoutDir();
 
@@ -105,7 +104,7 @@ public final class Replace implements Transformation {
     Files.walkFileTree(checkoutDir, visitor);
     if (!visitor.somethingWasChanged) {
       workflowOptions.reportNoop(
-          console,
+          work.getConsole(),
           "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");
     }
   }

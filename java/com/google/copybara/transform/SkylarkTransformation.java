@@ -22,7 +22,11 @@ import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
+import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -43,21 +47,30 @@ public class SkylarkTransformation implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work, Console console)
+  public void transform(TransformWork work)
       throws IOException, ValidationException {
+    SkylarkConsole skylarkConsole = new SkylarkConsole(work.getConsole());
+    TransformWork skylarkWork = work.withConsole(skylarkConsole);
     try {
       Object result = function.call(
-          ImmutableList.<Object>of(work),/*kwargs=*/null,/*ast*/null, env);
+          ImmutableList.of(skylarkWork),/*kwargs=*/null,/*ast*/null, env);
       if (!(result instanceof NoneType)) {
         throw new ValidationException("Message transformer functions should not return"
             + " anything, but '" + function.getName() + "' returned:" + result);
       }
     } catch (EvalException e) {
-      throw new ValidationException("Error while executing the message transformer "
+      throw new ValidationException("Error while executing the skylark transformer "
           + function.getName() + ":" + e.getMessage(), e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);
+    } finally {
+      work.updateFrom(skylarkWork);
+    }
+
+    if (skylarkConsole.errorCount > 0) {
+      throw new ValidationException(String.format(
+          "%d error(s) while executing %s", skylarkConsole.errorCount, function.getName()));
     }
   }
 
@@ -69,5 +82,60 @@ public class SkylarkTransformation implements Transformation {
   @Override
   public String describe() {
     return function.getName();
+  }
+
+  @SkylarkModule(name = "Console",
+      category = SkylarkModuleCategory.BUILTIN,
+      doc = "A console that can be used in skylark transformations to print info, warning or"
+          + " error messages.")
+  private static class SkylarkConsole implements Console {
+
+    private int errorCount = 0;
+    private final Console delegate;
+
+    SkylarkConsole(Console delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public void startupMessage() {
+      throw new UnsupportedOperationException("Shouldn't be called from skylark");
+    }
+
+    @SkylarkCallable(name = "error",
+        doc = "Show an error in the log. Note that this will stop Copybara execution.")
+    @Override
+    public void error(String message) {
+      delegate.error(message);
+      errorCount++;
+    }
+
+    @SkylarkCallable(name = "warn", doc = "Show a warning in the console")
+    @Override
+    public void warn(String message) {
+      delegate.warn(message);
+    }
+
+    @SkylarkCallable(name = "info", doc = "Show an info message in the console")
+    @Override
+    public void info(String message) {
+      delegate.info(message);
+    }
+
+    @SkylarkCallable(name = "progress", doc = "Show a progress message in the console")
+    @Override
+    public void progress(String progress) {
+      delegate.progress(progress);
+    }
+
+    @Override
+    public boolean promptConfirmation(String message) throws IOException {
+      throw new UnsupportedOperationException("Shouldn't be called from skylark");
+    }
+
+    @Override
+    public String colorize(AnsiColor ansiColor, String message) {
+      throw new UnsupportedOperationException("Shouldn't be called from skylark");
+    }
   }
 }

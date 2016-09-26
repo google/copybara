@@ -22,7 +22,6 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Pattern;
@@ -58,7 +57,7 @@ public final class VerifyMatch implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work, Console console)
+  public void transform(TransformWork work)
       throws IOException, ValidationException {
     Path checkoutDir = work.getCheckoutDir();
     VerifyMatchVisitor visitor = new VerifyMatchVisitor(pattern,
@@ -66,7 +65,8 @@ public final class VerifyMatch implements Transformation {
     Files.walkFileTree(checkoutDir, visitor);
     List<String> errors = visitor.getErrors();
     for (String error : errors) {
-      console.error(String.format("File '%s' failed validation '%s'.", error, describe()));
+      work.getConsole().error(String.format("File '%s' failed validation '%s'.", error,
+          describe()));
     }
     if (errors.size() != 0) {
       throw new ValidationException(

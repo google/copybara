@@ -24,7 +24,6 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.List;
 
@@ -47,7 +46,7 @@ public class MetadataSquashNotes implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work, Console console)
+  public void transform(TransformWork work)
       throws IOException, ValidationException {
     StringBuilder sb = new StringBuilder(prefix);
     if (max == 0) {

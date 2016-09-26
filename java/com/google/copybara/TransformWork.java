@@ -56,12 +56,15 @@ public final class TransformWork {
   private final Path checkoutDir;
   private Metadata metadata;
   private final Changes changes;
+  private final Console console;
 
-  public TransformWork(Path checkoutDir, Metadata metadata, Changes changes) {
+  public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
+    this.console = console;
   }
+
 
   /**
    * The path containing the repository state to transform. Transformation should be done in-place.
@@ -232,4 +235,25 @@ public final class TransformWork {
         "Label '%s' is not a valid label", label);
   }
 
+  @SkylarkCallable(name = "console", doc = "Get an instance of the console to report errors or"
+      + " warnings", structField = true)
+  public Console getConsole() {
+    return console;
+  }
+
+  /**
+   * Create a clone of the transform work but use a different console.
+   */
+  public TransformWork withConsole(Console newConsole) {
+    return new TransformWork(checkoutDir, metadata, changes,
+        Preconditions.checkNotNull(newConsole));
+  }
+
+  /**
+   * Update mutable state from another worker data. Should be used with an instance created with
+   * {@link #withConsole(Console)}
+   */
+  public void updateFrom(TransformWork skylarkWork) {
+    metadata = skylarkWork.metadata;
+  }
 }

@@ -51,7 +51,7 @@ public final class CoreTransformTest {
   }
 
   private void transform(Transformation transform) throws IOException, ValidationException {
-    transform.transform(TransformWorks.of(checkoutDir, "testmsg"), console);
+    transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
   @Test

@@ -23,8 +23,6 @@ import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
-import com.google.copybara.util.console.Console;
-import com.google.copybara.util.console.ProgressPrefixConsole;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -48,13 +46,13 @@ public class Sequence implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work, Console console)
+  public void transform(TransformWork work)
       throws IOException, ValidationException {
     if (sequence.size() == 1) {
       Transformation transform = sequence.get(0);
       logger.log(Level.INFO, transform.describe());
-      console.progress(transform.describe());
-      transform.transform(work, console);
+      work.getConsole().progress(transform.describe());
+      transform.transform(work);
       return;
     }
 
@@ -65,8 +63,8 @@ public class Sequence implements Transformation {
           transformation.describe());
       logger.log(Level.INFO, transformMsg);
 
-      console.progress(transformMsg);
-      transformation.transform(work, new ProgressPrefixConsole(transformMsg + ": ", console));
+      work.getConsole().progress(transformMsg);
+      transformation.transform(work);
     }
   }
 

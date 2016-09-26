@@ -21,7 +21,6 @@ import static org.junit.Assert.fail;
 
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -137,7 +136,7 @@ public final class CoreReverseTest {
     }
 
     @Override
-    public void transform(TransformWork work, Console console) {
+    public void transform(TransformWork work) {
       throw new UnsupportedOperationException();
     }
 

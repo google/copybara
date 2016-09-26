@@ -23,7 +23,6 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.TransformWorks;
-import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,13 +34,14 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public final class ExplicitReversalTest {
+  private final TestingConsole console = new TestingConsole();
 
   private class MockTransform implements Transformation {
 
     String name;
 
     @Override
-    public void transform(TransformWork work, Console console) {
+    public void transform(TransformWork work) {
       invokedTransforms.add(name);
     }
 
@@ -74,8 +74,8 @@ public final class ExplicitReversalTest {
 
   private void transform(Transformation transformation) throws IOException, ValidationException {
     transformation.transform(
-        TransformWorks.of(get("/foo"), "test msg"),
-        new TestingConsole());
+        TransformWorks.of(get("/foo"), "test msg", console)
+    );
   }
 
   @Test

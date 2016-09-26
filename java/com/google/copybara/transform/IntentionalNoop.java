@@ -18,7 +18,6 @@ package com.google.copybara.transform;
 
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.util.console.Console;
 
 /**
  * A transformation which does nothing. This is a no-op which is not considered an error (unlike a
@@ -28,7 +27,7 @@ public enum IntentionalNoop implements Transformation {
   INSTANCE;
 
   @Override
-  public void transform(TransformWork work, Console console) {}
+  public void transform(TransformWork work) {}
 
   @Override
   public Transformation reverse() {

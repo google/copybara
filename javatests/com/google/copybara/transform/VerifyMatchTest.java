@@ -43,7 +43,7 @@ public final class VerifyMatchTest {
   }
 
   private void transform(VerifyMatch verifyMatch) throws IOException, ValidationException {
-    verifyMatch.transform(TransformWorks.of(checkoutDir, "testmsg"), console);
+    verifyMatch.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
   @Test

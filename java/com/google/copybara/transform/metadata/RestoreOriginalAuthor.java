@@ -22,7 +22,6 @@ import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
-import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 
@@ -38,7 +37,7 @@ public class RestoreOriginalAuthor implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work, Console console)
+  public void transform(TransformWork work)
       throws IOException, ValidationException {
     Author author = null;
     // If multiple commits are included (for example on a squash for skipping a bad change),
@@ -51,7 +50,7 @@ public class RestoreOriginalAuthor implements Transformation {
         } catch (EvalException e) {
           // Don't fail the migration because the label is wrong since it is very
           // difficult for a user to recover from this.
-          console.warn("Cannot restore original author: " + e.getMessage());
+          work.getConsole().warn("Cannot restore original author: " + e.getMessage());
         }
       }
     }

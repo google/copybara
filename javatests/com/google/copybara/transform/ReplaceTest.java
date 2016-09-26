@@ -65,7 +65,7 @@ public final class ReplaceTest {
   }
 
   private void transform(Replace replace) throws IOException, ValidationException {
-    replace.transform(TransformWorks.of(checkoutDir, "testmsg"), console);
+    replace.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
   @Test

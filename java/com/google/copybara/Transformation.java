@@ -16,7 +16,6 @@
 
 package com.google.copybara;
 
-import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
@@ -36,7 +35,7 @@ public interface Transformation {
    * @throws IOException if an error occur during the access to the files
    * @throws ValidationException if an error attributable to the user happened
    */
-  void transform(TransformWork work, Console console) throws IOException, ValidationException;
+  void transform(TransformWork work) throws IOException, ValidationException;
 
   /**
    * Returns a transformation which runs this transformation in reverse.

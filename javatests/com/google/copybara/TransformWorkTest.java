@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.testing.DummyOrigin;
@@ -26,6 +27,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -45,13 +47,14 @@ public class TransformWorkTest {
   private DummyOrigin origin;
   private RecordsProcessCallDestination destination;
   private Path workdir;
+  private TestingConsole console;
 
   @Before
   public void setup() throws IOException {
     origin = new DummyOrigin().setAuthor(ORIGINAL_AUTHOR);
     destination = new RecordsProcessCallDestination();
     OptionsBuilder options = new OptionsBuilder();
-    TestingConsole console = new TestingConsole();
+    console = new TestingConsole();
     options.setConsole(console);
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
@@ -122,6 +125,47 @@ public class TransformWorkTest {
     assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\nOTHER=FOO\nEXAMPLE=OTHER VALUE\n");
     work.removeLabel("EXAMPLE");
     assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\nOTHER=FOO\n");
+  }
+
+  @Test
+  public void testConsole() throws IOException, ValidationException, RepoException {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base = fileSystem.getPath("foo");
+    touchFile(base.resolve("not_important.txt"), "");
+    Files.createDirectories(workdir.resolve("folder"));
+    origin.addChange(0, base, "message");
+
+    runWorkflow("test", ""
+        + "def test(ctx):\n"
+        + "   ctx.console.progress('Progress message')\n"
+        + "   ctx.console.info('Informational message')\n"
+        + "   ctx.console.warn('Warning message')\n");
+
+    console.assertThat().onceInLog(MessageType.PROGRESS, "Progress message");
+    console.assertThat().onceInLog(MessageType.INFO, "Informational message");
+    console.assertThat().onceInLog(MessageType.WARNING, "Warning message");
+  }
+
+  @Test
+  public void testConsoleError() throws IOException, ValidationException, RepoException {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base = fileSystem.getPath("foo");
+    touchFile(base.resolve("not_important.txt"), "");
+    Files.createDirectories(workdir.resolve("folder"));
+    origin.addChange(0, base, "message");
+
+    try {
+      runWorkflow("test", ""
+          + "def test(ctx):\n"
+          + "   ctx.console.error('Error message')\n"
+          + "   ctx.console.error('Another error message')\n");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessage("2 error(s) while executing test");
+      console.assertThat()
+          .onceInLog(MessageType.ERROR, "Error message")
+          .onceInLog(MessageType.ERROR, "Another error message");
+    }
   }
 
   @Test
@@ -220,6 +264,6 @@ public class TransformWorkTest {
   }
 
   private TransformWork create(String msg) {
-    return TransformWorks.of(FileSystems.getDefault().getPath("/"), msg);
+    return TransformWorks.of(FileSystems.getDefault().getPath("/"), msg, console);
   }
 }

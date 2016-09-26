@@ -34,7 +34,6 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
-import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.Message;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
@@ -817,7 +816,7 @@ public class WorkflowTest {
         + ")\n").getActiveWorkflow().transformation();
 
     Files.write(workdir.resolve("foo"), new byte[0]);
-    transformation.transform(TransformWorks.of(workdir, "message"), console());
+    transformation.transform(TransformWorks.of(workdir, "message", console()));
 
     // Check that we don't nest sequence progress messages
     console().assertThat().onceInLog(MessageType.PROGRESS, "^\\[ 1/2\\] Transform Moving foo");

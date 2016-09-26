@@ -61,7 +61,7 @@ public class MoveTest {
   }
 
   private void transform(Move mover) throws IOException, ValidationException {
-    mover.transform(TransformWorks.of(checkoutDir, "testmsg"), console);
+    mover.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
   @Test

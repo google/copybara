@@ -25,7 +25,6 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -61,7 +60,7 @@ public class AddHeader implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work, Console console)
+  public void transform(TransformWork work)
       throws IOException, ValidationException {
     Map<String, String> labelValues = new HashMap<>();
     for (String label : labels) {

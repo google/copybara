@@ -24,7 +24,6 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
@@ -70,12 +69,12 @@ public class Move implements Transformation {
     }
 
   @Override
-  public void transform(TransformWork work, Console console) throws IOException, ValidationException {
-      console.progress("Moving " + this.before);
+  public void transform(TransformWork work) throws IOException, ValidationException {
+      work.getConsole().progress("Moving " + this.before);
       Path before = work.getCheckoutDir().resolve(this.before);
       if (!Files.exists(before)) {
         workflowOptions.reportNoop(
-            console,
+            work.getConsole(),
             String.format("Error moving '%s'. It doesn't exist in the workdir", this.before));
         return;
       }

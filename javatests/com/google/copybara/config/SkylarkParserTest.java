@@ -34,7 +34,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -421,7 +420,7 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public void transform(TransformWork work, Console console) throws IOException {
+    public void transform(TransformWork work) throws IOException {
       throw new UnsupportedOperationException();
     }
 

@@ -211,16 +211,16 @@ public abstract class Workflow<R extends Origin.Reference> {
         FileUtil.copyFilesRecursively(checkoutDir, originCopy);
       }
 
-      TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes);
-      transformation().transform(transformWork, processConsole);
+      TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes, console());
+      transformation().transform(transformWork);
 
       if (reverseTransformForCheck() != null) {
         console().progress("Checking that the transformations can be reverted");
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse);
         reverseTransformForCheck().transform(
-            new TransformWork(reverse, metadata, changes),
-            processConsole);
+            new TransformWork(reverse, metadata, changes, console())
+        );
         String diff = new String(DiffUtil.diff(originCopy, reverse, verbose()),
             StandardCharsets.UTF_8);
         if (!diff.trim().isEmpty()) {
