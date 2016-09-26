@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.copybara.Option;
+import javax.annotation.Nullable;
 
 /**
  * Arguments for {@link GitDestination}, {@link GitOrigin}, and other Git components.
@@ -45,4 +46,14 @@ public final class GitDestinationOptions implements Option {
   @Parameter(names = "--git-destination-url",
       description = "If set, overrides the git destination URL.")
   String url = null;
+
+  @Nullable
+  @Parameter(names = "--git-destination-fetch",
+      description = "If set, overrides the git destination fetch reference.")
+  String fetch = null;
+
+  @Nullable
+  @Parameter(names = "--git-destination-push",
+      description = "If set, overrides the git destination push reference.")
+  String push = null;
 }

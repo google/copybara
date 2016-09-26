@@ -18,8 +18,10 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.base.SkylarkUtil.checkNotEmpty;
+import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -182,21 +184,30 @@ public class GitModule implements OptionsAwareModule {
           @Param(name = "url", type = String.class,
               doc = "Indicates the URL to push to as well as the URL from which to get the parent "
                   + "commit"),
-          @Param(name = "fetch", type = String.class,
-              doc = "Indicates the ref from which to get the parent commit"),
           @Param(name = "push", type = String.class,
               doc = "Reference to use for pushing the change, for example 'master'"),
+          @Param(name = "fetch", type = String.class,
+              doc = "Indicates the ref from which to get the parent commit",
+              defaultValue = "push", noneable = true),
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
-  public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination") {
-    public GitDestination invoke(GitModule self, String url, String fetch, String push,
+  public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination",
+      ImmutableList.of(Runtime.NONE)) {
+    public GitDestination invoke(GitModule self, String url, String push, Object fetch,
         Location location) throws EvalException {
       GitDestinationOptions destinationOptions = self.options.get(GitDestinationOptions.class);
+      String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
+          "push", location);
       return new GitDestination(
-          checkNotEmpty(destinationUrl(url, destinationOptions), "url", location),
-          checkNotEmpty(fetch, "fetch", location),
-          checkNotEmpty(push, "push", location),
+          checkNotEmpty(firstNotNull(destinationOptions.url, url),
+              "url", location),
+          checkNotEmpty(
+              firstNotNull(destinationOptions.fetch,
+                  convertFromNoneable(fetch, null),
+                  resolvedPush),
+              "fetch", location),
+          resolvedPush,
           destinationOptions,
           self.options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator(),
@@ -205,8 +216,22 @@ public class GitModule implements OptionsAwareModule {
     }
   };
 
-  private static String destinationUrl(String url, GitDestinationOptions destinationOptions) {
-    return Strings.isNullOrEmpty(destinationOptions.url) ? url : destinationOptions.url;
+  private static String firstNotNull(String... values) {
+    for (String value : values) {
+      if (!Strings.isNullOrEmpty(value)) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  private static String fetch(String fetch, GitDestinationOptions destinationOptions,
+      String cliFetch) {
+    return Strings.isNullOrEmpty(cliFetch) ? fetch : destinationOptions.fetch;
+  }
+
+  private static String push(String push, GitDestinationOptions destinationOptions) {
+    return firstNotNull(push, destinationOptions.push);
   }
 
   @SkylarkSignature(name = "gerrit_destination", returnType = GerritDestination.class,

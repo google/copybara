@@ -106,16 +106,6 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void errorIfFetchMissing() throws ValidationException {
-    skylark.evalFails(
-        "git.destination(\n"
-            + "    url = 'file:///foo',\n"
-            + "    push = 'master',\n"
-            + ")",
-        "missing mandatory positional argument 'fetch'");
-  }
-
-  @Test
   public void errorIfPushMissing() throws ValidationException {
     skylark.evalFails(
         "git.destination(\n"
@@ -767,5 +757,41 @@ public class GitDestinationTest {
         .containsFile("test.txt", "some content")
         .containsFile(".gitignore", ".gitignore\n")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testFetchPushParamsSimple() throws Exception {
+    GitDestination gitDestination = skylark.eval("result",
+        "result = git.destination(\n"
+            + "    url = 'file:///foo/bar/baz',\n"
+            + "    push = 'test',\n"
+            + ")");
+    assertThat(gitDestination.getFetch()).isEqualTo("test");
+    assertThat(gitDestination.getPush()).isEqualTo("test");
+  }
+
+  @Test
+  public void testFetchPushParamsExplicit() throws Exception {
+    GitDestination gitDestination = skylark.eval("result",
+        "result = git.destination(\n"
+            + "    url = 'file:///foo/bar/baz',\n"
+            + "    fetch = 'test1',\n"
+            + "    push = 'test2',\n"
+            + ")");
+    assertThat(gitDestination.getFetch()).isEqualTo("test1");
+    assertThat(gitDestination.getPush()).isEqualTo("test2");
+  }
+
+  @Test
+  public void testFetchPushParamsCliFlags() throws Exception {
+    options.gitDestination.fetch = "aaa";
+    options.gitDestination.push = "bbb";
+    GitDestination gitDestination = skylark.eval("result",
+        "result = git.destination(\n"
+            + "    url = 'file:///foo/bar/baz',\n"
+            + "    push = 'test',\n"
+            + ")");
+    assertThat(gitDestination.getFetch()).isEqualTo("aaa");
+    assertThat(gitDestination.getPush()).isEqualTo("bbb");
   }
 }

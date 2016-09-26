@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.git.GitDestinationOptions.FIRST_COMMIT_FLAG;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -249,6 +250,16 @@ public final class GitDestination implements Destination {
       }
     }
     return scratchClone;
+  }
+
+  @VisibleForTesting
+  String getFetch() {
+    return fetch;
+  }
+
+  @VisibleForTesting
+  String getPush() {
+    return push;
   }
 
   @Override
