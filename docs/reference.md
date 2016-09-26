@@ -2,6 +2,7 @@
 
 
   - [Changes](#Changes)
+  - [Path](#Path)
   - [TransformWork](#TransformWork)
   - [author](#author)
   - [authoring](#authoring)
@@ -20,6 +21,11 @@
 # Changes
 
 Data about the set of changes that are being migrated. Each change includes information like: original author, change message, labels, etc. You receive this as a field in TransformWork object for used defined transformations
+
+
+# Path
+
+Represents a path in the checkout directory
 
 
 # TransformWork
@@ -387,7 +393,7 @@ Name | Type | Description
 
 ## origin
 
-Defines a standard Git origin. For Git specific origins use: github_origin or gerrit_origin.
+Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that currently it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
 `gitOrigin git.origin(url, ref=None)`
 
