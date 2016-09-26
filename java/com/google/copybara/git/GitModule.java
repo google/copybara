@@ -145,8 +145,8 @@ public class GitModule implements OptionsAwareModule {
       GitDestinationOptions destinationOptions = self.options.get(GitDestinationOptions.class);
       return new GitDestination(
           checkNotEmpty(destinationUrl(url, destinationOptions), "url", location),
-          checkNotEmpty(fetch, "fetch", location),
-          checkNotEmpty(push, "push", location),
+          checkNotEmpty(fetch(fetch, destinationOptions), "fetch", location),
+          checkNotEmpty(push(push, destinationOptions), "push", location),
           destinationOptions,
           self.options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator(),
@@ -157,6 +157,14 @@ public class GitModule implements OptionsAwareModule {
 
   private static String destinationUrl(String url, GitDestinationOptions destinationOptions) {
     return Strings.isNullOrEmpty(destinationOptions.url) ? url : destinationOptions.url;
+  }
+
+  private static String fetch(String fetch, GitDestinationOptions destinationOptions) {
+    return Strings.isNullOrEmpty(destinationOptions.fetch) ? fetch : destinationOptions.fetch;
+  }
+
+  private static String push(String push, GitDestinationOptions destinationOptions) {
+    return Strings.isNullOrEmpty(destinationOptions.push) ? push : destinationOptions.push;
   }
 
   @SkylarkSignature(name = "gerrit_destination", returnType = GerritDestination.class,
