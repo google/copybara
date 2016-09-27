@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -183,16 +184,15 @@ public class GitRepository {
     }
   }
 
-  void commit(GitRepository alternate, String author,
-      long timestamp, String message)
+  void commit(GitRepository alternate, String author, Instant timestamp, String message)
       throws RepoException {
     CommandOutput status = alternate.simpleCommand("diff", "--staged");
     if (status.getStdout().trim().isEmpty()) {
       throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
           + "Is the change already migrated?");
     }
-    alternate.simpleCommand("commit", "--author", author, "--date", timestamp + " +0000",
-        "-m", message);
+    alternate.simpleCommand("commit", "--author", author,
+        "--date", timestamp.getEpochSecond() + " +0000", "-m", message);
   }
 
   /**

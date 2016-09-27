@@ -44,7 +44,7 @@ public class DummyReference implements Origin.Reference {
   private final String message;
   private final Author author;
   final Path changesBase;
-  private final Long timestamp;
+  private final Instant timestamp;
   private final ImmutableMap<String, String> labels;
 
   public DummyReference(String reference) {
@@ -54,7 +54,7 @@ public class DummyReference implements Origin.Reference {
 
   DummyReference(
       String reference, String message, Author author, Path changesBase,
-      @Nullable Long timestamp) {
+      @Nullable Instant timestamp) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
     this.author = Preconditions.checkNotNull(author);
@@ -74,7 +74,7 @@ public class DummyReference implements Origin.Reference {
   /**
    * Returns an instance equivalent to this one but with the timestamp set to the specified value.
    */
-  public DummyReference withTimestamp(long newTimestamp) {
+  public DummyReference withTimestamp(Instant newTimestamp) {
     return new DummyReference(
         this.reference, this.message, this.author, this.changesBase, newTimestamp);
   }
@@ -86,7 +86,7 @@ public class DummyReference implements Origin.Reference {
 
   @Nullable
   @Override
-  public Long readTimestamp() throws RepoException {
+  public Instant readTimestamp() throws RepoException {
     return timestamp;
   }
 
@@ -105,7 +105,7 @@ public class DummyReference implements Origin.Reference {
         ? this.author
         : authoring.getDefaultAuthor();
     return new Change<>(this, safeAuthor, message,
-        ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()), labels);
+        ZonedDateTime.ofInstant(timestamp, ZoneId.systemDefault()), labels);
   }
 
   public Author getAuthor() {

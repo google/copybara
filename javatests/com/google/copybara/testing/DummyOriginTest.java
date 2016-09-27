@@ -27,6 +27,7 @@ import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.Glob;
+import java.time.Instant;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -44,12 +45,14 @@ public class DummyOriginTest {
     DummyOrigin origin = new DummyOrigin()
         .addSimpleChange(/*timestamp*/ 4242);
 
-    assertThat(origin.resolve(null).readTimestamp())
-        .isEqualTo((long) 4242);
+    Instant timestamp = origin.resolve(null).readTimestamp();
+    assertThat(timestamp).isNotNull();
+    assertThat(timestamp.getEpochSecond()).isEqualTo(4242);
 
     origin.addSimpleChange(/*timestamp*/ 42424242);
-    assertThat(origin.resolve(null).readTimestamp())
-        .isEqualTo((long) 42424242);
+    timestamp = origin.resolve(null).readTimestamp();
+    assertThat(timestamp).isNotNull();
+    assertThat(timestamp.getEpochSecond()).isEqualTo(42424242);
   }
 
   @Test

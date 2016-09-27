@@ -43,6 +43,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.time.Instant;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -303,8 +304,8 @@ public class WorkflowTest {
     Workflow workflow = workflow();
     workflow.run(workdir, origin.getHead());
 
-    long timestamp = destination.processed.get(0).getTimestamp();
-    assertThat(timestamp).isEqualTo(42);
+    Instant timestamp = destination.processed.get(0).getTimestamp();
+    assertThat(timestamp.getEpochSecond()).isEqualTo(42);
   }
 
   @Test
@@ -322,7 +323,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 42918273);
     workflow.run(workdir, origin.getHead());
     assertThat(destination.processed).hasSize(1);
-    assertThat(destination.processed.get(0).getTimestamp())
+    assertThat(destination.processed.get(0).getTimestamp().getEpochSecond())
         .isEqualTo(42918273);
   }
 

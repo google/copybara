@@ -18,7 +18,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 /**
@@ -51,8 +50,7 @@ public class FolderOrigin implements Origin<FolderReference> {
       throw new RepoException(path + " is not readable/executable");
     }
 
-    return new FolderReference(path, TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()),
-        LABEL_NAME);
+    return new FolderReference(path, Instant.now(), LABEL_NAME);
   }
 
   @Override
@@ -81,8 +79,7 @@ public class FolderOrigin implements Origin<FolderReference> {
       @Override
       public Change<FolderReference> change(FolderReference ref) throws RepoException {
         ZonedDateTime time = ZonedDateTime.ofInstant(
-            Instant.ofEpochSecond(Preconditions.checkNotNull(ref.readTimestamp())),
-            ZoneId.systemDefault());
+            Preconditions.checkNotNull(ref.readTimestamp()), ZoneId.systemDefault());
         return new Change<>(ref, author, message, time, ImmutableMap.of());
       }
 

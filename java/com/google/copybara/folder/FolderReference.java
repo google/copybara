@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import java.nio.file.Path;
+import java.time.Instant;
 import javax.annotation.Nullable;
 
 /**
@@ -12,10 +13,10 @@ import javax.annotation.Nullable;
 public class FolderReference implements Reference {
 
   final Path path;
-  private final long timestamp;
+  private final Instant timestamp;
   private final String labelName;
 
-  FolderReference(Path path, long timestamp, String labelName) {
+  FolderReference(Path path, Instant timestamp, String labelName) {
     this.path = Preconditions.checkNotNull(path);
     this.timestamp = timestamp;
     this.labelName = Preconditions.checkNotNull(labelName);
@@ -28,7 +29,7 @@ public class FolderReference implements Reference {
 
   @Nullable
   @Override
-  public Long readTimestamp() throws RepoException {
+  public Instant readTimestamp() throws RepoException {
     return timestamp;
   }
 

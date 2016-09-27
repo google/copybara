@@ -21,6 +21,7 @@ import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.nio.file.Path;
+import java.time.Instant;
 import javax.annotation.Nullable;
 
 /**
@@ -41,11 +42,11 @@ public interface Origin<R extends Origin.Reference> {
 
     /**
      * Reads the timestamp of this reference from the repository, or {@code null} if this repo type
-     * does not support it. This is the number of seconds from the UNIX epoch when the reference was
+     * does not support it. This is the {@link Instant} from the UNIX epoch when the reference was
      * submitted to the source repository.
      */
     @Nullable
-    Long readTimestamp() throws RepoException;
+    Instant readTimestamp() throws RepoException;
 
     /**
      * String representation of the reference that can be parsed by {@link Origin#resolve(String)}.
@@ -132,7 +133,7 @@ public interface Origin<R extends Origin.Reference> {
 
   /**
    * A visitor of changes. An implementation of this interface is provided to the {@link
-   * #visitChanges(Reference, ChangesVisitor, Authoring)} methods to visit changes in Origin
+   * Reader#visitChanges(Reference, ChangesVisitor)} methods to visit changes in Origin
    * history.
    */
   interface ChangesVisitor {
@@ -145,8 +146,8 @@ public interface Origin<R extends Origin.Reference> {
   }
 
   /**
-   * The result type for the function passed to {@link #visitChanges(Reference, ChangesVisitor,
-   * Authoring)}. }
+   * The result type for the function passed to
+   * {@link Reader#visitChanges(Reference, ChangesVisitor)}.
    */
   enum VisitResult {
     /**

@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -476,7 +477,9 @@ public class GitOriginTest {
     git("add", "test2.txt");
     git("commit", "-m", "second file", "--date=1400110011");
     GitReference master = origin.resolve("master");
-    assertThat(master.readTimestamp()).isEqualTo(1400110011L);
+    Instant timestamp = master.readTimestamp();
+    assertThat(timestamp).isNotNull();
+    assertThat(timestamp.getEpochSecond()).isEqualTo(1400110011L);
   }
 
   @Test

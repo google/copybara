@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -84,8 +85,9 @@ public class DummyOrigin implements Origin<DummyReference> {
     return this;
   }
 
-  public DummyOrigin addChange(long timestamp, Path path, String message) {
-    changes.add(new DummyReference("" + changes.size(), message, author, path, timestamp));
+  public DummyOrigin addChange(int timestamp, Path path, String message) {
+    changes.add(new DummyReference(
+        "" + changes.size(), message, author, path, Instant.ofEpochSecond(timestamp)));
     return this;
   }
 

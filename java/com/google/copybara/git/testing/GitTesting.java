@@ -25,6 +25,7 @@ import com.google.copybara.testing.FileSubjects;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 
 /**
  * Utility methods for testing related to Git.
@@ -49,13 +50,12 @@ public class GitTesting {
   }
 
   /**
-   * Asserts that the author timestamp of a certain commit equals {@code timestamp} (seconds since
-   * UNIX epoch).
+   * Asserts that the author timestamp of a certain commit equals {@code timestamp}.
    */
-  public static void assertAuthorTimestamp(GitRepository repo, String commitRef, long timestamp)
+  public static void assertAuthorTimestamp(GitRepository repo, String commitRef, Instant timestamp)
       throws RepoException {
     assertLineWithPrefixMatches(
-        repo, commitRef, "author ", String.format(".* %d [+]0000", timestamp));
+        repo, commitRef, "author ", String.format(".* %d [+]0000", timestamp.getEpochSecond()));
   }
 
   /**

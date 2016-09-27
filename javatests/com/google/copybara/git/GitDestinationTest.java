@@ -40,6 +40,7 @@ import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -484,13 +485,13 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit").withTimestamp(1414141414));
-    GitTesting.assertAuthorTimestamp(repo(), "master", 1414141414);
+        new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
+    GitTesting.assertAuthorTimestamp(repo(), "master", Instant.ofEpochSecond(1414141414));
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     process(destination().newWriter(destinationFiles),
-        new DummyReference("second_commit").withTimestamp(1515151515));
-    GitTesting.assertAuthorTimestamp(repo(), "master", 1515151515);
+        new DummyReference("second_commit").withTimestamp(Instant.ofEpochSecond(1515151515)));
+    GitTesting.assertAuthorTimestamp(repo(), "master", Instant.ofEpochSecond(1515151515));
   }
 
   @Test
@@ -518,13 +519,13 @@ public class GitDestinationTest {
     options.gitDestination.committerName = "Bara Kopi";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit").withTimestamp(1414141414));
+        new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Bara Kopi <.*> [-+ 0-9]+");
 
     options.gitDestination.committerName = "Piko Raba";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     process(destination().newWriter(destinationFiles),
-        new DummyReference("second_commit").withTimestamp(1414141490));
+        new DummyReference("second_commit").withTimestamp(Instant.ofEpochSecond(1414141490)));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Piko Raba <.*> [-+ 0-9+]+");
   }
 
@@ -537,14 +538,14 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit").withTimestamp(1414141414));
+        new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <bara[.]bara@gocha[.]gocha> [-+ 0-9]+");
 
     options.gitDestination.committerEmail = "kupo.kupo@tan.kou";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     process(destination().newWriter(destinationFiles),
-        new DummyReference("second_commit").withTimestamp(1414141490));
+        new DummyReference("second_commit").withTimestamp(Instant.ofEpochSecond(1414141490)));
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <kupo[.]kupo@tan[.]kou> [-+ 0-9]+");
   }
@@ -584,7 +585,7 @@ public class GitDestinationTest {
 
     DummyReference firstCommit = new DummyReference("first_commit")
         .withAuthor(new Author("Foo Bar", "foo@bar.com"))
-        .withTimestamp(1414141414);
+        .withTimestamp(Instant.ofEpochSecond(1414141414));
     process(destinationFirstCommit().newWriter(destinationFiles), firstCommit);
 
     assertCommitHasAuthor("master", new Author("Foo Bar", "foo@bar.com"));

@@ -19,7 +19,7 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
 import java.nio.file.Path;
-import java.util.concurrent.TimeUnit;
+import java.time.Instant;
 import javax.annotation.Nullable;
 
 /**
@@ -30,16 +30,15 @@ public final class TransformResult {
   private final Path path;
   private final Reference originRef;
   private final Author author;
-  private final long timestamp;
+  private final Instant timestamp;
   private final String summary;
   @Nullable
   private final String baseline;
   private final boolean askForConfirmation;
 
-  private static long readTimestampOrCurrentTime(Reference originRef) throws RepoException {
-    Long refTimestamp = originRef.readTimestamp();
-    return (refTimestamp != null)
-        ? refTimestamp : TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+  private static Instant readTimestampOrCurrentTime(Reference originRef) throws RepoException {
+    Instant refTimestamp = originRef.readTimestamp();
+    return (refTimestamp != null) ? refTimestamp : Instant.now();
   }
 
   public TransformResult(Path path, Reference originRef, Author author, String summary)
@@ -49,7 +48,7 @@ public final class TransformResult {
         /*baseline=*/ null, /*askForConfirmation=*/ false);
   }
 
-  private TransformResult(Path path, Reference originRef, Author author, long timestamp,
+  private TransformResult(Path path, Reference originRef, Author author, Instant timestamp,
       String summary, @Nullable String baseline,
       boolean askForConfirmation) {
     this.path = Preconditions.checkNotNull(path);
@@ -96,10 +95,9 @@ public final class TransformResult {
   }
 
   /**
-   * When the code was submitted to the origin repository, expressed as seconds since the UNIX
-   * epoch.
+   * The {@link Instant} when the code was submitted to the origin repository, since the UNIX epoch.
    */
-  public long getTimestamp() {
+  public Instant getTimestamp() {
     return timestamp;
   }
 

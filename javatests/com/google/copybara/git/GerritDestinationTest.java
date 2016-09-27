@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -168,15 +169,15 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.gitDestination.firstCommit = true;
-    process(new DummyReference("first_commit").withTimestamp(355558888));
-    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 355558888);
+    process(new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(355558888)));
+    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", Instant.ofEpochSecond(355558888));
 
     git("branch", "master", "refs/for/master");
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     options.gitDestination.firstCommit = false;
-    process(new DummyReference("first_commit").withTimestamp(424242420));
-    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", 424242420);
+    process(new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(424242420)));
+    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", Instant.ofEpochSecond(424242420));
   }
 
   @Test
