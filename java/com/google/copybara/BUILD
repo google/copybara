@@ -31,9 +31,17 @@ JAVACOPTS = [
 
 java_binary(
     name = "copybara",
-    srcs = ["Main.java"],
     javacopts = JAVACOPTS,
     main_class = "com.google.copybara.Main",
+    runtime_deps = [
+        ":copybara_main",
+    ],
+)
+
+java_library(
+    name = "copybara_main",
+    srcs = ["Main.java"],
+    javacopts = JAVACOPTS,
     deps = [
         ":base",
         ":copybara_lib",

@@ -57,10 +57,10 @@ public class Main {
   private static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
   public static void main(String[] args) {
-    new Main().run(args);
+    System.exit(new Main().run(args).getCode());
   }
 
-  protected void run(String[] args) {
+  protected ExitCode run(String[] args) {
     // We need a console before parsing the args because it could fail with wrong
     // arguments and we need to show the error.
     Console console = getConsole(args);
@@ -70,7 +70,8 @@ public class Main {
     try {
       configureLog(fs);
     } catch (IOException e) {
-      handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
+      handleUnexpectedError(console, e.getMessage(), e);
+      return ExitCode.ENVIRONMENT_ERROR;
     }
     console.startupMessage();
 
@@ -92,16 +93,18 @@ public class Main {
       jcommander.parse(args);
       if (mainArgs.help) {
         System.out.print(usage(jcommander, version));
-        return;
+        return ExitCode.SUCCESS;
       } else if (mainArgs.version) {
         System.out.println(getBinaryInfo());
-        return;
+        return ExitCode.SUCCESS;
       }
       mainArgs.validateUnnamedArgs();
 
       GeneralOptions generalOptions = generalOptionsArgs.init(System.getenv(), fs, console);
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
+
+      initEnvironment(options);
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
       if (generalOptions.isValidate()) {
@@ -119,31 +122,32 @@ public class Main {
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
       System.err.print(usage(jcommander, version));
-      System.exit(ExitCode.COMMAND_LINE_ERROR.getCode());
+      return ExitCode.COMMAND_LINE_ERROR;
     } catch (RepoException e) {
       logger.log(Level.SEVERE, "Repository exception", e);
       printCauseChain(console, e);
-      System.exit(ExitCode.REPOSITORY_ERROR.getCode());
+      return ExitCode.REPOSITORY_ERROR;
     } catch (ValidationException e) {
       printCauseChain(console, e);
-      System.exit(ExitCode.CONFIGURATION_ERROR.getCode());
+      return ExitCode.CONFIGURATION_ERROR;
     } catch (IOException e) {
-      handleUnexpectedError(console, ExitCode.ENVIRONMENT_ERROR, e.getMessage(), e);
+      handleUnexpectedError(console, e.getMessage(), e);
+      return ExitCode.ENVIRONMENT_ERROR;
     } catch (RuntimeException e) {
       // This usually indicates a serious programming error that will require Copybara team
       // intervention. Print stack trace without concern for presentation.
       e.printStackTrace();
-      handleUnexpectedError(console, ExitCode.INTERNAL_ERROR,
-          "Unexpected error (please file a bug): " + e.getMessage(),
-          e);
+      handleUnexpectedError(console, "Unexpected error (please file a bug): " + e.getMessage(), e);
+      return ExitCode.INTERNAL_ERROR;
+    } finally {
+      try {
+        shutdown();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        handleUnexpectedError(console, "Execution was interrupted.", e);
+      }
     }
-
-    try {
-      shutdown();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      handleUnexpectedError(console, ExitCode.INTERRUPTED, "Execution was interrupted.", e);
-    }
+    return ExitCode.SUCCESS;
   }
 
   private ConfigFile loadConfig(Path configPath, @Nullable Path rootCfgPath)
@@ -204,7 +208,7 @@ public class Main {
    * Returns a new instance of {@link Copybara}.
    */
   protected Copybara newCopybaraTool() {
-    return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES), System.getenv("HOME"));
+    return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES), System.getProperty("user.home"));
   }
 
   /**
@@ -242,7 +246,15 @@ public class Main {
           .getBytes(StandardCharsets.UTF_8)
       ));
     }
+  }
 
+  /**
+   * Hook to allow setting variables that are not run or validation specific, based on options.
+   * Sample use case are remote logging, test harnesses and others. Called after command line
+   * options are parsed, but before a file is read or a run started.
+   */
+  protected void initEnvironment(Options options) {
+    // intentional no-op
   }
 
   /**
@@ -284,10 +296,9 @@ public class Main {
     }
   }
 
-  private void handleUnexpectedError(Console console, ExitCode errorType, String msg, Throwable e) {
+  private void handleUnexpectedError(Console console, String msg, Throwable e) {
     logger.log(Level.SEVERE, msg, e);
     console.error(msg + " (" + e + ")");
-    System.exit(errorType.getCode());
   }
 
   private static String usage(JCommander jcommander, String version) {

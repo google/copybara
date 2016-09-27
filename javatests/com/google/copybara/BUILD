@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 load(":test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
 
-LOCAL_TESTS = ["WorkflowTest.java", "util/DiffUtilTest.java"]
+LOCAL_TESTS = [
+    "WorkflowTest.java",
+    "util/DiffUtilTest.java",
+]
+
 DEPS = [
     "//java/com/google/copybara:base",
+    "//java/com/google/copybara:copybara_main",
     "//java/com/google/copybara:copybara_lib",
     "//java/com/google/copybara/doc:annotations",
     "//java/com/google/copybara/testing",
@@ -36,12 +40,15 @@ DEPS = [
 ]
 
 all_tests(
+    tags = ["local"],
     tests = LOCAL_TESTS,
     deps = DEPS,
-    tags = ["local"],
 )
 
 all_tests(
-    tests = glob(["**/*Test.java"], exclude = LOCAL_TESTS),
+    tests = glob(
+        ["**/*Test.java"],
+        exclude = LOCAL_TESTS,
+    ),
     deps = DEPS,
 )
