@@ -27,6 +27,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
+import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -94,9 +95,9 @@ public final class TransformWork {
   }
 
   @SkylarkCallable(
-      // TODO(malcon): Implement for transforms
       name = "run", doc = "Run a glob or a transform. For example:<br>"
-      + "<code>ctx.run(glob(['**.java']))</code>",
+      + "<code>files = ctx.run(glob(['**.java']))</code><br>or<br>"
+      + "<code>ctx.run(core.move(\"foo\", \"bar\"))</code><br>or<br>",
       parameters = {
           @Param(name = "runnable", type = Object.class,
               doc = "A glob or a transform (Transforms still not implemented)"),
@@ -111,9 +112,14 @@ public final class TransformWork {
           .map(checkoutDir::relativize)
           .map(CheckoutPath::new)
           .collect(Collectors.toList()));
+    } else if (runnable instanceof Transformation) {
+      ((Transformation) runnable).transform(this);
+      return Runtime.NONE;
     }
-    throw new EvalException(null, String
-        .format("Only globs can be run, but '%s' is of type %s", runnable, runnable.getClass()));
+
+    throw new EvalException(null, String.format(
+        "Only globs or transforms can be run, but '%s' is of type %s",
+        runnable, runnable.getClass()));
   }
 
   @SkylarkCallable(

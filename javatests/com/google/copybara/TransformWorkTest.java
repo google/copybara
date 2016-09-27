@@ -194,6 +194,29 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testRunDynamicTransforms() throws IOException, ValidationException, RepoException {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base = fileSystem.getPath("testRunDynamicTransforms");
+    touchFile(base, "folder/file1.txt");
+    touchFile(base, "folder/file2.txt");
+    touchFile(base, "folder/file3.txt");
+
+    Files.createDirectories(workdir.resolve("folder"));
+    origin.addChange(0, base, "message");
+
+    runWorkflow("test", ""
+        + "def test(ctx):\n"
+        + "    message = ''\n"
+        + "    for f in ctx.run(glob(['**.txt'])):\n"
+        + "        ctx.run(core.move(f.path, 'other/folder/prefix_' + f.name))");
+
+    assertThat(destination.processed.get(0).getWorkdir().keySet()).containsExactly(
+        "other/folder/prefix_file1.txt",
+        "other/folder/prefix_file2.txt",
+        "other/folder/prefix_file3.txt");
+  }
+
+  @Test
   public void testRunFileOps() throws IOException, ValidationException, RepoException {
     checkPathOperations("folder/file.txt", ""
         + "path: folder/file.txt\n"

@@ -154,6 +154,13 @@ public class RecordsProcessCallDestination implements Destination {
           workdir.get(fileName), "Cannot find content for %s", fileName);
     }
 
+    /**
+     * A map from file path to content
+     */
+    public ImmutableMap<String, String> getWorkdir() {
+      return workdir;
+    }
+
     public String getBaseline() {
       return baseline;
     }
