@@ -337,6 +337,6 @@ public class MetadataModuleTest {
         + "    mode = '" + mode + "',\n"
         + "    transformations = [" + Joiner.on(", ").join(transforms) + "]\n"
         + ")\n");
-    return config.getActiveWorkflow();
+    return (Workflow) config.getActiveMigration();
   }
 }

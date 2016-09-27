@@ -78,7 +78,7 @@ public class Copybara {
 
     validateConfig(options, config);
 
-    config.getActiveWorkflow().run(baseWorkdir, sourceRef);
+    config.getActiveMigration().run(baseWorkdir, sourceRef);
   }
 
   public void validate(Options options, ConfigFile configContent, String workflowName)

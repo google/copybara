@@ -27,11 +27,11 @@ import java.util.Objects;
  */
 public final class Config {
   private final String name;
-  private final Workflow activeWorkflow;
+  private final Migration activeMigration;
 
-  public Config(String name, Workflow activeWorkflow) {
+  public Config(String name, Migration activeMigration) {
     this.name = Preconditions.checkNotNull(name);
-    this.activeWorkflow = Preconditions.checkNotNull(activeWorkflow);
+    this.activeMigration = Preconditions.checkNotNull(activeMigration);
   }
 
   /**
@@ -44,8 +44,8 @@ public final class Config {
   /**
    * Returns the currently use
    */
-  public Workflow getActiveWorkflow() {
-    return activeWorkflow;
+  public Migration getActiveMigration() {
+    return activeMigration;
   }
 
   @Override
@@ -58,19 +58,19 @@ public final class Config {
     }
     Config config = (Config) o;
     return Objects.equals(name, config.name) &&
-        Objects.equals(activeWorkflow, config.activeWorkflow);
+        Objects.equals(activeMigration, config.activeMigration);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, activeWorkflow);
+    return Objects.hash(name, activeMigration);
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("name", name)
-        .add("activeWorkflow", activeWorkflow)
+        .add("activeMigration", activeMigration)
         .toString();
   }
 }

@@ -277,7 +277,7 @@ public class TransformWorkTest {
         + "    destination = testing.destination(),\n"
         + "    transformations = [" + functionName + "],\n"
         + "    authoring = authoring.pass_thru('foo <foo@foo.com>'),\n"
-        + ")\n").getActiveWorkflow().run(workdir,/*sourceRef=*/null);
+        + ")\n").getActiveMigration().run(workdir,/*sourceRef=*/null);
   }
 
   private void checkAddLabel(String originalMsg, String expected) {

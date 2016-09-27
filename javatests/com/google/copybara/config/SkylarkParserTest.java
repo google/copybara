@@ -30,6 +30,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
+import com.google.copybara.Workflow;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.transform.Sequence;
@@ -75,7 +76,7 @@ public class SkylarkParserTest {
   public void requireAtLeastOneWorkflow()
       throws IOException, ValidationException {
     thrown.expect(ValidationException.class);
-    thrown.expectMessage("At least one workflow is required.");
+    thrown.expectMessage("At least one migration is required.");
     parser.loadConfig("");
   }
 
@@ -127,14 +128,14 @@ public class SkylarkParserTest {
     Config config = parser.loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
-    MockOrigin origin = (MockOrigin) config.getActiveWorkflow().origin();
+    MockOrigin origin = (MockOrigin) getActiveWorkflow(config).origin();
     assertThat(origin.url).isEqualTo("https://so.me/random/url");
     assertThat(origin.branch).isEqualTo("master");
 
-    MockDestination destination = (MockDestination) config.getActiveWorkflow().destination();
+    MockDestination destination = (MockDestination) getActiveWorkflow(config).destination();
     assertThat(destination.folder).isEqualTo("some folder");
 
-    Transformation transformation = config.getActiveWorkflow().transformation();
+    Transformation transformation = getActiveWorkflow(config).transformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
         ((Sequence) transformation).getSequence();
@@ -145,6 +146,10 @@ public class SkylarkParserTest {
     MockTransform transformation2 = (MockTransform) transformations.get(1);
     assertThat(transformation2.field1).isEqualTo("baz");
     assertThat(transformation2.field2).isEqualTo("bee");
+  }
+
+  private Workflow<?> getActiveWorkflow(Config config) {
+    return (Workflow<?>) config.getActiveMigration();
   }
 
   @Test
@@ -191,7 +196,7 @@ public class SkylarkParserTest {
     Config config = parser.loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
-    Transformation transformation = config.getActiveWorkflow().transformation();
+    Transformation transformation = getActiveWorkflow(config).transformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
         ((Sequence) transformation).getSequence();

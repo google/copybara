@@ -40,7 +40,7 @@ import javax.annotation.Nullable;
  * multiple workflows. Each workflow has a particular origin and destination.
  */
 @AutoValue
-public abstract class Workflow<R extends Origin.Reference> {
+public abstract class Workflow<R extends Origin.Reference> implements Migration {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
@@ -100,6 +100,7 @@ public abstract class Workflow<R extends Origin.Reference> {
         .toString();
   }
 
+  @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
     console().progress("Cleaning working directory");

@@ -28,6 +28,7 @@ import com.google.copybara.Authoring;
 import com.google.copybara.Config;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.Migration;
 import com.google.copybara.Options;
 import com.google.copybara.ValidationException;
 import com.google.copybara.Workflow;
@@ -93,7 +94,7 @@ public class SkylarkParser {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);
     }
-    return createConfig(options, core.getWorkflows(), core.getProjectName());
+    return createConfig(options, core.getMigrations(), core.getProjectName());
   }
 
   @VisibleForTesting
@@ -158,20 +159,20 @@ public class SkylarkParser {
     }
   }
 
-  private Config createConfig(Options options, Map<String, Workflow<?>> workflows,
+  private Config createConfig(Options options, Map<String, Migration> migrations,
       String projectName)
       throws ValidationException {
 
-    checkCondition(!workflows.isEmpty(), "At least one workflow is required.");
+    checkCondition(!migrations.isEmpty(), "At least one migration is required.");
 
     String workflowName = options.get(WorkflowOptions.class).getWorkflowName();
-    Workflow<?> workflow = workflows.get(workflowName);
-    checkCondition(workflow != null, String.format(
-        "No workflow with '%s' name exists. Valid workflows: %s",
-        workflowName, workflows.keySet()));
-    //TODO(copybara-team): After skylark migration config should have all the workflows and we should
-    // move the validation above outside of the loading.
-    return new Config(checkNotMissing(projectName, "project"), workflow);
+    Migration migration = migrations.get(workflowName);
+    checkCondition(migration != null, String.format(
+        "No migration with '%s' name exists. Valid migrations: %s",
+        workflowName, migrations.keySet()));
+    //TODO(copybara-team): After skylark migration config should have all the migrations and we
+    // should move the validation above outside of the loading.
+    return new Config(checkNotMissing(projectName, "project"), migration);
   }
 
   /**

@@ -105,7 +105,7 @@ public class WorkflowTest {
     options.setConsole(new TestingConsole());
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
-    skylark = new SkylarkParser(ImmutableSet.<Class<?>>of(TestingModule.class));
+    skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class));
   }
 
   private TestingConsole console() {
@@ -117,7 +117,7 @@ public class WorkflowTest {
     return skylarkWorkflow("default", WorkflowMode.SQUASH);
   }
 
-  private Workflow skylarkWorkflow(String name, WorkflowMode mode)
+  private Workflow<?> skylarkWorkflow(String name, WorkflowMode mode)
       throws IOException, ValidationException {
     String config = ""
         + "core.project( name = 'copybara_project')\n"
@@ -135,7 +135,7 @@ public class WorkflowTest {
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
-    return loadConfig(config).getActiveWorkflow();
+    return (Workflow<?>)loadConfig(config).getActiveMigration();
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
@@ -770,7 +770,7 @@ public class WorkflowTest {
         + "    transformations = [\n"
         + "      first, second" + (thirdTransform == null ? "" : ", third") + "]\n"
         + ")\n");
-    config.getActiveWorkflow().run(workdir, "2");
+    config.getActiveMigration().run(workdir, "2");
   }
 
   @Test
@@ -792,7 +792,7 @@ public class WorkflowTest {
 
   @Test
   public void testNoNestedSequenceProgressMessage() throws Exception {
-    Transformation transformation = loadConfig(""
+    Transformation transformation = ((Workflow<?>)loadConfig(""
         + "core.project( name = 'copybara_project')\n"
         + "core.workflow(\n"
         + "    name = 'default',\n"
@@ -813,7 +813,7 @@ public class WorkflowTest {
         + "             reversal = []"
         + "        )\n"
         + "    ],"
-        + ")\n").getActiveWorkflow().transformation();
+        + ")\n").getActiveMigration()).transformation();
 
     Files.write(workdir.resolve("foo"), new byte[0]);
     transformation.transform(TransformWorks.of(workdir, "message", console()));

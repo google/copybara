@@ -138,19 +138,6 @@ public enum WorkflowMode {
           new ComputedChanges(ImmutableList.of(change), ImmutableList.<Change<?>>of()),
           requestParent.get());
     }
-  },
-
-  // TODO(copybara-team): Implement
-  @SuppressWarnings("unused")
-  @DocField(description = "Mirror individual changes from origin to destination. Requires that "
-      + "origin and destination are of the same type and that they support mirroring.",
-      undocumented = true)
-  MIRROR {
-    @Override
-    <R extends Origin.Reference> void run(Workflow<R>.RunHelper helper)
-        throws RepoException, IOException, ValidationException {
-      throw new UnsupportedOperationException("WorkflowMode 'MIRROR' not implemented.");
-    }
   };
 
   private static final Logger logger = Logger.getLogger(WorkflowMode.class.getName());

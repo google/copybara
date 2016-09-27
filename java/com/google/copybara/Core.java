@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Main configuration class for creating workflows.
+ * Main configuration class for creating migrations.
  *
  * <p>This class is exposed in Skylark configuration as an instance variable
  * called "core". So users can use it as:
@@ -66,15 +66,14 @@ import java.util.Map;
  */
 @SkylarkModule(
     name = Core.CORE_VAR,
-    doc = "Core functionality for creating workflows, and basic transformations.",
+    doc = "Core functionality for creating migrations, and basic transformations.",
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(GeneralOptions.class)
 public class Core implements OptionsAwareModule {
 
   public static final String CORE_VAR = "core";
-  public static final String MESSAGE_TRANSFORMERS_FIELD = "metadata_transformations";
 
-  private final Map<String, Workflow<?>> workflows = new HashMap<>();
+  private final Map<String, Migration> migrations = new HashMap<>();
   private GeneralOptions generalOptions;
   private WorkflowOptions workflowOptions;
   private String projectName;
@@ -89,8 +88,8 @@ public class Core implements OptionsAwareModule {
     return projectName;
   }
 
-  public Map<String, Workflow<?>> getWorkflows() {
-    return workflows;
+  public Map<String, Migration> getMigrations() {
+    return migrations;
   }
 
 
@@ -313,7 +312,7 @@ public class Core implements OptionsAwareModule {
         console.warn("core.workflow(exclude_in_destination) arg is deprecated, use"
             + " destination_files = glob(['**'], exclude = [exclude globs]) instead");
       }
-      self.workflows.put(workflowName, new AutoValue_Workflow<>(
+      self.migrations.put(workflowName, new AutoValue_Workflow<>(
           projectName,
           workflowName,
           origin,
