@@ -16,14 +16,10 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.git.GitRepository.resolveGitBinary;
 import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.base.Splitter;
-import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.shell.Command;
-import com.google.devtools.build.lib.shell.CommandException;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.nio.file.Path;
 import java.util.List;
@@ -73,10 +69,10 @@ public class Refspec {
     }
     String origin = elements.get(0);
     String destination = origin;
-    validateRefSpec(location, env, cwd, origin);
+    GitRepository.validateRefSpec(location, env, cwd, origin);
     if (elements.size() > 1) {
       destination = elements.get(1);
-      validateRefSpec(location, env, cwd, destination);
+      GitRepository.validateRefSpec(location, env, cwd, destination);
     }
     if (origin.contains("*") != destination.contains("*")) {
       throw new EvalException(location,
@@ -85,16 +81,4 @@ public class Refspec {
     return new Refspec(origin, destination, allowNoFastForward);
   }
 
-  private static void validateRefSpec(Location location, Map<String, String> env, Path cwd,
-      String refspec) throws EvalException {
-    try {
-      executeCommand(new Command(
-          new String[]{resolveGitBinary(env), "check-ref-format", "--refspec-pattern", refspec},
-          env, cwd.toFile()), /*verbose=*/false);
-    } catch (BadExitStatusWithOutputException e) {
-      throw new EvalException(location, "Invalid refspec: " + refspec);
-    } catch (CommandException e) {
-      throw new RuntimeException("Error validating refspec", e);
-    }
-  }
 }

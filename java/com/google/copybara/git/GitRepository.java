@@ -23,13 +23,16 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.net.PercentEscaper;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -62,6 +65,8 @@ public class GitRepository {
    * Label to be used for marking the original revision id (Git SHA-1) for migrated commits.
    */
   static final String GIT_ORIGIN_REV_ID = "GitOrigin-RevId";
+  private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
+      "-_", /*plusForSpace=*/ true);
 
   /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
@@ -85,6 +90,16 @@ public class GitRepository {
   public static GitRepository bareRepo(Path gitDir, Map<String, String> environment,
       boolean verbose) {
     return new GitRepository(gitDir,/*workTree=*/null, verbose, environment);
+  }
+
+  /**
+   * Create a bare repo in the cache of repos so that it can be reused between migrations.
+   */
+  static GitRepository bareRepoInCache(String url, Map<String, String> environment,
+      boolean verbose, String repoStorage) {
+    Path gitRepoStorage = FileSystems.getDefault().getPath(repoStorage);
+    Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
+    return bareRepo(gitDir, environment, verbose);
   }
 
   /**
@@ -114,6 +129,24 @@ public class GitRepository {
         new GitRepository(path.resolve(".git"), path, verbose, environment);
     repository.git(path, "init", ".");
     return repository;
+  }
+
+  /**
+   * Validate that a refspec is valid.
+   *
+   * @throws EvalException if the refspec is not valid
+   */
+  static void validateRefSpec(Location location, Map<String, String> env, Path cwd,
+      String refspec) throws EvalException {
+    try {
+      executeCommand(new Command(
+          new String[]{resolveGitBinary(env), "check-ref-format", "--refspec-pattern", refspec},
+          env, cwd.toFile()), /*verbose=*/false);
+    } catch (BadExitStatusWithOutputException e) {
+      throw new EvalException(location, "Invalid refspec: " + refspec);
+    } catch (CommandException e) {
+      throw new RuntimeException("Error validating refspec", e);
+    }
   }
 
   /**

@@ -23,7 +23,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.net.PercentEscaper;
 import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Change;
@@ -40,7 +39,6 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Consoles;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -55,9 +53,6 @@ import javax.annotation.Nullable;
  * A class for manipulating Git repositories
  */
 public final class GitOrigin implements Origin<GitReference> {
-
-  private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
-      "-_", /*plusForSpace=*/ true);
 
   private static final String GIT_LOG_COMMENT_PREFIX = "    ";
   private final GitRepository repository;
@@ -335,15 +330,8 @@ public final class GitOrigin implements Origin<GitReference> {
 
     return new GitOrigin(
         options.get(GeneralOptions.class).console(),
-        bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
+        GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
         url, ref, type, options.get(GitOptions.class), verbose, environment);
-  }
-
-  static GitRepository bareRepoInCache(String url, Map<String, String> environment,
-      boolean verbose, String repoStorage) {
-    Path gitRepoStorage = FileSystems.getDefault().getPath(repoStorage);
-    Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
-    return GitRepository.bareRepo(gitDir, environment, verbose);
   }
 
   /**
