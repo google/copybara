@@ -12,6 +12,7 @@
   - [destination](#destination)
   - [origin](#origin)
   - [transformation](#transformation)
+  - [Console](#Console)
   - [metadata](#metadata)
   - [core](#core)
   - [folder](#folder)
@@ -126,6 +127,11 @@ A Origin represents a source control repository from which source is copied.
 A transformation to the workdir
 
 
+# Console
+
+A console that can be used in skylark transformations to print info, warning or error messages.
+
+
 # metadata
 
 Core transformations for the change metadata
@@ -204,7 +210,7 @@ replacement|`string`<br><p>Text replacement for the matching substrings. Referen
 
 # core
 
-Core functionality for creating workflows, and basic transformations.
+Core functionality for creating migrations, and basic transformations.
 
 ## glob
 
@@ -404,6 +410,30 @@ Parameter | Description
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 
+
+## mirror
+
+Mirror git references between repositories
+
+`git.mirror(name, origin, destination, refspecs=['refs/heads/*'])`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+name|`string`<br><p>Migration name</p>
+origin|`string`<br><p>Indicates the URL of the origin git repository</p>
+destination|`string`<br><p>Indicates the URL of the destination git repository</p>
+refspecs|`sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination.For example 'refs/heads/*:refs/remotes/origin/*' will mirror any referenceinside refs/heads to refs/remotes/origin.</p>
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-mirror-force | *boolean* | Force push even if it is not fast-forward
 
 ## gerrit_origin
 
