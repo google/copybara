@@ -36,7 +36,9 @@ import javax.annotation.Nullable;
 public interface Origin<R extends Origin.Reference> {
 
   /**
-   * A reference of Origin. For example in Git it would be a referenc to a commit SHA-1.
+   * A reference of {@link Origin}.
+   *
+   * <p>For example, in Git it would be a reference to a commit SHA-1.
    */
   interface Reference {
 

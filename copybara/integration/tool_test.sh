@@ -749,20 +749,20 @@ function test_command_help_flag() {
 }
 
 function test_command_copybara_filename_no_correct_name() {
-  copybara somename.bzl && fail "Should fail"
+  copybara migrate somename.bzl && fail "Should fail"
   expect_log "Copybara config file filename should be 'copy.bara.sky'"
 }
 
 function test_command_too_few_args() {
   copybara && fail "Should fail"
   expect_log 'Expected at least a configuration file.'
-  expect_log 'Usage: copybara \[options\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
+  expect_log 'Usage: copybara \[options\] \[COMMAND\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
 }
 
 function test_command_too_many_args() {
-  copybara config workflow_name origin/master unexpected && fail "Should fail"
-  expect_log "Expect at most three arguments."
-  expect_log 'Usage: copybara \[options\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
+  copybara migrate config workflow_name origin/master unexpected && fail "Should fail"
+  expect_log "Expected at most four arguments."
+  expect_log 'Usage: copybara \[options\] \[COMMAND\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
 }
 
 
@@ -955,6 +955,76 @@ core.workflow(
 )
 EOF
   copybara copy.bara.sky
+}
+
+function test_info_action_not_implemented() {
+    cat > copy.bara.sky <<EOF
+core.project(name = "cbtest")
+
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://foo/bar",
+      ref = "master",
+    ),
+    destination = git.destination(
+      url = "file://bar/foo",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "ITERATIVE",
+)
+EOF
+
+  copybara info copy.bara.sky && fail "Should fail"
+
+  expect_log "Command INFO not implemented"
+}
+
+function test_command_parsing_fails() {
+  copybara migrate.sky copy.bara.sky && fail "Should fail"
+
+  expect_log "Invalid command migrate.sky"
+}
+
+function test_validate_valid() {
+  cat > copy.bara.sky <<EOF
+core.project(name = "cbtest")
+
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://foo/bar",
+      ref = "master",
+    ),
+    destination = git.destination(
+      url = "file://bar/foo",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "ITERATIVE",
+)
+EOF
+
+  copybara validate copy.bara.sky
+
+  expect_log "Configuration validated"
+}
+
+function test_validate_invalid() {
+    cat > copy.bara.sky <<EOF
+core.project(name = "cbtest")
+
+core.workflowFoo(
+    name = "default",
+)
+EOF
+
+  copybara validate copy.bara.sky && fail "Should fail"
+
+  expect_log "Error loading config file"
 }
 
 run_suite "Integration tests for Copybara code sharing tool."

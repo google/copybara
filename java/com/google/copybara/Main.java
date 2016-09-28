@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.StandardSystemProperty;
@@ -54,7 +56,6 @@ public class Main {
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
-  private static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
   public static void main(String[] args) {
     System.exit(new Main().run(args).getCode());
@@ -98,7 +99,7 @@ public class Main {
         System.out.println(getBinaryInfo());
         return ExitCode.SUCCESS;
       }
-      mainArgs.validateUnnamedArgs();
+      mainArgs.parseUnnamedArgs();
 
       GeneralOptions generalOptions = generalOptionsArgs.init(System.getenv(), fs, console);
       allOptions.add(generalOptions);
@@ -107,17 +108,24 @@ public class Main {
       initEnvironment(options);
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
-      if (generalOptions.isValidate()) {
-        ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath,
-            generalOptions.getConfigRoot());
-        copybara.validate(options, skylarkContent, mainArgs.getWorkflowName());
-      } else {
-        copybara.run(
-            options,
-            loadConfig(configPath, generalOptions.getConfigRoot()),
-            mainArgs.getWorkflowName(),
-            mainArgs.getBaseWorkdir(fs),
-            mainArgs.getSourceRef());
+      switch (mainArgs.getCommand()) {
+        case VALIDATE:
+          ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath,
+              generalOptions.getConfigRoot());
+          copybara.validate(options, skylarkContent, mainArgs.getWorkflowName());
+          console.info("Configuration validated.");
+          break;
+        case MIGRATE:
+          copybara.run(
+              options,
+              loadConfig(configPath, generalOptions.getConfigRoot()),
+              mainArgs.getWorkflowName(),
+              mainArgs.getBaseWorkdir(fs),
+              mainArgs.getSourceRef());
+          break;
+        default:
+          console.error(String.format("Command %s not implemented.", mainArgs.getCommand()));
+          return ExitCode.COMMAND_LINE_ERROR;
       }
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);

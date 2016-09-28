@@ -20,6 +20,7 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Command;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
@@ -49,8 +50,6 @@ public class OptionsBuilder {
           Jimfs.newFileSystem(),
           /*verbose=*/true,
           LogConsole.readWriteConsole(System.in, System.out),
-          /*skylark=*/
-          /*validate=*/false,
           /*rootCfgPath=*/null,
           /*forceReversibleCheck=*/false);
 
@@ -70,7 +69,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "PWD", StandardSystemProperty.USER_DIR.value()),
         FileSystems.getDefault(), /*verbose=*/true,
-        LogConsole.readWriteConsole(System.in, System.out), general.isValidate(),
+        LogConsole.readWriteConsole(System.in, System.out),
         general.getConfigRoot(), general.isDisableReversibleCheck());
     return this;
   }
@@ -78,14 +77,14 @@ public class OptionsBuilder {
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
-        general.isValidate(), general.getConfigRoot(), general.isDisableReversibleCheck());
+        general.getConfigRoot(), general.isDisableReversibleCheck());
     return this;
   }
 
   public final OptionsBuilder setHomeDir(String homeDir) {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "HOME", homeDir),
-        general.getFileSystem(), general.isVerbose(), general.console(), general.isValidate(),
+        general.getFileSystem(), general.isVerbose(), general.console(),
         general.getConfigRoot(), general.isDisableReversibleCheck());
     git = new GitOptions(homeDir);
     return this;
@@ -94,7 +93,7 @@ public class OptionsBuilder {
   public final OptionsBuilder setRootCfgPath(Path path) {
     general = new GeneralOptions(
         general.getEnvironment(),
-        general.getFileSystem(), general.isVerbose(), general.console(), general.isValidate(),
+        general.getFileSystem(), general.isVerbose(), general.console(),
         path, general.isDisableReversibleCheck());
     return this;
   }

@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 
 import com.beust.jcommander.Parameter;
@@ -30,14 +31,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * Arguments which are unnamed (i.e. positional) or must be evaluated inside {@link Main}.
  */
+@NotThreadSafe
 @Parameters(separators = "=")
 public final class MainArguments {
+  static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
-  @Parameter(description = "CONFIG_PATH [WORKFLOW_NAME [SOURCE_REF]]")
+  @Parameter(description = "[COMMAND] CONFIG_PATH [WORKFLOW_NAME [SOURCE_REF]]")
   List<String> unnamed = new ArrayList<>();
 
   @Parameter(names = "--help", help = true, description = "Shows this help text")
@@ -50,25 +54,30 @@ public final class MainArguments {
       + " will be performed. By default a temporary directory.")
   String baseWorkdir;
 
+  @Nullable
+  private ArgumentHolder argumentHolder;
+
+  Command getCommand() {
+    return getArgs().command;
+  }
+
   String getConfigPath() {
-    return unnamed.get(0);
+    return getArgs().configPath;
   }
 
   String getWorkflowName() {
-    if (unnamed.size() >= 2) {
-      return unnamed.get(1);
-    } else {
-      return "default";
-    }
+    return getArgs().workflowName;
   }
 
   @Nullable
   String getSourceRef() {
-    if (unnamed.size() >= 3) {
-      return unnamed.get(2);
-    } else {
-      return null;
-    }
+    return getArgs().sourceRef;
+  }
+
+  private ArgumentHolder getArgs() {
+    Preconditions.checkNotNull(argumentHolder, "parseUnnamedArgs() should be invoked first. "
+        + "This is probably a bug.");
+    return argumentHolder;
   }
 
   /**
@@ -105,11 +114,57 @@ public final class MainArguments {
     }
   }
 
-  void validateUnnamedArgs() throws CommandLineException {
+  void parseUnnamedArgs() throws CommandLineException {
     if (unnamed.size() < 1) {
       throw new CommandLineException("Expected at least a configuration file.");
-    } else if (unnamed.size() > 3) {
-      throw new CommandLineException("Expect at most three arguments.");
+    } else if (unnamed.size() > 4) {
+      throw new CommandLineException("Expected at most four arguments.");
+    }
+
+    Command command = Command.MIGRATE;
+    String firstArg = unnamed.get(0);
+    int argumentId = 0;
+    // This should be enough for now
+    if (!firstArg.endsWith(COPYBARA_SKYLARK_CONFIG_FILENAME)) {
+      try {
+        command = Command.valueOf(firstArg.toUpperCase());
+        argumentId++;
+      } catch (IllegalArgumentException e) {
+        throw new CommandLineException(String.format("Invalid command %s", firstArg));
+      }
+    }
+
+    String configPath = unnamed.get(argumentId);
+    argumentId++;
+
+    String workflowName = "default";
+    if (argumentId < unnamed.size()) {
+      workflowName = unnamed.get(argumentId);
+      argumentId++;
+    }
+
+    String sourceRef = null;
+    if (argumentId < unnamed.size()) {
+      sourceRef = unnamed.get(argumentId);
+      argumentId++; // Just in case we add more arguments
+    }
+    argumentHolder = new ArgumentHolder(command, configPath, workflowName, sourceRef);
+  }
+
+  private static class ArgumentHolder {
+
+    private final Command command;
+    private final String configPath;
+    private final String workflowName;
+    @Nullable
+    private final String sourceRef;
+
+    private ArgumentHolder(
+        Command command, String configPath, String workflowName, @Nullable String sourceRef) {
+      this.command = command;
+      this.configPath = configPath;
+      this.workflowName = workflowName;
+      this.sourceRef = sourceRef;
     }
   }
 }

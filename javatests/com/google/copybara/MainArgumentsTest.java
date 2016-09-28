@@ -18,8 +18,11 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 
+import java.util.List;
+import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,5 +65,48 @@ public class MainArgumentsTest {
     thrown.expect(IOException.class);
     thrown.expectMessage("'file' exists and is not a directory");
     mainArguments.getBaseWorkdir(fs);
+  }
+
+  @Test
+  public void testEmptyArguments() throws Exception {
+    mainArguments.unnamed = ImmutableList.of();
+    thrown.expect(CommandLineException.class);
+    thrown.expectMessage("Expected at least a configuration file");
+    mainArguments.parseUnnamedArgs();
+  }
+
+  @Test
+  public void testTooManyArguments() throws Exception {
+    mainArguments.unnamed = ImmutableList.of("1", "2", "3", "4", "5");
+    thrown.expect(CommandLineException.class);
+    thrown.expectMessage("Expected at most four arguments");
+    mainArguments.parseUnnamedArgs();
+  }
+
+  @Test
+  public void testArgumentParsing() throws Exception {
+    checkParsing(ImmutableList.of("copy.bara.sky"),
+        Command.MIGRATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
+    checkParsing(ImmutableList.of("migrate", "copy.bara.sky"),
+        Command.MIGRATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
+    checkParsing(ImmutableList.of("validate", "copy.bara.sky"),
+        Command.VALIDATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
+    checkParsing(ImmutableList.of("copy.bara.sky", "import_wf"),
+        Command.MIGRATE, "copy.bara.sky", "import_wf", /*sourceRef=*/ null);
+    checkParsing(ImmutableList.of("copy.bara.sky", "import_wf", "some_ref"),
+        Command.MIGRATE, "copy.bara.sky", "import_wf", "some_ref");
+    checkParsing(ImmutableList.of("migrate", "copy.bara.sky", "import_wf", "some_ref"),
+        Command.MIGRATE, "copy.bara.sky", "import_wf", "some_ref");
+  }
+
+  private void checkParsing(List<String> args, Command expectedCommand, String expectedConfigPath,
+      String expectedWorkflowName, @Nullable String expectedSourceRef) throws CommandLineException {
+    mainArguments = new MainArguments();
+    mainArguments.unnamed = args;
+    mainArguments.parseUnnamedArgs();
+    assertThat(mainArguments.getCommand()).isEqualTo(expectedCommand);
+    assertThat(mainArguments.getConfigPath()).isEqualTo(expectedConfigPath);
+    assertThat(mainArguments.getWorkflowName()).isEqualTo(expectedWorkflowName);
+    assertThat(mainArguments.getSourceRef()).isEqualTo(expectedSourceRef);
   }
 }

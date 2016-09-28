@@ -40,33 +40,31 @@ public final class GeneralOptions implements Option {
   private final FileSystem fileSystem;
   private final boolean verbose;
   private final Console console;
-  private final boolean validate;
   private final boolean disableReversibleCheck;
   @Nullable
   private final Path configRoot;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(System.getenv(), fileSystem, verbose, console, /*validate=*/false, /*configRoot=*/null,
+    this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null,
         /*disableReversibleCheck=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(
       Map<String, String> environment, FileSystem fileSystem, boolean verbose, Console console) {
-    this(environment, fileSystem, verbose, console, /*validate=*/false, /*configRoot=*/null,
+    this(environment, fileSystem, verbose, console, /*configRoot=*/null,
         /*disableReversibleCheck=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
-      Console console, boolean validate, @Nullable Path configRoot, boolean disableReversibleCheck)
+      Console console, @Nullable Path configRoot, boolean disableReversibleCheck)
   {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
-    this.validate = validate;
     this.configRoot = configRoot;
     this.disableReversibleCheck = disableReversibleCheck;
   }
@@ -85,10 +83,6 @@ public final class GeneralOptions implements Option {
 
   public FileSystem getFileSystem() {
     return fileSystem;
-  }
-
-  public boolean isValidate() {
-    return validate;
   }
 
   public boolean isDisableReversibleCheck() {
@@ -125,10 +119,6 @@ public final class GeneralOptions implements Option {
     @Parameter(names = NOANSI, description = "Don't use ANSI output for messages")
     boolean noansi = false;
 
-    @Parameter(names = "--validate",
-        description = "Validate that the config is correct")
-    boolean validate = false;
-
     @Parameter(names = CONFIG_ROOT_FLAG,
         description = "Configuration root path to be used for resolving absolute config labels"
             + " like '//foo/bar'")
@@ -146,8 +136,8 @@ public final class GeneralOptions implements Option {
         Map<String, String> environment, FileSystem fileSystem, Console console)
         throws IOException {
       Path root = configRoot != null ? fileSystem.getPath(configRoot) : null;
-      return new GeneralOptions(environment, fileSystem, verbose, console, validate, root,
-          disableReversibleCheck);
+      return new GeneralOptions(
+          environment, fileSystem, verbose, console, root, disableReversibleCheck);
     }
   }
 }

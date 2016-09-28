@@ -71,7 +71,6 @@ public class Copybara {
       throws RepoException, ValidationException, IOException {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    Preconditions.checkArgument(!generalOptions.isValidate(), "Call validate() instead");
     Config config = skylarkParser.loadConfig(configContents, options);
     Console console = generalOptions.console();
     console.progress("Validating configuration");
