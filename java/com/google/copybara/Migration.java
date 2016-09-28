@@ -1,5 +1,7 @@
 package com.google.copybara;
 
+import com.google.common.base.MoreObjects;
+import com.google.copybara.Origin.Reference;
 import java.io.IOException;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
@@ -28,4 +30,32 @@ public interface Migration {
    */
   void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException;
+
+  default Info getInfo() throws RepoException, ValidationException {
+    return Info.EMPTY;
+  }
+
+  class Info<R extends Reference> {
+    private static final Info EMPTY = new Info<>(/*lastMigratedRef=*/null);
+
+    // TODO(copybara-team): Convert this into a list of migration references
+    @Nullable
+    private final Reference lastMigratedRef;
+
+    Info(@Nullable R lastMigratedRef) {
+      this.lastMigratedRef = lastMigratedRef;
+    }
+
+    @Nullable
+    Reference getLastMigratedRef() {
+      return lastMigratedRef;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("lastMigratedRef", lastMigratedRef)
+          .toString();
+    }
+  }
 }

@@ -260,13 +260,22 @@ core.workflow(
       push = "master",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    include_changelist_notes = True,
+    transformations = [
+        metadata.squash_notes()
+    ],
 )
 EOF
+
+  # Before running the tool for the first time, the last imported ref is empty
+  copybara info copy.bara.sky default
+  expect_log "Workflow 'default': last_migrated_ref none"
 
   copybara copy.bara.sky default $commit_one
 
   check_copybara_rev_id "$destination" "$commit_one"
+
+  copybara info copy.bara.sky default
+  expect_log "Workflow 'default': last_migrated_ref $commit_one"
 
   ( cd $destination
     run_git log master~1..master > $TEST_log
@@ -275,6 +284,9 @@ EOF
   expect_not_log "commit one"
 
   copybara copy.bara.sky default $commit_four
+
+  copybara info copy.bara.sky default
+  expect_log "Workflow 'default': last_migrated_ref $commit_four"
 
   check_copybara_rev_id "$destination" "$commit_four"
 
@@ -955,31 +967,6 @@ core.workflow(
 )
 EOF
   copybara copy.bara.sky
-}
-
-function test_info_action_not_implemented() {
-    cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
-core.workflow(
-    name = "default",
-    origin = git.origin(
-      url = "file://foo/bar",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://bar/foo",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    mode = "ITERATIVE",
-)
-EOF
-
-  copybara info copy.bara.sky && fail "Should fail"
-
-  expect_log "Command INFO not implemented"
 }
 
 function test_command_parsing_fails() {

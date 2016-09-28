@@ -21,6 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
@@ -116,6 +117,17 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
     mode().run(new RunHelper(workdir, resolvedRef));
+  }
+
+  @Override
+  public Info getInfo() throws RepoException, ValidationException {
+    Writer writer = destination().newWriter(destinationFiles());
+    String lastRef = writer.getPreviousRef(origin().getLabelName());
+    R lastOriginRef = (lastRef == null) ? null : origin().resolve(lastRef);
+
+    // TODO(danielromero): Add the destination reference (that is, the reference of the import
+    // commit in the destination for this origin reference)
+    return new Info<>(lastOriginRef);
   }
 
   final class RunHelper {

@@ -71,15 +71,14 @@ public class Copybara {
   public void run(Options options, ConfigFile configContents, String workflowName,
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
-    options.get(WorkflowOptions.class).setWorkflowName(workflowName);
-    GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    Config config = skylarkParser.loadConfig(configContents, options);
-    Console console = generalOptions.console();
-    console.progress("Validating configuration");
-
-    validateConfig(options, config);
-
+    Config config = getConfig(options, configContents, workflowName);
     config.getActiveMigration().run(baseWorkdir, sourceRef);
+  }
+
+  public Migration.Info info(Options options, ConfigFile configContents, String workflowName)
+      throws IOException, ValidationException, RepoException {
+    Config config = getConfig(options, configContents, workflowName);
+    return config.getActiveMigration().getInfo();
   }
 
   public void validate(Options options, ConfigFile configContent, String workflowName)
@@ -87,6 +86,17 @@ public class Copybara {
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
     Config config = skylarkParser.loadConfig(configContent, options);
     validateConfig(options, config);
+  }
+
+  private Config getConfig(Options options, ConfigFile configContents, String workflowName)
+      throws IOException, ValidationException {
+    options.get(WorkflowOptions.class).setWorkflowName(workflowName);
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    Config config = skylarkParser.loadConfig(configContents, options);
+    Console console = generalOptions.console();
+    console.progress("Validating configuration");
+    validateConfig(options, config);
+    return config;
   }
 
   private void validateConfig(Options options, Config config) throws ValidationException {

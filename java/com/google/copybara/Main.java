@@ -23,6 +23,7 @@ import com.beust.jcommander.ParameterException;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Migration.Info;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.config.SkylarkParser;
@@ -108,20 +109,28 @@ public class Main {
       initEnvironment(options);
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
+      ConfigFile configFile = loadConfig(configPath, generalOptions.getConfigRoot());
       switch (mainArgs.getCommand()) {
         case VALIDATE:
-          ConfigFile skylarkContent = loadConfig(/*skylark=*/ configPath,
-              generalOptions.getConfigRoot());
-          copybara.validate(options, skylarkContent, mainArgs.getWorkflowName());
+          copybara.validate(options, configFile, mainArgs.getWorkflowName());
           console.info("Configuration validated.");
           break;
         case MIGRATE:
           copybara.run(
               options,
-              loadConfig(configPath, generalOptions.getConfigRoot()),
+              configFile,
               mainArgs.getWorkflowName(),
               mainArgs.getBaseWorkdir(fs),
               mainArgs.getSourceRef());
+          break;
+        case INFO:
+          Info info = copybara.info(options, configFile, mainArgs.getWorkflowName());
+          console.info(
+              String.format("Workflow '%s': last_migrated_ref %s.",
+                  mainArgs.getWorkflowName(),
+                  info.getLastMigratedRef() == null
+                      ? "none"
+                      : info.getLastMigratedRef().asString()));
           break;
         default:
           console.error(String.format("Command %s not implemented.", mainArgs.getCommand()));
