@@ -280,7 +280,7 @@ public final class GitOrigin implements Origin<GitReference> {
               s.substring(GIT_LOG_COMMENT_PREFIX.length()));
           if (labelFinder.isLabel()) {
             String previous = labels.put(labelFinder.getName(), labelFinder.getValue());
-            if (previous != null) {
+            if (previous != null && verbose) {
               console.warn(String.format("Possible duplicate label '%s' happening multiple times"
                       + " in commit. Keeping only the last value: '%s'\n  Discarded value: '%s'",
                   labelFinder.getName(), labelFinder.getValue(), previous));
