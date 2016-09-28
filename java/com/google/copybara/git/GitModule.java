@@ -104,12 +104,16 @@ public class GitModule implements OptionsAwareModule {
               doc = "Represents a list of git refspecs to mirror between origin and destination."
                   + "For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference"
                   + "inside refs/heads to refs/remotes/origin."),
+          @Param(name = "prune", type = Boolean.class,
+              doc = "Remove remote refs that don't have a origin counterpart",
+              defaultValue = "False"),
+
       },
       objectType = GitModule.class, useLocation = true, useEnvironment = true)
   @UsesFlags(GitMirrorOptions.class)
   public static final BuiltinFunction MIRROR = new BuiltinFunction("mirror") {
     public NoneType invoke(GitModule self, String name, String origin, String destination,
-        SkylarkList<String> strRefSpecs, Location location, Environment env)
+        SkylarkList<String> strRefSpecs, Boolean prune, Location location, Environment env)
         throws EvalException {
       GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
       List<Refspec> refspecs = new ArrayList<>();
@@ -121,7 +125,7 @@ public class GitModule implements OptionsAwareModule {
       Core.getCore(env).addMigration(location, name,
           new Mirror(generalOptions, self.options.get(GitOptions.class),
               origin, destination, refspecs,
-              self.options.get(GitMirrorOptions.class).forcePush));
+              self.options.get(GitMirrorOptions.class).forcePush, prune));
       return Runtime.NONE;
     }
   };

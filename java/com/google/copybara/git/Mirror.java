@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import com.beust.jcommander.internal.Lists;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -40,16 +41,17 @@ public class Mirror implements Migration {
   private final String destination;
   private final List<Refspec> refspec;
   private final boolean forcePush;
+  private final boolean prune;
 
-  Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String origin,
-      String destination,
-      List<Refspec> refspec, boolean forcePush) {
+  Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String origin, String destination,
+      List<Refspec> refspec, boolean forcePush, boolean prune) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.refspec = Preconditions.checkNotNull(refspec);
     this.forcePush = forcePush;
+    this.prune = prune;
   }
 
   @Override
@@ -64,7 +66,7 @@ public class Mirror implements Migration {
 
     generalOptions.console().progress("Fetching from " + origin);
     repo.simpleCommand(Iterables.toArray(Iterables.concat(
-        ImmutableList.of("fetch", origin), fetchRefspecs), String.class));
+        ImmutableList.of("fetch", "-p", origin), fetchRefspecs), String.class));
 
     List<String> pushRefspecs = refspec.stream()
         .map(r ->
@@ -77,8 +79,12 @@ public class Mirror implements Migration {
         .collect(Collectors.toList());
 
     generalOptions.console().progress("Pushing to " + destination);
-    repo.simpleCommand(Iterables.toArray(Iterables.concat(
-        ImmutableList.of("push", destination), pushRefspecs), String.class));
+    List<String> cmd = Lists.newArrayList("push", destination);
+    if (prune) {
+      cmd.add("--prune");
+    }
+    cmd.addAll(pushRefspecs);
+    repo.simpleCommand(Iterables.toArray(cmd, String.class));
   }
 
 }

@@ -55,8 +55,7 @@ public class GitMirrorTest {
     options.setWorkdirToRealTempDir();
     originRepo = GitRepository.initScratchRepo(/*verbose=*/true,
         options.general.getEnvironment());
-    destRepo = GitRepository.bareRepo(Files.createTempDirectory("destinationFolder"),
-        options.general.getEnvironment(), options.general.isVerbose());
+    destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
 
     Path reposDir = Files.createTempDirectory("repos_repo");
     options.git.repoStorage = reposDir.toString();
@@ -75,22 +74,112 @@ public class GitMirrorTest {
 
   @Test
   public void testMirror() throws Exception {
-    Migration mirror = skylark.loadConfig(""
+    Migration mirror = loadMigration(""
         + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'default',"
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + ")").getActiveMigration();
+            + ")",
+        "default");
     mirror.run(workdir, /*sourceRef=*/null);
     String orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
     String dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
     assertThat(dest).isEqualTo(orig);
   }
 
+  /**
+   * Regression that test that if we use a local repo cache we prune when fetching.
+   *
+   * <p>'other' should never be present in destRepo since at the time of the migration it was
+   * not present in the origin and destRepo was empty.
+   */
+  @Test
+  public void testMirrorDeletedOrigin() throws Exception {
+    GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1"));
+    destRepo1.initGitDir();
+
+    String cfgContent = ""
+        + "core.project('foo')\n"
+        + "git.mirror("
+        + "    name = 'one',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo1.getGitDir().toAbsolutePath() + "',"
+        + ")\n"
+        + "git.mirror("
+        + "    name = 'two',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + ")";
+
+    loadMigration(cfgContent, "one").run(workdir, /*sourceRef=*/null);
+    originRepo.simpleCommand("branch", "-D", "other");
+    loadMigration(cfgContent, "two").run(workdir, /*sourceRef=*/null);
+
+    checkRefDoesntExist("refs/heads/other");
+  }
+
+  private Migration loadMigration(String cfgContent, String name)
+      throws IOException, ValidationException {
+    options.setWorkflowName(name);
+    return skylark.loadConfig(cfgContent).getActiveMigration();
+  }
+
+  @Test
+  public void testMirrorNoPrune() throws Exception {
+    GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1"));
+    destRepo1.initGitDir();
+
+    String cfg = ""
+        + "core.project('foo')\n"
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + ")\n"
+        + "";
+
+    String other = originRepo.git(originRepo.getGitDir(), "show-ref", "refs/heads/other",
+        "-s").getStdout();
+    Migration migration = loadMigration(cfg, "default");
+    migration.run(workdir, /*sourceRef=*/null);
+    originRepo.simpleCommand("branch", "-D", "other");
+    migration.run(workdir, /*sourceRef=*/null);
+    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", "refs/heads/other", "-s").getStdout())
+        .isEqualTo(other);
+  }
+
+  @Test
+  public void testMirrorPrune() throws Exception {
+    GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1"));
+    destRepo1.initGitDir();
+
+    String cfg = ""
+        + "core.project('foo')\n"
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    prune = True,"
+        + ")\n"
+        + "";
+
+    Migration migration = loadMigration(cfg, "default");
+    migration.run(workdir, /*sourceRef=*/null);
+    originRepo.simpleCommand("branch", "-D", "other");
+    migration.run(workdir, /*sourceRef=*/null);
+
+    checkRefDoesntExist("refs/heads/other");
+  }
+
+  private GitRepository bareRepo(Path path) throws IOException {
+    return GitRepository.bareRepo(path, options.general.getEnvironment(),
+        options.general.isVerbose());
+  }
+
   @Test
   public void testMirrorCustomRefspec() throws Exception {
-    Migration mirror = skylark.loadConfig(""
+    String cfg = ""
         + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'default',"
@@ -99,7 +188,8 @@ public class GitMirrorTest {
         + "    refspecs = ["
         + "        'refs/heads/master:refs/heads/origin_master'"
         + "    ]"
-        + ")").getActiveMigration();
+        + ")";
+    Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, /*sourceRef=*/null);
     String origMaster = originRepo.git(originRepo.getGitDir(), "show-ref", "master", "-s")
         .getStdout();
@@ -134,13 +224,13 @@ public class GitMirrorTest {
   }
 
   private Migration prepareForConflict() throws IOException, ValidationException, RepoException {
-    Migration mirror = skylark.loadConfig(""
+    String cfg = ""
         + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'default',"
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + ")").getActiveMigration();
+        + ")";
     GitRepository other = GitRepository.initScratchRepo(/*verbose=*/true,
         options.general.getEnvironment());
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes());
@@ -148,6 +238,6 @@ public class GitMirrorTest {
     other.git(other.getWorkTree(), "commit", "-m", "another file");
     other.git(other.getWorkTree(), "branch", "other");
     other.git(other.getWorkTree(), "push", "file://" + destRepo.getGitDir(), "+refs/*:refs/*");
-    return mirror;
+    return loadMigration(cfg, "default");
   }
 }
