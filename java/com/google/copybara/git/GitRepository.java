@@ -24,8 +24,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.EmptyChangeException;
-import com.google.copybara.GeneralOptions;
-import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
@@ -84,10 +82,9 @@ public class GitRepository {
     this.environment = Preconditions.checkNotNull(environment);
   }
 
-  public static GitRepository bareRepo(
-      Path gitDir, Options options, Map<String, String> environment) {
-    return new GitRepository(
-        gitDir,/*workTree=*/null, options.get(GeneralOptions.class).isVerbose(), environment);
+  public static GitRepository bareRepo(Path gitDir, Map<String, String> environment,
+      boolean verbose) {
+    return new GitRepository(gitDir,/*workTree=*/null, verbose, environment);
   }
 
   /**

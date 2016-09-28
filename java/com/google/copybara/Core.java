@@ -312,7 +312,7 @@ public class Core implements OptionsAwareModule {
         console.warn("core.workflow(exclude_in_destination) arg is deprecated, use"
             + " destination_files = glob(['**'], exclude = [exclude globs]) instead");
       }
-      self.migrations.put(workflowName, new AutoValue_Workflow<>(
+      self.addMigration(location, workflowName, new AutoValue_Workflow<>(
           projectName,
           workflowName,
           origin,
@@ -331,6 +331,14 @@ public class Core implements OptionsAwareModule {
       return Runtime.NONE;
     }
   };
+
+  public void addMigration(Location location, String name, Migration migration)
+      throws EvalException {
+    if (migrations.put(name, migration) != null) {
+      throw new EvalException(location,
+          String.format("A migration with the name '%s' is already defined", name));
+    }
+  }
 
   @SkylarkSignature(
       name = "move",
@@ -493,7 +501,11 @@ public class Core implements OptionsAwareModule {
    */
   public static String getProjectNameOrFail(Environment env, Location location)
       throws EvalException {
-    return getProjectNameOrFailInternal(((Core) env.getGlobals().get(CORE_VAR)), location);
+    return getProjectNameOrFailInternal(getCore(env), location);
+  }
+
+  public static Core getCore(Environment env) {
+    return (Core) env.getGlobals().get(CORE_VAR);
   }
 
   private static String getProjectNameOrFailInternal(Core self, Location location)

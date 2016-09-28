@@ -29,6 +29,7 @@ all_tests(
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:jcommander",
+        "//third_party:skylark-lang",
         "//third_party:truth",
     ],
 )

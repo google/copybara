@@ -329,17 +329,21 @@ public final class GitOrigin implements Origin<GitReference> {
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       Map<String, String> environment) {
-    GitOptions gitConfig = options.get(GitOptions.class);
 
-    Path gitRepoStorage = FileSystems.getDefault().getPath(gitConfig.repoStorage);
-    Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
-    Console console = options.get(GeneralOptions.class).console();
+    GitOptions gitConfig = options.get(GitOptions.class);
+    boolean verbose = options.get(GeneralOptions.class).isVerbose();
 
     return new GitOrigin(
-        console, GitRepository.bareRepo(gitDir, options, environment), url, ref, type,
-        options.get(GitOptions.class),
-        options.get(GeneralOptions.class).isVerbose(),
-        environment);
+        options.get(GeneralOptions.class).console(),
+        bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
+        url, ref, type, options.get(GitOptions.class), verbose, environment);
+  }
+
+  static GitRepository bareRepoInCache(String url, Map<String, String> environment,
+      boolean verbose, String repoStorage) {
+    Path gitRepoStorage = FileSystems.getDefault().getPath(repoStorage);
+    Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
+    return GitRepository.bareRepo(gitDir, environment, verbose);
   }
 
   /**

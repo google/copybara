@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.base.SkylarkUtil.checkNotEmpty;
 
 import com.google.common.base.Strings;
+import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.base.OptionsAwareModule;
@@ -32,8 +33,14 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
+import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Runtime;
+import com.google.devtools.build.lib.syntax.Runtime.NoneType;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Main module that groups all the functions that create Git origins and destinations.
@@ -77,6 +84,45 @@ public class GitModule implements OptionsAwareModule {
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
           self.options.get(GeneralOptions.class).getEnvironment());
+    }
+  };
+
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "mirror", returnType = NoneType.class,
+      doc = "Mirror git references between repositories",
+      parameters = {
+          @Param(name = "self", type = GitModule.class, doc = "this object"),
+          @Param(name = "name", type = String.class,
+              doc = "Migration name"),
+          @Param(name = "origin", type = String.class,
+              doc = "Indicates the URL of the origin git repository"),
+          @Param(name = "destination", type = String.class,
+              doc = "Indicates the URL of the destination git repository"),
+          @Param(name = "refspecs", type = SkylarkList.class, generic1 = String.class,
+              defaultValue = "['refs/heads/*']",
+              doc = "Represents a list of git refspecs to mirror between origin and destination."
+                  + "For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference"
+                  + "inside refs/heads to refs/remotes/origin."),
+      },
+      objectType = GitModule.class, useLocation = true, useEnvironment = true)
+  @UsesFlags(GitMirrorOptions.class)
+  public static final BuiltinFunction MIRROR = new BuiltinFunction("mirror") {
+    public NoneType invoke(GitModule self, String name, String origin, String destination,
+        SkylarkList<String> strRefSpecs, Location location, Environment env)
+        throws EvalException {
+      GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
+      List<Refspec> refspecs = new ArrayList<>();
+
+      for (String refspec : SkylarkList.castList(strRefSpecs, String.class, "refspecs")) {
+        refspecs.add(Refspec.create(
+            generalOptions.getEnvironment(), generalOptions.getCwd(), refspec, location));
+      }
+      Core.getCore(env).addMigration(location, name,
+          new Mirror(generalOptions, self.options.get(GitOptions.class),
+              origin, destination, refspecs,
+              self.options.get(GitMirrorOptions.class).forcePush));
+      return Runtime.NONE;
     }
   };
 

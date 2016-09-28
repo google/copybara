@@ -26,6 +26,7 @@ import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitDestinationOptions;
+import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.transform.metadata.MetadataModule;
@@ -62,6 +63,7 @@ public class Copybara {
         new FolderOriginOptions(),
         new GitOptions(homeDir),
         new GitDestinationOptions(),
+        new GitMirrorOptions(),
         new GerritOptions(),
         new WorkflowOptions());
   }
