@@ -17,9 +17,11 @@
 package com.google.copybara.transform;
 
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
+import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -110,6 +112,38 @@ public class MoveTest {
         .containsFiles("foo/other/b.java")
         .containsFiles("foo/c.txt")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testMoveOverwrite() throws Exception {
+    Move mover = skylark.eval("m", "m = "
+        + "core.move("
+        + "    before = 'foo',"
+        + "    after = 'bar',"
+        + "    overwrite = True,"
+        + ")");
+    Files.write(checkoutDir.resolve("foo"), "foo".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("bar"), "bar".getBytes(UTF_8));
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFile("bar", "foo")
+        .containsNoMoreFiles();
+
+    thrown.expect(NonReversibleValidationException.class);
+    mover.reverse();
+  }
+
+  @Test
+  public void testMoveNoOverwrite() throws Exception {
+    Move mover = skylark.eval("m", "m = core.move('foo', 'bar')");
+
+    Files.write(checkoutDir.resolve("foo"), "foo".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("bar"), "bar".getBytes(UTF_8));
+
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("because it already exists");
+    transform(mover);
   }
 
   @Test

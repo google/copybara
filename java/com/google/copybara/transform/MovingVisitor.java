@@ -17,12 +17,14 @@
 package com.google.copybara.transform;
 
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import javax.annotation.Nullable;
 
@@ -34,11 +36,17 @@ final class MovingVisitor extends SimpleFileVisitor<Path> {
   private final Path after;
   @Nullable
   private final PathMatcher pathMatcher;
+  private final CopyOption[] moveMode;
 
-  MovingVisitor(Path before, Path after, @Nullable PathMatcher pathMatcher) {
+  MovingVisitor(Path before, Path after, @Nullable PathMatcher pathMatcher, boolean overwrite) {
     this.before = before;
     this.after = after;
     this.pathMatcher = pathMatcher;
+    if (overwrite) {
+      moveMode = new CopyOption[]{LinkOption.NOFOLLOW_LINKS, StandardCopyOption.REPLACE_EXISTING};
+    } else {
+      moveMode = new CopyOption[]{LinkOption.NOFOLLOW_LINKS};
+    }
   }
 
   @Override
@@ -54,7 +62,7 @@ final class MovingVisitor extends SimpleFileVisitor<Path> {
       Path relative = before.relativize(source);
       Path dest = after.resolve(relative);
       Files.createDirectories(dest.getParent());
-      Files.move(source, dest, LinkOption.NOFOLLOW_LINKS);
+      Files.move(source, dest, moveMode);
     }
     return FileVisitResult.CONTINUE;
   }

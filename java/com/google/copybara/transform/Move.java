@@ -18,6 +18,7 @@ package com.google.copybara.transform;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
@@ -31,6 +32,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import javax.annotation.Nullable;
 
 /**
  * Transformation the moves (renames) a single file or directory.
@@ -40,23 +42,31 @@ public class Move implements Transformation {
   private final String before;
   private final String after;
   private final Glob paths;
+  private final boolean overwrite;
+  @Nullable
+  private final Location location;
   private final WorkflowOptions workflowOptions;
 
-  private Move(String before, String after, Glob paths, WorkflowOptions workflowOptions) {
+  private Move(String before, String after, Glob paths, boolean overwrite,
+      @Nullable Location location, WorkflowOptions workflowOptions) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.paths = paths;
+    this.overwrite = overwrite;
+    this.location = location;
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
   }
 
   public static Move fromConfig(
       String before, String after, WorkflowOptions workflowOptions, Glob paths,
-      Location location)
+      boolean overwrite, Location location)
       throws EvalException {
     return new Move(
         validatePath(location, before),
         validatePath(location, after),
         paths,
+        overwrite,
+        location,
         workflowOptions);
   }
 
@@ -94,7 +104,8 @@ public class Move implements Transformation {
                   + paths);
         }
         Files.walkFileTree(before,
-            new MovingVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null));
+            new MovingVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null,
+                overwrite));
       } catch (FileAlreadyExistsException e) {
         throw new ValidationException(
             String.format("Cannot move file to '%s' because it already exists", e.getFile()));
@@ -102,8 +113,12 @@ public class Move implements Transformation {
   }
 
   @Override
-  public Move reverse() {
-    return new Move(after, before, paths, workflowOptions);
+  public Move reverse() throws NonReversibleValidationException {
+    if (overwrite) {
+      throw new NonReversibleValidationException(location, "core.move() with overwrite set is not"
+          + " automatically reversible. Use core.transform to define an explicit reverse");
+    }
+    return new Move(after, before, paths, /*overwrite=*/false, location, workflowOptions);
   }
 
   private void createParentDirs(Path after) throws IOException, ValidationException {

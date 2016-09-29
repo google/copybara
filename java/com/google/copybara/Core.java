@@ -340,6 +340,7 @@ public class Core implements OptionsAwareModule {
     }
   }
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "move",
       returnType = Move.class,
@@ -360,13 +361,19 @@ public class Core implements OptionsAwareModule {
                   + " glob([\"**.java\"]), matches all java files recursively inside"
                   + " 'before' folder. Defaults to match all the files recursively.",
               defaultValue = "glob([\"**\"])"),
+          @Param(name = "overwrite",
+              doc = "Overwrite destination files if they already exist. Note that this makes the"
+                  + " transformation non-reversible, since there is no way to know if the file"
+                  + " was overwritten or not in the reverse workflow.",
+              type = Boolean.class, defaultValue = "False")
       },
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction MOVE = new BuiltinFunction("move",
-      ImmutableList.<Object>of(Glob.ALL_FILES)) {
-    public Move invoke(Core self, String before, String after, Glob paths, Location location)
-        throws EvalException {
-      return Move.fromConfig(before, after, self.workflowOptions, paths, location);
+      ImmutableList.of(Glob.ALL_FILES, false)) {
+    @SuppressWarnings("unused")
+    public Move invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
+        Location location) throws EvalException {
+      return Move.fromConfig(before, after, self.workflowOptions, paths, overwrite, location);
     }
   };
 
