@@ -205,7 +205,7 @@ public final class GitDestination implements Destination {
 
       console.progress("Git Destination: Creating a local commit");
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
-      alternate.simpleCommand("add", "--all");
+      alternate.simpleCommand("add", "-f", "--all");
 
       excludedAdder.add();
 

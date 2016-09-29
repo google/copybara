@@ -76,7 +76,7 @@ final class AddExcludedFilesToIndexVisitor extends SimpleFileVisitor<Path> {
   public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
     if (!destinationFiles.matches(file)) {
       try {
-        repo.simpleCommand("add", "--", file.toString());
+        repo.simpleCommand("add", "-f", "--", file.toString());
       } catch (RepoException e) {
         throw new IOException(e);
       }
@@ -91,7 +91,7 @@ final class AddExcludedFilesToIndexVisitor extends SimpleFileVisitor<Path> {
     Files.walkFileTree(repo.getWorkTree(), this);
     for (String addBackSubmodule : addBackSubmodules) {
       repo.simpleCommand("reset", "--", "--quiet", addBackSubmodule);
-      repo.simpleCommand("add", "--", addBackSubmodule);
+      repo.simpleCommand("add", "-f", "--", addBackSubmodule);
     }
   }
 }
