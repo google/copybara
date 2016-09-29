@@ -734,4 +734,38 @@ public class GitDestinationTest {
         .containsFile("test99", "99")
         .containsNoMoreFiles();
   }
+
+  @Test
+  public void testGitIgnoreIncluded() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve(".gitignore"), ".gitignore\n".getBytes());
+    DummyReference ref = new DummyReference("origin_ref");
+    process(destinationFirstCommit().newWriter(destinationFiles), ref);
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "some content")
+        .containsFile(".gitignore", ".gitignore\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testGitIgnoreExcluded() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-testGitIgnoreExcluded");
+    Files.write(scratchTree.resolve(".gitignore"), ".gitignore\n".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree).simpleCommand("add", "-f", ".gitignore");
+    repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "gitignore file");
+
+    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of(".gitignore"));
+
+    DummyReference ref = new DummyReference("origin_ref");
+    process(destination().newWriter(destinationFiles), ref);
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "some content")
+        .containsFile(".gitignore", ".gitignore\n")
+        .containsNoMoreFiles();
+  }
 }
