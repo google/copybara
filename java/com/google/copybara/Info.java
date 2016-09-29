@@ -33,13 +33,10 @@ abstract class Info {
   @AutoValue
   static abstract class MigrationReference {
 
-    static MigrationReference forWorkflow(
-        Workflow workflow, @Nullable Reference lastMigrated, @Nullable Reference nextToMigrate) {
-      return new AutoValue_Info_MigrationReference(
-          String.format("workflow_%s", workflow.name()), lastMigrated, nextToMigrate);
+    static MigrationReference create(
+        String label, @Nullable Reference lastMigrated, @Nullable Reference nextToMigrate) {
+      return new AutoValue_Info_MigrationReference(label, lastMigrated, nextToMigrate);
     }
-
-    // TODO(copybara-team): Add factory method "forMirrorRef(...)"
 
     /**
      * The name of this {@link MigrationReference}.

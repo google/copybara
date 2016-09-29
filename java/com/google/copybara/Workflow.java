@@ -127,8 +127,8 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
     R lastMigrated = (lastRef == null) ? null : origin().resolve(lastRef);
 
     // TODO(copybara-team): Populate nextToMigrate
-    MigrationReference migrationRef = MigrationReference.forWorkflow(
-        this, lastMigrated, /*nextToMigrate=*/null);
+    MigrationReference migrationRef = MigrationReference.create(
+        String.format("workflow_%s", name()), lastMigrated, /*nextToMigrate=*/null);
     return Info.create(migrationRef);
   }
 
