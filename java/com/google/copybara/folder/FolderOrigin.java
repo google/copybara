@@ -39,7 +39,9 @@ public class FolderOrigin implements Origin<FolderReference> {
   @Override
   public FolderReference resolve(@Nullable String reference) throws RepoException {
     if (reference == null) {
-      throw new RepoException("A path is expected as reference in the command line");
+      throw new RepoException(""
+          + "A path is expected as reference in the command line. Invoke copybara as:\n"
+          + "    copybara copy.bara.sky workflow_name ORIGIN_FOLDER");
     }
     Path path = fs.getPath(reference);
     if (!Files.exists(path)) {
