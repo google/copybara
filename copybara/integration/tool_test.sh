@@ -268,14 +268,14 @@ EOF
 
   # Before running the tool for the first time, the last imported ref is empty
   copybara info copy.bara.sky default
-  expect_log "Workflow 'default': last_migrated_ref none"
+  expect_log "'workflow_default': last_migrated None - next_to_migrate None"
 
   copybara copy.bara.sky default $commit_one
 
   check_copybara_rev_id "$destination" "$commit_one"
 
   copybara info copy.bara.sky default
-  expect_log "Workflow 'default': last_migrated_ref $commit_one"
+  expect_log "'workflow_default': last_migrated $commit_one - next_to_migrate None"
 
   ( cd $destination
     run_git log master~1..master > $TEST_log
@@ -286,7 +286,7 @@ EOF
   copybara copy.bara.sky default $commit_four
 
   copybara info copy.bara.sky default
-  expect_log "Workflow 'default': last_migrated_ref $commit_four"
+  expect_log "'workflow_default': last_migrated $commit_four - next_to_migrate None"
 
   check_copybara_rev_id "$destination" "$commit_four"
 

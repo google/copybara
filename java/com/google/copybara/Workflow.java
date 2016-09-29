@@ -23,6 +23,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
@@ -123,11 +124,12 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
   public Info getInfo() throws RepoException, ValidationException {
     Writer writer = destination().newWriter(destinationFiles());
     String lastRef = writer.getPreviousRef(origin().getLabelName());
-    R lastOriginRef = (lastRef == null) ? null : origin().resolve(lastRef);
+    R lastMigrated = (lastRef == null) ? null : origin().resolve(lastRef);
 
-    // TODO(danielromero): Add the destination reference (that is, the reference of the import
-    // commit in the destination for this origin reference)
-    return new Info<>(lastOriginRef);
+    // TODO(copybara-team): Populate nextToMigrate
+    MigrationReference migrationRef = MigrationReference.forWorkflow(
+        this, lastMigrated, /*nextToMigrate=*/null);
+    return Info.create(migrationRef);
   }
 
   final class RunHelper {

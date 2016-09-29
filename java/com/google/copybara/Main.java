@@ -23,7 +23,7 @@ import com.beust.jcommander.ParameterException;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Migration.Info;
+import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.config.SkylarkParser;
@@ -125,12 +125,13 @@ public class Main {
           break;
         case INFO:
           Info info = copybara.info(options, configFile, mainArgs.getWorkflowName());
-          console.info(
-              String.format("Workflow '%s': last_migrated_ref %s.",
-                  mainArgs.getWorkflowName(),
-                  info.getLastMigratedRef() == null
-                      ? "none"
-                      : info.getLastMigratedRef().asString()));
+          for (MigrationReference ref : info.migrationReferences()) {
+            console.info(
+                String.format("'%s': last_migrated %s - next_to_migrate %s.",
+                    ref.getLabel(),
+                    ref.getLastMigrated() != null ? ref.getLastMigrated().asString() : "None",
+                    ref.getNextToMigrate() != null ? ref.getNextToMigrate().asString() : "None"));
+          }
           break;
         default:
           console.error(String.format("Command %s not implemented.", mainArgs.getCommand()));

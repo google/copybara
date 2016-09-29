@@ -75,7 +75,7 @@ public class Copybara {
     config.getActiveMigration().run(baseWorkdir, sourceRef);
   }
 
-  public Migration.Info info(Options options, ConfigFile configContents, String workflowName)
+  public Info info(Options options, ConfigFile configContents, String workflowName)
       throws IOException, ValidationException, RepoException {
     Config config = getConfig(options, configContents, workflowName);
     return config.getActiveMigration().getInfo();
