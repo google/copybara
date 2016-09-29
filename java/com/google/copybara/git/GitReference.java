@@ -19,7 +19,6 @@ package com.google.copybara.git;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
-
 import java.time.Instant;
 import java.util.regex.Pattern;
 
@@ -51,7 +50,8 @@ public final class GitReference implements Reference {
   public Instant readTimestamp() throws RepoException {
     // -s suppresses diff output
     // --format=%at indicates show the author timestamp as the number of seconds from UNIX epoch
-    String stdout = repository.simpleCommand("show", "-s", "--format=%at", reference).getStdout();
+    String stdout = repository.simpleCommand("log", "-1", "-s", "--format=%at", reference)
+        .getStdout();
     try {
       return Instant.ofEpochSecond(Long.parseLong(stdout.trim()));
     } catch (NumberFormatException e) {

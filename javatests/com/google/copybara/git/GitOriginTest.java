@@ -27,11 +27,11 @@ import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
-import com.google.copybara.ValidationException;
 import com.google.copybara.Origin.ChangesVisitor;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
@@ -497,6 +498,18 @@ public class GitOriginTest {
     assertThat(reader.change(firstRef).getMessage()).contains("first file");
     assertThat(reader.changes(null, secondRef)).hasSize(2);
     assertThat(reader.changes(firstRef, secondRef)).hasSize(1);
+  }
+
+  @Test
+  public void testGitOriginTag() throws Exception {
+    Instant before = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    git("tag", "-m", "This is a tag", "0.1");
+    Instant after = Instant.now().plusSeconds(1).truncatedTo(ChronoUnit.SECONDS);
+
+    Instant instant = origin.resolve("0.1").readTimestamp();
+
+    assertThat(instant).isAtLeast(before);
+    assertThat(instant).isAtMost(after);
   }
 
   private GitReference getLastCommitRef() throws RepoException {
