@@ -93,3 +93,30 @@ core.workflow(
 )
 ```
 
+### Subcommands
+
+The tool accepts different subcommands, _à la_ Bazel. If no
+command is specified, *migrate* is executed by default. These two commands are
+equivalent:
+
+```shell
+$ copybara copy.bara.sky
+$ copybara migrate copy.bara.sky
+```
+
+You can validate your configuration running:
+
+```shell
+$ copybara validate copy.bara.sky
+Copybara source mover
+INFO: Configuration validated.
+```
+
+And you can get information about a migration workflow by running:
+
+```shell
+$ copybara info copy.bara.sky
+Copybara source mover
+...
+INFO: Workflow 'default': last_migrated_ref 4dd20b2...
+```
