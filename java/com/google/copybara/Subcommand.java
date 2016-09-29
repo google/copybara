@@ -19,7 +19,7 @@ package com.google.copybara;
 /**
  * The task type that can be performed by Copybara for a single execution.
  */
-public enum Command {
+public enum Subcommand {
   /**
    * Execute the migration indicated by the arguments.
    */

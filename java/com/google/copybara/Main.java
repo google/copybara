@@ -110,7 +110,7 @@ public class Main {
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
       ConfigFile configFile = loadConfig(configPath, generalOptions.getConfigRoot());
-      switch (mainArgs.getCommand()) {
+      switch (mainArgs.getSubcommand()) {
         case VALIDATE:
           copybara.validate(options, configFile, mainArgs.getWorkflowName());
           console.info("Configuration validated.");
@@ -134,7 +134,7 @@ public class Main {
           }
           break;
         default:
-          console.error(String.format("Command %s not implemented.", mainArgs.getCommand()));
+          console.error(String.format("Subcommand %s not implemented.", mainArgs.getSubcommand()));
           return ExitCode.COMMAND_LINE_ERROR;
       }
     } catch (CommandLineException | ParameterException e) {

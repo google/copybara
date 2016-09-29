@@ -57,8 +57,8 @@ public final class MainArguments {
   @Nullable
   private ArgumentHolder argumentHolder;
 
-  Command getCommand() {
-    return getArgs().command;
+  Subcommand getSubcommand() {
+    return getArgs().subcommand;
   }
 
   String getConfigPath() {
@@ -121,13 +121,13 @@ public final class MainArguments {
       throw new CommandLineException("Expected at most four arguments.");
     }
 
-    Command command = Command.MIGRATE;
+    Subcommand subcommand = Subcommand.MIGRATE;
     String firstArg = unnamed.get(0);
     int argumentId = 0;
     // This should be enough for now
     if (!firstArg.endsWith(COPYBARA_SKYLARK_CONFIG_FILENAME)) {
       try {
-        command = Command.valueOf(firstArg.toUpperCase());
+        subcommand = Subcommand.valueOf(firstArg.toUpperCase());
         argumentId++;
       } catch (IllegalArgumentException e) {
         throw new CommandLineException(String.format("Invalid command %s", firstArg));
@@ -148,20 +148,20 @@ public final class MainArguments {
       sourceRef = unnamed.get(argumentId);
       argumentId++; // Just in case we add more arguments
     }
-    argumentHolder = new ArgumentHolder(command, configPath, workflowName, sourceRef);
+    argumentHolder = new ArgumentHolder(subcommand, configPath, workflowName, sourceRef);
   }
 
   private static class ArgumentHolder {
 
-    private final Command command;
+    private final Subcommand subcommand;
     private final String configPath;
     private final String workflowName;
     @Nullable
     private final String sourceRef;
 
     private ArgumentHolder(
-        Command command, String configPath, String workflowName, @Nullable String sourceRef) {
-      this.command = command;
+        Subcommand subcommand, String configPath, String workflowName, @Nullable String sourceRef) {
+      this.subcommand = subcommand;
       this.configPath = configPath;
       this.workflowName = workflowName;
       this.sourceRef = sourceRef;
