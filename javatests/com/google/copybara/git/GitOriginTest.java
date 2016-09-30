@@ -502,9 +502,11 @@ public class GitOriginTest {
 
   @Test
   public void testGitOriginTag() throws Exception {
-    Instant before = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    // Use 20 seconds margin since we don't really care about the time but we want
+    // to ensure that we parse the date correctly.
+    Instant before = Instant.now().minusSeconds(10);
     git("tag", "-m", "This is a tag", "0.1");
-    Instant after = Instant.now().plusSeconds(1).truncatedTo(ChronoUnit.SECONDS);
+    Instant after = Instant.now().plusSeconds(10);
 
     Instant instant = origin.resolve("0.1").readTimestamp();
 
