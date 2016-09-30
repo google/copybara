@@ -9,7 +9,9 @@ import com.google.copybara.Change;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.util.AbsoluteSymlinksNotAllowed;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -29,11 +31,15 @@ public class FolderOrigin implements Origin<FolderReference> {
   private final FileSystem fs;
   private final Author author;
   private final String message;
+  private final CopySymlinkStrategy copySymlinkStrategy;
 
-  FolderOrigin(FileSystem fs, Author author, String message) {
+  FolderOrigin(FileSystem fs, Author author, String message, boolean materializeOutsideSymlinks) {
     this.fs = Preconditions.checkNotNull(fs);
     this.author = author;
     this.message = message;
+    this.copySymlinkStrategy = materializeOutsideSymlinks
+        ? CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS
+        : CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
   }
 
   @Override
@@ -62,7 +68,12 @@ public class FolderOrigin implements Origin<FolderReference> {
       @Override
       public void checkout(FolderReference ref, Path workdir) throws RepoException {
         try {
-          FileUtil.copyFilesRecursively(ref.path, workdir);
+          FileUtil.copyFilesRecursively(ref.path, workdir, copySymlinkStrategy);
+        } catch (AbsoluteSymlinksNotAllowed e) {
+          throw new RepoException(String.format("Cannot copy files into the workdir: Some symlinks"
+              + " refer to locations outside of the folder and 'materialize_outside_symlinks'"
+              + " config option was not used:\n"
+              + "  %s -> %s\n", e.getSymlink(), e.getDestinationFile()));
         } catch (IOException e) {
           throw new RepoException(String.format("Cannot copy files into the workdir:\n"
                       + "  origin folder: %s\n"

@@ -64,7 +64,7 @@ public class FolderOriginTest {
     Reader<FolderReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
     FolderReference ref = origin.resolve(localFolder.toString());
     reader.checkout(ref, workdir);
-    assertThatPath(localFolder)
+    assertThatPath(workdir)
         .containsFile("foo/file1","one")
         .containsFile("foo/file2","two")
         .containsFile("file3","three")
@@ -105,4 +105,38 @@ public class FolderOriginTest {
     assertThat(change.getMessage()).isEqualTo("A message");
     assertThat(change.getReference().asString()).isEqualTo(localFolder.toString());
   }
+
+  @Test
+  public void testAbsolutePaths() throws Exception {
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("Some symlinks refer to locations outside of the folder and"
+        + " 'materialize_outside_symlinks' config option was not used");
+    runAbsolutePaths("folder.origin()");
+  }
+
+  @Test
+  public void testAbsolutePathsMaterialize() throws Exception {
+    runAbsolutePaths("folder.origin(materialize_outside_symlinks = True)");
+
+    assertThatPath(workdir)
+        .containsFile("foo", "abc")
+        .containsNoMoreFiles();
+    assertThat(Files.isSymbolicLink(workdir.resolve("foo"))).isFalse();
+  }
+
+  private void runAbsolutePaths(String originStr)
+      throws IOException, ValidationException, RepoException {
+    Path other = Files.createTempDirectory("other");
+    Files.write(other.resolve("foo"), "abc".getBytes(UTF_8));
+
+    Path localFolder = Files.createTempDirectory("local_folder");
+    Files.createSymbolicLink(localFolder.resolve("foo"), other.resolve("foo"));
+
+    FolderOrigin origin = skylark.eval("f", "f = " + originStr);
+
+    Reader<FolderReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    FolderReference ref = origin.resolve(localFolder.toString());
+    reader.checkout(ref, workdir);
+  }
+
 }

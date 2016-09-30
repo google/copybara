@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
+
 import com.google.auto.value.AutoValue;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -223,7 +225,7 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
       if (reverseTransformForCheck() != null) {
         console().progress("Making a copy or the workdir for reverse checking");
         originCopy = Files.createDirectories(workdir.resolve("origin"));
-        FileUtil.copyFilesRecursively(checkoutDir, originCopy);
+        FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
       }
 
       TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes, console());
@@ -232,7 +234,7 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
       if (reverseTransformForCheck() != null) {
         console().progress("Checking that the transformations can be reverted");
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
-        FileUtil.copyFilesRecursively(checkoutDir, reverse);
+        FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
         reverseTransformForCheck().transform(
             new TransformWork(reverse, metadata, changes, console())
         );

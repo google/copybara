@@ -79,20 +79,26 @@ public class FolderModule implements OptionsAwareModule {
       doc = "A folder origin is a origin that uses a folder as input",
       parameters = {
           @Param(name = "self", type = FolderModule.class, doc = "this object"),
+          @Param(name = "materialize_outside_symlinks", type = Boolean.class,
+              doc = "By default folder.origin will refuse any symlink in the migration folder"
+                  + "that is an absolute symlink or that refers to a file outside of the folder."
+                  + " If this flag is set, it will materialize those symlinks as regular files"
+                  + " in the checkout directory.", defaultValue = "False"),
       },
       objectType = FolderModule.class, useLocation = true, useEnvironment = true)
   @UsesFlags(FolderOriginOptions.class)
   public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
     @SuppressWarnings("unused")
-    public FolderOrigin invoke(FolderModule self, Location location, Environment env)
-        throws EvalException {
+    public FolderOrigin invoke(FolderModule self, Boolean materializeOutsideSymlinks,
+        Location location, Environment env) throws EvalException {
 
       GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getFileSystem();
       return new FolderOrigin(fs,
           Author.parse(location, self.options.get(FolderOriginOptions.class).author),
-          self.options.get(FolderOriginOptions.class).message);
+          self.options.get(FolderOriginOptions.class).message,
+          materializeOutsideSymlinks);
     }
   };
 

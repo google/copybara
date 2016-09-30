@@ -91,14 +91,18 @@ public final class FileUtil {
    *
    * <p>File attributes are also copied.
    *
-   * <p>Symlinks for files are maintained if they are relative to the the directories being copied.
-   * Otherwise they are treated as regular files in the copy. If a symlink points to "../foo" it will point to
-   * that "../foo" in the destination. If it points to "/usr/bin/foo" it will copy that file.
+   * <p>Symlinks that target files inside {@code from} directory are replicated in {@code to} as
+   * the equivalent symlink. In other words, a {@code from/foo/bar -> ../baz} will be translated
+   * into the following symlink: ${@code to/foo/bar -> ../baz}.
+   *
+   * <p>Symlinks that escape the {@code from} directory or that target absolute paths are treated
+   * according to {@code symlinkStrategy}.
    */
-  public static void copyFilesRecursively(final Path from, final Path to) throws IOException {
+  public static void copyFilesRecursively(final Path from, final Path to,
+      CopySymlinkStrategy symlinkStrategy) throws IOException {
     checkArgument(Files.isDirectory(from), "%s (from) is not a directory");
     checkArgument(Files.isDirectory(to), "%s (to) is not a directory");
-    Files.walkFileTree(from, new CopyVisitor(from, to, /*forceCopySymlinks*/false));
+    Files.walkFileTree(from, new CopyVisitor(from, to, symlinkStrategy));
   }
 
   public static int deleteAllFilesRecursively(Path path) throws IOException {
@@ -171,6 +175,21 @@ public final class FileUtil {
     };
   }
 
+  public enum CopySymlinkStrategy {
+    /**
+     * Materialize any symlink found in a new file.
+     */
+    MATERIALIZE_ALL,
+    /**
+     * Any symlink outside of the folder copied will be materialized in a new file.
+     */
+    MATERIALIZE_OUTSIDE_SYMLINKS,
+    /**
+     * Fail if any symlink outside of the folder is found.
+     */
+    FAIL_OUTSIDE_SYMLINKS,
+  }
+
   /**
    * A visitor that copies files recursively. If symlinks are found, and are relative to 'from'
    * they symlink is maintained, unless forceCopySymlinks is set.
@@ -179,12 +198,12 @@ public final class FileUtil {
 
     private final Path to;
     private final Path from;
-    private final boolean forceCopySymlinks;
+    private final CopySymlinkStrategy symlinkStrategy;
 
-    CopyVisitor(Path from, Path to, boolean forceCopySymlinks) {
+    CopyVisitor(Path from, Path to, CopySymlinkStrategy symlinkStrategy) {
       this.to = to;
       this.from = from;
-      this.forceCopySymlinks = forceCopySymlinks;
+      this.symlinkStrategy = symlinkStrategy;
     }
 
     @Override
@@ -196,18 +215,25 @@ public final class FileUtil {
         // If the symlink remains under 'from' we keep the symlink as relative.
         // Otherwise we copy it as a regular file.
         ResolvedSymlink resolvedSymlink = resolveSymlink(from, file);
-        if (forceCopySymlinks || !resolvedSymlink.allUnderRoot) {
-          if (!resolvedSymlink.allUnderRoot) {
-            logger.log(Level.WARNING, String.format(
-                "Symlink '%s' is absolute or escaped the root: '%s'. Materializing the symlink.",
-                file, resolvedSymlink.regularFile));
+        boolean escapedRoot = !resolvedSymlink.allUnderRoot;
+        if (escapedRoot) {
+          String msg = String.format(
+              "Symlink '%s' is absolute or escaped the root: '%s'.",
+              file, resolvedSymlink.regularFile);
+          if (symlinkStrategy == CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS) {
+            throw new AbsoluteSymlinksNotAllowed(msg, file, resolvedSymlink.regularFile);
           }
+          logger.log(Level.WARNING, msg + " Materializing the symlink.");
+        }
+
+        if (symlinkStrategy == CopySymlinkStrategy.MATERIALIZE_ALL || escapedRoot) {
           if (Files.isDirectory(file)) {
             // A symlink to a directory outside 'from'. Copy all the files recursively as regular
             // files
             Files.createDirectory(destFile);
             Files.walkFileTree(resolvedSymlink.regularFile,
-                new CopyVisitor(resolvedSymlink.regularFile, destFile,/*forceCopySymlinks*/true));
+                new CopyVisitor(resolvedSymlink.regularFile, destFile,
+                    CopySymlinkStrategy.MATERIALIZE_ALL));
             return FileVisitResult.CONTINUE;
           }
         } else {

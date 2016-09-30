@@ -21,6 +21,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -92,7 +93,7 @@ public class FileUtilTest {
   }
 
   @Test
-  public void testCopy() throws Exception {
+  public void testCopyMaterializeAbsolutePaths() throws Exception {
     Path temp = Files.createTempDirectory("temp");
     Path one = Files.createDirectory(temp.resolve("one"));
     Path two = Files.createDirectory(temp.resolve("two"));
@@ -126,7 +127,7 @@ public class FileUtilTest {
     // Symlink to a directory outside root
     Files.createSymbolicLink(folder.resolve("absolute3"), absoluteDir);
 
-    FileUtil.copyFilesRecursively(one, two);
+    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS);
 
     assertThatPath(two)
         .containsFile("foo", "abc")
@@ -152,6 +153,21 @@ public class FileUtilTest {
     assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute"))).isFalse();
     assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute2"))).isFalse();
     assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute3"))).isFalse();
+  }
+
+  @Test
+  public void testCopyFailAbsoluteSymlinks() throws Exception {
+    Path temp = Files.createTempDirectory("temp");
+    Path one = Files.createDirectory(temp.resolve("one"));
+    Path two = Files.createDirectory(temp.resolve("two"));
+    Path absolute = touch(Files.createDirectory(temp.resolve("absolute")).resolve("absolute"));
+
+    Path folder = Files.createDirectories(one.resolve("some/folder"));
+    Path absoluteTarget = folder.relativize(absolute);
+    Files.createSymbolicLink(folder.resolve("absolute"), absoluteTarget);
+
+    thrown.expect(AbsoluteSymlinksNotAllowed.class);
+    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
   }
 
   private Path touch(Path path) throws IOException {

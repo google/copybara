@@ -21,6 +21,7 @@ import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -79,7 +80,8 @@ public class FolderDestination implements Destination {
       FileUtil.deleteFilesRecursively(localFolder, destinationFiles.relativeTo(localFolder));
 
       console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);
-      FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder);
+      FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder,
+          CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
       return WriterResult.OK;
     }
   }
