@@ -131,7 +131,7 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
     // TODO(copybara-team): Populate nextToMigrate
     MigrationReference migrationRef = MigrationReference.create(
         String.format("workflow_%s", name()), lastMigrated, /*nextToMigrate=*/null);
-    return Info.create(migrationRef);
+    return Info.create(ImmutableList.of(migrationRef));
   }
 
   final class RunHelper {

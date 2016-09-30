@@ -2,6 +2,7 @@ package com.google.copybara;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.Origin.Reference;
 import java.util.Arrays;
 import java.util.List;
@@ -13,15 +14,15 @@ import javax.annotation.Nullable;
  * <p>A migration can have one or more {@link MigrationReference}s.
  */
 @AutoValue
-abstract class Info {
+public abstract class Info {
 
-  static final Info EMPTY = create();
+  static final Info EMPTY = create(ImmutableList.of());
 
-  static Info create(MigrationReference... migrationReferences) {
-    return new AutoValue_Info(Arrays.asList(migrationReferences));
+  public static Info create(Iterable<MigrationReference> migrationReferences) {
+    return new AutoValue_Info(ImmutableList.copyOf(migrationReferences));
   }
 
-  abstract List<MigrationReference> migrationReferences();
+  abstract Iterable<MigrationReference> migrationReferences();
 
   @Override
   public String toString() {
@@ -31,9 +32,9 @@ abstract class Info {
   }
 
   @AutoValue
-  static abstract class MigrationReference {
+  public static abstract class MigrationReference {
 
-    static MigrationReference create(
+    public static MigrationReference create(
         String label, @Nullable Reference lastMigrated, @Nullable Reference nextToMigrate) {
       return new AutoValue_Info_MigrationReference(label, lastMigrated, nextToMigrate);
     }
