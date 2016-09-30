@@ -16,9 +16,12 @@
 
 package com.google.copybara.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -27,13 +30,19 @@ import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
  * Utility methods for files
  */
 public final class FileUtil {
+
+  private static final Logger logger = Logger.getLogger(FileUtil.class.getName());
 
   private static final PathMatcher ALL_FILES = new PathMatcher() {
     @Override
@@ -58,9 +67,9 @@ public final class FileUtil {
    * @returns the {@code path} passed
    */
   public static String checkNormalizedRelative(String path) {
-    Preconditions.checkArgument(!RELATIVISM.matcher(path).matches(),
+    checkArgument(!RELATIVISM.matcher(path).matches(),
         "path has unexpected . or .. components: %s", path);
-    Preconditions.checkArgument(!path.startsWith("/"),
+    checkArgument(!path.startsWith("/"),
         "path must be relative, but it starts with /: %s", path);
     return path;
   }
@@ -82,28 +91,14 @@ public final class FileUtil {
    *
    * <p>File attributes are also copied.
    *
-   * <p>Symlinks are kept as in the origin. If a symlink points to "../foo" it will point to
-   * that "../foo" in the destination. If it points to "/usr/bin/foo" it will point to
-   * "/usr/bin/foo"
+   * <p>Symlinks for files are maintained if they are relative to the the directories being copied.
+   * Otherwise they are treated as regular files in the copy. If a symlink points to "../foo" it will point to
+   * that "../foo" in the destination. If it points to "/usr/bin/foo" it will copy that file.
    */
   public static void copyFilesRecursively(final Path from, final Path to) throws IOException {
-    Preconditions.checkArgument(Files.isDirectory(from), "%s (from) is not a directory");
-    Preconditions.checkArgument(Files.isDirectory(to), "%s (to) is not a directory");
-    Files.walkFileTree(from, new SimpleFileVisitor<Path>() {
-      @Override
-      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        Path destFile = to.resolve(from.relativize(file));
-        Files.createDirectories(destFile.getParent());
-
-        if (Files.isSymbolicLink(file)) {
-          Path realDestination = Files.readSymbolicLink(file);
-          Files.createSymbolicLink(destFile, realDestination);
-          return FileVisitResult.CONTINUE;
-        }
-        Files.copy(file, destFile, StandardCopyOption.COPY_ATTRIBUTES);
-        return FileVisitResult.CONTINUE;
-      }
-    });
+    checkArgument(Files.isDirectory(from), "%s (from) is not a directory");
+    checkArgument(Files.isDirectory(to), "%s (to) is not a directory");
+    Files.walkFileTree(from, new CopyVisitor(from, to, /*forceCopySymlinks*/false));
   }
 
   public static int deleteAllFilesRecursively(Path path) throws IOException {
@@ -174,5 +169,116 @@ public final class FileUtil {
         return "not(" + pathMatcher + ")";
       }
     };
+  }
+
+  /**
+   * A visitor that copies files recursively. If symlinks are found, and are relative to 'from'
+   * they symlink is maintained, unless forceCopySymlinks is set.
+   */
+  private static class CopyVisitor extends SimpleFileVisitor<Path> {
+
+    private final Path to;
+    private final Path from;
+    private final boolean forceCopySymlinks;
+
+    CopyVisitor(Path from, Path to, boolean forceCopySymlinks) {
+      this.to = to;
+      this.from = from;
+      this.forceCopySymlinks = forceCopySymlinks;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+      Path destFile = to.resolve(from.relativize(file));
+      Files.createDirectories(destFile.getParent());
+
+      if (Files.isSymbolicLink(file)) {
+        // If the symlink remains under 'from' we keep the symlink as relative.
+        // Otherwise we copy it as a regular file.
+        ResolvedSymlink resolvedSymlink = resolveSymlink(from, file);
+        if (forceCopySymlinks || !resolvedSymlink.allUnderRoot) {
+          if (!resolvedSymlink.allUnderRoot) {
+            logger.log(Level.WARNING, String.format(
+                "Symlink '%s' is absolute or escaped the root: '%s'. Materializing the symlink.",
+                file, resolvedSymlink.regularFile));
+          }
+          if (Files.isDirectory(file)) {
+            // A symlink to a directory outside 'from'. Copy all the files recursively as regular
+            // files
+            Files.createDirectory(destFile);
+            Files.walkFileTree(resolvedSymlink.regularFile,
+                new CopyVisitor(resolvedSymlink.regularFile, destFile,/*forceCopySymlinks*/true));
+            return FileVisitResult.CONTINUE;
+          }
+        } else {
+          Files.createSymbolicLink(destFile, Files.readSymbolicLink(file));
+          return FileVisitResult.CONTINUE;
+        }
+      }
+      Files.copy(file, destFile, StandardCopyOption.COPY_ATTRIBUTES);
+      return FileVisitResult.CONTINUE;
+    }
+
+    /**
+     * Resolves {@code symlink} recursively until it finds a regular file or directory. It also
+     * checks that all its intermediate paths jumps are under {@code root}.
+     */
+    private ResolvedSymlink resolveSymlink(Path root, Path symlink) throws IOException {
+      checkArgument(symlink.startsWith(root), "%s doesn't start with %s", symlink, root);
+      checkArgument(root.isAbsolute(), "%s is not absolute", root);
+
+      Path relativeLink = root.relativize(symlink).normalize();
+      Path realLink = symlink;
+      boolean insideRoot = true;
+      Set<Path> visited = new LinkedHashSet<>();
+      while (true) {
+        if (visited.contains(relativeLink)) {
+          throw new IOException("Symlink cycle detected:\n  "
+              + Joiner.on("\n  ").join(
+              Iterables.concat(visited, ImmutableList.of(relativeLink))));
+        }
+        visited.add(relativeLink);
+
+        if (insideRoot && (relativeLink.isAbsolute()
+            || relativeLink.getNameCount() == 0
+            // Because it is normalized, '..' is the first segment if it goes outside root.
+            || relativeLink.getName(0).toString().equals(".."))) {
+          insideRoot = false;
+        }
+
+        if (Files.isSymbolicLink(realLink)) {
+          // Read the symlink. Could be '/foo/bar', '../../baz' or 'some' for example.
+          Path resolved = Files.readSymbolicLink(realLink);
+          // Resolve to absolute path. We use sibling because 'some' should be resolved
+          // to the directory containing realLink + the link.
+          realLink = realLink.resolveSibling(resolved).normalize();
+          if (insideRoot) {
+            // Now we have a possibly absolute path. Resolve relative to root and normalize
+            // so '..' is the first segment.
+            relativeLink = root.relativize(realLink).normalize();
+          }
+        } else {
+          // We reach to the regular file/directory.
+          break;
+        }
+      }
+      return new ResolvedSymlink(realLink, insideRoot);
+    }
+
+    /**
+     * Represents the regular file/directory that a symlink points to. It also includes a boolean
+     * that is true if during all the symlink steps resolution, all the paths found where relative
+     * to the root directory.
+     */
+    private final class ResolvedSymlink {
+
+      private final Path regularFile;
+      private final boolean allUnderRoot;
+
+      ResolvedSymlink(Path regularFile, boolean allUnderRoot) {
+        this.regularFile = checkNotNull(regularFile);
+        this.allUnderRoot = allUnderRoot;
+      }
+    }
   }
 }

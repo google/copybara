@@ -18,6 +18,7 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -92,10 +93,15 @@ public class FileUtilTest {
 
   @Test
   public void testCopy() throws Exception {
-    Path one = Files.createTempDirectory("one");
-    Path two = Files.createTempDirectory("two");
-    Path absolute = touch(Files.createTempDirectory("absolute").resolve("absolute"));
-    Files.createDirectories(two.getParent());
+    Path temp = Files.createTempDirectory("temp");
+    Path one = Files.createDirectory(temp.resolve("one"));
+    Path two = Files.createDirectory(temp.resolve("two"));
+    Path absolute = touch(Files.createDirectory(temp.resolve("absolute")).resolve("absolute"));
+
+    Path absoluteDir = Files.createTempDirectory("absoluteDir");
+    Files.createDirectories(absoluteDir.resolve("absoluteDirDir"));
+    Files.write(absoluteDir.resolve("absoluteDirElement"), "abc".getBytes(UTF_8));
+    Files.write(absoluteDir.resolve("absoluteDirDir/element"), "abc".getBytes(UTF_8));
 
     Files.setPosixFilePermissions(touch(one.resolve("foo")),
         ImmutableSet.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
@@ -104,24 +110,48 @@ public class FileUtilTest {
     Files.createSymbolicLink(one.resolve("some/folder/baz"),
         one.getFileSystem().getPath("../../foo"));
 
-    Path absoluteTarget = one.resolve("some/folder").relativize(absolute);
-    Files.createSymbolicLink(one.resolve("some/folder/absolute"), absoluteTarget);
+    // Symlink to the root:
+    Files.createSymbolicLink(one.resolve("dot"), one.getFileSystem().getPath("."));
+    // Test multiple jumps inside the root: some/multiple -> folder/baz -> ../../foo
+    Files.createSymbolicLink(one.resolve("some/multiple"),
+        one.resolve("some").relativize(one.resolve("some/folder/baz")));
+
+    Path folder = one.resolve("some/folder");
+    Path absoluteTarget = folder.relativize(absolute);
+    Files.createSymbolicLink(folder.resolve("absolute"), absoluteTarget);
+    // Multiple jumps of symlinks that ends out of the root
+    Files.createSymbolicLink(folder.resolve("absolute2"),
+        folder.relativize(folder.resolve("absolute")));
+
+    // Symlink to a directory outside root
+    Files.createSymbolicLink(folder.resolve("absolute3"), absoluteDir);
 
     FileUtil.copyFilesRecursively(one, two);
 
     assertThatPath(two)
         .containsFile("foo", "abc")
+        .containsFile("dot/foo", "abc")
         .containsFile("some/folder/bar", "abc")
+        .containsFile("some/multiple", "abc")
         .containsFile("some/folder/absolute", "abc")
+        .containsFile("some/folder/absolute2", "abc")
+        .containsFile("some/folder/absolute3/absoluteDirElement", "abc")
+        .containsFile("some/folder/absolute3/absoluteDirDir/element", "abc")
         .containsFile("some/folder/baz", "abc")
         .containsNoMoreFiles();
 
     assertThat(Files.isExecutable(two.resolve("foo"))).isTrue();
+    assertThat(Files.isExecutable(two.resolve("foo"))).isTrue();
     assertThat(Files.isExecutable(two.resolve("some/folder/bar"))).isFalse();
     assertThat(Files.readSymbolicLink(two.resolve("some/folder/baz")).toString())
         .isEqualTo(two.getFileSystem().getPath("../../foo").toString());
-    assertThat(Files.readSymbolicLink(two.resolve("some/folder/absolute")).toString())
-        .isEqualTo(absoluteTarget.toString());
+    // Symlink to a directory inside the root are symlinked
+    assertThat(Files.isSymbolicLink(two.resolve("dot"))).isTrue();
+    assertThat(Files.isSymbolicLink(two.resolve("some/multiple"))).isTrue();
+    // Anything outside of one/... is copied as a regular file
+    assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute"))).isFalse();
+    assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute2"))).isFalse();
+    assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute3"))).isFalse();
   }
 
   private Path touch(Path path) throws IOException {
