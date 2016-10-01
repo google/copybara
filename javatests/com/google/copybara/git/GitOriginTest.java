@@ -43,7 +43,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
@@ -56,6 +55,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitOriginTest {
 
+  private static final String commitTime = "2037-02-16T13:00:00Z";
   private String url;
   private String ref;
   private GitOrigin origin;
@@ -96,7 +96,7 @@ public class GitOriginTest {
     git("init");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
     git("add", "test.txt");
-    git("commit", "-m", "first file");
+    git("commit", "-m", "first file", "--date", commitTime);
     String head = git("rev-parse", "HEAD");
     // Remove new line
     firstCommitRef = head.substring(0, head.length() -1);
@@ -502,16 +502,11 @@ public class GitOriginTest {
 
   @Test
   public void testGitOriginTag() throws Exception {
-    // Use 20 seconds margin since we don't really care about the time but we want
-    // to ensure that we parse the date correctly.
-    Instant before = Instant.now().minusSeconds(10);
     git("tag", "-m", "This is a tag", "0.1");
-    Instant after = Instant.now().plusSeconds(10);
 
     Instant instant = origin.resolve("0.1").readTimestamp();
 
-    assertThat(instant).isAtLeast(before);
-    assertThat(instant).isAtMost(after);
+    assertThat(instant).isEqualTo(Instant.parse(commitTime));
   }
 
   private GitReference getLastCommitRef() throws RepoException {
