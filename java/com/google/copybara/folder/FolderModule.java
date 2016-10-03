@@ -81,7 +81,7 @@ public class FolderModule implements OptionsAwareModule {
           @Param(name = "self", type = FolderModule.class, doc = "this object"),
           @Param(name = "materialize_outside_symlinks", type = Boolean.class,
               doc = "By default folder.origin will refuse any symlink in the migration folder"
-                  + "that is an absolute symlink or that refers to a file outside of the folder."
+                  + " that is an absolute symlink or that refers to a file outside of the folder."
                   + " If this flag is set, it will materialize those symlinks as regular files"
                   + " in the checkout directory.", defaultValue = "False"),
       },
