@@ -45,4 +45,12 @@ public final class GitDestinationOptions implements Option {
   @Parameter(names = "--git-destination-url",
       description = "If set, overrides the git destination URL.")
   String url = null;
+
+  @Parameter(names = "--git-destination-fetch",
+      description = "If set, overrides the git destination fetch reference.")
+  String fetch = null;
+
+  @Parameter(names = "--git-destination-push",
+      description = "If set, overrides the git destination push reference.")
+  String push = null;
 }
