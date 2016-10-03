@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package com.google.copybara.testing;
+package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.config.CannotResolveLabel;
-import com.google.copybara.config.ConfigFile;
 import java.io.IOException;
 
-/**
- * A Config file implementation that uses a map for storing the internal data structure.
+/** A Config file implementation that uses a map for storing the internal data structure.
+ *
+ * <p>Assumes all paths to be absolute.
  */
 public class MapConfigFile extends ConfigFile<String> {
 
@@ -37,21 +36,31 @@ public class MapConfigFile extends ConfigFile<String> {
 
   @Override
   protected String relativeToRoot(String label) throws CannotResolveLabel {
-    return label;
+    return containsLabel(label);
   }
 
   @Override
   protected String relativeToCurrentPath(String label) throws CannotResolveLabel {
     int i = current.lastIndexOf("/");
-    return i == -1 ? label : current.substring(0, i) + "/" + label;
+    String resolved = i == -1 ? label : current.substring(0, i) + "/" + label;
+    return containsLabel(resolved);
   }
+
+  private String containsLabel(String resolved) throws CannotResolveLabel {
+    if (!configFiles.containsKey(resolved)) {
+      throw new CannotResolveLabel(
+          String.format("Cannot resolve '%s': does not exist.", resolved));
+    }
+    return resolved;
+  }
+
 
   @Override
   protected ConfigFile createConfigFile(String label, String resolved)
       throws CannotResolveLabel {
     if (!configFiles.containsKey(resolved)) {
       throw new CannotResolveLabel(
-          String.format("Cannot resolve '%s': '%s' doesn't exist", label, resolved));
+          String.format("Cannot resolve '%s': '%s' does not exist.", label, resolved));
     }
     return new MapConfigFile(configFiles, resolved);
   }

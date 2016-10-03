@@ -26,9 +26,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;
-import com.google.copybara.testing.MapConfigFile;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
@@ -638,7 +638,8 @@ public class WorkflowTest {
 
   private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
-        new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
+        new MapConfigFile(
+            ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
         options.build());
   }
 

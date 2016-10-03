@@ -25,6 +25,7 @@ import com.google.copybara.Config;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.ValidationException;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.util.console.testing.TestingConsole.MessageType;
