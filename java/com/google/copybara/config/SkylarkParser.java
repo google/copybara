@@ -31,7 +31,6 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Migration;
 import com.google.copybara.Options;
 import com.google.copybara.ValidationException;
-import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.util.console.Console;
@@ -102,6 +101,21 @@ public class SkylarkParser {
       throws IOException, ValidationException, InterruptedException {
     return new Evaluator(options).eval(content);
   }
+
+  /**
+   * Collect all ConfigFiles retrieved by the parser while loading {code config}.
+   * @param config Root file of the configuration.
+   * @return A map linking paths to the captured ConfigFiles
+   * @throws IOException If files cannot be read
+   * @throws ValidationException If config is invalid, references an invalid file or contains
+   *     dependency cycles.
+   */
+  public <T> ImmutableMap<String, ConfigFile<T>> getContentWithTransitiveImports(
+      ConfigFile<T> config, Options options) throws IOException, ValidationException {
+    CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<T>(config);
+    loadConfig(capturingConfigFile, options);
+    return capturingConfigFile.getAllLoadedFiles();
+  };
 
   /**
    * An utility class for traversing and evaluating the config file dependency graph.

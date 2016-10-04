@@ -56,7 +56,7 @@ public class MapConfigFile extends ConfigFile<String> {
 
 
   @Override
-  protected ConfigFile createConfigFile(String label, String resolved)
+  protected ConfigFile<String> createConfigFile(String label, String resolved)
       throws CannotResolveLabel {
     if (!configFiles.containsKey(resolved)) {
       throw new CannotResolveLabel(

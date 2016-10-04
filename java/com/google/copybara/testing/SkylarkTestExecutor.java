@@ -71,7 +71,17 @@ public final class SkylarkTestExecutor {
     return skylarkParser.loadConfig(createConfigFile(configContent), options.build());
   }
 
-  private ConfigFile createConfigFile(String configContent) {
+  public Map<String, ConfigFile<String>> getConfigMap(String configContent)
+      throws IOException, ValidationException {
+    return getConfigMap(createConfigFile(configContent));
+  }
+
+  public <T> Map<String, ConfigFile<T>> getConfigMap(ConfigFile<T> config)
+      throws IOException, ValidationException {
+    return skylarkParser.getContentWithTransitiveImports(config, options.build());
+  }
+
+  private ConfigFile<String> createConfigFile(String configContent) {
     return new MapConfigFile(
         new ImmutableMap.Builder<String, byte[]>()
             .putAll(extraConfigFiles)

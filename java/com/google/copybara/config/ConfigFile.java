@@ -39,7 +39,7 @@ public abstract class ConfigFile<T> {
    *
    * @throws CannotResolveLabel if the label cannot be resolved to a content
    */
-  public final ConfigFile resolve(String label) throws CannotResolveLabel {
+  public final ConfigFile<T> resolve(String label) throws CannotResolveLabel {
     boolean isAbsolute = label.startsWith("//");
     // Remove '//' for absolute paths
     checkNormalized(isAbsolute ? label.substring(2) : label);
@@ -81,7 +81,7 @@ public abstract class ConfigFile<T> {
   /**
    * Perform additional validations and construct a ConfigFile object
    */
-  protected abstract ConfigFile createConfigFile(String label, T resolved)
+  protected abstract ConfigFile<T> createConfigFile(String label, T resolved)
       throws CannotResolveLabel;
 
   private void checkNormalized(String label) throws CannotResolveLabel {

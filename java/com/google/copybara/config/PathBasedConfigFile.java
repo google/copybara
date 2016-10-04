@@ -66,7 +66,7 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
   }
 
   @Override
-  protected ConfigFile createConfigFile(String label, Path resolved)
+  protected ConfigFile<Path> createConfigFile(String label, Path resolved)
       throws CannotResolveLabel {
     if (!Files.exists(resolved)) {
       throw new CannotResolveLabel(

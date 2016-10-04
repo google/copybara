@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Authoring;
 import com.google.copybara.Config;
 import com.google.copybara.Destination;
@@ -46,7 +47,12 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -80,15 +86,25 @@ public class SkylarkParserTest {
     parser.loadConfig("");
   }
 
-  /**
-   * This test checks that we can load a basic Copybara config file. This config file uses almost
-   * all the features of the structure of the config file. Apart from that we include some testing
-   * coverage on global values.
-   */
-  @Test
-  public void testParseConfigFile()
-      throws IOException, ValidationException {
-    String configContent = ""
+  private String setUpInclusionTest() {
+    parser.addExtraConfigFile(
+        "foo/authoring.bara.sky",
+        ""
+            + "load('bar', 'bar')\n"
+            + "load('bar/foo', 'foobar')\n"
+            + "baz=bar\n"
+            + "def copy_author():\n"
+            + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
+    parser.addExtraConfigFile(
+        "foo/bar.bara.sky",
+        ""
+            + "bar=42\n"
+            + "load('bar/foo', 'foobar')\n"
+            + "def copy_author():\n"
+            + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
+    parser.addExtraConfigFile("foo/bar/foo.bara.sky", "foobar=42\n");
+    options.setWorkflowName("foo42");
+    return ""
         + "load('//foo/authoring','copy_author', 'baz')\n"
         + "some_url=\"https://so.me/random/url\"\n"
         + "\n"
@@ -113,18 +129,16 @@ public class SkylarkParserTest {
         + "   exclude_in_origin = glob(['**/*.java']),\n"
         + "   exclude_in_destination = glob(['**/BUILD'], exclude = ['foo/BUILD']),\n"
         + ")\n";
+  }
 
-    options.setWorkflowName("foo42");
-    parser.addExtraConfigFile("foo/authoring.bara.sky", ""
-        + "load('bar', 'bar')\n"
-        + "baz=bar\n"
-        + "def copy_author():\n"
-        + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
-    parser.addExtraConfigFile("foo/bar.bara.sky", ""
-        + "bar=42\n"
-        + "def copy_author():\n"
-        + "  return authoring.overwrite('Copybara <no-reply@google.com>')"
-    );
+  /**
+   * This test checks that we can load a basic Copybara config file. This config file uses almost
+   * all the features of the structure of the config file. Apart from that we include some testing
+   * coverage on global values.
+   */
+  @Test
+  public void testParseConfigFile() throws IOException, ValidationException {
+    String configContent = setUpInclusionTest();
     Config config = parser.loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
@@ -146,6 +160,38 @@ public class SkylarkParserTest {
     MockTransform transformation2 = (MockTransform) transformations.get(1);
     assertThat(transformation2.field1).isEqualTo("baz");
     assertThat(transformation2.field2).isEqualTo("bee");
+
+  }
+
+  /** This test checks that we can load the transitive includes of a config file. */
+  @Test
+  public void testLoadImportsOfConfigFile() throws Exception {
+    String configContent = setUpInclusionTest();
+    Map<String, ConfigFile<String>> includeMap = parser.getConfigMap(configContent);
+    assertThat(includeMap).containsKey("copy.bara.sky");
+    assertThat(includeMap).containsKey("foo/authoring.bara.sky");
+    assertThat(includeMap).containsKey("foo/bar.bara.sky");
+    assertThat(includeMap).containsKey("foo/bar/foo.bara.sky");
+  }
+
+  /** Test that a dependency tree can be used as input for creating an equivalent tree */
+  @Test
+  public void testLoadImportsIdempotent() throws Exception {
+    String configContent = setUpInclusionTest();
+    Map<String, ConfigFile<String>> includeMap = parser.getConfigMap(configContent);
+    Map<String, byte[]> contentMap = new HashMap<>();
+    Map<String, String> stringContentMap = new HashMap<>();
+    for (Entry<String, ConfigFile<String>> entry : includeMap.entrySet()) {
+      contentMap.put(entry.getKey(), entry.getValue().content());
+      stringContentMap.put(entry.getKey(), content(entry.getValue()));
+    }
+    ConfigFile<String> derivedConfig =
+        new MapConfigFile(ImmutableMap.<String, byte[]>copyOf(contentMap), "copy.bara.sky");
+    Map<String, String> derivedContentMap = new HashMap<>();
+    for (Entry<String, ConfigFile<String>> entry : parser.getConfigMap(derivedConfig).entrySet()) {
+      derivedContentMap.put(entry.getKey(), content(entry.getValue()));
+    }
+    assertThat(derivedContentMap).isEqualTo(stringContentMap);
   }
 
   private Workflow<?> getActiveWorkflow(Config config) {
@@ -153,13 +199,21 @@ public class SkylarkParserTest {
   }
 
   @Test
-  public void testParseConfigCycleError()
-      throws IOException, ValidationException {
+  public void testParseConfigCycleError() throws Exception {
+    parseConfigCycleErrorTestHelper(() -> parser.loadConfig("load('//foo','foo')"));
+  }
+
+  @Test
+  public void testLoadConfigFileAndTransitiveDepsCycle() throws Exception {
+    parseConfigCycleErrorTestHelper(() -> parser.getConfigMap("load('//foo','foo')"));
+  }
+
+  public void parseConfigCycleErrorTestHelper(Callable<?> callable) throws Exception {
     options.setWorkflowName("foo42");
     try {
       parser.addExtraConfigFile("foo.bara.sky", "load('//bar', 'bar')");
       parser.addExtraConfigFile("bar.bara.sky", "load('//copy', 'copy')");
-      parser.loadConfig("load('//foo','foo')");
+      callable.call();
       fail();
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Cycle was detected");
@@ -241,9 +295,11 @@ public class SkylarkParserTest {
     }
   }
 
-  @Test
-  public void testResolveLabel() throws Exception {
-    String configContent = ""
+  private String prepareResolveLabelTest() {
+    parser.addExtraConfigFile("foo", "stuff_in_foo");
+    parser.addExtraConfigFile("bar", "stuff_in_bar");
+
+    return ""
         + "core.project(name = mock_labels_aware_module.read_foo())\n"
         + "\n"
         + "core.workflow(\n"
@@ -257,9 +313,20 @@ public class SkylarkParserTest {
         + "   ),\n"
         + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
         + ")\n";
+  }
 
-    parser.addExtraConfigFile("foo", "stuff_in_foo");
-    Config config = parser.loadConfig(configContent);
+  @Test
+  public void testResolveLabelDeps() throws Exception {
+    String content = prepareResolveLabelTest();
+    Map<String, ConfigFile<String>> deps = parser.getConfigMap(content);
+    assertThat(deps).hasSize(2);
+    assertThat(content(deps.get("copy.bara.sky"))).isEqualTo(content);
+    assertThat(content(deps.get("foo"))).isEqualTo("stuff_in_foo");
+  }
+
+  @Test
+  public void testResolveLabel() throws Exception {
+    Config config = parser.loadConfig(prepareResolveLabelTest());
     assertThat(config.getName()).isEqualTo("stuff_in_foo");
   }
 
@@ -362,6 +429,10 @@ public class SkylarkParserTest {
             Type.STRING_LIST.convert(list, "list"));
       }
     };
+  }
+
+  private String content(ConfigFile<?> file) throws Exception {
+    return new String(file.content(), UTF_8);
   }
 
   public static class MockOrigin implements Origin<Reference> {
