@@ -97,8 +97,8 @@ public class MetadataModuleTest {
 
   private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
-        new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8))
-            , "copy.bara.sky"),
+        new MapConfigFile(
+            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"),
         options.build());
   }
 
