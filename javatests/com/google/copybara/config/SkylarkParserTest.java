@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
