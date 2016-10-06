@@ -84,12 +84,9 @@ public class LogConsole implements Console {
   public boolean promptConfirmation(String message) throws IOException {
     Preconditions.checkState(input != null,
         "LogConsole cannot read user input if system console is not present.");
-    return new ConsolePrompt(input, new PromptPrinter() {
-      @Override
-      public void print(String message) {
-        output.print(dateFormat.format(new Date()) + " WARN: " + message + " [y/n] ");
-      }
-    }).promptConfirmation(message);
+    return new ConsolePrompt(input,
+        msg -> output.print(dateFormat.format(new Date()) + " WARN: " + msg + " [y/n] "))
+        .promptConfirmation(message);
   }
 
   @Override

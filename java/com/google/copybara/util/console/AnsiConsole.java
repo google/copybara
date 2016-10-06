@@ -94,13 +94,10 @@ public final class AnsiConsole implements Console {
 
   @Override
   public boolean promptConfirmation(String message) throws IOException {
-    return new ConsolePrompt(input, new PromptPrinter() {
-      @Override
-      public void print(String message) {
-        synchronized (lock) {
-          lastWasProgress = false;
-          output.print(YELLOW.write("WARN: ") + message + " [y/n] ");
-        }
+    return new ConsolePrompt(input, msg -> {
+      synchronized (lock) {
+        lastWasProgress = false;
+        output.print(YELLOW.write("WARN: ") + msg + " [y/n] ");
       }
     }).promptConfirmation(message);
   }
