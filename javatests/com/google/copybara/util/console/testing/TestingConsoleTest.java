@@ -19,8 +19,8 @@ package com.google.copybara.util.console.testing;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.LogSubjects.LogSubject;
-import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

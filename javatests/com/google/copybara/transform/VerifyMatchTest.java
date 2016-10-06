@@ -8,6 +8,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -87,7 +88,7 @@ public final class VerifyMatchTest {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("1 file(s) failed the validation of Verify match 'foo'.");
     transform(transformation);
-    console.assertThat().onceInLog(TestingConsole.MessageType.ERROR,
+    console.assertThat().onceInLog(MessageType.ERROR,
         "File '/file1.txt' failed validation 'Verify match foo'");
   }
 
@@ -101,7 +102,7 @@ public final class VerifyMatchTest {
     writeFile(file1, "foo");
     thrown.expect(ValidationException.class);
     transform(transformation);
-    console.assertThat().onceInLog(TestingConsole.MessageType.ERROR,
+    console.assertThat().onceInLog(MessageType.ERROR,
         "File '/file1.txt' failed validation 'Verify match foo'");
   }
 
@@ -125,9 +126,9 @@ public final class VerifyMatchTest {
     prepareGlobTree();
     thrown.expect(ValidationException.class);
     transform(transformation);
-    console.assertThat().onceInLog(TestingConsole.MessageType.ERROR,
+    console.assertThat().onceInLog(MessageType.ERROR,
         "File '/file1.txt' failed validation 'Verify match foo'");
-    console.assertThat().onceInLog(TestingConsole.MessageType.ERROR,
+    console.assertThat().onceInLog(MessageType.ERROR,
         "File 'folder/file1.txt' failed validation 'Verify match foo'");
   }
 

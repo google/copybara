@@ -19,55 +19,31 @@ package com.google.copybara.util.console.testing;
 import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.console.AnsiColor;
-import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.CapturingConsole;
 import com.google.copybara.util.console.LogConsole;
 import java.io.IOException;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 
 /**
- * A testing console that allows programming the user input and intercepts all the messages.
+ * A testing console that allows programming the user input and deletages on a
+ * {@link CapturingConsole} to intercept all the messages.
  *
  * <p>It also writes the output to a {@link LogConsole} for debug.
  */
-public final class TestingConsole implements Console {
-
-  public static final class Message {
-    private final MessageType type;
-    private final String text;
-
-    @Override
-    public String toString() {
-      return type + ": " + text;
-    }
-
-    Message(MessageType type, String text) {
-      this.type = type;
-      this.text = text;
-    }
-
-    public MessageType getType() {
-      return type;
-    }
-
-    public String getText() {
-      return text;
-    }
-  }
+public final class TestingConsole extends CapturingConsole {
 
   private enum PromptResponse {
     YES, NO,
   }
 
-  public enum MessageType {
-    ERROR, WARNING, INFO, PROGRESS
-  }
-
-  private final Console outputConsole = LogConsole.writeOnlyConsole(System.out);
+  private final CapturingConsole outputConsole =
+      CapturingConsole.captureAllConsole(LogConsole.writeOnlyConsole(System.out));
   private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
-  private final ArrayList<Message> messages = new ArrayList<>();
+
+  public TestingConsole() {
+    super(CapturingConsole.captureAllConsole(LogConsole.writeOnlyConsole(System.out)), ALL_TYPES);
+  }
 
   public TestingConsole respondYes() {
     this.programmedResponses.addLast(PromptResponse.YES);
@@ -77,13 +53,6 @@ public final class TestingConsole implements Console {
   public TestingConsole respondNo() {
     this.programmedResponses.addLast(PromptResponse.NO);
     return this;
-  }
-
-  /**
-   * Returns the list of messages in the original order that they were logged.
-   */
-  public ImmutableList<Message> getMessages() {
-    return ImmutableList.copyOf(messages);
   }
 
   /**
@@ -102,37 +71,9 @@ public final class TestingConsole implements Console {
   }
 
   @Override
-  public void startupMessage() {
-    outputConsole.startupMessage();
-  }
-
-  @Override
-  public void error(String message) {
-    messages.add(new Message(MessageType.ERROR, message));
-    outputConsole.error(message);
-  }
-
-  @Override
-  public void warn(String message) {
-    messages.add(new Message(MessageType.WARNING, message));
-    outputConsole.warn(message);
-  }
-
-  @Override
-  public void info(String message) {
-    messages.add(new Message(MessageType.INFO, message));
-    outputConsole.warn(message);
-  }
-
-  @Override
-  public void progress(String message) {
-    messages.add(new Message(MessageType.PROGRESS, message));
-    outputConsole.progress(message);
-  }
-
-  @Override
   public boolean promptConfirmation(String message) throws IOException {
     Preconditions.checkState(!programmedResponses.isEmpty(), "No more programmed responses.");
+    // Validate prompt messages with WARN level in tests
     warn(message);
     return programmedResponses.removeFirst() == PromptResponse.YES;
   }

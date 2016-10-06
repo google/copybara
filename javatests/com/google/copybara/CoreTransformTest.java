@@ -22,6 +22,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -95,8 +96,8 @@ public final class CoreTransformTest {
     transform(transform);
 
     console.assertThat()
-        .onceInLog(TestingConsole.MessageType.PROGRESS, "\\[ *1/ *2\\] Transform Moving file1")
-        .onceInLog(TestingConsole.MessageType.PROGRESS, "\\[ *2/ *2\\] Transform Moving file2");
+        .onceInLog(MessageType.PROGRESS, "\\[ *1/ *2\\] Transform Moving file1")
+        .onceInLog(MessageType.PROGRESS, "\\[ *2/ *2\\] Transform Moving file2");
   }
 
   @Test

@@ -16,6 +16,7 @@
 
 package com.google.copybara.util.console;
 
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,8 +46,8 @@ public final class ConsolesTest {
         + "hello\n"
         + "goodbye\n");
     console.assertThat()
-        .equalsNext(TestingConsole.MessageType.INFO, "fooprefix-hello")
-        .equalsNext(TestingConsole.MessageType.INFO, "fooprefix-goodbye")
+        .equalsNext(MessageType.INFO, "fooprefix-hello")
+        .equalsNext(MessageType.INFO, "fooprefix-goodbye")
         .containsNoMoreMessages();
   }
 
@@ -54,7 +55,7 @@ public final class ConsolesTest {
   public void logLines_oneEmptyLine() {
     Consoles.logLines(console, "fooprefix-", "\n");
     console.assertThat()
-        .equalsNext(TestingConsole.MessageType.INFO, "fooprefix-")
+        .equalsNext(MessageType.INFO, "fooprefix-")
         .containsNoMoreMessages();
   }
 
@@ -65,9 +66,9 @@ public final class ConsolesTest {
         + "\n"
         + "y\n");
     console.assertThat()
-        .equalsNext(TestingConsole.MessageType.INFO, "fooprefix-x")
-        .equalsNext(TestingConsole.MessageType.INFO, "fooprefix-")
-        .equalsNext(TestingConsole.MessageType.INFO, "fooprefix-y")
+        .equalsNext(MessageType.INFO, "fooprefix-x")
+        .equalsNext(MessageType.INFO, "fooprefix-")
+        .equalsNext(MessageType.INFO, "fooprefix-y")
         .containsNoMoreMessages();
   }
 }

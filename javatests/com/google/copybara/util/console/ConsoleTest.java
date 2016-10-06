@@ -19,8 +19,8 @@ package com.google.copybara.util.console;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.copybara.util.console.testing.TestingConsole.MessageType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -110,6 +110,62 @@ public class ConsoleTest {
 
     delegate.assertThat()
         .matchesNext(MessageType.PROGRESS, "FOO bar")
+        .containsNoMoreMessages();
+  }
+
+  @Test
+  public void captureAllConsole() throws Exception {
+    TestingConsole delegate = new TestingConsole()
+        .respondYes();
+    CapturingConsole console = CapturingConsole.captureAllConsole(delegate);
+
+    console.error("This is error!");
+    console.warn("This is warning");
+    console.info("This is info");
+    console.progress("This is progress");
+    console.promptConfirmation("Do you want to continue?");
+
+    assertThat(console.getMessages()).containsExactly(
+        new Message(MessageType.ERROR, "This is error!"),
+        new Message(MessageType.WARNING, "This is warning"),
+        new Message(MessageType.INFO, "This is info"),
+        new Message(MessageType.PROGRESS, "This is progress"),
+        new Message(MessageType.PROMPT, "Do you want to continue?"));
+
+    delegate.assertThat()
+        .matchesNext(MessageType.ERROR, "This is error!")
+        .matchesNext(MessageType.WARNING, "This is warning")
+        .matchesNext(MessageType.INFO, "This is info")
+        .matchesNext(MessageType.PROGRESS, "This is progress")
+        // TestingConsole registers prompt as a warning
+        .matchesNext(MessageType.WARNING, "Do you want to continue[?]")
+        .containsNoMoreMessages();
+  }
+
+  @Test
+  public void captureOnlyConsole() throws Exception {
+    TestingConsole delegate = new TestingConsole()
+        .respondYes();
+    CapturingConsole console =
+        CapturingConsole.captureOnlyConsole(delegate, MessageType.ERROR, MessageType.WARNING);
+
+    console.error("This is error!");
+    console.warn("This is warning");
+    console.info("This is info");
+    console.progress("This is progress");
+    console.promptConfirmation("Do you want to continue?");
+
+    assertThat(console.getMessages()).containsExactly(
+        new Message(MessageType.ERROR, "This is error!"),
+        new Message(MessageType.WARNING, "This is warning"));
+
+    delegate.assertThat()
+        .matchesNext(MessageType.ERROR, "This is error!")
+        .matchesNext(MessageType.WARNING, "This is warning")
+        .matchesNext(MessageType.INFO, "This is info")
+        .matchesNext(MessageType.PROGRESS, "This is progress")
+        // TestingConsole registers prompt as a warning
+        .matchesNext(MessageType.WARNING, "Do you want to continue[?]")
         .containsNoMoreMessages();
   }
 
