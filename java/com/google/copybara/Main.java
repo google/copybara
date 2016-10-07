@@ -113,7 +113,6 @@ public class Main {
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
           copybara.validate(options, configFile, mainArgs.getWorkflowName());
-          console.info("Configuration validated.");
           break;
         case MIGRATE:
           copybara.run(
@@ -124,14 +123,7 @@ public class Main {
               mainArgs.getSourceRef());
           break;
         case INFO:
-          Info info = copybara.info(options, configFile, mainArgs.getWorkflowName());
-          for (MigrationReference ref : info.migrationReferences()) {
-            console.info(
-                String.format("'%s': last_migrated %s - next_to_migrate %s.",
-                    ref.getLabel(),
-                    ref.getLastMigrated() != null ? ref.getLastMigrated().asString() : "None",
-                    ref.getNextToMigrate() != null ? ref.getNextToMigrate().asString() : "None"));
-          }
+          copybara.info(options, configFile, mainArgs.getWorkflowName());
           break;
         default:
           console.error(String.format("Subcommand %s not implemented.", mainArgs.getSubcommand()));

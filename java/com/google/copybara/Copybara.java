@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.folder.FolderDestinationOptions;
@@ -75,17 +76,27 @@ public class Copybara {
     config.getActiveMigration().run(baseWorkdir, sourceRef);
   }
 
-  public Info info(Options options, ConfigFile configContents, String workflowName)
+  public void info(Options options, ConfigFile configContents, String workflowName)
       throws IOException, ValidationException, RepoException {
+    Console console = options.get(GeneralOptions.class).console();
     Config config = getConfig(options, configContents, workflowName);
-    return config.getActiveMigration().getInfo();
+    Info info = config.getActiveMigration().getInfo();
+    for (MigrationReference ref : info.migrationReferences()) {
+      console.info(
+          String.format("'%s': last_migrated %s - next_to_migrate %s.",
+              ref.getLabel(),
+              ref.getLastMigrated() != null ? ref.getLastMigrated().asString() : "None",
+              ref.getNextToMigrate() != null ? ref.getNextToMigrate().asString() : "None"));
+    }
   }
 
   public void validate(Options options, ConfigFile configContent, String workflowName)
       throws RepoException, ValidationException, IOException {
+    Console console = options.get(GeneralOptions.class).console();
     options.get(WorkflowOptions.class).setWorkflowName(workflowName);
     Config config = skylarkParser.loadConfig(configContent, options);
     validateConfig(options, config);
+    console.info("Configuration validated.");
   }
 
   private Config getConfig(Options options, ConfigFile configContents, String workflowName)
