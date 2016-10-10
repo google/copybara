@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.RepoException;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -72,5 +73,22 @@ public final class GitReference implements Reference {
   @Override
   public String toString() {
     return reference;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    GitReference that = (GitReference) o;
+    return Objects.equals(reference, that.reference);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(reference);
   }
 }

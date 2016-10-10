@@ -65,8 +65,8 @@ public class Mirror implements Migration {
         .collect(Collectors.toList());
 
     generalOptions.console().progress("Fetching from " + origin);
-    repo.simpleCommand(Iterables.toArray(Iterables.concat(
-        ImmutableList.of("fetch", "-p", origin), fetchRefspecs), String.class));
+
+    repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
 
     List<String> pushRefspecs = refspec.stream()
         .map(r ->

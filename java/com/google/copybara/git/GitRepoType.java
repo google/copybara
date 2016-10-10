@@ -53,7 +53,7 @@ public enum GitRepoType {
       logger.log(Level.INFO, "Resolving " + repoUrl + " reference: " + ref);
       if (!GIT_URL.matcher(ref).matches() && !FILE_URL.matcher(ref).matches()) {
         // If ref is not an url try a normal fetch of repoUrl and ref
-        return repository.fetch(repoUrl, ref);
+        return repository.fetchSingleRef(repoUrl, ref);
       }
       String msg = "Git origin URL overwritten in the command line as " + ref;
       console.warn(msg);
@@ -67,9 +67,9 @@ public enum GitRepoType {
 
       // Treat "http://someurl ref" as a url and a reference. This
       if (spaceIdx != -1) {
-        return repository.fetch(ref.substring(0, spaceIdx), ref.substring(spaceIdx + 1));
+        return repository.fetchSingleRef(ref.substring(0, spaceIdx), ref.substring(spaceIdx + 1));
       }
-      return repository.fetch(ref, "HEAD");
+      return repository.fetchSingleRef(ref, "HEAD");
     }
   },
   @DocField(description = "A git repository hosted in Github")
@@ -110,7 +110,8 @@ public enum GitRepoType {
       throws RepoException {
     Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
     if (matcher.matches()) {
-      return repository.fetch(matcher.group("url"), "refs" + matcher.group("pull") + "/head");
+      return repository.fetchSingleRef(
+          matcher.group("url"), "refs" + matcher.group("pull") + "/head");
     }
     return null;
   }

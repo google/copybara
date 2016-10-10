@@ -18,7 +18,13 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.copybara.RepoException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,10 +39,69 @@ public class GitRepositoryTest {
   public final ExpectedException thrown = ExpectedException.none();
 
   private GitRepository repository;
+  private Path workdir;
 
   @Before
   public void setup() throws Exception {
-    this.repository = GitRepository.initScratchRepo(/*verbose=*/true, System.getenv());
+    workdir = Files.createTempDirectory("workdir");
+    this.repository = GitRepository.initScratchRepo(/*verbose=*/true, System.getenv())
+        .withWorkTree(workdir);
+  }
+
+  @Test
+  public void testShowRef() throws RepoException, IOException {
+    GitRepository repo = repository.withWorkTree(workdir);
+    repo.initGitDir();
+    ImmutableMap<String, GitReference> before = repo.showRef();
+
+    assertThat(before).isEmpty();
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repo.simpleCommand("add", "foo.txt");
+    repo.simpleCommand("commit", "foo.txt", "-m", "message");
+    repo.simpleCommand("branch", "bar");
+    ImmutableMap<String, GitReference> after = repo.showRef();
+
+    assertThat(after.keySet()).containsExactly("refs/heads/master", "refs/heads/bar");
+
+    // All the refs point to the same commit.
+    assertThat(ImmutableSet.of(after.values())).hasSize(1);
+  }
+
+  @Test
+  public void testFetch() throws RepoException, IOException {
+    GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
+        System.getenv(), /*verbose=*/true);
+    dest.initGitDir();
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.simpleCommand("add", "foo.txt");
+    repository.simpleCommand("commit", "foo.txt", "-m", "message");
+    repository.simpleCommand("branch", "deleted");
+    repository.simpleCommand("branch", "unchanged");
+
+    String fetchUrl = "file://" + repository.getGitDir();
+
+    FetchResult result = dest.fetch(fetchUrl,/*prune=*/true, /*force=*/true,
+        ImmutableList.of("refs/*:refs/*"));
+
+    assertThat(result.getDeleted()).isEmpty();
+    assertThat(result.getUpdated()).isEmpty();
+    assertThat(result.getInserted().keySet()).containsExactly(
+        "refs/heads/master",
+        "refs/heads/deleted",
+        "refs/heads/unchanged");
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{42});
+    repository.simpleCommand("commit", "foo.txt", "-m", "message2");
+    repository.simpleCommand("branch", "-D", "deleted");
+
+    result = dest.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
+        ImmutableList.of("refs/*:refs/*"));
+
+    assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
+    assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/master");
+    assertThat(result.getInserted()).isEmpty();
   }
 
   @Test

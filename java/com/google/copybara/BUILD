@@ -115,6 +115,7 @@ java_library(
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
+        "//third_party:re2j",
         "//third_party:shell",
         "//third_party:skylark-lang",
     ],

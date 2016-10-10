@@ -21,8 +21,11 @@ import static com.google.copybara.util.CommandUtil.executeCommand;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
@@ -33,6 +36,8 @@ import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -42,14 +47,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 /**
  * A class for manipulating Git repositories
  */
 public class GitRepository {
+
+  private static final Pattern FULL_URI = Pattern.compile("^[a-z][a-z0-9+-]+://.*$");
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
 
@@ -140,7 +145,9 @@ public class GitRepository {
       String refspec) throws EvalException {
     try {
       executeCommand(new Command(
-          new String[]{resolveGitBinary(env), "check-ref-format", "--refspec-pattern", refspec},
+          new String[]{resolveGitBinary(env), "check-ref-format",
+              "--allow-onelevel",
+              "--refspec-pattern", refspec},
           env, cwd.toFile()), /*verbose=*/false);
     } catch (BadExitStatusWithOutputException e) {
       throw new EvalException(location, "Invalid refspec: " + refspec);
@@ -156,7 +163,7 @@ public class GitRepository {
    * locations. IOW
    * "refs/foo" is allowed but not "refs/foo:remote/origin/foo". Wildcards are also not allowed.
    */
-  public GitReference fetch(String url, String ref) throws RepoException {
+  public GitReference fetchSingleRef(String url, String ref) throws RepoException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotFindReferenceException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
@@ -168,11 +175,82 @@ public class GitRepository {
     if (isSha1Reference(ref)) {
       // TODO(copybara-team): For now we get the default refspec, but we should make this
       // configurable. Otherwise it is not going to work with Gerrit.
-      simpleCommand("fetch", "-f", url);
+      fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of());
       return resolveReference(ref);
     }
-    simpleCommand("fetch", "-f", url, ref);
+    fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(ref));
     return resolveReference("FETCH_HEAD");
+  }
+
+  /**
+   * Fetch zero or more refspecs in the local repository
+   *
+   * @param url remote git repository url
+   * @param prune if remotely non-present refs should be deleted locally
+   * @param force force updates even for non fast-forward updates
+   * @param refspecs a set refspecs in the form of 'foo' for branches, 'refs/some/ref' or
+   * 'refs/foo/bar:refs/bar/foo'.
+   * @return the set of fetched references and what action was done ( rejected, new reference,
+   * updated, etc.)
+   */
+  FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
+      throws RepoException {
+
+    List<String> args = Lists.newArrayList("fetch", validateUrl(url));
+    args.add("--verbose");
+    if (prune) {
+      args.add("-p");
+    }
+    if (force) {
+      args.add("-f");
+    }
+    for (String ref : refspecs) {
+      try {
+        // Validate refspec
+        Refspec.create(environment, gitDir, ref,/*location=*/null);
+      } catch (EvalException e) {
+        throw new RepoException("Invalid refspec passed to fetch: " + e);
+      }
+      args.add(ref);
+    }
+
+    ImmutableMap<String, GitReference> before = showRef();
+    simpleCommand(args);
+    ImmutableMap<String, GitReference> after = showRef();
+    return new FetchResult(before, after);
+  }
+
+  // TODO(team): Use JGit URIish.java
+  private String validateUrl(String url) {
+    Preconditions.checkState(FULL_URI.matcher(url).matches(), "URL '%s' is not valid", url);
+    return url;
+  }
+
+  /**
+   * Execute show-ref git command in the local repository and returns a map from reference name to
+   * GitReference(SHA-1).
+   */
+  ImmutableMap<String, GitReference> showRef() throws RepoException {
+    ImmutableMap.Builder<String, GitReference> result = ImmutableMap.builder();
+    CommandOutput commandOutput = simpleCommand(ImmutableList.of("show-ref"),
+        /*badExitCodeAllowed=*/true);
+
+    if (!commandOutput.getStderr().isEmpty()) {
+      throw new RepoException(String.format(
+          "Error executing show-ref on %s git repo:\n%s", getGitDir(), commandOutput.getStderr()));
+    }
+
+    for (String line : Splitter.on("\n").split(commandOutput.getStdout())) {
+      if (line.isEmpty()) {
+        continue;
+      }
+      List<String> strings = Splitter.on(' ').splitToList(line);
+      Preconditions.checkState(strings.size() == 2
+          && SHA1_PATTERN.matcher(strings.get(0)).matches(), "Cannot parse line: '%s'", line);
+      // Ref -> SHA1
+      result.put(strings.get(1), new GitReference(this, strings.get(0)));
+    }
+    return result.build();
   }
 
   /**
@@ -232,9 +310,21 @@ public class GitRepository {
    * <p>Git commands usually write to stdout, but occasionally they write to stderr. It's
    * responsibility of the client to consume the output from the correct source.
    *
+   * <p>WARNING: Please consider creating a higher level function instead of calling this method.
+   * At some point we will deprecate.
+   *
    * @param argv the arguments to pass to {@code git}, starting with the sub-command name
    */
   public CommandOutput simpleCommand(String... argv) throws RepoException {
+    return simpleCommand(Arrays.asList(argv));
+  }
+
+  CommandOutput simpleCommand(Iterable<String> argv) throws RepoException {
+    return simpleCommand(argv, /*badExitCodeAllowed=*/false);
+  }
+
+  private CommandOutput simpleCommand(Iterable<String> argv, boolean badExitCodeAllowed)
+      throws RepoException {
     Preconditions.checkState(Files.isDirectory(gitDir),
         "git repository dir '%s' doesn't exist or is not a directory", gitDir);
 
@@ -247,9 +337,9 @@ public class GitRepository {
       allArgv.add("--work-tree=" + workTree);
     }
 
-    allArgv.addAll(Arrays.asList(argv));
+    Iterables.addAll(allArgv, argv);
 
-    return git(cwd, allArgv);
+    return git(cwd, allArgv, badExitCodeAllowed);
   }
 
   /**
@@ -277,7 +367,7 @@ public class GitRepository {
    * @param params the argv to pass to Git, excluding the initial {@code git}
    */
   public CommandOutput git(Path cwd, String... params) throws RepoException {
-    return git(cwd, Arrays.asList(params));
+    return git(cwd, Arrays.asList(params), /*badExitCodeAllowed=*/false);
   }
 
   /**
@@ -291,8 +381,12 @@ public class GitRepository {
    *
    * @param cwd the directory in which to execute the command
    * @param params params the argv to pass to Git, excluding the initial {@code git}
+   * @param badExitCodeAllowed if a non-zero exit code is allowed. Even if this flag is set to true
+   * it will only allow program non-zero exit codes(0-10. The upper bound is arbitrary). And will
+   * still fail for exit codes like 127 (Command not found).
    */
-  public CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
+  public CommandOutput git(Path cwd, Iterable<String> params, boolean badExitCodeAllowed)
+      throws RepoException {
     List<String> allParams = new ArrayList<>();
     allParams.add(resolveGitBinary(environment));
     Iterables.addAll(allParams, params);
@@ -306,6 +400,10 @@ public class GitRepository {
       throw new RepoException("Error on git command: " + commandOutputWithStatus.getStderr());
     } catch (BadExitStatusWithOutputException e) {
       CommandOutput output = e.getOutput();
+      int exitCode = e.getOutput().getTerminationStatus().getExitCode();
+      if (badExitCodeAllowed && exitCode > 0 && exitCode <= 10) {
+        return output;
+      }
 
       if (FAILED_REBASE.matcher(output.getStderr()).find()) {
         System.out.println(output.getStdout());

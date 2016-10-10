@@ -239,7 +239,7 @@ public final class GitDestination implements Destination {
   private GitRepository cloneBaseline() throws RepoException {
     GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment);
     try {
-      scratchClone.simpleCommand("fetch", repoUrl, fetch);
+      scratchClone.fetchSingleRef(repoUrl, fetch);
       if (destinationOptions.firstCommit) {
         throw new RepoException("'" + fetch + "' already exists in '" + repoUrl + "'.");
       }

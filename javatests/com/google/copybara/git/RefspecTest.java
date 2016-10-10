@@ -59,8 +59,8 @@ public class RefspecTest {
   @Test
   public void testNonValid() throws EvalException {
     thrown.expect(EvalException.class);
-    thrown.expectMessage("Invalid refspec: 1234");
-    refspec("1234");
+    thrown.expectMessage("Invalid refspec: aa bb");
+    refspec("aa bb");
   }
 
   @Test

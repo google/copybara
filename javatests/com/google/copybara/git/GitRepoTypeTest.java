@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.console.Message.MessageType;
@@ -54,11 +55,12 @@ public class GitRepoTypeTest {
        * Avoid calling github or any external network call
        */
       @Override
-      public CommandOutput simpleCommand(String... argv) throws RepoException {
-        if (argv[0].equals("fetch")) {
-          interceptedFetches.add(argv);
+      public CommandOutput simpleCommand(Iterable<String> argv) throws RepoException {
+        String first = Iterables.getFirst(argv, null);
+        if ("fetch".equals(first)) {
+          interceptedFetches.add(Iterables.toArray(argv, String.class));
           return new CommandOutput(new byte[]{}, new byte[]{});
-        } else if (argv[0].equals("rev-parse")) {
+        } else if ("rev-parse".equals(first)) {
           return new CommandOutput((Strings.repeat("0", 40) + "\n").getBytes(), new byte[]{});
         }
         return super.simpleCommand(argv);
@@ -158,6 +160,6 @@ public class GitRepoTypeTest {
   private void assertFetch(String url, String reference) {
     assertThat(interceptedFetches).hasSize(1);
     assertThat(interceptedFetches.getFirst())
-        .isEqualTo(new String[]{"fetch", "-f", url, reference});
+        .isEqualTo(new String[]{"fetch", url, "--verbose", "-f", reference});
   }
 }
