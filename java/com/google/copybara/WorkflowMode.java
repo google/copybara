@@ -46,7 +46,7 @@ public enum WorkflowMode {
   @DocField(description = "Create a single commit in the destination with new tree state.")
   SQUASH {
     @Override
-    <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
+    <R extends Origin.Reference> void run(Workflow<R>.RunHelper<R> runHelper)
         throws RepoException, IOException, ValidationException {
 
       runHelper.migrate(
@@ -65,7 +65,7 @@ public enum WorkflowMode {
   @DocField(description = "Import each origin change individually.")
   ITERATIVE {
     @Override
-    <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
+    <R extends Origin.Reference> void run(Workflow<R>.RunHelper<R> runHelper)
         throws RepoException, IOException, ValidationException {
       ImmutableList<Change<R>> changes = runHelper.changesSinceLastImport();
       int changeNumber = 1;
@@ -106,7 +106,7 @@ public enum WorkflowMode {
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
     @Override
-    <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
+    <R extends Origin.Reference> void run(Workflow<R>.RunHelper<R> runHelper)
         throws RepoException, IOException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
@@ -142,7 +142,7 @@ public enum WorkflowMode {
 
   private static final Logger logger = Logger.getLogger(WorkflowMode.class.getName());
 
-  abstract <R extends Origin.Reference> void run(Workflow<R>.RunHelper runHelper)
+  abstract <R extends Origin.Reference> void run(Workflow<R>.RunHelper<R> runHelper)
       throws RepoException, IOException, ValidationException;
 
   /**
@@ -152,10 +152,10 @@ public enum WorkflowMode {
   @SkylarkModule(name = "LazyChanges", doc = "Lazy changes implementation", documented = false)
   private static class LazyChangesForSquash<R extends Reference> extends Changes {
 
-    private final Workflow<R>.RunHelper runHelper;
+    private final Workflow<R>.RunHelper<R> runHelper;
     private SkylarkList<? extends Change<?>> cached;
 
-    private LazyChangesForSquash(Workflow<R>.RunHelper runHelper) {
+    private LazyChangesForSquash(Workflow<R>.RunHelper<R> runHelper) {
       this.runHelper = runHelper;
       cached = null;
     }

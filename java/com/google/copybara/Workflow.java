@@ -119,7 +119,7 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
             configName(), name(), resolvedRef.asString(),
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-    mode().run(new RunHelper(workdir, resolvedRef));
+    mode().run(new RunHelper<>(workdir, resolvedRef));
   }
 
   @Override
@@ -134,9 +134,9 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
     return Info.create(ImmutableList.of(migrationRef));
   }
 
-  final class RunHelper {
+  final class RunHelper<M extends R> {
     private final Path workdir;
-    final R resolvedRef;
+    final M resolvedRef;
     private final Origin.Reader<R> reader;
     private final Destination.Writer writer;
 
@@ -144,14 +144,14 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
      * @param workdir working directory to use for the transformations
      * @param resolvedRef reference to migrate
      */
-    RunHelper(Path workdir, R resolvedRef) throws ValidationException {
+    RunHelper(Path workdir, M resolvedRef) throws ValidationException {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
       this.reader = origin().newReader(originFiles(), authoring());
       this.writer = destination().newWriter(destinationFiles());
     }
 
-    R getResolvedRef() {
+    M getResolvedRef() {
       return resolvedRef;
     }
 
