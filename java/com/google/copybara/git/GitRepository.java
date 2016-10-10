@@ -292,14 +292,14 @@ public class GitRepository {
     }
   }
 
-  void commit(GitRepository alternate, String author, Instant timestamp, String message)
+  void commit(String author, Instant timestamp, String message)
       throws RepoException {
-    CommandOutput status = alternate.simpleCommand("diff", "--staged");
+    CommandOutput status = simpleCommand("diff", "--staged");
     if (status.getStdout().trim().isEmpty()) {
       throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
           + "Is the change already migrated?");
     }
-    alternate.simpleCommand("commit", "--author", author,
+    simpleCommand("commit", "--author", author,
         "--date", timestamp.getEpochSecond() + " +0000", "-m", message);
   }
 

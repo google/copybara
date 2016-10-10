@@ -210,8 +210,8 @@ public final class GitDestination implements Destination {
 
       excludedAdder.add();
 
-      alternate.commit(alternate, transformResult.getAuthor().toString(),
-          transformResult.getTimestamp(), commitGenerator.message(transformResult, alternate));
+      alternate.commit(transformResult.getAuthor().toString(), transformResult.getTimestamp(),
+          commitGenerator.message(transformResult, alternate));
 
       if (baseline != null) {
         alternate.rebase("FETCH_HEAD");
