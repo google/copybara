@@ -85,7 +85,7 @@ public class Copybara {
     Info info = config.getActiveMigration().getInfo();
     for (MigrationReference ref : info.migrationReferences()) {
       console.info(
-          String.format("'%s': last_migrated %s - next_to_migrate %s.",
+          String.format("'%s': last_migrated %s - last_available %s.",
               ref.getLabel(),
               ref.getLastMigrated() != null ? ref.getLastMigrated().asString() : "None",
               ref.getNextToMigrate() != null ? ref.getNextToMigrate().asString() : "None"));

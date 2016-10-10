@@ -127,10 +127,10 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
     Writer writer = destination().newWriter(destinationFiles());
     String lastRef = writer.getPreviousRef(origin().getLabelName());
     R lastMigrated = (lastRef == null) ? null : origin().resolve(lastRef);
+    R lastResolved = origin().resolve(/*sourceRef=*/ null);
 
-    // TODO(copybara-team): Populate nextToMigrate
     MigrationReference migrationRef = MigrationReference.create(
-        String.format("workflow_%s", name()), lastMigrated, /*nextToMigrate=*/null);
+        String.format("workflow_%s", name()), lastMigrated, lastResolved);
     return Info.create(ImmutableList.of(migrationRef));
   }
 
