@@ -19,9 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
 import com.google.copybara.RepoException;
-import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -51,19 +49,10 @@ public class GitRepoTypeTest {
     fileRepoDir = Files.createTempDirectory("fileRepo");
     // We mock by default to avoid accidental network calls.
     testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, System.getenv()) {
-      /**
-       * Avoid calling github or any external network call
-       */
       @Override
-      public CommandOutput simpleCommand(Iterable<String> argv) throws RepoException {
-        String first = Iterables.getFirst(argv, null);
-        if ("fetch".equals(first)) {
-          interceptedFetches.add(Iterables.toArray(argv, String.class));
-          return new CommandOutput(new byte[]{}, new byte[]{});
-        } else if ("rev-parse".equals(first)) {
-          return new CommandOutput((Strings.repeat("0", 40) + "\n").getBytes(), new byte[]{});
-        }
-        return super.simpleCommand(argv);
+      public GitReference fetchSingleRef(String url, String ref) throws RepoException {
+        interceptedFetches.add(new String[]{url, ref});
+        return new GitReference(this, Strings.repeat("0", 40));
       }
     };
 
@@ -159,7 +148,6 @@ public class GitRepoTypeTest {
 
   private void assertFetch(String url, String reference) {
     assertThat(interceptedFetches).hasSize(1);
-    assertThat(interceptedFetches.getFirst())
-        .isEqualTo(new String[]{"fetch", url, "--verbose", "-f", reference});
+    assertThat(interceptedFetches.getFirst()).isEqualTo(new String[]{url, reference});
   }
 }

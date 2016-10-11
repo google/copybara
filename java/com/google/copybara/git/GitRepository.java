@@ -24,8 +24,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
@@ -72,6 +74,11 @@ public class GitRepository {
   static final String GIT_ORIGIN_REV_ID = "GitOrigin-RevId";
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
+
+  // Git exits with 128 in several circumstances. For example failed rebase.
+  private static final ImmutableRangeSet<Integer> NON_CRASH_ERROR_EXIT_CODES =
+      ImmutableRangeSet.<Integer>builder().add(
+          Range.closed(1, 10)).add(Range.singleton(128)).build();
 
   /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
@@ -132,7 +139,7 @@ public class GitRepository {
       boolean verbose, Path path, Map<String, String> environment) throws RepoException {
     GitRepository repository =
         new GitRepository(path.resolve(".git"), path, verbose, environment);
-    repository.git(path, "init", ".");
+    repository.git(path, ImmutableList.of("init", "."));
     return repository;
   }
 
@@ -144,11 +151,10 @@ public class GitRepository {
   static void validateRefSpec(Location location, Map<String, String> env, Path cwd,
       String refspec) throws EvalException {
     try {
-      executeCommand(new Command(
-          new String[]{resolveGitBinary(env), "check-ref-format",
-              "--allow-onelevel",
-              "--refspec-pattern", refspec},
-          env, cwd.toFile()), /*verbose=*/false);
+      executeGit(cwd,
+          ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
+          env,
+          /*verbose=*/false);
     } catch (BadExitStatusWithOutputException e) {
       throw new EvalException(location, "Invalid refspec: " + refspec);
     } catch (CommandException e) {
@@ -215,7 +221,7 @@ public class GitRepository {
     }
 
     ImmutableMap<String, GitReference> before = showRef();
-    simpleCommand(args);
+    git(getCwd(), addGitDirAndWorkTreeParams(args));
     ImmutableMap<String, GitReference> after = showRef();
     return new FetchResult(before, after);
   }
@@ -232,8 +238,7 @@ public class GitRepository {
    */
   ImmutableMap<String, GitReference> showRef() throws RepoException {
     ImmutableMap.Builder<String, GitReference> result = ImmutableMap.builder();
-    CommandOutput commandOutput = simpleCommand(ImmutableList.of("show-ref"),
-        /*badExitCodeAllowed=*/true);
+    CommandOutput commandOutput = gitAllowNonZeroExit(ImmutableList.of("show-ref"));
 
     if (!commandOutput.getStderr().isEmpty()) {
       throw new RepoException(String.format(
@@ -282,14 +287,19 @@ public class GitRepository {
   }
 
   public void rebase(String newBaseline) throws RepoException {
-    try {
-      simpleCommand("rebase", Preconditions.checkNotNull(newBaseline));
-    } catch (RebaseConflictException e) {
-      // Improve the message with more context
+    CommandOutputWithStatus output = gitAllowNonZeroExit(
+        ImmutableList.of("rebase", Preconditions.checkNotNull(newBaseline)));
+
+    if (output.getTerminationStatus().success()) {
+      return;
+    }
+
+    if (FAILED_REBASE.matcher(output.getStderr()).find()) {
       throw new RebaseConflictException(
           "Conflict detected while rebasing " + workTree + " to " + newBaseline
-              + ". Git ouput was:\n" + e.getMessage());
+              + ". Git ouput was:\n" + output.getStdout());
     }
+    throw new RepoException(output.getStderr());
   }
 
   void commit(String author, Instant timestamp, String message)
@@ -301,6 +311,37 @@ public class GitRepository {
     }
     simpleCommand("commit", "--author", author,
         "--date", timestamp.getEpochSecond() + " +0000", "-m", message);
+  }
+
+  private Path getCwd() {
+    return workTree != null ? workTree : gitDir;
+  }
+
+  private List<String> addGitDirAndWorkTreeParams(Iterable<String> argv) {
+    Preconditions.checkState(Files.isDirectory(gitDir),
+        "git repository dir '%s' doesn't exist or is not a directory", gitDir);
+
+    List<String> allArgv = Lists.newArrayList("--git-dir=" + gitDir);
+
+    if (workTree != null) {
+      allArgv.add("--work-tree=" + workTree);
+    }
+    Iterables.addAll(allArgv, argv);
+    return allArgv;
+  }
+
+  /**
+   * Initializes the {@code .git} directory of this repository as a new repository with zero
+   * commits.
+   */
+  public void initGitDir() throws RepoException {
+    try {
+      Files.createDirectories(gitDir);
+    } catch (IOException e) {
+      throw new RepoException("Cannot create git directory '" + gitDir + "': " + e.getMessage(), e);
+    }
+
+    git(gitDir, ImmutableList.of("init", "--bare"));
   }
 
   /**
@@ -316,44 +357,7 @@ public class GitRepository {
    * @param argv the arguments to pass to {@code git}, starting with the sub-command name
    */
   public CommandOutput simpleCommand(String... argv) throws RepoException {
-    return simpleCommand(Arrays.asList(argv));
-  }
-
-  CommandOutput simpleCommand(Iterable<String> argv) throws RepoException {
-    return simpleCommand(argv, /*badExitCodeAllowed=*/false);
-  }
-
-  private CommandOutput simpleCommand(Iterable<String> argv, boolean badExitCodeAllowed)
-      throws RepoException {
-    Preconditions.checkState(Files.isDirectory(gitDir),
-        "git repository dir '%s' doesn't exist or is not a directory", gitDir);
-
-    List<String> allArgv = new ArrayList<>();
-
-    allArgv.add("--git-dir=" + gitDir);
-    Path cwd = gitDir;
-    if (workTree != null) {
-      cwd = workTree;
-      allArgv.add("--work-tree=" + workTree);
-    }
-
-    Iterables.addAll(allArgv, argv);
-
-    return git(cwd, allArgv, badExitCodeAllowed);
-  }
-
-  /**
-   * Initializes the {@code .git} directory of this repository as a new repository with zero
-   * commits.
-   */
-  public void initGitDir() throws RepoException {
-    try {
-      Files.createDirectories(gitDir);
-    } catch (IOException e) {
-      throw new RepoException("Cannot create git directory '" + gitDir + "': " + e.getMessage(), e);
-    }
-
-    git(gitDir, "init", "--bare");
+    return git(getCwd(), addGitDirAndWorkTreeParams(Arrays.asList(argv)));
   }
 
   /**
@@ -367,7 +371,7 @@ public class GitRepository {
    * @param params the argv to pass to Git, excluding the initial {@code git}
    */
   public CommandOutput git(Path cwd, String... params) throws RepoException {
-    return git(cwd, Arrays.asList(params), /*badExitCodeAllowed=*/false);
+    return git(cwd, Arrays.asList(params));
   }
 
   /**
@@ -381,34 +385,12 @@ public class GitRepository {
    *
    * @param cwd the directory in which to execute the command
    * @param params params the argv to pass to Git, excluding the initial {@code git}
-   * @param badExitCodeAllowed if a non-zero exit code is allowed. Even if this flag is set to true
-   * it will only allow program non-zero exit codes(0-10. The upper bound is arbitrary). And will
-   * still fail for exit codes like 127 (Command not found).
    */
-  public CommandOutput git(Path cwd, Iterable<String> params, boolean badExitCodeAllowed)
-      throws RepoException {
-    List<String> allParams = new ArrayList<>();
-    allParams.add(resolveGitBinary(environment));
-    Iterables.addAll(allParams, params);
+  private CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
     try {
-      CommandOutputWithStatus commandOutputWithStatus =
-          executeCommand(new Command(allParams.toArray(new String[0]), environment, cwd.toFile()),
-              verbose);
-      if (commandOutputWithStatus.getTerminationStatus().success()) {
-        return commandOutputWithStatus;
-      }
-      throw new RepoException("Error on git command: " + commandOutputWithStatus.getStderr());
+      return executeGit(cwd, params, environment, verbose);
     } catch (BadExitStatusWithOutputException e) {
       CommandOutput output = e.getOutput();
-      int exitCode = e.getOutput().getTerminationStatus().getExitCode();
-      if (badExitCodeAllowed && exitCode > 0 && exitCode <= 10) {
-        return output;
-      }
-
-      if (FAILED_REBASE.matcher(output.getStderr()).find()) {
-        System.out.println(output.getStdout());
-        throw new RebaseConflictException(output.getStdout());
-      }
 
       for (Pattern error : REF_NOT_FOUND_ERRORS) {
         Matcher matcher = error.matcher(output.getStderr());
@@ -423,6 +405,38 @@ public class GitRepository {
     } catch (CommandException e) {
       throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Execute git allowing non-zero exit codes. This will only allow program non-zero exit codes
+   * (0-10. The upper bound is arbitrary). And will still fail for exit codes like 127 (Command not
+   * found).
+   */
+  private CommandOutputWithStatus gitAllowNonZeroExit(Iterable<String> params)
+      throws RepoException {
+    try {
+      return executeGit(getCwd(), addGitDirAndWorkTreeParams(params), environment, verbose);
+    } catch (BadExitStatusWithOutputException e) {
+      CommandOutputWithStatus output = e.getOutput();
+      int exitCode = e.getOutput().getTerminationStatus().getExitCode();
+      if (NON_CRASH_ERROR_EXIT_CODES.contains(exitCode)) {
+        return output;
+      }
+
+      throw new RepoException(
+          "Error executing 'git': " + e.getMessage() + ". Stderr: \n" + output.getStderr(), e);
+    } catch (CommandException e) {
+      throw new RepoException("Error executing 'git': " + e.getMessage(), e);
+    }
+  }
+
+  private static CommandOutputWithStatus executeGit(Path cwd, Iterable<String> params,
+      Map<String, String> env, boolean verbose) throws CommandException {
+    List<String> allParams = new ArrayList<>(Iterables.size(params) + 1);
+    allParams.add(resolveGitBinary(env));
+    Iterables.addAll(allParams, params);
+    return executeCommand(new Command(
+        Iterables.toArray(allParams, String.class), env, cwd.toFile()), verbose);
   }
 
   /**
