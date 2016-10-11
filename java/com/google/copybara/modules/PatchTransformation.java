@@ -23,7 +23,6 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.util.DiffUtil;
-import com.google.devtools.build.lib.syntax.Printer;
 import java.io.IOException;
 import java.util.stream.Collectors;
 

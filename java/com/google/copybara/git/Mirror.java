@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import com.beust.jcommander.internal.Lists;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Migration;

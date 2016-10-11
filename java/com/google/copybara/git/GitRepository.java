@@ -240,7 +240,7 @@ public class GitRepository {
           "Error executing show-ref on %s git repo:\n%s", getGitDir(), commandOutput.getStderr()));
     }
 
-    for (String line : Splitter.on("\n").split(commandOutput.getStdout())) {
+    for (String line : Splitter.on('\n').split(commandOutput.getStdout())) {
       if (line.isEmpty()) {
         continue;
       }

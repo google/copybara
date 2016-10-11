@@ -89,6 +89,6 @@ public final class GitReference implements Reference {
 
   @Override
   public int hashCode() {
-    return Objects.hash(reference);
+    return Objects.hashCode(reference);
   }
 }

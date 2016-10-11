@@ -68,7 +68,7 @@ public class FetchResult {
   /**
    * A reference update for a fetch command. Contains before and after SHA-1.
    */
-  public final class RefUpdate {
+  public static final class RefUpdate {
 
     private final GitReference before;
     private final GitReference after;
