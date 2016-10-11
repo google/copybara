@@ -83,7 +83,7 @@ public class DiffUtilTest {
 
     byte[] diffContents = DiffUtil.diff(left, right, /*verbose*/ true);
 
-    DiffUtil.patch(destination, diffContents, /*verbose*/ true);
+    DiffUtil.patch(destination, diffContents, 2, /*verbose*/ true, /*reverse=*/ false);
 
     assertThatPath(left)
         .containsFile("file1.txt", "foo")
@@ -96,6 +96,12 @@ public class DiffUtilTest {
     assertThatPath(destination)
         .containsFile("file1.txt", "new foo")
         .containsFile("c/file3.txt", "bar")
+        .containsNoMoreFiles();
+
+    DiffUtil.patch(destination, diffContents, 2, /*verbose*/ true, /*reverse=*/ true);
+    assertThatPath(destination)
+        .containsFile("file1.txt", "foo")
+        .containsFile("b/file2.txt", "bar")
         .containsNoMoreFiles();
   }
 
@@ -140,7 +146,7 @@ public class DiffUtilTest {
 
     byte[] diffContents = DiffUtil.diff(left, right, /*verbose*/ true);
 
-    DiffUtil.patch(destination, diffContents, /*verbose*/ true);
+    DiffUtil.patch(destination, diffContents, 2, /*verbose*/ true, /*reverse=*/ false);
 
     assertThatPath(destination)
         .containsFile("file1.txt", "new foo\n"
@@ -162,7 +168,7 @@ public class DiffUtilTest {
   public void applyEmptyDiff() throws Exception {
     writeFile(left, "file1.txt", "foo");
     writeFile(left, "b/file2.txt", "bar");
-    DiffUtil.patch(left, /*empty diff*/ new byte[]{}, /*verbose*/ true);
+    DiffUtil.patch(left, /*empty diff*/ new byte[]{}, 2, /*verbose*/ true, /*reverse=*/ false);
 
     assertThatPath(left)
         .containsFile("file1.txt", "foo")
@@ -181,7 +187,15 @@ public class DiffUtilTest {
         + "error: file1.txt: patch does not apply");
 
     byte[] diffContents = DiffUtil.diff(left, right, /*verbose*/ true);
-    DiffUtil.patch(destination, diffContents, /*verbose*/ true);
+    DiffUtil.patch(destination, diffContents, 2, /*verbose*/ true, /*reverse=*/ false);
+  }
+
+  @Test
+  public void negativeSlashesFail() throws Exception {
+    thrown.expect(IllegalArgumentException.class);
+    thrown.expectMessage("stripSlashes must be >= 0");
+    DiffUtil.patch(
+        destination, new byte[1], /*stripSlashes=*/ -1, /*verbose*/ true, /*reverse=*/ false);
   }
 
   private Path createDir(Path parent, String name) throws IOException {

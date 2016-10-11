@@ -30,6 +30,7 @@ import com.google.copybara.git.GitDestinationOptions;
 import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -48,7 +49,8 @@ public class Copybara {
   protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
       FolderModule.class,
       GitModule.class,
-      MetadataModule.class);
+      MetadataModule.class,
+      PatchModule.class);
 
   private final SkylarkParser skylarkParser;
   private final String homeDir;

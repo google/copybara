@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.shell.Command;
@@ -70,13 +71,22 @@ public class DiffUtil {
    *
    * <p>{@code diffContents} is the result of invoking {@link DiffUtil#diff}.
    */
-  public static void patch(Path rootDir, byte[] diffContents, boolean verbose) throws IOException {
+  public static void patch(
+      Path rootDir, byte[] diffContents, int stripSlashes, boolean verbose, boolean reverse)
+      throws IOException {
     // TODO(copybara-team): Think if it makes sense to throw EmptyChangeException here
     if (diffContents.length == 0) {
       return;
     }
-    String[] params = new String[]{"git", "apply", "-p2","-"};
-    Command cmd = new Command(params, /*envVars*/ null, rootDir.toFile());
+    Preconditions.checkArgument(stripSlashes >= 0, "stripSlashes must be >= 0.");
+    ImmutableList.Builder<String> params = ImmutableList.builder();
+    params.add("git", "apply", "-p" + stripSlashes);
+    if (reverse) {
+      params.add("-R");
+    }
+    params.add("-");
+    Command cmd =
+        new Command(params.build().toArray(new String[0]), /*envVars*/ null, rootDir.toFile());
     try {
       CommandUtil.executeCommand(cmd, diffContents, verbose);
     } catch (BadExitStatusWithOutputException e) {

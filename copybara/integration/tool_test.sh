@@ -1014,4 +1014,49 @@ EOF
   expect_log "Error loading config file"
 }
 
+function test_apply_patch() {
+  prepare_glob_tree
+  ( cd $remote
+    echo "patched" > test.java
+    echo "patched" > folder/test.java
+    git --no-pager diff > $workdir/../diff1.patch
+    run_git reset --hard
+    expect_in_file "foo" test.java
+    expect_in_file "foo" folder/test.java
+    echo "patched again" > folder/subfolder/test.java
+    git --no-pager diff > $workdir/../diff2.patch
+    run_git reset --hard
+    expect_in_file "foo" folder/subfolder/test.java
+  )
+  cat > copy.bara.sky <<EOF
+core.project(name = "cbtest")
+
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "master",
+    ),
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    transformations = [
+        patch.apply(
+            patches = ["diff1.patch", "diff2.patch"],
+        )
+    ],
+)
+EOF
+  copybara copy.bara.sky
+  ( cd $(mktemp -d)
+    run_git clone $destination .
+    expect_in_file "patched" test.java
+    expect_in_file "patched" folder/test.java
+    expect_in_file "patched again" folder/subfolder/test.java
+  )
+}
+
 run_suite "Integration tests for Copybara code sharing tool."
