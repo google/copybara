@@ -74,7 +74,7 @@ public class MainTest {
           protected void configureLog(FileSystem fs) {}
 
           @Override
-          protected void initEnvironment(Options o) {
+          protected void initEnvironment(Options o, MainArguments args) {
             called = true;
           }
         };

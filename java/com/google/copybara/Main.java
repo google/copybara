@@ -106,7 +106,7 @@ public class Main {
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
-      initEnvironment(options);
+      initEnvironment(options, mainArgs);
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
       ConfigFile configFile = loadConfig(configPath, generalOptions.getConfigRoot());
@@ -263,7 +263,7 @@ public class Main {
    * Sample use case are remote logging, test harnesses and others. Called after command line
    * options are parsed, but before a file is read or a run started.
    */
-  protected void initEnvironment(Options options) {
+  protected void initEnvironment(Options options, MainArguments mainArgs) {
     // intentional no-op
   }
 
