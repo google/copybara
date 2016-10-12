@@ -141,6 +141,13 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     }
 
     String functionName = signature.ann.name();
+    DeclaredType objectType = signature.getClassValue("objectType");
+
+    if (objectType.toString().equals(module.toString())) {
+      functionName = skyModule.name() + "." + functionName;
+    }
+
+    sb.append("<a id=\"").append(functionName).append("\" aria-hidden=\"true\"></a>\n");
     sb.append("## ").append(functionName).append("\n\n");
     sb.append(signature.ann.doc());
     sb.append("\n\n");
@@ -151,12 +158,6 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
     if (!returnTypeStr.equals("")) {
       sb.append(returnTypeStr).append(" ");
-    }
-
-    DeclaredType objectType = signature.getClassValue("objectType");
-
-    if (objectType.toString().equals(module.toString())) {
-      sb.append(skyModule.name()).append(".");
     }
 
     sb.append(functionName).append("(");

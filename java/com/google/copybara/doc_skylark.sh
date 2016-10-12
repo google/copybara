@@ -23,7 +23,10 @@ for jar in "$@";do
   # Continue if no md file is found
   unzip -q -p $jar "*.copybara.md" >> detail 2> /dev/null || continue
 done
-cat detail | grep "^# " | awk '{ print "  - ["$2"](#"$2")"}' >> $output
+# Grep h1 (#) and h2 (##), contruct a line as '## - [foo](foo)' so that we have the
+# correct indentation, and finally replace ## or #### by spaces.
+cat detail | grep "^##\? " | awk '{ print ""$1$1"- ["$2"](#"tolower($2)")"}' \
+  | sed 's/##/  /g' >> $output
 
 printf '\n\n' >> $output
 cat detail >> $output
