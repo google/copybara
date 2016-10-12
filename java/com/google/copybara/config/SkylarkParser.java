@@ -82,6 +82,11 @@ public class SkylarkParser {
     }
   }
 
+  @VisibleForTesting
+  public Iterable<Class<?>> getModules() {
+    return modules;
+  }
+
   public Config loadConfig(ConfigFile content, Options options)
       throws IOException, ValidationException {
     Core core;

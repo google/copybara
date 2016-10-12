@@ -18,9 +18,11 @@ package com.google.copybara.testing;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.copybara.Config;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.ValidationException;
@@ -53,6 +55,11 @@ public final class SkylarkTestExecutor {
       throw new IllegalArgumentException("Already have content for: " + key);
     }
     return this;
+  }
+
+  @VisibleForTesting
+  public Iterable<Class<?>> getModules(){
+    return skylarkParser.getModules();
   }
 
   @SuppressWarnings("unchecked")

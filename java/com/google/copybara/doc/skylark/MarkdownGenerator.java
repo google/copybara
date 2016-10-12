@@ -26,6 +26,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.doc.annotations.Example;
+import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -200,6 +202,20 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     }
     // Generate flags associated with an specific method
     sb.append(generateFlagsInfo(member));
+
+    AnnotationHelper<Examples> examples = annotationHelper(member, Examples.class);
+    if (examples != null) {
+      sb.append("### Examples:\n\n");
+      for (Example example : examples.ann.value()) {
+        sb.append("#### ").append(example.title()).append(":\n\n");
+        sb.append(example.before()).append("\n\n");
+        sb.append("```python\n").append(example.code()).append("\n```\n\n");
+        if (!example.after().equals("")) {
+          sb.append(example.after()).append("\n\n");
+        }
+      }
+    }
+
     return sb;
   }
 

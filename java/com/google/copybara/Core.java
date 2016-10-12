@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.base.OptionsAwareModule;
+import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Move;
@@ -368,6 +369,14 @@ public class Core implements OptionsAwareModule {
               type = Boolean.class, defaultValue = "False")
       },
       objectType = Core.class, useLocation = true)
+  @Example(title = "Move all the files to a subfolder",
+      before = "Move all the files in the checkout dir into a directory called foo:",
+      code = "core.move(\"\", \"foo\")",
+      after = "In this example, `one` and `two/bar` will be moved to `foo/one` and `foo/two/bar`.")
+  @Example(title = "Move a subfolder's content to the root",
+      before = "Move the contents of a folder to the checkout root directory:",
+      code = "core.move(\"foo\", \"\")",
+      after = "In this example, `foo/bar` would be moved to `bar`")
   public static final BuiltinFunction MOVE = new BuiltinFunction("move",
       ImmutableList.of(Glob.ALL_FILES, false)) {
     @SuppressWarnings("unused")
