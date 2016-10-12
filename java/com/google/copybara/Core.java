@@ -376,7 +376,7 @@ public class Core implements OptionsAwareModule {
   @Example(title = "Move a subfolder's content to the root",
       before = "Move the contents of a folder to the checkout root directory:",
       code = "core.move(\"foo\", \"\")",
-      after = "In this example, `foo/bar` would be moved to `bar`")
+      after = "In this example, `foo/bar` would be moved to `bar`.")
   public static final BuiltinFunction MOVE = new BuiltinFunction("move",
       ImmutableList.of(Glob.ALL_FILES, false)) {
     @SuppressWarnings("unused")

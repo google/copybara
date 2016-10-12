@@ -344,6 +344,28 @@ paths|`glob`<br><p>A glob expression relative to 'before' if it represents a dir
 overwrite|`boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 
 
+### Examples:
+
+#### Move all the files to a subfolder:
+
+Move all the files in the checkout dir into a directory called foo:
+
+```python
+core.move("", "foo")
+```
+
+In this example, `one` and `two/bar` will be moved to `foo/one` and `foo/two/bar`.
+
+#### Move a subfolder's content to the root:
+
+Move the contents of a folder to the checkout root directory:
+
+```python
+core.move("foo", "")
+```
+
+In this example, `foo/bar` would be moved to `bar`.
+
 <a id="core.replace" aria-hidden="true"></a>
 ## core.replace
 
