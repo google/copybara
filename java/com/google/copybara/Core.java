@@ -449,8 +449,8 @@ public class Core implements OptionsAwareModule {
       after = "So a url like `https://some_internal/url/foo/bar.html` will be transformed to"
           + " `https://example.com/foo/bar.html`.")
   @Example(title = "Remove confidential blocks",
-      before = "This example removes blocks of text/code that are confidential and that we"
-          + " don't want to export to a public repository",
+      before = "This example removes blocks of text/code that are confidential and thus shouldn't"
+          + "be exported to a public repository.",
       code = "core.replace(\n"
           + "        before = \"${x}\",\n"
           + "        after = \"\",\n"

@@ -428,7 +428,7 @@ So a url like `https://some_internal/url/foo/bar.html` will be transformed to `h
 
 #### Remove confidential blocks:
 
-This example removes blocks of text/code that are confidential and that we don't want to export to a public repository
+This example removes blocks of text/code that are confidential and thus shouldn'tbe exported to a public repository.
 
 ```python
 core.replace(
