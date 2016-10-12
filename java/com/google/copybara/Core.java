@@ -369,6 +369,10 @@ public class Core implements OptionsAwareModule {
               type = Boolean.class, defaultValue = "False")
       },
       objectType = Core.class, useLocation = true)
+  @Example(title = "Move a directory",
+      before = "Move all the files in a directory to another directory:",
+      code = "core.move(\"foo/bar_internal\", \"bar\")",
+      after = "In this example, `foo/bar_internal/one` will be moved to `bar/one`.")
   @Example(title = "Move all the files to a subfolder",
       before = "Move all the files in the checkout dir into a directory called foo:",
       code = "core.move(\"\", \"foo\")",
@@ -425,6 +429,56 @@ public class Core implements OptionsAwareModule {
               defaultValue = "False"),
       },
       objectType = Core.class, useLocation = true)
+  @Example(title = "Simple replacement",
+      before = "Replaces the text \"internal\" with \"external\" in all java files",
+      code = "core.replace(\n"
+          + "    before = \"internal\",\n"
+          + "    after = \"external\",\n"
+          + "    paths = glob([\"**.java\"]),\n"
+          + ")")
+  @Example(title = "Replace using regex groups",
+      before = "In this example we map some urls from the internal to the external version in"
+          + " all the files of the project.",
+      code = "core.replace(\n"
+          + "        before = \"https://some_internal/url/${pkg}.html\",\n"
+          + "        after = \"https://example.com/${pkg}.html\",\n"
+          + "        regex_groups = {\n"
+          + "            \"pkg\": \".*\",\n"
+          + "        },\n"
+          + "    )",
+      after = "So a url like `https://some_internal/url/foo/bar.html` will be transformed to"
+          + " `https://example.com/foo/bar.html`.")
+  @Example(title = "Remove confidential blocks",
+      before = "This example removes blocks of text/code that are confidential and that we"
+          + " don't want to export to a public repository",
+      code = "core.replace(\n"
+          + "        before = \"${x}\",\n"
+          + "        after = \"\",\n"
+          + "        multiline = True,\n"
+          + "        regex_groups = {\n"
+          + "            \"x\": \"(?m)^.*BEGIN-INTERNAL[\\\\w\\\\W]*?END-INTERNAL.*$\\\\n\",\n"
+          + "        },\n"
+          + "    )",
+      after = "This replace would transform a text file like:\n\n"
+          + "```\n"
+          + "This is\n"
+          + "public\n"
+          + " // BEGIN-INTERNAL\n"
+          + " confidential\n"
+          + " information\n"
+          + " // END-INTERNAL\n"
+          + "more public code\n"
+          + " // BEGIN-INTERNAL\n"
+          + " more confidential\n"
+          + " information\n"
+          + " // END-INTERNAL\n"
+          + "```\n\n"
+          + "Into:\n\n"
+          + "```\n"
+          + "This is\n"
+          + "public\n"
+          + "more public code\n"
+          + "```\n\n")
   public static final BuiltinFunction REPLACE = new BuiltinFunction("replace",
       ImmutableList.of(
           SkylarkDict.empty(),
