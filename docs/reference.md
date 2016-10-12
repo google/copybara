@@ -346,6 +346,16 @@ overwrite|`boolean`<br><p>Overwrite destination files if they already exist. Not
 
 ### Examples:
 
+#### Move a directory:
+
+Move all the files in a directory to another directory:
+
+```python
+core.move("foo/bar_internal", "bar")
+```
+
+In this example, `foo/bar_internal/one` will be moved to `bar/one`.
+
 #### Move all the files to a subfolder:
 
 Move all the files in the checkout dir into a directory called foo:
@@ -384,6 +394,77 @@ paths|`glob`<br><p>A glob expression relative to the workdir representing the fi
 first_only|`boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 multiline|`boolean`<br><p>Whether to replace text that spans more than one line.</p>
 repeated_groups|`boolean`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
+
+
+### Examples:
+
+#### Simple replacement:
+
+Replaces the text "internal" with "external" in all java files
+
+```python
+core.replace(
+    before = "internal",
+    after = "external",
+    paths = glob(["**.java"]),
+)
+```
+
+#### Replace using regex groups:
+
+In this example we map some urls from the internal to the external version in all the files of the project.
+
+```python
+core.replace(
+        before = "https://some_internal/url/${pkg}.html",
+        after = "https://example.com/${pkg}.html",
+        regex_groups = {
+            "pkg": ".*",
+        },
+    )
+```
+
+So a url like `https://some_internal/url/foo/bar.html` will be transformed to `https://example.com/foo/bar.html`.
+
+#### Remove confidential blocks:
+
+This example removes blocks of text/code that are confidential and that we don't want to export to a public repository
+
+```python
+core.replace(
+        before = "${x}",
+        after = "",
+        multiline = True,
+        regex_groups = {
+            "x": "(?m)^.*BEGIN-INTERNAL[\\w\\W]*?END-INTERNAL.*$\\n",
+        },
+    )
+```
+
+This replace would transform a text file like:
+
+```
+This is
+public
+ // BEGIN-INTERNAL
+ confidential
+ information
+ // END-INTERNAL
+more public code
+ // BEGIN-INTERNAL
+ more confidential
+ information
+ // END-INTERNAL
+```
+
+Into:
+
+```
+This is
+public
+more public code
+```
+
 
 
 <a id="core.verify_match" aria-hidden="true"></a>
