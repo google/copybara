@@ -57,20 +57,20 @@ public final class MainArguments {
   @Nullable
   private ArgumentHolder argumentHolder;
 
-  Subcommand getSubcommand() {
+  public Subcommand getSubcommand() {
     return getArgs().subcommand;
   }
 
-  String getConfigPath() {
+  public String getConfigPath() {
     return getArgs().configPath;
   }
 
-  String getWorkflowName() {
+  public String getWorkflowName() {
     return getArgs().workflowName;
   }
 
   @Nullable
-  String getSourceRef() {
+  public String getSourceRef() {
     return getArgs().sourceRef;
   }
 
