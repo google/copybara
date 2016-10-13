@@ -16,8 +16,6 @@ git init --bare .
 Create a ``copy.bara.sky`` config file like:
 
 ```python
-core.project(name = "example")
-
 url = "https://github.com/google/copybara.git"
 
 core.workflow(
@@ -62,8 +60,6 @@ and we replace it with the correct destination one just for BUILD files:
 
 
 ```python
-core.project(name = "example")
-
 url = "https://github.com/google/copybara.git"
 
 core.workflow(
