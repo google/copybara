@@ -30,6 +30,8 @@ import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -211,7 +213,8 @@ public final class FileUtil {
       Path destFile = to.resolve(from.relativize(file));
       Files.createDirectories(destFile.getParent());
 
-      if (Files.isSymbolicLink(file)) {
+      boolean symlink = Files.isSymbolicLink(file);
+      if (symlink) {
         // If the symlink remains under 'from' we keep the symlink as relative.
         // Otherwise we copy it as a regular file.
         ResolvedSymlink resolvedSymlink = resolveSymlink(from, file);
@@ -242,6 +245,15 @@ public final class FileUtil {
         }
       }
       Files.copy(file, destFile, StandardCopyOption.COPY_ATTRIBUTES);
+      // Make writable any symlink that we materialize. This is safe since we have already
+      // done a copy of the file. And it is probable that we will want to modify it.
+      if (symlink) {
+        Set<PosixFilePermission> perms = new HashSet<>(Files.getPosixFilePermissions(destFile));
+        if (!perms.contains(PosixFilePermission.OWNER_WRITE)) {
+          perms.add(PosixFilePermission.OWNER_WRITE);
+          Files.setPosixFilePermissions(destFile, perms);
+        }
+      }
       return FileVisitResult.CONTINUE;
     }
 

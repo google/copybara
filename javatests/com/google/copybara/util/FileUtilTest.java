@@ -181,4 +181,20 @@ public class FileUtilTest {
     Files.write(path, "abc".getBytes());
     return path;
   }
+
+  @Test
+  public void testMaterializedSymlinksAreWriteable() throws Exception {
+    Path temp = Files.createTempDirectory("temp");
+    Path one = Files.createDirectory(temp.resolve("one"));
+    Path two = Files.createDirectory(temp.resolve("two"));
+    Path absolute = touch(Files.createDirectory(temp.resolve("absolute")).resolve("absolute"));
+    Files.setPosixFilePermissions(absolute, ImmutableSet.of(PosixFilePermission.OWNER_READ));
+
+    Path absoluteTarget = one.relativize(absolute);
+    Files.createSymbolicLink(one.resolve("absolute"), absoluteTarget);
+
+    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS);
+    assertThat(Files.isSymbolicLink(two.resolve("absolute"))).isFalse();
+    assertThat(Files.isWritable(two.resolve("absolute"))).isTrue();
+  }
 }
