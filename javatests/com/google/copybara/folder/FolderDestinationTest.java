@@ -125,7 +125,7 @@ public class FolderDestinationTest {
     write();
 
     Path outputPath = Iterables.getOnlyElement(
-        Files.newDirectoryStream(defaultRootPath.resolve("copybara/out/copybaraproject")));
+        Files.newDirectoryStream(defaultRootPath.resolve("copybara/out")));
 
     assertThatPath(outputPath)
         .containsFiles("test.txt", "dir/file.txt")

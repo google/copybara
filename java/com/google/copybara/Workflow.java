@@ -48,7 +48,6 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
-  abstract String configName();
   abstract String name();
 
   /**
@@ -115,8 +114,8 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
     R resolvedRef = origin().resolve(sourceRef);
     logger.log(Level.INFO,
         String.format(
-            "Running Copybara for config '%s', workflow '%s' and ref '%s': %s",
-            configName(), name(), resolvedRef.asString(),
+            "Running Copybara for workflow '%s' and ref '%s': %s",
+            name(), resolvedRef.asString(),
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
     mode().run(new RunHelper<>(workdir, resolvedRef));

@@ -123,7 +123,7 @@ EOF
 
   copybara copy.bara.sky
 
-  expect_log "Running Copybara for config 'cbtest', workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
+  expect_log "Running Copybara for workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
   expect_log 'Transform Replace food'
   expect_log 'apply s/food/drink/g to .*/test.txt$'
   expect_log 'apply s/food/drink/g to .*/subdir/test.txt$'
@@ -919,7 +919,7 @@ EOF
   cd $config_folder
   copybara foo/bar/copy.bara.sky $flags
 
-  expect_log "Running Copybara for config 'cbtest', workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
+  expect_log "Running Copybara for workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
 
   [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
 }

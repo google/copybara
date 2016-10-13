@@ -52,14 +52,12 @@ public class FolderModule implements OptionsAwareModule {
           self.options.get(GeneralOptions.class).getHomeDir().resolve("copybara/out/");
 
       GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
-      String configName = Core.getProjectNameOrFail(env, location);
       // Lets assume we are in the same filesystem for now...
       FileSystem fs = generalOptions.getFileSystem();
       String localFolderOption = self.options.get(FolderDestinationOptions.class).localFolder;
       Path localFolder;
       if (Strings.isNullOrEmpty(localFolderOption)) {
         localFolder = defaultRootPath
-            .resolve(configName.replaceAll("[^A-Za-z0-9]", ""))
             .resolve(LocalDateTime.now().format(FOLDER_DATE_FORMATTER));
         generalOptions.console().info(
             String.format("Using folder '%s' in default root. Use --folder-dir to override.",

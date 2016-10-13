@@ -19,7 +19,6 @@ package com.google.copybara;
 import static com.google.copybara.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
@@ -27,22 +26,13 @@ import java.util.Objects;
 /**
  * Configuration for a Copybara project.
  *
- * <p> Object of this class represents a parsed Copybara configuration.
+ * <p> Objects of this class represent a parsed Copybara configuration.
  */
 public final class Config {
-  private final String name;
   private final ImmutableMap<String, Migration> migrations;
 
-  public Config(String name, Map<String, Migration> migrations) {
-    this.name = Preconditions.checkNotNull(name);
+  public Config(Map<String, Migration> migrations) {
     this.migrations = ImmutableMap.copyOf(migrations);
-  }
-
-  /**
-   * The name of the configuration. The recommended value is to use the project name.
-   */
-  public String getName() {
-    return name;
   }
 
   /**
@@ -71,19 +61,17 @@ public final class Config {
       return false;
     }
     Config config = (Config) o;
-    return Objects.equals(name, config.name) &&
-        Objects.equals(migrations, config.migrations);
+    return Objects.equals(migrations, config.migrations);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, migrations);
+    return Objects.hash(migrations);
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("name", name)
         .add("migrations", migrations)
         .toString();
   }

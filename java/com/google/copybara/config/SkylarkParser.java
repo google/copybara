@@ -99,7 +99,7 @@ public class SkylarkParser {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);
     }
-    return createConfig(options, core.getMigrations(), core.getProjectName());
+    return createConfig(core.getMigrations());
   }
 
   @VisibleForTesting
@@ -180,11 +180,10 @@ public class SkylarkParser {
     }
   }
 
-  private Config createConfig(Options options, Map<String, Migration> migrations,
-      String projectName)
+  private Config createConfig(Map<String, Migration> migrations)
       throws ValidationException {
     checkCondition(!migrations.isEmpty(), "At least one migration is required.");
-    return new Config(checkNotMissing(projectName, "project"), migrations);
+    return new Config(migrations);
   }
 
   /**

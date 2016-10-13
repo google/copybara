@@ -139,7 +139,6 @@ public class SkylarkParserTest {
     String configContent = setUpInclusionTest();
     Config config = parser.loadConfig(configContent);
 
-    assertThat(config.getName()).isEqualTo("mytest");
     MockOrigin origin = (MockOrigin) getWorkflow(config, "foo42").origin();
     assertThat(origin.url).isEqualTo("https://so.me/random/url");
     assertThat(origin.branch).isEqualTo("master");
@@ -245,7 +244,6 @@ public class SkylarkParserTest {
 
     Config config = parser.loadConfig(configContent);
 
-    assertThat(config.getName()).isEqualTo("mytest");
     Transformation transformation = getWorkflow(config, "foo").transformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
@@ -323,7 +321,6 @@ public class SkylarkParserTest {
   @Test
   public void testResolveLabel() throws Exception {
     Config config = parser.loadConfig(prepareResolveLabelTest());
-    assertThat(config.getName()).isEqualTo("stuff_in_foo");
   }
 
   /**
