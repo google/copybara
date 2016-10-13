@@ -112,7 +112,7 @@ public class Main {
       ConfigFile configFile = loadConfig(configPath, generalOptions.getConfigRoot());
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
-          copybara.validate(options, configFile, mainArgs.getWorkflowName());
+          copybara.validate(options, configFile);
           break;
         case MIGRATE:
           copybara.run(

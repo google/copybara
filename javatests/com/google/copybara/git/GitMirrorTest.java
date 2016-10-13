@@ -121,8 +121,7 @@ public class GitMirrorTest {
 
   private Migration loadMigration(String cfgContent, String name)
       throws IOException, ValidationException {
-    options.setWorkflowName(name);
-    return skylark.loadConfig(cfgContent).getActiveMigration();
+    return skylark.loadConfig(cfgContent).getMigration(name);
   }
 
   @Test

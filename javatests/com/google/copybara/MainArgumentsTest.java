@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.junit.Before;
@@ -83,14 +84,15 @@ public class MainArgumentsTest {
     mainArguments.parseUnnamedArgs();
   }
 
+  /**
+   * Subcommand 'migrate' allows all the parameters.
+   */
   @Test
-  public void testArgumentParsing() throws Exception {
+  public void testArgumentParsingMigrate() throws Exception {
     checkParsing(ImmutableList.of("copy.bara.sky"),
         Subcommand.MIGRATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
     checkParsing(ImmutableList.of("migrate", "copy.bara.sky"),
         Subcommand.MIGRATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
-    checkParsing(ImmutableList.of("validate", "copy.bara.sky"),
-        Subcommand.VALIDATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
     checkParsing(ImmutableList.of("copy.bara.sky", "import_wf"),
         Subcommand.MIGRATE, "copy.bara.sky", "import_wf", /*sourceRef=*/ null);
     checkParsing(ImmutableList.of("copy.bara.sky", "import_wf", "some_ref"),
@@ -99,14 +101,46 @@ public class MainArgumentsTest {
         Subcommand.MIGRATE, "copy.bara.sky", "import_wf", "some_ref");
   }
 
+  /**
+   * Subcommand 'validate' only allows one parameter (no workflow name or sourceRef).
+   */
+  @Test
+  public void testArgumentParsingValidate() throws Exception {
+    checkParsing(ImmutableList.of("validate", "copy.bara.sky"),
+        Subcommand.VALIDATE, "copy.bara.sky", /*workflowName=*/ null, /*sourceRef=*/ null);
+
+    thrown.expect(CommandLineException.class);
+    thrown.expectMessage("Too many arguments for subcommand 'validate'");
+    checkParsing(ImmutableList.of("validate", "copy.bara.sky", "import_wf"));
+  }
+
+  /**
+   * Subcommand 'info' does not allow sourceRef.
+   */
+  @Test
+  public void testArgumentParsingInfo() throws Exception {
+    checkParsing(ImmutableList.of("info", "copy.bara.sky"),
+        Subcommand.INFO, "copy.bara.sky", "default", /*sourceRef=*/ null);
+    checkParsing(ImmutableList.of("info", "copy.bara.sky", "import_wf"),
+        Subcommand.INFO, "copy.bara.sky", "import_wf", /*sourceRef=*/ null);
+
+    thrown.expect(CommandLineException.class);
+    thrown.expectMessage("Too many arguments for subcommand 'info'");
+    checkParsing(ImmutableList.of("info", "copy.bara.sky", "import_wf", "some_ref"));
+  }
+
   private void checkParsing(List<String> args, Subcommand expectedSubcommand, String expectedConfigPath,
       String expectedWorkflowName, @Nullable String expectedSourceRef) throws CommandLineException {
-    mainArguments = new MainArguments();
-    mainArguments.unnamed = args;
-    mainArguments.parseUnnamedArgs();
+    checkParsing(args);
     assertThat(mainArguments.getSubcommand()).isEqualTo(expectedSubcommand);
     assertThat(mainArguments.getConfigPath()).isEqualTo(expectedConfigPath);
     assertThat(mainArguments.getWorkflowName()).isEqualTo(expectedWorkflowName);
     assertThat(mainArguments.getSourceRef()).isEqualTo(expectedSourceRef);
+  }
+
+  private void checkParsing(List<String> args) throws CommandLineException {
+    mainArguments = new MainArguments();
+    mainArguments.unnamed = args;
+    mainArguments.parseUnnamedArgs();
   }
 }

@@ -16,8 +16,12 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.ValidationException.checkCondition;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -27,11 +31,11 @@ import java.util.Objects;
  */
 public final class Config {
   private final String name;
-  private final Migration activeMigration;
+  private final ImmutableMap<String, Migration> migrations;
 
-  public Config(String name, Migration activeMigration) {
+  public Config(String name, Map<String, Migration> migrations) {
     this.name = Preconditions.checkNotNull(name);
-    this.activeMigration = Preconditions.checkNotNull(activeMigration);
+    this.migrations = ImmutableMap.copyOf(migrations);
   }
 
   /**
@@ -42,10 +46,20 @@ public final class Config {
   }
 
   /**
-   * Returns the currently use
+   * Returns the {@link Migration} named after {@code migrationName}.
    */
-  public Migration getActiveMigration() {
-    return activeMigration;
+  public Migration getMigration(String migrationName) throws ValidationException {
+    checkCondition(migrations.containsKey(migrationName),
+        String.format("No migration with '%s' name exists. Valid migrations: %s",
+        migrationName, migrations.keySet()));
+    return migrations.get(migrationName);
+  }
+
+  /**
+   * Returns all the migrations in this configuration.
+   */
+  public ImmutableMap<String, Migration> getMigrations() {
+    return migrations;
   }
 
   @Override
@@ -58,19 +72,19 @@ public final class Config {
     }
     Config config = (Config) o;
     return Objects.equals(name, config.name) &&
-        Objects.equals(activeMigration, config.activeMigration);
+        Objects.equals(migrations, config.migrations);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, activeMigration);
+    return Objects.hash(name, migrations);
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("name", name)
-        .add("activeMigration", activeMigration)
+        .add("migrations", migrations)
         .toString();
   }
 }

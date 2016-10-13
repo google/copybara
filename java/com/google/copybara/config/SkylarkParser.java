@@ -183,17 +183,8 @@ public class SkylarkParser {
   private Config createConfig(Options options, Map<String, Migration> migrations,
       String projectName)
       throws ValidationException {
-
     checkCondition(!migrations.isEmpty(), "At least one migration is required.");
-
-    String workflowName = options.get(WorkflowOptions.class).getWorkflowName();
-    Migration migration = migrations.get(workflowName);
-    checkCondition(migration != null, String.format(
-        "No migration with '%s' name exists. Valid migrations: %s",
-        workflowName, migrations.keySet()));
-    //TODO(copybara-team): After skylark migration config should have all the migrations and we
-    // should move the validation above outside of the loading.
-    return new Config(checkNotMissing(projectName, "project"), migration);
+    return new Config(checkNotMissing(projectName, "project"), migrations);
   }
 
   /**

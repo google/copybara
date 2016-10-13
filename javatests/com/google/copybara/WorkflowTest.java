@@ -136,7 +136,7 @@ public class WorkflowTest {
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
-    return (Workflow<?>)loadConfig(config).getActiveMigration();
+    return (Workflow<?>)loadConfig(config).getMigration(name);
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
@@ -160,7 +160,6 @@ public class WorkflowTest {
 
   @Test
   public void toStringIncludesName() throws Exception {
-    options.workflowOptions.setWorkflowName("toStringIncludesName");
     assertThat(skylarkWorkflow("toStringIncludesName", WorkflowMode.SQUASH).toString())
         .contains("toStringIncludesName");
   }
@@ -772,7 +771,7 @@ public class WorkflowTest {
         + "    transformations = [\n"
         + "      first, second" + (thirdTransform == null ? "" : ", third") + "]\n"
         + ")\n");
-    config.getActiveMigration().run(workdir, "2");
+    config.getMigration("default").run(workdir, "2");
   }
 
   @Test
@@ -815,7 +814,7 @@ public class WorkflowTest {
         + "             reversal = []"
         + "        )\n"
         + "    ],"
-        + ")\n").getActiveMigration()).transformation();
+        + ")\n").getMigration("default")).transformation();
 
     Files.write(workdir.resolve("foo"), new byte[0]);
     transformation.transform(TransformWorks.of(workdir, "message", console()));

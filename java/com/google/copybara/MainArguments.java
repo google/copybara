@@ -16,6 +16,9 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.Subcommand.INFO;
+import static com.google.copybara.Subcommand.VALIDATE;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 
@@ -65,6 +68,7 @@ public final class MainArguments {
     return getArgs().configPath;
   }
 
+  @Nullable
   public String getWorkflowName() {
     return getArgs().workflowName;
   }
@@ -130,21 +134,27 @@ public final class MainArguments {
         subcommand = Subcommand.valueOf(firstArg.toUpperCase());
         argumentId++;
       } catch (IllegalArgumentException e) {
-        throw new CommandLineException(String.format("Invalid command %s", firstArg));
+        throw new CommandLineException(String.format("Invalid subcommand '%s'", firstArg));
       }
     }
 
     String configPath = unnamed.get(argumentId);
     argumentId++;
 
-    String workflowName = "default";
+    String workflowName = subcommand != VALIDATE ? "default" : null;
     if (argumentId < unnamed.size()) {
+      if (subcommand == VALIDATE) {
+        throw new CommandLineException("Too many arguments for subcommand 'validate'");
+      }
       workflowName = unnamed.get(argumentId);
       argumentId++;
     }
 
     String sourceRef = null;
     if (argumentId < unnamed.size()) {
+      if (subcommand == INFO) {
+        throw new CommandLineException("Too many arguments for subcommand 'info'");
+      }
       sourceRef = unnamed.get(argumentId);
       argumentId++; // Just in case we add more arguments
     }
@@ -155,12 +165,11 @@ public final class MainArguments {
 
     private final Subcommand subcommand;
     private final String configPath;
-    private final String workflowName;
-    @Nullable
-    private final String sourceRef;
+    @Nullable private final String workflowName;
+    @Nullable private final String sourceRef;
 
-    private ArgumentHolder(
-        Subcommand subcommand, String configPath, String workflowName, @Nullable String sourceRef) {
+    private ArgumentHolder(Subcommand subcommand, String configPath,
+        @Nullable  String workflowName, @Nullable String sourceRef) {
       this.subcommand = subcommand;
       this.configPath = configPath;
       this.workflowName = workflowName;

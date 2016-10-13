@@ -19,7 +19,6 @@ package com.google.copybara;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.Console;
 import java.util.Objects;
 
@@ -58,29 +57,16 @@ public class WorkflowOptions implements Option {
     }
   }
 
-  private String workflowName;
-
-  public WorkflowOptions() {
-  }
+  public WorkflowOptions() {}
 
   @VisibleForTesting
-  public WorkflowOptions(String changeBaseline, String lastRevision, String workflowName) {
+  public WorkflowOptions(String changeBaseline, String lastRevision) {
     this.changeBaseline = changeBaseline;
     this.lastRevision = lastRevision;
-    this.workflowName = workflowName;
-  }
-
-  void setWorkflowName(String workflowName) {
-    Preconditions.checkNotNull(workflowName);
-    this.workflowName = workflowName;
   }
 
   public String getLastRevision() {
     return lastRevision;
-  }
-
-  public String getWorkflowName() {
-    return workflowName;
   }
 
   public String getChangeBaseline() {
@@ -97,12 +83,11 @@ public class WorkflowOptions implements Option {
     }
     WorkflowOptions that = (WorkflowOptions) o;
     return Objects.equals(changeBaseline, that.changeBaseline) &&
-        Objects.equals(lastRevision, that.lastRevision) &&
-        Objects.equals(workflowName, that.workflowName);
+        Objects.equals(lastRevision, that.lastRevision);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(changeBaseline, lastRevision, workflowName);
+    return Objects.hash(changeBaseline, lastRevision);
   }
 }

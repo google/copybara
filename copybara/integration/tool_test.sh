@@ -972,7 +972,7 @@ EOF
 function test_command_parsing_fails() {
   copybara migrate.sky copy.bara.sky && fail "Should fail"
 
-  expect_log "Invalid command migrate.sky"
+  expect_log "Invalid subcommand 'migrate.sky'"
 }
 
 function test_validate_valid() {

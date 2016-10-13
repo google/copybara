@@ -243,8 +243,7 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
         if (!diff.trim().isEmpty()) {
           console().error("Non reversible transformations:\n"
               + DiffUtil.colorize(console(), diff));
-          throw new ValidationException(String.format(
-              "Workflow '%s' is not reversible", workflowOptions().getWorkflowName()));
+          throw new ValidationException(String.format("Workflow '%s' is not reversible", name()));
         }
       }
 

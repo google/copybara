@@ -61,8 +61,8 @@ public class OptionsBuilder {
   public GitDestinationOptions gitDestination = new GitDestinationOptions();
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
-  public WorkflowOptions workflowOptions = new WorkflowOptions(
-      /*changeBaseline=*/null, /*lastRevision=*/ null, "default");
+  public WorkflowOptions workflowOptions =
+      new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null);
 
   public TestingOptions testingOptions = new TestingOptions();
 
@@ -99,21 +99,13 @@ public class OptionsBuilder {
     return this;
   }
 
-  public final OptionsBuilder setWorkflowName(String workflowName) {
-    workflowOptions = new WorkflowOptions(
-        workflowOptions.getChangeBaseline(), workflowOptions.getLastRevision(), workflowName);
-    return this;
-  }
-
   public final OptionsBuilder setChangeBaseline(String changeBaseline) {
-    workflowOptions = new WorkflowOptions(
-        changeBaseline, workflowOptions.getLastRevision(), workflowOptions.getWorkflowName());
+    workflowOptions = new WorkflowOptions(changeBaseline, workflowOptions.getLastRevision());
     return this;
   }
 
   public final OptionsBuilder setLastRevision(String lastRevision) {
-    workflowOptions = new WorkflowOptions(
-        workflowOptions.getChangeBaseline(), lastRevision, workflowOptions.getWorkflowName());
+    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision);
     return this;
   }
 

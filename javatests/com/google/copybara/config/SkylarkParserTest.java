@@ -102,7 +102,6 @@ public class SkylarkParserTest {
             + "def copy_author():\n"
             + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
     parser.addExtraConfigFile("foo/bar/foo.bara.sky", "foobar=42\n");
-    options.setWorkflowName("foo42");
     return ""
         + "load('//foo/authoring','copy_author', 'baz')\n"
         + "some_url=\"https://so.me/random/url\"\n"
@@ -141,14 +140,14 @@ public class SkylarkParserTest {
     Config config = parser.loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
-    MockOrigin origin = (MockOrigin) getActiveWorkflow(config).origin();
+    MockOrigin origin = (MockOrigin) getWorkflow(config, "foo42").origin();
     assertThat(origin.url).isEqualTo("https://so.me/random/url");
     assertThat(origin.branch).isEqualTo("master");
 
-    MockDestination destination = (MockDestination) getActiveWorkflow(config).destination();
+    MockDestination destination = (MockDestination) getWorkflow(config, "foo42").destination();
     assertThat(destination.folder).isEqualTo("some folder");
 
-    Transformation transformation = getActiveWorkflow(config).transformation();
+    Transformation transformation = getWorkflow(config, "foo42").transformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
         ((Sequence) transformation).getSequence();
@@ -193,8 +192,8 @@ public class SkylarkParserTest {
     assertThat(derivedContentMap).isEqualTo(stringContentMap);
   }
 
-  private Workflow<?> getActiveWorkflow(Config config) {
-    return (Workflow<?>) config.getActiveMigration();
+  private Workflow<?> getWorkflow(Config config, String name) throws ValidationException {
+    return (Workflow<?>) config.getMigration(name);
   }
 
   @Test
@@ -208,7 +207,6 @@ public class SkylarkParserTest {
   }
 
   public void parseConfigCycleErrorTestHelper(Callable<?> callable) throws Exception {
-    options.setWorkflowName("foo42");
     try {
       parser.addExtraConfigFile("foo.bara.sky", "load('//bar', 'bar')");
       parser.addExtraConfigFile("bar.bara.sky", "load('//copy', 'copy')");
@@ -245,11 +243,10 @@ public class SkylarkParserTest {
         + "   authoring = authoring.overwrite('Copybara <no-reply@google.com>'),\n"
         + ")\n";
 
-    options.setWorkflowName("foo");
     Config config = parser.loadConfig(configContent);
 
     assertThat(config.getName()).isEqualTo("mytest");
-    Transformation transformation = getActiveWorkflow(config).transformation();
+    Transformation transformation = getWorkflow(config, "foo").transformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
         ((Sequence) transformation).getSequence();

@@ -71,18 +71,18 @@ public class Copybara {
         new WorkflowOptions());
   }
 
-  public void run(Options options, ConfigFile configContents, String workflowName,
+  public void run(Options options, ConfigFile configContents, String migrationName,
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
-    Config config = getConfig(options, configContents, workflowName);
-    config.getActiveMigration().run(baseWorkdir, sourceRef);
+    Config config = loadConfig(options, configContents);
+    config.getMigration(migrationName).run(baseWorkdir, sourceRef);
   }
 
-  public void info(Options options, ConfigFile configContents, String workflowName)
+  public void info(Options options, ConfigFile configContents, String migrationName)
       throws IOException, ValidationException, RepoException {
     Console console = options.get(GeneralOptions.class).console();
-    Config config = getConfig(options, configContents, workflowName);
-    Info info = config.getActiveMigration().getInfo();
+    Config config = loadConfig(options, configContents);
+    Info info = config.getMigration(migrationName).getInfo();
     for (MigrationReference ref : info.migrationReferences()) {
       console.info(
           String.format("'%s': last_migrated %s - last_available %s.",
@@ -92,18 +92,16 @@ public class Copybara {
     }
   }
 
-  public void validate(Options options, ConfigFile configContent, String workflowName)
+  public void validate(Options options, ConfigFile configContent)
       throws RepoException, ValidationException, IOException {
     Console console = options.get(GeneralOptions.class).console();
-    options.get(WorkflowOptions.class).setWorkflowName(workflowName);
     Config config = skylarkParser.loadConfig(configContent, options);
     validateConfig(options, config);
     console.info("Configuration validated.");
   }
 
-  private Config getConfig(Options options, ConfigFile configContents, String workflowName)
+  private Config loadConfig(Options options, ConfigFile configContents)
       throws IOException, ValidationException {
-    options.get(WorkflowOptions.class).setWorkflowName(workflowName);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Config config = skylarkParser.loadConfig(configContents, options);
     Console console = generalOptions.console();
@@ -120,8 +118,7 @@ public class Copybara {
       for (String validationMessage : validationMessages) {
         console.error(validationMessage);
       }
-      throw new ValidationException(
-          "Error validating configuration: Configuration is invalid.");
+      throw new ValidationException("Error validating configuration: Configuration is invalid.");
     }
   }
 
