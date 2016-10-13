@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -28,17 +29,18 @@ import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
- * A walker which adds all files not matching a glob to the index of a Git repo using
- * {@code git add}.
+ * A walker which adds all files not matching a glob to the index of a Git repo using {@code git
+ * add}.
  */
-final class AddExcludedFilesToIndexVisitor extends SimpleFileVisitor<Path> {
+final class AddExcludedFilesToIndex {
   private final GitRepository repo;
   private final PathMatcher destinationFiles;
   private ArrayList<String> addBackSubmodules;
 
-  AddExcludedFilesToIndexVisitor(GitRepository repo, Glob destinationFilesGlob) {
+  AddExcludedFilesToIndex(GitRepository repo, Glob destinationFilesGlob) {
     this.repo = repo;
     this.destinationFiles = destinationFilesGlob.relativeTo(repo.getWorkTree());
   }
@@ -63,35 +65,63 @@ final class AddExcludedFilesToIndexVisitor extends SimpleFileVisitor<Path> {
     }
   }
 
-  @Override
-  public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-      throws IOException {
-    if (dir.equals(repo.getGitDir())) {
-      return FileVisitResult.SKIP_SUBTREE;
-    }
-    return FileVisitResult.CONTINUE;
-  }
-
-  @Override
-  public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-    if (!destinationFiles.matches(file)) {
-      try {
-        repo.simpleCommand("add", "-f", "--", file.toString());
-      } catch (RepoException e) {
-        throw new IOException(e);
-      }
-    }
-    return FileVisitResult.CONTINUE;
-  }
-
   /**
    * Adds all the excluded files and submodules.
    */
   void add() throws RepoException, IOException {
-    Files.walkFileTree(repo.getWorkTree(), this);
+    ExcludesFinder visitor = new ExcludesFinder(repo.getGitDir(), destinationFiles);
+    Files.walkFileTree(repo.getWorkTree(), visitor);
+
+    int size = 0;
+    List<String> current = new ArrayList<>();
+    for (String path : visitor.excluded) {
+      current.add(path);
+      size += path.length();
+      // Split the executions in chunks of 6K. 8K triggers arg max in some systems, so
+      // this is a reasonable number to get some batching benefit.
+      if (size > 6 * 1024) {
+        repo.addForce(current);
+        current = new ArrayList<>();
+        size = 0;
+      }
+    }
+    if (!current.isEmpty()) {
+      repo.addForce(current);
+    }
+
     for (String addBackSubmodule : addBackSubmodules) {
       repo.simpleCommand("reset", "--", "--quiet", addBackSubmodule);
-      repo.simpleCommand("add", "-f", "--", addBackSubmodule);
+      repo.addForce(ImmutableList.of(addBackSubmodule));
     }
+  }
+
+  private static final class ExcludesFinder extends SimpleFileVisitor<Path> {
+
+    private final Path gitDir;
+    private final PathMatcher destinationFiles;
+    private final List<String> excluded = new ArrayList<>();
+
+    private ExcludesFinder(Path gitDir, PathMatcher destinationFiles) {
+      this.gitDir = gitDir;
+      this.destinationFiles = destinationFiles;
+    }
+
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+        throws IOException {
+      if (dir.equals(gitDir)) {
+        return FileVisitResult.SKIP_SUBTREE;
+      }
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+      if (!destinationFiles.matches(file)) {
+        excluded.add(file.toString());
+      }
+      return FileVisitResult.CONTINUE;
+    }
+
   }
 }

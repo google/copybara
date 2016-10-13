@@ -278,6 +278,18 @@ public class GitRepository {
     return gitDir;
   }
 
+  // TODO(malcon): Create a common add method for all 'addX' implementations
+  public void addForce(Iterable<String> files) throws RepoException {
+    List<String> params = Lists.newArrayList("add", "-f", "--");
+    Iterables.addAll(params, files);
+    git(getCwd(), addGitDirAndWorkTreeParams(params));
+  }
+
+  public void addForceAll() throws RepoException {
+    git(getCwd(), addGitDirAndWorkTreeParams(
+        Lists.newArrayList("add", "-f", "--all")));
+  }
+
   /**
    * Resolves a git reference to the SHA-1 reference
    */

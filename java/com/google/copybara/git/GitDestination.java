@@ -200,16 +200,21 @@ public final class GitDestination implements Destination {
 
       // Get the submodules before we stage them for deletion with
       // alternate.simpleCommand(add --all)
-      AddExcludedFilesToIndexVisitor excludedAdder =
-          new AddExcludedFilesToIndexVisitor(scratchClone, destinationFiles);
+      AddExcludedFilesToIndex excludedAdder =
+          new AddExcludedFilesToIndex(scratchClone, destinationFiles);
       excludedAdder.findSubmodules(console);
 
-      console.progress("Git Destination: Creating a local commit");
+
+      console.progress("Git Destination: Cloning destination");
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
-      alternate.simpleCommand("add", "-f", "--all");
+      console.progress("Git Destination: Adding all files");
+      alternate.addForceAll();
+
+      console.progress("Git Destination: Excluding files");
 
       excludedAdder.add();
 
+      console.progress("Git Destination: Creating a local commit");
       alternate.commit(transformResult.getAuthor().toString(), transformResult.getTimestamp(),
           commitGenerator.message(transformResult, alternate));
 
