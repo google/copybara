@@ -45,6 +45,7 @@ import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
+import com.google.devtools.build.lib.syntax.StringLiteral;
 import com.google.devtools.build.lib.vfs.PathFragment;
 import java.io.IOException;
 import java.util.HashMap;
@@ -154,8 +155,9 @@ public class SkylarkParser {
           new InputSourceForConfigFile(content), eventHandler);
 
       Map<String, Extension> imports = new HashMap<>();
-      for (String anImport : buildFileAST.getRawImports()) {
-        imports.put(anImport, new Extension(eval(content.resolve(anImport + BARA_SKY))));
+      for (StringLiteral anImport : buildFileAST.getRawImports()) {
+        imports.put(anImport.getValue(),
+            new Extension(eval(content.resolve(anImport.getValue() + BARA_SKY))));
       }
       Environment env = createEnvironment(eventHandler, globals, imports);
 
