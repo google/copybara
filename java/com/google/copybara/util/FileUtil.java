@@ -282,6 +282,8 @@ public final class FileUtil {
             // Now we have a possibly absolute path. Resolve relative to root and normalize
             // so '..' is the first segment.
             relativeLink = root.relativize(realLink).normalize();
+          } else {
+            relativeLink = realLink;
           }
         } else {
           // We reach to the regular file/directory.

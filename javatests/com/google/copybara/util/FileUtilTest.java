@@ -98,6 +98,8 @@ public class FileUtilTest {
     Path one = Files.createDirectory(temp.resolve("one"));
     Path two = Files.createDirectory(temp.resolve("two"));
     Path absolute = touch(Files.createDirectory(temp.resolve("absolute")).resolve("absolute"));
+    Path absoluteSymlink = Files.createSymbolicLink(
+        temp.resolve("absolute").resolve("symlink"), absolute);
 
     Path absoluteDir = Files.createTempDirectory("absoluteDir");
     Files.createDirectories(absoluteDir.resolve("absoluteDirDir"));
@@ -120,6 +122,8 @@ public class FileUtilTest {
     Path folder = one.resolve("some/folder");
     Path absoluteTarget = folder.relativize(absolute);
     Files.createSymbolicLink(folder.resolve("absolute"), absoluteTarget);
+    Path absoluteSymlinkTarget = folder.relativize(absoluteSymlink);
+    Files.createSymbolicLink(folder.resolve("absoluteSymlink"), absoluteSymlinkTarget);
     // Multiple jumps of symlinks that ends out of the root
     Files.createSymbolicLink(folder.resolve("absolute2"),
         folder.relativize(folder.resolve("absolute")));
@@ -135,6 +139,7 @@ public class FileUtilTest {
         .containsFile("some/folder/bar", "abc")
         .containsFile("some/multiple", "abc")
         .containsFile("some/folder/absolute", "abc")
+        .containsFile("some/folder/absoluteSymlink", "abc")
         .containsFile("some/folder/absolute2", "abc")
         .containsFile("some/folder/absolute3/absoluteDirElement", "abc")
         .containsFile("some/folder/absolute3/absoluteDirDir/element", "abc")
@@ -151,6 +156,7 @@ public class FileUtilTest {
     assertThat(Files.isSymbolicLink(two.resolve("some/multiple"))).isTrue();
     // Anything outside of one/... is copied as a regular file
     assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute"))).isFalse();
+    assertThat(Files.isSymbolicLink(two.resolve("some/folder/absoluteSymlink"))).isFalse();
     assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute2"))).isFalse();
     assertThat(Files.isSymbolicLink(two.resolve("some/folder/absolute3"))).isFalse();
   }
