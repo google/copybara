@@ -44,7 +44,7 @@ public class ExamplesTest {
   }
 
   protected ImmutableSet<Class<?>> getUserModules() {
-    return ConfigurationSupplier.BASIC_MODULES;
+    return new ConfigurationSupplier().getModules();
   }
 
 }

@@ -16,7 +16,6 @@
 
 package com.google.copybara;
 
-import static com.google.common.base.StandardSystemProperty.USER_HOME;
 import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME;
 
 import com.beust.jcommander.JCommander;
@@ -78,8 +77,8 @@ public class Main {
     }
     console.startupMessage();
 
-    Copybara copybara = newCopybaraTool();
     ConfigurationSupplier configurationSupplier = newConfigurationSupplier();
+    Copybara copybara = newCopybaraTool(configurationSupplier);
 
     final MainArguments mainArgs = new MainArguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
@@ -219,15 +218,15 @@ public class Main {
   /**
    * Returns a new instance of {@link Copybara}.
    */
-  protected Copybara newCopybaraTool() {
-    return new Copybara(new SkylarkParser(ConfigurationSupplier.BASIC_MODULES));
+  protected Copybara newCopybaraTool(ConfigurationSupplier configurationSupplier) {
+    return new Copybara(new SkylarkParser(configurationSupplier.getModules()));
   }
 
   /**
    * Returns a {@link Supplier} of {@link Option}s.
    */
   protected ConfigurationSupplier newConfigurationSupplier() {
-    return new ConfigurationSupplier(USER_HOME.value());
+    return new ConfigurationSupplier();
   }
 
   /**

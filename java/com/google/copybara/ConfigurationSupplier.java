@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.StandardSystemProperty.USER_HOME;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -35,7 +37,7 @@ import com.google.copybara.transform.metadata.MetadataModule;
  */
 public class ConfigurationSupplier {
 
-  public static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
+  private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
       FolderModule.class,
       GitModule.class,
       MetadataModule.class,
@@ -43,8 +45,25 @@ public class ConfigurationSupplier {
 
   private final String homeDir;
 
+  /**
+   * Creates a new instance using the {@code USER_HOME} as the home dir.
+   */
+  public ConfigurationSupplier() {
+    this(USER_HOME.value());
+  }
+
+  /**
+   * Creates a new instance with the given {@code homeDir}.
+   */
   public ConfigurationSupplier(String homeDir) {
     this.homeDir = Preconditions.checkNotNull(homeDir);
+  }
+
+  /**
+   * Returns the {@code set} of modules available.
+   */
+  public ImmutableSet<Class<?>> getModules() {
+    return BASIC_MODULES;
   }
 
   /**
