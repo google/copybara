@@ -257,7 +257,7 @@ public class GerritDestinationTest {
     Path scratchWorkTree = Files.createTempDirectory("GitDestinationTest-scratchWorkTree");
     Files.write(scratchWorkTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
     repo().withWorkTree(scratchWorkTree)
-        .simpleCommand("add", "excluded.txt");
+        .add().files("excluded.txt").run();
     repo().withWorkTree(scratchWorkTree)
         .simpleCommand("commit", "-m", "message");
 

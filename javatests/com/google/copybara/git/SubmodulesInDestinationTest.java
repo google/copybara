@@ -75,7 +75,7 @@ public final class SubmodulesInDestinationTest {
     submodule = GitRepository.initScratchRepo(/*verbose=*/true, System.getenv());
 
     Files.write(submodule.getWorkTree().resolve("foo"), new byte[] {1});
-    submodule.simpleCommand("add", "foo");
+    submodule.add().files("foo").run();
     submodule.simpleCommand("commit", "-m", "dummy commit");
   }
 
@@ -152,7 +152,7 @@ public final class SubmodulesInDestinationTest {
 
     Files.createDirectories(scratchTree.resolve("foo"));
     Files.write(scratchTree.resolve("foo/a"), new byte[] {1});
-    scratchRepo.simpleCommand("add", "foo/a");
+    scratchRepo.add().files("foo/a").run();
     scratchRepo.simpleCommand("submodule", "add", "file://" + submodule.getWorkTree(), "foo/b");
     scratchRepo.simpleCommand("commit", "-m", "commit submodule and foo/a");
 

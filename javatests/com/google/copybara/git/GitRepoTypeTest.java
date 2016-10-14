@@ -67,17 +67,16 @@ public class GitRepoTypeTest {
   }
 
   private void prepareFileRepo() throws RepoException, IOException {
-    fileRepo = new GitRepository(fileRepoDir, fileRepoDir, /*verbose=*/true, System.getenv());
-    fileRepo.git(fileRepoDir, "init");
+    fileRepo = GitRepository.initScratchRepo( /*verbose=*/true, fileRepoDir, System.getenv());
     Files.write(fileRepoDir.resolve("foo"), new byte[]{});
 
-    fileRepo.git(fileRepoDir, "add", "foo");
+    fileRepo.add().files("foo").run();
     fileRepo.git(fileRepoDir, "commit", "-m", "first commit");
     fileRepo.git(fileRepoDir, "branch", "first_commit");
 
     Files.write(fileRepoDir.resolve("bar"), new byte[]{});
 
-    fileRepo.git(fileRepoDir, "add", "bar");
+    fileRepo.add().files("bar").run();
     fileRepo.git(fileRepoDir, "commit", "-m", "second commit");
     fileUrl = "file://" + fileRepoDir.toAbsolutePath();
   }

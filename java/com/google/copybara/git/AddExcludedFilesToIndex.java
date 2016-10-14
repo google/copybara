@@ -80,18 +80,18 @@ final class AddExcludedFilesToIndex {
       // Split the executions in chunks of 6K. 8K triggers arg max in some systems, so
       // this is a reasonable number to get some batching benefit.
       if (size > 6 * 1024) {
-        repo.addForce(current);
+        repo.add().force().files(current).run();
         current = new ArrayList<>();
         size = 0;
       }
     }
     if (!current.isEmpty()) {
-      repo.addForce(current);
+      repo.add().force().files(current).run();
     }
 
     for (String addBackSubmodule : addBackSubmodules) {
       repo.simpleCommand("reset", "--", "--quiet", addBackSubmodule);
-      repo.addForce(ImmutableList.of(addBackSubmodule));
+      repo.add().force().files(ImmutableList.of(addBackSubmodule)).run();
     }
   }
 

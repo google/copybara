@@ -25,6 +25,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
@@ -49,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
 /**
@@ -278,16 +280,69 @@ public class GitRepository {
     return gitDir;
   }
 
-  // TODO(malcon): Create a common add method for all 'addX' implementations
-  public void addForce(Iterable<String> files) throws RepoException {
-    List<String> params = Lists.newArrayList("add", "-f", "--");
-    Iterables.addAll(params, files);
-    git(getCwd(), addGitDirAndWorkTreeParams(params));
+  /**
+   * An add command bound to the repo that can be configured and then executed with
+   * @{{@link #run()}}.
+   */
+  public class AddCmd {
+
+    private final boolean force;
+    private final boolean all;
+    private final Iterable<String> files;
+
+    private AddCmd(boolean force, boolean all, Iterable<String> files) {
+      this.force = force;
+      this.all = all;
+      this.files = Preconditions.checkNotNull(files);
+    }
+
+    /** Force the add */
+    @CheckReturnValue
+    public AddCmd force() {
+      return new AddCmd(/*force=*/true, all, files);
+    }
+
+    /** Add all the unstagged files to the index */
+    @CheckReturnValue
+    public AddCmd all() {
+      Preconditions.checkState(Iterables.isEmpty(files), "'all' and passing files is incompatible");
+      return new AddCmd(force,/*all=*/ true, files);
+    }
+
+    /** Configure the files to add to the index */
+    @CheckReturnValue
+    public AddCmd files(Iterable<String> files) {
+      Preconditions.checkState(!all, "'all' and passing files is incompatible");
+      return new AddCmd(force, /*all=*/false, files);
+    }
+
+    /** Configure the files to add to the index */
+    @CheckReturnValue
+    public AddCmd files(String... files) {
+      return files(ImmutableList.copyOf(files));
+    }
+
+    /** Run the git command */
+    public void run() throws RepoException {
+      List<String> params = Lists.newArrayList("add");
+      if (force) {
+        params.add("-f");
+      }
+      if (all) {
+        params.add("--all");
+      }
+      params.add("--");
+      Iterables.addAll(params, files);
+      git(getCwd(), addGitDirAndWorkTreeParams(params));
+    }
   }
 
-  public void addForceAll() throws RepoException {
-    git(getCwd(), addGitDirAndWorkTreeParams(
-        Lists.newArrayList("add", "-f", "--all")));
+  /**
+   * Create a git add command that can be configured before execution.
+   */
+  @CheckReturnValue
+  public AddCmd add() {
+    return new AddCmd(/*force*/false, /*all*/false, /*files*/ImmutableSet.of());
   }
 
   /**

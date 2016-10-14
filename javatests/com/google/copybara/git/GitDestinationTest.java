@@ -290,7 +290,8 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
     Files.write(workdir.resolve("excluded"), "some content".getBytes());
-    repo().withWorkTree(workdir).simpleCommand("add", "excluded");
+    repo().withWorkTree(workdir)
+        .add().files("excluded").run();
     repo().withWorkTree(workdir).simpleCommand("commit", "-m", "first commit");
 
     Files.delete(workdir.resolve("excluded"));
@@ -344,7 +345,8 @@ public class GitDestinationTest {
 
     Files.createDirectories(workdir.resolve("foo"));
     Files.write(workdir.resolve("foo/bar"), "content".getBytes(UTF_8));
-    repo().withWorkTree(workdir).simpleCommand("add", "foo/bar");
+    repo().withWorkTree(workdir)
+        .add().files("foo/bar").run();
     repo().withWorkTree(workdir).simpleCommand("commit", "-m", "message");
 
     Files.write(workdir.resolve("foo/baz"), "content".getBytes(UTF_8));
@@ -429,7 +431,7 @@ public class GitDestinationTest {
     for (int i = 0; i < 20; i++) {
       Files.write(scratchTree.resolve("excluded.dat"), new byte[] {(byte) i});
       repo().withWorkTree(scratchTree)
-          .simpleCommand("add", "excluded.dat");
+          .add().files("excluded.dat").run();
       repo().withWorkTree(scratchTree)
           .simpleCommand("commit", "-m", "excluded #" + i);
     }
@@ -452,12 +454,12 @@ public class GitDestinationTest {
 
     scratchRepo.simpleCommand("checkout", "-b", "b1");
     Files.write(scratchTree.resolve("b1.file"), new byte[] {1});
-    scratchRepo.simpleCommand("add", "b1.file");
+    scratchRepo.add().files("b1.file").run();
     scratchRepo.simpleCommand("commit", "-m", "b1");
 
     scratchRepo.simpleCommand("checkout", "-b", "b2", "master");
     Files.write(scratchTree.resolve("b2.file"), new byte[] {2});
-    scratchRepo.simpleCommand("add", "b2.file");
+    scratchRepo.add().files("b2.file").run();
     scratchRepo.simpleCommand("commit", "-m", "b2");
 
     scratchRepo.simpleCommand("checkout", "master");
@@ -592,7 +594,7 @@ public class GitDestinationTest {
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     Files.write(scratchTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
     repo().withWorkTree(scratchTree)
-        .simpleCommand("add", "excluded.txt");
+        .add().files("excluded.txt").run();
     repo().withWorkTree(scratchTree)
         .simpleCommand("commit", "-m", "message");
 
@@ -614,7 +616,7 @@ public class GitDestinationTest {
     Files.createDirectories(scratchTree.resolve("notgit"));
     Files.write(scratchTree.resolve("notgit/HEAD"), "some content".getBytes(UTF_8));
     repo().withWorkTree(scratchTree)
-        .simpleCommand("add", "notgit/HEAD");
+        .add().files("notgit/HEAD").run();
     repo().withWorkTree(scratchTree)
         .simpleCommand("commit", "-m", "message");
 
@@ -749,7 +751,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-testGitIgnoreExcluded");
     Files.write(scratchTree.resolve(".gitignore"), ".gitignore\n".getBytes(UTF_8));
-    repo().withWorkTree(scratchTree).simpleCommand("add", "-f", ".gitignore");
+    repo().withWorkTree(scratchTree).add().force().files(".gitignore").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "gitignore file");
 
     destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of(".gitignore"));

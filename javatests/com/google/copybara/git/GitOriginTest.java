@@ -63,6 +63,7 @@ public class GitOriginTest {
   private Path checkoutDir;
   private String firstCommitRef;
   private OptionsBuilder options;
+  private GitRepository repo;
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
   
@@ -73,12 +74,6 @@ public class GitOriginTest {
 
   @Before
   public void setup() throws Exception {
-    remote = Files.createTempDirectory("remote");
-    checkoutDir = Files.createTempDirectory("checkout");
-
-    url = "file://" + remote.toFile().getAbsolutePath();
-    ref = "other";
-
     options = new OptionsBuilder();
     console = new TestingConsole();
     options = new OptionsBuilder().setConsole(console);
@@ -86,20 +81,31 @@ public class GitOriginTest {
     Path reposDir = Files.createTempDirectory("repos_repo");
     options.git.repoStorage = reposDir.toString();
 
+    skylark = new SkylarkTestExecutor(options, GitModule.class);
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");
     options.setHomeDir(userHomeForTest.toString());
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+
+    createTestRepo(Files.createTempDirectory("remote"));
+    checkoutDir = Files.createTempDirectory("checkout");
+
+    url = "file://" + remote.toFile().getAbsolutePath();
+    ref = "other";
+
     origin = origin();
 
-    git("init");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
-    git("add", "test.txt");
+    repo.add().files("test.txt").run();
     git("commit", "-m", "first file", "--date", commitTime);
     String head = git("rev-parse", "HEAD");
     // Remove new line
     firstCommitRef = head.substring(0, head.length() -1);
+  }
+
+  private void createTestRepo(Path folder) throws IOException, RepoException {
+    remote = folder;
+    repo = GitRepository.initScratchRepo(/*verbose*/true, remote, options.general.getEnvironment());
   }
 
   private Reader<GitReference> newReader() {
@@ -115,7 +121,7 @@ public class GitOriginTest {
   }
 
   private String git(String... params) throws RepoException {
-    return origin.getRepository().git(remote, params).getStdout();
+    return repo.git(remote, params).getStdout();
   }
 
   @Test
@@ -206,7 +212,7 @@ public class GitOriginTest {
 
     // Check that we track new commits that modify files
     Files.write(remote.resolve("test.txt"), "new content".getBytes());
-    git("add", "test.txt");
+    repo.add().files("test.txt").run();
     git("commit", "-m", "second commit");
 
     newReader().checkout(origin.resolve("master"), checkoutDir);
@@ -410,10 +416,10 @@ public class GitOriginTest {
    */
   @Test
   public void testGitUrlOverwrite() throws ValidationException, IOException, RepoException {
-    remote = Files.createTempDirectory("cliremote");
+    createTestRepo(Files.createTempDirectory("cliremote"));
     git("init");
     Files.write(remote.resolve("cli_remote.txt"), "some change".getBytes());
-    git("add", "cli_remote.txt");
+    repo.add().files("cli_remote.txt").run();
     git("commit", "-m", "a change from somewhere");
 
     TestingConsole testConsole = new TestingConsole();
@@ -475,7 +481,7 @@ public class GitOriginTest {
   @Test
   public void canReadTimestamp() throws IOException, RepoException {
     Files.write(remote.resolve("test2.txt"), "some more content".getBytes());
-    git("add", "test2.txt");
+    repo.add().files("test2.txt").run();
     git("commit", "-m", "second file", "--date=1400110011");
     GitReference master = origin.resolve("master");
     Instant timestamp = master.readTimestamp();
@@ -490,7 +496,7 @@ public class GitOriginTest {
     GitReference firstRef = origin.resolve(firstCommitRef);
 
     Files.write(remote.resolve("test.txt"), "new content".getBytes());
-    git("add", "test.txt");
+    repo.add().files("test.txt").run();
     git("commit", "-m", "second commit");
     GitReference secondRef = origin.resolve("HEAD");
 
@@ -518,7 +524,7 @@ public class GitOriginTest {
   private void singleFileCommit(String author, String commitMessage, String fileName,
       String fileContent) throws IOException, RepoException {
     Files.write(remote.resolve(fileName), fileContent.getBytes(UTF_8));
-    git("add", fileName);
+    repo.add().files(fileName).run();
     git("commit", "-m", commitMessage, "--author=" + author);
   }
 }

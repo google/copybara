@@ -67,7 +67,7 @@ public class GitMirrorTest {
     skylark = new SkylarkTestExecutor(options, GitModule.class);
 
     Files.write(originRepo.getWorkTree().resolve("test.txt"), "some content".getBytes());
-    originRepo.git(originRepo.getWorkTree(), "add", "test.txt");
+    originRepo.add().files("test.txt").run();
     originRepo.git(originRepo.getWorkTree(), "commit", "-m", "first file");
     originRepo.git(originRepo.getWorkTree(), "branch", "other");
   }
@@ -233,7 +233,7 @@ public class GitMirrorTest {
     GitRepository other = GitRepository.initScratchRepo(/*verbose=*/true,
         options.general.getEnvironment());
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes());
-    other.git(other.getWorkTree(), "add", "test2.txt");
+    other.add().files("test2.txt").run();
     other.git(other.getWorkTree(), "commit", "-m", "another file");
     other.git(other.getWorkTree(), "branch", "other");
     other.git(other.getWorkTree(), "push", "file://" + destRepo.getGitDir(), "+refs/*:refs/*");

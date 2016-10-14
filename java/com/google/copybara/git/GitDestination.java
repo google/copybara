@@ -208,7 +208,7 @@ public final class GitDestination implements Destination {
       console.progress("Git Destination: Cloning destination");
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
       console.progress("Git Destination: Adding all files");
-      alternate.addForceAll();
+      alternate.add().force().all().run();
 
       console.progress("Git Destination: Excluding files");
 

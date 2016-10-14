@@ -57,7 +57,7 @@ public class GitRepositoryTest {
     assertThat(before).isEmpty();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
-    repo.simpleCommand("add", "foo.txt");
+    repository.add().files("foo.txt").run();
     repo.simpleCommand("commit", "foo.txt", "-m", "message");
     repo.simpleCommand("branch", "bar");
     ImmutableMap<String, GitReference> after = repo.showRef();
@@ -75,7 +75,7 @@ public class GitRepositoryTest {
     dest.initGitDir();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
-    repository.simpleCommand("add", "foo.txt");
+    repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
     repository.simpleCommand("branch", "deleted");
     repository.simpleCommand("branch", "unchanged");
