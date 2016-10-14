@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.StandardSystemProperty.USER_HOME;
 import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME;
 
 import com.beust.jcommander.JCommander;
@@ -23,7 +24,6 @@ import com.beust.jcommander.ParameterException;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.config.SkylarkParser;
@@ -41,6 +41,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -78,10 +79,11 @@ public class Main {
     console.startupMessage();
 
     Copybara copybara = newCopybaraTool();
+    ConfigurationSupplier configurationSupplier = newConfigurationSupplier();
 
     final MainArguments mainArgs = new MainArguments();
     GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-    List<Option> allOptions = new ArrayList<>(copybara.getAllOptions());
+    List<Option> allOptions = new ArrayList<>(configurationSupplier.newOptions());
     JCommander jcommander = new JCommander(ImmutableList.builder()
         .addAll(allOptions)
         .add(mainArgs)
@@ -218,7 +220,14 @@ public class Main {
    * Returns a new instance of {@link Copybara}.
    */
   protected Copybara newCopybaraTool() {
-    return new Copybara(new SkylarkParser(Copybara.BASIC_MODULES), System.getProperty("user.home"));
+    return new Copybara(new SkylarkParser(ConfigurationSupplier.BASIC_MODULES));
+  }
+
+  /**
+   * Returns a {@link Supplier} of {@link Option}s.
+   */
+  protected ConfigurationSupplier newConfigurationSupplier() {
+    return new ConfigurationSupplier(USER_HOME.value());
   }
 
   /**

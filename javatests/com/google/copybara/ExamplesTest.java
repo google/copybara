@@ -44,7 +44,7 @@ public class ExamplesTest {
   }
 
   protected ImmutableSet<Class<?>> getUserModules() {
-    return Copybara.BASIC_MODULES;
+    return ConfigurationSupplier.BASIC_MODULES;
   }
 
 }

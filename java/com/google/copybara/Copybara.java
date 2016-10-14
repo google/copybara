@@ -46,29 +46,10 @@ import javax.annotation.Nullable;
  */
 public class Copybara {
 
-  protected static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
-      FolderModule.class,
-      GitModule.class,
-      MetadataModule.class,
-      PatchModule.class);
-
   private final SkylarkParser skylarkParser;
-  private final String homeDir;
 
-  public Copybara(SkylarkParser skylarkParser, String homeDir) {
+  public Copybara(SkylarkParser skylarkParser) {
     this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
-    this.homeDir = Preconditions.checkNotNull(homeDir);
-  }
-
-  protected List<Option> getAllOptions() {
-    return ImmutableList.of(
-        new FolderDestinationOptions(),
-        new FolderOriginOptions(),
-        new GitOptions(homeDir),
-        new GitDestinationOptions(),
-        new GitMirrorOptions(),
-        new GerritOptions(),
-        new WorkflowOptions());
   }
 
   public void run(Options options, ConfigFile configContents, String migrationName,
