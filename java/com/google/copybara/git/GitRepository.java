@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeSet;
@@ -35,6 +36,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
+import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -57,6 +59,8 @@ import javax.annotation.Nullable;
  * A class for manipulating Git repositories
  */
 public class GitRepository {
+
+  private static final java.util.regex.Pattern SPACES = java.util.regex.Pattern.compile("( |\t)+");
 
   private static final Pattern FULL_URI = Pattern.compile("^[a-z][a-z0-9+-]+://.*$");
 
@@ -229,8 +233,10 @@ public class GitRepository {
   }
 
   // TODO(team): Use JGit URIish.java
-  private String validateUrl(String url) {
-    Preconditions.checkState(FULL_URI.matcher(url).matches(), "URL '%s' is not valid", url);
+  static String validateUrl(String url) throws RepoException {
+    if (!FULL_URI.matcher(url).matches()) {
+      throw new RepoException(String.format("URL '%s' is not valid", url));
+    }
     return url;
   }
 
@@ -346,6 +352,21 @@ public class GitRepository {
   }
 
   /**
+   * Get a field from a configuration {@code file} relative to {@link #getWorkTree()}.
+   */
+  @Nullable
+  private String getConfigField(String file, String field) throws RepoException {
+    CommandOutputWithStatus out = gitAllowNonZeroExit(
+        ImmutableList.of("config", "-f", file, "--get", field));
+    if (out.getTerminationStatus().success()) {
+      return out.getStdout().trim();
+    } else if (out.getTerminationStatus().getExitCode() == 1 && out.getStderr().isEmpty()) {
+      return null;
+    }
+    throw new RepoException("Error executing git config:\n" + out.getStderr());
+  }
+
+  /**
    * Resolves a git reference to the SHA-1 reference
    */
   public String revParse(String ref) throws RepoException {
@@ -379,6 +400,69 @@ public class GitRepository {
     simpleCommand("commit", "--author", author,
         "--date", timestamp.getEpochSecond() + " +0000", "-m", message);
   }
+
+  /**
+   * Find submodules information for the current repository.
+   *
+   * @param currentRemoteUrl remote url associated with the repository. It will be used to
+   * resolve relative URLs (for example: url = ../foo).
+   */
+  Iterable<Submodule> listSubmodules(String currentRemoteUrl) throws RepoException {
+    ImmutableList.Builder<Submodule> result = ImmutableList.builder();
+    String rawOutput = simpleCommand("submodule--helper", "list").getStdout();
+    for (String line : Splitter.on('\n').split(rawOutput)) {
+      if (line.isEmpty()) {
+        continue;
+      }
+      List<String> fields = Splitter.on(SPACES).splitToList(line);
+      String submoduleName = fields.get(3);
+      if (Strings.isNullOrEmpty(submoduleName)) {
+        throw new RepoException("Empty submodule name for " + line);
+      }
+
+      String path = getSubmoduleField(submoduleName, "path");
+
+      if (path == null) {
+        throw new RepoException("Path is required for submodule " + submoduleName);
+      }
+      String url = getSubmoduleField(submoduleName, "url");
+      if (url == null) {
+        throw new RepoException("Url is required for submodule " + submoduleName);
+      }
+      String branch = getSubmoduleField(submoduleName, "branch");
+      if (branch == null) {
+        branch = "master";
+      } else if (branch.equals(".")) {
+        branch = "HEAD";
+      }
+      FileUtil.checkNormalizedRelative(path);
+      // If the url is relative, construct a url using the parent module remote url.
+      if (url.startsWith("../")) {
+        url = siblingUrl(currentRemoteUrl, submoduleName, url.substring(3));
+      } else if (url.startsWith("./")) {
+        url = siblingUrl(currentRemoteUrl, submoduleName, url.substring(2));
+      }
+      GitRepository.validateUrl(url);
+      result.add(new Submodule(url, submoduleName, branch, path));
+    }
+    return result.build();
+  }
+
+  private String siblingUrl(String currentRemoteUrl, String submoduleName, String relativeUrl)
+      throws RepoException {
+    int idx = currentRemoteUrl.lastIndexOf('/');
+    if (idx == -1) {
+      throw new RepoException(String.format(
+          "Cannot find the parent url for '%s'. But git submodule '%s' is"
+              + " configured with url '%s'", currentRemoteUrl, submoduleName, relativeUrl));
+    }
+    return currentRemoteUrl.substring(0, idx) + "/" + relativeUrl;
+  }
+
+  private String getSubmoduleField(String submoduleName, final String field) throws RepoException {
+    return getConfigField(".gitmodules", "submodule." + submoduleName + "." + field);
+  }
+
 
   private Path getCwd() {
     return workTree != null ? workTree : gitDir;
@@ -555,4 +639,59 @@ public class GitRepository {
     return SHA1_PATTERN.matcher(ref).matches();
   }
 
+  /**
+   * Information of a submodule of {@code this} repository.
+   */
+  class Submodule {
+
+    private final String url;
+    private final String name;
+    @Nullable
+    private final String branch;
+    private final String path;
+
+    private Submodule(String url, String name, String branch, String path) {
+      this.url = url;
+      this.name = name;
+      this.branch = branch;
+      this.path = path;
+    }
+
+    /**
+     * Resolved submodule URL. Urls like './foo' have been already resolved to its corresponding
+     * absolute one.
+     */
+    public String getUrl() {
+      return url;
+    }
+
+    /** Name of the submodule. */
+    public String getName() {
+      return name;
+    }
+
+    /**
+     * Branch associated with the submodule. Supported values: null or '.' (HEAD is used) or
+     * a regular reference.
+     */
+    @Nullable
+    public String getBranch() {
+      return branch;
+    }
+
+    /** Relative path for the checkout of the submodule */
+    public String getPath() {
+      return path;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("url", url)
+          .add("name", name)
+          .add("branch", branch)
+          .add("path", path)
+          .toString();
+    }
+  }
 }

@@ -31,6 +31,7 @@ import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandUtil;
@@ -39,6 +40,8 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Consoles;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -54,6 +57,14 @@ import javax.annotation.Nullable;
  */
 public final class GitOrigin implements Origin<GitReference> {
 
+  enum SubmoduleStrategy {
+    /** Don't download any submodule. */
+    NO,
+    /** Download just the first level of submodules, but don't download recursively */
+    YES,
+    /** Download all the submodules recursively */
+    RECURSIVE
+  }
   private static final String GIT_LOG_COMMENT_PREFIX = "    ";
   private final GitRepository repository;
 
@@ -73,18 +84,21 @@ public final class GitOrigin implements Origin<GitReference> {
   private final boolean verbose;
   @Nullable
   private final Map<String, String> environment;
+  private final SubmoduleStrategy submoduleStrategy;
 
   private GitOrigin(Console console, GitRepository repository, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions, boolean verbose,
-      @Nullable Map<String, String> environment) {
+      @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy) {
     this.console = Preconditions.checkNotNull(console);
     this.repository = Preconditions.checkNotNull(repository);
-    this.repoUrl = Preconditions.checkNotNull(repoUrl);
+    // Remove a possible trailing '/' so that the url is normalized.
+    this.repoUrl = repoUrl.endsWith("/") ? repoUrl.substring(0, repoUrl.length() - 1) : repoUrl;
     this.configRef = configRef;
     this.repoType = Preconditions.checkNotNull(repoType);
     this.gitOptions = gitOptions;
     this.verbose = verbose;
     this.environment = environment;
+    this.submoduleStrategy = submoduleStrategy;
   }
 
   public GitRepository getRepository() {
@@ -106,9 +120,37 @@ public final class GitOrigin implements Origin<GitReference> {
      */
     @Override
     public void checkout(GitReference ref, Path workdir) throws RepoException {
-      repository.withWorkTree(workdir).simpleCommand("checkout", "-q", "-f", ref.asString());
+      checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref);
       if (!Strings.isNullOrEmpty(gitOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
+      }
+    }
+
+    private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
+        SubmoduleStrategy submoduleStrategy, GitReference ref) throws RepoException {
+      GitRepository repo = repository.withWorkTree(workdir);
+      repo.simpleCommand("checkout", "-q", "-f", ref.asString());
+      if (submoduleStrategy == SubmoduleStrategy.NO) {
+        return;
+      }
+      for (Submodule submodule : repo.listSubmodules(currentRemoteUrl)) {
+        GitRepository subRepo = GitRepository.bareRepoInCache(
+            submodule.getUrl(), environment, verbose, gitOptions.repoStorage);
+        subRepo.initGitDir();
+        GitReference resolvedBranch = subRepo.fetchSingleRef(submodule.getUrl(),
+            submodule.getBranch());
+
+        Path subdir = workdir.resolve(submodule.getPath());
+        try {
+          Files.createDirectories(workdir.resolve(submodule.getPath()));
+        } catch (IOException e) {
+          throw new RepoException(String.format(
+              "Cannot create subdirectory %s for submodule: %s", subdir, submodule));
+        }
+        checkoutRepo(subRepo, submodule.getUrl(), subdir,
+            submoduleStrategy == SubmoduleStrategy.RECURSIVE
+                ? SubmoduleStrategy.RECURSIVE
+                : SubmoduleStrategy.NO, resolvedBranch);
       }
     }
 
@@ -323,7 +365,7 @@ public final class GitOrigin implements Origin<GitReference> {
    * Builds a new {@link GitOrigin}.
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
-      Map<String, String> environment) {
+      Map<String, String> environment, SubmoduleStrategy submoduleStrategy) {
 
     GitOptions gitConfig = options.get(GitOptions.class);
     boolean verbose = options.get(GeneralOptions.class).isVerbose();
@@ -331,7 +373,7 @@ public final class GitOrigin implements Origin<GitReference> {
     return new GitOrigin(
         options.get(GeneralOptions.class).console(),
         GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
-        url, ref, type, options.get(GitOptions.class), verbose, environment);
+        url, ref, type, options.get(GitOptions.class), verbose, environment, submoduleStrategy);
   }
 
   /**

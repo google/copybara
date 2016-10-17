@@ -26,6 +26,7 @@ import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.base.OptionsAwareModule;
+import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
@@ -78,14 +79,18 @@ public class GitModule implements OptionsAwareModule {
           @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
               doc = "Represents the default reference that will be used for reading the revision "
                   + "from the git repository. For example: 'master'"),
+          @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
+              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
       },
       objectType = GitModule.class)
   public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
-    public GitOrigin invoke(GitModule self, String url, Object ref)
+    public GitOrigin invoke(GitModule self, String url, Object ref, String submodules)
         throws EvalException {
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
-          self.options.get(GeneralOptions.class).getEnvironment());
+          self.options.get(GeneralOptions.class).getEnvironment(),
+          SkylarkUtil.stringToEnum(location, "submodules",
+              submodules, GitOrigin.SubmoduleStrategy.class));
     }
   };
 
@@ -141,15 +146,19 @@ public class GitModule implements OptionsAwareModule {
           @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
               doc = "Represents the default reference that will be used for reading the revision "
                   + "from the git repository. For example: 'master'"),
+          @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
+              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
       },
-      objectType = GitModule.class)
+      objectType = GitModule.class, useLocation = true)
   public static final BuiltinFunction GERRIT_ORIGIN = new BuiltinFunction("gerrit_origin") {
-    public GitOrigin invoke(GitModule self, String url, Object ref)
-        throws EvalException {
+    public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
+        Location location) throws EvalException {
       // TODO(copybara-team): Validate that URL is a Gerrit one
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GERRIT,
-          self.options.get(GeneralOptions.class).getEnvironment());
+          self.options.get(GeneralOptions.class).getEnvironment(),
+          SkylarkUtil.stringToEnum(location, "submodules",
+              submodules, GitOrigin.SubmoduleStrategy.class));
     }
   };
 
@@ -162,18 +171,22 @@ public class GitModule implements OptionsAwareModule {
           @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
               doc = "Represents the default reference that will be used for reading the revision "
                   + "from the git repository. For example: 'master'"),
+          @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
+              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
       },
       objectType = GitModule.class, useLocation = true)
   public static final BuiltinFunction GITHUB_ORIGIN = new BuiltinFunction("github_origin") {
-    public GitOrigin invoke(GitModule self, String url, Object ref, Location location)
-        throws EvalException {
+    public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
+        Location location) throws EvalException {
       if (!url.contains("github.com")) {
         throw new EvalException(location, "Invalid Github URL: " + url);
       }
 
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
-          self.options.get(GeneralOptions.class).getEnvironment());
+          self.options.get(GeneralOptions.class).getEnvironment(),
+          SkylarkUtil.stringToEnum(location, "submodules",
+              submodules, GitOrigin.SubmoduleStrategy.class));
     }
   };
 
