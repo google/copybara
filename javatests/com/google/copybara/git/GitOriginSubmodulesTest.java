@@ -131,11 +131,7 @@ public class GitOriginSubmodulesTest {
   @Test
   public void testDotBranch() throws Exception {
     Path base = Files.createTempDirectory("base");
-    Files.createDirectories(base.resolve("r1"));
-    Files.createDirectories(base.resolve("r2"));
-    GitRepository r1 = GitRepository.initScratchRepo(/*verbose=*/false, base.resolve("r1"),
-        System.getenv());
-    commitAdd(r1, ImmutableMap.of("foo", "1"));
+    GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
     // Build a relative url submodule
     r2.simpleCommand("submodule", "add", "-f", "--branch", "master", "--name", "r1",
@@ -147,15 +143,36 @@ public class GitOriginSubmodulesTest {
         .getBytes());
     commit(r2, "adding r1 submodule");
 
-    GitOrigin origin1 = origin("file://" + r2.getGitDir(), "master");
-    GitReference master = origin1.resolve("master");
-    origin1.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
+    GitReference master = origin.resolve("master");
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
         .containsFiles(GITMODULES)
         .containsFile("foo", "1")
         .containsFile("r1/foo", "1")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCycle() throws Exception {
+    Path base = Files.createTempDirectory("base");
+    GitRepository r1 = createRepoWithFoo(base, "r1");
+    GitRepository r2 = createRepoWithFoo(base, "r2");
+    // Build a relative url submodule
+    r2.simpleCommand("submodule", "add", "-f", "--branch", "master", "--name", "r1",
+        "file://" + r1.getWorkTree());
+    commit(r2, "adding r1 submodule");
+
+    r1.simpleCommand("submodule", "add", "-f", "--branch", "master", "--name", "r2",
+        "file://" + r2.getWorkTree());
+    commit(r1, "adding r2 submodule");
+
+    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
+    GitReference master = origin.resolve("master");
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("Submodules cycle detected");
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
   }
 
   private void commitAdd(GitRepository repo, Map<String, String> files)

@@ -48,8 +48,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -120,37 +122,60 @@ public final class GitOrigin implements Origin<GitReference> {
      */
     @Override
     public void checkout(GitReference ref, Path workdir) throws RepoException {
-      checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref);
+      checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref, new LinkedHashSet<>());
       if (!Strings.isNullOrEmpty(gitOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
       }
     }
 
     private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
-        SubmoduleStrategy submoduleStrategy, GitReference ref) throws RepoException {
-      GitRepository repo = repository.withWorkTree(workdir);
-      repo.simpleCommand("checkout", "-q", "-f", ref.asString());
-      if (submoduleStrategy == SubmoduleStrategy.NO) {
-        return;
-      }
-      for (Submodule submodule : repo.listSubmodules(currentRemoteUrl)) {
-        GitRepository subRepo = GitRepository.bareRepoInCache(
-            submodule.getUrl(), environment, verbose, gitOptions.repoStorage);
-        subRepo.initGitDir();
-        GitReference resolvedBranch = subRepo.fetchSingleRef(submodule.getUrl(),
-            submodule.getBranch());
+        SubmoduleStrategy submoduleStrategy, GitReference ref, Set<String> inProcess)
+        throws RepoException {
 
-        Path subdir = workdir.resolve(submodule.getPath());
-        try {
-          Files.createDirectories(workdir.resolve(submodule.getPath()));
-        } catch (IOException e) {
-          throw new RepoException(String.format(
-              "Cannot create subdirectory %s for submodule: %s", subdir, submodule));
+      // For now we don't take into account the branch/ref used in the submodule. While this
+      // might be a valid non-recursive use case, it is good enough for now.
+      if (!inProcess.add(currentRemoteUrl)) {
+        StringBuilder sb = new StringBuilder();
+        for (String element : inProcess) {
+          if (element.equals(currentRemoteUrl)) {
+            sb.append("  * ");
+          } else {
+            sb.append("    ");
+          }
+          sb.append(element).append("\n");
         }
-        checkoutRepo(subRepo, submodule.getUrl(), subdir,
-            submoduleStrategy == SubmoduleStrategy.RECURSIVE
-                ? SubmoduleStrategy.RECURSIVE
-                : SubmoduleStrategy.NO, resolvedBranch);
+        sb.append("  * ").append(currentRemoteUrl).append("\n");
+        throw new RepoException("Submodules cycle detected:\n" + sb.toString());
+      }
+
+      try {
+        GitRepository repo = repository.withWorkTree(workdir);
+        repo.simpleCommand("checkout", "-q", "-f", ref.asString());
+        if (submoduleStrategy == SubmoduleStrategy.NO) {
+          return;
+        }
+        for (Submodule submodule : repo.listSubmodules(currentRemoteUrl)) {
+          GitRepository subRepo = GitRepository.bareRepoInCache(
+              submodule.getUrl(), environment, verbose, gitOptions.repoStorage);
+          subRepo.initGitDir();
+          GitReference resolvedBranch = subRepo.fetchSingleRef(submodule.getUrl(),
+              submodule.getBranch());
+
+          Path subdir = workdir.resolve(submodule.getPath());
+          try {
+            Files.createDirectories(workdir.resolve(submodule.getPath()));
+          } catch (IOException e) {
+            throw new RepoException(String.format(
+                "Cannot create subdirectory %s for submodule: %s", subdir, submodule));
+          }
+
+          checkoutRepo(subRepo, submodule.getUrl(), subdir,
+              submoduleStrategy == SubmoduleStrategy.RECURSIVE
+                  ? SubmoduleStrategy.RECURSIVE
+                  : SubmoduleStrategy.NO, resolvedBranch, inProcess);
+        }
+      } finally {
+        inProcess.remove(currentRemoteUrl);
       }
     }
 
