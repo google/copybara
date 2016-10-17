@@ -24,6 +24,7 @@ import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 
@@ -62,26 +63,38 @@ public class Copybara {
     }
   }
 
-  public void validate(Options options, ConfigFile configContent)
-      throws RepoException, ValidationException, IOException {
+  public boolean validate(Options options, ConfigFile configContent)
+      throws RepoException, IOException {
     Console console = options.get(GeneralOptions.class).console();
-    Config config = skylarkParser.loadConfig(configContent, options);
-    validateConfig(options, config);
-    console.info("Configuration validated.");
+    ArrayList<String> messages = new ArrayList<>();
+    try {
+      Config config = skylarkParser.loadConfig(configContent, options);
+      messages.addAll(validateConfig(config));
+    } catch (ValidationException e) {
+      // The validate subcommand should not throw Validation exceptions but log a result
+      StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
+      Throwable cause = e.getCause();
+      while (cause != null) {
+        error.append("  CAUSED BY: ").append(cause.getMessage()).append("\n");
+        cause = cause.getCause();
+      }
+      messages.add(error.toString());
+    }
+    if (messages.isEmpty()) {
+      console.info(String.format("Configuration '%s' is valid.", configContent.path()));
+    } else {
+      console.error(String.format("Configuration '%s' is invalid.", configContent.path()));
+      messages.forEach(console::error);
+    }
+    return messages.isEmpty();
   }
 
   private Config loadConfig(Options options, ConfigFile configContents)
       throws IOException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    Config config = skylarkParser.loadConfig(configContents, options);
     Console console = generalOptions.console();
+    Config config = skylarkParser.loadConfig(configContents, options);
     console.progress("Validating configuration");
-    validateConfig(options, config);
-    return config;
-  }
-
-  private void validateConfig(Options options, Config config) throws ValidationException {
-    Console console = options.get(GeneralOptions.class).console();
     List<String> validationMessages = validateConfig(config);
     if (!validationMessages.isEmpty()) {
       console.error("Configuration is invalid:");
@@ -90,14 +103,16 @@ public class Copybara {
       }
       throw new ValidationException("Error validating configuration: Configuration is invalid.");
     }
+    return config;
   }
 
   /**
    * Returns a list of validation error messages, if any, for the given configuration.
    */
   protected List<String> validateConfig(Config config) {
-    // TODO(copybara-team): Move here SkylarkParser validations once Config has all the workflows.
-    // checkCondition(!workflows.isEmpty(), ...)
+    if (config.getMigrations().isEmpty()) {
+      return ImmutableList.of("At least one migration is required.");
+    }
     return ImmutableList.of();
   }
 }

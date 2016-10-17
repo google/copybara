@@ -17,7 +17,6 @@
 package com.google.copybara.config;
 
 import static com.google.copybara.ValidationException.checkCondition;
-import static com.google.copybara.ValidationException.checkNotMissing;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -28,10 +27,8 @@ import com.google.copybara.Authoring;
 import com.google.copybara.Config;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.Migration;
 import com.google.copybara.Options;
 import com.google.copybara.ValidationException;
-import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
@@ -99,7 +96,7 @@ public class SkylarkParser {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);
     }
-    return createConfig(core.getMigrations());
+    return new Config(core.getMigrations());
   }
 
   @VisibleForTesting
@@ -178,12 +175,6 @@ public class SkylarkParser {
       console.error("Cycle was detected in the configuration: \n" + sb);
       throw new ValidationException("Cycle was detected");
     }
-  }
-
-  private Config createConfig(Map<String, Migration> migrations)
-      throws ValidationException {
-    checkCondition(!migrations.isEmpty(), "At least one migration is required.");
-    return new Config(migrations);
   }
 
   /**

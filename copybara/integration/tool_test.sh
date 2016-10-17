@@ -997,7 +997,7 @@ EOF
 
   copybara validate copy.bara.sky
 
-  expect_log "Configuration validated"
+  expect_log "Configuration '.*copy.bara.sky' is valid."
 }
 
 function test_validate_invalid() {
@@ -1011,7 +1011,18 @@ EOF
 
   copybara validate copy.bara.sky && fail "Should fail"
 
+  expect_log "Configuration '.*copy.bara.sky' is invalid."
   expect_log "Error loading config file"
+}
+
+function test_require_at_least_one_migration() {
+    cat > copy.bara.sky <<EOF
+
+EOF
+
+  copybara migrate copy.bara.sky && fail "Should fail"
+
+  expect_log "At least one migration is required"
 }
 
 function test_apply_patch() {

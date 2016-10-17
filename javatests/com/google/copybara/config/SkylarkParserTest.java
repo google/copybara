@@ -77,14 +77,6 @@ public class SkylarkParserTest {
     options.setConsole(console);
   }
 
-  @Test
-  public void requireAtLeastOneWorkflow()
-      throws IOException, ValidationException {
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("At least one migration is required.");
-    parser.loadConfig("");
-  }
-
   private String setUpInclusionTest() {
     parser.addExtraConfigFile(
         "foo/authoring.bara.sky",
