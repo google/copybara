@@ -64,6 +64,9 @@ public class GitRepository {
 
   private static final Pattern FULL_URI = Pattern.compile("^[a-z][a-z0-9+-]+://.*$");
 
+  private static final Pattern LS_TREE_ELEMENT = Pattern.compile(
+      "([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40})\t(.*)");
+
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
 
   private static final Pattern FAILED_REBASE = Pattern.compile("Failed to merge in the changes");
@@ -448,6 +451,29 @@ public class GitRepository {
     return result.build();
   }
 
+  ImmutableList<TreeElement> lsTree(GitReference reference, String treeish) throws RepoException {
+    ImmutableList.Builder<TreeElement> result = ImmutableList.builder();
+    String stdout = simpleCommand("ls-tree", reference.asString(), treeish).getStdout();
+    for (String line : Splitter.on('\n').split(stdout)) {
+      if (line.isEmpty()) {
+        continue;
+      }
+      Matcher matcher = LS_TREE_ELEMENT.matcher(line);
+      if (!matcher.matches()) {
+        throw new RepoException("Unexpected format for ls-tree output: " + line);
+      }
+      // We ignore the mode for now
+      GitObjectType objectType = GitObjectType.valueOf(matcher.group(2).toUpperCase());
+      String sha1 = matcher.group(3);
+      String path = matcher.group(4)
+          // Per ls-tree documentation. Replace those escaped characters.
+          .replace("\\\\", "\\").replace("\\t", "\t").replace("\\n", "\n");
+
+      result.add(new TreeElement(objectType, sha1, path));
+    }
+    return result.build();
+  }
+
   private String siblingUrl(String currentRemoteUrl, String submoduleName, String relativeUrl)
       throws RepoException {
     int idx = currentRemoteUrl.lastIndexOf('/');
@@ -693,5 +719,46 @@ public class GitRepository {
           .add("path", path)
           .toString();
     }
+  }
+
+  class TreeElement {
+
+    private final GitObjectType type;
+    private final String ref;
+    private final String path;
+
+    private TreeElement(GitObjectType type, String ref, String path) {
+      this.type = Preconditions.checkNotNull(type);
+      this.ref = Preconditions.checkNotNull(ref);
+      this.path = Preconditions.checkNotNull(path);
+    }
+
+    GitObjectType getType() {
+      return type;
+    }
+
+    String getRef() {
+      return ref;
+    }
+
+    String getPath() {
+      return path;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("type", type)
+          .add("ref", ref)
+          .add("file", path)
+          .toString();
+    }
+  }
+
+  enum GitObjectType {
+    BLOB,
+    COMMIT,
+    TAG,
+    TREE
   }
 }

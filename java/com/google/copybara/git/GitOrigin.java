@@ -32,6 +32,7 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GitRepository.Submodule;
+import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandUtil;
@@ -48,10 +49,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -122,60 +121,49 @@ public final class GitOrigin implements Origin<GitReference> {
      */
     @Override
     public void checkout(GitReference ref, Path workdir) throws RepoException {
-      checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref, new LinkedHashSet<>());
+      checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref);
       if (!Strings.isNullOrEmpty(gitOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
       }
     }
 
     private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
-        SubmoduleStrategy submoduleStrategy, GitReference ref, Set<String> inProcess)
+        SubmoduleStrategy submoduleStrategy, GitReference ref)
         throws RepoException {
 
-      // For now we don't take into account the branch/ref used in the submodule. While this
-      // might be a valid non-recursive use case, it is good enough for now.
-      if (!inProcess.add(currentRemoteUrl)) {
-        StringBuilder sb = new StringBuilder();
-        for (String element : inProcess) {
-          if (element.equals(currentRemoteUrl)) {
-            sb.append("  * ");
-          } else {
-            sb.append("    ");
-          }
-          sb.append(element).append("\n");
-        }
-        sb.append("  * ").append(currentRemoteUrl).append("\n");
-        throw new RepoException("Submodules cycle detected:\n" + sb.toString());
+      GitRepository repo = repository.withWorkTree(workdir);
+      repo.simpleCommand("checkout", "-q", "-f", ref.asString());
+      if (submoduleStrategy == SubmoduleStrategy.NO) {
+        return;
       }
-
-      try {
-        GitRepository repo = repository.withWorkTree(workdir);
-        repo.simpleCommand("checkout", "-q", "-f", ref.asString());
-        if (submoduleStrategy == SubmoduleStrategy.NO) {
-          return;
+      for (Submodule submodule : repo.listSubmodules(currentRemoteUrl)) {
+        ImmutableList<TreeElement> elements = repo.lsTree(ref, submodule.getPath());
+        if (elements.size() != 1) {
+          throw new RepoException(String
+              .format("Cannot find one tree element for submodule %s."
+                  + " Found the following elements: %s", submodule.getPath(), elements));
         }
-        for (Submodule submodule : repo.listSubmodules(currentRemoteUrl)) {
-          GitRepository subRepo = GitRepository.bareRepoInCache(
-              submodule.getUrl(), environment, verbose, gitOptions.repoStorage);
-          subRepo.initGitDir();
-          GitReference resolvedBranch = subRepo.fetchSingleRef(submodule.getUrl(),
-              submodule.getBranch());
+        TreeElement element = Iterables.getOnlyElement(elements);
+        Preconditions.checkArgument(element.getPath().equals(submodule.getPath()));
 
-          Path subdir = workdir.resolve(submodule.getPath());
-          try {
-            Files.createDirectories(workdir.resolve(submodule.getPath()));
-          } catch (IOException e) {
-            throw new RepoException(String.format(
-                "Cannot create subdirectory %s for submodule: %s", subdir, submodule));
-          }
+        GitRepository subRepo = GitRepository.bareRepoInCache(
+            submodule.getUrl(), environment, verbose, gitOptions.repoStorage);
+        subRepo.initGitDir();
+        subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
+        GitReference submoduleRef = subRepo.resolveReference(element.getRef());
 
-          checkoutRepo(subRepo, submodule.getUrl(), subdir,
-              submoduleStrategy == SubmoduleStrategy.RECURSIVE
-                  ? SubmoduleStrategy.RECURSIVE
-                  : SubmoduleStrategy.NO, resolvedBranch, inProcess);
+        Path subdir = workdir.resolve(submodule.getPath());
+        try {
+          Files.createDirectories(workdir.resolve(submodule.getPath()));
+        } catch (IOException e) {
+          throw new RepoException(String.format(
+              "Cannot create subdirectory %s for submodule: %s", subdir, submodule));
         }
-      } finally {
-        inProcess.remove(currentRemoteUrl);
+
+        checkoutRepo(subRepo, submodule.getUrl(), subdir,
+            submoduleStrategy == SubmoduleStrategy.RECURSIVE
+                ? SubmoduleStrategy.RECURSIVE
+                : SubmoduleStrategy.NO, submoduleRef);
       }
     }
 

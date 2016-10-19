@@ -127,6 +127,8 @@ public class GitOriginSubmodulesTest {
 
   /**
    * Test that we can refer to HEAD as '.' in the branch field
+   *
+   * TODO(malcon): This test is wrong. '.' should match the parent submodule current branch.
    */
   @Test
   public void testDotBranch() throws Exception {
@@ -154,34 +156,64 @@ public class GitOriginSubmodulesTest {
         .containsNoMoreFiles();
   }
 
+  /**
+   * Test that even if submodules config are tracking a moving ref (master, etc.), each
+   * commit is associated with an specific SHA-1.
+   */
   @Test
-  public void testCycle() throws Exception {
+  public void testFixedSha1PerCommit() throws Exception {
     Path base = Files.createTempDirectory("base");
     GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
-    // Build a relative url submodule
-    r2.simpleCommand("submodule", "add", "-f", "--branch", "master", "--name", "r1",
+
+    r2.simpleCommand("submodule", "add", "--branch", "master", "--name", "r1",
         "file://" + r1.getWorkTree());
     commit(r2, "adding r1 submodule");
+    GitReference r2FirstSha1 = r2.showRef().get("refs/heads/master");
 
-    r1.simpleCommand("submodule", "add", "-f", "--branch", "master", "--name", "r2",
-        "file://" + r2.getWorkTree());
-    commit(r1, "adding r2 submodule");
+    addFile(r1, "bar", "bar");
+    addFile(r1, "foo", "foo");
+    commit(r1, "bar change");
 
-    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
-    GitReference master = origin.resolve("master");
-    thrown.expect(RepoException.class);
-    thrown.expectMessage("Submodules cycle detected");
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+    r2.simpleCommand("submodule", "update", "--remote");
+    r2.add().all().run();
+    commit(r2, "updating r1 submodule");
+
+    GitReference r2SecondSha1 = r2.showRef().get("refs/heads/master");
+
+    GitOrigin origin = origin("file://" + r2.getGitDir(), "refs/heads/master");
+    origin.resolve(r2FirstSha1.asString());
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(r2FirstSha1, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFile("foo", "1")
+        .containsFile("r1/foo", "1")
+        .containsNoMoreFiles();
+
+    origin.resolve(r2SecondSha1.asString());
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(r2SecondSha1, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFile("foo", "1")
+        .containsFile("r1/foo", "foo")
+        .containsFile("r1/bar", "bar")
+        .containsNoMoreFiles();
   }
 
   private void commitAdd(GitRepository repo, Map<String, String> files)
       throws IOException, RepoException {
     for (Entry<String, String> e : files.entrySet()) {
-      Files.write(repo.getWorkTree().resolve(e.getKey()), e.getValue().getBytes(UTF_8));
-      repo.add().files(e.getKey()).run();
+      addFile(repo, e.getKey(), e.getValue());
     }
     commit(repo, "message");
+  }
+
+  private void addFile(GitRepository repo, String name, String content)
+      throws IOException, RepoException {
+    Files.write(repo.getWorkTree().resolve(name), content.getBytes(UTF_8));
+    repo.add().files(name).run();
   }
 
   private void commit(GitRepository repo, String message) throws RepoException {
