@@ -56,12 +56,12 @@ public final class RenameDetectorTest {
     List<Score<String>> result = detector.scoresForLaterFile(new Bytes("xyz"));
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getKey()).isEqualTo("foo");
-    assertThat(result.get(0).getScore()).isEqualTo(Integer.MAX_VALUE);
+    assertThat(result.get(0).getScore()).isEqualTo(1);
 
     result = detector.scoresForLaterFile(new Bytes("x"));
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getKey()).isEqualTo("baz");
-    assertThat(result.get(0).getScore()).isEqualTo(Integer.MAX_VALUE);
+    assertThat(result.get(0).getScore()).isEqualTo(1);
 
     assertThat(detector.scoresForLaterFile(new Bytes("asdf"))).isEmpty();
   }
@@ -115,5 +115,56 @@ public final class RenameDetectorTest {
     assertThat(bytes.isClosed).isFalse();
     detector.scoresForLaterFile(bytes);
     assertThat(bytes.isClosed).isTrue();
+  }
+
+  @Test
+  public void oneLineMatchIsBetterThanNoLinesMatching() throws Exception {
+    RenameDetector<String> detector = new RenameDetector<>();
+    detector.addPriorFile("foo", new Bytes("asdf\njkl;"));
+    detector.addPriorFile("bar", new Bytes("aaaa\nbbbb"));
+    List<Score<String>> result = detector.scoresForLaterFile(new Bytes("aaaa\ncccc"));
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getKey()).isEqualTo("bar");
+  }
+
+  enum TestKey {FOO, BAR, BAZ, BLAH;}
+
+  @Test
+  public void matchingLinesHaveDifferentNumberOfInterleavingLines1() throws Exception {
+    RenameDetector<TestKey> detector = new RenameDetector<>();
+    detector.addPriorFile(TestKey.BAR, new Bytes("1234\naaaa\nbbbb"));
+    detector.addPriorFile(TestKey.FOO, new Bytes("asdf\njkl;"));
+    List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\ncccc"));
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
+  }
+
+  @Test
+  public void matchingLinesHaveDifferentNumberOfInterleavingLines2() throws Exception {
+    RenameDetector<TestKey> detector = new RenameDetector<>();
+    detector.addPriorFile(TestKey.BAR, new Bytes("aaaa\nbbbb\ncccc"));
+    detector.addPriorFile(TestKey.FOO, new Bytes("asdf\njkl;"));
+    List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\ncccc"));
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
+    assertThat(result.get(0).getScore()).isEqualTo(2);
+  }
+
+  @Test
+  public void sortsScoreListDecreasingly() throws Exception {
+    RenameDetector<TestKey> detector = new RenameDetector<>();
+    detector.addPriorFile(TestKey.FOO, new Bytes("aaaa\ndddd\ncccc"));
+    detector.addPriorFile(TestKey.BAR, new Bytes("aaaa\nbbbb\ncccc"));
+    detector.addPriorFile(TestKey.BAZ, new Bytes("aaaa\ndddd\nffff"));
+    detector.addPriorFile(TestKey.BLAH, new Bytes("not a match at all!"));
+    List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\nbbbb\ncccc"));
+
+    assertThat(result).hasSize(3);
+    assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
+    assertThat(result.get(1).getKey()).isEqualTo(TestKey.FOO);
+    assertThat(result.get(2).getKey()).isEqualTo(TestKey.BAZ);
   }
 }
