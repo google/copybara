@@ -20,6 +20,8 @@ import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
+
+import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -40,6 +42,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -57,9 +60,23 @@ public class Main {
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
   private static final Logger logger = Logger.getLogger(Main.class.getName());
+  /**
+   * Represents the environment, typically {@code System.getEnv()}. Injected to make easier tests.
+   *
+   * <p>Should not be mutated.
+   */
+  protected final Map<String, String> environment;
+
+  public Main() {
+    this(System.getenv());
+  }
+
+  public Main(Map<String, String> environment) {
+    this.environment = Preconditions.checkNotNull(environment);
+  }
 
   public static void main(String[] args) {
-    System.exit(new Main().run(args).getCode());
+    System.exit(new Main(System.getenv()).run(args).getCode());
   }
 
   protected ExitCode run(String[] args) {
@@ -103,11 +120,11 @@ public class Main {
       }
       mainArgs.parseUnnamedArgs();
 
-      GeneralOptions generalOptions = generalOptionsArgs.init(System.getenv(), fs, console);
+      GeneralOptions generalOptions = generalOptionsArgs.init(environment, fs, console);
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
-      initEnvironment(options, mainArgs);
+      initEnvironment(options, mainArgs, jcommander);
 
       final Path configPath = fs.getPath(mainArgs.getConfigPath());
       ConfigFile configFile = loadConfig(configPath, generalOptions.getConfigRoot());
@@ -271,7 +288,7 @@ public class Main {
    * Sample use case are remote logging, test harnesses and others. Called after command line
    * options are parsed, but before a file is read or a run started.
    */
-  protected void initEnvironment(Options options, MainArguments mainArgs) {
+  protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander) {
     // intentional no-op
   }
 

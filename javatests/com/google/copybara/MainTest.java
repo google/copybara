@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.beust.jcommander.JCommander;
 import com.google.copybara.util.ExitCode;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -74,7 +75,7 @@ public class MainTest {
           protected void configureLog(FileSystem fs) {}
 
           @Override
-          protected void initEnvironment(Options o, MainArguments args) {
+          protected void initEnvironment(Options o, MainArguments args, JCommander jcommander) {
             called = true;
           }
         };
