@@ -127,8 +127,6 @@ public class GitOriginSubmodulesTest {
 
   /**
    * Test that we can refer to HEAD as '.' in the branch field
-   *
-   * TODO(malcon): This test is wrong. '.' should match the parent submodule current branch.
    */
   @Test
   public void testDotBranch() throws Exception {

@@ -186,12 +186,16 @@ public class GitRepository {
     // This is not strictly necessary for some Git repos that allow fetching from any sha1 ref, like
     // servers configured with 'git config uploadpack.allowReachableSHA1InWant true'. Unfortunately,
     // Github doesn't support it. So what we do is fetch the default refspec (see the comment
-    // bellow) and hope the sha1 is reachable from heads.
+    // below) and hope the sha1 is reachable from heads.
+    // If we fail to find the SHA-1 with that fetch we fetch the SHA-1 directly and hope the server
+    // allows to download it.
     if (isSha1Reference(ref)) {
-      // TODO(copybara-team): For now we get the default refspec, but we should make this
-      // configurable. Otherwise it is not going to work with Gerrit.
       fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of());
-      return resolveReference(ref);
+      try {
+        return resolveReference(ref);
+      } catch (RepoException ignore) {
+        // Ignore, the fetch below will attempt using the SHA-1.
+      }
     }
     fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(ref));
     return resolveReference("FETCH_HEAD");
