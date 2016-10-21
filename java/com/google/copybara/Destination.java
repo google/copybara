@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.copybara.Origin.Reader;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -30,7 +31,7 @@ import javax.annotation.Nullable;
     name = "destination",
     doc = "A repository which a source of truth can be copied to",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
-public interface Destination {
+public interface Destination <R extends Reference> {
 
   /**
    * The result of invoking {@link Writer#write(TransformResult, Console)}.
@@ -47,6 +48,25 @@ public interface Destination {
      */
     PROMPT_TO_CONTINUE,
   }
+
+  /**
+   * An object which is capable of introspecting the destination repository. This can also enumerate
+   * changes in the history.
+   **/
+  interface Reader<R extends Reference> extends ChangeVisitable<R> { }
+
+  /**
+   * Creates a new reader of this destination.
+   *
+   * @param destinationFiles indicates which files in the destination repository need to be read.
+   * @param authoring the authoring object used for constructing the Author objects.
+   * @throws ValidationException if the reader could not be created because of a user error.
+   */
+  @Nullable
+  default public Reader<R> newReader(Glob destinationFiles, Authoring authoring)
+      throws ValidationException, RepoException, UnsupportedOperationException {
+   return null;
+  };
 
   /**
    * An object which is capable of writing multiple revisions to the destination. This object is
@@ -103,4 +123,5 @@ public interface Destination {
    * using {@link WorkflowMode#CHANGE_REQUEST}.
    */
   String getLabelNameWhenOrigin();
+
 }

@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
 /**
  * A Git repository destination.
  */
-public final class GitDestination implements Destination {
+public final class GitDestination implements Destination<GitReference> {
 
   private static final ImmutableSet<String> SINGLE_ROOT_WITHOUT_FOLDER = ImmutableSet.of("");
 

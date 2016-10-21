@@ -17,7 +17,7 @@
 package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Origin.Reference;
+import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
 import java.time.Instant;
 import java.util.Objects;

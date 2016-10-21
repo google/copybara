@@ -19,6 +19,7 @@ package com.google.copybara.folder;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
+import com.google.copybara.Reference;
 import com.google.copybara.TransformResult;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
@@ -34,7 +35,7 @@ import javax.annotation.Nullable;
  * Writes the output tree to a local destination. Any file that is not excluded in the configuration
  * gets deleted before writing the new files.
  */
-public class FolderDestination implements Destination {
+public class FolderDestination implements Destination<Reference> {
 
   private static final String FOLDER_DESTINATION_NAME = "!FolderDestination";
 

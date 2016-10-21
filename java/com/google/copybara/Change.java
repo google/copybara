@@ -32,7 +32,7 @@ import java.util.Objects;
 @SkylarkModule(name = "change",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "A change metadata. Contains information like author, change message or detected labels")
-public final class Change<R extends Origin.Reference> {
+public final class Change<R extends Reference> {
 
   private final R reference;
   private final Author author;

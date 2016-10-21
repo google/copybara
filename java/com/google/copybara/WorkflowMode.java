@@ -22,9 +22,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.copybara.Destination.WriterResult;
-import com.google.copybara.Origin.ChangesVisitor;
-import com.google.copybara.Origin.Reference;
-import com.google.copybara.Origin.VisitResult;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -46,7 +43,7 @@ public enum WorkflowMode {
   @DocField(description = "Create a single commit in the destination with new tree state.")
   SQUASH {
     @Override
-    <R extends Origin.Reference> void run(Workflow<R>.RunHelper<R> runHelper)
+    <R extends Reference, S extends Reference> void run(Workflow<R, S>.RunHelper<R> runHelper)
         throws RepoException, IOException, ValidationException {
 
       runHelper.migrate(
@@ -65,7 +62,7 @@ public enum WorkflowMode {
   @DocField(description = "Import each origin change individually.")
   ITERATIVE {
     @Override
-    <R extends Origin.Reference> void run(Workflow<R>.RunHelper<R> runHelper)
+    <R extends Reference, S extends Reference> void run(Workflow<R, S>.RunHelper<R> runHelper)
         throws RepoException, IOException, ValidationException {
       ImmutableList<Change<R>> changes = runHelper.changesSinceLastImport();
       int changeNumber = 1;
@@ -106,20 +103,21 @@ public enum WorkflowMode {
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
     @Override
-    <R extends Origin.Reference> void run(Workflow<R>.RunHelper<R> runHelper)
+    <R extends Reference, S extends Reference> void run(Workflow<R, S>.RunHelper<R> runHelper)
         throws RepoException, IOException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
-        runHelper.getReader().visitChanges(runHelper.getResolvedRef(), new ChangesVisitor() {
+        runHelper.getReader().visitChanges(runHelper.getResolvedRef(),
+            new ChangeVisitable.ChangesVisitor() {
           @Override
-          public VisitResult visit(Change<?> change) {
+          public ChangeVisitable.VisitResult visit(Change<?> change) {
             if (change.getLabels().containsKey(originLabelName)) {
               requestParent.set(change.getLabels().get(originLabelName));
-              return VisitResult.TERMINATE;
+              return ChangeVisitable.VisitResult.TERMINATE;
             }
-            return VisitResult.CONTINUE;
+            return ChangeVisitable.VisitResult.CONTINUE;
           }
         });
       }
@@ -142,7 +140,7 @@ public enum WorkflowMode {
 
   private static final Logger logger = Logger.getLogger(WorkflowMode.class.getName());
 
-  abstract <R extends Origin.Reference> void run(Workflow<R>.RunHelper<R> runHelper)
+  abstract <R extends Reference, S extends Reference> void run(Workflow<R,S>.RunHelper<R> runHelper)
       throws RepoException, IOException, ValidationException;
 
   /**
@@ -150,12 +148,13 @@ public enum WorkflowMode {
    * a transformer request it.
    */
   @SkylarkModule(name = "LazyChanges", doc = "Lazy changes implementation", documented = false)
-  private static class LazyChangesForSquash<R extends Reference> extends Changes {
+  private static class LazyChangesForSquash<R extends Reference, S extends Reference>
+      extends Changes {
 
-    private final Workflow<R>.RunHelper<R> runHelper;
+    private final Workflow<R,S>.RunHelper<R> runHelper;
     private SkylarkList<? extends Change<?>> cached;
 
-    private LazyChangesForSquash(Workflow<R>.RunHelper<R> runHelper) {
+    private LazyChangesForSquash(Workflow<R,S>.RunHelper<R> runHelper) {
       this.runHelper = runHelper;
       cached = null;
     }

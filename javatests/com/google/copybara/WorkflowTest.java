@@ -118,7 +118,7 @@ public class WorkflowTest {
     return skylarkWorkflow("default", WorkflowMode.SQUASH);
   }
 
-  private Workflow<?> skylarkWorkflow(String name, WorkflowMode mode)
+  private Workflow<?, ?> skylarkWorkflow(String name, WorkflowMode mode)
       throws IOException, ValidationException {
     String config = ""
         + "core.project( name = 'copybara_project')\n"
@@ -136,7 +136,7 @@ public class WorkflowTest {
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
-    return (Workflow<?>)loadConfig(config).getMigration(name);
+    return (Workflow<?, ?>)loadConfig(config).getMigration(name);
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
@@ -793,7 +793,7 @@ public class WorkflowTest {
 
   @Test
   public void testNoNestedSequenceProgressMessage() throws Exception {
-    Transformation transformation = ((Workflow<?>)loadConfig(""
+    Transformation transformation = ((Workflow<?, ?>)loadConfig(""
         + "core.project( name = 'copybara_project')\n"
         + "core.workflow(\n"
         + "    name = 'default',\n"

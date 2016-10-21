@@ -19,9 +19,6 @@ package com.google.copybara;
 import com.google.auto.value.AutoValue;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Origin.Reference;
-import java.util.Arrays;
-import java.util.List;
 import javax.annotation.Nullable;
 
 /**

@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
 /**
  * Gerrit repository destination.
  */
-public final class GerritDestination implements Destination {
+public final class GerritDestination implements Destination<GitReference> {
 
   private static final class CommitGenerator implements GitDestination.CommitGenerator {
 

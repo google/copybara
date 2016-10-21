@@ -26,7 +26,7 @@ import com.google.copybara.Authoring;
 import com.google.copybara.Config;
 import com.google.copybara.Destination;
 import com.google.copybara.Origin;
-import com.google.copybara.Origin.Reference;
+import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -183,8 +183,8 @@ public class SkylarkParserTest {
     assertThat(derivedContentMap).isEqualTo(stringContentMap);
   }
 
-  private Workflow<?> getWorkflow(Config config, String name) throws ValidationException {
-    return (Workflow<?>) config.getMigration(name);
+  private Workflow<?, ?> getWorkflow(Config config, String name) throws ValidationException {
+    return (Workflow<?, ?>) config.getMigration(name);
   }
 
   @Test

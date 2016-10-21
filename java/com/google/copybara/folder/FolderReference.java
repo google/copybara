@@ -17,7 +17,7 @@
 package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Origin.Reference;
+import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
 import java.nio.file.Path;
 import java.time.Instant;

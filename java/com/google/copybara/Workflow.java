@@ -44,7 +44,7 @@ import javax.annotation.Nullable;
  * multiple workflows. Each workflow has a particular origin and destination.
  */
 @AutoValue
-public abstract class Workflow<R extends Origin.Reference> implements Migration {
+public abstract class Workflow<R extends Reference, S extends Reference> implements Migration {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
@@ -58,7 +58,7 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
   /**
    * The destination repository to copy to.
    */
-  public abstract Destination destination();
+  public abstract Destination<S> destination();
 
   /**
    * The author mapping between an origin and a destination
@@ -137,17 +137,19 @@ public abstract class Workflow<R extends Origin.Reference> implements Migration 
     private final Path workdir;
     final M resolvedRef;
     private final Origin.Reader<R> reader;
+    @Nullable private final Destination.Reader<S> destinationReader;
     private final Destination.Writer writer;
 
     /**
      * @param workdir working directory to use for the transformations
      * @param resolvedRef reference to migrate
      */
-    RunHelper(Path workdir, M resolvedRef) throws ValidationException {
+    RunHelper(Path workdir, M resolvedRef) throws ValidationException, RepoException {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
       this.reader = origin().newReader(originFiles(), authoring());
       this.writer = destination().newWriter(destinationFiles());
+      this.destinationReader = destination().<S>newReader(destinationFiles(), authoring());
     }
 
     M getResolvedRef() {

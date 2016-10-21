@@ -21,7 +21,6 @@ import static com.google.copybara.config.base.SkylarkUtil.stringToEnum;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.copybara.Origin.Reference;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -257,7 +256,7 @@ public class Core implements OptionsAwareModule {
     }
 
     public NoneType invoke(Core self, String workflowName,
-        Origin<Reference> origin, Destination destination, Authoring authoring,
+        Origin<Reference> origin, Destination<?> destination, Authoring authoring,
         SkylarkList<?> transformations,
         Object excludeInOrigin,
         Object excludeInDestination,

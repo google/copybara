@@ -17,7 +17,6 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Origin.Reference;
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.annotation.Nullable;
@@ -83,7 +82,7 @@ public final class TransformResult {
   /**
    * Reference to the origin revision being moved.
    */
-  public Origin.Reference getOriginRef() {
+  public Reference getOriginRef() {
     return originRef;
   }
 

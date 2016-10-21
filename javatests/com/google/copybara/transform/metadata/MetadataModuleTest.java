@@ -311,7 +311,7 @@ public class MetadataModuleTest {
 
   private void checkScrubber(String commitMsg, String scrubber, String expectedMsg)
       throws IOException, ValidationException, RepoException {
-    Workflow<?> wf = createWorkflow(WorkflowMode.ITERATIVE, scrubber);
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, scrubber);
     origin.addSimpleChange(0, commitMsg);
     wf.run(workdir, /*sourceRef=*/null);
     ProcessedChange change = Iterables.getLast(destination.processed);

@@ -24,6 +24,7 @@ import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Origin;
+import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,7 +37,7 @@ import javax.annotation.Nullable;
  * A reference of a change used for testing. This can be used with a {@link DummyOrigin} instance or
  * without an actual {@link Origin} implementation.
  */
-public class DummyReference implements Origin.Reference {
+public class DummyReference implements Reference {
 
   private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
