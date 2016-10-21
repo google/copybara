@@ -105,6 +105,13 @@ public final class RenameDetector<I> {
   }
 
   /**
+   * The maximum score that can be returned. This value gives high-enough resolution for reasonably
+   * sized files and eliminates the risk of overflow for source files with fewer than
+   * 2,000,000 lines (roughly {@code Integer.MAX_VALUE / MAX_SCORE}).
+   */
+  public static final int MAX_SCORE = 1000;
+
+  /**
    * Hashes a single file in the later revision so it can be checked for similarities with all files
    * in the prior revision added previously. Closes {@code input} before returning.
    *
@@ -112,6 +119,11 @@ public final class RenameDetector<I> {
    * <a href="https://github.com/git/git/blob/master/diffcore-rename.c">diffcore-rename.c</a>. Both
    * algorithms hash every line of every file, store a list of the hash-codes for each file, and
    * then check the number of shared hash-codes between files to estimate their similarity.
+   *
+   * <p>The Git algorithm has a concept of a minimum score. i.e. if two files have < X%
+   * similarity, they will not be returned in the results. This allows some file comparisons to be
+   * skipped because of large differences in size. That is not implemented here: all similarities
+   * greater than 0% (one or more shared lines) are returned.
    *
    * <p>When calling this method, the later file is checked against all the prior files added with
    * {@link addPriorFile(Object,InputStream)}, scored based on the number of shared hashes, and
@@ -139,8 +151,7 @@ public final class RenameDetector<I> {
         }
       }
       if (matchCount != 0) {
-        // TODO(copybara-team): Decide on a reasonable score scale.
-        results.add(new Score<>(priorFile.key, matchCount));
+        results.add(new Score<>(priorFile.key, matchCount * MAX_SCORE / priorFile.hashes.length));
       }
     }
 

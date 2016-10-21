@@ -56,12 +56,12 @@ public final class RenameDetectorTest {
     List<Score<String>> result = detector.scoresForLaterFile(new Bytes("xyz"));
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getKey()).isEqualTo("foo");
-    assertThat(result.get(0).getScore()).isEqualTo(1);
+    assertThat(result.get(0).getScore()).isGreaterThan(0);
 
     result = detector.scoresForLaterFile(new Bytes("x"));
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getKey()).isEqualTo("baz");
-    assertThat(result.get(0).getScore()).isEqualTo(1);
+    assertThat(result.get(0).getScore()).isGreaterThan(0);
 
     assertThat(detector.scoresForLaterFile(new Bytes("asdf"))).isEmpty();
   }
@@ -150,7 +150,7 @@ public final class RenameDetectorTest {
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
-    assertThat(result.get(0).getScore()).isEqualTo(2);
+    assertThat(result.get(0).getScore()).isGreaterThan(0);
   }
 
   @Test
@@ -166,5 +166,40 @@ public final class RenameDetectorTest {
     assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
     assertThat(result.get(1).getKey()).isEqualTo(TestKey.FOO);
     assertThat(result.get(2).getKey()).isEqualTo(TestKey.BAZ);
+  }
+
+  @Test
+  public void removedContentInLaterFileReducesScore() throws Exception {
+    RenameDetector<TestKey> detector = new RenameDetector<>();
+    detector.addPriorFile(TestKey.FOO, new Bytes("aaaa\nbbbb\ncccc\ndddd\neeee"));
+    detector.addPriorFile(TestKey.BAR, new Bytes("aaaa\nbbbb\ncccc"));
+    detector.addPriorFile(TestKey.BAZ, new Bytes("0000\naaaa\nbbbb\ncccc"));
+
+    List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\nbbbb"));
+    assertThat(result).hasSize(3);
+    // BAR has only 1 line more than later file - it should have the highest score.
+    assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
+    assertThat(result.get(0).getScore()).isGreaterThan(result.get(1).getScore());
+    // BAZ has 2 lines more than later file - slightly less score
+    assertThat(result.get(1).getKey()).isEqualTo(TestKey.BAZ);
+    assertThat(result.get(1).getScore()).isGreaterThan(result.get(2).getScore());
+    assertThat(result.get(2).getKey()).isEqualTo(TestKey.FOO);
+  }
+
+  @Test
+  public void addedContentInLaterFileReducesScore() throws Exception {
+    RenameDetector<TestKey> detector = new RenameDetector<>();
+
+    detector.addPriorFile(TestKey.FOO, new Bytes("aaaa\nbbbb"));
+    detector.addPriorFile(TestKey.BAR, new Bytes("aaaa\nbbbb\ncccc"));
+    detector.addPriorFile(TestKey.BAZ, new Bytes(""));
+
+    List<Score<TestKey>> result = detector.scoresForLaterFile(new Bytes("aaaa\nbbbb\ncccc\ndddd"));
+    assertThat(result).hasSize(2);
+    // BAR has only 1 line less than later file - it should have the highest score.
+    assertThat(result.get(0).getKey()).isEqualTo(TestKey.BAR);
+    assertThat(result.get(0).getScore()).isGreaterThan(result.get(1).getScore());
+    // FOO has 2 lines less than later file - slightly less score
+    assertThat(result.get(1).getKey()).isEqualTo(TestKey.FOO);
   }
 }
