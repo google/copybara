@@ -149,7 +149,7 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
       this.reader = origin().newReader(originFiles(), authoring());
       this.writer = destination().newWriter(destinationFiles());
-      this.destinationReader = destination().<S>newReader(destinationFiles(), authoring());
+      this.destinationReader = destination().newReader(destinationFiles(), authoring());
     }
 
     M getResolvedRef() {
