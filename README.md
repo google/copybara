@@ -44,6 +44,9 @@ you need:
   * Build: *bazel build //java/com/google/copybara*.
   * Tests: *bazel test //...* if you want to ensure you are not using a broken version.
 
+Note that configuration files can be stored in any place, Even in a local folder. We recommend to
+use a VCS (like git) to store them; treat them as source code.
+
 ## Documentation
 
 We are still working on the documentation. Here are some resources:
