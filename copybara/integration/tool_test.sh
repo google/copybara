@@ -27,9 +27,11 @@ handlers=java.util.logging.ConsoleHandler
 java.util.logging.SimpleFormatter.format=%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %2$s %5$s%6$s%n
 EOF
 
+# Extracted as a variable so that internal tests can extend the test with different binary
+copybara_binary="${copybara_binary-"${TEST_SRCDIR}/copybara/java/com/google/copybara/copybara"}"
+
 function copybara() {
-  $TEST_SRCDIR/copybara/java/com/google/copybara/copybara \
-      --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" \
+  $copybara_binary --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" \
       --git-repo-storage "$repo_storage" \
       --work-dir "$workdir" > $TEST_log 2>&1 \
       && return
