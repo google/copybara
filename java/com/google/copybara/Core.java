@@ -202,10 +202,10 @@ public class Core implements OptionsAwareModule {
           @Param(name = "mode", type = String.class, doc = ""
               + "Workflow mode. Currently we support three modes:<br>"
               + "<ul>"
-              + "<li><b>SQUASH</b>: Create a single commit in the destination with new tree"
+              + "<li><b>'SQUASH'</b>: Create a single commit in the destination with new tree"
               + " state.</li>"
-              + "<li><b>ITERATIVE</b>: Import each origin change individually.</li>"
-              + "<li><b>CHANGE_REQUEST</b>: Import an origin tree state diffed by a common parent"
+              + "<li><b>'ITERATIVE'</b>: Import each origin change individually.</li>"
+              + "<li><b>'CHANGE_REQUEST'</b>: Import an origin tree state diffed by a common parent"
               + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.</li>"
               + "</ul>",
               defaultValue = "\"SQUASH\"", positional = false),
@@ -216,8 +216,8 @@ public class Core implements OptionsAwareModule {
           @Param(name = "reversible_check", type = Boolean.class,
               doc = "Indicates if the tool should try to to reverse all the transformations"
                   + " at the end to check that they are reversible.<br/>The default value is"
-                  + " True for CHANGE_REQUEST mode. False otherwise",
-              defaultValue = "True for CHANGE_REQUEST mode. False otherwise",
+                  + " True for 'CHANGE_REQUEST' mode. False otherwise",
+              defaultValue = "True for 'CHANGE_REQUEST' mode. False otherwise",
               noneable = true, positional = false),
           @Param(name = "ask_for_confirmation", type = Boolean.class,
               doc = "Indicates that the tool should show the diff and require user's"

@@ -266,7 +266,7 @@ exclude|`sequence of string`<br><p>The list of glob patterns to exclude</p>
 <a id="core.project" aria-hidden="true"></a>
 ## core.project
 
-General configuration of the project. Like the name.
+General configuration of the project. Like the name.  THIS FUNCTION IS DEPRECATED.
 
 `core.project(name)`
 
@@ -296,7 +296,7 @@ transformations|`sequence of transformation`<br><p>The transformations to revers
 
 Defines a migration pipeline which can be invoked via the Copybara command.
 
-`core.workflow(name, origin, destination, authoring, transformations=[], exclude_in_origin=N/A, exclude_in_destination=N/A, origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", include_changelist_notes=False, reversible_check=True for CHANGE_REQUEST mode. False otherwise, ask_for_confirmation=False)`
+`core.workflow(name, origin, destination, authoring, transformations=[], exclude_in_origin=N/A, exclude_in_destination=N/A, origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", include_changelist_notes=False, reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, ask_for_confirmation=False)`
 
 ### Parameters:
 
@@ -311,9 +311,9 @@ exclude_in_origin|`glob`<br><p>For compatibility purposes only. Use origin_files
 exclude_in_destination|`glob`<br><p>For compatibility purposes only. Use detination_files instead.</p>
 origin_files|`glob`<br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
 destination_files|`glob`<br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
-mode|`string`<br><p>Workflow mode. Currently we support three modes:<br><ul><li><b>SQUASH</b>: Create a single commit in the destination with new tree state.</li><li><b>ITERATIVE</b>: Import each origin change individually.</li><li><b>CHANGE_REQUEST</b>: Import an origin tree state diffed by a common parent in destination. This could be a GH Pull Request, a Gerrit Change, etc.</li></ul></p>
+mode|`string`<br><p>Workflow mode. Currently we support three modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import an origin tree state diffed by a common parent in destination. This could be a GH Pull Request, a Gerrit Change, etc.</li></ul></p>
 include_changelist_notes|`boolean`<br><p>Include a list of change list messages that were imported.**DEPRECATED**: This method is about to be removed.</p>
-reversible_check|`boolean`<br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for CHANGE_REQUEST mode. False otherwise</p>
+reversible_check|`boolean`<br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
 ask_for_confirmation|`boolean`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
 
 
@@ -559,7 +559,7 @@ Name | Type | Description
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that currently it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-`gitOrigin git.origin(url, ref=None)`
+`gitOrigin git.origin(url, ref=None, submodules='NO')`
 
 ### Parameters:
 
@@ -567,6 +567,7 @@ Parameter | Description
 --------- | -----------
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 
 
 <a id="git.mirror" aria-hidden="true"></a>
@@ -600,7 +601,7 @@ Name | Type | Description
 
 Defines a Git origin of type Gerrit.
 
-`gitOrigin git.gerrit_origin(url, ref=None)`
+`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO')`
 
 ### Parameters:
 
@@ -608,6 +609,7 @@ Parameter | Description
 --------- | -----------
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 
 
 <a id="git.github_origin" aria-hidden="true"></a>
@@ -615,7 +617,7 @@ ref|`string`<br><p>Represents the default reference that will be used for readin
 
 Defines a Git origin of type Github.
 
-`gitOrigin git.github_origin(url, ref=None)`
+`gitOrigin git.github_origin(url, ref=None, submodules='NO')`
 
 ### Parameters:
 
@@ -623,12 +625,13 @@ Parameter | Description
 --------- | -----------
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 
 
 <a id="git.destination" aria-hidden="true"></a>
 ## git.destination
 
-Creates a commit in a git repository using the transformed worktree
+Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
 `gitDestination git.destination(url, push, fetch=push)`
 
