@@ -19,7 +19,6 @@ package com.google.copybara;
 import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.base.SkylarkUtil.stringToEnum;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Origin.Reference;
@@ -176,8 +175,8 @@ public class Core implements OptionsAwareModule {
               positional = false),
           @Param(name = "transformations", type = SkylarkList.class,
               generic1 = Object.class,
-              doc = "Where to read the migration code from.", positional = false,
-              defaultValue = "[]"),
+              doc = "The transformations to be run for this workflow. They will run in sequence.",
+              positional = false, defaultValue = "[]"),
           @Param(name = "exclude_in_origin", type = Glob.class,
               doc = "For compatibility purposes only. Use origin_files instead.",
               defaultValue = "N/A", positional = false, noneable = true),
