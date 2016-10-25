@@ -16,6 +16,15 @@
 
 source third_party/bazel/bashunit/unittest.bash
 
+# This should be kept in sync with ExitCode
+readonly SUCCESS=0
+readonly COMMAND_LINE_ERROR=1
+readonly CONFIGURATION_ERROR=2
+readonly REPOSITORY_ERROR=3
+readonly INTERRUPTED=8
+readonly ENVIRONMENT_ERROR=30
+readonly INTERNAL_ERROR=31
+
 function run_git() {
    git "$@" > $TEST_log 2>&1 || fail "Error running git"
 }
@@ -67,6 +76,17 @@ function expect_in_file() {
   local file="$2"
   cat "$file" > $TEST_log || fail "'$file' not found"
   expect_log "$regex" || fail "Cannot find '$regex' in '$file'"
+}
+
+# TODO(copybara-team): Migrate tests to assert on exit code
+function copybara_with_exit_code() {
+  local expected_code=$1
+  shift
+  copybara "$@" && status=$? || status=$?
+  if [ $status -ne $expected_code ]; then
+      fail "Unexpected exit code $status. Expected $expected_code."
+  fi
+  return 0
 }
 
 function check_copybara_rev_id() {
@@ -967,10 +987,46 @@ EOF
   copybara copy.bara.sky
 }
 
-function test_command_parsing_fails() {
+function test_subcommand_parsing_fails() {
   copybara migrate.sky copy.bara.sky && fail "Should fail"
 
   expect_log "Invalid subcommand 'migrate.sky'"
+}
+
+function test_migrate_missing_config() {
+  copybara_with_exit_code $COMMAND_LINE_ERROR migrate
+
+  expect_log "Configuration file missing for 'migrate' subcommand."
+}
+
+function test_migrate_too_many_arguments() {
+  copybara_with_exit_code $COMMAND_LINE_ERROR migrate copy.bara.sky default foo bar
+
+  expect_log "Expected at most four arguments"
+}
+
+function test_info_missing_config() {
+  copybara_with_exit_code $COMMAND_LINE_ERROR info
+
+  expect_log "Configuration file missing for 'info' subcommand."
+}
+
+function test_info_too_many_arguments() {
+  copybara_with_exit_code $COMMAND_LINE_ERROR info copy.bara.sky default foo
+
+  expect_log "Too many arguments for subcommand 'info'"
+}
+
+function test_validate_missing_config() {
+  copybara_with_exit_code $COMMAND_LINE_ERROR validate
+
+  expect_log "Configuration file missing for 'validate' subcommand."
+}
+
+function test_validate_too_many_arguments() {
+  copybara_with_exit_code $COMMAND_LINE_ERROR validate copy.bara.sky default
+
+  expect_log "Too many arguments for subcommand 'validate'"
 }
 
 function test_validate_valid() {

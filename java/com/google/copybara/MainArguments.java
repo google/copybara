@@ -126,8 +126,8 @@ public final class MainArguments {
     }
 
     Subcommand subcommand = Subcommand.MIGRATE;
-    String firstArg = unnamed.get(0);
     int argumentId = 0;
+    String firstArg = unnamed.get(argumentId);
     // This should be enough for now
     if (!firstArg.endsWith(COPYBARA_SKYLARK_CONFIG_FILENAME)) {
       try {
@@ -138,6 +138,11 @@ public final class MainArguments {
       }
     }
 
+    if (argumentId >= unnamed.size()) {
+      throw new CommandLineException(
+          String.format("Configuration file missing for '%s' subcommand.",
+              subcommand.toString().toLowerCase()));
+    }
     String configPath = unnamed.get(argumentId);
     argumentId++;
 
