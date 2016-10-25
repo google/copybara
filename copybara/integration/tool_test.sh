@@ -78,7 +78,7 @@ function expect_in_file() {
   expect_log "$regex" || fail "Cannot find '$regex' in '$file'"
 }
 
-# TODO(copybara-team): Migrate tests to assert on exit code
+# Runs Copybara and check that the exit code is the expected one.
 function copybara_with_exit_code() {
   local expected_code=$1
   shift
@@ -770,7 +770,7 @@ core.workflow(
     transformations = [42],
 )
 EOF
-  copybara copy.bara.sky default && fail "Should fail"
+  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky default
   expect_log "expected type transformation for 'transformations' element but got type int instead"
 }
 
@@ -781,18 +781,18 @@ function test_command_help_flag() {
 }
 
 function test_command_copybara_filename_no_correct_name() {
-  copybara migrate somename.bzl && fail "Should fail"
+  copybara_with_exit_code $CONFIGURATION_ERROR migrate somename.bzl
   expect_log "Copybara config file filename should be 'copy.bara.sky'"
 }
 
 function test_command_too_few_args() {
-  copybara && fail "Should fail"
+  copybara_with_exit_code $COMMAND_LINE_ERROR
   expect_log 'Expected at least a configuration file.'
   expect_log 'Usage: copybara \[options\] \[COMMAND\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
 }
 
 function test_command_too_many_args() {
-  copybara migrate config workflow_name origin/master unexpected && fail "Should fail"
+  copybara_with_exit_code $COMMAND_LINE_ERROR migrate config workflow_name origin/master unexpected
   expect_log "Expected at most four arguments."
   expect_log 'Usage: copybara \[options\] \[COMMAND\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
 }
@@ -838,7 +838,7 @@ EOF
 
 function test_reversible_check() {
   setup_reversible_check_workflow
-  copybara copy.bara.sky && fail "Should fail"
+  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky
   expect_log "ERROR: Workflow 'default' is not reversible"
 }
 
@@ -848,13 +848,13 @@ function test_disable_reversible_check() {
 }
 
 function test_config_not_found() {
-  copybara copy.bara.sky origin/master && fail "Should fail"
+  copybara_with_exit_code $COMMAND_LINE_ERROR copy.bara.sky origin/master
   expect_log "Configuration file not found: copy.bara.sky"
 }
 
 #Verify that we instantiate LogConsole when System.console() is null
 function test_no_ansi_console() {
-  copybara copy.bara.sky && fail "Should fail"
+  copybara_with_exit_code $COMMAND_LINE_ERROR copy.bara.sky
   expect_log "^20[0-9]\{6\} .*"
 }
 
@@ -888,7 +888,7 @@ core.workflow(
     ask_for_confirmation = True,
 )
 EOF
-  copybara copy.bara.sky && fail "Should fail"
+  copybara_with_exit_code $INTERNAL_ERROR copy.bara.sky
   expect_log "LogConsole cannot read user input if system console is not present"
 }
 
@@ -988,7 +988,7 @@ EOF
 }
 
 function test_subcommand_parsing_fails() {
-  copybara migrate.sky copy.bara.sky && fail "Should fail"
+  copybara_with_exit_code $COMMAND_LINE_ERROR migrate.sky copy.bara.sky
 
   expect_log "Invalid subcommand 'migrate.sky'"
 }
@@ -1063,7 +1063,7 @@ core.workflowFoo(
 )
 EOF
 
-  copybara validate copy.bara.sky && fail "Should fail"
+  copybara_with_exit_code $CONFIGURATION_ERROR validate copy.bara.sky
 
   expect_log "Configuration '.*copy.bara.sky' is invalid."
   expect_log "Error loading config file"
@@ -1074,7 +1074,7 @@ function test_require_at_least_one_migration() {
 
 EOF
 
-  copybara migrate copy.bara.sky && fail "Should fail"
+  copybara_with_exit_code $CONFIGURATION_ERROR migrate copy.bara.sky
 
   expect_log "At least one migration is required"
 }
