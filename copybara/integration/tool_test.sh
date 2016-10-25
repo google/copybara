@@ -86,7 +86,7 @@ function test_git_tracking() {
   run_git init .
   echo "first version for food and foooooo" > test.txt
   mkdir subdir
-  echo "first version" > subdir/test.txt
+  echo "first version for food and fools" > subdir/test.txt
   run_git add test.txt subdir/test.txt
   run_git commit -m "first commit"
   first_commit=$(run_git rev-parse HEAD)
@@ -125,13 +125,8 @@ EOF
 
   copybara copy.bara.sky
 
-  expect_log "Running Copybara for workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
-  expect_log 'Transform Replace food'
-  expect_log 'apply s/food/drink/g to .*/test.txt$'
-  expect_log 'apply s/food/drink/g to .*/subdir/test.txt$'
-  expect_not_log 'apply .* to .*/subdir$'
-  expect_log 'Transform Replace f\${os}o'
-  expect_log 'Exporting .* to:'
+  expect_log '\[ 1/2\] Transform Replace food'
+  expect_log '\[ 2/2\] Transform Replace f\${os}o'
 
   # Make sure we don't get detached head warnings polluting the log.
   expect_not_log "You are in 'detached HEAD' state"
@@ -139,12 +134,15 @@ EOF
   [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
   cat $workdir/checkout/test.txt > $TEST_log
   expect_log "first version for drink and barooooo"
-
+  cat $workdir/checkout/subdir/test.txt > $TEST_log
+  expect_in_file "first version for drink and barols" $workdir/checkout/subdir/test.txt
   check_copybara_rev_id "$destination" "$first_commit"
 
   # Do a new modification and check that we are tracking the changes to the branch
   pushd $remote
   echo "second version for food and foooooo" > test.txt
+  echo "second version for food and fools" > subdir/test.txt
+
   run_git add test.txt
   run_git commit -m "second commit"
   second_commit=$(git rev-parse HEAD)
@@ -920,8 +918,6 @@ core.workflow(
 EOF
   cd $config_folder
   copybara foo/bar/copy.bara.sky $flags
-
-  expect_log "Running Copybara for workflow 'default' .*repoUrl=file://$remote.*mode=SQUASH"
 
   [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
 }
