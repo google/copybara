@@ -149,7 +149,7 @@ public class Main {
       }
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
-      System.err.print(usage(jcommander, version));
+      System.err.println("Try 'copybara --help'.");
       return ExitCode.COMMAND_LINE_ERROR;
     } catch (RepoException e) {
       logger.log(Level.SEVERE, "Repository exception", e);

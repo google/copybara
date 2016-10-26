@@ -788,15 +788,14 @@ function test_command_copybara_filename_no_correct_name() {
 function test_command_too_few_args() {
   copybara_with_exit_code $COMMAND_LINE_ERROR
   expect_log 'Expected at least a configuration file.'
-  expect_log 'Usage: copybara \[options\] \[COMMAND\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
+  expect_log "Try 'copybara --help'"
 }
 
 function test_command_too_many_args() {
   copybara_with_exit_code $COMMAND_LINE_ERROR migrate config workflow_name origin/master unexpected
   expect_log "Expected at most four arguments."
-  expect_log 'Usage: copybara \[options\] \[COMMAND\] CONFIG_PATH \[WORKFLOW_NAME \[SOURCE_REF\]\]'
+  expect_log "Try 'copybara --help'"
 }
-
 
 function setup_reversible_check_workflow() {
   remote=$(temp_dir remote)
