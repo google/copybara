@@ -371,11 +371,11 @@ public class GitOriginTest {
     singleFileCommit(author, "two", "test.txt", "some content2");
     singleFileCommit(author, "three", "test.txt", "some content3");
     GitReference lastCommitRef = getLastCommitRef();
-    final List<Change<?>> visited = new ArrayList<>();
+    final List<Change<GitReference>> visited = new ArrayList<>();
     newReader().visitChanges(lastCommitRef,
-        new ChangesVisitor() {
+        new ChangesVisitor<GitReference>() {
           @Override
-          public VisitResult visit(Change<?> input) {
+          public VisitResult visit(Change<GitReference> input) {
             visited.add(input);
             System.out.println(input.firstLineMessage().equals("three"));
             return input.firstLineMessage().equals("three")
@@ -393,11 +393,11 @@ public class GitOriginTest {
   public void testVisitMerge() throws IOException, RepoException {
     createBranchMerge("John Name <john@name.com>");
     GitReference lastCommitRef = getLastCommitRef();
-    final List<Change<?>> visited = new ArrayList<>();
+    final List<Change<GitReference>> visited = new ArrayList<>();
     newReader().visitChanges(lastCommitRef,
-        new ChangesVisitor() {
+        new ChangesVisitor<GitReference>() {
           @Override
-          public VisitResult visit(Change<?> input) {
+          public VisitResult visit(Change<GitReference> input) {
             visited.add(input);
             return VisitResult.CONTINUE;
           }

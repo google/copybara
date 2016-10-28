@@ -16,7 +16,6 @@
 
 package com.google.copybara;
 
-import com.google.copybara.Origin.Reader;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -59,11 +58,10 @@ public interface Destination <R extends Reference> {
    * Creates a new reader of this destination.
    *
    * @param destinationFiles indicates which files in the destination repository need to be read.
-   * @param authoring the authoring object used for constructing the Author objects.
    * @throws ValidationException if the reader could not be created because of a user error.
    */
   @Nullable
-  default public Reader<R> newReader(Glob destinationFiles, Authoring authoring)
+  default public Reader<R> newReader(Glob destinationFiles)
       throws ValidationException, RepoException, UnsupportedOperationException {
    return null;
   };

@@ -228,7 +228,8 @@ public class GitModule implements OptionsAwareModule {
           self.options.get(GeneralOptions.class).isVerbose(),
           new DefaultCommitGenerator(),
           new ProcessPushOutput(),
-          self.options.get(GeneralOptions.class).getEnvironment());
+          self.options.get(GeneralOptions.class).getEnvironment(),
+          self.options.get(GeneralOptions.class).console());
     }
   };
 

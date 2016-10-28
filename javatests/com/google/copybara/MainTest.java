@@ -21,8 +21,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.beust.jcommander.JCommander;
 import com.google.copybara.util.ExitCode;
 import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

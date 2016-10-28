@@ -134,7 +134,7 @@ public final class GerritDestination implements Destination<GitReference> {
             generalOptions.isVerbose(),
             new CommitGenerator(options.get(GerritOptions.class)),
             new GerritProcessPushOutput(generalOptions.console()),
-            environment));
+            environment, options.get(GeneralOptions.class).console()));
   }
 
   static class GerritProcessPushOutput extends ProcessPushOutput {
@@ -162,5 +162,10 @@ public final class GerritDestination implements Destination<GitReference> {
         }
       }
     }
+  }
+
+  @Override
+  public Reader<GitReference> newReader(Glob destinationFiles) {
+    return gitDestination.newReader(destinationFiles);
   }
 }

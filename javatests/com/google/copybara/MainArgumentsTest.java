@@ -21,7 +21,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 
-import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.junit.Before;

@@ -18,19 +18,16 @@ package com.google.copybara.git;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.copybara.Author;
 import com.google.copybara.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.util.BadExitStatusWithOutputException;
@@ -44,12 +41,6 @@ import com.google.devtools.build.lib.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 
@@ -66,7 +57,7 @@ public final class GitOrigin implements Origin<GitReference> {
     /** Download all the submodules recursively */
     RECURSIVE
   }
-  private static final String GIT_LOG_COMMENT_PREFIX = "    ";
+  static final String GIT_LOG_COMMENT_PREFIX = "    ";
   private final GitRepository repository;
 
   /**
@@ -174,20 +165,35 @@ public final class GitOrigin implements Origin<GitReference> {
       String refRange = fromRef == null
           ? toRef.asString()
           : fromRef.asString() + ".." + toRef.asString();
-
-      return asChanges(new QueryChanges(authoring).run(refRange));
+      ChangeReader changeReader =
+          new ChangeReader.Builder(repository, console)
+              .setAuthoring(authoring)
+              .setVerbose(verbose)
+              .build();
+      return asChanges(changeReader.run(refRange));
     }
 
     @Override
     public Change<GitReference> change(GitReference ref) throws RepoException {
       // The limit=1 flag guarantees that only one change is returned
-      return Iterables
-          .getOnlyElement(asChanges(new QueryChanges(authoring).limit(1).run(ref.asString())));
+      ChangeReader changeReader =
+          new ChangeReader.Builder(repository, console)
+              .setAuthoring(authoring)
+              .setVerbose(verbose)
+              .setLimit(1)
+              .build();
+      return Iterables.getOnlyElement(asChanges(changeReader.run(ref.asString())));
     }
 
     @Override
-    public void visitChanges(GitReference start, ChangesVisitor visitor) throws RepoException {
-      QueryChanges queryChanges = new QueryChanges(authoring).limit(1);
+    public void visitChanges(GitReference start, ChangesVisitor<GitReference> visitor)
+        throws RepoException {
+      ChangeReader queryChanges =
+          new ChangeReader.Builder(repository, console)
+              .setAuthoring(authoring)
+              .setVerbose(verbose)
+              .setLimit(1)
+              .build();
 
       ImmutableList<GitChange> result = queryChanges.run(start.asString());
       if (result.isEmpty()) {
@@ -195,11 +201,12 @@ public final class GitOrigin implements Origin<GitReference> {
       }
       GitChange current = Iterables.getOnlyElement(result);
       while (current != null) {
-        if (visitor.visit(current.change) == VisitResult.TERMINATE
-            || current.parents.isEmpty()) {
+        if (visitor.visit(current.getChange()) == VisitResult.TERMINATE
+            || current.getParents().isEmpty()) {
           break;
         }
-        current = Iterables.getOnlyElement(queryChanges.run(current.parents.get(0).asString()));
+        current =
+            Iterables.getOnlyElement(queryChanges.run(current.getParents().get(0).asString()));
       }
     }
   }
@@ -245,112 +252,10 @@ public final class GitOrigin implements Origin<GitReference> {
     return repoType.resolveRef(repository, repoUrl, ref, console);
   }
 
-  private class QueryChanges {
-
-    private final Authoring authoring;
-
-    public QueryChanges(Authoring authoring) {
-      this.authoring = authoring;
-    }
-
-    private int limit = -1;
-
-    /**
-     * Limit the number of results
-     */
-    QueryChanges limit(int limit) {
-      Preconditions.checkArgument(limit > 0);
-      this.limit = limit;
-      return this;
-    }
-
-    public ImmutableList<GitChange> run(String refExpression)
-        throws RepoException {
-      List<String> params = new ArrayList<>(
-          Arrays.asList("log", "--no-color", "--date=iso-strict"));
-
-      if (limit != -1) {
-        params.add("-" + limit);
-      }
-
-      params.add("--parents");
-      params.add("--first-parent");
-
-      params.add(refExpression);
-      return parseChanges(
-          repository.simpleCommand(params.toArray(new String[params.size()])).getStdout());
-    }
-
-    private ImmutableList<GitChange> parseChanges(String log) {
-      // No changes. We cannot know until we run git log since fromRef can be null (HEAD)
-      if (log.isEmpty()) {
-        return ImmutableList.of();
-      }
-
-      Iterator<String> rawLines = Splitter.on('\n').split(log).iterator();
-      ImmutableList.Builder<GitChange> builder = ImmutableList.builder();
-
-      while (rawLines.hasNext()) {
-        String rawCommitLine = rawLines.next();
-        Iterator<String> commitReferences = Splitter.on(" ")
-            .split(removePrefix(log, rawCommitLine, "commit")).iterator();
-
-        GitReference ref = repository.createReferenceFromCompleteSha1(commitReferences.next());
-        ImmutableList.Builder<GitReference> parents = ImmutableList.builder();
-        while (commitReferences.hasNext()) {
-          parents.add(repository.createReferenceFromCompleteSha1(commitReferences.next()));
-        }
-        String line = rawLines.next();
-        Author author = null;
-        ZonedDateTime dateTime = null;
-        while (!line.isEmpty()) {
-          if (line.startsWith("Author: ")) {
-            String authorStr = line.substring("Author: ".length()).trim();
-            Author parsedUser = GitAuthorParser.parse(authorStr);
-            author = authoring.useAuthor(parsedUser.getEmail())
-                ? parsedUser
-                : authoring.getDefaultAuthor();
-          } else if (line.startsWith("Date: ")) {
-            dateTime = ZonedDateTime.parse(line.substring("Date: ".length()).trim());
-          }
-          line = rawLines.next();
-        }
-        Preconditions.checkState(author != null || dateTime != null,
-            "Could not find author and/or date for commitReferences %s in log\n:%s", rawCommitLine,
-            log);
-        StringBuilder message = new StringBuilder();
-        // Maintain labels in order just in case we print them back in the destination.
-        Map<String, String> labels = new LinkedHashMap<>();
-        while (rawLines.hasNext()) {
-          String s = rawLines.next();
-          if (!s.startsWith(GIT_LOG_COMMENT_PREFIX)) {
-            break;
-          }
-          LabelFinder labelFinder = new LabelFinder(
-              s.substring(GIT_LOG_COMMENT_PREFIX.length()));
-          if (labelFinder.isLabel()) {
-            String previous = labels.put(labelFinder.getName(), labelFinder.getValue());
-            if (previous != null && verbose) {
-              console.warn(String.format("Possible duplicate label '%s' happening multiple times"
-                      + " in commit. Keeping only the last value: '%s'\n  Discarded value: '%s'",
-                  labelFinder.getName(), labelFinder.getValue(), previous));
-            }
-          }
-          message.append(s, GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
-        }
-        Change<GitReference> change = new Change<>(
-            ref, author, message.toString(), dateTime, ImmutableMap.copyOf(labels));
-        builder.add(new GitChange(change, parents.build()));
-      }
-      // Return older commit first.
-      return builder.build().reverse();
-    }
-  }
-
   private ImmutableList<Change<GitReference>> asChanges(ImmutableList<GitChange> gitChanges) {
     ImmutableList.Builder<Change<GitReference>> result = ImmutableList.builder();
     for (GitChange gitChange : gitChanges) {
-      result.add(gitChange.change);
+      result.add(gitChange.getChange());
     }
     return result.build();
   }
@@ -358,11 +263,6 @@ public final class GitOrigin implements Origin<GitReference> {
   @Override
   public String getLabelName() {
     return GitRepository.GIT_ORIGIN_REV_ID;
-  }
-
-  private String removePrefix(String log, String line, String prefix) {
-    Preconditions.checkState(line.startsWith(prefix), "Cannot find '%s' in:\n%s", prefix, log);
-    return line.substring(prefix.length()).trim();
   }
 
   @Override
@@ -387,19 +287,5 @@ public final class GitOrigin implements Origin<GitReference> {
         options.get(GeneralOptions.class).console(),
         GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
         url, ref, type, options.get(GitOptions.class), verbose, environment, submoduleStrategy);
-  }
-
-  /**
-   * An enhanced version of Change that contains the git parents.
-   */
-  private static class GitChange {
-
-    private final Change<GitReference> change;
-    private final ImmutableList<GitReference> parents;
-
-    GitChange(Change<GitReference> change, ImmutableList<GitReference> parents) {
-      this.change = change;
-      this.parents = parents;
-    }
   }
 }

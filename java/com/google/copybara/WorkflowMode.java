@@ -110,9 +110,9 @@ public enum WorkflowMode {
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
         runHelper.getReader().visitChanges(runHelper.getResolvedRef(),
-            new ChangeVisitable.ChangesVisitor() {
+            new ChangeVisitable.ChangesVisitor<R>() {
           @Override
-          public ChangeVisitable.VisitResult visit(Change<?> change) {
+          public ChangeVisitable.VisitResult visit(Change<R> change) {
             if (change.getLabels().containsKey(originLabelName)) {
               requestParent.set(change.getLabels().get(originLabelName));
               return ChangeVisitable.VisitResult.TERMINATE;

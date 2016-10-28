@@ -22,12 +22,16 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.copybara.Authoring;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -74,10 +78,11 @@ public final class GitDestination implements Destination<GitReference> {
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
   private final Map<String, String> environment;
+  private final Console console;
 
   GitDestination(String repoUrl, String fetch, String push,
       GitDestinationOptions destinationOptions, boolean verbose, CommitGenerator commitGenerator,
-      ProcessPushOutput processPushOutput, Map<String, String> environment) {
+      ProcessPushOutput processPushOutput, Map<String, String> environment, Console console) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
@@ -86,6 +91,7 @@ public final class GitDestination implements Destination<GitReference> {
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
     this.environment = environment;
+    this.console = console;
   }
 
   /**
@@ -288,6 +294,41 @@ public final class GitDestination implements Destination<GitReference> {
 
     void process(String output) {
 
+    }
+  }
+
+  @Override
+  public Reader<GitReference> newReader(Glob destinationFiles) {
+    // TODO(hsudhof): limit the reader to changes affecting destinationFiles.
+    return new GitReader();
+  }
+
+  class GitReader implements Reader<GitReference> {
+
+    @Override
+    public void visitChanges(GitReference start, ChangesVisitor<GitReference> visitor)
+        throws RepoException {
+      GitRepository repository = cloneBaseline();
+      String revString = start == null ? "FETCH_HEAD" : start.asString();
+      ChangeReader changeReader =
+          new ChangeReader.Builder(repository, console).setVerbose(verbose).setLimit(1).build();
+
+      ImmutableList<GitChange> result = changeReader.run(revString);
+      if (result.isEmpty()) {
+        if (start == null) {
+          console.error("Unable to find HEAD - is the destination repository bare?");
+        }
+        throw new CannotFindReferenceException("Cannot find reference " + revString);
+      }
+      GitChange current = Iterables.getOnlyElement(result);
+      while (current != null) {
+        if (visitor.visit(current.getChange()) == VisitResult.TERMINATE
+            || current.getParents().isEmpty()) {
+          break;
+        }
+        current =
+            Iterables.getOnlyElement(changeReader.run(current.getParents().get(0).asString()));
+      }
     }
   }
 }

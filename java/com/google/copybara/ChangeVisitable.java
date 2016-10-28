@@ -29,20 +29,20 @@ public interface ChangeVisitable <R extends Reference> {
    *
    * <p>It is up to the Origin how and what changes it provides to the function.
    */
-  void visitChanges(R start, ChangesVisitor visitor) throws RepoException;
+  void visitChanges(R start, ChangesVisitor<R> visitor) throws RepoException;
 
   /**
    * A visitor of changes. An implementation of this interface is provided to {@see
    * visitChanges} methods to visit changes in Origin or
    * Destination history.
    */
-  public interface ChangesVisitor {
+  public interface ChangesVisitor<R extends Reference>  {
 
     /**
      * Invoked for each change found. The implementation can chose to cancel the visitation by
      * returning {@link VisitResult#TERMINATE}.
      */
-    VisitResult visit(Change<?> input);
+    VisitResult visit(Change<R> input);
   }
 
   /**
