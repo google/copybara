@@ -62,7 +62,7 @@ public interface Destination <R extends Reference> {
    */
   @Nullable
   default public Reader<R> newReader(Glob destinationFiles)
-      throws ValidationException, RepoException, UnsupportedOperationException {
+      throws ValidationException, RepoException {
    return null;
   };
 

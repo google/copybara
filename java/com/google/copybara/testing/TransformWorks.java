@@ -19,6 +19,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
 import com.google.copybara.Metadata;
+import com.google.copybara.MigrationInfo;
 import com.google.copybara.TransformWork;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.SkylarkList;
@@ -46,7 +47,7 @@ public class TransformWorks {
             throw new UnsupportedOperationException();
           }
           // TODO(malcon): Pass this from test.
-        }, console);
+        }, console, new MigrationInfo(DummyOrigin.LABEL_NAME, /*destinationReader=*/ null));
   }
 
 }

@@ -1093,4 +1093,55 @@ EOF
   )
 }
 
+function test_description_migrator() {
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  pushd $remote
+    run_git init .
+    commit_initial=$(single_file_commit "initial rev commit" file2.txt "initial")
+    commit_master=$(single_file_commit "last rev commit" file23.txt "origin")
+    commit_one=$(single_file_commit "c1 foooo origin/${commit_master} bar" file.txt "one")
+
+  popd
+
+    cat > copy.bara.sky <<EOF
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "master",
+    ),
+    exclude_in_origin = glob(["file2.txt"]),
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+     transformations = [
+        metadata.map_references(
+          before = "origin/\${reference}",
+          after = "destination/\${reference}",
+          regex_groups = {
+              "before_ref": "[0-9a-f]+",
+              "after_ref": "[0-9a-f]+",
+          }
+        )
+    ],
+    mode = "ITERATIVE",
+)
+EOF
+
+  copybara copy.bara.sky default $commit_master --last-rev $commit_initial
+  copybara copy.bara.sky default $commit_one --last-rev $commit_master
+
+  check_copybara_rev_id "$destination" "$commit_one"
+
+  ( cd $destination
+    run_git log > $TEST_log
+  )
+  expect_log "c1 foooo destination/[a-f0-9]\{1,\} bar"
+}
+
 run_suite "Integration tests for Copybara code sharing tool."

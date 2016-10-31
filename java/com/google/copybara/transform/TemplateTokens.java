@@ -17,16 +17,20 @@
 package com.google.copybara.transform;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.copybara.ValidationException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -34,12 +38,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 /**
  * A string which is interpolated with named variables. The string is composed of interpolated and
  * non-interpolated (literal) pieces called tokens.
  */
-final class TemplateTokens {
+public final class TemplateTokens {
   private enum TokenType {
     LITERAL, INTERPOLATION
   }
@@ -64,7 +69,7 @@ final class TemplateTokens {
   private final ImmutableList<Token> tokens;
   private final Set<String> unusedGroups;
 
-  TemplateTokens(Location location, String template, Map<String, Pattern> regexGroups,
+  public TemplateTokens(Location location, String template, Map<String, Pattern> regexGroups,
       boolean repeatedGroups) throws EvalException {
     this.location = location;
     this.template = Preconditions.checkNotNull(template);
@@ -86,11 +91,16 @@ final class TemplateTokens {
     return before;
   }
 
-  Replacer replacer(TemplateTokens after, boolean firstOnly, boolean multiline) {
-    return new Replacer(after, firstOnly, multiline);
+  public Replacer replacer(TemplateTokens after, boolean firstOnly, boolean multiline) {
+    return new Replacer(after, null, firstOnly, multiline);
   }
 
-  class Replacer {
+  public Replacer callbackReplacer(
+      TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline) {
+    return new Replacer(after, callback, firstOnly, multiline);
+  }
+
+  public class Replacer {
 
     private final TemplateTokens after;
     private final boolean firstOnly;
@@ -98,7 +108,12 @@ final class TemplateTokens {
     private final String afterReplaceTemplate;
     private final Multimap<String, Integer> repeatedGroups = ArrayListMultimap.create();
 
-    private Replacer(TemplateTokens after, boolean firstOnly, boolean multiline) {
+    @Nullable
+    private final AlterAfterTemplate callback;
+
+
+    private Replacer(
+        TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline) {
       this.after = after;
       afterReplaceTemplate = this.after.after(TemplateTokens.this);
       // Precomputed the repeated groups as this should be used only on rare occasions and we
@@ -110,9 +125,10 @@ final class TemplateTokens {
       }
       this.firstOnly = firstOnly;
       this.multiline = multiline;
+      this.callback = callback;
     }
 
-    String replace(String content) {
+    public String replace(String content) {
       List<String> originalRanges = multiline
           ? ImmutableList.of(content)
           : Splitter.on('\n').splitToList(content);
@@ -138,7 +154,19 @@ final class TemplateTokens {
             }
           }
         }
-        matcher.appendReplacement(sb, afterReplaceTemplate);
+        String replaceTemplate;
+        if (callback != null) {
+          ImmutableMap.Builder<Integer, String> groupValues =
+              ImmutableMap.<Integer, String>builder();
+          for (int i = 0; i <= matcher.groupCount(); i++) {
+            groupValues.put(i, matcher.group(i));
+          }
+          replaceTemplate = callback.alter(groupValues.build(), afterReplaceTemplate);
+        } else {
+          replaceTemplate = afterReplaceTemplate;
+        }
+
+        matcher.appendReplacement(sb, replaceTemplate);
         if (firstOnly) {
           break;
         }
@@ -185,7 +213,31 @@ final class TemplateTokens {
 
   @Override
   public String toString() {
+    return getTemplate();
+  }
+
+  public ImmutableList<String> getGroupNames()  {
+    return ImmutableList.copyOf(groupIndexes.keySet());
+  }
+
+  public String getTemplate() {
     return template;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof TemplateTokens) {
+      TemplateTokens comp = (TemplateTokens) other;
+      return before.equals(comp.before)
+          && tokens.equals(comp.tokens);
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(before, tokens);
   }
 
   private static class Builder {
@@ -250,8 +302,8 @@ final class TemplateTokens {
      */
     Pattern buildBefore(Map<String, Pattern> regexesByInterpolationName, boolean repeatedGroups)
         throws EvalException {
-      StringBuilder fullPattern = new StringBuilder();
       int groupCount = 1;
+      StringBuilder fullPattern = new StringBuilder();
       for (Token token : tokens) {
         switch (token.type) {
           case INTERPOLATION:
@@ -284,10 +336,27 @@ final class TemplateTokens {
    *
    * @throws EvalException if not all interpolations are used in this template
    */
-  void validateUnused() throws EvalException {
+  public void validateUnused() throws EvalException {
     if (!unusedGroups.isEmpty()) {
       throw new EvalException(
           location, "Following interpolations are defined but not used: " + unusedGroups);
     }
+  }
+
+  /**
+   * Callback for {@see callbackReplacer}.
+   */
+  public interface AlterAfterTemplate {
+
+    /**
+     *  Upon encountering a match, the replacer will call the callback with the matched groups and
+     *  the template to be used in the replace. The return value of this function will be used
+     *  in place of {@code template}, i.e. group tokens like '$1' in the return value will be
+     *  replaced with the group values. Note that the groupValues are immutable.
+     * @param groupValues The values of the groups in the before pattern. 0 holds the entire match.
+     * @param template The replacement template the replacer would normally use
+     * @return The template to be used instead
+     */
+    public String alter(Map<Integer, String> groupValues, String template);
   }
 }

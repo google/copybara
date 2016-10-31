@@ -27,6 +27,8 @@ all_tests(
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:jimfs",
+        "//third_party:re2j",
+        "//third_party:skylark-lang",
         "//third_party:truth",
     ],
 )

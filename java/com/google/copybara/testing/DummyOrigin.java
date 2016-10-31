@@ -192,6 +192,7 @@ public class DummyOrigin implements Origin<DummyReference> {
     }
   }
 
+  @Override
   public Reader<DummyReference> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(authoring);
   }

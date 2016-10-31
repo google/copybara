@@ -18,6 +18,7 @@ package com.google.copybara.transform.metadata;
 
 import com.google.copybara.Transformation;
 import com.google.copybara.config.base.SkylarkUtil;
+import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -25,8 +26,11 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
+import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * Metadata module for manipulating metadata of the changes. This is intended to be used by the
@@ -159,6 +163,79 @@ public class MetadataModule {
         throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
       }
       return new Scrubber(pattern, replacement);
+    }
+  };
+
+
+  @SkylarkSignature(name = "map_references", returnType = ReferenceMigrator.class,
+      doc = "Allows updating links to references in commit messages to match the destination's "
+          + "format. Note that this will only consider the 5000 latest commits.",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "before", type = String.class,
+              doc = "Template for origin references in the change message. Use a '${reference}'"
+                  + " token to capture the actual references. E.g. if the origin uses links"
+                  + "like 'http://changes?1234', the template would be "
+                  + "'http://internalReviews.com/${reference}', with reference_regex = '[0-9]+'"),
+          @Param(name = "after", type = String.class,
+              doc = "Format for references in the destination, use the token '${reference}' "
+                  + "to represent the destination reference. E.g. 'http://changes(${reference})'."),
+          @Param(name = "regex_groups", type = SkylarkDict.class, defaultValue = "{}",
+              doc = "Regexes for the ${reference} token's content. Requires one 'before_ref' entry"
+                  + " matching the ${reference} token's content on the before side. Optionally"
+                  + " accepts one 'after_ref' used for validation."),
+      },
+      objectType = MetadataModule.class, useLocation = true)
+  @Example(title = "Map references, origin source of truth",
+      before = "Finds links to commits in change messages, searches destination to find the "
+          + "equivalent reference in destination. Then replaces matches of 'before' with 'after', "
+          + "replacing the subgroup matched with the destination reference. Assume a message like"
+          + " 'Fixes bug introduced in origin/abcdef', where the origin change 'abcdef' was "
+          + "migrated as '123456' to the destination.",
+      code = "metadata.map_references(\n"
+          + "    before = \"origin/${reference}\",\n"
+          + "    after = \"destination/${reference}\",\n"
+          + "    regex_groups = {\n"
+          + "        \"before_ref\": \"[0-9a-f]+\",\n"
+          + "        \"after_ref\": \"[0-9]+\",\n"
+          + "    },\n"
+          + "),",
+      after = "This would be translated into 'Fixes bug introduced in destination/123456', provided"
+          + " that a change with the proper label was found - the message remains unchanged "
+          + "otherwise.")
+  public static final BuiltinFunction MAP_REFERENCES = new BuiltinFunction("map_references") {
+    public ReferenceMigrator invoke(MetadataModule self, String originPattern,
+        String destinationFormat, SkylarkDict<String, String> groups, Location location)
+        throws EvalException {
+      if (!groups.containsKey("before_ref")
+          || (groups.size() == 2 && !groups.containsKey("after_ref"))
+          || groups.size() > 2) {
+        throw new EvalException(location,
+            String.format("Invalid 'regex_groups' - Should only contain 'before_ref' and "
+                + "optionally 'after_ref'. Was: %s.", groups.keySet()));
+      }
+      Pattern beforePattern, afterPattern = null;
+      try {
+        beforePattern = Pattern.compile(groups.get("before_ref"));
+      } catch (java.util.regex.PatternSyntaxException exception) {
+        throw new EvalException(location,
+            String.format("Invalid before_ref regex '%s'.", groups.get("before_ref")));
+      }
+      if (groups.containsKey("after_ref")) {
+        try {
+          afterPattern = Pattern.compile(groups.get("after_ref"));
+        } catch (java.util.regex.PatternSyntaxException exception) {
+          throw new EvalException(location,
+              String.format("Invalid after_ref regex '%s'.", groups.get("after_ref")));
+        }
+      }
+      return
+          ReferenceMigrator.create(
+              originPattern,
+              destinationFormat,
+              beforePattern,
+              afterPattern,
+              location);
     }
   };
 }

@@ -59,14 +59,16 @@ public final class TransformWork {
   private Metadata metadata;
   private final Changes changes;
   private final Console console;
+  private final MigrationInfo migrationInfo;
 
-  public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console) {
+  public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
+      MigrationInfo migrationInfo) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
     this.console = console;
+    this.migrationInfo = migrationInfo;
   }
-
 
   /**
    * The path containing the repository state to transform. Transformation should be done in-place.
@@ -213,8 +215,8 @@ public final class TransformWork {
     return "(^\\Q" + label + "\\E *[=:])(.*)(\n|$)";
   }
 
-  @SkylarkCallable(name = "find_label", doc = "Looks the message for a label and returns its value"
-      + " if it can be found. Otherwise it return None.", allowReturnNones = true)
+  @SkylarkCallable(name = "find_label", doc = "Searches the message for a label and returns its "
+      + "value if found, None otherwise.", allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
     Pattern pattern = Pattern.compile(labelRegex(label), Pattern.MULTILINE);
@@ -248,12 +250,16 @@ public final class TransformWork {
     return console;
   }
 
+  public MigrationInfo getMigrationInfo() {
+    return migrationInfo;
+  }
+
   /**
    * Create a clone of the transform work but use a different console.
    */
   public TransformWork withConsole(Console newConsole) {
     return new TransformWork(checkoutDir, metadata, changes,
-        Preconditions.checkNotNull(newConsole));
+        Preconditions.checkNotNull(newConsole), migrationInfo);
   }
 
   /**

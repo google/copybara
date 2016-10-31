@@ -27,6 +27,7 @@ function test_reference_doc_generated() {
    grep "before.*The text before the transformation" \
 	 $doc > /dev/null 2>&1 || fail "core.replace field doc not found"
    grep "^## git.origin" $doc > /dev/null 2>&1 || fail "git.origin doc not found"
+   grep "Finds links to commits in change messages" $doc > /dev/null 2>&1 || fail "single example not found"
 }
 
 run_suite "Integration tests for reference documentation generation."

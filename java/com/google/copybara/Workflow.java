@@ -38,6 +38,7 @@ import java.nio.file.PathMatcher;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
+import sun.security.krb5.internal.crypto.Des;
 
 /**
  * Represents a particular migration operation that can occur for a project. Each project can have
@@ -231,6 +232,10 @@ public final class Workflow<O extends Reference, D extends Reference> implements
       return originReader;
     }
 
+    Destination.Reader<D> getDestinationReader() {
+      return destinationReader;
+    }
+
     /**
      * Performs a full migration, including checking out files from the origin, deleting excluded
      * files, transforming the code, and writing to the destination. This writes to the destination
@@ -277,7 +282,8 @@ public final class Workflow<O extends Reference, D extends Reference> implements
         FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
       }
 
-      TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes, console);
+      TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes, console,
+          new MigrationInfo(origin.getLabelName(), getDestinationReader()));
       transformation.transform(transformWork);
 
       if (reverseTransformForCheck != null) {
@@ -285,7 +291,9 @@ public final class Workflow<O extends Reference, D extends Reference> implements
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
         reverseTransformForCheck.transform(
-            new TransformWork(reverse, metadata, changes, console)
+            new TransformWork(reverse, metadata, changes, console,
+                new MigrationInfo(
+                    destination.getLabelNameWhenOrigin(), getOriginReader()))
         );
         String diff = new String(DiffUtil.diff(originCopy, reverse, verbose),
             StandardCharsets.UTF_8);

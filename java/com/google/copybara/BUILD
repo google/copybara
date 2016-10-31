@@ -66,6 +66,7 @@ BASE_SRCS = [
     "EmptyChangeException.java",
     "Metadata.java",
     "LabelFinder.java",
+    "MigrationInfo.java",
     "NonReversibleValidationException.java",
     "Option.java",
     "Options.java",
