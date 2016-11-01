@@ -43,7 +43,7 @@ public enum WorkflowMode {
   @DocField(description = "Create a single commit in the destination with new tree state.")
   SQUASH {
     @Override
-    <R extends Reference, S extends Reference> void run(Workflow<R, S>.RunHelper<R> runHelper)
+    <O extends Reference, D extends Reference> void run(Workflow<O, D>.RunHelper<O> runHelper)
         throws RepoException, IOException, ValidationException {
 
       runHelper.migrate(
@@ -62,14 +62,14 @@ public enum WorkflowMode {
   @DocField(description = "Import each origin change individually.")
   ITERATIVE {
     @Override
-    <R extends Reference, S extends Reference> void run(Workflow<R, S>.RunHelper<R> runHelper)
+    <O extends Reference, D extends Reference> void run(Workflow<O, D>.RunHelper<O> runHelper)
         throws RepoException, IOException, ValidationException {
-      ImmutableList<Change<R>> changes = runHelper.changesSinceLastImport();
+      ImmutableList<Change<O>> changes = runHelper.changesSinceLastImport();
       int changeNumber = 1;
-      UnmodifiableIterator<Change<R>> changesIterator = changes.iterator();
-      Deque<Change<R>> migrated = new ArrayDeque<>();
+      UnmodifiableIterator<Change<O>> changesIterator = changes.iterator();
+      Deque<Change<O>> migrated = new ArrayDeque<>();
       while (changesIterator.hasNext()) {
-        Change<R> change = changesIterator.next();
+        Change<O> change = changesIterator.next();
         String prefix = String.format(
             "Change %d of %d (%s): ",
             changeNumber, changes.size(), change.getReference().asString());
@@ -103,23 +103,20 @@ public enum WorkflowMode {
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
     @Override
-    <R extends Reference, S extends Reference> void run(Workflow<R, S>.RunHelper<R> runHelper)
+    <O extends Reference, D extends Reference> void run(Workflow<O, D>.RunHelper<O> runHelper)
         throws RepoException, IOException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
-        runHelper.getReader().visitChanges(runHelper.getResolvedRef(),
-            new ChangeVisitable.ChangesVisitor<R>() {
-          @Override
-          public ChangeVisitable.VisitResult visit(Change<R> change) {
-            if (change.getLabels().containsKey(originLabelName)) {
-              requestParent.set(change.getLabels().get(originLabelName));
-              return ChangeVisitable.VisitResult.TERMINATE;
-            }
-            return ChangeVisitable.VisitResult.CONTINUE;
-          }
-        });
+        runHelper.getOriginReader().visitChanges(runHelper.getResolvedRef(),
+            change -> {
+              if (change.getLabels().containsKey(originLabelName)) {
+                requestParent.set(change.getLabels().get(originLabelName));
+                return ChangeVisitable.VisitResult.TERMINATE;
+              }
+              return ChangeVisitable.VisitResult.CONTINUE;
+            });
       }
 
       if (Strings.isNullOrEmpty(requestParent.get())) {
@@ -128,7 +125,7 @@ public enum WorkflowMode {
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
-      Change<R> change = runHelper.getReader().change(runHelper.getResolvedRef());
+      Change<O> change = runHelper.getOriginReader().change(runHelper.getResolvedRef());
       runHelper.migrate(
           runHelper.getResolvedRef(),
           runHelper.getConsole(),
@@ -140,8 +137,8 @@ public enum WorkflowMode {
 
   private static final Logger logger = Logger.getLogger(WorkflowMode.class.getName());
 
-  abstract <R extends Reference, S extends Reference> void run(Workflow<R,S>.RunHelper<R> runHelper)
-      throws RepoException, IOException, ValidationException;
+  abstract <O extends Reference, D extends Reference> void run(
+      Workflow<O, D>.RunHelper<O> runHelper) throws RepoException, IOException, ValidationException;
 
   /**
    * An implementation of {@link Changes} that compute the list of changes lazily. Only when

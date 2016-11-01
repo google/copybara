@@ -42,9 +42,11 @@ import javax.annotation.Nullable;
 /**
  * Represents a particular migration operation that can occur for a project. Each project can have
  * multiple workflows. Each workflow has a particular origin and destination.
+ * @param <O> Origin reference type.
+ * @param <D> Destination reference type.
  */
 @AutoValue
-public abstract class Workflow<R extends Reference, S extends Reference> implements Migration {
+public abstract class Workflow<O extends Reference, D extends Reference> implements Migration {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
@@ -53,12 +55,12 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
   /**
    * The repository that represents the source of truth
    */
-  public abstract Origin<R> origin();
+  public abstract Origin<O> origin();
 
   /**
    * The destination repository to copy to.
    */
-  public abstract Destination<S> destination();
+  public abstract Destination<D> destination();
 
   /**
    * The author mapping between an origin and a destination
@@ -111,7 +113,7 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
 
     console().progress("Getting last revision: "
         + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
-    R resolvedRef = origin().resolve(sourceRef);
+    O resolvedRef = origin().resolve(sourceRef);
     logger.log(Level.INFO,
         String.format(
             "Running Copybara for workflow '%s' and ref '%s': %s",
@@ -125,19 +127,19 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
   public Info getInfo() throws RepoException, ValidationException {
     Writer writer = destination().newWriter(destinationFiles());
     String lastRef = writer.getPreviousRef(origin().getLabelName());
-    R lastMigrated = (lastRef == null) ? null : origin().resolve(lastRef);
-    R lastResolved = origin().resolve(/*sourceRef=*/ null);
+    O lastMigrated = (lastRef == null) ? null : origin().resolve(lastRef);
+    O lastResolved = origin().resolve(/*sourceRef=*/ null);
 
     MigrationReference migrationRef = MigrationReference.create(
         String.format("workflow_%s", name()), lastMigrated, lastResolved);
     return Info.create(ImmutableList.of(migrationRef));
   }
 
-  final class RunHelper<M extends R> {
+  final class RunHelper<M extends O> {
     private final Path workdir;
     final M resolvedRef;
-    private final Origin.Reader<R> reader;
-    @Nullable private final Destination.Reader<S> destinationReader;
+    private final Origin.Reader<O> originReader;
+    @Nullable private final Destination.Reader<D> destinationReader;
     private final Destination.Writer writer;
 
     /**
@@ -147,7 +149,7 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
     RunHelper(Path workdir, M resolvedRef) throws ValidationException, RepoException {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
-      this.reader = origin().newReader(originFiles(), authoring());
+      this.originReader = origin().newReader(originFiles(), authoring());
       this.writer = destination().newWriter(destinationFiles());
       this.destinationReader = destination().newReader(destinationFiles());
     }
@@ -179,8 +181,8 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
       return destination();
     }
 
-    Origin.Reader<R> getReader() {
-      return reader;
+    Origin.Reader<O> getOriginReader() {
+      return originReader;
     }
 
     /**
@@ -194,13 +196,13 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
      *
      * @return The result of this migration
      */
-    WriterResult migrate(R ref, Console processConsole, Metadata metadata,
+    WriterResult migrate(O ref, Console processConsole, Metadata metadata,
         Changes changes)
         throws IOException, RepoException, ValidationException {
       return migrate(ref, processConsole, metadata, changes, /*destinationBaseline=*/ null);
     }
 
-    WriterResult migrate(R ref, Console processConsole,
+    WriterResult migrate(O ref, Console processConsole,
         Metadata metadata, Changes changes, @Nullable String destinationBaseline)
         throws IOException, RepoException, ValidationException {
       processConsole.progress("Cleaning working directory");
@@ -209,7 +211,7 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
       Files.createDirectories(checkoutDir);
 
       processConsole.progress("Checking out the change");
-      reader.checkout(ref, checkoutDir);
+      originReader.checkout(ref, checkoutDir);
 
       // Remove excluded origin files.
       PathMatcher originFiles = originFiles().relativeTo(checkoutDir);
@@ -264,14 +266,14 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
     }
 
 
-    ImmutableList<Change<R>> changesSinceLastImport() throws RepoException {
-      R lastRev = getLastRev();
+    ImmutableList<Change<O>> changesSinceLastImport() throws RepoException {
+      O lastRev = getLastRev();
       if (lastRev == null) {
         throw new RepoException(String.format(
                 "Previous revision label %s could not be found in %s and --last-rev flag"
                 + " was not passed", origin().getLabelName(), destination()));
       }
-      return reader.changes(getLastRev(), resolvedRef);
+      return originReader.changes(getLastRev(), resolvedRef);
     }
 
     /**
@@ -282,7 +284,7 @@ public abstract class Workflow<R extends Reference, S extends Reference> impleme
      * reference will be resolved in the destination with the origin label.
      */
     @Nullable
-    R getLastRev() throws RepoException {
+    O getLastRev() throws RepoException {
       if (lastRevisionFlag() != null) {
         try {
           return origin().resolve(lastRevisionFlag());

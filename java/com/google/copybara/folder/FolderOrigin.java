@@ -113,7 +113,7 @@ public class FolderOrigin implements Origin<FolderReference> {
       }
 
       @Override
-      public void visitChanges(FolderReference start, ChangesVisitor<FolderReference> visitor)
+      public void visitChanges(FolderReference start, ChangesVisitor visitor)
           throws RepoException {
         visitor.visit(change(start));
       }

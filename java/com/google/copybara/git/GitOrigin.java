@@ -16,6 +16,8 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -81,12 +83,12 @@ public final class GitOrigin implements Origin<GitReference> {
   private GitOrigin(Console console, GitRepository repository, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions, boolean verbose,
       @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy) {
-    this.console = Preconditions.checkNotNull(console);
-    this.repository = Preconditions.checkNotNull(repository);
+    this.console = checkNotNull(console);
+    this.repository = checkNotNull(repository);
     // Remove a possible trailing '/' so that the url is normalized.
     this.repoUrl = repoUrl.endsWith("/") ? repoUrl.substring(0, repoUrl.length() - 1) : repoUrl;
     this.configRef = configRef;
-    this.repoType = Preconditions.checkNotNull(repoType);
+    this.repoType = checkNotNull(repoType);
     this.gitOptions = gitOptions;
     this.verbose = verbose;
     this.environment = environment;
@@ -102,7 +104,7 @@ public final class GitOrigin implements Origin<GitReference> {
     final Authoring authoring;
 
     ReaderImpl(Authoring authoring) {
-      this.authoring = Preconditions.checkNotNull(authoring);
+      this.authoring = checkNotNull(authoring);
     }
 
     /**
@@ -166,8 +168,7 @@ public final class GitOrigin implements Origin<GitReference> {
           ? toRef.asString()
           : fromRef.asString() + ".." + toRef.asString();
       ChangeReader changeReader =
-          new ChangeReader.Builder(repository, console)
-              .setAuthoring(authoring)
+          ChangeReader.Builder.forOrigin(authoring, repository, console)
               .setVerbose(verbose)
               .build();
       return asChanges(changeReader.run(refRange));
@@ -177,8 +178,7 @@ public final class GitOrigin implements Origin<GitReference> {
     public Change<GitReference> change(GitReference ref) throws RepoException {
       // The limit=1 flag guarantees that only one change is returned
       ChangeReader changeReader =
-          new ChangeReader.Builder(repository, console)
-              .setAuthoring(authoring)
+          ChangeReader.Builder.forOrigin(authoring, repository, console)
               .setVerbose(verbose)
               .setLimit(1)
               .build();
@@ -186,11 +186,10 @@ public final class GitOrigin implements Origin<GitReference> {
     }
 
     @Override
-    public void visitChanges(GitReference start, ChangesVisitor<GitReference> visitor)
+    public void visitChanges(GitReference start, ChangesVisitor visitor)
         throws RepoException {
       ChangeReader queryChanges =
-          new ChangeReader.Builder(repository, console)
-              .setAuthoring(authoring)
+          ChangeReader.Builder.forOrigin(authoring, repository, console)
               .setVerbose(verbose)
               .setLimit(1)
               .build();
@@ -214,7 +213,7 @@ public final class GitOrigin implements Origin<GitReference> {
   @Override
   public Reader<GitReference> newReader(Glob originFiles, Authoring authoring) {
     // TODO(matvore): Use originFiles to determine the depot trees from which to read.
-    return new ReaderImpl(authoring);
+    return new ReaderImpl(checkNotNull(authoring, "authoring"));
   }
 
   private void runCheckoutOrigin(Path workdir) throws RepoException {

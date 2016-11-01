@@ -817,16 +817,13 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "Visit me soon".getBytes());
     process(destination().newWriter(destinationFiles), ref2);
 
-    final List<Change<GitReference>> visited = new ArrayList<>();
+    final List<Change<?>> visited = new ArrayList<>();
     destination().newReader(destinationFiles).visitChanges((GitReference) null,
-        new ChangesVisitor<GitReference>() {
-          @Override
-          public VisitResult visit(Change<GitReference> input) {
-            visited.add(input);
-            return input.getLabels().get(DummyOrigin.LABEL_NAME).equals("origin_ref1")
-                ? VisitResult.TERMINATE
-                : VisitResult.CONTINUE;
-          }
+        input -> {
+          visited.add(input);
+          return input.getLabels().get(DummyOrigin.LABEL_NAME).equals("origin_ref1")
+              ? VisitResult.TERMINATE
+              : VisitResult.CONTINUE;
         });
     assertThat(visited).hasSize(2);
     assertThat(visited.get(0).getLabels().get(DummyOrigin.LABEL_NAME)).isEqualTo("origin_ref2");

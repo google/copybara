@@ -306,12 +306,15 @@ public final class GitDestination implements Destination<GitReference> {
   class GitReader implements Reader<GitReference> {
 
     @Override
-    public void visitChanges(GitReference start, ChangesVisitor<GitReference> visitor)
+    public void visitChanges(GitReference start, ChangesVisitor visitor)
         throws RepoException {
       GitRepository repository = cloneBaseline();
       String revString = start == null ? "FETCH_HEAD" : start.asString();
       ChangeReader changeReader =
-          new ChangeReader.Builder(repository, console).setVerbose(verbose).setLimit(1).build();
+          ChangeReader.Builder.forDestination(repository, console)
+              .setVerbose(verbose)
+              .setLimit(1)
+              .build();
 
       ImmutableList<GitChange> result = changeReader.run(revString);
       if (result.isEmpty()) {

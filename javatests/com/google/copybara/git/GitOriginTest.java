@@ -371,17 +371,14 @@ public class GitOriginTest {
     singleFileCommit(author, "two", "test.txt", "some content2");
     singleFileCommit(author, "three", "test.txt", "some content3");
     GitReference lastCommitRef = getLastCommitRef();
-    final List<Change<GitReference>> visited = new ArrayList<>();
+    final List<Change<?>> visited = new ArrayList<>();
     newReader().visitChanges(lastCommitRef,
-        new ChangesVisitor<GitReference>() {
-          @Override
-          public VisitResult visit(Change<GitReference> input) {
-            visited.add(input);
-            System.out.println(input.firstLineMessage().equals("three"));
-            return input.firstLineMessage().equals("three")
-                ? VisitResult.CONTINUE
-                : VisitResult.TERMINATE;
-          }
+        input -> {
+          visited.add(input);
+          System.out.println(input.firstLineMessage().equals("three"));
+          return input.firstLineMessage().equals("three")
+              ? VisitResult.CONTINUE
+              : VisitResult.TERMINATE;
         });
 
     assertThat(visited).hasSize(2);
@@ -393,14 +390,11 @@ public class GitOriginTest {
   public void testVisitMerge() throws IOException, RepoException {
     createBranchMerge("John Name <john@name.com>");
     GitReference lastCommitRef = getLastCommitRef();
-    final List<Change<GitReference>> visited = new ArrayList<>();
+    final List<Change<?>> visited = new ArrayList<>();
     newReader().visitChanges(lastCommitRef,
-        new ChangesVisitor<GitReference>() {
-          @Override
-          public VisitResult visit(Change<GitReference> input) {
-            visited.add(input);
-            return VisitResult.CONTINUE;
-          }
+        input -> {
+          visited.add(input);
+          return VisitResult.CONTINUE;
         });
 
     // We don't visit 'feature' branch since the visit is using --first-parent. Maybe we have

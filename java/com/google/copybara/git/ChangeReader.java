@@ -180,7 +180,15 @@ class ChangeReader {
     private boolean verbose = false;
     private int limit = -1;
 
-    Builder(GitRepository repository, Console console) {
+    static Builder forDestination(GitRepository repository, Console console) {
+      return new Builder(repository, console);
+    }
+
+    static Builder forOrigin(Authoring authoring, GitRepository repository, Console console) {
+      return new Builder(repository, console).setAuthoring(authoring);
+    }
+
+    private Builder(GitRepository repository, Console console) {
       this.repository = checkNotNull(repository, "repository");
       this.console = checkNotNull(console, "console");
     }
@@ -191,7 +199,7 @@ class ChangeReader {
       return this;
     }
 
-    Builder setAuthoring(Authoring authoring) {
+    private Builder setAuthoring(Authoring authoring) {
       this.authoring = checkNotNull(authoring, "authoring");
       return this;
     }

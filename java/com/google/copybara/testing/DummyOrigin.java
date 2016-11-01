@@ -172,7 +172,7 @@ public class DummyOrigin implements Origin<DummyReference> {
     }
 
     @Override
-    public void visitChanges(DummyReference start, ChangesVisitor<DummyReference> visitor)
+    public void visitChanges(DummyReference start, ChangesVisitor visitor)
         throws RepoException {
       boolean found = false;
       for (DummyReference change : Lists.reverse(changes)) {
