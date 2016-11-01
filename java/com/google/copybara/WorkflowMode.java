@@ -65,6 +65,10 @@ public enum WorkflowMode {
     <O extends Reference, D extends Reference> void run(Workflow<O, D>.RunHelper<O> runHelper)
         throws RepoException, IOException, ValidationException {
       ImmutableList<Change<O>> changes = runHelper.changesSinceLastImport();
+      if (changes.isEmpty()) {
+        throw new EmptyChangeException(
+            "No new changes to import for resolved ref: " + runHelper.getResolvedRef().asString());
+      }
       int changeNumber = 1;
       UnmodifiableIterator<Change<O>> changesIterator = changes.iterator();
       Deque<Change<O>> migrated = new ArrayDeque<>();

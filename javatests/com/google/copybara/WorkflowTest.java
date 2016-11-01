@@ -276,6 +276,15 @@ public class WorkflowTest {
   }
 
   @Test
+  public void iterativeWorkflowEmptyChanges() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
+    Workflow workflow = iterativeWorkflow(/*previousRef=*/"0");
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage("No new changes to import for resolved ref: 0");
+    workflow.run(workdir, /*sourceRef=*/"0");
+  }
+
+  @Test
   public void iterativeSkipCommits() throws Exception {
     origin.singleFileChange(0, "one", "file.txt", "a");
     origin.singleFileChange(1, "two", "file.txt", "b");
