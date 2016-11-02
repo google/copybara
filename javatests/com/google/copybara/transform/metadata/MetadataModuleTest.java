@@ -328,7 +328,6 @@ public class MetadataModuleTest {
     passThruAuthoring();
 
     Config config = loadConfig(""
-        + "core.project( name = 'copybara_project')\n"
         + "core.workflow(\n"
         + "    name = 'default',\n"
         + "    origin =  testing.origin(),\n"

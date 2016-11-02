@@ -122,7 +122,6 @@ public class WorkflowTest {
   private Workflow<?, ?> skylarkWorkflow(String name, WorkflowMode mode)
       throws IOException, ValidationException {
     String config = ""
-        + "core.project( name = 'copybara_project')\n"
         + "core.workflow(\n"
         + "    name = '" + name + "',\n"
         + "    origin = testing.origin(),\n"
@@ -632,7 +631,6 @@ public class WorkflowTest {
   public void testNullAuthoring() throws Exception {
     try {
       loadConfig(""
-          + "core.project( name = 'copybara_project')\n"
           + "core.workflow(\n"
           + "    name = 'foo',\n"
           + "    origin = testing.origin(),\n"
@@ -656,7 +654,6 @@ public class WorkflowTest {
   public void testNullOrigin() throws Exception {
     try {
       loadConfig(""
-          + "core.project( name = 'copybara_project')\n"
           + "core.workflow(\n"
           + "    name = 'foo',\n"
           + "    authoring = " + authoring + "\n,"
@@ -760,8 +757,6 @@ public class WorkflowTest {
     passThruAuthoring();
 
     Config config = loadConfig(""
-        + "core.project( name = 'copybara_project')\n"
-        + "\n"
         + "def first(ctx):\n"
         + "  msg =''\n"
         + "  for c in ctx.changes.current:\n"
@@ -788,7 +783,6 @@ public class WorkflowTest {
   public void testNullDestination() throws Exception {
     try {
       loadConfig(""
-          + "core.project( name = 'copybara_project')\n"
           + "core.workflow(\n"
           + "    name = 'foo',\n"
           + "    authoring = " + authoring + "\n,"
@@ -804,7 +798,6 @@ public class WorkflowTest {
   @Test
   public void testNoNestedSequenceProgressMessage() throws Exception {
     Transformation transformation = ((Workflow<?, ?>)loadConfig(""
-        + "core.project( name = 'copybara_project')\n"
         + "core.workflow(\n"
         + "    name = 'default',\n"
         + "    authoring = " + authoring + "\n,"

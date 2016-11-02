@@ -270,7 +270,6 @@ public class TransformWorkTest {
   private void runWorkflow(String functionName, String function)
       throws RepoException, IOException, ValidationException {
     skylark.loadConfig(""
-        + "core.project('foo')\n"
         + function + "\n"
         + "core.workflow(\n"
         + "    name = 'default',\n"

@@ -75,7 +75,6 @@ public class GitMirrorTest {
   @Test
   public void testMirror() throws Exception {
     Migration mirror = loadMigration(""
-        + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'default',"
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
@@ -100,7 +99,6 @@ public class GitMirrorTest {
     destRepo1.initGitDir();
 
     String cfgContent = ""
-        + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'one',"
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
@@ -130,7 +128,6 @@ public class GitMirrorTest {
     destRepo1.initGitDir();
 
     String cfg = ""
-        + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'default',"
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
@@ -154,7 +151,6 @@ public class GitMirrorTest {
     destRepo1.initGitDir();
 
     String cfg = ""
-        + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'default',"
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
@@ -179,7 +175,6 @@ public class GitMirrorTest {
   @Test
   public void testMirrorCustomRefspec() throws Exception {
     String cfg = ""
-        + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'default',"
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
@@ -224,7 +219,6 @@ public class GitMirrorTest {
 
   private Migration prepareForConflict() throws IOException, ValidationException, RepoException {
     String cfg = ""
-        + "core.project('foo')\n"
         + "git.mirror("
         + "    name = 'default',"
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"

@@ -98,10 +98,6 @@ public class SkylarkParserTest {
         + "load('//foo/authoring','copy_author', 'baz')\n"
         + "some_url=\"https://so.me/random/url\"\n"
         + "\n"
-        + "core.project(\n"
-        + "  name = \"mytest\",\n"
-        + ")\n"
-        + "\n"
         + "core.workflow(\n"
         + "   name = \"foo\" + str(baz),\n"
         + "   origin = mock.origin(\n"
@@ -218,10 +214,6 @@ public class SkylarkParserTest {
   public void testTransformsAreOptional()
       throws IOException, ValidationException {
     String configContent = ""
-        + "core.project(\n"
-        + "  name = 'mytest',\n"
-        + ")\n"
-        + "\n"
         + "core.workflow(\n"
         + "   name = 'foo',\n"
         + "   origin = mock.origin(\n"
@@ -249,10 +241,6 @@ public class SkylarkParserTest {
     String configContent = ""
         + "baz=42\n"
         + "some_url=\"https://so.me/random/url\"\n"
-        + "\n"
-        + "core.project(\n"
-        + "  name = \"mytest\",\n"
-        + ")\n"
         + "\n"
         + "core.workflow(\n"
         + "   name = \"default\",\n"
@@ -286,7 +274,7 @@ public class SkylarkParserTest {
     parser.addExtraConfigFile("bar", "stuff_in_bar");
 
     return ""
-        + "core.project(name = mock_labels_aware_module.read_foo())\n"
+        + "mock_labels_aware_module.read_foo()\n"
         + "\n"
         + "core.workflow(\n"
         + "   name = \"default\",\n"

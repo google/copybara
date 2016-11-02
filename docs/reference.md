@@ -25,7 +25,6 @@
     - [metadata.scrubber](#metadata.scrubber)
   - [core](#core)
     - [glob](#glob)
-    - [core.project](#core.project)
     - [core.reverse](#core.reverse)
     - [core.workflow](#core.workflow)
     - [core.move](#core.move)
@@ -263,20 +262,6 @@ include|`sequence of string`<br><p>The list of glob patterns to include</p>
 exclude|`sequence of string`<br><p>The list of glob patterns to exclude</p>
 
 
-<a id="core.project" aria-hidden="true"></a>
-## core.project
-
-General configuration of the project. Like the name.  THIS FUNCTION IS DEPRECATED.
-
-`core.project(name)`
-
-### Parameters:
-
-Parameter | Description
---------- | -----------
-name|`string`<br><p>The name of the configuration.</p>
-
-
 <a id="core.reverse" aria-hidden="true"></a>
 ## core.reverse
 
@@ -306,7 +291,7 @@ name|`string`<br><p>The name of the workflow.</p>
 origin|`origin`<br><p>Where to read the migration code from.</p>
 destination|`destination`<br><p>Where to read the migration code from.</p>
 authoring|`authoring_class`<br><p>The author mapping configuration from origin to destination.</p>
-transformations|`sequence`<br><p>Where to read the migration code from.</p>
+transformations|`sequence`<br><p>The transformations to be run for this workflow. They will run in sequence.</p>
 exclude_in_origin|`glob`<br><p>For compatibility purposes only. Use origin_files instead.</p>
 exclude_in_destination|`glob`<br><p>For compatibility purposes only. Use detination_files instead.</p>
 origin_files|`glob`<br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>

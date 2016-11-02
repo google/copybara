@@ -115,23 +115,6 @@ public class Core implements OptionsAwareModule {
     }
   };
 
-  @SkylarkSignature(name = "project", returnType = NoneType.class,
-      doc = "General configuration of the project. Like the name.  THIS FUNCTION IS DEPRECATED.",
-      parameters = {
-          @Param(name = "self", type = Core.class, doc = "this object"),
-          @Param(name = "name", type = String.class, doc = "The name of the configuration."),
-      },
-      objectType = Core.class, useLocation = true)
-  public static final BuiltinFunction PROJECT = new BuiltinFunction("project") {
-    public NoneType invoke(Core self, String name, Location location) throws EvalException {
-      // TODO(team): Remove this function once all the usages are removed
-      Console console = self.generalOptions.console();
-      console.warn("'project' function is deprecated. "
-          + "Does not need to be replaced, just removed entirely.");
-      return Runtime.NONE;
-    }
-  };
-
   @SkylarkSignature(name = "reverse", returnType = SkylarkList.class,
       doc = "Given a list of transformations, returns the list of transformations equivalent to"
           + " undoing all the transformations",

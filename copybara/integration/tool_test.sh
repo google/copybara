@@ -113,8 +113,6 @@ function test_git_tracking() {
   popd
 
     cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -199,8 +197,6 @@ function test_git_iterative() {
 
   popd
     cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -266,8 +262,6 @@ function test_get_git_changes() {
   popd
 
     cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -350,8 +344,6 @@ function test_can_skip_empty_commit() {
   popd
 
     cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -414,8 +406,6 @@ function test_regex_with_path() {
   prepare_glob_tree
 
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -454,8 +444,6 @@ function git_pull_request() {
   public=$(empty_git_bare_repo)
 
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "export",
     origin = git.origin(
@@ -540,8 +528,6 @@ function test_git_delete() {
   )
 
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -583,8 +569,6 @@ function test_reverse_sequence() {
   )
 
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 forward_transforms = [
   core.replace('foo', 'bar'),
   core.replace('baz', 'bee'),
@@ -649,8 +633,6 @@ function test_local_dir_destination() {
   mkdir destination
 
   cat > destination/copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -689,8 +671,6 @@ function test_choose_non_default_workflow() {
   mkdir destination
 
   cat > destination/copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -730,8 +710,6 @@ function test_file_move() {
   mkdir destination
 
   cat > destination/copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -757,8 +735,6 @@ EOF
 
 function test_invalid_transformations_in_config() {
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest-invalid-xform")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -817,8 +793,6 @@ function setup_reversible_check_workflow() {
   popd
 
     cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -877,8 +851,6 @@ function test_log_consonle_is_write_only() {
   )
 
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -929,7 +901,6 @@ remote_origin=git.origin( url = remote_var, ref = "master",)
 EOF
   cat > $config_folder/foo/bar/copy.bara.sky <<EOF
 load("baz/origin", "remote_origin")
-core.project(name = "cbtest")
 
 core.workflow(
     name = "default",
@@ -967,8 +938,6 @@ function test_verify_match() {
   prepare_glob_tree
 
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -1037,8 +1006,6 @@ function test_validate_too_many_arguments() {
 
 function test_validate_valid() {
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
@@ -1062,8 +1029,6 @@ EOF
 
 function test_validate_invalid() {
     cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflowFoo(
     name = "default",
 )
@@ -1100,8 +1065,6 @@ function test_apply_patch() {
     expect_in_file "foo" folder/subfolder/test.java
   )
   cat > copy.bara.sky <<EOF
-core.project(name = "cbtest")
-
 core.workflow(
     name = "default",
     origin = git.origin(
