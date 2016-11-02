@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
     doc = "Represents the author of a change")
 public final class Author {
 
-  private static final Pattern AUTHOR_PARSER = Pattern.compile("(?<name>[^<]+)<(?<email>[^>]+)>");
+  private static final Pattern AUTHOR_PARSER = Pattern.compile("(?<name>[^<]+)<(?<email>[^>]*)>");
 
   private final String name;
   private final String email;

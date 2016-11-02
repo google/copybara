@@ -40,6 +40,13 @@ public class AuthorTest {
   }
 
   @Test
+  public void testParse_emptyEmail() throws Exception {
+    Author fooBar = Author.parse(/*location*/ null, "Foo Bar <>");
+    assertThat(fooBar.getEmail()).isEqualTo("");
+    assertThat(fooBar.getName()).isEqualTo("Foo Bar");
+  }
+
+  @Test
   public void testWrongEmailFormat() throws Exception {
     thrown.expect(EvalException.class);
     thrown.expectMessage(
