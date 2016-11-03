@@ -16,6 +16,16 @@
 licenses(["notice"])  # Apache 2.0
 
 sh_test(
+    name = "reference_doc_test",
+    srcs = ["reference_doc_test.sh"],
+    data = [
+        "//java/com/google/copybara:docs.md",
+        "//third_party/bazel/bashunit",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_test(
     name = "tool_test",
     srcs = ["tool_test.sh"],
     data = [

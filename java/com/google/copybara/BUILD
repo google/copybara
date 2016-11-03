@@ -19,7 +19,7 @@ package(default_visibility = ["//visibility:public"])
 load(":docs.bzl", "doc_generator")
 
 export_files = [
-    "doc.sh",
+    "doc_skylark.sh",
     "docs.bzl",
 ]
 

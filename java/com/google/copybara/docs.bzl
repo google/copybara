@@ -13,31 +13,15 @@
 # limitations under the License.
 
 def _doc_impl(ctx):
-  jars=[]
+  jars = []
   for dep in ctx.attr.deps:
     for jar in dep.java.transitive_source_jars:
       jars.append(jar)
   ctx.action(
-      inputs=jars,
-      outputs=[ctx.outputs.out],
-      progress_message="Generating documentation for %s" % ctx.label,
-      command= "%s %s %s %s" %
-        (ctx.executable._doc_tool.path,
-         ctx.outputs.out.path,
-         ",".join(ctx.attr.elements),
-         " ".join([f.path for f in jars])),
-  )
-
-def _skylark_doc_impl(ctx):
-  jars=[]
-  for dep in ctx.attr.deps:
-    for jar in dep.java.transitive_source_jars:
-      jars.append(jar)
-  ctx.action(
-      inputs=jars,
-      outputs=[ctx.outputs.out],
-      progress_message="Generating Skylark documentation for %s" % ctx.label,
-      command= "%s %s %s" %
+      inputs = [ctx.executable._doc_tool] + jars,
+      outputs = [ctx.outputs.out],
+      progress_message = "Generating reference documentation for %s" % ctx.label,
+      command = "%s %s %s" %
                (ctx.executable._doc_tool.path,
                 ctx.outputs.out.path,
                 " ".join([f.path for f in jars])),
@@ -58,5 +42,5 @@ doc_generator = rule(
       ),
     },
     outputs = {"out": "%{name}.md"},
-    implementation = _skylark_doc_impl,
+    implementation = _doc_impl,
 )
