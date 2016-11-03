@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 licenses(["notice"])  # Apache 2.0
 
 sh_test(
@@ -32,6 +31,7 @@ sh_test(
         "//java/com/google/copybara",
         "//third_party/bazel/bashunit",
     ],
+    shard_count = 30,
     tags = ["local"],
     visibility = ["//visibility:public"],
 )
