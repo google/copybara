@@ -131,14 +131,14 @@ public class SkylarkParserTest {
     String configContent = setUpInclusionTest();
     Config config = parser.loadConfig(configContent);
 
-    MockOrigin origin = (MockOrigin) getWorkflow(config, "foo42").origin();
+    MockOrigin origin = (MockOrigin) getWorkflow(config, "foo42").getOrigin();
     assertThat(origin.url).isEqualTo("https://so.me/random/url");
     assertThat(origin.branch).isEqualTo("master");
 
-    MockDestination destination = (MockDestination) getWorkflow(config, "foo42").destination();
+    MockDestination destination = (MockDestination) getWorkflow(config, "foo42").getDestination();
     assertThat(destination.folder).isEqualTo("some folder");
 
-    Transformation transformation = getWorkflow(config, "foo42").transformation();
+    Transformation transformation = getWorkflow(config, "foo42").getTransformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
         ((Sequence) transformation).getSequence();
@@ -236,7 +236,7 @@ public class SkylarkParserTest {
 
     Config config = parser.loadConfig(configContent);
 
-    Transformation transformation = getWorkflow(config, "foo").transformation();
+    Transformation transformation = getWorkflow(config, "foo").getTransformation();
     assertThat(transformation.getClass()).isAssignableTo(Sequence.class);
     ImmutableList<? extends Transformation> transformations =
         ((Sequence) transformation).getSequence();

@@ -305,7 +305,7 @@ public class Core implements OptionsAwareModule {
         console.warn("core.workflow(exclude_in_destination) arg is deprecated, use"
             + " destination_files = glob(['**'], exclude = [exclude globs]) instead");
       }
-      self.addMigration(location, workflowName, new AutoValue_Workflow<>(
+      self.addMigration(location, workflowName, new Workflow<>(
           workflowName,
           origin,
           destination,

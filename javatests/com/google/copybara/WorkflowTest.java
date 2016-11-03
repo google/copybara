@@ -155,7 +155,7 @@ public class WorkflowTest {
 
   @Test
   public void defaultNameIsDefault() throws Exception {
-    assertThat(workflow().name()).isEqualTo("default");
+    assertThat(workflow().getName()).isEqualTo("default");
   }
 
   @Test
@@ -823,7 +823,7 @@ public class WorkflowTest {
         + "             reversal = []"
         + "        )\n"
         + "    ],"
-        + ")\n").getMigration("default")).transformation();
+        + ")\n").getMigration("default")).getTransformation();
 
     Files.write(workdir.resolve("foo"), new byte[0]);
     transformation.transform(TransformWorks.of(workdir, "message", console()));

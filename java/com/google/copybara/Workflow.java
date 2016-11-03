@@ -18,7 +18,6 @@ package com.google.copybara;
 
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 
-import com.google.auto.value.AutoValue;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
@@ -45,93 +44,139 @@ import javax.annotation.Nullable;
  * @param <O> Origin reference type.
  * @param <D> Destination reference type.
  */
-@AutoValue
-public abstract class Workflow<O extends Reference, D extends Reference> implements Migration {
+public final class Workflow<O extends Reference, D extends Reference> implements Migration {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
-  abstract String name();
+  private final String name;
+  private final Origin<O> origin;
+  private final Destination<D> destination;
+  private final Authoring authoring;
+  private final Transformation transformation;
+
+  @Nullable
+  private final String lastRevisionFlag;
+  private final Console console;
+  private final Glob originFiles;
+  private final Glob destinationFiles;
+  private final WorkflowMode mode;
+  private final WorkflowOptions workflowOptions;
+
+  @Nullable
+  private final Transformation reverseTransformForCheck;
+  private final boolean verbose;
+  private final boolean askForConfirmation;
+
+  Workflow(
+      String name,
+      Origin<O> origin,
+      Destination<D> destination,
+      Authoring authoring,
+      Transformation transformation,
+      @Nullable String lastRevisionFlag,
+      Console console,
+      Glob originFiles,
+      Glob destinationFiles,
+      WorkflowMode mode,
+      WorkflowOptions workflowOptions,
+      @Nullable Transformation reverseTransformForCheck,
+      boolean verbose,
+      boolean askForConfirmation) {
+    this.name = Preconditions.checkNotNull(name);
+    this.origin = Preconditions.checkNotNull(origin);
+    this.destination = Preconditions.checkNotNull(destination);
+    this.authoring = Preconditions.checkNotNull(authoring);
+    this.transformation = Preconditions.checkNotNull(transformation);
+    this.lastRevisionFlag = lastRevisionFlag;
+    this.console = Preconditions.checkNotNull(console);
+    this.originFiles = Preconditions.checkNotNull(originFiles);
+    this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
+    this.mode = Preconditions.checkNotNull(mode);
+    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
+    this.reverseTransformForCheck = reverseTransformForCheck;
+    this.verbose = verbose;
+    this.askForConfirmation = askForConfirmation;
+  }
+
+  public String getName() {
+    return name;
+  }
 
   /**
    * The repository that represents the source of truth
    */
-  public abstract Origin<O> origin();
+  public Origin<O> getOrigin() {
+    return origin;
+  }
 
   /**
    * The destination repository to copy to.
    */
-  public abstract Destination<D> destination();
+  public Destination<D> getDestination() {
+    return destination;
+  }
 
   /**
    * The author mapping between an origin and a destination
    */
-  public abstract Authoring authoring();
+  public Authoring getAuthoring() {
+    return authoring;
+  }
 
   /**
    * Transformation to run before writing them to the destination.
    */
-  public abstract Transformation transformation();
-
-  @Nullable abstract String lastRevisionFlag();
-  abstract Console console();
-  abstract Glob originFiles();
-  abstract Glob destinationFiles();
-  abstract WorkflowMode mode();
-  abstract WorkflowOptions workflowOptions();
-
-  @Nullable
-  abstract Transformation reverseTransformForCheck();
-  abstract boolean verbose();
-  abstract boolean askForConfirmation();
+  public Transformation getTransformation() {
+    return transformation;
+  }
 
   /**
-   * Overrides Autovalue {@code toString()}, filtering the fields that are not part of the
-   * configuration: Console is not part of the config, configName is in the parent, and
-   * lastRevisionFlag is a command-line flag.
+   * Includes only the fields that are part of the configuration: Console is not part of the config,
+   * configName is in the parent, and lastRevisionFlag is a command-line flag.
    */
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("name", name())
-        .add("origin", origin())
-        .add("destination", destination())
-        .add("authoring", authoring())
-        .add("transformation", transformation())
-        .add("originFiles", originFiles())
-        .add("destinationFiles", destinationFiles ())
-        .add("mode", mode())
-        .add("reverseTransformForCheck", reverseTransformForCheck())
-        .add("askForConfirmation", askForConfirmation())
+        .add("name", name)
+        .add("origin", origin)
+        .add("destination", destination)
+        .add("authoring", authoring)
+        .add("transformation", transformation)
+        .add("originFiles", originFiles)
+        .add("destinationFiles", destinationFiles)
+        .add("mode", mode)
+        .add("reverseTransformForCheck", reverseTransformForCheck)
+        .add("askForConfirmation", askForConfirmation)
         .toString();
   }
 
   @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
-    console().progress("Cleaning working directory");
+    console.progress("Cleaning working directory");
     FileUtil.deleteAllFilesRecursively(workdir);
 
-    console().progress("Getting last revision: "
+    console.progress("Getting last revision: "
         + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
-    O resolvedRef = origin().resolve(sourceRef);
+    O resolvedRef = origin.resolve(sourceRef);
     logger.log(Level.INFO,
         String.format(
             "Running Copybara for workflow '%s' and ref '%s': %s",
-            name(), resolvedRef.asString(),
+            name, resolvedRef.asString(),
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-    mode().run(new RunHelper<>(workdir, resolvedRef));
+    mode.run(new RunHelper<>(workdir, resolvedRef));
   }
 
   @Override
   public Info getInfo() throws RepoException, ValidationException {
-    Writer writer = destination().newWriter(destinationFiles());
-    String lastRef = writer.getPreviousRef(origin().getLabelName());
-    O lastMigrated = (lastRef == null) ? null : origin().resolve(lastRef);
-    O lastResolved = origin().resolve(/*sourceRef=*/ null);
+    Writer writer = destination.newWriter(destinationFiles);
+    String lastRef = writer.getPreviousRef(origin.getLabelName());
+    O lastMigrated = (lastRef == null) ? null : origin.resolve(lastRef);
+    O lastResolved = origin.resolve(/*sourceRef=*/ null);
 
     MigrationReference migrationRef = MigrationReference.create(
-        String.format("workflow_%s", name()), lastMigrated, lastResolved);
+        String.format("workflow_%s", name), lastMigrated, lastResolved);
     return Info.create(ImmutableList.of(migrationRef));
   }
 
@@ -149,9 +194,9 @@ public abstract class Workflow<O extends Reference, D extends Reference> impleme
     RunHelper(Path workdir, M resolvedRef) throws ValidationException, RepoException {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
-      this.originReader = origin().newReader(originFiles(), authoring());
-      this.writer = destination().newWriter(destinationFiles());
-      this.destinationReader = destination().newReader(destinationFiles());
+      this.originReader = origin.newReader(originFiles, authoring);
+      this.writer = destination.newWriter(destinationFiles);
+      this.destinationReader = destination.newReader(destinationFiles);
     }
 
     M getResolvedRef() {
@@ -162,23 +207,23 @@ public abstract class Workflow<O extends Reference, D extends Reference> impleme
      * Authoring configuration.
      */
     Authoring getAuthoring() {
-      return authoring();
+      return authoring;
     }
 
     /** Console to use for printing messages. */
     Console getConsole() {
-      return console();
+      return console;
     }
 
     /**
      * Options that change how workflows behave.
      */
     WorkflowOptions workflowOptions() {
-      return Workflow.this.workflowOptions();
+      return workflowOptions;
     }
 
     Destination getDestination() {
-      return destination();
+      return destination;
     }
 
     Origin.Reader<O> getOriginReader() {
@@ -214,7 +259,7 @@ public abstract class Workflow<O extends Reference, D extends Reference> impleme
       originReader.checkout(ref, checkoutDir);
 
       // Remove excluded origin files.
-      PathMatcher originFiles = originFiles().relativeTo(checkoutDir);
+      PathMatcher originFiles = Workflow.this.originFiles.relativeTo(checkoutDir);
       processConsole.progress("Removing excluded origin files");
 
       int deleted = FileUtil.deleteFilesRecursively(
@@ -225,28 +270,28 @@ public abstract class Workflow<O extends Reference, D extends Reference> impleme
       }
 
       Path originCopy = null;
-      if (reverseTransformForCheck() != null) {
-        console().progress("Making a copy or the workdir for reverse checking");
+      if (reverseTransformForCheck != null) {
+        console.progress("Making a copy or the workdir for reverse checking");
         originCopy = Files.createDirectories(workdir.resolve("origin"));
         FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
       }
 
-      TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes, console());
-      transformation().transform(transformWork);
+      TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes, console);
+      transformation.transform(transformWork);
 
-      if (reverseTransformForCheck() != null) {
-        console().progress("Checking that the transformations can be reverted");
+      if (reverseTransformForCheck != null) {
+        console.progress("Checking that the transformations can be reverted");
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
-        reverseTransformForCheck().transform(
-            new TransformWork(reverse, metadata, changes, console())
+        reverseTransformForCheck.transform(
+            new TransformWork(reverse, metadata, changes, console)
         );
-        String diff = new String(DiffUtil.diff(originCopy, reverse, verbose()),
+        String diff = new String(DiffUtil.diff(originCopy, reverse, verbose),
             StandardCharsets.UTF_8);
         if (!diff.trim().isEmpty()) {
-          console().error("Non reversible transformations:\n"
-              + DiffUtil.colorize(console(), diff));
-          throw new ValidationException(String.format("Workflow '%s' is not reversible", name()));
+          console.error("Non reversible transformations:\n"
+              + DiffUtil.colorize(console, diff));
+          throw new ValidationException(String.format("Workflow '%s' is not reversible", name));
         }
       }
 
@@ -258,7 +303,7 @@ public abstract class Workflow<O extends Reference, D extends Reference> impleme
         transformResult = transformResult.withBaseline(destinationBaseline);
       }
 
-      transformResult = transformResult.withAskForConfirmation(askForConfirmation());
+      transformResult = transformResult.withAskForConfirmation(askForConfirmation);
 
       WriterResult result = writer.write(transformResult, processConsole);
       Verify.verifyNotNull(result, "Destination returned a null result.");
@@ -271,7 +316,7 @@ public abstract class Workflow<O extends Reference, D extends Reference> impleme
       if (lastRev == null) {
         throw new RepoException(String.format(
                 "Previous revision label %s could not be found in %s and --last-rev flag"
-                + " was not passed", origin().getLabelName(), destination()));
+                + " was not passed", origin.getLabelName(), destination));
       }
       return originReader.changes(getLastRev(), resolvedRef);
     }
@@ -285,19 +330,19 @@ public abstract class Workflow<O extends Reference, D extends Reference> impleme
      */
     @Nullable
     O getLastRev() throws RepoException {
-      if (lastRevisionFlag() != null) {
+      if (lastRevisionFlag != null) {
         try {
-          return origin().resolve(lastRevisionFlag());
+          return origin.resolve(lastRevisionFlag);
         } catch (RepoException e) {
           throw new RepoException(
               "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
-                  + lastRevisionFlag(),
+                  + lastRevisionFlag,
               e);
         }
       }
 
-      String previousRef = writer.getPreviousRef(origin().getLabelName());
-      return (previousRef == null) ? null : origin().resolve(previousRef);
+      String previousRef = writer.getPreviousRef(origin.getLabelName());
+      return (previousRef == null) ? null : origin.resolve(previousRef);
     }
   }
 }
