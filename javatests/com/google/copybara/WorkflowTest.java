@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;

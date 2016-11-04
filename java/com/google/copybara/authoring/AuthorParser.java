@@ -14,35 +14,33 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git;
+package com.google.copybara.authoring;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Author;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * A parser of the Git author format.
+ * A parser for the standard autor format {@code "Name <email>"}.
  *
- * Git is lenient on the author validation and only requires {@code "Foo <bar>"}, but does not
- * validate that {@code bar} is actually an email. Also {@code "Foo <>"} is valid, but
- * {@code "<bar>"} is not.
- *
- * TODO(copybara-team): Consider using JGit's RawParseUtils
+ * <p>This is the format used by most VCS (Git, Mercurial) and also by the Copybara configuration
+ * itself. The parser is lenient: {@code email} can be empty, and it doesn't validate that is an
+ * actual email.
  */
-class GitAuthorParser {
+public class AuthorParser {
 
-  private static final Pattern AUTHOR_PATTERN = Pattern.compile("(.+ )<(.*)>");
+  private static final Pattern AUTHOR_PATTERN = Pattern.compile("(?<name>[^<]+)<(?<email>[^>]*)>");
 
   /**
    * Parses a Git author {@code string} into an {@link Author}.
    */
-  static Author parse(String author) {
+  public static Author parse(String author) throws InvalidAuthorException {
     Preconditions.checkNotNull(author);
     Matcher matcher = AUTHOR_PATTERN.matcher(author);
-    Preconditions.checkArgument(matcher.matches(),
-        "Invalid author '%s'. Must be in the form of 'Name <email>'", author);
+    if (!matcher.matches()) {
+      throw new InvalidAuthorException(
+          String.format("Invalid author '%s'. Must be in the form of 'Name <email>'", author));
+    }
     return new Author(matcher.group(1).trim(), matcher.group(2).trim());
   }
 }

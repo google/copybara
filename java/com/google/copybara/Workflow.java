@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Info.MigrationReference;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;

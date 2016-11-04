@@ -16,7 +16,7 @@
 
 package com.google.copybara.transform.metadata;
 
-import com.google.copybara.Author;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;

@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;

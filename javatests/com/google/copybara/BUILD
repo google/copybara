@@ -24,6 +24,7 @@ LOCAL_TESTS = [
 
 DEPS = [
     "//java/com/google/copybara:base",
+    "//java/com/google/copybara/authoring",
     "//java/com/google/copybara:copybara_main",
     "//java/com/google/copybara:copybara_lib",
     "//java/com/google/copybara/doc:annotations",

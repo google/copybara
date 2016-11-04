@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.authoring;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -36,8 +36,6 @@ import java.util.regex.Pattern;
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents the author of a change")
 public final class Author {
-
-  private static final Pattern AUTHOR_PARSER = Pattern.compile("(?<name>[^<]+)<(?<email>[^>]*)>");
 
   private final String name;
   private final String email;
@@ -87,12 +85,12 @@ public final class Author {
 
   /** Parse author from a String in the format of: "name <foo@bar.com>" */
   public static Author parse(Location location, String authorStr) throws EvalException {
-    Matcher matcher = AUTHOR_PARSER.matcher(authorStr);
-    if (!matcher.matches()) {
+    try {
+      return AuthorParser.parse(authorStr);
+    } catch (InvalidAuthorException e) {
       throw new EvalException(location, "Author '" + authorStr
-          + "' doesn't match the expected format 'name <mail@example.com>");
+          + "' doesn't match the expected format 'name <mail@example.com>", e);
     }
-    return new Author(matcher.group("name").trim(), matcher.group("email").trim());
   }
 
   @Override

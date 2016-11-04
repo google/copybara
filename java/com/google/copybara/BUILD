@@ -59,8 +59,6 @@ doc_generator(
 )
 
 BASE_SRCS = [
-    "Author.java",
-    "Authoring.java",
     "Change.java",
     "ChangeVisitable.java",
     "CheckoutPath.java",
@@ -88,6 +86,7 @@ java_library(
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,
     deps = [
+        "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
@@ -108,6 +107,7 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         ":base",
+        "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config/base",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/transform",

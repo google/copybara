@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;

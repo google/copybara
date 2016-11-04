@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.copybara.Authoring;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;

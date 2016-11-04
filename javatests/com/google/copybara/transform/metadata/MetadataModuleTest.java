@@ -24,7 +24,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.copybara.Author;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.Config;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;

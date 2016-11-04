@@ -23,7 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Authoring;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Config;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;

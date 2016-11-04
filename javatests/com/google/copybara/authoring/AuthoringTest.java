@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.authoring;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Authoring.AuthoringMappingMode;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;

@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;

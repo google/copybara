@@ -20,9 +20,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Author;
-import com.google.copybara.Authoring;
-import com.google.copybara.Authoring.AuthoringMappingMode;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;

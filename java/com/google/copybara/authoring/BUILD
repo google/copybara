@@ -12,24 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//javatests/com/google/copybara:test.bzl", "all_tests")
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])  # Apache 2.0
 
-all_tests(
-    tags = ["local"],
-    tests = glob(["**/*.java"]),
+java_library(
+    name = "authoring",
+    srcs = glob(["**/*.java"]),
+    javacopts = [
+        "-Xlint:unchecked",
+        "-source",
+        "1.8",
+    ],
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/git/testing",
-        "//java/com/google/copybara/testing",
-        "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util/console",
-        "//java/com/google/copybara/util/console/testing",
-        "//third_party:jcommander",
+        "//java/com/google/copybara/doc:annotations",
+        "//third_party:guava",
+        "//third_party:jsr305",
         "//third_party:skylark-lang",
-        "//third_party:truth",
     ],
 )

@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Author;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination;

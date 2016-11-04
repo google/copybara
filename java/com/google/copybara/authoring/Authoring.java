@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.authoring;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;

@@ -20,9 +20,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Author;
-import com.google.copybara.Authoring;
-import com.google.copybara.Authoring.AuthoringMappingMode;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.FileSubjects;

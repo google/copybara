@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.copybara.authoring.Author;
 
 /**
  * Metadata associated with a change: Change message, author, etc.

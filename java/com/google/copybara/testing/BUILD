@@ -29,6 +29,7 @@ java_library(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config/base",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",

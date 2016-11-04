@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.authoring;
 
 import static com.google.common.truth.Truth.assertThat;
 

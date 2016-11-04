@@ -15,7 +15,7 @@
  */
 package com.google.copybara.testing;
 
-import com.google.copybara.Author;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
 import com.google.copybara.Metadata;

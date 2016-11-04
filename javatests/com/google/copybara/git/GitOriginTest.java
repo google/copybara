@@ -23,12 +23,10 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Author;
-import com.google.copybara.Authoring;
-import com.google.copybara.Authoring.AuthoringMappingMode;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
-import com.google.copybara.ChangeVisitable;
-import com.google.copybara.ChangeVisitable.ChangesVisitor;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;

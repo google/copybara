@@ -17,7 +17,7 @@
 package com.google.copybara.folder;
 
 import com.google.common.base.Strings;
-import com.google.copybara.Author;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;

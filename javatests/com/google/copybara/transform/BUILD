@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
@@ -22,6 +21,7 @@ all_tests(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/util/console",

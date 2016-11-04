@@ -21,6 +21,7 @@ import static com.google.copybara.config.base.SkylarkUtil.stringToEnum;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;

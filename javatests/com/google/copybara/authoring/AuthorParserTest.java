@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git;
+package com.google.copybara.authoring;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.copybara.Author;
-
+import com.google.copybara.ValidationException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class GitAuthorParserTest {
+public class AuthorParserTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -44,14 +42,15 @@ public class GitAuthorParserTest {
 
   @Test
   public void testParseWrongFormat() throws Exception {
-    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expect(InvalidAuthorException.class);
     expectedException.expectMessage(
         "Invalid author 'Foo Bar'. Must be in the form of 'Name <email>'");
-    GitAuthorParser.parse("Foo Bar");
+    AuthorParser.parse("Foo Bar");
   }
 
-  private void checkAuthorFormat(String gitAuthor, String expectedName, String expectedEmail) {
-    Author author = GitAuthorParser.parse(gitAuthor);
+  private void checkAuthorFormat(String gitAuthor, String expectedName, String expectedEmail)
+      throws InvalidAuthorException {
+    Author author = AuthorParser.parse(gitAuthor);
     assertThat(author.getName()).isEqualTo(expectedName);
     assertThat(author.getEmail()).isEqualTo(expectedEmail);
   }

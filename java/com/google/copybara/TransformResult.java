@@ -17,6 +17,8 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.copybara.authoring.Author;
+
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.annotation.Nullable;

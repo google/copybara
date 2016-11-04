@@ -22,11 +22,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.Author;
-import com.google.copybara.Authoring;
+import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.AuthorParser;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.RepoException;
+import com.google.copybara.authoring.InvalidAuthorException;
 import com.google.copybara.util.console.Console;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -59,8 +62,7 @@ class ChangeReader {
     this.limit = limit;
   }
 
-  ImmutableList<GitChange> run(String refExpression)
-      throws RepoException {
+  ImmutableList<GitChange> run(String refExpression) throws RepoException {
     List<String> params = new ArrayList<>(
         Arrays.asList("log", "--no-color", "--date=iso-strict"));
 
@@ -76,7 +78,7 @@ class ChangeReader {
         repository.simpleCommand(params.toArray(new String[params.size()])).getStdout());
   }
 
-  private ImmutableList<GitChange> parseChanges(String log) {
+  private ImmutableList<GitChange> parseChanges(String log) throws RepoException {
     // No changes. We cannot know until we run git log since fromRef can be null (HEAD)
     if (log.isEmpty()) {
       return ImmutableList.of();
@@ -101,7 +103,12 @@ class ChangeReader {
       while (!line.isEmpty()) {
         if (line.startsWith("Author: ")) {
           String authorStr = line.substring("Author: ".length()).trim();
-          Author parsedUser = GitAuthorParser.parse(authorStr);
+          Author parsedUser;
+          try {
+            parsedUser = AuthorParser.parse(authorStr);
+          } catch (InvalidAuthorException e) {
+            throw new RepoException("Invalid author found in Git history.", e);
+          }
           if (authoring == null || authoring.useAuthor(parsedUser.getEmail())) {
             author = parsedUser;
           } else {
