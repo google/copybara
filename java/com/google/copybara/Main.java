@@ -20,7 +20,7 @@ import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
@@ -92,6 +92,9 @@ public class Main {
       handleUnexpectedError(console, e.getMessage(), e);
       return ExitCode.ENVIRONMENT_ERROR;
     }
+    // This is useful when debugging user issues
+    logger.info("Running: " + Joiner.on(' ').join(args));
+
     console.startupMessage();
 
     ConfigurationSupplier configurationSupplier = newConfigurationSupplier();

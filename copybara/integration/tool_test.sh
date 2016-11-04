@@ -780,6 +780,13 @@ function test_command_help_flag() {
   expect_log 'Example:'
 }
 
+# We want to log the command line arguments so that it is easy to reproduce
+# user issues.
+function test_command_args_logged() {
+  copybara foo bar baz --option && fail "should fail"
+  expect_log 'Running: .*foo bar baz --option'
+}
+
 function test_command_copybara_filename_no_correct_name() {
   copybara_with_exit_code $CONFIGURATION_ERROR migrate somename.bzl
   expect_log "Copybara config file filename should be 'copy.bara.sky'"
