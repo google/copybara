@@ -29,6 +29,8 @@ import java.util.Objects;
 public class WorkflowOptions implements Option {
 
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
+  public static final String FIRST_MIGRATION_FLAG = "--first-migration";
+
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
       description = "Commit reference to be used as parent when importing a commit using"
           + " CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able"
@@ -57,12 +59,20 @@ public class WorkflowOptions implements Option {
     }
   }
 
+  @Parameter(names = FIRST_MIGRATION_FLAG,
+      description = "Use this flag when migrating to a destination for the first time and you"
+          + " want to initialize the destination or not rely on some metadata to be present"
+          + " already. For example for git it ignores that the fetch reference doesn't exist when"
+          + " doing the push")
+  boolean firstMigration = false;
+
   public WorkflowOptions() {}
 
   @VisibleForTesting
-  public WorkflowOptions(String changeBaseline, String lastRevision) {
+  public WorkflowOptions(String changeBaseline, String lastRevision, boolean firstMigration) {
     this.changeBaseline = changeBaseline;
     this.lastRevision = lastRevision;
+    this.firstMigration = firstMigration;
   }
 
   public String getLastRevision() {
@@ -71,6 +81,10 @@ public class WorkflowOptions implements Option {
 
   public String getChangeBaseline() {
     return changeBaseline;
+  }
+
+  public boolean isFirstMigration() {
+    return firstMigration;
   }
 
   @Override
@@ -82,12 +96,13 @@ public class WorkflowOptions implements Option {
       return false;
     }
     WorkflowOptions that = (WorkflowOptions) o;
-    return Objects.equals(changeBaseline, that.changeBaseline) &&
-        Objects.equals(lastRevision, that.lastRevision);
+    return Objects.equals(changeBaseline, that.changeBaseline)
+        && Objects.equals(lastRevision, that.lastRevision)
+        && Objects.equals(firstMigration, that.firstMigration);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(changeBaseline, lastRevision);
+    return Objects.hash(changeBaseline, lastRevision, firstMigration);
   }
 }

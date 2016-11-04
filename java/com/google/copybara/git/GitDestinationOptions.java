@@ -27,8 +27,6 @@ import javax.annotation.Nullable;
 @Parameters(separators = "=")
 public final class GitDestinationOptions implements Option {
 
-  static final String FIRST_COMMIT_FLAG = "--git-first-commit";
-
   @Parameter(names = "--git-committer-name",
       description = "If set, overrides the committer name for the generated commits in git"
           + " destination.")
@@ -38,10 +36,6 @@ public final class GitDestinationOptions implements Option {
       description = "If set, overrides the committer e-mail for the generated commits in git"
           + " destination.")
   String committerEmail = "";
-
-  @Parameter(names = FIRST_COMMIT_FLAG,
-      description = "Ignore that the fetch reference doesn't exist when pushing to destination")
-  boolean firstCommit = false;
 
   @Parameter(names = "--git-destination-url",
       description = "If set, overrides the git destination URL.")

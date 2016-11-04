@@ -75,7 +75,7 @@ Set up a logging git wrapper so we can demonstrate PATH et al were respected:
   $ mkdir storage
 
   $ copybara test.copybara --git-repo-storage="$PWD/storage" \
-  >  --work-dir "$PWD/workdir" --git-first-commit > copybara.log 2>&1
+  >  --work-dir "$PWD/workdir" --first-migration > copybara.log 2>&1
 
   $ [ "`cat gitpath`" = "$PATH" ]
   $ cat git_exec_dir
@@ -88,7 +88,7 @@ Again, but this time with a busted GIT_EXEC_DIR to prove that works too:
 
   $ GIT_EXEC_DIR=/dev/null ; export GIT_EXEC_DIR
   $ copybara test.copybara --git-repo-storage="$PWD/storage" \
-  >  --work-dir "$PWD/workdir" --git-first-commit > copybara.log 2>&1
+  >  --work-dir "$PWD/workdir" --first-migration > copybara.log 2>&1
   $ [ "`cat gitpath`" = "$PATH" ]
   $ cat git_exec_dir
   /dev/null

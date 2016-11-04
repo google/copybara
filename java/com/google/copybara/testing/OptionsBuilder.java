@@ -62,7 +62,8 @@ public class OptionsBuilder {
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowOptions workflowOptions =
-      new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null);
+      new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null,
+          /*firstMigration=*/false);
 
   public TestingOptions testingOptions = new TestingOptions();
 
@@ -100,12 +101,20 @@ public class OptionsBuilder {
   }
 
   public final OptionsBuilder setChangeBaseline(String changeBaseline) {
-    workflowOptions = new WorkflowOptions(changeBaseline, workflowOptions.getLastRevision());
+    workflowOptions = new WorkflowOptions(changeBaseline, workflowOptions.getLastRevision(),
+        workflowOptions.isFirstMigration());
     return this;
   }
 
   public final OptionsBuilder setLastRevision(String lastRevision) {
-    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision);
+    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision,
+        workflowOptions.isFirstMigration());
+    return this;
+  }
+
+  public final OptionsBuilder setFirstMigration(boolean firstMigration) {
+    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(),
+        workflowOptions.getLastRevision(), firstMigration);
     return this;
   }
 

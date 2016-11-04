@@ -27,6 +27,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.WorkflowOptions;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -121,7 +122,7 @@ public final class GerritDestination implements Destination<GitReference> {
 
   static GerritDestination newGerritDestination(
       Options options, String url, String fetch, String pushToRefsFor,
-      Map<String, String> environment) {
+      boolean firstMigration, Map<String, String> environment) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     if (pushToRefsFor.isEmpty()) {
       pushToRefsFor = fetch;
@@ -132,6 +133,7 @@ public final class GerritDestination implements Destination<GitReference> {
             "refs/for/" + pushToRefsFor,
             options.get(GitDestinationOptions.class),
             generalOptions.isVerbose(),
+            firstMigration,
             new CommitGenerator(options.get(GerritOptions.class)),
             new GerritProcessPushOutput(generalOptions.console()),
             environment, options.get(GeneralOptions.class).console()));

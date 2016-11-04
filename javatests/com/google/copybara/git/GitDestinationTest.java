@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Author;
 import com.google.copybara.Change;
-import com.google.copybara.ChangeVisitable.ChangesVisitor;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination;
 import com.google.copybara.Destination.Writer;
@@ -122,12 +121,12 @@ public class GitDestinationTest {
 
   private GitDestination destinationFirstCommit()
       throws ValidationException {
-    options.gitDestination.firstCommit = true;
+    options.setFirstMigration(true);
     return evalDestination();
   }
 
   private GitDestination destination() throws ValidationException {
-    options.gitDestination.firstCommit = false;
+    options.setFirstMigration(false);
     return evalDestination();
   }
 
@@ -383,8 +382,8 @@ public class GitDestinationTest {
 
     DummyReference ref1 = new DummyReference("first");
 
-    Writer writer1 = destinationFirstCommit().newWriter(
-        new Glob(ImmutableList.of("foo/**", "bar/**")));
+    Glob firstGlob = new Glob(ImmutableList.of("foo/**", "bar/**"));
+    Writer writer1 = destinationFirstCommit().newWriter(firstGlob);
     process(writer1, ref1);
 
     Files.write(workdir.resolve("baz/one"), "content2".getBytes(UTF_8));
@@ -393,7 +392,10 @@ public class GitDestinationTest {
     Writer writer2 = destination().newWriter(new Glob(ImmutableList.of("baz/**")));
     process(writer2, ref2);
 
-    assertThat(writer1.getPreviousRef(ref1.getLabelName())).isEqualTo(ref1.asString());
+    // Recreate the writer since a destinationFirstCommit writer never looks
+    // for a previous ref.
+    assertThat(destination().newWriter(firstGlob).getPreviousRef(ref1.getLabelName())).isEqualTo(
+        ref1.asString());
     assertThat(writer2.getPreviousRef(ref2.getLabelName())).isEqualTo(ref2.asString());
   }
 

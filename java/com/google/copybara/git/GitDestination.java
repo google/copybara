@@ -16,8 +16,6 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.git.GitDestinationOptions.FIRST_COMMIT_FLAG;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -26,11 +24,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.copybara.Authoring;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.WorkflowOptions;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
@@ -75,19 +73,22 @@ public final class GitDestination implements Destination<GitReference> {
   private final String push;
   private final GitDestinationOptions destinationOptions;
   private final boolean verbose;
+  private final boolean firstMigration;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
   private final Map<String, String> environment;
   private final Console console;
 
   GitDestination(String repoUrl, String fetch, String push,
-      GitDestinationOptions destinationOptions, boolean verbose, CommitGenerator commitGenerator,
-      ProcessPushOutput processPushOutput, Map<String, String> environment, Console console) {
+      GitDestinationOptions destinationOptions, boolean verbose, boolean firstMigration,
+      CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
+      Map<String, String> environment, Console console) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
     this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
     this.verbose = verbose;
+    this.firstMigration = firstMigration;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
     this.environment = environment;
@@ -132,7 +133,7 @@ public final class GitDestination implements Destination<GitReference> {
     @Nullable
     @Override
     public String getPreviousRef(String labelName) throws RepoException {
-      if (destinationOptions.firstCommit) {
+      if (firstMigration) {
         return null;
       }
       ImmutableSet<String> roots = destinationFiles.roots();
@@ -183,12 +184,12 @@ public final class GitDestination implements Destination<GitReference> {
         console.progress("Git Destination: Fetching " + repoUrl);
 
         scratchClone = cloneBaseline();
-        if (destinationOptions.firstCommit && baseline != null) {
+        if (firstMigration && baseline != null) {
           throw new RepoException(
-              "Cannot use " + FIRST_COMMIT_FLAG + " and a previous baseline (" + baseline
-              + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
+              "Cannot use " + WorkflowOptions.FIRST_MIGRATION_FLAG + " and a previous baseline ("
+                  + baseline + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
         }
-        if (!destinationOptions.firstCommit) {
+        if (!firstMigration) {
           console.progress("Git Destination: Checking out " + fetch);
           // If baseline is not null we sync first to the baseline and apply the changes on top of
           // that. Then we will rebase the new change to FETCH_HEAD.
@@ -251,13 +252,14 @@ public final class GitDestination implements Destination<GitReference> {
     GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment);
     try {
       scratchClone.fetchSingleRef(repoUrl, fetch);
-      if (destinationOptions.firstCommit) {
+      if (firstMigration) {
         throw new RepoException("'" + fetch + "' already exists in '" + repoUrl + "'.");
       }
     } catch (CannotFindReferenceException e) {
-      if (!destinationOptions.firstCommit) {
+      if (!firstMigration) {
         throw new RepoException("'" + fetch + "' doesn't exist in '" + repoUrl
-            + "'. Use --git-first-commit flag if you want to push anyway");
+            + "'. Use " + WorkflowOptions.FIRST_MIGRATION_FLAG
+            + " flag if you want to push anyway");
       }
     }
     return scratchClone;
