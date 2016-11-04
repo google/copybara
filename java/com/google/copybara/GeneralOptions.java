@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 public final class GeneralOptions implements Option {
 
   public static final String NOANSI = "--noansi";
+  public static final String FORCE = "--force";
   public static final String CONFIG_ROOT_FLAG = "--config-root";
 
   private final Map<String, String> environment;
@@ -41,25 +42,26 @@ public final class GeneralOptions implements Option {
   private final boolean verbose;
   private final Console console;
   private final boolean disableReversibleCheck;
+  private final boolean force;
   @Nullable
   private final Path configRoot;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
     this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null,
-        /*disableReversibleCheck=*/false);
+        /*disableReversibleCheck=*/false, /*force=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(
       Map<String, String> environment, FileSystem fileSystem, boolean verbose, Console console) {
     this(environment, fileSystem, verbose, console, /*configRoot=*/null,
-        /*disableReversibleCheck=*/false);
+        /*disableReversibleCheck=*/false, /*force=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
-      Console console, @Nullable Path configRoot, boolean disableReversibleCheck)
+      Console console, @Nullable Path configRoot, boolean disableReversibleCheck, boolean force)
   {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
@@ -67,6 +69,7 @@ public final class GeneralOptions implements Option {
     this.verbose = verbose;
     this.configRoot = configRoot;
     this.disableReversibleCheck = disableReversibleCheck;
+    this.force = force;
   }
 
   public Map<String, String> getEnvironment() {
@@ -87,6 +90,10 @@ public final class GeneralOptions implements Option {
 
   public boolean isDisableReversibleCheck() {
     return disableReversibleCheck;
+  }
+
+  public boolean isForce() {
+    return force;
   }
 
   /**
@@ -119,6 +126,12 @@ public final class GeneralOptions implements Option {
     @Parameter(names = NOANSI, description = "Don't use ANSI output for messages")
     boolean noansi = false;
 
+    @Parameter(names = FORCE, description = "Force the migration even if Copybara cannot find in"
+        + " the destination a change that is an ancestor of the one(s) being migrated. This should"
+        + " be used with care, as it could lose changes when migrating a previous/conflicting"
+        + " change.")
+    boolean force = false;
+
     @Parameter(names = CONFIG_ROOT_FLAG,
         description = "Configuration root path to be used for resolving absolute config labels"
             + " like '//foo/bar'")
@@ -137,7 +150,7 @@ public final class GeneralOptions implements Option {
         throws IOException {
       Path root = configRoot != null ? fileSystem.getPath(configRoot) : null;
       return new GeneralOptions(
-          environment, fileSystem, verbose, console, root, disableReversibleCheck);
+          environment, fileSystem, verbose, console, root, disableReversibleCheck, force);
     }
   }
 }

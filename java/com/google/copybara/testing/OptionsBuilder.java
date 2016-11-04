@@ -51,7 +51,8 @@ public class OptionsBuilder {
           /*verbose=*/true,
           LogConsole.readWriteConsole(System.in, System.out),
           /*rootCfgPath=*/null,
-          /*forceReversibleCheck=*/false);
+          /*forceReversibleCheck=*/false,
+          /*force=*/false);
 
   // TODO(team): Rename to folderDestination
   public FolderDestinationOptions localDestination = new FolderDestinationOptions();
@@ -72,14 +73,14 @@ public class OptionsBuilder {
         updateEnvironment(general.getEnvironment(), "PWD", StandardSystemProperty.USER_DIR.value()),
         FileSystems.getDefault(), /*verbose=*/true,
         LogConsole.readWriteConsole(System.in, System.out),
-        general.getConfigRoot(), general.isDisableReversibleCheck());
+        general.getConfigRoot(), general.isDisableReversibleCheck(), general.isForce());
     return this;
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
-        general.getConfigRoot(), general.isDisableReversibleCheck());
+        general.getConfigRoot(), general.isDisableReversibleCheck(), general.isForce());
     return this;
   }
 
@@ -87,7 +88,8 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "HOME", homeDir),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), general.isDisableReversibleCheck());
+        general.getConfigRoot(), general.isDisableReversibleCheck(),
+        general.isForce());
     git = new GitOptions(homeDir);
     return this;
   }
@@ -96,7 +98,15 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        path, general.isDisableReversibleCheck());
+        path, general.isDisableReversibleCheck(), general.isForce());
+    return this;
+  }
+
+  public final OptionsBuilder setForce(boolean force) {
+    general = new GeneralOptions(
+        general.getEnvironment(),
+        general.getFileSystem(), general.isVerbose(), general.console(),
+        general.getConfigRoot(), general.isDisableReversibleCheck(), force);
     return this;
   }
 
