@@ -374,8 +374,8 @@ public class Core implements OptionsAwareModule {
           @Param(name = "self", type = Core.class, doc = "this object"),
           @Param(name = "before", type = String.class,
               doc = "The text before the transformation. Can contain references to regex groups."
-              + " For example \"foo${x}text\".<p>If '$' literal character needs to be match '`$$`'"
-              + " should be used. For example '`$$`FOO' would match the literal '$FOO'."),
+              + " For example \"foo${x}text\".<p>If '$' literal character needs to be matched, "
+              + "'`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'."),
           @Param(name = "after", type = String.class,
               doc = "The text after the transformation. It can also contain references to regex "
                   + "groups, like 'before' field."),
