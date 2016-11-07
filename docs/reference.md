@@ -1,9 +1,6 @@
 # Table of Contents
 
 
-  - [Changes](#changes)
-  - [Path](#path)
-  - [TransformWork](#transformwork)
   - [author](#author)
   - [authoring](#authoring)
     - [authoring.overwrite](#authoring.overwrite)
@@ -12,6 +9,9 @@
     - [authoring.whitelisted](#authoring.whitelisted)
   - [authoring_class](#authoring_class)
   - [authoring_mode](#authoring_mode)
+  - [Changes](#changes)
+  - [Path](#path)
+  - [TransformWork](#transformwork)
   - [change](#change)
   - [destination](#destination)
   - [origin](#origin)
@@ -43,21 +43,6 @@
     - [git.gerrit_destination](#git.gerrit_destination)
   - [patch](#patch)
     - [patch.apply](#patch.apply)
-
-
-# Changes
-
-Data about the set of changes that are being migrated. Each change includes information like: original author, change message, labels, etc. You receive this as a field in TransformWork object for used defined transformations
-
-
-# Path
-
-Represents a path in the checkout directory
-
-
-# TransformWork
-
-Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument to the <code>transformations</code> functions used in <code>core.workflow</code>
 
 
 # author
@@ -135,6 +120,21 @@ The authors mapping between an origin and a destination
 # authoring_mode
 
 Mode used for author mapping from origin to destination
+
+
+# Changes
+
+Data about the set of changes that are being migrated. Each change includes information like: original author, change message, labels, etc. You receive this as a field in TransformWork object for used defined transformations
+
+
+# Path
+
+Represents a path in the checkout directory
+
+
+# TransformWork
+
+Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument to the <code>transformations</code> functions used in <code>core.workflow</code>
 
 
 # change
@@ -311,6 +311,7 @@ Name | Type | Description
 --change_request_parent | *string* | Commit reference to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 --last-rev | *string* | Last revision that was migrated to the destination
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
+--first-migration | *boolean* | Use this flag when migrating to a destination for the first time and you want to initialize the destination or not rely on some metadata to be present already. For example for git it ignores that the fetch reference doesn't exist when doing the push
 
 <a id="core.move" aria-hidden="true"></a>
 ## core.move
@@ -372,8 +373,8 @@ Replace a text with another text using optional regex groups. This tranformer ca
 
 Parameter | Description
 --------- | -----------
-before|`string`<br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>If '$' literal character needs to be match '$$' should be used. For example '$$FOO' would match the literal '$FOO'.</p></p>
-after|`string`<br><p>The name of the file or directory after moving. If this is the empty string and 'before' is a directory, then all files in 'before' will be moved to the repo root, maintaining the directory tree inside 'before'.</p>
+before|`string`<br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>If '$' literal character needs to be match '`$$`' should be used. For example '`$$`FOO' would match the literal '$FOO'.</p>
+after|`string`<br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
 regex_groups|`dict`<br><p>A set of named regexes that can be used to match part of the replaced text. For example {"x": "[A-Za-z]+"}</p>
 paths|`glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 first_only|`boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
@@ -637,7 +638,6 @@ Name | Type | Description
 ---- | ----------- | -----------
 --git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
 --git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
---git-first-commit | *boolean* | Ignore that the fetch reference doesn't exist when pushing to destination
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
 --git-destination-push | *string* | If set, overrides the git destination push reference.
@@ -666,7 +666,6 @@ Name | Type | Description
 ---- | ----------- | -----------
 --git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
 --git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
---git-first-commit | *boolean* | Ignore that the fetch reference doesn't exist when pushing to destination
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
 --git-destination-push | *string* | If set, overrides the git destination push reference.

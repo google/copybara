@@ -374,12 +374,11 @@ public class Core implements OptionsAwareModule {
           @Param(name = "self", type = Core.class, doc = "this object"),
           @Param(name = "before", type = String.class,
               doc = "The text before the transformation. Can contain references to regex groups."
-              + " For example \"foo${x}text\".<p>If '$' literal character needs to be match '$$'"
-              + " should be used. For example '$$FOO' would match the literal '$FOO'.</p>"),
+              + " For example \"foo${x}text\".<p>If '$' literal character needs to be match '`$$`'"
+              + " should be used. For example '`$$`FOO' would match the literal '$FOO'."),
           @Param(name = "after", type = String.class,
-              doc = "The name of the file or directory after moving. If this is the empty"
-              + " string and 'before' is a directory, then all files in 'before' will be moved to"
-              + " the repo root, maintaining the directory tree inside 'before'."),
+              doc = "The text after the transformation. It can also contain references to regex "
+                  + "groups, like 'before' field."),
           @Param(name = "regex_groups", type = SkylarkDict.class,
               doc = "A set of named regexes that can be used to match part of the replaced text."
                   + " For example {\"x\": \"[A-Za-z]+\"}", defaultValue = "{}"),
