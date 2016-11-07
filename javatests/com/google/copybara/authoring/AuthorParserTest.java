@@ -18,7 +18,6 @@ package com.google.copybara.authoring;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.copybara.ValidationException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

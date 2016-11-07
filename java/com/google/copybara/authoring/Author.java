@@ -23,8 +23,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Represents the contributor of a change in the destination repository. A contributor can be
