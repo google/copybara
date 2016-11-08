@@ -203,20 +203,30 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     // Generate flags associated with an specific method
     sb.append(generateFlagsInfo(member));
 
+
     AnnotationHelper<Examples> examples = annotationHelper(member, Examples.class);
+    AnnotationHelper<Example> singleExample = annotationHelper(member, Example.class);
+
     if (examples != null) {
       sb.append("### Examples:\n\n");
       for (Example example : examples.ann.value()) {
-        sb.append("#### ").append(example.title()).append(":\n\n");
-        sb.append(example.before()).append("\n\n");
-        sb.append("```python\n").append(example.code()).append("\n```\n\n");
-        if (!example.after().equals("")) {
-          sb.append(example.after()).append("\n\n");
-        }
+        printExample(sb, example);
       }
+    } else if (singleExample != null) {
+      sb.append("### Example:\n\n");
+      printExample(sb, singleExample.ann);
     }
 
     return sb;
+  }
+
+  private void printExample(StringBuilder sb, Example example) {
+    sb.append("#### ").append(example.title()).append(":\n\n");
+    sb.append(example.before()).append("\n\n");
+    sb.append("```python\n").append(example.code()).append("\n```\n\n");
+    if (!example.after().equals("")) {
+      sb.append(example.after()).append("\n\n");
+    }
   }
 
   /** Detect if the first parameter is 'self' object. */

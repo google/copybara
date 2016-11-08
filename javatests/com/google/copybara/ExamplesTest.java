@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.doc.annotations.Example;
@@ -45,10 +46,18 @@ public class ExamplesTest {
     for (Class<?> module : executor.getModules()) {
       for (Field field : module.getDeclaredFields()) {
         Examples examples = field.getAnnotation(Examples.class);
+        ImmutableList<Example> samples;
         if (examples == null) {
-          continue;
+          Example singleSample = field.getAnnotation(Example.class);
+          if (singleSample != null) {
+            samples = ImmutableList.<Example>of(singleSample);
+          } else {
+            continue;
+          }
+        } else {
+          samples = ImmutableList.<Example>copyOf(examples.value());
         }
-        for (Example example : examples.value()) {
+        for (Example example : samples) {
           anyFound = true;
           Object val = executor.eval("a", "a=" + example.code());
           assertWithMessage(module.getName() + "#" + field.getName() + ": " + example.title())
