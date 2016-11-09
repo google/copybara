@@ -91,12 +91,9 @@ public final class CommandUtil {
       String finishMsg = "Command '" + cmd.getCommandLineElements()[0] + "' finished in "
           + stopwatch + ". " + (exitStatus != null ? exitStatus.toString() : "(No exit status)");
 
-      boolean success = exitStatus != null && exitStatus.success();
-      Level logLevel = success ? Level.INFO : Level.SEVERE;
-
-      logOutput(logLevel, cmd, "STDOUT", stdoutCollector);
-      logOutput(logLevel, cmd, "STDERR", stderrCollector);
-      logger.log(logLevel, finishMsg);
+      logOutput(Level.INFO, cmd, "STDOUT", stdoutCollector);
+      logOutput(Level.INFO, cmd, "STDERR", stderrCollector);
+      logger.log(Level.INFO, finishMsg);
 
       if (verbose) {
         System.err.println(finishMsg);
