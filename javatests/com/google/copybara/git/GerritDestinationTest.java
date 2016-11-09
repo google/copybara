@@ -125,14 +125,14 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("file"), "some content".getBytes());
 
-    options.setFirstMigration(true);
+    options.setForce(true);
     process(new DummyReference("origin_ref"));
 
     String firstChangeIdLine = lastCommitChangeIdLine();
 
     Files.write(workdir.resolve("file2"), "some more content".getBytes());
     git("branch", "master", "refs/for/master");
-    options.setFirstMigration(false);
+    options.setForce(false);
     process(new DummyReference("origin_ref"));
 
     assertThat(firstChangeIdLine)
@@ -146,7 +146,7 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("file"), "some content".getBytes());
 
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
-    options.setFirstMigration(true);
+    options.setForce(true);
     options.gerrit.gerritChangeId = changeId;
     process(new DummyReference("origin_ref"));
     assertThat(lastCommitChangeIdLine())
@@ -157,7 +157,7 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("file"), "some different content".getBytes());
 
     changeId = "Ibbbbbbbbbbccccccccccddddddddddeeeeeeeeee";
-    options.setFirstMigration(false);
+    options.setForce(false);
     options.gerrit.gerritChangeId = changeId;
     process(new DummyReference("origin_ref"));
     assertThat(lastCommitChangeIdLine())
@@ -169,14 +169,14 @@ public class GerritDestinationTest {
     fetch = "master";
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    options.setFirstMigration(true);
+    options.setForce(true);
     process(new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(355558888)));
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", Instant.ofEpochSecond(355558888));
 
     git("branch", "master", "refs/for/master");
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
-    options.setFirstMigration(false);
+    options.setForce(false);
     process(new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(424242420)));
     GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", Instant.ofEpochSecond(424242420));
   }
@@ -231,7 +231,7 @@ public class GerritDestinationTest {
     fetch = "master";
     pushToRefsFor = "testPushToRef";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    options.setFirstMigration(true);
+    options.setForce(true);
     process(new DummyReference("origin_ref"));
 
     // Make sure commit adds new text
@@ -243,7 +243,7 @@ public class GerritDestinationTest {
   public void testPushToNonMasterDefaultRef() throws Exception {
     fetch = "fooze";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    options.setFirstMigration(true);
+    options.setForce(true);
     process(new DummyReference("origin_ref"));
 
     // Make sure commit adds new text

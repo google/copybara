@@ -20,9 +20,6 @@
       --gerrit-change-id
          ChangeId to use in the generated commit message
          Default: <empty string>
-      --first-migration
-         Ignore that the fetch reference doesn't exist when pushing to destination
-         Default: false
       --git-previous-ref
          Previous SHA-1 reference used for the migration.
          Default: <empty string>

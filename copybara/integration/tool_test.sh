@@ -610,7 +610,7 @@ EOF
     [[ -f test.txt ]] || fail "/test.txt should exit"
     expect_in_file "barbee" test.txt
   )
-  copybara copy.bara.sky reverse --first-migration
+  copybara copy.bara.sky reverse --force
 
   ( cd $(mktemp -d)
     run_git clone $remote .

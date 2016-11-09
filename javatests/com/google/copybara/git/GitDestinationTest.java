@@ -121,12 +121,12 @@ public class GitDestinationTest {
 
   private GitDestination destinationFirstCommit()
       throws ValidationException {
-    options.setFirstMigration(true);
+    options.setForce(true);
     return evalDestination();
   }
 
   private GitDestination destination() throws ValidationException {
-    options.setFirstMigration(false);
+    options.setForce(false);
     return evalDestination();
   }
 
@@ -258,6 +258,9 @@ public class GitDestinationTest {
     System.out.println(change);
     console.assertThat()
         .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching file:.*")
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Checking out master")
+        .matchesNext(MessageType.WARNING, "Git Destination: Cannot checkout 'FETCH_HEAD'."
+            + " Ignoring baseline.")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Cloning destination")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Adding all files")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Excluding files")
@@ -813,14 +816,13 @@ public class GitDestinationTest {
     push = "master";
     DummyReference ref1 = new DummyReference("origin_ref1");
     DummyReference ref2 = new DummyReference("origin_ref2");
-    DummyReference ref3 = new DummyReference("origin_ref3");
     Files.write(workdir.resolve("test.txt"), "Visit me".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles), ref1);
     Files.write(workdir.resolve("test.txt"), "Visit me soon".getBytes());
     process(destination().newWriter(destinationFiles), ref2);
 
     final List<Change<?>> visited = new ArrayList<>();
-    destination().newReader(destinationFiles).visitChanges((GitReference) null,
+    destination().newReader(destinationFiles).visitChanges(null,
         input -> {
           visited.add(input);
           return input.getLabels().get(DummyOrigin.LABEL_NAME).equals("origin_ref1")

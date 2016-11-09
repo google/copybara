@@ -63,8 +63,7 @@ public class OptionsBuilder {
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowOptions workflowOptions =
-      new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null,
-          /*firstMigration=*/false);
+      new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null);
 
   public TestingOptions testingOptions = new TestingOptions();
 
@@ -73,14 +72,14 @@ public class OptionsBuilder {
         updateEnvironment(general.getEnvironment(), "PWD", StandardSystemProperty.USER_DIR.value()),
         FileSystems.getDefault(), /*verbose=*/true,
         LogConsole.readWriteConsole(System.in, System.out),
-        general.getConfigRoot(), general.isDisableReversibleCheck(), general.isForce());
+        general.getConfigRoot(), general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
-        general.getConfigRoot(), general.isDisableReversibleCheck(), general.isForce());
+        general.getConfigRoot(), general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
 
@@ -89,7 +88,7 @@ public class OptionsBuilder {
         updateEnvironment(general.getEnvironment(), "HOME", homeDir),
         general.getFileSystem(), general.isVerbose(), general.console(),
         general.getConfigRoot(), general.isDisableReversibleCheck(),
-        general.isForce());
+        general.isForced());
     git = new GitOptions(homeDir);
     return this;
   }
@@ -98,7 +97,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        path, general.isDisableReversibleCheck(), general.isForce());
+        path, general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
 
@@ -111,20 +110,12 @@ public class OptionsBuilder {
   }
 
   public final OptionsBuilder setChangeBaseline(String changeBaseline) {
-    workflowOptions = new WorkflowOptions(changeBaseline, workflowOptions.getLastRevision(),
-        workflowOptions.isFirstMigration());
+    workflowOptions = new WorkflowOptions(changeBaseline, workflowOptions.getLastRevision());
     return this;
   }
 
   public final OptionsBuilder setLastRevision(String lastRevision) {
-    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision,
-        workflowOptions.isFirstMigration());
-    return this;
-  }
-
-  public final OptionsBuilder setFirstMigration(boolean firstMigration) {
-    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(),
-        workflowOptions.getLastRevision(), firstMigration);
+    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision);
     return this;
   }
 

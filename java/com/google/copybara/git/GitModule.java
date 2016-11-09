@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -227,7 +226,7 @@ public class GitModule implements OptionsAwareModule {
           resolvedPush,
           destinationOptions,
           self.options.get(GeneralOptions.class).isVerbose(),
-          self.options.get(WorkflowOptions.class).isFirstMigration(),
+          self.options.get(GeneralOptions.class).isForced(),
           new DefaultCommitGenerator(),
           new ProcessPushOutput(),
           self.options.get(GeneralOptions.class).getEnvironment(),
@@ -283,7 +282,7 @@ public class GitModule implements OptionsAwareModule {
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
           pushToRefsFor,
-          self.options.get(WorkflowOptions.class).isFirstMigration(),
+          self.options.get(GeneralOptions.class).isForced(),
           self.options.get(GeneralOptions.class).getEnvironment());
     }
   };

@@ -92,7 +92,7 @@ public final class GeneralOptions implements Option {
     return disableReversibleCheck;
   }
 
-  public boolean isForce() {
+  public boolean isForced() {
     return force;
   }
 
