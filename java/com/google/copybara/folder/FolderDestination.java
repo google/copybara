@@ -17,9 +17,11 @@
 package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.copybara.Destination;
-import com.google.copybara.RepoException;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Reference;
+import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
@@ -27,8 +29,11 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import javax.annotation.Nullable;
 
 /**
@@ -37,12 +42,17 @@ import javax.annotation.Nullable;
  */
 public class FolderDestination implements Destination<Reference> {
 
-  private static final String FOLDER_DESTINATION_NAME = "!FolderDestination";
+  private static final DateTimeFormatter FOLDER_DATE_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss");
 
-  private final Path localFolder;
+  private static final String FOLDER_DESTINATION_NAME = "folder.destination";
+  private final GeneralOptions generalOptions;
+  private final FolderDestinationOptions folderDestinationOptions;
 
-  FolderDestination(Path localFolder) {
-    this.localFolder = Preconditions.checkNotNull(localFolder);
+  FolderDestination(GeneralOptions generalOptions,
+      FolderDestinationOptions folderDestinationOptions) {
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
+    this.folderDestinationOptions = Preconditions.checkNotNull(folderDestinationOptions);
   }
 
   @Override
@@ -68,6 +78,7 @@ public class FolderDestination implements Destination<Reference> {
     @Override
     public WriterResult write(TransformResult transformResult, Console console)
         throws RepoException, IOException {
+      Path localFolder = getFolderPath(console);
       console.progress("FolderDestination: creating " + localFolder);
       try {
         Files.createDirectories(localFolder);
@@ -85,6 +96,26 @@ public class FolderDestination implements Destination<Reference> {
           CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
       return WriterResult.OK;
     }
+  }
+
+  private Path getFolderPath(Console console) {
+    Path defaultRootPath = generalOptions.getHomeDir().resolve("copybara/out/");
+
+    // Lets assume we are in the same filesystem for now...
+    FileSystem fs = generalOptions.getFileSystem();
+    String localFolderOption = folderDestinationOptions.localFolder;
+    Path localFolder;
+    if (Strings.isNullOrEmpty(localFolderOption)) {
+      localFolder = defaultRootPath.resolve(LocalDateTime.now().format(FOLDER_DATE_FORMATTER));
+      console.info(String.format(
+          "Using folder '%s' in default root. Use --folder-dir to override.", localFolder));
+    } else {
+      localFolder = fs.getPath(localFolderOption);
+      if (!localFolder.isAbsolute()) {
+        localFolder = generalOptions.getCwd().resolve(localFolder);
+      }
+    }
+    return localFolder;
   }
 
   @Override

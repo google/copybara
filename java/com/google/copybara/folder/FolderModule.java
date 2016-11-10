@@ -16,11 +16,10 @@
 
 package com.google.copybara.folder;
 
-import com.google.common.base.Strings;
-import com.google.copybara.authoring.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.events.Location;
@@ -32,9 +31,6 @@ import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.nio.file.FileSystem;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 /**
  * Main module that groups all the functions related to folders.
@@ -46,8 +42,6 @@ import java.time.format.DateTimeFormatter;
 public class FolderModule implements OptionsAwareModule {
 
   private static final String DESTINATION_VAR = "destination";
-  private static final DateTimeFormatter FOLDER_DATE_FORMATTER =
-      DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss");
 
   private Options options;
 
@@ -63,29 +57,12 @@ public class FolderModule implements OptionsAwareModule {
     @SuppressWarnings("unused")
     public Destination invoke(FolderModule self, Location location, Environment env)
         throws EvalException {
-      Path defaultRootPath =
-          self.options.get(GeneralOptions.class).getHomeDir().resolve("copybara/out/");
 
-      GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
-      // Lets assume we are in the same filesystem for now...
-      FileSystem fs = generalOptions.getFileSystem();
-      String localFolderOption = self.options.get(FolderDestinationOptions.class).localFolder;
-      Path localFolder;
-      if (Strings.isNullOrEmpty(localFolderOption)) {
-        localFolder = defaultRootPath
-            .resolve(LocalDateTime.now().format(FOLDER_DATE_FORMATTER));
-        generalOptions.console().info(
-            String.format("Using folder '%s' in default root. Use --folder-dir to override.",
-                localFolder));
-      } else {
-        localFolder = fs.getPath(localFolderOption);
-        if (!localFolder.isAbsolute()) {
-          localFolder = generalOptions.getCwd().resolve(localFolder);
-        }
-      }
-      return new FolderDestination(localFolder);
+      return new FolderDestination(self.options.get(GeneralOptions.class),
+          self.options.get(FolderDestinationOptions.class));
     }
   };
+
 
   @SuppressWarnings("unused")
   @SkylarkSignature(name = "origin", returnType = FolderOrigin.class,
