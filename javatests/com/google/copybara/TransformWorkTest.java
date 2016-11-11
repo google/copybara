@@ -59,6 +59,7 @@ public class TransformWorkTest {
     options.setConsole(console);
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
+    options.setForce(true); // We don't care about force for this test
     skylark = new SkylarkTestExecutor(options, TestingModule.class);
     workdir = Files.createTempDirectory("workdir");
   }

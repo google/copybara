@@ -67,6 +67,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
   private final Transformation reverseTransformForCheck;
   private final boolean verbose;
   private final boolean askForConfirmation;
+  private final boolean force;
 
   Workflow(
       String name,
@@ -82,7 +83,8 @@ public final class Workflow<O extends Reference, D extends Reference> implements
       WorkflowOptions workflowOptions,
       @Nullable Transformation reverseTransformForCheck,
       boolean verbose,
-      boolean askForConfirmation) {
+      boolean askForConfirmation,
+      boolean force) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -97,6 +99,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
     this.reverseTransformForCheck = reverseTransformForCheck;
     this.verbose = verbose;
     this.askForConfirmation = askForConfirmation;
+    this.force = force;
   }
 
   public String getName() {
@@ -223,6 +226,10 @@ public final class Workflow<O extends Reference, D extends Reference> implements
       return workflowOptions;
     }
 
+    boolean isForce() {
+      return force;
+    }
+
     Destination getDestination() {
       return destination;
     }
@@ -233,6 +240,10 @@ public final class Workflow<O extends Reference, D extends Reference> implements
 
     Destination.Reader<D> getDestinationReader() {
       return destinationReader;
+    }
+
+    boolean destinationSupportsPreviousRef() {
+      return writer.supportsPreviousRef();
     }
 
     /**
@@ -320,13 +331,22 @@ public final class Workflow<O extends Reference, D extends Reference> implements
 
 
     ImmutableList<Change<O>> changesSinceLastImport() throws RepoException {
-      O lastRev = getLastRev();
+      return originReader.changes(getLastRev(), resolvedRef);
+    }
+
+    /**
+     * Get last imported reference or fail if it cannot be found.
+     *
+     * @throws RepoException if a last revision couldn't be found
+     */
+    O getLastRev() throws RepoException {
+      O lastRev = maybeGetLastRev();
       if (lastRev == null) {
         throw new RepoException(String.format(
                 "Previous revision label %s could not be found in %s and --last-rev flag"
                 + " was not passed", origin.getLabelName(), destination));
       }
-      return originReader.changes(getLastRev(), resolvedRef);
+      return lastRev;
     }
 
     /**
@@ -337,7 +357,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
      * reference will be resolved in the destination with the origin label.
      */
     @Nullable
-    O getLastRev() throws RepoException {
+    O maybeGetLastRev() throws RepoException {
       if (lastRevisionFlag != null) {
         try {
           return origin.resolve(lastRevisionFlag);

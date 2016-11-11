@@ -87,6 +87,7 @@ public class MetadataModuleTest {
         .addSimpleChange(2, "third commit\n\nExtended text");
 
     options.setLastRevision("0");
+    options.setForce(true); // We don't care about already migrated code
     testingConsole = new TestingConsole();
     options.setConsole(testingConsole);
   }

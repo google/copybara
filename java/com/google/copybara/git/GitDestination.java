@@ -267,9 +267,6 @@ public final class GitDestination implements Destination<GitReference> {
     GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment);
     try {
       scratchClone.fetchSingleRef(repoUrl, fetch);
-      if (force) {
-        throw new RepoException("'" + fetch + "' already exists in '" + repoUrl + "'.");
-      }
     } catch (CannotFindReferenceException e) {
       if (!force) {
         throw new RepoException("'" + fetch + "' doesn't exist in '" + repoUrl

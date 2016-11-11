@@ -84,10 +84,19 @@ public interface Destination <R extends Reference> {
      * support this feature. This requires that the {@code Destination} stores information about
      * the origin ref.
      *
-     * <p>This method may have undefined behavior if called after {@link #write(TransformResult)}.
+     * <p>This method may have undefined behavior if called after
+     * {@link #write(TransformResult, Console)}.
      */
     @Nullable
     String getPreviousRef(String labelName) throws RepoException;
+
+    /**
+     * Returns true if this destination stores references in the repository so that
+     * {@code getPreviousRef} can be used for discovering previous imported revisions.
+     */
+    default boolean supportsPreviousRef() {
+      return true;
+    }
 
     /**
      * Writes the fully-transformed repository stored at {@code workdir} to this destination.

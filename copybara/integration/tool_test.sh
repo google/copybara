@@ -141,7 +141,7 @@ core.workflow(
 )
 EOF
 
-  copybara copy.bara.sky
+  copybara copy.bara.sky --force
 
   expect_log '\[ 1/2\] Transform Replace food'
   expect_log '\[ 2/2\] Transform Replace f\${os}o'
@@ -284,7 +284,7 @@ EOF
   copybara info copy.bara.sky default
   expect_log "'workflow_default': last_migrated None - last_available $commit_five"
 
-  copybara copy.bara.sky default $commit_one
+  copybara copy.bara.sky default $commit_one --force
 
   check_copybara_rev_id "$destination" "$commit_one"
 
@@ -361,7 +361,7 @@ core.workflow(
 )
 EOF
 
-  copybara copy.bara.sky default $commit_three --last-rev $commit_master
+  copybara copy.bara.sky default $commit_three --last-rev $commit_master --force
 
   expect_log "Migration of the revision resulted in an empty change"
 
@@ -427,7 +427,7 @@ core.workflow(
     ],
 )
 EOF
-  copybara copy.bara.sky
+  copybara copy.bara.sky --force
   ( cd $(mktemp -d)
     run_git clone $destination .
     expect_in_file "foo" test.txt
@@ -543,7 +543,7 @@ core.workflow(
     exclude_in_origin = glob(['**/*.java', 'subdir/**']),
 )
 EOF
-  copybara copy.bara.sky
+  copybara copy.bara.sky --force
 
   ( cd $(mktemp -d)
     run_git clone $destination .
@@ -603,7 +603,7 @@ core.workflow(
     transformations = core.reverse(forward_transforms),
 )
 EOF
-  copybara copy.bara.sky forward
+  copybara copy.bara.sky forward --force
 
   ( cd $(mktemp -d)
     run_git clone $destination .
@@ -818,13 +818,13 @@ EOF
 
 function test_reversible_check() {
   setup_reversible_check_workflow
-  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky
+  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky --force
   expect_log "ERROR: Workflow 'default' is not reversible"
 }
 
 function test_disable_reversible_check() {
   setup_reversible_check_workflow
-  copybara --disable-reversible-check copy.bara.sky
+  copybara --disable-reversible-check copy.bara.sky --force
 }
 
 function test_config_not_found() {
@@ -839,7 +839,7 @@ function test_no_ansi_console() {
 }
 
 # Verify that Copybara fails if we try to read the input from the user from a writeOnly LogConsole
-function test_log_consonle_is_write_only() {
+function test_log_console_is_write_only() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -866,7 +866,7 @@ core.workflow(
     ask_for_confirmation = True,
 )
 EOF
-  copybara_with_exit_code $INTERNAL_ERROR copy.bara.sky
+  copybara_with_exit_code $INTERNAL_ERROR copy.bara.sky --force
   expect_log "LogConsole cannot read user input if system console is not present"
 }
 
@@ -914,7 +914,7 @@ core.workflow(
 )
 EOF
   cd $config_folder
-  copybara foo/bar/copy.bara.sky $flags
+  copybara foo/bar/copy.bara.sky $flags --force
 
   [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
 }
@@ -959,7 +959,7 @@ core.workflow(
     ],
 )
 EOF
-  copybara copy.bara.sky
+  copybara copy.bara.sky --force
 }
 
 function test_subcommand_parsing_fails() {
@@ -1084,7 +1084,7 @@ core.workflow(
     ],
 )
 EOF
-  copybara copy.bara.sky
+  copybara copy.bara.sky --force
   ( cd $(mktemp -d)
     run_git clone $destination .
     expect_in_file "patched" test.java

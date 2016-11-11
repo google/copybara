@@ -35,9 +35,10 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.copybara.util.console.Message;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
@@ -107,6 +108,7 @@ public class WorkflowTest {
     options.setConsole(new TestingConsole());
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
+    options.setForce(true); // Force by default unless we are testing the flag.
     skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class));
   }
 
@@ -351,6 +353,46 @@ public class WorkflowTest {
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary()).contains(DEFAULT_AUTHOR.toString());
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
+  public void testSquashAlreadyMigrated() throws Exception {
+    options.setForce(false); // Disable force so that we get an error
+    origin.addSimpleChange(/*timestamp*/ 1);
+    String oldRef = origin.getHead();
+    options.workflowOptions.lastRevision = oldRef;
+    origin.addSimpleChange(/*timestamp*/ 2);
+    origin.addSimpleChange(/*timestamp*/ 3);
+    includeReleaseNotes = true;
+
+    Workflow workflow = workflow();
+
+    String head = origin.getHead();
+    workflow.run(workdir, head);
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("'0' has been already migrated");
+    workflow.run(workdir, oldRef);
+  }
+
+  @Test
+  public void testSquashAlreadyMigratedWithForce() throws Exception {
+    options.setForce(true);
+    origin.addSimpleChange(/*timestamp*/ 1);
+    String oldRef = origin.getHead();
+    options.workflowOptions.lastRevision = oldRef;
+    origin.addSimpleChange(/*timestamp*/ 2);
+    origin.addSimpleChange(/*timestamp*/ 3);
+    includeReleaseNotes = true;
+
+    Workflow workflow = workflow();
+
+    String head = origin.getHead();
+    workflow.run(workdir, head);
+    assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
+        .isEqualTo("3");
+    workflow.run(workdir, oldRef);
+    assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
+        .isEqualTo("0");
   }
 
   @Test

@@ -106,6 +106,11 @@ public class FolderOrigin implements Origin<FolderReference> {
       }
 
       @Override
+      public boolean supportsHistory() {
+        return false;
+      }
+
+      @Override
       public Change<FolderReference> change(FolderReference ref) throws RepoException {
         ZonedDateTime time = ZonedDateTime.ofInstant(
             Preconditions.checkNotNull(ref.readTimestamp()), ZoneId.systemDefault());

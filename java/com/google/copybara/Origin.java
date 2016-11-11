@@ -73,6 +73,14 @@ public interface Origin<R extends Reference> {
     ImmutableList<Change<R>> changes(@Nullable R fromRef, R toRef) throws RepoException;
 
     /**
+     * Returns true if the origin repository supports maintaining a history of changes. Generally
+     * this should be true
+     */
+    default boolean supportsHistory() {
+      return true;
+    }
+
+    /**
      * Returns a change identified by {@code ref}.
      *
      * @param ref current reference to transform.

@@ -303,7 +303,8 @@ public class Core implements OptionsAwareModule {
           self.workflowOptions,
           reverseTransform,
           self.generalOptions.isVerbose(),
-          askForConfirmation));
+          askForConfirmation,
+          self.generalOptions.isForced()));
       return Runtime.NONE;
     }
   };

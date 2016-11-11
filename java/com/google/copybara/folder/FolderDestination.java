@@ -77,6 +77,11 @@ public class FolderDestination implements Destination<Reference> {
     }
 
     @Override
+    public boolean supportsPreviousRef() {
+      return false;
+    }
+
+    @Override
     public WriterResult write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
       Path localFolder = getFolderPath(console);
