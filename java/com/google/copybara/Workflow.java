@@ -38,7 +38,6 @@ import java.nio.file.PathMatcher;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
-import sun.security.krb5.internal.crypto.Des;
 
 /**
  * Represents a particular migration operation that can occur for a project. Each project can have

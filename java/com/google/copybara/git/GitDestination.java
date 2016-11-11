@@ -29,6 +29,7 @@ import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
@@ -176,7 +177,7 @@ public final class GitDestination implements Destination<GitReference> {
 
     @Override
     public WriterResult write(TransformResult transformResult, Console console)
-        throws IOException, RepoException {
+        throws ValidationException, RepoException, IOException {
       logger.log(Level.INFO, "Exporting from " + transformResult.getPath() + " to: " + this);
 
       String baseline = transformResult.getBaseline();

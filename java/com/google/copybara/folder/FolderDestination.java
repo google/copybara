@@ -23,6 +23,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
@@ -77,7 +78,7 @@ public class FolderDestination implements Destination<Reference> {
 
     @Override
     public WriterResult write(TransformResult transformResult, Console console)
-        throws RepoException, IOException {
+        throws ValidationException, RepoException, IOException {
       Path localFolder = getFolderPath(console);
       console.progress("FolderDestination: creating " + localFolder);
       try {

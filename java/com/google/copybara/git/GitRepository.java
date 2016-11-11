@@ -33,6 +33,7 @@ import com.google.common.collect.Range;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
@@ -398,7 +399,7 @@ public class GitRepository {
   }
 
   void commit(String author, Instant timestamp, String message)
-      throws RepoException {
+      throws RepoException, ValidationException {
     CommandOutput status = simpleCommand("diff", "--staged");
     if (status.getStdout().trim().isEmpty()) {
       throw new EmptyChangeException("Migration of the revision resulted in an empty change. "

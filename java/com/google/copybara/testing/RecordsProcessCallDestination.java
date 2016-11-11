@@ -19,6 +19,8 @@ package com.google.copybara.testing;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.EmptyChangeException;
@@ -73,7 +75,7 @@ public class RecordsProcessCallDestination implements Destination {
 
     @Override
     public WriterResult write(TransformResult transformResult, Console console)
-        throws EmptyChangeException {
+        throws ValidationException, RepoException, IOException {
       if (failOnEmptyChange
           && !processed.isEmpty()
           && processed.get(processed.size() - 1).workdir

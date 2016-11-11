@@ -20,11 +20,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -117,7 +117,7 @@ public class GitOriginSubmodulesTest {
   }
 
   private GitRepository createRepoWithFoo(Path base, String name)
-      throws IOException, RepoException {
+      throws IOException, RepoException, ValidationException {
     Files.createDirectories(base.resolve(name));
     GitRepository r1 = GitRepository.initScratchRepo(/*verbose=*/false, base.resolve(name),
         System.getenv());
@@ -201,7 +201,7 @@ public class GitOriginSubmodulesTest {
   }
 
   private void commitAdd(GitRepository repo, Map<String, String> files)
-      throws IOException, RepoException {
+      throws IOException, RepoException, ValidationException {
     for (Entry<String, String> e : files.entrySet()) {
       addFile(repo, e.getKey(), e.getValue());
     }
@@ -214,7 +214,8 @@ public class GitOriginSubmodulesTest {
     repo.add().files(name).run();
   }
 
-  private void commit(GitRepository repo, String message) throws RepoException {
+  private void commit(GitRepository repo, String message)
+      throws RepoException, ValidationException {
     repo.commit("foo <foobar@example.com>", Instant.now(), message);
   }
 }
