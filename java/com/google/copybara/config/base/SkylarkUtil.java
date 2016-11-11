@@ -17,6 +17,7 @@
 package com.google.copybara.config.base;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
@@ -65,9 +66,9 @@ public final class SkylarkUtil {
   /**
    * Checks that a mandatory string field is not empty.
    */
-  public static String checkNotEmpty(String value, String name, Location location)
+  public static String checkNotEmpty(@Nullable String value, String name, Location location)
       throws EvalException {
-    if (value.isEmpty()) {
+    if (Strings.isNullOrEmpty(value)) {
       throw new EvalException(location, String.format("Invalid empty field '%s'.", name));
     }
     return value;
