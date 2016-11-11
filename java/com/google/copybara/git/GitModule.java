@@ -201,15 +201,16 @@ public class GitModule implements OptionsAwareModule {
               doc = "Indicates the URL to push to as well as the URL from which to get the parent "
                   + "commit"),
           @Param(name = "push", type = String.class,
-              doc = "Reference to use for pushing the change, for example 'master'"),
+              doc = "Reference to use for pushing the change, for example 'master'",
+              defaultValue = "master"),
           @Param(name = "fetch", type = String.class,
               doc = "Indicates the ref from which to get the parent commit",
-              defaultValue = "push", noneable = true),
+              defaultValue = "push reference", noneable = true),
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination",
-      ImmutableList.of(Runtime.NONE)) {
+      ImmutableList.of("master", Runtime.NONE)) {
     public GitDestination invoke(GitModule self, String url, String push, Object fetch,
         Location location) throws EvalException {
       GitDestinationOptions destinationOptions = self.options.get(GitDestinationOptions.class);

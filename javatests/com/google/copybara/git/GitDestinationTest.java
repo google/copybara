@@ -110,13 +110,10 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void errorIfPushMissing() throws ValidationException {
-    skylark.evalFails(
-        "git.destination(\n"
-            + "    url = 'file:///foo',\n"
-            + "    fetch = 'master',\n"
-            + ")",
-        "missing mandatory positional argument 'push'");
+  public void defaultPushBranch() throws ValidationException {
+    GitDestination d = skylark.eval("result", "result = git.destination('file:///foo')");
+    assertThat(d.getPush()).isEqualTo("master");
+    assertThat(d.getFetch()).isEqualTo("master");
   }
 
   private GitDestination destinationFirstCommit()
