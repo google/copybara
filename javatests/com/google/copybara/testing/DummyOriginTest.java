@@ -61,7 +61,7 @@ public class DummyOriginTest {
         .addSimpleChange(/*timestamp*/ 4242, "foo msg");
 
     Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
-        AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of());
+        AuthoringMappingMode.OVERWRITE, ImmutableSet.<String>of());
     Reader<DummyReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
     ImmutableList<Change<DummyReference>> changes =
         reader.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0"));

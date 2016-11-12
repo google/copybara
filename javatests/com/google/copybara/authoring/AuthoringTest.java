@@ -55,7 +55,7 @@ public class AuthoringTest {
         "result = authoring.overwrite('foo bar <baz@bar.com>')");
     assertThat(authoring)
         .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
-        AuthoringMappingMode.USE_DEFAULT, ImmutableSet.<String>of()));
+        AuthoringMappingMode.OVERWRITE, ImmutableSet.<String>of()));
   }
 
   @Test
@@ -75,7 +75,7 @@ public class AuthoringTest {
         + "    whitelist = ['foo', 'bar'])");
     assertThat(authoring)
         .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
-        AuthoringMappingMode.WHITELIST, ImmutableSet.of("foo", "bar")));
+        AuthoringMappingMode.WHITELISTED, ImmutableSet.of("foo", "bar")));
   }
 
   @Test
@@ -116,7 +116,7 @@ public class AuthoringTest {
 
   @Test
   public void testResolve_use_default() throws Exception {
-    Authoring authoring = new Authoring(DEFAULT_AUTHOR, AuthoringMappingMode.USE_DEFAULT,
+    Authoring authoring = new Authoring(DEFAULT_AUTHOR, AuthoringMappingMode.OVERWRITE,
         ImmutableSet.<String>of());
     assertThat(authoring.useAuthor("baz@bar.com")).isFalse();
   }
@@ -131,7 +131,7 @@ public class AuthoringTest {
   @Test
   public void testResolve_whitelist() throws Exception {
     Authoring authoring = new Authoring(
-        DEFAULT_AUTHOR, AuthoringMappingMode.WHITELIST, ImmutableSet.of("baz@bar.com"));
+        DEFAULT_AUTHOR, AuthoringMappingMode.WHITELISTED, ImmutableSet.of("baz@bar.com"));
     assertThat(authoring.useAuthor("baz@bar.com")).isTrue();
     assertThat(authoring.useAuthor("john@someemail.com")).isFalse();
   }

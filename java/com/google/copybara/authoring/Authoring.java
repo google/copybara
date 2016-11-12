@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.doc.annotations.DocField;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -68,7 +67,7 @@ public final class Authoring {
 
   /**
    * Returns the default author, used for squash workflows,
-   * {@link AuthoringMappingMode#USE_DEFAULT} mode and for non-whitelisted authors.
+   * {@link AuthoringMappingMode#OVERWRITE} mode and for non-whitelisted authors.
    */
   public Author getDefaultAuthor() {
     return defaultAuthor;
@@ -91,9 +90,9 @@ public final class Authoring {
     switch (mode) {
       case PASS_THRU:
         return true;
-      case USE_DEFAULT:
+      case OVERWRITE:
         return false;
-      case WHITELIST:
+      case WHITELISTED:
         return whitelist.contains(userId);
       default:
         throw new IllegalStateException(String.format("Mode '%s' not implemented.", mode));
@@ -118,7 +117,7 @@ public final class Authoring {
       public Authoring invoke(String defaultAuthor, Location location)
           throws EvalException {
         return new Authoring(Author.parse(location, defaultAuthor),
-            AuthoringMappingMode.USE_DEFAULT,
+            AuthoringMappingMode.OVERWRITE,
             ImmutableSet.<String>of());
       }
     };
@@ -169,7 +168,7 @@ public final class Authoring {
           Location location)
           throws EvalException {
         return new Authoring(Author.parse(location, defaultAuthor),
-            AuthoringMappingMode.WHITELIST,
+            AuthoringMappingMode.WHITELISTED,
             createWhitelist(location, Type.STRING_LIST.convert(whitelist, "whitelist")));
       }
     };
@@ -193,30 +192,22 @@ public final class Authoring {
 
   /**
    * Mode used for author mapping from origin to destination.
+   *
+   * <p>This enum is our internal representation for the different Skylark built-in functions.
    */
-  @SkylarkModule(
-      name = "authoring_mode",
-      doc = "Mode used for author mapping from origin to destination",
-      category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
   public enum AuthoringMappingMode {
     /**
-     * Use the default author for all the submits in the destination.
+     * Corresponds with {@link Authoring.Module#OVERWRITE} built-in function.
      */
-    @DocField(description = "Use the default author for all the submits in the destination.")
-    USE_DEFAULT,
+    OVERWRITE,
     /**
-     * Use the origin author as the author in the destination, no whitelisting.
+     * Corresponds with {@link Authoring.Module#PASS_THRU} built-in function.
      */
-    @DocField(description =
-        "Use the origin author as the author in the destination, no whitelisting.")
     PASS_THRU,
     /**
-     * Use the whitelist map to translate origin authors to destination. Use the default author for
-     * non-whitelisted authors.
+     * Corresponds with {@link Authoring.Module#WHITELISTED} built-in function.
      */
-    @DocField(description = "Use the whitelist map to translate origin authors to destination. "
-        + "Use the default author for non-whitelisted authors.")
-    WHITELIST
+    WHITELISTED
   }
 
   @Override

@@ -8,7 +8,6 @@
     - [authoring.pass_thru](#authoring.pass_thru)
     - [authoring.whitelisted](#authoring.whitelisted)
   - [authoring_class](#authoring_class)
-  - [authoring_mode](#authoring_mode)
   - [Changes](#changes)
   - [Path](#path)
   - [TransformWork](#transformwork)
@@ -23,6 +22,7 @@
     - [metadata.restore_author](#metadata.restore_author)
     - [metadata.add_header](#metadata.add_header)
     - [metadata.scrubber](#metadata.scrubber)
+    - [metadata.map_references](#metadata.map_references)
   - [core](#core)
     - [glob](#glob)
     - [core.reverse](#core.reverse)
@@ -115,11 +115,6 @@ whitelist|`sequence of string`<br><p>List of white listed authors in the origin.
 # authoring_class
 
 The authors mapping between an origin and a destination
-
-
-# authoring_mode
-
-Mode used for author mapping from origin to destination
 
 
 # Changes
@@ -242,6 +237,41 @@ regex|`string`<br><p>Any text matching the regex will be removed. Note that the 
 replacement|`string`<br><p>Text replacement for the matching substrings. References to regex group numbers can be used in the form of $1, $2, etc.</p>
 
 
+<a id="metadata.map_references" aria-hidden="true"></a>
+## metadata.map_references
+
+Allows updating links to references in commit messages to match the destination's format. Note that this will only consider the 5000 latest commits.
+
+`referenceMigrator metadata.map_references(before, after, regex_groups={})`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+before|`string`<br><p>Template for origin references in the change message. Use a '${reference}' token to capture the actual references. E.g. if the origin uses linkslike 'http://changes?1234', the template would be 'http://internalReviews.com/${reference}', with reference_regex = '[0-9]+'</p>
+after|`string`<br><p>Format for references in the destination, use the token '${reference}' to represent the destination reference. E.g. 'http://changes(${reference})'.</p>
+regex_groups|`dict`<br><p>Regexes for the ${reference} token's content. Requires one 'before_ref' entry matching the ${reference} token's content on the before side. Optionally accepts one 'after_ref' used for validation.</p>
+
+
+### Example:
+
+#### Map references, origin source of truth:
+
+Finds links to commits in change messages, searches destination to find the equivalent reference in destination. Then replaces matches of 'before' with 'after', replacing the subgroup matched with the destination reference. Assume a message like 'Fixes bug introduced in origin/abcdef', where the origin change 'abcdef' was migrated as '123456' to the destination.
+
+```python
+metadata.map_references(
+    before = "origin/${reference}",
+    after = "destination/${reference}",
+    regex_groups = {
+        "before_ref": "[0-9a-f]+",
+        "after_ref": "[0-9]+",
+    },
+),
+```
+
+This would be translated into 'Fixes bug introduced in destination/123456', provided that a change with the proper label was found - the message remains unchanged otherwise.
+
 
 # core
 
@@ -311,7 +341,6 @@ Name | Type | Description
 --change_request_parent | *string* | Commit reference to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 --last-rev | *string* | Last revision that was migrated to the destination
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
---first-migration | *boolean* | Use this flag when migrating to a destination for the first time and you want to initialize the destination or not rely on some metadata to be present already. For example for git it ignores that the fetch reference doesn't exist when doing the push
 
 <a id="core.move" aria-hidden="true"></a>
 ## core.move
@@ -619,7 +648,7 @@ submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.
 
 Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`gitDestination git.destination(url, push, fetch=push)`
+`gitDestination git.destination(url, push=master, fetch=push reference)`
 
 ### Parameters:
 
