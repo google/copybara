@@ -89,7 +89,7 @@ public class MainTest {
           protected void configureLog(FileSystem fs) {}
 
           @Override
-          protected void shutdown() {
+          protected void shutdown(ExitCode exitCode) {
             called = true;
           }
         };

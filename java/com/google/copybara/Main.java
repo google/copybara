@@ -97,21 +97,37 @@ public class Main {
 
     console.startupMessage();
 
-    ConfigurationSupplier configurationSupplier = newConfigurationSupplier();
-    Copybara copybara = newCopybaraTool(configurationSupplier);
-
-    final MainArguments mainArgs = new MainArguments();
-    GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-    List<Option> allOptions = new ArrayList<>(configurationSupplier.newOptions());
-    JCommander jcommander = new JCommander(ImmutableList.builder()
-        .addAll(allOptions)
-        .add(mainArgs)
-        .add(generalOptionsArgs)
-        .build());
-    jcommander.setProgramName("copybara");
-
-    String version = getVersion();
+    ExitCode exitCode = runInternal(args, console, fs);
     try {
+      shutdown(exitCode);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      handleUnexpectedError(console, "Execution was interrupted.", e);
+    }
+    return exitCode;
+  }
+
+  /**
+   * Runs the command and returns the {@link ExitCode}.
+   *
+   * <p>This method is also responsible for the exception handling/logging.
+   */
+  private ExitCode runInternal(String[] args, Console console, FileSystem fs) {
+    try {
+      ConfigurationSupplier configurationSupplier = newConfigurationSupplier();
+      Copybara copybara = newCopybaraTool(configurationSupplier);
+
+      final MainArguments mainArgs = new MainArguments();
+      GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
+      List<Option> allOptions = new ArrayList<>(configurationSupplier.newOptions());
+      JCommander jcommander = new JCommander(ImmutableList.builder()
+          .addAll(allOptions)
+          .add(mainArgs)
+          .add(generalOptionsArgs)
+          .build());
+      jcommander.setProgramName("copybara");
+
+      String version = getVersion();
       logger.log(Level.INFO, "Copybara version: " + version);
       jcommander.parse(args);
       if (mainArgs.help) {
@@ -142,10 +158,10 @@ public class Main {
               mainArgs.getWorkflowName(),
               mainArgs.getBaseWorkdir(fs),
               mainArgs.getSourceRef());
-          break;
+          return ExitCode.SUCCESS;
         case INFO:
           copybara.info(options, configFile, mainArgs.getWorkflowName());
-          break;
+          return ExitCode.SUCCESS;
         default:
           console.error(String.format("Subcommand %s not implemented.", mainArgs.getSubcommand()));
           return ExitCode.COMMAND_LINE_ERROR;
@@ -170,15 +186,7 @@ public class Main {
       e.printStackTrace();
       handleUnexpectedError(console, "Unexpected error (please file a bug): " + e.getMessage(), e);
       return ExitCode.INTERNAL_ERROR;
-    } finally {
-      try {
-        shutdown();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        handleUnexpectedError(console, "Execution was interrupted.", e);
-      }
     }
-    return ExitCode.SUCCESS;
   }
 
   private ConfigFile loadConfig(Path configPath, @Nullable Path rootCfgPath)
@@ -249,11 +257,6 @@ public class Main {
     return new ConfigurationSupplier();
   }
 
-  /**
-   * Performs cleanup tasks after executing Copybara.
-   */
-  protected void shutdown() throws InterruptedException {}
-
   private Console getConsole(String[] args) {
     // If System.console() is not present, we are forced to use LogConsole
     if (System.console() == null) {
@@ -292,6 +295,13 @@ public class Main {
    * options are parsed, but before a file is read or a run started.
    */
   protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander) {
+    // intentional no-op
+  }
+
+  /**
+   * Performs cleanup tasks after executing Copybara.
+   */
+  protected void shutdown(ExitCode exitCode) throws InterruptedException {
     // intentional no-op
   }
 
