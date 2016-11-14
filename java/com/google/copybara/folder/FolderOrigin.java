@@ -19,12 +19,12 @@ package com.google.copybara.folder;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.AbsoluteSymlinksNotAllowed;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
@@ -47,31 +47,37 @@ public class FolderOrigin implements Origin<FolderReference> {
   private final FileSystem fs;
   private final Author author;
   private final String message;
+  private final Path cwd;
   private final CopySymlinkStrategy copySymlinkStrategy;
 
-  FolderOrigin(FileSystem fs, Author author, String message, boolean materializeOutsideSymlinks) {
+  FolderOrigin(FileSystem fs, Author author, String message, Path cwd,
+      boolean materializeOutsideSymlinks) {
     this.fs = Preconditions.checkNotNull(fs);
     this.author = author;
     this.message = message;
+    this.cwd = Preconditions.checkNotNull(cwd);
     this.copySymlinkStrategy = materializeOutsideSymlinks
         ? CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS
         : CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
   }
 
   @Override
-  public FolderReference resolve(@Nullable String reference) throws RepoException {
+  public FolderReference resolve(@Nullable String reference) throws ValidationException {
     if (reference == null) {
-      throw new RepoException(""
+      throw new ValidationException(""
           + "A path is expected as reference in the command line. Invoke copybara as:\n"
           + "    copybara copy.bara.sky workflow_name ORIGIN_FOLDER");
     }
     Path path = fs.getPath(reference);
+    if (!path.isAbsolute()) {
+      path = cwd.resolve(path);
+    }
     if (!Files.exists(path)) {
-      throw new RepoException(path + " folder doesn't exist");
+      throw new ValidationException(path + " folder doesn't exist");
     } else if (!Files.isDirectory(path)) {
-      throw new RepoException(path + " is not a folder");
+      throw new ValidationException(path + " is not a folder");
     } else if (!Files.isReadable(path) || !Files.isExecutable(path)) {
-      throw new RepoException(path + " is not readable/executable");
+      throw new ValidationException(path + " is not readable/executable");
     }
 
     return new FolderReference(path, Instant.now(), LABEL_NAME);

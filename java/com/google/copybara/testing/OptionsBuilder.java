@@ -68,8 +68,12 @@ public class OptionsBuilder {
   public TestingOptions testingOptions = new TestingOptions();
 
   public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
+    return setWorkdirToRealTempDir(StandardSystemProperty.USER_DIR.value());
+  }
+
+  public OptionsBuilder setWorkdirToRealTempDir(String cwd) {
     general = new GeneralOptions(
-        updateEnvironment(general.getEnvironment(), "PWD", StandardSystemProperty.USER_DIR.value()),
+        updateEnvironment(general.getEnvironment(), "PWD", cwd),
         FileSystems.getDefault(), /*verbose=*/true,
         LogConsole.readWriteConsole(System.in, System.out),
         general.getConfigRoot(), general.isDisableReversibleCheck(), general.isForced());

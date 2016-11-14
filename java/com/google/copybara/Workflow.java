@@ -330,7 +330,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
     }
 
 
-    ImmutableList<Change<O>> changesSinceLastImport() throws RepoException {
+    ImmutableList<Change<O>> changesSinceLastImport() throws RepoException, ValidationException {
       return originReader.changes(getLastRev(), resolvedRef);
     }
 
@@ -339,7 +339,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
      *
      * @throws RepoException if a last revision couldn't be found
      */
-    O getLastRev() throws RepoException {
+    O getLastRev() throws RepoException, ValidationException {
       O lastRev = maybeGetLastRev();
       if (lastRev == null) {
         throw new RepoException(String.format(
@@ -357,7 +357,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
      * reference will be resolved in the destination with the origin label.
      */
     @Nullable
-    O maybeGetLastRev() throws RepoException {
+    O maybeGetLastRev() throws RepoException, ValidationException {
       if (lastRevisionFlag != null) {
         try {
           return origin.resolve(lastRevisionFlag);

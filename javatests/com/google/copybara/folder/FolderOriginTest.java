@@ -23,13 +23,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.Authoring;
-import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -50,6 +51,9 @@ public class FolderOriginTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+  @Rule
+  public TemporaryFolder tmpFolder = new TemporaryFolder();
+
   private Path workdir;
   private SkylarkTestExecutor skylark;
 
@@ -138,6 +142,17 @@ public class FolderOriginTest {
         .containsFile("foo", "abc")
         .containsNoMoreFiles();
     assertThat(Files.isSymbolicLink(workdir.resolve("foo"))).isFalse();
+  }
+
+  @Test
+  public void testRelativePath() throws ValidationException, RepoException, IOException {
+    Path folder = Files.createDirectories(tmpFolder.getRoot().toPath().resolve("folder"));
+    Files.createDirectory(folder.resolve("foo"));
+    options.setForce(false);
+    options.setWorkdirToRealTempDir(folder.toAbsolutePath().toString());
+    FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
+    // Check that the path is stored as absolute, since recursive copy only supports absolute paths
+    assertThat(origin.resolve("foo").path.isAbsolute()).isTrue();
   }
 
   private void runAbsolutePaths(String originStr)

@@ -88,6 +88,7 @@ public class FolderModule implements OptionsAwareModule {
       return new FolderOrigin(fs,
           Author.parse(location, self.options.get(FolderOriginOptions.class).author),
           self.options.get(FolderOriginOptions.class).message,
+          self.options.get(GeneralOptions.class).getCwd(),
           materializeOutsideSymlinks);
     }
   };

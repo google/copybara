@@ -33,7 +33,8 @@ public class FolderReference implements Reference {
   private final String labelName;
 
   FolderReference(Path path, Instant timestamp, String labelName) {
-    this.path = Preconditions.checkNotNull(path);
+    Preconditions.checkState(path.isAbsolute());
+    this.path = path;
     this.timestamp = timestamp;
     this.labelName = Preconditions.checkNotNull(labelName);
   }

@@ -208,7 +208,7 @@ public enum WorkflowMode {
           // Reverse since changesSinceLastImport returns the first commit to import
           // first.
           cached = SkylarkList.createImmutable(runHelper.changesSinceLastImport().reverse());
-        } catch (RepoException e) {
+        } catch (ValidationException | RepoException e) {
           logger.log(Level.WARNING, "Previous reference couldn't be resolved."
               + " Cannot compute the set of changes in the migration");
           cached = SkylarkList.createImmutable(ImmutableList.<Change<?>>of());

@@ -42,7 +42,7 @@ public interface Origin<R extends Reference> {
    * Origin.
    * @throws RepoException if any error happens during the resolve.
    */
-  R resolve(@Nullable String reference) throws RepoException;
+  R resolve(@Nullable String reference) throws RepoException, ValidationException;
 
   /**
    * An object which is capable of checking out code from the origin at particular paths. This can
