@@ -226,7 +226,7 @@ public final class FileUtil {
           if (symlinkStrategy == CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS) {
             throw new AbsoluteSymlinksNotAllowed(msg, file, resolvedSymlink.regularFile);
           }
-          logger.log(Level.WARNING, msg + " Materializing the symlink.");
+          logger.log(Level.INFO, msg + " Materializing the symlink.");
         }
 
         if (symlinkStrategy == CopySymlinkStrategy.MATERIALIZE_ALL || escapedRoot) {
