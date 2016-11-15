@@ -112,8 +112,7 @@ public final class TransformWork {
       return SkylarkList.createImmutable(Files.walk(checkoutDir)
           .filter(Files::isRegularFile)
           .filter(pathMatcher::matches)
-          .map(checkoutDir::relativize)
-          .map(CheckoutPath::new)
+          .map(p -> new CheckoutPath(checkoutDir.relativize(p), checkoutDir))
           .collect(Collectors.toList()));
     } else if (runnable instanceof Transformation) {
       ((Transformation) runnable).transform(this);
@@ -131,7 +130,8 @@ public final class TransformWork {
           @Param(name = "path", type = String.class, doc = "The string representing the path"),
       })
   public CheckoutPath newPath(String path) throws FuncallException {
-    return CheckoutPath.create(checkoutDir.getFileSystem().getPath(path));
+    return CheckoutPath.createWithCheckoutDir(checkoutDir.getFileSystem().getPath(path),
+        checkoutDir);
   }
 
   /**

@@ -16,13 +16,19 @@
 
 package com.google.copybara;
 
+import com.google.common.base.Preconditions;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
 import com.google.devtools.build.lib.syntax.Runtime;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Represents a file that is exposed to Skylark.
@@ -35,17 +41,26 @@ import java.nio.file.Path;
     doc = "Represents a path in the checkout directory")
 public class CheckoutPath implements Comparable<CheckoutPath>{
 
-  private final Path path;
+  private static final Logger logger = Logger.getLogger(CheckoutPath.class.getName());
 
-  CheckoutPath(Path path) {
-    this.path = path;
+  private final Path path;
+  private final Path checkoutDir;
+
+  CheckoutPath(Path path, Path checkoutDir) {
+    this.path = Preconditions.checkNotNull(path);
+    this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
   }
 
-  static CheckoutPath create(Path path) throws FuncallException {
-    if (path.isAbsolute()) {
-      throw new FuncallException("Absolute paths are not allowed: " + path);
+  private CheckoutPath create(Path path) throws FuncallException {
+    return createWithCheckoutDir(path, checkoutDir);
+  }
+
+  static CheckoutPath createWithCheckoutDir(Path relative, Path checkoutDir)
+      throws FuncallException {
+    if (relative.isAbsolute()) {
+      throw new FuncallException("Absolute paths are not allowed: " + relative);
     }
-    return new CheckoutPath(path.normalize());
+    return new CheckoutPath(relative.normalize(), checkoutDir);
   }
 
   @SkylarkCallable(name = "path", doc = "Full path relative to the checkout directory",
@@ -107,7 +122,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>{
   @SkylarkCallable(name = "resolve_sibling",
       doc = "Resolve the given path against this path.",
       parameters = {
-          @Param(name = "ohter", type = Object.class,
+          @Param(name = "other", type = Object.class,
               doc = "Resolve the given path against this path. The parameter can be a string or"
                   + " a Path."),})
   public CheckoutPath resolveSibling(Object other) throws FuncallException {
@@ -118,6 +133,19 @@ public class CheckoutPath implements Comparable<CheckoutPath>{
     }
     throw new FuncallException(
         "Cannot resolve sibling for type " + other.getClass().getSimpleName() + ": " + other);
+  }
+
+  @SkylarkCallable(name = "attr", doc = "Get the file attributes, for example size.",
+      structField = true)
+  public CheckoutPathAttributes attr() throws FuncallException {
+    try {
+      return new CheckoutPathAttributes(path,
+          Files.readAttributes(checkoutDir.resolve(path), BasicFileAttributes.class));
+    } catch (IOException e) {
+      String msg = "Error getting attributes for " + path + ":" + e;
+      logger.log(Level.SEVERE, msg, e);
+      throw new FuncallException(msg);
+    }
   }
 
   @Override

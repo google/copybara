@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.jimfs.Jimfs;
@@ -261,6 +262,22 @@ public class TransformWorkTest {
 
     assertThat(destination.processed.get(0).getChangesSummary()).isEqualTo(
         output);
+  }
+
+  @Test
+  public void testAttr() throws RepoException, IOException, ValidationException {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base = fileSystem.getPath("foo");
+    Files.createDirectories(base);
+    Files.write(base.resolve("file.txt"), "1234567890".getBytes(UTF_8));
+    Files.createDirectories(workdir.resolve("folder"));
+    origin.addChange(0, base, "message");
+
+    runWorkflow("test", "def test(ctx):\n"
+        + "    size = ctx.run(glob(['**.txt']))[0].attr.size\n"
+        + "    ctx.console.info('File size: ' + str(size))");
+
+    console.assertThat().onceInLog(MessageType.INFO, "File size: 10");
   }
 
   private Path touchFile(Path base, String path) throws IOException {

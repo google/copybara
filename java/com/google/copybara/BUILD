@@ -62,6 +62,7 @@ BASE_SRCS = [
     "Change.java",
     "ChangeVisitable.java",
     "CheckoutPath.java",
+    "CheckoutPathAttributes.java",
     "Destination.java",
     "EmptyChangeException.java",
     "Metadata.java",
