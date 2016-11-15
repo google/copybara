@@ -212,7 +212,7 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    thrown.expect(RepoException.class);
+    thrown.expect(ValidationException.class);
     thrown.expectMessage("User aborted execution: did not confirm diff changes");
     processWithBaselineAndConfirmation(destinationFirstCommit().newWriter(destinationFiles),
         new DummyReference("origin_ref"),
