@@ -66,6 +66,12 @@ public class MetadataModule {
           @Param(name = "compact", type = Boolean.class,
               doc = "If compact is set, each change will be shown in just one line",
               defaultValue = "True"),
+          @Param(name = "show_ref", type = Boolean.class,
+              doc = "If each change reference should be present in the notes",
+              defaultValue = "True"),
+          @Param(name = "show_author", type = Boolean.class,
+              doc = "If each change author should be present in the notes",
+              defaultValue = "True"),
           @Param(name = "oldest_first", type = Boolean.class,
               doc = "If set to true, the list shows the oldest changes first. Otherwise"
                   + " it shows the changes in descending order.",
@@ -73,10 +79,10 @@ public class MetadataModule {
       }, objectType = MetadataModule.class, useLocation = true)
   static final BuiltinFunction SQUASH_NOTES = new BuiltinFunction("squash_notes") {
     public Transformation invoke(MetadataModule self, String prefix, Integer max,
-        Boolean compact, Boolean oldestFirst, Location location)
-        throws EvalException {
+        Boolean compact, Boolean showRef, Boolean showAuthor, Boolean oldestFirst,
+        Location location) throws EvalException {
       return new MetadataSquashNotes(SkylarkUtil.checkNotEmpty(prefix, "prefix", location),
-          max, compact, oldestFirst);
+          max, compact, showRef, showAuthor, oldestFirst);
     }
   };
 

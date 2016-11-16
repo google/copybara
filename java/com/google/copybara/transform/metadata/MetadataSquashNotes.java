@@ -36,12 +36,17 @@ public class MetadataSquashNotes implements Transformation {
   private final String prefix;
   private final int max;
   private final boolean compact;
+  private final boolean showRef;
+  private final boolean showAuthor;
   private final boolean oldestFirst;
 
-  public MetadataSquashNotes(String prefix, int max, boolean compact, boolean oldestFirst) {
+  public MetadataSquashNotes(String prefix, int max, boolean compact, boolean showRef,
+      boolean showAuthor, boolean oldestFirst) {
     this.prefix = prefix;
     this.max = max;
     this.compact = compact;
+    this.showRef = showRef;
+    this.showAuthor = showAuthor;
     this.oldestFirst = oldestFirst;
   }
 
@@ -59,18 +64,35 @@ public class MetadataSquashNotes implements Transformation {
     if (oldestFirst) {
       changes = Lists.reverse(changes);
     }
-    for (Change c : changes) {
+    for (int i = 0; i < changes.size(); i++) {
+      Change c = changes.get(i);
       if (counter == max) {
         break;
       }
       if (compact) {
-        sb.append("  - ")
-            .append(c.refAsString()).append(" ")
-            .append(cutIfLong(c.firstLineMessage())).append(" by ")
-            .append(c.getAuthor()).append("\n");
+        sb.append("  - ");
+        if (showRef) {
+          sb.append(c.refAsString());
+          sb.append(" ");
+        }
+        sb.append(cutIfLong(c.firstLineMessage()));
+        if (showAuthor) {
+          sb.append(" by ");
+          sb.append(c.getAuthor());
+        }
+        sb.append("\n");
       } else {
         sb.append("--\n");
-        sb.append(c.refAsString()).append(" by ").append(c.getAuthor()).append(":\n\n");
+        if (showRef) {
+          sb.append(c.refAsString());
+        } else {
+          sb.append("Change ").append(i + 1).append(" of ").append(changes.size());
+        }
+        if (showAuthor) {
+          sb.append(" by ");
+          sb.append(c.getAuthor());
+        }
+        sb.append(":\n\n");
         sb.append(c.getMessage());
         sb.append("\n");
       }

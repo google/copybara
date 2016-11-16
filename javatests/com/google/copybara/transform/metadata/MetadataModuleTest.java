@@ -121,6 +121,25 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testMessageTransformerForSquashCompactNoRefOrAuthor() throws Exception {
+    runWorkflow(WorkflowMode.SQUASH, ""
+        + "metadata.squash_notes("
+        + "  prefix = 'Importing foo project:\\n\\n',"
+        + "  oldest_first = True,"
+        + "  show_ref = False,"
+        + "  show_author = False,"
+        + ")");
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary())
+        .isEqualTo(""
+            + "Importing foo project:\n"
+            + "\n"
+            + "  - second commit\n"
+            + "  - third commit\n");
+    assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
   public void testMessageTransformerForSquashReverse() throws Exception {
     runWorkflow(WorkflowMode.SQUASH, ""
         + "metadata.squash_notes("
