@@ -59,6 +59,7 @@ doc_generator(
 )
 
 BASE_SRCS = [
+    "CannotResolveReferenceException.java",
     "Change.java",
     "ChangeVisitable.java",
     "CheckoutPath.java",

@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Change;
@@ -109,7 +110,7 @@ public class DummyOrigin implements Origin<DummyReference> {
       }
     }
     if (idx >= changes.size()) {
-      throw new RepoException("Cannot find any change for " + reference
+      throw new CannotResolveReferenceException("Cannot find any change for " + reference
           + ". Only " + changes.size() + " changes exist");
     }
     return changes.get(idx);

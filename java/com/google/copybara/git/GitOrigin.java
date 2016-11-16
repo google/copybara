@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
@@ -196,7 +197,7 @@ public final class GitOrigin implements Origin<GitReference> {
 
       ImmutableList<GitChange> result = queryChanges.run(start.asString());
       if (result.isEmpty()) {
-        throw new CannotFindReferenceException("Cannot find reference " + start.asString());
+        throw new CannotResolveReferenceException("Cannot resolve reference " + start.asString());
       }
       GitChange current = Iterables.getOnlyElement(result);
       while (current != null) {

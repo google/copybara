@@ -53,9 +53,9 @@ public enum WorkflowMode {
         String lastRev;
         try {
           lastRev = runHelper.getLastRev().asString();
-        } catch (RepoException e) {
+        } catch (CannotResolveReferenceException e) {
           throw new ValidationException(
-              "Cannot find last imported revision and --last-rev was not used. Use "
+              "Cannot find last imported revision. Use "
                   + GeneralOptions.FORCE + " if you really want to import '"
                   + current.asString() + "'", e);
         }

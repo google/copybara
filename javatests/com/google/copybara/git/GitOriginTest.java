@@ -21,16 +21,18 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.Authoring;
-import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
@@ -64,8 +66,8 @@ public class GitOriginTest {
   private OptionsBuilder options;
   private GitRepository repo;
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
-      AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
-  
+      AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
+
   @Rule public final ExpectedException thrown = ExpectedException.none();
 
   private TestingConsole console;
@@ -229,6 +231,18 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testResolveNonExistentFullSha1() throws IOException, RepoException {
+    thrown.expect(CannotResolveReferenceException.class);
+    origin.resolve(Strings.repeat("a", 40));
+  }
+
+  @Test
+  public void testResolveNonExistentRef() throws IOException, RepoException {
+    thrown.expect(CannotResolveReferenceException.class);
+    origin.resolve("refs/for/copy/bara");
+  }
+
+  @Test
   public void testGitOriginWithHook() throws Exception {
     Path hook = Files.createTempFile("script", "script");
     Files.write(hook, "touch hook.txt".getBytes(UTF_8));
@@ -357,7 +371,7 @@ public class GitOriginTest {
     origin.resolve(firstCommitRef);
 
     thrown.expect(RepoException.class);
-    thrown.expectMessage("Cannot find reference 'foo'");
+    thrown.expectMessage("Cannot find references: [foo]");
 
     origin.resolve("foo");
   }

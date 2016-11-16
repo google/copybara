@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
@@ -267,7 +268,7 @@ public final class GitDestination implements Destination<GitReference> {
     GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment);
     try {
       scratchClone.fetchSingleRef(repoUrl, fetch);
-    } catch (CannotFindReferenceException e) {
+    } catch (CannotResolveReferenceException e) {
       if (!force) {
         throw new RepoException("'" + fetch + "' doesn't exist in '" + repoUrl
             + "'. Use " + GeneralOptions.FORCE + " flag if you want to push anyway");
@@ -334,7 +335,7 @@ public final class GitDestination implements Destination<GitReference> {
         if (start == null) {
           console.error("Unable to find HEAD - is the destination repository bare?");
         }
-        throw new CannotFindReferenceException("Cannot find reference " + revString);
+        throw new CannotResolveReferenceException("Cannot find reference " + revString);
       }
       GitChange current = Iterables.getOnlyElement(result);
       while (current != null) {

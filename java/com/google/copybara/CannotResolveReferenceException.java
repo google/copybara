@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git;
-
-import com.google.copybara.RepoException;
+package com.google.copybara;
 
 /**
- * Indicates that a Git reference could not be found when performing a {@code git} operation.
+ * Indicates that a reference could not be resolved in a repository.
  */
-public class CannotFindReferenceException extends RepoException {
-  public CannotFindReferenceException(String message) {
+public class CannotResolveReferenceException extends RepoException {
+  public CannotResolveReferenceException(String message) {
     super(message);
   }
 
-  public CannotFindReferenceException(String message, Throwable cause) {
+  public CannotResolveReferenceException(String message, Throwable cause) {
     super(message, cause);
   }
 }

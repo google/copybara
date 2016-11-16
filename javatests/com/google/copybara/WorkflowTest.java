@@ -375,6 +375,20 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testSquashLastRevDoesntExist() throws Exception {
+    options.setForce(false); // Disable force so that we get an error
+    origin.addSimpleChange(/*timestamp*/ 1);
+    options.workflowOptions.lastRevision = "42";
+
+    Workflow workflow = workflow();
+
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("Cannot find last imported revision."
+        + " Use --force if you really want to import '1'");
+    workflow.run(workdir, origin.getHead());
+  }
+
+  @Test
   public void testSquashAlreadyMigratedWithForce() throws Exception {
     options.setForce(true);
     origin.addSimpleChange(/*timestamp*/ 1);

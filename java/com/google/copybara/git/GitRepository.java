@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.net.PercentEscaper;
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
@@ -75,9 +76,16 @@ public class GitRepository {
       ImmutableList.of(
           Pattern.compile("pathspec '(.+)' did not match any file"),
           Pattern.compile(
-              "ambiguous argument '(.+)': unknown revision or path not in the working tree"),
-          Pattern.compile("fatal: Couldn't find remote ref ([^\n]+)\n"));
+              "ambiguous argument '(.+)': unknown revision or path not in the working tree"));
 
+  private static final Pattern FETCH_CANNOT_RESOLVE_ERRORS =
+      Pattern.compile(""
+          // When fetching a ref like 'refs/foo' fails.
+          + "(fatal: Couldn't find remote ref"
+          // When fetching a SHA-1 ref
+          + "|no such remote ref"
+          // Gerrit when fetching
+          + "|ERR want .+ not valid)");
   /**
    * Label to be used for marking the original revision id (Git SHA-1) for migrated commits.
    */
@@ -181,7 +189,7 @@ public class GitRepository {
    */
   public GitReference fetchSingleRef(String url, String ref) throws RepoException {
     if (ref.contains(":") || ref.contains("*")) {
-      throw new CannotFindReferenceException("Fetching refspecs that"
+      throw new CannotResolveReferenceException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
     }
     // This is not strictly necessary for some Git repos that allow fetching from any sha1 ref, like
@@ -235,9 +243,17 @@ public class GitRepository {
     }
 
     ImmutableMap<String, GitReference> before = showRef();
-    git(getCwd(), addGitDirAndWorkTreeParams(args));
-    ImmutableMap<String, GitReference> after = showRef();
-    return new FetchResult(before, after);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(args);
+    if (output.getTerminationStatus().success()) {
+      ImmutableMap<String, GitReference> after = showRef();
+      return new FetchResult(before, after);
+    }
+    if (output.getStderr().isEmpty()
+        || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
+      throw new CannotResolveReferenceException("Cannot find references: " + refspecs);
+    } else {
+      throw throwUnknownGitError(output);
+    }
   }
 
   // TODO(team): Use JGit URIish.java
@@ -572,21 +588,26 @@ public class GitRepository {
     try {
       return executeGit(cwd, params, environment, verbose);
     } catch (BadExitStatusWithOutputException e) {
-      CommandOutput output = e.getOutput();
+      CommandOutputWithStatus output = e.getOutput();
 
       for (Pattern error : REF_NOT_FOUND_ERRORS) {
         Matcher matcher = error.matcher(output.getStderr());
         if (matcher.find()) {
-          throw new CannotFindReferenceException(
-              "Cannot find reference '" + matcher.group(1) + "'", e);
+          throw new CannotResolveReferenceException(
+              "Cannot find reference '" + matcher.group(1) + "'");
         }
       }
 
-      throw new RepoException(
-          "Error executing 'git': " + e.getMessage() + ". Stderr: \n" + output.getStderr(), e);
+      throw throwUnknownGitError(output);
     } catch (CommandException e) {
       throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }
+  }
+
+  private RepoException throwUnknownGitError(CommandOutputWithStatus output) throws RepoException {
+    throw new RepoException(
+        "Error executing 'git'(exit code " + output.getTerminationStatus().getExitCode() + ")"
+            + ". Stderr: \n" + output.getStderr());
   }
 
   /**
@@ -604,9 +625,7 @@ public class GitRepository {
       if (NON_CRASH_ERROR_EXIT_CODES.contains(exitCode)) {
         return output;
       }
-
-      throw new RepoException(
-          "Error executing 'git': " + e.getMessage() + ". Stderr: \n" + output.getStderr(), e);
+      throw throwUnknownGitError(output);
     } catch (CommandException e) {
       throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }
@@ -653,10 +672,34 @@ public class GitRepository {
   /**
    * Resolve a reference
    *
-   * @throws CannotFindReferenceException if it cannot resolve the reference
+   * @throws CannotResolveReferenceException if it cannot resolve the reference
    */
   GitReference resolveReference(String reference) throws RepoException {
+    // Nothing needs to be resolved, since it is a complete SHA-1. But we
+    // check that the reference exists.
+    if (GitReference.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
+      if (checkSha1Exists(reference)) {
+        return new GitReference(this, reference);
+      }
+      throw new CannotResolveReferenceException(
+          "Cannot find '" + reference + "' object in the repository");
+    }
     return new GitReference(this, revParse(reference));
+  }
+
+  /**
+   * Checks if a SHA-1 object exist in the the repository
+   */
+  private boolean checkSha1Exists(String reference) throws RepoException {
+    CommandOutputWithStatus output = gitAllowNonZeroExit(
+        ImmutableList.of("cat-file", "-e", reference));
+    if (output.getTerminationStatus().success()) {
+      return true;
+    }
+    if (output.getStderr().isEmpty()) {
+      return false;
+    }
+    throw throwUnknownGitError(output);
   }
 
   /**

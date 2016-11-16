@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
  */
 public final class GitReference implements Reference {
 
-  private static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
+  static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
 
   private final GitRepository repository;
   private final String reference;

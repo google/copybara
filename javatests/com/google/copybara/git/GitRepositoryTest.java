@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.RepoException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -106,7 +107,7 @@ public class GitRepositoryTest {
 
   @Test
   public void testCheckoutLocalBranch() throws Exception {
-    thrown.expect(CannotFindReferenceException.class);
+    thrown.expect(CannotResolveReferenceException.class);
     thrown.expectMessage("Cannot find reference 'foo'");
     repository.simpleCommand("checkout", "foo");
   }

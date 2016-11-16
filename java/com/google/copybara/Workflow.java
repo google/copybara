@@ -362,7 +362,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
         try {
           return origin.resolve(lastRevisionFlag);
         } catch (RepoException e) {
-          throw new RepoException(
+          throw new CannotResolveReferenceException(
               "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
                   + lastRevisionFlag,
               e);
