@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Info.MigrationReference;
@@ -182,6 +183,16 @@ public final class Workflow<O extends Reference, D extends Reference> implements
     MigrationReference migrationRef = MigrationReference.create(
         String.format("workflow_%s", name), lastMigrated, lastResolved);
     return Info.create(ImmutableList.of(migrationRef));
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> getOriginDescription() {
+    return origin.describe(originFiles);
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> getDestinationDescription() {
+    return destination.describe(destinationFiles);
   }
 
   final class RunHelper<M extends O> {

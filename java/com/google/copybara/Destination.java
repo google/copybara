@@ -23,14 +23,14 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
 import javax.annotation.Nullable;
 
-/**
- * A repository which a source of truth can be copied to.
- */
+
+/** A repository which a source of truth can be copied to. */
 @SkylarkModule(
-    name = "destination",
-    doc = "A repository which a source of truth can be copied to",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
-public interface Destination <R extends Reference> {
+  name = "destination",
+  doc = "A repository which a source of truth can be copied to",
+  category = SkylarkModuleCategory.TOP_LEVEL_TYPE
+)
+public interface Destination<R extends Reference> extends ConfigItemDescription {
 
   /**
    * The result of invoking {@link Writer#write(TransformResult, Console)}.

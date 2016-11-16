@@ -109,4 +109,8 @@ public class Refspec {
     return new Refspec(origin, destination, allowNoFastForward);
   }
 
+  public String toString() {
+     return (allowNoFastForward ? "+" : "") + origin + ":" + destination;
+  }
+
 }

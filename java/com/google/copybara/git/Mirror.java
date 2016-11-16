@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import com.beust.jcommander.internal.Lists;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Migration;
@@ -84,6 +85,22 @@ public class Mirror implements Migration {
     }
     cmd.addAll(pushRefspecs);
     repo.simpleCommand(Iterables.toArray(cmd, String.class));
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> getOriginDescription() {
+    return new ImmutableSetMultimap.Builder<String, String>()
+        .put("url", origin)
+        .putAll("ref", refspec.stream().map(Refspec::toString).collect(Collectors.toList()))
+        .build();
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> getDestinationDescription() {
+    return new ImmutableSetMultimap.Builder<String, String>()
+        .put("url", destination)
+        .putAll("ref", refspec.stream().map(Refspec::toString).collect(Collectors.toList()))
+        .build();
   }
 
 }

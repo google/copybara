@@ -23,12 +23,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Config;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
@@ -49,8 +49,10 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 
 /**
  * Loads Copybara configs out of Skylark files.
@@ -90,7 +92,6 @@ public class SkylarkParser {
     Core core;
     try {
       Environment env = executeSkylark(content, options);
-
       core = (Core) env.getGlobals().get(Core.CORE_VAR);
     } catch (InterruptedException e) {
       // This should not happen since we shouldn't have anything interruptable during loading.
@@ -107,6 +108,33 @@ public class SkylarkParser {
 
   /**
    * Collect all ConfigFiles retrieved by the parser while loading {code config}.
+   *
+   * @param config Root file of the configuration.
+   * @return A map linking paths to the captured ConfigFiles and the parsed Config
+   * @throws IOException If files cannot be read
+   * @throws ValidationException If config is invalid, references an invalid file or contains
+   *     dependency cycles.
+   */
+  public <T> ConfigWithDependencies<T> getConfigWithTransitiveImports(
+      ConfigFile<T> config, Options options) throws IOException, ValidationException {
+    CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<T>(config);
+    Config parsedConfig = loadConfig(capturingConfigFile, options);
+    return new ConfigWithDependencies<T>(capturingConfigFile.getAllLoadedFiles(), parsedConfig);
+  };
+
+  public static class ConfigWithDependencies <T> {
+    public final ImmutableMap<String, ConfigFile<T>> files;
+    public final Config config;
+
+    private ConfigWithDependencies(ImmutableMap<String, ConfigFile<T>> files, Config config) {
+      this.config = config;
+      this.files = files;
+    }
+  }
+
+  /**
+   * Collect all ConfigFiles retrieved by the parser while loading {code config}.
+   *
    * @param config Root file of the configuration.
    * @return A map linking paths to the captured ConfigFiles
    * @throws IOException If files cannot be read
@@ -115,9 +143,7 @@ public class SkylarkParser {
    */
   public <T> ImmutableMap<String, ConfigFile<T>> getContentWithTransitiveImports(
       ConfigFile<T> config, Options options) throws IOException, ValidationException {
-    CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<T>(config);
-    loadConfig(capturingConfigFile, options);
-    return capturingConfigFile.getAllLoadedFiles();
+    return getConfigWithTransitiveImports(config, options).files;
   };
 
   /**

@@ -64,6 +64,7 @@ BASE_SRCS = [
     "ChangeVisitable.java",
     "CheckoutPath.java",
     "CheckoutPathAttributes.java",
+    "ConfigItemDescription.java",
     "Destination.java",
     "EmptyChangeException.java",
     "Metadata.java",
@@ -90,7 +91,6 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",

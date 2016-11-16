@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
@@ -48,4 +50,15 @@ public interface Migration {
   default Info getInfo() throws RepoException, ValidationException {
     return Info.EMPTY;
   }
+
+  /**
+   * Returns a multimap containing enough data to fingerprint the origin for validation purposes.
+   */
+  ImmutableSetMultimap<String, String> getOriginDescription();
+
+  /**
+   * Returns a multimap containing enough data to fingerprint the destination for validation
+   * purposes.
+   */
+  ImmutableSetMultimap<String, String> getDestinationDescription();
 }

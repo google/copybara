@@ -21,13 +21,13 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.hash.Hashing;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
-import com.google.copybara.WorkflowOptions;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -36,6 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
+import java.util.Map.Entry;
+
 
 /**
  * Gerrit repository destination.
@@ -169,5 +172,21 @@ public final class GerritDestination implements Destination<GitReference> {
   @Override
   public Reader<GitReference> newReader(Glob destinationFiles) {
     return gitDestination.newReader(destinationFiles);
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
+    ImmutableSetMultimap.Builder<String, String> builder =
+        new ImmutableSetMultimap.Builder<String, String>();
+    for (Entry<String, String> entry : gitDestination.describe(originFiles).entries()) {
+      if (entry.getKey().equals("type")) {
+        continue;
+      }
+      builder.put(entry);
+    }
+    return builder
+        .put("type", "gerrit.destination")
+        .build();
+
   }
 }

@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveReferenceException;
@@ -352,4 +353,15 @@ public final class GitDestination implements Destination<GitReference> {
       }
     }
   }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+    return new ImmutableSetMultimap.Builder<String, String>()
+        .put("type", "git.destination")
+        .put("url", repoUrl)
+        .put("fetch", fetch)
+        .put("push", push)
+        .build();
+  }
+
 }

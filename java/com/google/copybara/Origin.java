@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
     name = "origin",
     doc = "A Origin represents a source control repository from which source is copied.",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
-public interface Origin<R extends Reference> {
+public interface Origin<R extends Reference> extends ConfigItemDescription {
 
   /**
    * Resolves a reference using the {@code Origin} configuration and flags

@@ -22,7 +22,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.authoring.Authoring;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Config;
 import com.google.copybara.Destination;
 import com.google.copybara.Origin;
@@ -32,6 +32,7 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.Workflow;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.transform.Sequence;
@@ -300,7 +301,7 @@ public class SkylarkParserTest {
 
   @Test
   public void testResolveLabel() throws Exception {
-    Config config = parser.loadConfig(prepareResolveLabelTest());
+    parser.loadConfig(prepareResolveLabelTest());
   }
 
   /**
@@ -441,7 +442,6 @@ public class SkylarkParserTest {
     private MockDestination(String folder) {
       this.folder = folder;
     }
-
 
     @Override
     public Writer newWriter(Glob destinationFiles) {

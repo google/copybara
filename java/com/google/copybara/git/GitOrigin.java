@@ -22,14 +22,15 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.CannotResolveReferenceException;
-import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
@@ -288,5 +289,16 @@ public final class GitOrigin implements Origin<GitReference> {
         options.get(GeneralOptions.class).console(),
         GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
         url, ref, type, options.get(GitOptions.class), verbose, environment, submoduleStrategy);
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
+    return new ImmutableSetMultimap.Builder<String, String>()
+        .put("type", "git.origin")
+        .put("repoType", repoType.name())
+        .put("url", repoUrl)
+        .put("ref", configRef)
+        .put("submodules", submoduleStrategy.name())
+        .build();
   }
 }
