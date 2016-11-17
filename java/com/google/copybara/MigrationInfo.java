@@ -25,17 +25,16 @@ import javax.annotation.Nullable;
  * Reflective information about the migration in progress.
  */
 public class MigrationInfo {
-  private final String originLabel;
-  @Nullable
-  private final ChangeVisitable<?> destinationVisitable;
+  @Nullable private final String originLabel;
+  @Nullable private final ChangeVisitable<?> destinationVisitable;
 
   public MigrationInfo(String originLabel, ChangeVisitable<?> destinationVisitable) {
-    this.originLabel = checkNotNull(originLabel);
+    this.originLabel = originLabel;
     this.destinationVisitable = destinationVisitable;
   }
 
   public String getOriginLabel() {
-    return originLabel;
+    return checkNotNull(originLabel);
   }
 
   @Nullable

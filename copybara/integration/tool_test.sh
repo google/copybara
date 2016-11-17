@@ -641,6 +641,7 @@ core.workflow(
     ),
     exclude_in_destination = glob(["copy.bara.sky", "**.keep"]),
     destination = folder.destination(),
+    reversible_check = True, # enabled to test for regression where folder.origin caused exceptions
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
 )
 EOF

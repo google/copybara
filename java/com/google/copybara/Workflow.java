@@ -301,9 +301,9 @@ public final class Workflow<O extends Reference, D extends Reference> implements
         Path reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
         reverseTransformForCheck.transform(
+
             new TransformWork(reverse, metadata, changes, console,
-                new MigrationInfo(
-                    destination.getLabelNameWhenOrigin(), getOriginReader()))
+                new MigrationInfo(/*originLabel=*/ null, (ChangeVisitable) null))
         );
         String diff = new String(DiffUtil.diff(originCopy, reverse, verbose),
             StandardCharsets.UTF_8);
