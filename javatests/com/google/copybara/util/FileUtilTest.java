@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import java.io.IOException;
@@ -196,5 +197,42 @@ public class FileUtilTest {
     FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS);
     assertThat(Files.isSymbolicLink(two.resolve("absolute"))).isFalse();
     assertThat(Files.isWritable(two.resolve("absolute"))).isTrue();
+  }
+
+  @Test
+  public void testCopyWithGlob() throws Exception {
+    Path temp = Files.createTempDirectory("temp");
+    Path one = Files.createDirectory(temp.resolve("one"));
+    Path two = Files.createDirectory(temp.resolve("two"));
+    Files.createDirectories(one.resolve("foo"));
+    Files.createDirectories(one.resolve("bar"));
+    touch(one.resolve("foo/include.txt"));
+    touch(one.resolve("foo/exclude.txt"));
+    touch(one.resolve("bar/nonono.txt"));
+
+    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS,
+        new Glob(ImmutableList.of("foo/**"),
+            ImmutableList.of("foo/exclude.txt")));
+
+    assertThatPath(two).containsFiles("foo/include.txt")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testNoGlobs() throws Exception {
+    Path temp = Files.createTempDirectory("temp");
+    Path one = Files.createDirectory(temp.resolve("one"));
+    Path two = Files.createDirectory(temp.resolve("two"));
+    Files.createDirectories(one.resolve("foo"));
+    Files.createDirectories(one.resolve("bar"));
+    touch(one.resolve("foo/include.txt"));
+    touch(one.resolve("foo/exclude.txt"));
+    touch(one.resolve("bar/nonono.txt"));
+
+    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+
+    assertThatPath(two)
+        .containsFiles("foo/include.txt", "foo/exclude.txt", "bar/nonono.txt")
+        .containsNoMoreFiles();
   }
 }

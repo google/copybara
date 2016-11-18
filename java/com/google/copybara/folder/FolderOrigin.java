@@ -90,7 +90,7 @@ public class FolderOrigin implements Origin<FolderReference> {
       @Override
       public void checkout(FolderReference ref, Path workdir) throws RepoException {
         try {
-          FileUtil.copyFilesRecursively(ref.path, workdir, copySymlinkStrategy);
+          FileUtil.copyFilesRecursively(ref.path, workdir, copySymlinkStrategy, originFiles);
         } catch (AbsoluteSymlinksNotAllowed e) {
           throw new RepoException(String.format("Cannot copy files into the workdir: Some symlinks"
               + " refer to locations outside of the folder and 'materialize_outside_symlinks'"

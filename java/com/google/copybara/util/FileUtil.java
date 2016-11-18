@@ -87,6 +87,11 @@ public final class FileUtil {
     return path;
   }
 
+  public static void copyFilesRecursively(final Path from, final Path to,
+      CopySymlinkStrategy symlinkStrategy) throws IOException {
+    copyFilesRecursively(from, to, symlinkStrategy, Glob.ALL_FILES);
+  }
+
   /**
    * Copies files from {@code from} directory to {@code to} directory. If any file exist in the
    * destination it fails instead of overwriting.
@@ -101,10 +106,20 @@ public final class FileUtil {
    * according to {@code symlinkStrategy}.
    */
   public static void copyFilesRecursively(final Path from, final Path to,
-      CopySymlinkStrategy symlinkStrategy) throws IOException {
+      CopySymlinkStrategy symlinkStrategy, Glob glob) throws IOException {
     checkArgument(Files.isDirectory(from), "%s (from) is not a directory");
     checkArgument(Files.isDirectory(to), "%s (to) is not a directory");
-    Files.walkFileTree(from, new CopyVisitor(from, to, symlinkStrategy));
+
+    // Optimization to skip folders that will be skipped. This works well for huge file trees
+    // where we have a very specific Glob ( foo/bar/**).
+    for (String root : glob.roots()) {
+      Files.walkFileTree(from.resolve(root),
+          new CopyVisitor(from.resolve(root), to.resolve(root), symlinkStrategy,
+              // The PathMatcher matches destination files so that it can work with
+              // absolute symlink materialization (We create a new CopyVisitor with the
+              // resolved symlink as origin.
+              glob.relativeTo(to)));
+    }
   }
 
   public static int deleteAllFilesRecursively(Path path) throws IOException {
@@ -201,16 +216,21 @@ public final class FileUtil {
     private final Path to;
     private final Path from;
     private final CopySymlinkStrategy symlinkStrategy;
+    private final PathMatcher pathMatcher;
 
-    CopyVisitor(Path from, Path to, CopySymlinkStrategy symlinkStrategy) {
+    CopyVisitor(Path from, Path to, CopySymlinkStrategy symlinkStrategy, PathMatcher pathMatcher) {
       this.to = to;
       this.from = from;
       this.symlinkStrategy = symlinkStrategy;
+      this.pathMatcher = pathMatcher;
     }
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
       Path destFile = to.resolve(from.relativize(file));
+      if (!pathMatcher.matches(destFile)) {
+        return FileVisitResult.CONTINUE;
+      }
       Files.createDirectories(destFile.getParent());
 
       boolean symlink = Files.isSymbolicLink(file);
@@ -236,7 +256,7 @@ public final class FileUtil {
             Files.createDirectory(destFile);
             Files.walkFileTree(resolvedSymlink.regularFile,
                 new CopyVisitor(resolvedSymlink.regularFile, destFile,
-                    CopySymlinkStrategy.MATERIALIZE_ALL));
+                    CopySymlinkStrategy.MATERIALIZE_ALL, pathMatcher));
             return FileVisitResult.CONTINUE;
           }
         } else {

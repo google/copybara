@@ -73,12 +73,10 @@ public class FolderOriginTest {
   @Test
   public void simpleTest() throws Exception {
     Path localFolder = Files.createTempDirectory("local_folder");
-    Files.write(Files.createDirectories(localFolder.resolve("foo")).resolve("file1"),
-        "one".getBytes(UTF_8));
-    Files.write(Files.createDirectories(localFolder.resolve("foo")).resolve("file2"),
-        "two".getBytes(UTF_8));
-    Files.write(localFolder.resolve("file3"), "three".getBytes(UTF_8));
-    Files.write(localFolder.resolve("file4"), "four".getBytes(UTF_8));
+    touch(localFolder.resolve("foo/file1"), "one");
+    touch(localFolder.resolve("foo/file2"), "two");
+    touch(localFolder.resolve("file3"), "three");
+    touch(localFolder.resolve("file4"), "four");
     FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
 
     Reader<FolderReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
@@ -90,6 +88,31 @@ public class FolderOriginTest {
         .containsFile("file3","three")
         .containsFile("file4","four")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testWithGlob() throws Exception {
+    Path localFolder = Files.createTempDirectory("local_folder");
+    touch(localFolder.resolve("foo/file1"), "one");
+    touch(localFolder.resolve("foo/file2"), "two");
+    touch(localFolder.resolve("bar/bar"), "bar");
+    touch(localFolder.resolve("file3"), "three");
+    touch(localFolder.resolve("file4"), "four");
+    FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
+
+    Reader<FolderReference> reader = origin.newReader(
+        new Glob(ImmutableSet.of("foo/*1", "file4")), authoring);
+    FolderReference ref = origin.resolve(localFolder.toString());
+    reader.checkout(ref, workdir);
+    assertThatPath(workdir)
+        .containsFile("foo/file1", "one")
+        .containsFile("file4", "four")
+        .containsNoMoreFiles();
+  }
+
+  private Path touch(Path file, String content) throws IOException {
+    Files.createDirectories(file.getParent());
+    return Files.write(file, content.getBytes(UTF_8));
   }
 
   @Test
@@ -158,7 +181,7 @@ public class FolderOriginTest {
   private void runAbsolutePaths(String originStr)
       throws IOException, ValidationException, RepoException {
     Path other = Files.createTempDirectory("other");
-    Files.write(other.resolve("foo"), "abc".getBytes(UTF_8));
+    touch(other.resolve("foo"),"abc");
 
     Path localFolder = Files.createTempDirectory("local_folder");
     Files.createSymbolicLink(localFolder.resolve("foo"), other.resolve("foo"));
@@ -169,5 +192,4 @@ public class FolderOriginTest {
     FolderReference ref = origin.resolve(localFolder.toString());
     reader.checkout(ref, workdir);
   }
-
 }
