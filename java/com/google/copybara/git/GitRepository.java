@@ -54,6 +54,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
@@ -108,6 +111,10 @@ public class GitRepository {
 
   private final boolean verbose;
   private final Map<String, String> environment;
+
+  private static final Map<Character, StatusCode> CHAR_TO_STATUS_CODE =
+      Arrays.stream(StatusCode.values())
+          .collect(Collectors.toMap(StatusCode::getCode, Function.identity()));
 
   GitRepository(
       Path gitDir, @Nullable Path workTree, boolean verbose, Map<String, String> environment) {
@@ -425,6 +432,37 @@ public class GitRepository {
         "--date", timestamp.getEpochSecond() + " +0000", "-m", message);
   }
 
+  public List<StatusFile> status() throws RepoException {
+    CommandOutput output = git(getCwd(),
+        addGitDirAndWorkTreeParams(ImmutableList.of("status", "--porcelain")));
+    ImmutableList.Builder<StatusFile> builder = ImmutableList.builder();
+    for (String line : Splitter.on('\n').split(output.getStdout())) {
+      if (line.isEmpty()) {
+        continue;
+      }
+      // Format 'XY file (-> file)?'
+      List<String> split = Splitter.on(" -> ").limit(2).splitToList(line.substring(3));
+      String fileName;
+      String newFileName;
+      if (split.size() == 1) {
+        fileName = split.get(0);
+        newFileName = null;
+      } else {
+        fileName = split.get(0);
+        newFileName = split.get(1);
+      }
+      builder.add(
+          new StatusFile(fileName, newFileName, toStatusCode(line.charAt(0)),
+              toStatusCode(line.charAt(1))));
+    }
+    return builder.build();
+  }
+
+  private StatusCode toStatusCode(char c) {
+    return Preconditions.checkNotNull(CHAR_TO_STATUS_CODE.get(c),
+        "Cannot find status code for '%s'", c);
+  }
+
   /**
    * Find submodules information for the current repository.
    *
@@ -709,7 +747,7 @@ public class GitRepository {
     return new GitReference(this, ref);
   }
 
-  boolean isSha1Reference(String ref) {
+  private boolean isSha1Reference(String ref) {
     return SHA1_PATTERN.matcher(ref).matches();
   }
 
@@ -808,5 +846,90 @@ public class GitRepository {
     COMMIT,
     TAG,
     TREE
+  }
+
+  static final class StatusFile {
+
+    private final String file;
+    @Nullable
+    private final String newFileName;
+    private final StatusCode indexStatus;
+    private final StatusCode workdirStatus;
+
+    @VisibleForTesting
+    StatusFile(String file, @Nullable String newFileName,
+        StatusCode indexStatus, StatusCode workdirStatus) {
+      this.file = Preconditions.checkNotNull(file);
+      this.newFileName = newFileName;
+      this.indexStatus = Preconditions.checkNotNull(indexStatus);
+      this.workdirStatus = Preconditions.checkNotNull(workdirStatus);
+    }
+
+    String getFile() {
+      return file;
+    }
+
+    @Nullable
+    String getNewFileName() {
+      return newFileName;
+    }
+
+    StatusCode getIndexStatus() {
+      return indexStatus;
+    }
+
+    StatusCode getWorkdirStatus() {
+      return workdirStatus;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      StatusFile that = (StatusFile) o;
+      return Objects.equals(file, that.file) &&
+          Objects.equals(newFileName, that.newFileName) &&
+          indexStatus == that.indexStatus &&
+          workdirStatus == that.workdirStatus;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(file, newFileName, indexStatus, workdirStatus);
+    }
+
+    @Override
+    public String toString() {
+      return Character.toString(indexStatus.getCode())
+          + getWorkdirStatus().getCode()
+          + " " + file +
+          (newFileName != null ? " -> " + newFileName : "");
+    }
+  }
+
+  enum StatusCode {
+    UNMODIFIED(' '),
+    MODIFIED('M'),
+    ADDED('A'),
+    DELETED('D'),
+    RENAMED('R'),
+    COPIED('C'),
+    UPDATED_BUT_UNMERGED('U'),
+    UNTRACKED('?'),
+    IGNORED('!'),;
+
+    private final char code;
+
+    public char getCode() {
+      return code;
+    }
+
+    StatusCode(char code) {
+      this.code = code;
+    }
   }
 }
