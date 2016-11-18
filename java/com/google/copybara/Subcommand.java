@@ -21,15 +21,15 @@ package com.google.copybara;
  */
 public enum Subcommand {
   /**
-   * Execute the migration indicated by the arguments.
+   * Executes the migration for the given config.
    */
   MIGRATE,
   /**
-   * Validate that the configuration is correct.
+   * Validates that the configuration is correct.
    */
   VALIDATE,
   /**
-   * Read the last migrated reference in the origin and destination.
+   * Reads the last migrated reference in the origin and destination.
    */
   INFO
 }

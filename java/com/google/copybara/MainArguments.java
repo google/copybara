@@ -44,7 +44,26 @@ import javax.annotation.concurrent.NotThreadSafe;
 public final class MainArguments {
   static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
-  @Parameter(description = "[COMMAND] CONFIG_PATH [WORKFLOW_NAME [SOURCE_REF]]")
+  @Parameter(description =
+      ""
+          + "[subcommand] config_path [workflow_name [source_ref]]\n"
+          + "\n"
+          + (""
+          + "subcommand: Optional, defaults to 'migrate'. The type of task to be performed by "
+          + "Copybara. Available subcommands:\n"
+          + "  - migrate: Executes the migration for the given config.\n"
+          + "  - validate: Validates that the configuration is correct.\n"
+          + "  - info: Reads the last migrated reference in the origin and destination.\n")
+          + "\n"
+          + "config_path: Required. Relative or absolute path to the main Copybara config file.\n"
+          + "\n"
+          + "workflow_name: Optional, defaults to 'default'. The name of the workflow in the "
+          + "configuration to be used by Copybara.\n"
+          + "\n"
+          + "source_ref: Optional. The reference to be resolved in the origin. Most of the times "
+          + "this argument is not needed, as Copybara keeps track of the last migrated reference "
+          + "in the destination.\n"
+  )
   List<String> unnamed = new ArrayList<>();
 
   @Parameter(names = "--help", help = true, description = "Shows this help text")
