@@ -151,7 +151,7 @@ public class FolderOriginTest {
 
   @Test
   public void testAbsolutePaths() throws Exception {
-    thrown.expect(RepoException.class);
+    thrown.expect(ValidationException.class);
     thrown.expectMessage("Some symlinks refer to locations outside of the folder and"
         + " 'materialize_outside_symlinks' config option was not used");
     runAbsolutePaths("folder.origin()");

@@ -57,7 +57,7 @@ public interface Origin<R extends Reference> {
      *
      * @throws RepoException if any error happens during the checkout or workdir preparation.
      */
-    void checkout(R ref, Path workdir) throws RepoException;
+    void checkout(R ref, Path workdir) throws RepoException, ValidationException;
 
     /**
      * Returns the changes that happen in the interval (fromRef, toRef].

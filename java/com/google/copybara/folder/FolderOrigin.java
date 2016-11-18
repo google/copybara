@@ -88,13 +88,14 @@ public class FolderOrigin implements Origin<FolderReference> {
       throws ValidationException {
     return new Reader<FolderReference>() {
       @Override
-      public void checkout(FolderReference ref, Path workdir) throws RepoException {
+      public void checkout(FolderReference ref, Path workdir)
+          throws RepoException, ValidationException {
         try {
           FileUtil.copyFilesRecursively(ref.path, workdir, copySymlinkStrategy, originFiles);
         } catch (AbsoluteSymlinksNotAllowed e) {
-          throw new RepoException(String.format("Cannot copy files into the workdir: Some symlinks"
-              + " refer to locations outside of the folder and 'materialize_outside_symlinks'"
-              + " config option was not used:\n"
+          throw new ValidationException(String.format("Cannot copy files into the workdir: Some"
+              + " symlinks refer to locations outside of the folder and"
+              + " 'materialize_outside_symlinks' config option was not used:\n"
               + "  %s -> %s\n", e.getSymlink(), e.getDestinationFile()));
         } catch (IOException e) {
           throw new RepoException(String.format("Cannot copy files into the workdir:\n"

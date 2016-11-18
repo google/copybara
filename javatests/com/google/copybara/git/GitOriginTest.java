@@ -204,7 +204,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testCheckout() throws IOException, RepoException {
+  public void testCheckout() throws IOException, RepoException, ValidationException {
     // Check that we get can checkout a branch
     newReader().checkout(origin.resolve("master"), checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
@@ -275,7 +275,8 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testCheckoutWithLocalModifications() throws IOException, RepoException {
+  public void testCheckoutWithLocalModifications()
+      throws IOException, RepoException, ValidationException {
     GitReference master = origin.resolve("master");
     Reader<GitReference> reader = newReader();
     reader.checkout(master, checkoutDir);
@@ -293,7 +294,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testCheckoutOfARef() throws IOException, RepoException {
+  public void testCheckoutOfARef() throws IOException, RepoException, ValidationException {
     GitReference reference = origin.resolve(firstCommitRef);
     newReader().checkout(reference, checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
