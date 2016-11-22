@@ -16,13 +16,14 @@
 
 package com.google.copybara.authoring;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
+import java.util.Objects;
 
 /**
  * Represents the contributor of a change in the destination repository. A contributor can be
@@ -70,13 +71,12 @@ public final class Author {
 
   @Override
   public boolean equals(Object o) {
-    // TODO(copybara-team): We should revisit this. Email should be the identifier to be able to
-    // match two users with slightly different names "Foo B <foo@bar.com>" and
-    // "Foo Bar <foo@bar.com>", but email can be empty in Git standard author format.
     if (o instanceof Author) {
       Author that = (Author) o;
-      return Objects.equal(this.name, that.name)
-          && Objects.equal(this.email, that.email);
+      // Authors with the same non-empty email are the same author
+      return Strings.isNullOrEmpty(this.email) && Strings.isNullOrEmpty(that.email)
+          ? Objects.equals(this.name, that.name)
+          : Objects.equals(this.email, that.email);
     }
     return false;
   }
@@ -93,6 +93,8 @@ public final class Author {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.name, this.email);
+    return Strings.isNullOrEmpty(this.email)
+        ? Objects.hashCode(this.name)
+        : Objects.hashCode(this.email);
   }
 }

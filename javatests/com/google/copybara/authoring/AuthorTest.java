@@ -66,9 +66,19 @@ public class AuthorTest {
   @Test
   public void testEquals() throws Exception {
     new EqualsTester()
+        // Authors with the same non-empty email are the same author
         .addEqualityGroup(
-            new Author("Foo Bar", "foo@bar.com"), new Author("Foo Bar", "foo@bar.com"))
-        .addEqualityGroup(new Author("Copybara", "no-reply@google.com"))
+            new Author("Foo Bar", "foo@bar.com"),
+            new Author("Foo Bar", "foo@bar.com"),
+            new Author("Foo B", "foo@bar.com")
+        )
+        // Authors with empty email are only equal if they have the same exact name
+        .addEqualityGroup(
+            new Author("Foo Bar", ""),
+            new Author("Foo Bar", "")
+        )
+        .addEqualityGroup(new Author("Bar Foo", "bar@foo.com"))
+        .addEqualityGroup(new Author("Bar Foo", ""))
         .testEquals();
   }
 }
