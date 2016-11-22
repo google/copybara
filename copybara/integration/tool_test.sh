@@ -1145,4 +1145,36 @@ EOF
   expect_log "c1 foooo destination/[a-f0-9]\{1,\} bar"
 }
 
+function test_invalid_last_rev() {
+  remote=$(temp_dir remote)
+  destination=$(empty_git_bare_repo)
+
+  pushd $remote
+    run_git init .
+    commit_initial=$(single_file_commit "initial rev commit" file2.txt "initial")
+  popd
+
+    cat > copy.bara.sky <<EOF
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "master",
+    ),
+    exclude_in_origin = glob(["file2.txt"]),
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "master",
+      push = "master",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "ITERATIVE",
+)
+EOF
+
+  copybara_with_exit_code $REPOSITORY_ERROR copy.bara.sky default --last-rev --some-other-flag
+
+  expect_log "Invalid refspec: --some-other-flag"
+}
+
 run_suite "Integration tests for Copybara code sharing tool."

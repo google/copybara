@@ -180,10 +180,8 @@ public class GitRepository {
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
           env,
           /*verbose=*/false);
-    } catch (BadExitStatusWithOutputException e) {
-      throw new EvalException(location, "Invalid refspec: " + refspec);
     } catch (CommandException e) {
-      throw new RuntimeException("Error validating refspec", e);
+      throw new EvalException(location, "Invalid refspec: " + refspec);
     }
   }
 
