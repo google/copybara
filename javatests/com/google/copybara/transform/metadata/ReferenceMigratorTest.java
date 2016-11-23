@@ -213,7 +213,8 @@ public class ReferenceMigratorTest {
             + "        \"I_do_not_belong_here\": \"[0-9a-f]+\",\n"
             + "    },\n"
             + ")",
-        "Should only contain 'before_ref' and optionally 'after_ref'. Was: .I_do_not_belong_here.");
+        "Should only contain 'before_ref' and optionally 'after_ref'. "
+            + "Was: \\[.*I_do_not_belong_here.*\\].");
   }
 
   @Test
