@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 licenses(["notice"])  # Apache 2.0
 
 java_library(
     name = "testing",
     testonly = 1,
     srcs = glob(["**/*.java"]),
-    javacopts = ["-Xlint:unchecked", "-source", "1.8"],
+    javacopts = [
+        "-Xlint:unchecked",
+        "-source",
+        "1.8",
+    ],
     visibility = [
         "//visibility:public",
     ],
