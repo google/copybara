@@ -18,9 +18,9 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination;
@@ -30,6 +30,7 @@ import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyReference;
@@ -646,11 +647,17 @@ public class GitDestinationTest {
     DummyReference ref = new DummyReference("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("excluded"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles), ref);
     String firstCommit = repo().revParse("HEAD");
     Files.write(workdir.resolve("test.txt"), "new content".getBytes());
     process(destination().newWriter(destinationFiles), ref);
 
+    // Lets exclude now 'excluded' so that we check that the rebase correctly ignores
+    // the missing file (IOW, it doesn't delete the file in the commit).
+    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("excluded"));
+
+    Files.delete(workdir.resolve("excluded"));
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Files.write(workdir.resolve("other.txt"), "other file".getBytes());
     processWithBaseline(destination().newWriter(destinationFiles), ref, firstCommit);
@@ -658,6 +665,7 @@ public class GitDestinationTest {
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "new content")
         .containsFile("other.txt", "other file")
+        .containsFile("excluded", "some content")
         .containsNoMoreFiles();
   }
 

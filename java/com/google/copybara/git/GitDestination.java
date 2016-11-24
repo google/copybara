@@ -242,6 +242,10 @@ public final class GitDestination implements Destination<GitReference> {
           commitGenerator.message(transformResult, alternate));
 
       if (baseline != null) {
+        // Our current implementation (That we should change) leaves unstaged files in the
+        // work-tree. This is fine for commit/push but not for rebase, since rebase could fail
+        // and needs to create a conflict resolution work-tree.
+        alternate.simpleCommand("reset", "--hard");
         alternate.rebase("FETCH_HEAD");
       }
 
