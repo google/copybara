@@ -29,7 +29,8 @@ public interface ChangeVisitable <R extends Reference> {
    *
    * <p>It is up to the Origin how and what changes it provides to the function.
    */
-  void visitChanges(R start, ChangesVisitor visitor) throws RepoException;
+  void visitChanges(R start, ChangesVisitor visitor)
+      throws RepoException, CannotResolveReferenceException;
 
   /**
    * A visitor of changes. An implementation of this interface is provided to {@see

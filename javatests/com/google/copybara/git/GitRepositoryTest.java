@@ -125,7 +125,7 @@ public class GitRepositoryTest {
   }
 
   @Test
-  public void testFetch() throws RepoException, IOException {
+  public void testFetch() throws Exception {
     GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
         System.getenv(), /*verbose=*/true);
     dest.initGitDir();
@@ -162,7 +162,7 @@ public class GitRepositoryTest {
 
   @Test
   public void testCheckoutLocalBranch() throws Exception {
-    thrown.expect(CannotResolveReferenceException.class);
+    thrown.expect(RepoException.class);
     thrown.expectMessage("Cannot find reference 'foo'");
     repository.simpleCommand("checkout", "foo");
   }

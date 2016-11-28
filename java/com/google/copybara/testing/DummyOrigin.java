@@ -100,7 +100,8 @@ public class DummyOrigin implements Origin<DummyReference> {
   }
 
   @Override
-  public DummyReference resolve(@Nullable final String reference) throws RepoException {
+  public DummyReference resolve(@Nullable final String reference)
+      throws RepoException, CannotResolveReferenceException {
     int idx = changes.size() - 1;
     if (reference != null) {
       try {

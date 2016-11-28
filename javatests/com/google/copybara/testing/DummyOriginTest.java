@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -84,7 +85,7 @@ public class DummyOriginTest {
         .addSimpleChange(/*timestamp*/ 9)
         .addSimpleChange(/*timestamp*/ 98);
 
-    thrown.expect(RepoException.class);
+    thrown.expect(CannotResolveReferenceException.class);
     thrown.expectMessage("Cannot find any change for 42. Only 2 changes exist");
     origin.resolve("42");
   }

@@ -1172,7 +1172,7 @@ core.workflow(
 )
 EOF
 
-  copybara_with_exit_code $REPOSITORY_ERROR copy.bara.sky default --last-rev --some-other-flag
+  copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky default --last-rev --some-other-flag
 
   expect_log "Invalid refspec: --some-other-flag"
 }

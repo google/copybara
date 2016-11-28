@@ -19,7 +19,7 @@ package com.google.copybara;
 /**
  * Indicates that a reference could not be resolved in a repository.
  */
-public class CannotResolveReferenceException extends RepoException {
+public class CannotResolveReferenceException extends ValidationException {
   public CannotResolveReferenceException(String message) {
     super(message);
   }

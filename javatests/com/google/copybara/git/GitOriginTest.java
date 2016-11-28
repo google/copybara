@@ -104,7 +104,7 @@ public class GitOriginTest {
     firstCommitRef = head.substring(0, head.length() -1);
   }
 
-  private void createTestRepo(Path folder) throws IOException, RepoException {
+  private void createTestRepo(Path folder) throws Exception {
     remote = folder;
     repo = GitRepository.initScratchRepo(/*verbose*/true, remote, options.general.getEnvironment());
   }
@@ -204,7 +204,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testCheckout() throws IOException, RepoException, ValidationException {
+  public void testCheckout() throws Exception, ValidationException {
     // Check that we get can checkout a branch
     newReader().checkout(origin.resolve("master"), checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
@@ -231,13 +231,13 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testResolveNonExistentFullSha1() throws IOException, RepoException {
+  public void testResolveNonExistentFullSha1() throws Exception {
     thrown.expect(CannotResolveReferenceException.class);
     origin.resolve(Strings.repeat("a", 40));
   }
 
   @Test
-  public void testResolveNonExistentRef() throws IOException, RepoException {
+  public void testResolveNonExistentRef() throws Exception {
     thrown.expect(CannotResolveReferenceException.class);
     origin.resolve("refs/for/copy/bara");
   }
@@ -276,7 +276,7 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutWithLocalModifications()
-      throws IOException, RepoException, ValidationException {
+      throws Exception, ValidationException {
     GitReference master = origin.resolve("master");
     Reader<GitReference> reader = newReader();
     reader.checkout(master, checkoutDir);
@@ -294,7 +294,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testCheckoutOfARef() throws IOException, RepoException, ValidationException {
+  public void testCheckoutOfARef() throws Exception, ValidationException {
     GitReference reference = origin.resolve(firstCommitRef);
     newReader().checkout(reference, checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
@@ -303,7 +303,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testChanges() throws IOException, RepoException {
+  public void testChanges() throws Exception {
     // Need to "round" it since git doesn't store the milliseconds
     ZonedDateTime beforeTime = ZonedDateTime.now().minusSeconds(1);
     String author = "John Name <john@name.com>";
@@ -326,7 +326,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testNoChanges() throws IOException, RepoException {
+  public void testNoChanges() throws Exception {
     ImmutableList<Change<GitReference>> changes = newReader()
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
@@ -334,7 +334,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testChange() throws IOException, RepoException {
+  public void testChange() throws Exception {
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "change2", "test.txt", "some content2");
 
@@ -347,7 +347,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testChangeMultiLabel() throws IOException, RepoException {
+  public void testChangeMultiLabel() throws Exception {
     String commitMessage = ""
         + "I am a commit with a label happening twice\n"
         + "\n"
@@ -367,18 +367,18 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testNoChange() throws IOException, RepoException {
+  public void testNoChange() throws Exception {
     // This is needed to initialize the local repo
     origin.resolve(firstCommitRef);
 
-    thrown.expect(RepoException.class);
+    thrown.expect(CannotResolveReferenceException.class);
     thrown.expectMessage("Cannot find references: [foo]");
 
     origin.resolve("foo");
   }
 
   @Test
-  public void testVisit() throws IOException, RepoException {
+  public void testVisit() throws Exception {
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "one", "test.txt", "some content1");
     singleFileCommit(author, "two", "test.txt", "some content2");
@@ -400,7 +400,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testVisitMerge() throws IOException, RepoException {
+  public void testVisitMerge() throws Exception {
     createBranchMerge("John Name <john@name.com>");
     GitReference lastCommitRef = getLastCommitRef();
     final List<Change<?>> visited = new ArrayList<>();
@@ -423,7 +423,7 @@ public class GitOriginTest {
    * Check that we can overwrite the git url using the CLI option and that we show a message
    */
   @Test
-  public void testGitUrlOverwrite() throws ValidationException, IOException, RepoException {
+  public void testGitUrlOverwrite() throws Exception {
     createTestRepo(Files.createTempDirectory("cliremote"));
     git("init");
     Files.write(remote.resolve("cli_remote.txt"), "some change".getBytes());
@@ -452,7 +452,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testChangesMerge() throws IOException, RepoException {
+  public void testChangesMerge() throws Exception {
     // Need to "round" it since git doesn't store the milliseconds
     ZonedDateTime beforeTime = ZonedDateTime.now().minusSeconds(1);
 
@@ -473,7 +473,7 @@ public class GitOriginTest {
     }
   }
 
-  public void createBranchMerge(String author) throws RepoException, IOException {
+  public void createBranchMerge(String author) throws Exception {
     git("branch", "feature");
     git("checkout", "feature");
     singleFileCommit(author, "change2", "test2.txt", "some content2");
@@ -487,7 +487,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void canReadTimestamp() throws IOException, RepoException {
+  public void canReadTimestamp() throws Exception {
     Files.write(remote.resolve("test2.txt"), "some more content".getBytes());
     repo.add().files("test2.txt").run();
     git("commit", "-m", "second file", "--date=1400110011");
@@ -498,7 +498,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testColor() throws RepoException, IOException {
+  public void testColor() throws Exception {
     git("config", "--global", "color.ui", "always");
 
     GitReference firstRef = origin.resolve(firstCommitRef);
@@ -523,14 +523,14 @@ public class GitOriginTest {
     assertThat(instant).isEqualTo(Instant.parse(commitTime));
   }
 
-  private GitReference getLastCommitRef() throws RepoException {
+  private GitReference getLastCommitRef() throws RepoException, CannotResolveReferenceException {
     String head = git("rev-parse", "HEAD");
     String lastCommit = head.substring(0, head.length() -1);
     return origin.resolve(lastCommit);
   }
 
   private void singleFileCommit(String author, String commitMessage, String fileName,
-      String fileContent) throws IOException, RepoException {
+      String fileContent) throws Exception {
     Files.write(remote.resolve(fileName), fileContent.getBytes(UTF_8));
     repo.add().files(fileName).run();
     git("commit", "-m", commitMessage, "--author=" + author);

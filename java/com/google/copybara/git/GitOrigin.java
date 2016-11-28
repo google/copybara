@@ -114,7 +114,8 @@ public final class GitOrigin implements Origin<GitReference> {
      * <p>Any content in the workdir is removed/overwritten.
      */
     @Override
-    public void checkout(GitReference ref, Path workdir) throws RepoException {
+    public void checkout(GitReference ref, Path workdir)
+        throws RepoException, CannotResolveReferenceException {
       checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref);
       if (!Strings.isNullOrEmpty(gitOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
@@ -123,7 +124,7 @@ public final class GitOrigin implements Origin<GitReference> {
 
     private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
         SubmoduleStrategy submoduleStrategy, GitReference ref)
-        throws RepoException {
+        throws RepoException, CannotResolveReferenceException {
 
       GitRepository repo = repository.withWorkTree(workdir);
       repo.simpleCommand("checkout", "-q", "-f", ref.asString());
@@ -188,7 +189,7 @@ public final class GitOrigin implements Origin<GitReference> {
 
     @Override
     public void visitChanges(GitReference start, ChangesVisitor visitor)
-        throws RepoException {
+        throws RepoException, CannotResolveReferenceException {
       ChangeReader queryChanges =
           ChangeReader.Builder.forOrigin(authoring, repository, console)
               .setVerbose(verbose)
@@ -236,7 +237,8 @@ public final class GitOrigin implements Origin<GitReference> {
   }
 
   @Override
-  public GitReference resolve(@Nullable String reference) throws RepoException {
+  public GitReference resolve(@Nullable String reference)
+      throws RepoException, CannotResolveReferenceException {
     console.progress("Git Origin: Initializing local repo");
     repository.initGitDir();
     String ref;

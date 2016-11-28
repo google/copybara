@@ -342,7 +342,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
     O getLastRev() throws RepoException, ValidationException {
       O lastRev = maybeGetLastRev();
       if (lastRev == null) {
-        throw new RepoException(String.format(
+        throw new CannotResolveReferenceException(String.format(
                 "Previous revision label %s could not be found in %s and --last-rev flag"
                 + " was not passed", origin.getLabelName(), destination));
       }

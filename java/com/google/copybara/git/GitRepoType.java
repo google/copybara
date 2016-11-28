@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
@@ -49,7 +50,7 @@ public enum GitRepoType {
      */
     @Override
     GitReference resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
-        throws RepoException {
+        throws RepoException, CannotResolveReferenceException {
       logger.log(Level.INFO, "Resolving " + repoUrl + " reference: " + ref);
       if (!GIT_URL.matcher(ref).matches() && !FILE_URL.matcher(ref).matches()) {
         // If ref is not an url try a normal fetch of repoUrl and ref
@@ -81,7 +82,7 @@ public enum GitRepoType {
      */
     @Override
     GitReference resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
-        throws RepoException {
+        throws RepoException, CannotResolveReferenceException {
       if (ref.startsWith("https://github.com") && ref.startsWith(repoUrl)) {
         GitReference ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
         if (ghPullRequest != null) {
@@ -95,7 +96,7 @@ public enum GitRepoType {
   GERRIT {
     @Override
     GitReference resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
-        throws RepoException {
+        throws RepoException, CannotResolveReferenceException {
       // TODO(copybara-team): if ref is gerrit url, resolve it properly
       return GIT.resolveRef(repository, repoUrl, ref, console);
     }
@@ -107,7 +108,7 @@ public enum GitRepoType {
    */
   @Nullable
   static protected GitReference maybeFetchGithubPullRequest(GitRepository repository, String ref)
-      throws RepoException {
+      throws RepoException, CannotResolveReferenceException {
     Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
     if (matcher.matches()) {
       return repository.fetchSingleRef(
@@ -127,5 +128,5 @@ public enum GitRepoType {
   private static final Pattern FILE_URL = Pattern.compile("file://(.*)");
 
   abstract GitReference resolveRef(GitRepository repository, String repoUrl, String ref,
-      Console console) throws RepoException;
+      Console console) throws RepoException, CannotResolveReferenceException;
 }

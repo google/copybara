@@ -192,7 +192,8 @@ public class GitRepository {
    * locations. IOW
    * "refs/foo" is allowed but not "refs/foo:remote/origin/foo". Wildcards are also not allowed.
    */
-  public GitReference fetchSingleRef(String url, String ref) throws RepoException {
+  public GitReference fetchSingleRef(String url, String ref)
+      throws RepoException, CannotResolveReferenceException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveReferenceException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
@@ -227,7 +228,7 @@ public class GitRepository {
    * updated, etc.)
    */
   FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
-      throws RepoException {
+      throws RepoException, CannotResolveReferenceException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
     args.add("--verbose");
@@ -629,7 +630,7 @@ public class GitRepository {
       for (Pattern error : REF_NOT_FOUND_ERRORS) {
         Matcher matcher = error.matcher(output.getStderr());
         if (matcher.find()) {
-          throw new CannotResolveReferenceException(
+          throw new RepoException(
               "Cannot find reference '" + matcher.group(1) + "'");
         }
       }
@@ -710,7 +711,8 @@ public class GitRepository {
    *
    * @throws CannotResolveReferenceException if it cannot resolve the reference
    */
-  GitReference resolveReference(String reference) throws RepoException {
+  GitReference resolveReference(String reference)
+      throws RepoException, CannotResolveReferenceException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
     // check that the reference exists.
     if (GitReference.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {

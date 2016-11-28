@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Strings;
+import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -82,7 +83,7 @@ public class GitRepoTypeTest {
   }
 
   @Test
-  public void testResolveSha1() throws RepoException {
+  public void testResolveSha1() throws Exception {
     disableFetchMocks();
     String sha1 = fileRepo.git(fileRepoDir, "rev-parse", "HEAD").getStdout().trim();
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, console).asString())
@@ -92,7 +93,7 @@ public class GitRepoTypeTest {
   }
 
   @Test
-  public void testResolveRef() throws RepoException {
+  public void testResolveRef() throws Exception {
     disableFetchMocks();
     String sha1 = fileRepo.git(fileRepoDir, "rev-parse", "HEAD").getStdout().trim();
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, "master", console).asString())
@@ -102,7 +103,7 @@ public class GitRepoTypeTest {
   }
 
   @Test
-  public void testResolveFileUrlAndRef() throws RepoException {
+  public void testResolveFileUrlAndRef() throws Exception {
     disableFetchMocks();
     String firstCommitBranchSha1 = fileRepo.git(fileRepoDir, "rev-parse", "first_commit")
         .getStdout().trim();
@@ -112,7 +113,7 @@ public class GitRepoTypeTest {
   }
 
   @Test
-  public void testGitResolveUrl() throws RepoException {
+  public void testGitResolveUrl() throws Exception {
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use", "https://github.com/google/example",
         console).asString())
         .hasLength(40);
@@ -121,7 +122,7 @@ public class GitRepoTypeTest {
   }
 
   @Test
-  public void testGitResolveUrlAndRef() throws RepoException {
+  public void testGitResolveUrlAndRef() throws Exception {
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use",
         "https://github.com/google/example master", console).asString())
         .hasLength(40);
@@ -130,7 +131,7 @@ public class GitRepoTypeTest {
   }
 
   @Test
-  public void testGitResolvePullRequest() throws RepoException {
+  public void testGitResolvePullRequest() throws Exception {
     assertThat(GitRepoType.GITHUB.resolveRef(testRepo, "https://github.com/google/example",
         "https://github.com/google/example/pull/1", console).asString())
         .hasLength(40);

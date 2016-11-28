@@ -325,7 +325,7 @@ public final class GitDestination implements Destination<GitReference> {
 
     @Override
     public void visitChanges(GitReference start, ChangesVisitor visitor)
-        throws RepoException {
+        throws RepoException, CannotResolveReferenceException {
       GitRepository repository = cloneBaseline();
       String revString = start == null ? "FETCH_HEAD" : start.asString();
       ChangeReader changeReader =
