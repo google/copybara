@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.ChangeVisitable;
 import com.google.copybara.ChangeVisitable.VisitResult;
@@ -58,6 +59,8 @@ public class ReferenceMigrator implements Transformation {
   private final TemplateTokens after;
   private final Location location;
   private final Pattern pattern;
+  private final ImmutableList<String> additionalLabels;
+
   @Nullable private final Pattern reversePattern;
 
   private final Map<String, String> knownChanges = new HashMap<>();
@@ -67,17 +70,19 @@ public class ReferenceMigrator implements Transformation {
       TemplateTokens after,
       Pattern pattern,
       Pattern reversePattern,
+      ImmutableList<String> additionalLabels,
       Location location) {
     this.before = checkNotNull(before, "before");
     this.after = checkNotNull(after, "after");
     this.location = checkNotNull(location, "location");
     this.pattern = checkNotNull(pattern, "pattern");
+    this.additionalLabels = checkNotNull(additionalLabels, "additionalLabels");
     this.reversePattern = reversePattern;
   }
 
   public static ReferenceMigrator create(
       String before, String after, Pattern forward, @Nullable Pattern backward,
-      Location location) throws EvalException {
+      ImmutableList<String> additionalLabels, Location location) throws EvalException {
     Map<String, Pattern> patterns = ImmutableMap.<String, Pattern>of("reference", forward);
     TemplateTokens beforeTokens =
         new TemplateTokens(location, before, patterns, /*RepeatedGroups=*/ false);
@@ -90,7 +95,8 @@ public class ReferenceMigrator implements Transformation {
       throw new EvalException(location,
           String.format("Destination format '%s' uses the reserved token '$1'.", after));
     }
-    return new ReferenceMigrator(beforeTokens, afterTokens, forward, backward, location);
+    return new ReferenceMigrator(
+        beforeTokens, afterTokens, forward, backward, additionalLabels, location);
   }
 
   @Override
@@ -140,6 +146,8 @@ public class ReferenceMigrator implements Transformation {
       final String originLabel,
       final ChangeVisitable<?> destinationReader) throws  ValidationException {
     final AtomicInteger changesVisited = new AtomicInteger(0);
+    ImmutableList<String> originLabels =
+        ImmutableList.<String>builder().add(originLabel).addAll(additionalLabels).build();
     if (destinationReader == null) {
       throw new ValidationException("Destination does not support reading change history.");
     }
@@ -149,11 +157,13 @@ public class ReferenceMigrator implements Transformation {
       try {
         destinationReader.visitChanges(null, input -> {
           Map<String, String> labels = input.getLabels();
-          if (labels.containsKey(originLabel)) {
-            String originRef = labels.get(originLabel);
-            knownChanges.putIfAbsent(originRef, input.refAsString());
-            if (originRef.equals(refBeingMigrated)) {
-              return VisitResult.TERMINATE;
+          for (String label : originLabels) {
+            if (labels.containsKey(label)) {
+              String originRef = labels.get(label);
+              knownChanges.putIfAbsent(originRef, input.refAsString());
+              if (originRef.equals(refBeingMigrated)) {
+                return VisitResult.TERMINATE;
+              }
             }
           }
           if (changesVisited.incrementAndGet() > MAX_CHANGES_TO_VISIT) {
@@ -173,7 +183,6 @@ public class ReferenceMigrator implements Transformation {
       }
     }
   }
-
 
   @Override
   public String toString() {

@@ -18,6 +18,7 @@ package com.google.copybara.transform.metadata;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
@@ -83,6 +84,7 @@ public class ReferenceMigratorTest {
         "http://externalreviews.com/view?${reference}",
         Pattern.compile("[0-9]+"),
         Pattern.compile("[0-9a-f]+"),
+        ImmutableList.<String>of(),
         location);
      OptionsBuilder options = new OptionsBuilder();
     console = new TestingConsole();
@@ -126,11 +128,11 @@ public class ReferenceMigratorTest {
 
   @Test
   public void testOldReferenceGetsNotUpdated() throws Exception {
-    String desc = "This is an awesome change, building on http://internalReviews.com/5005";
+    String desc = "This is an awesome change, building on http://internalReviews.com/110";
     TransformWork work = getTransformWork(desc);
     referenceMigrator.transform(work);
     assertThat(work.getMessage())
-        .isEqualTo("This is an awesome change, building on http://internalReviews.com/5005");
+        .isEqualTo("This is an awesome change, building on http://internalReviews.com/110");
   }
 
   @Test
@@ -147,6 +149,24 @@ public class ReferenceMigratorTest {
   }
 
   @Test
+  public void testLegacyLabel() throws Exception {
+    referenceMigrator = ReferenceMigrator.create(
+        "http://internalReviews.com/${reference}",
+        "http://externalreviews.com/view?${reference}",
+        Pattern.compile("[0-9]+"),
+        Pattern.compile("[0-9a-f]+"),
+        ImmutableList.<String>of("LegacyImporter"),
+        location);
+    String desc = "This is an awesome change, building on http://internalReviews.com/123";
+    TransformWork work = getTransformWork(desc);
+    referenceMigrator.transform(work);
+    assertThat(work.getMessage())
+        .isEqualTo("This is an awesome change, building on http://externalreviews.com/view?7b");
+  }
+
+
+
+  @Test
   public void testReverseRegexEnforced() throws Exception {
     String desc = "This is an awesome change, building on http://internalReviews.com/123";
     referenceMigrator = ReferenceMigrator.create(
@@ -154,6 +174,7 @@ public class ReferenceMigratorTest {
         "http://externalreviews.com/view?${reference}",
         Pattern.compile("[0-9]+"),
         Pattern.compile("[xyz]+"),
+        ImmutableList.<String>of(),
         location);
     TransformWork work = getTransformWork(desc);
     thrown.expect(ValidationException.class);
@@ -295,6 +316,9 @@ public class ReferenceMigratorTest {
 
         if (changeNumber % 5 != 0) {
           labels.put(origin.getLabelName(), "" + changeNumber);
+        }
+        if (changeNumber % 11 == 0) {
+          labels.put("LegacyImporter", "" + changeNumber);
         }
         change = new Change<>(new DummyReference(destinationId),
             new Author("Foo", "Bar"),

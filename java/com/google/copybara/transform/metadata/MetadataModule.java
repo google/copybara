@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform.metadata;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.Transformation;
 import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
@@ -27,6 +28,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
+import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.util.Map;
@@ -190,6 +193,12 @@ public class MetadataModule {
               doc = "Regexes for the ${reference} token's content. Requires one 'before_ref' entry"
                   + " matching the ${reference} token's content on the before side. Optionally"
                   + " accepts one 'after_ref' used for validation."),
+          @Param(name = "additional_import_labels",
+              type = SkylarkList.class, generic1 = String.class, defaultValue = "[]",
+              doc = "Meant to be used when migrating from another tool: Per default, copybara will "
+                  + "only recognize the labels defined in the workflow's endpoints. The tool will "
+                  + "use these additional labels to find labels created by other invocations and "
+                  + "tools."),
       },
       objectType = MetadataModule.class, useLocation = true)
   @Example(title = "Map references, origin source of truth",
@@ -211,7 +220,8 @@ public class MetadataModule {
           + "otherwise.")
   public static final BuiltinFunction MAP_REFERENCES = new BuiltinFunction("map_references") {
     public ReferenceMigrator invoke(MetadataModule self, String originPattern,
-        String destinationFormat, SkylarkDict<String, String> groups, Location location)
+        String destinationFormat, SkylarkDict<String, String> groups, SkylarkList labels,
+        Location location)
         throws EvalException {
       if (!groups.containsKey("before_ref")
           || (groups.size() == 2 && !groups.containsKey("after_ref"))
@@ -241,6 +251,7 @@ public class MetadataModule {
               destinationFormat,
               beforePattern,
               afterPattern,
+              ImmutableList.<String>copyOf(Type.STRING_LIST.convert(labels, "labels")),
               location);
     }
   };
