@@ -60,7 +60,7 @@ public final class GitDestination implements Destination<GitReference> {
   static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
     public String message(TransformResult transformResult, GitRepository repo) {
-      return String.format("%s\n%s: %s\n",
+      return String.format("%s\n\n%s: %s\n",
           transformResult.getSummary(),
           transformResult.getOriginRef().getLabelName(),
           transformResult.getOriginRef().asString()

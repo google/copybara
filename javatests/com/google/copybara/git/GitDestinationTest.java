@@ -150,7 +150,7 @@ public class GitDestinationTest {
 
   private void assertCommitHasOrigin(String branch, String originRef) throws RepoException {
     assertThat(git("--git-dir", repoGitDir.toString(), "log", "-n1", branch))
-        .contains("\n    " + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
+        .contains("\n    \n    " + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
   }
 
   private void assertCommitHasAuthor(String branch, Author author) throws RepoException {
