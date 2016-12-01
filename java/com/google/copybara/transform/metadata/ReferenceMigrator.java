@@ -33,11 +33,6 @@ import com.google.copybara.transform.IntentionalNoop;
 import com.google.copybara.transform.TemplateTokens;
 import com.google.copybara.transform.TemplateTokens.Replacer;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
-import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Pattern;
 import java.util.HashMap;
@@ -57,8 +52,6 @@ public class ReferenceMigrator implements Transformation {
 
   private final TemplateTokens before;
   private final TemplateTokens after;
-  private final Location location;
-  private final Pattern pattern;
   private final ImmutableList<String> additionalLabels;
 
   @Nullable private final Pattern reversePattern;
@@ -68,14 +61,10 @@ public class ReferenceMigrator implements Transformation {
   ReferenceMigrator(
       TemplateTokens before,
       TemplateTokens after,
-      Pattern pattern,
       Pattern reversePattern,
-      ImmutableList<String> additionalLabels,
-      Location location) {
+      ImmutableList<String> additionalLabels) {
     this.before = checkNotNull(before, "before");
     this.after = checkNotNull(after, "after");
-    this.location = checkNotNull(location, "location");
-    this.pattern = checkNotNull(pattern, "pattern");
     this.additionalLabels = checkNotNull(additionalLabels, "additionalLabels");
     this.reversePattern = reversePattern;
   }
@@ -95,8 +84,7 @@ public class ReferenceMigrator implements Transformation {
       throw new EvalException(location,
           String.format("Destination format '%s' uses the reserved token '$1'.", after));
     }
-    return new ReferenceMigrator(
-        beforeTokens, afterTokens, forward, backward, additionalLabels, location);
+    return new ReferenceMigrator(beforeTokens, afterTokens, backward, additionalLabels);
   }
 
   @Override

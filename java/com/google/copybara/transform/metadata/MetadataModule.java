@@ -32,8 +32,6 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
-import java.util.Map;
-import javax.annotation.Nullable;
 
 /**
  * Metadata module for manipulating metadata of the changes. This is intended to be used by the
@@ -220,7 +218,7 @@ public class MetadataModule {
           + "otherwise.")
   public static final BuiltinFunction MAP_REFERENCES = new BuiltinFunction("map_references") {
     public ReferenceMigrator invoke(MetadataModule self, String originPattern,
-        String destinationFormat, SkylarkDict<String, String> groups, SkylarkList labels,
+        String destinationFormat, SkylarkDict<String, String> groups, SkylarkList<String> labels,
         Location location)
         throws EvalException {
       if (!groups.containsKey("before_ref")
@@ -230,7 +228,8 @@ public class MetadataModule {
             String.format("Invalid 'regex_groups' - Should only contain 'before_ref' and "
                 + "optionally 'after_ref'. Was: %s.", groups.keySet()));
       }
-      Pattern beforePattern, afterPattern = null;
+      Pattern beforePattern;
+      Pattern afterPattern = null;
       try {
         beforePattern = Pattern.compile(groups.get("before_ref"));
       } catch (java.util.regex.PatternSyntaxException exception) {
