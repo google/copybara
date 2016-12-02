@@ -22,14 +22,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.Change;
+import com.google.copybara.LabelFinder;
+import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.Change;
-import com.google.copybara.LabelFinder;
-import com.google.copybara.RepoException;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -51,15 +52,16 @@ class ChangeReader {
   private final Console console;
   private final boolean verbose;
   private final int limit;
-
+  private final ImmutableList<String> roots;
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, Console console,
-      boolean verbose, int limit) {
+      boolean verbose, int limit, Iterable<String> roots) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
-    this.console = checkNotNull(console, "console");;
+    this.console = checkNotNull(console, "console");
     this.verbose = verbose;
     this.limit = limit;
+    this.roots = ImmutableList.copyOf(roots);
   }
 
   ImmutableList<GitChange> run(String refExpression) throws RepoException {
@@ -74,6 +76,11 @@ class ChangeReader {
     params.add("--first-parent");
 
     params.add(refExpression);
+    if (!roots.get(0).isEmpty()) {
+      params.add("--");
+      params.addAll(roots);
+    }
+
     return parseChanges(
         repository.simpleCommand(params.toArray(new String[params.size()])).getStdout());
   }
@@ -186,13 +193,20 @@ class ChangeReader {
     private Console console;
     private boolean verbose = false;
     private int limit = -1;
+    private ImmutableList<String> roots = ImmutableList.of("");
 
+    // TODO(matvore): Consider adding destinationFiles.
+    // For ALL_FILES and where roots is [""], This will skip merges that don't affect the tree
+    // For other cases, this will skip merges and commits that don't affect a subtree
     static Builder forDestination(GitRepository repository, Console console) {
       return new Builder(repository, console);
     }
 
-    static Builder forOrigin(Authoring authoring, GitRepository repository, Console console) {
-      return new Builder(repository, console).setAuthoring(authoring);
+    static Builder forOrigin(
+        Authoring authoring, GitRepository repository, Console console, Glob originFiles) {
+      return new Builder(repository, console)
+          .setAuthoring(authoring)
+          .setRoots(originFiles.roots());
     }
 
     private Builder(GitRepository repository, Console console) {
@@ -216,8 +230,13 @@ class ChangeReader {
       return this;
     }
 
+    private Builder setRoots(Iterable<String> roots) {
+      this.roots = ImmutableList.copyOf(roots);
+      return this;
+    }
+
     ChangeReader build() {
-      return new ChangeReader(authoring, repository, console, verbose, limit);
+      return new ChangeReader(authoring, repository, console, verbose, limit, roots);
     }
   }
 

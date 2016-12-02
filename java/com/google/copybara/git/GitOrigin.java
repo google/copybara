@@ -102,10 +102,17 @@ public final class GitOrigin implements Origin<GitReference> {
 
   private class ReaderImpl implements Reader<GitReference> {
 
+    final Glob originFiles;
     final Authoring authoring;
 
-    ReaderImpl(Authoring authoring) {
-      this.authoring = checkNotNull(authoring);
+    ReaderImpl(Glob originFiles, Authoring authoring) {
+      this.originFiles = checkNotNull(originFiles, "originFiles");
+      this.authoring = checkNotNull(authoring, "authoring");
+    }
+
+    private ChangeReader.Builder changeReaderBuilder() {
+      return ChangeReader.Builder.forOrigin(authoring, repository, console, originFiles)
+          .setVerbose(verbose);
     }
 
     /**
@@ -169,32 +176,25 @@ public final class GitOrigin implements Origin<GitReference> {
       String refRange = fromRef == null
           ? toRef.asString()
           : fromRef.asString() + ".." + toRef.asString();
-      ChangeReader changeReader =
-          ChangeReader.Builder.forOrigin(authoring, repository, console)
-              .setVerbose(verbose)
-              .build();
+      ChangeReader changeReader = changeReaderBuilder().build();
       return asChanges(changeReader.run(refRange));
     }
 
     @Override
     public Change<GitReference> change(GitReference ref) throws RepoException {
       // The limit=1 flag guarantees that only one change is returned
-      ChangeReader changeReader =
-          ChangeReader.Builder.forOrigin(authoring, repository, console)
-              .setVerbose(verbose)
-              .setLimit(1)
-              .build();
+      ChangeReader changeReader = changeReaderBuilder()
+          .setLimit(1)
+          .build();
       return Iterables.getOnlyElement(asChanges(changeReader.run(ref.asString())));
     }
 
     @Override
     public void visitChanges(GitReference start, ChangesVisitor visitor)
         throws RepoException, CannotResolveReferenceException {
-      ChangeReader queryChanges =
-          ChangeReader.Builder.forOrigin(authoring, repository, console)
-              .setVerbose(verbose)
-              .setLimit(1)
-              .build();
+      ChangeReader queryChanges = changeReaderBuilder()
+          .setLimit(1)
+          .build();
 
       ImmutableList<GitChange> result = queryChanges.run(start.asString());
       if (result.isEmpty()) {
@@ -214,8 +214,7 @@ public final class GitOrigin implements Origin<GitReference> {
 
   @Override
   public Reader<GitReference> newReader(Glob originFiles, Authoring authoring) {
-    // TODO(matvore): Use originFiles to determine the depot trees from which to read.
-    return new ReaderImpl(checkNotNull(authoring, "authoring"));
+    return new ReaderImpl(originFiles, authoring);
   }
 
   private void runCheckoutOrigin(Path workdir) throws RepoException {

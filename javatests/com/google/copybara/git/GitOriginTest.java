@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
@@ -67,6 +68,7 @@ public class GitOriginTest {
   private GitRepository repo;
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
+  private Glob originFiles;
 
   @Rule public final ExpectedException thrown = ExpectedException.none();
 
@@ -99,9 +101,10 @@ public class GitOriginTest {
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
     repo.add().files("test.txt").run();
     git("commit", "-m", "first file", "--date", commitTime);
-    String head = git("rev-parse", "HEAD");
-    // Remove new line
-    firstCommitRef = head.substring(0, head.length() -1);
+    // trim() removes new line
+    firstCommitRef = git("rev-parse", "HEAD").trim();
+
+    originFiles = Glob.ALL_FILES;
   }
 
   private void createTestRepo(Path folder) throws Exception {
@@ -110,7 +113,7 @@ public class GitOriginTest {
   }
 
   private Reader<GitReference> newReader() {
-    return origin.newReader(Glob.ALL_FILES, authoring);
+    return origin.newReader(originFiles, authoring);
   }
 
   private GitOrigin origin() throws ValidationException {
@@ -521,6 +524,63 @@ public class GitOriginTest {
     Instant instant = origin.resolve("0.1").readTimestamp();
 
     assertThat(instant).isEqualTo(Instant.parse(commitTime));
+  }
+
+  @Test
+  public void doNotCountCommitsOutsideOfOriginFileRoots() throws Exception {
+    Files.write(remote.resolve("excluded_file.txt"), "some content".getBytes());
+    repo.add().files("excluded_file.txt").run();
+    git("commit", "-m", "excluded_file", "--date", commitTime);
+    // Note that one of the roots looks like a flag for "git log"
+    originFiles = new Glob(ImmutableList.of("include/**", "--parents/**"), ImmutableList.of());
+
+    // No files are in the included roots - make sure we can get an empty list of changes.
+    GitReference firstRef = origin.resolve(firstCommitRef);
+    assertThat(newReader().changes(firstRef, origin.resolve("HEAD")))
+        .isEmpty();
+
+    // Now add a file in an included root and make sure we get that change from the Reader.
+    Files.createDirectories(remote.resolve("--parents"));
+    Files.write(remote.resolve("--parents/included_file.txt"), "some content".getBytes());
+    repo.add().files("--parents/included_file.txt").run();
+    git("commit", "-m", "included_file", "--date", commitTime);
+    GitReference firstIncludedRef =
+        Iterables.getOnlyElement(
+            newReader().changes(firstRef, origin.resolve("HEAD")))
+        .getReference();
+
+    // Add an excluded file, and make sure the commit is skipped.
+    Files.write(remote.resolve("excluded_file_2.txt"), "some content".getBytes());
+    repo.add().files("excluded_file_2.txt").run();
+    git("commit", "-m", "excluded_file_2", "--date", commitTime);
+
+    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    assertThat(changes).hasSize(1);
+    assertThat(changes.get(0).getReference().asString())
+        .isEqualTo(firstIncludedRef.asString());
+
+    // Add another included file, and make sure we only get the 2 included changes, and the
+    // intervening excluded one is absent.
+    Files.write(remote.resolve("--parents/included_file_2.txt"), "some content".getBytes());
+    repo.add().files("--parents/included_file_2.txt").run();
+    git("commit", "-m", "included_file_2", "--date", commitTime);
+    changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    assertThat(changes).hasSize(2);
+    assertThat(changes.get(0).getReference().asString())
+        .isEqualTo(firstIncludedRef.asString());
+    assertThat(changes.get(1).getMessage())
+        .contains("included_file_2");
+  }
+
+  @Test
+  public void doNotSkipCommitsBecauseTreeIsIdenticalInSimpleRootMode() throws Exception {
+    // For legacy compatibility, if origin_files includes the repo root (roots = [""]), we still
+    // include commits even if they don't change the tree. We exclude such commits if the roots are
+    // limited.
+    git("commit", "-m", "empty_commit", "--date", commitTime, "--allow-empty");
+    GitReference firstRef = origin.resolve(firstCommitRef);
+    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    assertThat(Iterables.getOnlyElement(changes).getMessage()).contains("empty_commit");
   }
 
   private GitReference getLastCommitRef() throws RepoException, CannotResolveReferenceException {
