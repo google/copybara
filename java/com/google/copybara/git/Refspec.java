@@ -109,6 +109,7 @@ public class Refspec {
     return new Refspec(origin, destination, allowNoFastForward);
   }
 
+  @Override
   public String toString() {
      return (allowNoFastForward ? "+" : "") + origin + ":" + destination;
   }
