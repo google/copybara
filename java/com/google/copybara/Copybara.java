@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
  */
 public class Copybara {
 
-  private final SkylarkParser skylarkParser;
+  protected final SkylarkParser skylarkParser;
 
   public Copybara(SkylarkParser skylarkParser) {
     this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
