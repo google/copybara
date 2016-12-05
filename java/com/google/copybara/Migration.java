@@ -17,7 +17,6 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
