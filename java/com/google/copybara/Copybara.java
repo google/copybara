@@ -42,14 +42,14 @@ public class Copybara {
     this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
   }
 
-  public void run(Options options, ConfigFile configContents, String migrationName,
+  public void run(Options options, ConfigFile<?> configContents, String migrationName,
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
     Config config = loadConfig(options, configContents);
     config.getMigration(migrationName).run(baseWorkdir, sourceRef);
   }
 
-  public void info(Options options, ConfigFile configContents, String migrationName)
+  public void info(Options options, ConfigFile<?> configContents, String migrationName)
       throws IOException, ValidationException, RepoException {
     Console console = options.get(GeneralOptions.class).console();
     Config config = loadConfig(options, configContents);
@@ -63,7 +63,7 @@ public class Copybara {
     }
   }
 
-  public boolean validate(Options options, ConfigFile configContent)
+  public boolean validate(Options options, ConfigFile<?> configContent)
       throws RepoException, IOException {
     Console console = options.get(GeneralOptions.class).console();
     ArrayList<String> messages = new ArrayList<>();
@@ -89,7 +89,7 @@ public class Copybara {
     return messages.isEmpty();
   }
 
-  private Config loadConfig(Options options, ConfigFile configContents)
+  private Config loadConfig(Options options, ConfigFile<?> configContents)
       throws IOException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Console console = generalOptions.console();
