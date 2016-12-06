@@ -40,6 +40,10 @@ public class WorkflowOptions implements Option {
       description = "Last revision that was migrated to the destination")
   String lastRevision;
 
+  @Parameter(names = "--iterative-limit-changes",
+      description = "Import just a number of changes instead of all the pending ones")
+  int iterativeLimitChanges = Integer.MAX_VALUE;
+
   @Parameter(names = "--ignore-noop",
       description = "Only warn about operations/transforms that didn't have any effect."
           + " For example: A transform that didn't modify any file, non-existent origin"

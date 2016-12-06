@@ -20,7 +20,7 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.ProgressPrefixConsole;
@@ -29,6 +29,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -111,13 +112,19 @@ public enum WorkflowMode {
             "No new changes to import for resolved ref: " + runHelper.getResolvedRef().asString());
       }
       int changeNumber = 1;
-      UnmodifiableIterator<Change<O>> changesIterator = changes.iterator();
+
+      int limit = runHelper.workflowOptions().iterativeLimitChanges;
+      Iterator<Change<O>> changesIterator = Iterables.limit(changes, limit).iterator();
+      if (limit < changes.size()) {
+        runHelper.getConsole().info(String.format("Importing first %d change(s) out of %d",
+            limit, changes.size()));
+      }
       Deque<Change<O>> migrated = new ArrayDeque<>();
       while (changesIterator.hasNext()) {
         Change<O> change = changesIterator.next();
         String prefix = String.format(
             "Change %d of %d (%s): ",
-            changeNumber, changes.size(), change.getReference().asString());
+            changeNumber, Math.min(changes.size(), limit), change.getReference().asString());
         WriterResult result;
         try {
           result = runHelper.migrate(

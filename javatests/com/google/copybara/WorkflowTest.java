@@ -192,6 +192,28 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testIterativeModeWithLimit() throws Exception {
+    for (int timestamp = 0; timestamp < 51; timestamp++) {
+      origin.addSimpleChange(timestamp);
+    }
+    // First change so that iterative can find last imported revisions
+    iterativeWorkflow(/*previousRef=*/"40").run(workdir, /*sourceRef=*/"41");
+    options.workflowOptions.iterativeLimitChanges = 1;
+    int numClsBefore = destination.processed.size();
+    for (int i = 42; i <= 50; i++) {
+      iterativeWorkflow(/*previousRef=*/null).run(workdir, /*sourceRef=*/"50");
+      assertThat(destination.processed).hasSize(numClsBefore + 1);
+      numClsBefore++;
+      assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+          .isEqualTo(i + " change");
+    }
+
+    // Check that we don't import anything else after we have migrated all pending changes.
+    thrown.expect(EmptyChangeException.class);
+    iterativeWorkflow(/*previousRef=*/null).run(workdir, /*sourceRef=*/null);
+  }
+
+  @Test
   public void iterativeWorkflowTest_whitelistAuthoring() throws Exception {
     origin
         .addSimpleChange(0)
