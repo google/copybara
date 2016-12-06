@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
  */
 public class Copybara {
 
-  protected final SkylarkParser skylarkParser;
+  private final SkylarkParser skylarkParser;
 
   public Copybara(SkylarkParser skylarkParser) {
     this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
@@ -49,7 +49,7 @@ public class Copybara {
     config.getMigration(migrationName).run(baseWorkdir, sourceRef);
   }
 
-  public void info(Options options, ConfigFile<?> configContents, String migrationName)
+  public Config info(Options options, ConfigFile<?> configContents, String migrationName)
       throws IOException, ValidationException, RepoException {
     Console console = options.get(GeneralOptions.class).console();
     Config config = loadConfig(options, configContents);
@@ -61,6 +61,7 @@ public class Copybara {
               ref.getLastMigrated() != null ? ref.getLastMigrated().asString() : "None",
               ref.getNextToMigrate() != null ? ref.getNextToMigrate().asString() : "None"));
     }
+    return config;
   }
 
   public boolean validate(Options options, ConfigFile<?> configContent)
