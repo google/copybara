@@ -35,7 +35,7 @@ import com.google.copybara.transform.metadata.MetadataModule;
 /**
  * A supplier of modules and {@link Option}s for Copybara.
  */
-public class ConfigurationSupplier {
+public class ConfigSupplier {
 
   private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
       FolderModule.class,
@@ -48,14 +48,14 @@ public class ConfigurationSupplier {
   /**
    * Creates a new instance using the {@code USER_HOME} as the home dir.
    */
-  public ConfigurationSupplier() {
+  public ConfigSupplier() {
     this(USER_HOME.value());
   }
 
   /**
    * Creates a new instance with the given {@code homeDir}.
    */
-  public ConfigurationSupplier(String homeDir) {
+  public ConfigSupplier(String homeDir) {
     this.homeDir = Preconditions.checkNotNull(homeDir);
   }
 

@@ -69,7 +69,7 @@ public class ExamplesTest {
   }
 
   protected ImmutableSet<Class<?>> getUserModules() {
-    return new ConfigurationSupplier().getModules();
+    return new ConfigSupplier().getModules();
   }
 
 }

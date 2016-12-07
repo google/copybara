@@ -114,12 +114,12 @@ public class Main {
    */
   private ExitCode runInternal(String[] args, Console console, FileSystem fs) {
     try {
-      ConfigurationSupplier configurationSupplier = newConfigurationSupplier();
-      Copybara copybara = newCopybaraTool(configurationSupplier);
+      ConfigSupplier configSupplier = newConfigSupplier();
+      Copybara copybara = newCopybaraTool(configSupplier);
 
       final MainArguments mainArgs = new MainArguments();
       GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-      List<Option> allOptions = new ArrayList<>(configurationSupplier.newOptions());
+      List<Option> allOptions = new ArrayList<>(configSupplier.newOptions());
       JCommander jcommander = new JCommander(ImmutableList.builder()
           .addAll(allOptions)
           .add(mainArgs)
@@ -246,15 +246,15 @@ public class Main {
   /**
    * Returns a new instance of {@link Copybara}.
    */
-  protected Copybara newCopybaraTool(ConfigurationSupplier configurationSupplier) {
-    return new Copybara(new SkylarkParser(configurationSupplier.getModules()));
+  protected Copybara newCopybaraTool(ConfigSupplier configSupplier) {
+    return new Copybara(new SkylarkParser(configSupplier.getModules()));
   }
 
   /**
-   * Returns a {@link Supplier} of {@link Option}s.
+   * Returns a configuration supplier.
    */
-  protected ConfigurationSupplier newConfigurationSupplier() {
-    return new ConfigurationSupplier();
+  protected ConfigSupplier newConfigSupplier() {
+    return new ConfigSupplier();
   }
 
   private Console getConsole(String[] args) {
