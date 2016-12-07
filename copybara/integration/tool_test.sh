@@ -1000,7 +1000,7 @@ function test_validate_missing_config() {
 }
 
 function test_validate_too_many_arguments() {
-  copybara_with_exit_code $COMMAND_LINE_ERROR validate copy.bara.sky default
+  copybara_with_exit_code $COMMAND_LINE_ERROR validate copy.bara.sky default foo
 
   expect_log "Too many arguments for subcommand 'validate'"
 }

@@ -149,7 +149,7 @@ public class Main {
       ConfigFile configFile = loadConfig(configPath, generalOptions.getConfigRoot());
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
-          return copybara.validate(options, configFile)
+          return copybara.validate(options, configFile, mainArgs.getWorkflowName())
               ? ExitCode.SUCCESS : ExitCode.CONFIGURATION_ERROR;
         case MIGRATE:
           copybara.run(

@@ -17,9 +17,9 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -37,22 +37,29 @@ import javax.annotation.Nullable;
 public class Copybara {
 
   private final SkylarkParser skylarkParser;
+  private final ConfigValidator configValidator;
 
   public Copybara(SkylarkParser skylarkParser) {
     this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
+    this.configValidator = new ConfigValidator();
+  }
+
+  public Copybara(SkylarkParser skylarkParser, ConfigValidator configValidator) {
+    this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
+    this.configValidator = Preconditions.checkNotNull(configValidator);
   }
 
   public void run(Options options, ConfigFile<?> configContents, String migrationName,
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
-    Config config = loadConfig(options, configContents);
+    Config config = loadConfig(options, configContents, migrationName);
     config.getMigration(migrationName).run(baseWorkdir, sourceRef);
   }
 
   public Config info(Options options, ConfigFile<?> configContents, String migrationName)
       throws IOException, ValidationException, RepoException {
     Console console = options.get(GeneralOptions.class).console();
-    Config config = loadConfig(options, configContents);
+    Config config = loadConfig(options, configContents, migrationName);
     Info info = config.getMigration(migrationName).getInfo();
     for (MigrationReference ref : info.migrationReferences()) {
       console.info(
@@ -64,13 +71,13 @@ public class Copybara {
     return config;
   }
 
-  public boolean validate(Options options, ConfigFile<?> configContent)
+  public boolean validate(Options options, ConfigFile<?> configContent, String migrationName)
       throws RepoException, IOException {
     Console console = options.get(GeneralOptions.class).console();
     ArrayList<String> messages = new ArrayList<>();
     try {
       Config config = skylarkParser.loadConfig(configContent, options);
-      messages.addAll(validateConfig(config));
+      messages.addAll(validateConfig(config, migrationName));
     } catch (ValidationException e) {
       // The validate subcommand should not throw Validation exceptions but log a result
       StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
@@ -90,13 +97,13 @@ public class Copybara {
     return messages.isEmpty();
   }
 
-  private Config loadConfig(Options options, ConfigFile<?> configContents)
+  private Config loadConfig(Options options, ConfigFile<?> configContents, String migrationName)
       throws IOException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Console console = generalOptions.console();
     Config config = skylarkParser.loadConfig(configContents, options);
     console.progress("Validating configuration");
-    List<String> validationMessages = validateConfig(config);
+    List<String> validationMessages = validateConfig(config, migrationName);
     if (!validationMessages.isEmpty()) {
       console.error("Configuration is invalid:");
       for (String validationMessage : validationMessages) {
@@ -110,10 +117,7 @@ public class Copybara {
   /**
    * Returns a list of validation error messages, if any, for the given configuration.
    */
-  protected List<String> validateConfig(Config config) {
-    if (config.getMigrations().isEmpty()) {
-      return ImmutableList.of("At least one migration is required.");
-    }
-    return ImmutableList.of();
+  private List<String> validateConfig(Config config, String migrationName) {
+    return configValidator.validate(config, migrationName);
   }
 }

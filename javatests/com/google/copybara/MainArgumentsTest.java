@@ -106,11 +106,11 @@ public class MainArgumentsTest {
   @Test
   public void testArgumentParsingValidate() throws Exception {
     checkParsing(ImmutableList.of("validate", "copy.bara.sky"),
-        Subcommand.VALIDATE, "copy.bara.sky", /*workflowName=*/ null, /*sourceRef=*/ null);
+        Subcommand.VALIDATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
 
     thrown.expect(CommandLineException.class);
     thrown.expectMessage("Too many arguments for subcommand 'validate'");
-    checkParsing(ImmutableList.of("validate", "copy.bara.sky", "import_wf"));
+    checkParsing(ImmutableList.of("validate", "copy.bara.sky", "import_wf", "some_ref"));
   }
 
   /**

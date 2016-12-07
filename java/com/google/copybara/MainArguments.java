@@ -165,19 +165,18 @@ public final class MainArguments {
     String configPath = unnamed.get(argumentId);
     argumentId++;
 
-    String workflowName = subcommand != VALIDATE ? "default" : null;
+    String workflowName = "default";
     if (argumentId < unnamed.size()) {
-      if (subcommand == VALIDATE) {
-        throw new CommandLineException("Too many arguments for subcommand 'validate'");
-      }
       workflowName = unnamed.get(argumentId);
       argumentId++;
     }
 
     String sourceRef = null;
     if (argumentId < unnamed.size()) {
-      if (subcommand == INFO) {
-        throw new CommandLineException("Too many arguments for subcommand 'info'");
+      if (subcommand == INFO || subcommand == VALIDATE) {
+        throw new CommandLineException(
+            String.format(
+                "Too many arguments for subcommand '%s'", subcommand.toString().toLowerCase()));
       }
       sourceRef = unnamed.get(argumentId);
       argumentId++; // Just in case we add more arguments
