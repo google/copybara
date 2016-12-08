@@ -135,6 +135,10 @@ public final class Workflow<O extends Reference, D extends Reference> implements
     return transformation;
   }
 
+  public boolean isAskForConfirmation() {
+    return askForConfirmation;
+  }
+
   /**
    * Includes only the fields that are part of the configuration: Console is not part of the config,
    * configName is in the parent, and lastRevisionFlag is a command-line flag.
