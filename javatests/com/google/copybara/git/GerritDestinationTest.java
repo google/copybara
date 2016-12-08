@@ -49,6 +49,20 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
 
+  private final String GERRIT_RESPONSE = "Counting objects: 9, done.\n"
+      + "Delta compression using up to 4 threads.\n"
+      + "Compressing objects: 100% (6/6), done.\n"
+      + "Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.\n"
+      + "Total 9 (delta 4), reused 0 (delta 0)\n"
+      + "remote: Resolving deltas: 100% (4/4)\n"
+      + "remote: Processing changes: updated: 1, done\n"
+      + "remote:\n"
+      + "remote: Updated Changes:\n"
+      + "remote:   https://some.url.google.com/1234 This is a message\n"
+      + "remote:\n"
+      + "To sso://team/copybara-team/copybara\n"
+      + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
+      + "<o> [master] ~/dev/copybara$\n";
   private String url;
   private String fetch;
   private String pushToRefsFor;
@@ -200,30 +214,27 @@ public class GerritDestinationTest {
   }
 
   @Test
-  public void testProcessPushOutput() {
-    String gerritResponse = "Counting objects: 9, done.\n"
-        + "Delta compression using up to 4 threads.\n"
-        + "Compressing objects: 100% (6/6), done.\n"
-        + "Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.\n"
-        + "Total 9 (delta 4), reused 0 (delta 0)\n"
-        + "remote: Resolving deltas: 100% (4/4)\n"
-        + "remote: Processing changes: updated: 1, done\n"
-        + "remote:\n"
-        + "remote: Updated Changes:\n"
-        + "remote:   https://some.url.google.com/1234 This is a message\n"
-        + "remote:\n"
-        + "To sso://team/copybara-team/copybara\n"
-        + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
-        + "<o> [master] ~/dev/copybara$\n";
-
+  public void testProcessPushOutput_new() {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     GerritProcessPushOutput process = new GerritProcessPushOutput(
-        LogConsole.readWriteConsole(System.in, new PrintStream(out)));
+        LogConsole.readWriteConsole(System.in, new PrintStream(out)), /*newReview*/ true);
 
-    process.process(gerritResponse);
+    process.process(GERRIT_RESPONSE);
 
     assertThat(out.toString())
         .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
+  }
+
+  @Test
+  public void testProcessPushOutput_existing() {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    GerritProcessPushOutput process = new GerritProcessPushOutput(
+        LogConsole.readWriteConsole(System.in, new PrintStream(out)), /*newReview*/ false);
+
+    process.process(GERRIT_RESPONSE);
+
+    assertThat(out.toString())
+        .contains("INFO: Updated existing Gerrit review at https://some.url.google.com/1234");
   }
 
   @Test

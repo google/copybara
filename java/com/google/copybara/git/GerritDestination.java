@@ -130,6 +130,7 @@ public final class GerritDestination implements Destination<GitReference> {
     if (pushToRefsFor.isEmpty()) {
       pushToRefsFor = fetch;
     }
+    GerritOptions gerritOptions = options.get(GerritOptions.class);
     return new GerritDestination(
         new GitDestination(
             url, fetch,
@@ -137,8 +138,9 @@ public final class GerritDestination implements Destination<GitReference> {
             options.get(GitDestinationOptions.class),
             generalOptions.isVerbose(),
             firstMigration,
-            new CommitGenerator(options.get(GerritOptions.class)),
-            new GerritProcessPushOutput(generalOptions.console()),
+            new CommitGenerator(gerritOptions),
+            new GerritProcessPushOutput(
+                generalOptions.console(), Strings.isNullOrEmpty(gerritOptions.gerritChangeId)),
             environment, options.get(GeneralOptions.class).console()));
   }
 
@@ -147,9 +149,11 @@ public final class GerritDestination implements Destination<GitReference> {
     private static final Pattern GERRIT_URL_LINE = Pattern.compile(
         ".*: *(http(s)?://[^ ]+)( .*)?");
     private final Console console;
+    private final boolean newReview;
 
-    GerritProcessPushOutput(Console console) {
+    GerritProcessPushOutput(Console console, boolean newReview) {
       this.console = console;
+      this.newReview = newReview;
     }
 
     @Override
@@ -162,7 +166,10 @@ public final class GerritDestination implements Destination<GitReference> {
           String next = iterator.next();
           Matcher matcher = GERRIT_URL_LINE.matcher(next);
           if (matcher.matches()) {
-            console.info("New Gerrit review created at " + matcher.group(1));
+            String message = newReview
+                ? "New Gerrit review created at "
+                : "Updated existing Gerrit review at ";
+            console.info(message + matcher.group(1));
           }
         }
       }
