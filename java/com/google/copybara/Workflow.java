@@ -210,7 +210,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
      * @param workdir working directory to use for the transformations
      * @param resolvedRef reference to migrate
      */
-    RunHelper(Path workdir, M resolvedRef) throws ValidationException, RepoException {
+    RunHelper(Path workdir, M resolvedRef) throws ValidationException, IOException, RepoException {
       this.workdir = Preconditions.checkNotNull(workdir);
       this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
       this.originReader = origin.newReader(originFiles, authoring);
@@ -328,6 +328,10 @@ public final class Workflow<O extends Reference, D extends Reference> implements
           throw new ValidationException(String.format("Workflow '%s' is not reversible", name));
         }
       }
+
+      console.progress("Checking that destination_files covers all files in transform result");
+      new ValidateDestinationFilesVisitor(destinationFiles, checkoutDir)
+          .verifyFilesToWrite();
 
       // TODO(malcon): Pass metadata object instead
       TransformResult transformResult = new TransformResult(checkoutDir, ref,
