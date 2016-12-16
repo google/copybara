@@ -921,52 +921,6 @@ public class WorkflowTest {
         .onceInLog(MessageType.PROGRESS, "Checking that the transformations can be reverted");
   }
 
-  @Test
-  public void errorWritingFileThatDoesNotMatchDestinationFiles() throws Exception {
-    destinationFiles = "glob(['foo*'], exclude = ['foo42'])";
-    transformations = "[]";
-
-    origin.singleFileChange(/*timestamp=*/44, "one commit", "bar.txt", "1");
-    Workflow workflow = skylarkWorkflow("default", WorkflowMode.SQUASH);
-
-    thrown.expect(NotADestinationFileException.class);
-    thrown.expectMessage("[bar.txt]");
-    workflow.run(workdir, origin.getHead());
-  }
-
-  @Test
-  public void errorWritingMultipleFilesThatDoNotMatchDestinationFiles() throws Exception {
-    // 'foo42' is like a file that is expected to be in the destination but not
-    // originating from the origin repo (e.g. a metadata file specific to one repo type).
-    // In this example, though, the file is copied from the origin, hence an error.
-    destinationFiles = "glob(['foo*'], exclude = ['foo42'])";
-    transformations = "[]";
-
-    Path originDir = Files.createTempDirectory("change1");
-    Files.write(originDir.resolve("bar"), new byte[] {});
-    Files.write(originDir.resolve("foo_included"), new byte[] {});
-    Files.write(originDir.resolve("foo42"), new byte[] {});
-    origin.addChange(/*timestamp=*/42, originDir, "change1");
-    Workflow workflow = skylarkWorkflow("default", WorkflowMode.SQUASH);
-
-    thrown.expect(NotADestinationFileException.class);
-    thrown.expectMessage("[bar, foo42]");
-    workflow.run(workdir, origin.getHead());
-  }
-
-  @Test
-  public void checkForNonMatchingDestinationFilesAfterTransformations() throws Exception {
-    destinationFiles = "glob(['foo*'])";
-    options.workflowOptions.ignoreNoop = true;
-    transformations = "[core.move('bar.txt', 'foo53')]";
-
-    origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
-    origin.singleFileChange(/*timestamp=*/45, "commit 2", "foo42", "1");
-    Workflow workflow = skylarkWorkflow("default", WorkflowMode.SQUASH);
-
-    workflow.run(workdir, origin.getHead());
-  }
-
   private void prepareOriginExcludes() throws IOException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("excludesTest");
