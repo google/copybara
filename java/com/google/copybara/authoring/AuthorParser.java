@@ -17,8 +17,8 @@
 package com.google.copybara.authoring;
 
 import com.google.common.base.Preconditions;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 
 /**
  * A parser for the standard autor format {@code "Name <email>"}.
@@ -29,7 +29,8 @@ import java.util.regex.Pattern;
  */
 public class AuthorParser {
 
-  private static final Pattern AUTHOR_PATTERN = Pattern.compile("(?<name>[^<]+)<(?<email>[^>]*)>");
+  private static final Pattern AUTHOR_PATTERN =
+      Pattern.compile("(?P<name>[^<]+)<(?P<email>[^>]*)>");
 
   /**
    * Parses a Git author {@code string} into an {@link Author}.

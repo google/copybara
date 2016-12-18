@@ -31,13 +31,13 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.annotation.Nullable;
 import java.util.Map.Entry;
+import javax.annotation.Nullable;
 
 
 /**

@@ -20,12 +20,10 @@ import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
-
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
 
 /**
@@ -111,16 +109,15 @@ public enum GitRepoType {
       throws RepoException, CannotResolveReferenceException {
     Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
     if (matcher.matches()) {
-      return repository.fetchSingleRef(
-          matcher.group("url"), "refs" + matcher.group("pull") + "/head");
+      return repository.fetchSingleRef(matcher.group(1), "refs" + matcher.group(2) + "/head");
     }
     return null;
   }
 
   private static final Logger logger = Logger.getLogger(GitRepoType.class.getCanonicalName());
 
-  private static final Pattern GITHUB_PULL_REQUEST = Pattern.compile(
-      "(?<url>https://github[.]com/.+)(?<pull>/pull/[0-9]+)");
+  private static final Pattern GITHUB_PULL_REQUEST =
+      Pattern.compile("(?P<url>https://github[.]com/.+)(?P<pull>/pull/[0-9]+)");
 
   private static final Pattern GIT_URL =
       Pattern.compile("(\\w+://)(.+@)*([\\w.]+)(:[\\d]+){0,1}/*(.*)");
