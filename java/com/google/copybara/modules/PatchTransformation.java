@@ -46,13 +46,18 @@ class PatchTransformation implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public void transform(TransformWork work) throws ValidationException {
     for (int i = 0; i < patches.size(); i++) {
       ConfigFile<?> patch = patches.get(i);
       work.getConsole().info(
           String.format("Applying patch %d/%d: '%s'.", i, patches.size(), patch.path()));
-      DiffUtil.patch(
-          work.getCheckoutDir(), patch.content(), SLASHES_TO_STRIP, options.isVerbose(), reverse);
+      try {
+        DiffUtil.patch(
+            work.getCheckoutDir(), patch.content(), SLASHES_TO_STRIP, options.isVerbose(), reverse);
+      } catch (IOException ioException) {
+        work.getConsole().error("Error applying patch: " + ioException.getMessage());
+        throw new ValidationException("Error applying patch.", ioException);
+      }
     }
   }
 

@@ -57,8 +57,8 @@ public class DiffUtil {
       CommandOutput output = e.getOutput();
       // git diff returns exit status 0 when contents are identical, or 1 when they are different
       if (!Strings.isNullOrEmpty(output.getStderr())) {
-        throw new IOException(
-            "Error executing 'git diff': " + e.getMessage() + ". Stderr: \n" + output.getStderr(), e);
+        throw new IOException(String.format(
+            "Error executing 'git diff': %s. Stderr: \n%s", e.getMessage(), output.getStderr()), e);
       }
       return output.getStdoutBytes();
     } catch (CommandException e) {
