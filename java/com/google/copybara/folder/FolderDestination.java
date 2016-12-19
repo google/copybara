@@ -30,11 +30,8 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import javax.annotation.Nullable;
 
 /**
@@ -42,9 +39,6 @@ import javax.annotation.Nullable;
  * gets deleted before writing the new files.
  */
 public class FolderDestination implements Destination<Reference> {
-
-  private static final DateTimeFormatter FOLDER_DATE_FORMATTER =
-      DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss");
 
   private static final String FOLDER_DESTINATION_NAME = "folder.destination";
   private final GeneralOptions generalOptions;
@@ -104,19 +98,16 @@ public class FolderDestination implements Destination<Reference> {
     }
   }
 
-  private Path getFolderPath(Console console) {
-    Path defaultRootPath = generalOptions.getHomeDir().resolve("copybara/out/");
-
-    // Lets assume we are in the same filesystem for now...
-    FileSystem fs = generalOptions.getFileSystem();
+  private Path getFolderPath(Console console) throws IOException {
     String localFolderOption = folderDestinationOptions.localFolder;
     Path localFolder;
     if (Strings.isNullOrEmpty(localFolderOption)) {
-      localFolder = defaultRootPath.resolve(LocalDateTime.now().format(FOLDER_DATE_FORMATTER));
+      localFolder = generalOptions.getTmpDirectoryFactory().newTempDirectory("folder-destination");
       console.info(String.format(
           "Using folder '%s' in default root. Use --folder-dir to override.", localFolder));
     } else {
-      localFolder = fs.getPath(localFolderOption);
+      // Lets assume we are in the same filesystem for now...
+      localFolder = generalOptions.getFileSystem().getPath(localFolderOption);
       if (!localFolder.isAbsolute()) {
         localFolder = generalOptions.getCwd().resolve(localFolder);
       }

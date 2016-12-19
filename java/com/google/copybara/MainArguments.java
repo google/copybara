@@ -19,12 +19,11 @@ package com.google.copybara;
 import static com.google.copybara.Subcommand.INFO;
 import static com.google.copybara.Subcommand.VALIDATE;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.StandardSystemProperty;
-
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-
+import com.google.common.base.Preconditions;
+import com.google.common.base.StandardSystemProperty;
+import com.google.copybara.GeneralOptions;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
@@ -32,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -107,19 +105,14 @@ public final class MainArguments {
    * Returns the base working directory. This method should not be accessed directly by any other
    * class but Main.
    */
-  public Path getBaseWorkdir(FileSystem fs) throws IOException {
+  public Path getBaseWorkdir(GeneralOptions generalOptions, FileSystem fs)
+      throws IOException {
     Path workdirPath;
 
-    if (baseWorkdir == null) {
-      // This is equivalent to Files.createTempDirectory(String.. but
-      // works for any filesystem
-      Path tmpDir = fs.getPath(StandardSystemProperty.JAVA_IO_TMPDIR.value());
-      // This is only needed if using a fs for testing.
-      Files.createDirectories(tmpDir);
-      workdirPath = Files.createTempDirectory(tmpDir, "workdir");
-    } else {
-      workdirPath = fs.getPath(baseWorkdir).normalize();
-    }
+    workdirPath = baseWorkdir == null
+        ? generalOptions.getTmpDirectoryFactory().newTempDirectory("workdir")
+        : fs.getPath(baseWorkdir).normalize();
+
     if (Files.exists(workdirPath) && !Files.isDirectory(workdirPath)) {
       // Better being safe
       throw new IOException(

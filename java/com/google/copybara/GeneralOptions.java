@@ -21,6 +21,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.util.TempDirectoryFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -113,6 +114,10 @@ public final class GeneralOptions implements Option {
   @Nullable
   public Path getConfigRoot() {
     return configRoot;
+  }
+
+  public TempDirectoryFactory getTmpDirectoryFactory() {
+    return new TempDirectoryFactory(getHomeDir().resolve("copybara/out/"));
   }
 
   @Parameters(separators = "=")

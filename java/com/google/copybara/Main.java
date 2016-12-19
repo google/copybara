@@ -156,7 +156,7 @@ public class Main {
               options,
               configFile,
               mainArgs.getWorkflowName(),
-              mainArgs.getBaseWorkdir(fs),
+              mainArgs.getBaseWorkdir(generalOptions, fs),
               mainArgs.getSourceRef());
           return ExitCode.SUCCESS;
         case INFO:
