@@ -35,6 +35,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.TempDirectoryFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.List;
@@ -81,11 +82,12 @@ public final class GitDestination implements Destination<GitReference> {
   private final ProcessPushOutput processPushOutput;
   private final Map<String, String> environment;
   private final Console console;
+  private final TempDirectoryFactory tempDirectoryFactory;
 
   GitDestination(String repoUrl, String fetch, String push,
       GitDestinationOptions destinationOptions, boolean verbose, boolean force,
       CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-      Map<String, String> environment, Console console) {
+      Map<String, String> environment, Console console, TempDirectoryFactory tempDirectoryFactory) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
@@ -96,6 +98,7 @@ public final class GitDestination implements Destination<GitReference> {
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
     this.environment = environment;
     this.console = console;
+    this.tempDirectoryFactory = Preconditions.checkNotNull(tempDirectoryFactory);
   }
 
   /**
@@ -270,7 +273,8 @@ public final class GitDestination implements Destination<GitReference> {
   }
 
   private GitRepository cloneBaseline() throws RepoException {
-    GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment);
+    GitRepository scratchClone =
+        GitRepository.initScratchRepo(verbose, environment, tempDirectoryFactory);
     try {
       scratchClone.fetchSingleRef(repoUrl, fetch);
     } catch (CannotResolveReferenceException e) {

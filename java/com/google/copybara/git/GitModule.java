@@ -216,6 +216,7 @@ public class GitModule implements OptionsAwareModule {
       GitDestinationOptions destinationOptions = self.options.get(GitDestinationOptions.class);
       String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
           "push", location);
+      GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
       return new GitDestination(
           checkNotEmpty(firstNotNull(destinationOptions.url, url),
               "url", location),
@@ -226,12 +227,13 @@ public class GitModule implements OptionsAwareModule {
               "fetch", location),
           resolvedPush,
           destinationOptions,
-          self.options.get(GeneralOptions.class).isVerbose(),
-          self.options.get(GeneralOptions.class).isForced(),
+          generalOptions.isVerbose(),
+          generalOptions.isForced(),
           new DefaultCommitGenerator(),
           new ProcessPushOutput(),
-          self.options.get(GeneralOptions.class).getEnvironment(),
-          self.options.get(GeneralOptions.class).console());
+          generalOptions.getEnvironment(),
+          generalOptions.console(),
+          generalOptions.getTmpDirectoryFactory());
     }
   };
 

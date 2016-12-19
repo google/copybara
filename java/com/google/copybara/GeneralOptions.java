@@ -46,29 +46,33 @@ public final class GeneralOptions implements Option {
   private final boolean force;
   @Nullable
   private final Path configRoot;
+  @Nullable
+  private final Path outputRoot;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null,
+    this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
         /*disableReversibleCheck=*/false, /*force=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(
       Map<String, String> environment, FileSystem fileSystem, boolean verbose, Console console) {
-    this(environment, fileSystem, verbose, console, /*configRoot=*/null,
+    this(environment, fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
         /*disableReversibleCheck=*/false, /*force=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
-      Console console, @Nullable Path configRoot, boolean disableReversibleCheck, boolean force)
+      Console console, @Nullable Path configRoot, @Nullable Path outputRoot,
+      boolean disableReversibleCheck, boolean force)
   {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.configRoot = configRoot;
+    this.outputRoot = outputRoot;
     this.disableReversibleCheck = disableReversibleCheck;
     this.force = force;
   }
@@ -104,20 +108,27 @@ public final class GeneralOptions implements Option {
     return fileSystem.getPath(environment.get("PWD"));
   }
 
-  /**
-   * Returns home directory
-   */
-  public Path getHomeDir() {
-    return fileSystem.getPath(environment.get("HOME"));
-  }
-
   @Nullable
   public Path getConfigRoot() {
     return configRoot;
   }
 
+  @Nullable
+  public Path getOutputRoot() {
+    return outputRoot;
+  }
+
+  /**
+   * Returns a {@link TempDirectoryFactory} capable of creating temporary directories.
+   *
+   * <p>By default, the temporary directories are created under {@code $HOME/copybara/out}, but
+   * it can be overridden with the flag --output-root.
+   */
   public TempDirectoryFactory getTmpDirectoryFactory() {
-    return new TempDirectoryFactory(getHomeDir().resolve("copybara/out/"));
+    Path rootPath = outputRoot != null
+        ? outputRoot
+        : fileSystem.getPath(environment.get("HOME")).resolve("copybara/out/");
+    return new TempDirectoryFactory(rootPath);
   }
 
   @Parameters(separators = "=")
@@ -147,15 +158,22 @@ public final class GeneralOptions implements Option {
             + " the  workflow config and the normal behavior for CHANGE_REQUEST mode.")
     boolean disableReversibleCheck = false;
 
+    @Parameter(names = "--output-root",
+            description = "The root directory where to generate output files. "
+                + "If not set, ~/copybara/out is used by default.")
+    String outputRoot = null;
+
     /**
      * This method should be called after the options have been set but before are used by any class.
      */
     public GeneralOptions init(
         Map<String, String> environment, FileSystem fileSystem, Console console)
         throws IOException {
-      Path root = configRoot != null ? fileSystem.getPath(configRoot) : null;
+      Path configRoot = this.configRoot != null ? fileSystem.getPath(this.configRoot) : null;
+      Path outputRoot = this.outputRoot != null ? fileSystem.getPath(this.outputRoot) : null;
       return new GeneralOptions(
-          environment, fileSystem, verbose, console, root, disableReversibleCheck, force);
+          environment, fileSystem, verbose, console, configRoot, outputRoot,
+          disableReversibleCheck, force);
     }
   }
 }

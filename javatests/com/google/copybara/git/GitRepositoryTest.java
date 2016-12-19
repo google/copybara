@@ -26,9 +26,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GitRepository.StatusFile;
+import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,11 +47,15 @@ public class GitRepositoryTest {
 
   private GitRepository repository;
   private Path workdir;
+  private OptionsBuilder options;
 
   @Before
   public void setup() throws Exception {
+    options = new OptionsBuilder()
+        .setOutputRootToTmpDir();
     workdir = Files.createTempDirectory("workdir");
-    this.repository = GitRepository.initScratchRepo(/*verbose=*/true, System.getenv())
+    this.repository = GitRepository.initScratchRepo(
+        /*verbose=*/true, System.getenv(), options.general.getTmpDirectoryFactory())
         .withWorkTree(workdir);
   }
 

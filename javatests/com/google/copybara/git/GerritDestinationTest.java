@@ -82,11 +82,13 @@ public class GerritDestinationTest {
     workdir = Files.createTempDirectory("workdir");
     git("init", "--bare", repoGitDir.toString());
 
-    options = new OptionsBuilder();
+    console = new TestingConsole();
+    options = new OptionsBuilder()
+        .setConsole(console)
+        .setOutputRootToTmpDir();
+
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
-    console = new TestingConsole();
-    options.setConsole(console);
     excludedDestinationPaths = ImmutableList.of();
 
     url = "file://" + repoGitDir;

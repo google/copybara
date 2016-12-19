@@ -77,7 +77,9 @@ public class GitDestinationTest {
 
     git("init", "--bare", repoGitDir.toString());
     console = new TestingConsole();
-    options = new OptionsBuilder().setConsole(console);
+    options = new OptionsBuilder()
+        .setConsole(console)
+        .setOutputRootToTmpDir();
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     destinationFiles = new Glob(ImmutableList.of("**"));

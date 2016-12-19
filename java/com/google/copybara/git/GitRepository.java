@@ -39,6 +39,7 @@ import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.TempDirectoryFactory;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
@@ -144,11 +145,12 @@ public class GitRepository {
    *
    * <p>The new repo is not bare.
    */
-  public static GitRepository initScratchRepo(boolean verbose, Map<String, String> environment)
+  public static GitRepository initScratchRepo(
+      boolean verbose, Map<String, String> environment, TempDirectoryFactory tempDirectoryFactory)
       throws RepoException {
     Path scratchWorkTree;
     try {
-      scratchWorkTree = Files.createTempDirectory("copybara-makeScratchClone");
+      scratchWorkTree = tempDirectoryFactory.newTempDirectory("copybara-makeScratchClone");
     } catch (IOException e) {
       throw new RepoException("Could not make temporary directory for scratch repo", e);
     }

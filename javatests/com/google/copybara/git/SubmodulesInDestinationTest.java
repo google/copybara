@@ -64,7 +64,9 @@ public final class SubmodulesInDestinationTest {
 
     git("init", "--bare", repoGitDir.toString());
     console = new TestingConsole();
-    options = new OptionsBuilder().setConsole(console);
+    options = new OptionsBuilder()
+        .setConsole(console)
+        .setOutputRootToTmpDir();
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     destinationFiles = new Glob(ImmutableList.of("**"));
@@ -72,7 +74,8 @@ public final class SubmodulesInDestinationTest {
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options, GitModule.class);
 
-    submodule = GitRepository.initScratchRepo(/*verbose=*/true, System.getenv());
+    submodule = GitRepository.initScratchRepo(
+        /*verbose=*/true, System.getenv(), options.general.getTmpDirectoryFactory());
 
     Files.write(submodule.getWorkTree().resolve("foo"), new byte[] {1});
     submodule.add().files("foo").run();

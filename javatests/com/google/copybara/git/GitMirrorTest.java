@@ -51,18 +51,19 @@ public class GitMirrorTest {
   @Before
   public void setup() throws Exception {
     workdir = Files.createTempDirectory("workdir");
-    options = new OptionsBuilder();
-    options.setWorkdirToRealTempDir();
+    console = new TestingConsole();
+    options = new OptionsBuilder()
+        .setOutputRootToTmpDir()
+        .setWorkdirToRealTempDir()
+        .setConsole(console);
     originRepo = GitRepository.initScratchRepo(/*verbose=*/true,
-        options.general.getEnvironment());
+        options.general.getEnvironment(), options.general.getTmpDirectoryFactory());
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
 
     Path reposDir = Files.createTempDirectory("repos_repo");
     options.git.repoStorage = reposDir.toString();
 
     destRepo.initGitDir();
-    console = new TestingConsole();
-    options.setConsole(console);
 
     skylark = new SkylarkTestExecutor(options, GitModule.class);
 
@@ -225,7 +226,7 @@ public class GitMirrorTest {
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
         + ")";
     GitRepository other = GitRepository.initScratchRepo(/*verbose=*/true,
-        options.general.getEnvironment());
+        options.general.getEnvironment(), options.general.getTmpDirectoryFactory());
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes());
     other.add().files("test2.txt").run();
     other.git(other.getWorkTree(), "commit", "-m", "another file");

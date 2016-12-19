@@ -141,7 +141,7 @@ public final class GerritDestination implements Destination<GitReference> {
             new CommitGenerator(gerritOptions),
             new GerritProcessPushOutput(
                 generalOptions.console(), Strings.isNullOrEmpty(gerritOptions.gerritChangeId)),
-            environment, options.get(GeneralOptions.class).console()));
+            environment, generalOptions.console(), generalOptions.getTmpDirectoryFactory()));
   }
 
   static class GerritProcessPushOutput extends ProcessPushOutput {
