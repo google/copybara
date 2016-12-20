@@ -794,7 +794,7 @@ public class GitRepository {
   /**
    * Information of a submodule of {@code this} repository.
    */
-  class Submodule {
+  static class Submodule {
 
     private final String url;
     private final String name;
@@ -847,7 +847,7 @@ public class GitRepository {
     }
   }
 
-  class TreeElement {
+  static class TreeElement {
 
     private final GitObjectType type;
     private final String ref;
