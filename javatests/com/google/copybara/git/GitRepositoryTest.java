@@ -178,4 +178,19 @@ public class GitRepositoryTest {
     assertThat(GitRepository.resolveGitBinary(ImmutableMap.of("GIT_EXEC_PATH", "/some/path")))
         .isEqualTo("/some/path/git");
   }
+
+  @Test
+  public void validateUrl() throws RepoException {
+    GitRepository.validateUrl("ssh://git@github.com:foo/foo.git");
+    GitRepository.validateUrl("https://github.com/foo/foo");
+    GitRepository.validateUrl("protocol://some/url");
+    GitRepository.validateUrl("git@github.com:foo/foo.git");
+  }
+
+  @Test
+  public void invalidUrl() throws RepoException {
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("URL 'lalala' is not valid");
+    GitRepository.validateUrl("lalala");
+  }
 }
