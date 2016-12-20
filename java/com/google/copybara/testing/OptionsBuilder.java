@@ -87,7 +87,10 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), Files.createTempDirectory("out"),
+        general.getConfigRoot(),
+        // Using Files.createTempDirectory() generates paths > 255 in some tests and that causes
+        // 'File name too long' exceptions in Linux
+        FileSystems.getDefault().getPath(StandardSystemProperty.JAVA_IO_TMPDIR.value()),
         general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
