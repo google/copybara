@@ -32,6 +32,8 @@ import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -192,5 +194,30 @@ public class GitRepositoryTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage("URL 'lalala' is not valid");
     GitRepository.validateUrl("lalala");
+  }
+
+  @Test
+  public void testLsRemote() throws Exception {
+
+    Files.write(workdir.resolve("foo.txt"), new byte[] {});
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "foo.txt", "-m", "message");
+    repository.simpleCommand("branch", "b1");
+
+    Map<String, String> refsToShas =
+        GitRepository.lsRemote("file://" + repository.getGitDir(), Collections.emptyList());
+    assertThat(refsToShas.size()).isEqualTo(3);
+    String headSha = refsToShas.get("HEAD");
+    assertThat(refsToShas.get("refs/heads/b1")).isEqualTo(headSha);
+    assertThat(refsToShas.get("refs/heads/master")).isEqualTo(headSha);
+
+    repository.simpleCommand("checkout", "b1");
+    Files.write(workdir.resolve("boo.txt"), new byte[] {});
+    repository.add().files("boo.txt").run();
+    repository.simpleCommand("commit", "boo.txt", "-m", "message");
+    refsToShas =
+        GitRepository.lsRemote("file://" + repository.getGitDir(), Collections.emptyList());
+    assertThat(refsToShas.size()).isEqualTo(3);
+    assertThat(refsToShas.get("refs/heads/b1")).isNotEqualTo(headSha);
   }
 }

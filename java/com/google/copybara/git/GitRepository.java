@@ -41,9 +41,9 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -53,6 +53,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -74,6 +75,8 @@ public class GitRepository {
 
   private static final Pattern LS_TREE_ELEMENT = Pattern.compile(
       "([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40})\t(.*)");
+
+  private static final Pattern LS_REMOTE_OUTPUT_LINE = Pattern.compile("([a-f0-9]{40})\t(.+)");
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{7,40}");
 
@@ -264,6 +267,39 @@ public class GitRepository {
     } else {
       throw throwUnknownGitError(output);
     }
+  }
+
+  /**
+   * Runs a git ls-remote from the current directory for a repository url. Assumes the path to the
+   * git binary is already set. You don't have to be in a git repository to run this command. Does
+   * not work with remote names.
+   *
+   * @param url - see <repository> in git help ls-remote
+   * @param refs - see <refs> in git help ls-remote
+   * @return - a map of refs to sha1 from the git ls-remote output.
+   */
+  public static Map<String, String> lsRemote(String url, Collection<String> refs)
+      throws RepoException, CommandException {
+
+    ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
+    List<String> args = Lists.newArrayList("ls-remote", validateUrl(url));
+    args.addAll(refs);
+
+    CommandOutputWithStatus output =
+        executeGit(FileSystems.getDefault().getPath("."), args, System.getenv(), false);
+    if (output.getTerminationStatus().success()) {
+      for (String line : Splitter.on('\n').split(output.getStdout())) {
+        if (line.isEmpty()) {
+          continue;
+        }
+        Matcher matcher = LS_REMOTE_OUTPUT_LINE.matcher(line);
+        if (!matcher.matches()) {
+          throw new RepoException("Unexpected format for ls-remote output: " + line);
+        }
+        result.put(matcher.group(2), matcher.group(1));
+      }
+    }
+    return result.build();
   }
 
   // TODO(team): Use JGit URIish.java
