@@ -16,14 +16,12 @@
 
 package com.google.copybara.git;
 
-import com.google.common.base.Strings;
-import com.google.copybara.Option;
-
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
-
+import com.google.common.base.Strings;
+import com.google.copybara.Option;
 import java.util.regex.Pattern;
 
 /**
@@ -49,4 +47,7 @@ public final class GerritOptions implements Option {
       description = "ChangeId to use in the generated commit message",
       validateWith = ChangeIdValidator.class)
   String gerritChangeId = "";
+
+  @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
+  String gerritTopic = "";
 }

@@ -131,17 +131,24 @@ public final class GerritDestination implements Destination<GitReference> {
       pushToRefsFor = fetch;
     }
     GerritOptions gerritOptions = options.get(GerritOptions.class);
+    String push =
+        Strings.isNullOrEmpty(gerritOptions.gerritTopic)
+            ? String.format("refs/for/%s", pushToRefsFor)
+            : String.format("refs/for/%s%%topic=%s", pushToRefsFor, gerritOptions.gerritTopic);
     return new GerritDestination(
         new GitDestination(
-            url, fetch,
-            "refs/for/" + pushToRefsFor,
+            url,
+            fetch,
+            push.toString(),
             options.get(GitDestinationOptions.class),
             generalOptions.isVerbose(),
             firstMigration,
             new CommitGenerator(gerritOptions),
             new GerritProcessPushOutput(
                 generalOptions.console(), Strings.isNullOrEmpty(gerritOptions.gerritChangeId)),
-            environment, generalOptions.console(), generalOptions.getTmpDirectoryFactory()));
+            environment,
+            generalOptions.console(),
+            generalOptions.getTmpDirectoryFactory()));
   }
 
   static class GerritProcessPushOutput extends ProcessPushOutput {

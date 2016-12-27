@@ -20,9 +20,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.ValidationException;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.git.GerritDestination.GerritProcessPushOutput;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
@@ -178,6 +178,21 @@ public class GerritDestinationTest {
     process(new DummyReference("origin_ref"));
     assertThat(lastCommitChangeIdLine())
         .isEqualTo("    Change-Id: " + changeId);
+  }
+
+  @Test
+  public void specifyTopic() throws Exception {
+    fetch = "master";
+    options.setForce(true);
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+    options.gerrit.gerritTopic = "testTopic";
+    process(new DummyReference("origin_ref"));
+    boolean correctMessage =
+        console
+            .getMessages()
+            .stream()
+            .anyMatch(message -> message.getText().contains("refs/for/master%topic=testTopic"));
+    assertThat(correctMessage).isTrue();
   }
 
   @Test
