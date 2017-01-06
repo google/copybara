@@ -56,8 +56,8 @@ public class LogConsole implements Console {
   }
 
   @Override
-  public void startupMessage() {
-    output.println("Copybara source mover");
+  public void startupMessage(String version) {
+    output.println("Copybara source mover (Version: " + version + ")");
   }
 
   @Override

@@ -26,7 +26,7 @@ public interface Console {
   /**
    * Print the Copybara welcome message.
    */
-  void startupMessage();
+  void startupMessage(String version);
 
   /**
    * Print an error in the console

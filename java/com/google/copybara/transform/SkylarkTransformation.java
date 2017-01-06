@@ -98,7 +98,7 @@ public class SkylarkTransformation implements Transformation {
     }
 
     @Override
-    public void startupMessage() {
+    public void startupMessage(String version) {
       throw new UnsupportedOperationException("Shouldn't be called from skylark");
     }
 

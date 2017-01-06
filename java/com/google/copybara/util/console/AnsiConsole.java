@@ -49,7 +49,7 @@ public final class AnsiConsole implements Console {
   }
 
   @Override
-  public void startupMessage() {
+  public void startupMessage(String version) {
     // Just because we can!
     output.println(BLUE.write("C")
         + RED.write("o")
@@ -58,7 +58,8 @@ public final class AnsiConsole implements Console {
         + GREEN.write("b")
         + RED.write("a")
         + BLUE.write("r")
-        + RED.write("a")+" source mover"
+        + RED.write("a")
+        + " source mover (Version: " + version + ")"
     );
   }
 

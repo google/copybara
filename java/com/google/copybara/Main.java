@@ -94,7 +94,7 @@ public class Main {
     // This is useful when debugging user issues
     logger.info("Running: " + Joiner.on(' ').join(args));
 
-    console.startupMessage();
+    console.startupMessage(getVersion());
 
     ExitCode exitCode = runInternal(args, console, fs);
     try {

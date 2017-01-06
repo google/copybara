@@ -33,8 +33,8 @@ public class ProgressPrefixConsole implements Console {
   }
 
   @Override
-  public void startupMessage() {
-    delegate.startupMessage();
+  public void startupMessage(String version) {
+    delegate.startupMessage(version);
   }
 
   @Override
