@@ -34,9 +34,23 @@ public interface Console {
   void error(String message);
 
   /**
+   * Print a format string as error on the console
+   */
+  default void errorFmt(String format, Object... args) {
+    error(String.format(format, args));
+  }
+
+  /**
    * Print a warning in the console
    */
   void warn(String message);
+
+  /**
+   * Print a format string as warn on the console
+   */
+  default void warnFmt(String format, Object... args) {
+    warn(String.format(format, args));
+  }
 
   /**
    * Print an informational message in the console
@@ -47,14 +61,35 @@ public interface Console {
   void info(String message);
 
   /**
+   * Print a format string as info on the console
+   */
+  default void infoFmt(String format, Object... args) {
+    info(String.format(format, args));
+  }
+
+  /**
    * Print a progress message in the console
    */
   void progress(String progress);
 
   /**
+   * Print a format string as progress on the console
+   */
+  default void progressFmt(String format, Object... args) {
+    progress(String.format(format, args));
+  }
+
+  /**
    * Returns true if this Console's input registers Y/y after showing the prompt message.
    */
   boolean promptConfirmation(String message) throws IOException;
+
+  /**
+   * Like promptConfirmation, but takes a format String as argument.
+   */
+  default boolean promptConfirmationFmt(String format, Object... args) throws IOException {
+    return promptConfirmation(String.format(format, args));
+  }
 
   /**
    * Given a message and a console that support colors, return a string that prints the message in

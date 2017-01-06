@@ -114,6 +114,26 @@ public class ConsoleTest {
   }
 
   @Test
+  public void fmtMethodsWork() throws Exception {
+    TestingConsole delegate = new TestingConsole()
+        .respondYes();
+    CapturingConsole console = CapturingConsole.captureAllConsole(delegate);
+
+    console.errorFmt("This is %s", "error!");
+    console.warnFmt("This is %s", "warning");
+    console.infoFmt("This is %s", "info");
+    console.progressFmt("This is %s", "progress");
+    console.promptConfirmationFmt("Do you want to %s?", "continue");
+
+    assertThat(console.getMessages()).containsExactly(
+        new Message(MessageType.ERROR, "This is error!"),
+        new Message(MessageType.WARNING, "This is warning"),
+        new Message(MessageType.INFO, "This is info"),
+        new Message(MessageType.PROGRESS, "This is progress"),
+        new Message(MessageType.PROMPT, "Do you want to continue?"));
+  }
+
+  @Test
   public void captureAllConsole() throws Exception {
     TestingConsole delegate = new TestingConsole()
         .respondYes();
