@@ -18,6 +18,7 @@ package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Config;
+import com.google.copybara.util.console.Message;
 import java.util.List;
 
 /**
@@ -25,10 +26,10 @@ import java.util.List;
  */
 public class ConfigValidator {
 
-  public List<String> validate(Config config, String migrationName) {
-    ImmutableList.Builder<String> messages = ImmutableList.builder();
+  public List<Message> validate(Config config, String migrationName) {
+    ImmutableList.Builder<Message> messages = ImmutableList.builder();
     if (config.getMigrations().isEmpty()) {
-      messages.add("At least one migration is required.");
+      messages.add(Message.error("At least one migration is required."));
     }
     return messages.build();
   }

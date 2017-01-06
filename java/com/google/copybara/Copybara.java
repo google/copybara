@@ -22,10 +22,13 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.Message;
+import com.google.copybara.util.console.Message.MessageType;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -74,7 +77,7 @@ public class Copybara {
   public boolean validate(Options options, ConfigFile<?> configContent, String migrationName)
       throws RepoException, IOException {
     Console console = options.get(GeneralOptions.class).console();
-    ArrayList<String> messages = new ArrayList<>();
+    ArrayList<Message> messages = new ArrayList<>();
     try {
       Config config = skylarkParser.loadConfig(configContent, options);
       messages.addAll(validateConfig(config, migrationName));
@@ -86,15 +89,18 @@ public class Copybara {
         error.append("  CAUSED BY: ").append(cause.getMessage()).append("\n");
         cause = cause.getCause();
       }
-      messages.add(error.toString());
+      messages.add(Message.error(error.toString()));
     }
-    if (messages.isEmpty()) {
+
+    messages.forEach(message -> message.printTo(console));
+    boolean hasErrors =
+        messages.stream().noneMatch(message -> message.getType() == MessageType.ERROR);
+    if (hasErrors) {
       console.info(String.format("Configuration '%s' is valid.", configContent.path()));
     } else {
       console.error(String.format("Configuration '%s' is invalid.", configContent.path()));
-      messages.forEach(console::error);
     }
-    return messages.isEmpty();
+    return hasErrors;
   }
 
   private Config loadConfig(Options options, ConfigFile<?> configContents, String migrationName)
@@ -103,21 +109,23 @@ public class Copybara {
     Console console = generalOptions.console();
     Config config = skylarkParser.loadConfig(configContents, options);
     console.progress("Validating configuration");
-    List<String> validationMessages = validateConfig(config, migrationName);
-    if (!validationMessages.isEmpty()) {
-      console.error("Configuration is invalid:");
-      for (String validationMessage : validationMessages) {
-        console.error(validationMessage);
-      }
-      throw new ValidationException("Error validating configuration: Configuration is invalid.");
+    List<Message> validationMessages = validateConfig(config, migrationName);
+
+    List<Message> errors = validationMessages.stream()
+        .filter(message -> message.getType() == MessageType.ERROR)
+        .collect(Collectors.toList());
+    if (errors.isEmpty()) {
+      return config;
     }
-    return config;
+    errors.forEach(error -> error.printTo(console));
+    console.error("Configuration is invalid.");
+    throw new ValidationException("Error validating configuration: Configuration is invalid.");
   }
 
   /**
    * Returns a list of validation error messages, if any, for the given configuration.
    */
-  private List<String> validateConfig(Config config, String migrationName) {
+  private List<Message> validateConfig(Config config, String migrationName) {
     return configValidator.validate(config, migrationName);
   }
 }

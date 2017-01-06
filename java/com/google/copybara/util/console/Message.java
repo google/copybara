@@ -34,9 +34,43 @@ public final class Message {
   private final MessageType type;
   private final String text;
 
+  public static Message error(String text) {
+    return new Message(MessageType.ERROR, text);
+  }
+
+  public static Message warning(String text) {
+    return new Message(MessageType.WARNING, text);
+  }
+
+  public static Message info(String text) {
+    return new Message(MessageType.INFO, text);
+  }
+
   public Message(MessageType type, String text) {
     this.type = Preconditions.checkNotNull(type);
     this.text = Preconditions.checkNotNull(text);
+  }
+
+  /**
+   * Prints this message into the console using the message type.
+   */
+  public void printTo(Console console) {
+    switch (type) {
+      case ERROR:
+        console.error(text);
+        break;
+      case WARNING:
+        console.warn(text);
+        break;
+      case INFO:
+        console.info(text);
+        break;
+      case PROGRESS:
+        console.progress(text);
+        break;
+      default:
+        throw new IllegalArgumentException(String.format("Type %s printing not supported.", type));
+    }
   }
 
   public MessageType getType() {
