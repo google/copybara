@@ -8,13 +8,6 @@
     - [authoring.pass_thru](#authoring.pass_thru)
     - [authoring.whitelisted](#authoring.whitelisted)
   - [authoring_class](#authoring_class)
-  - [Changes](#changes)
-  - [Path](#path)
-  - [TransformWork](#transformwork)
-  - [change](#change)
-  - [destination](#destination)
-  - [origin](#origin)
-  - [transformation](#transformation)
   - [Console](#console)
   - [metadata](#metadata)
     - [metadata.squash_notes](#metadata.squash_notes)
@@ -117,41 +110,6 @@ whitelist|`sequence of string`<br><p>List of white listed authors in the origin.
 The authors mapping between an origin and a destination
 
 
-# Changes
-
-Data about the set of changes that are being migrated. Each change includes information like: original author, change message, labels, etc. You receive this as a field in TransformWork object for used defined transformations
-
-
-# Path
-
-Represents a path in the checkout directory
-
-
-# TransformWork
-
-Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument to the <code>transformations</code> functions used in <code>core.workflow</code>
-
-
-# change
-
-A change metadata. Contains information like author, change message or detected labels
-
-
-# destination
-
-A repository which a source of truth can be copied to
-
-
-# origin
-
-A Origin represents a source control repository from which source is copied.
-
-
-# transformation
-
-A transformation to the workdir
-
-
 # Console
 
 A console that can be used in skylark transformations to print info, warning or error messages.
@@ -166,7 +124,7 @@ Core transformations for the change metadata
 
 Generate a message that includes a constant prefix text and a list of changes included in the squash change.
 
-`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, oldest_first=False)`
+`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, oldest_first=False)`
 
 ### Parameters:
 
@@ -175,6 +133,8 @@ Parameter | Description
 prefix|`string`<br><p>A prefix to be printed before the list of commits.</p>
 max|`integer`<br><p>Max number of commits to include in the message. For the rest a comment like (and x more) will be included. By default 100 commits are included.</p>
 compact|`boolean`<br><p>If compact is set, each change will be shown in just one line</p>
+show_ref|`boolean`<br><p>If each change reference should be present in the notes</p>
+show_author|`boolean`<br><p>If each change author should be present in the notes</p>
 oldest_first|`boolean`<br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
 
 
@@ -242,7 +202,7 @@ replacement|`string`<br><p>Text replacement for the matching substrings. Referen
 
 Allows updating links to references in commit messages to match the destination's format. Note that this will only consider the 5000 latest commits.
 
-`referenceMigrator metadata.map_references(before, after, regex_groups={})`
+`referenceMigrator metadata.map_references(before, after, regex_groups={}, additional_import_labels=[])`
 
 ### Parameters:
 
@@ -251,6 +211,7 @@ Parameter | Description
 before|`string`<br><p>Template for origin references in the change message. Use a '${reference}' token to capture the actual references. E.g. if the origin uses linkslike 'http://changes?1234', the template would be 'http://internalReviews.com/${reference}', with reference_regex = '[0-9]+'</p>
 after|`string`<br><p>Format for references in the destination, use the token '${reference}' to represent the destination reference. E.g. 'http://changes(${reference})'.</p>
 regex_groups|`dict`<br><p>Regexes for the ${reference} token's content. Requires one 'before_ref' entry matching the ${reference} token's content on the before side. Optionally accepts one 'after_ref' used for validation.</p>
+additional_import_labels|`sequence of string`<br><p>Meant to be used when migrating from another tool: Per default, copybara will only recognize the labels defined in the workflow's endpoints. The tool will use these additional labels to find labels created by other invocations and tools.</p>
 
 
 ### Example:
@@ -340,6 +301,7 @@ Name | Type | Description
 ---- | ----------- | -----------
 --change_request_parent | *string* | Commit reference to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 --last-rev | *string* | Last revision that was migrated to the destination
+--iterative-limit-changes | *int* | Import just a number of changes instead of all the pending ones
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
 
 <a id="core.move" aria-hidden="true"></a>

@@ -44,7 +44,8 @@ public final class GerritOptions implements Option {
   }
 
   @Parameter(names = "--gerrit-change-id",
-      description = "ChangeId to use in the generated commit message",
+      description = "ChangeId to use in the generated commit message. Use this flag if you want "
+          + "to reuse the same Gerrit review for an export.",
       validateWith = ChangeIdValidator.class)
   String gerritChangeId = "";
 
