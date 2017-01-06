@@ -748,7 +748,7 @@ core.workflow(
 )
 EOF
   copybara_with_exit_code $CONFIGURATION_ERROR copy.bara.sky default
-  expect_log "expected type transformation for 'transformations' element but got type int instead"
+  expect_log "expected type '\?transformation'\? for 'transformations' element but got type '\?int'\? instead"
 }
 
 function test_command_help_flag() {

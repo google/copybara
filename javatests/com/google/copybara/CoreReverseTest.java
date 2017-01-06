@@ -82,7 +82,7 @@ public final class CoreReverseTest {
       fail();
     } catch (ValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
-          ".*expected type transformation for 'transformations' element but got type int"
+          ".*expected type '?transformation'? for 'transformations' element but got type '?int'?"
               + " instead.*");
     }
   }
