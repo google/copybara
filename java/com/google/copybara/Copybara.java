@@ -93,14 +93,14 @@ public class Copybara {
     }
 
     messages.forEach(message -> message.printTo(console));
-    boolean hasErrors =
+    boolean hasNoErrors =
         messages.stream().noneMatch(message -> message.getType() == MessageType.ERROR);
-    if (hasErrors) {
+    if (hasNoErrors) {
       console.info(String.format("Configuration '%s' is valid.", configContent.path()));
     } else {
       console.error(String.format("Configuration '%s' is invalid.", configContent.path()));
     }
-    return hasErrors;
+    return hasNoErrors;
   }
 
   private Config loadConfig(Options options, ConfigFile<?> configContents, String migrationName)
