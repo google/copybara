@@ -69,7 +69,7 @@ public enum WorkflowMode {
           ImmutableList<Change<O>> computed = runHelper.changesSinceLastImport();
           if (computed.isEmpty()) {
             throw new ValidationException(
-                "Last imported revision '" + lastRev + "' is not an ancestor of the reference"
+                "Last imported revision '" + lastRev + "' is not an ancestor of the reference "
                     + "currently being migrated ('" + current.asString() + "'). Use "
                     + GeneralOptions.FORCE + " if you really want to migrate the reference.");
           }
