@@ -50,7 +50,7 @@ class PatchTransformation implements Transformation {
     for (int i = 0; i < patches.size(); i++) {
       ConfigFile<?> patch = patches.get(i);
       work.getConsole().info(
-          String.format("Applying patch %d/%d: '%s'.", i, patches.size(), patch.path()));
+          String.format("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path()));
       try {
         DiffUtil.patch(
             work.getCheckoutDir(), patch.content(), SLASHES_TO_STRIP, options.isVerbose(), reverse);
