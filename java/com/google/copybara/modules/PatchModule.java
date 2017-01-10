@@ -63,6 +63,12 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
               doc = "The list of patchfiles to apply, relative to the current config file."
                   + "The files will be applied relative to the checkout dir and the leading path"
                   + "component will be stripped (-p1)."),
+          @Param(name = "excluded_patch_paths", type = SkylarkList.class, generic1 = String.class,
+              defaultValue = "[]",
+              doc = "The list of paths to exclude from each of the patches. Each of the paths will "
+                  + "be excluded from all the patches. Note that these are not workdir paths, but "
+                  + "paths relative to the patch itself.\n"
+                  + "If a path does not exist in a patch, it will be ignored."),
       },
       objectType = PatchModule.class, useLocation = true)
   public static final BuiltinFunction APPLY = new BuiltinFunction("apply") {
@@ -70,13 +76,16 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
     public PatchTransformation invoke(
         PatchModule self,
         SkylarkList patches,
+        SkylarkList excludedPaths,
         Location location) throws EvalException {
       ImmutableList.Builder<ConfigFile<?>> builder = ImmutableList.builder();
       for (String patch : Type.STRING_LIST.convert(patches, "patches")) {
         builder.add(self.resolve(patch, location));
       }
       return new PatchTransformation(
-          builder.build(), self.generalOptions, /*reverse=*/ false);
+          builder.build(),
+          ImmutableList.copyOf(Type.STRING_LIST.convert(excludedPaths, "excludedPaths")),
+          self.generalOptions, /*reverse=*/ false);
     }
   };
 

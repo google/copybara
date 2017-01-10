@@ -45,12 +45,32 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class PatchTransformationTest {
 
+  private static final String DIFF =
+      ""
+          + "diff --git a/test.txt b/test.txt\n"
+          + "index 257cc56..5716ca5 100644\n"
+          + "--- a/test.txt\n"
+          + "+++ b/test.txt\n"
+          + "@@ -1 +1 @@\n"
+          + "-foo\n"
+          + "+bar\n"
+          + "diff --git a/excluded/file2.txt b/excluded/file2.txt\n"
+          + "index ba0e162..9c08216 100644\n"
+          + "--- a/excluded/file2.txt\n"
+          + "+++ b/excluded/file2.txt\n"
+          + "@@ -1 +1 @@\n"
+          + "-bar\n"
+          + "\\ No newline at end of file\n"
+          + "+new bar\n"
+          + "\\ No newline at end of file";
+
   private OptionsBuilder options;
   private GeneralOptions general;
   private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
   private ConfigFile<String> patchFile;
+  private ImmutableList<String> excludedFromPatch = ImmutableList.of("excluded/*");
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -64,32 +84,29 @@ public class PatchTransformationTest {
     general = options.build().get(GeneralOptions.class);
     skylark = new SkylarkTestExecutor(options, PatchModule.class);
     patchFile = new MapConfigFile(
-        ImmutableMap.<String, byte[]>of("diff.patch", ("diff --git a/test.txt b/test.txt\n"
-            + "index 257cc56..5716ca5 100644\n"
-            + "--- a/test.txt\n"
-            + "+++ b/test.txt\n"
-            + "@@ -1 +1 @@\n"
-            + "-foo\n"
-            + "+bar\n").getBytes(UTF_8)), "diff.patch");
+        ImmutableMap.of("diff.patch", (DIFF).getBytes(UTF_8)), "diff.patch");
   }
 
   @Test
   public void applyTransformationTest() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
-        new PatchTransformation(ImmutableList.<ConfigFile<?>>of(patchFile), general, false);
+        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, general, false);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
-    assertThatPath(checkoutDir).containsFile("test.txt", "bar\n");
+    assertThatPath(checkoutDir)
+        .containsFile("test.txt", "bar\n")
+        .containsNoMoreFiles();
   }
 
   @Test
   public void reverseTransformationTest() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "bar\n".getBytes(UTF_8));
     PatchTransformation transform =
-        new PatchTransformation(ImmutableList.<ConfigFile<?>>of(patchFile), general, true);
+        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, general, true);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
-        .containsFile("test.txt", "foo\n");
+        .containsFile("test.txt", "foo\n")
+        .containsNoMoreFiles();
   }
 
   @Test
@@ -97,15 +114,21 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     skylark.addExtraConfigFile("diff.patch", new String(patchFile.content(), UTF_8));
     PatchTransformation transformation =
-        skylark.eval("r", "r = patch.apply(\n patches = ['diff.patch'])");
+        skylark.eval("r",
+            "r = patch.apply(\n"
+                + "  patches = ['diff.patch'],\n"
+                + "  excluded_patch_paths = ['excluded/*'],\n"
+                + ")\n");
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
-    assertThatPath(checkoutDir).containsFile("test.txt", "bar\n");
+    assertThatPath(checkoutDir)
+        .containsFile("test.txt", "bar\n")
+        .containsNoMoreFiles();
   }
 
   @Test
   public void testDescribe() throws Exception {
     PatchTransformation transform = new PatchTransformation(
-        ImmutableList.<ConfigFile<?>>of(patchFile, patchFile), general, false);
+        ImmutableList.of(patchFile, patchFile), excludedFromPatch, general, false);
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
   }
 }

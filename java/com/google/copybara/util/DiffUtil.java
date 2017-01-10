@@ -72,7 +72,8 @@ public class DiffUtil {
    * <p>{@code diffContents} is the result of invoking {@link DiffUtil#diff}.
    */
   public static void patch(
-      Path rootDir, byte[] diffContents, int stripSlashes, boolean verbose, boolean reverse)
+      Path rootDir, byte[] diffContents, ImmutableList<String> excludedPaths, int stripSlashes,
+      boolean verbose, boolean reverse)
       throws IOException {
     // TODO(copybara-team): Think if it makes sense to throw EmptyChangeException here
     if (diffContents.length == 0) {
@@ -81,6 +82,9 @@ public class DiffUtil {
     Preconditions.checkArgument(stripSlashes >= 0, "stripSlashes must be >= 0.");
     ImmutableList.Builder<String> params = ImmutableList.builder();
     params.add("git", "apply", "-p" + stripSlashes);
+    for (String excludedPath : excludedPaths) {
+      params.add("--exclude", excludedPath);
+    }
     if (reverse) {
       params.add("-R");
     }

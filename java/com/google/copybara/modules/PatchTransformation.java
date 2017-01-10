@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 class PatchTransformation implements Transformation {
 
   private final ImmutableList<ConfigFile<?>> patches;
+  private final ImmutableList<String> excludedPaths;
   private final boolean reverse;
   private final GeneralOptions options;
 
@@ -39,8 +40,10 @@ class PatchTransformation implements Transformation {
 
 
   PatchTransformation(
-      ImmutableList<ConfigFile<?>> patches, GeneralOptions options, boolean reverse) {
+      ImmutableList<ConfigFile<?>> patches, ImmutableList<String> excludedPaths,
+      GeneralOptions options, boolean reverse) {
     this.patches = patches;
+    this.excludedPaths = excludedPaths;
     this.reverse = reverse;
     this.options = options;
   }
@@ -53,7 +56,8 @@ class PatchTransformation implements Transformation {
           String.format("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path()));
       try {
         DiffUtil.patch(
-            work.getCheckoutDir(), patch.content(), SLASHES_TO_STRIP, options.isVerbose(), reverse);
+            work.getCheckoutDir(), patch.content(), excludedPaths, SLASHES_TO_STRIP,
+            options.isVerbose(), reverse);
       } catch (IOException ioException) {
         work.getConsole().error("Error applying patch: " + ioException.getMessage());
         throw new ValidationException("Error applying patch.", ioException);
@@ -63,7 +67,7 @@ class PatchTransformation implements Transformation {
 
   @Override
   public Transformation reverse() {
-    return new PatchTransformation(patches.reverse(), options, !reverse);
+    return new PatchTransformation(patches.reverse(), excludedPaths, options, !reverse);
   }
 
   @Override
