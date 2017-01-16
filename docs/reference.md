@@ -279,8 +279,8 @@ Defines a migration pipeline which can be invoked via the Copybara command.
 Parameter | Description
 --------- | -----------
 name|`string`<br><p>The name of the workflow.</p>
-origin|`origin`<br><p>Where to read the migration code from.</p>
-destination|`destination`<br><p>Where to read the migration code from.</p>
+origin|`origin`<br><p>Where to read from the code to be migrated, before applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
+destination|`destination`<br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
 authoring|`authoring_class`<br><p>The author mapping configuration from origin to destination.</p>
 transformations|`sequence`<br><p>The transformations to be run for this workflow. They will run in sequence.</p>
 exclude_in_origin|`glob`<br><p>For compatibility purposes only. Use origin_files instead.</p>

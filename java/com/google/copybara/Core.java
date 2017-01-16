@@ -150,9 +150,15 @@ public class Core implements OptionsAwareModule {
           @Param(name = "name", type = String.class,
               doc = "The name of the workflow.", positional = false),
           @Param(name = "origin", type = Origin.class,
-              doc = "Where to read the migration code from.", positional = false),
+              doc = "Where to read from the code to be migrated, before applying the "
+                  + "transformations. This is usually a VCS like Git, but can also be a local "
+                  + "folder or even a pending change in a code review system like Gerrit.",
+              positional = false),
           @Param(name = "destination", type = Destination.class,
-              doc = "Where to read the migration code from.", positional = false),
+              doc = "Where to write to the code being migrated, after applying the "
+                  + "transformations. This is usually a VCS like Git, but can also be a local "
+                  + "folder or even a pending change in a code review system like Gerrit.",
+              positional = false),
           @Param(name = "authoring", type = Authoring.class,
               doc = "The author mapping configuration from origin to destination.",
               positional = false),
