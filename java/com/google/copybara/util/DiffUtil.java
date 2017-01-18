@@ -95,10 +95,11 @@ public class DiffUtil {
       CommandUtil.executeCommand(cmd, diffContents, verbose);
     } catch (BadExitStatusWithOutputException e) {
       throw new IOException(
-          "Error executing 'patch': " + e.getMessage() + ". Stderr: \n" + e.getOutput().getStderr(),
+          "Error executing 'git apply': " + e.getMessage()
+              + ". Stderr: \n" + e.getOutput().getStderr(),
           e);
     } catch (CommandException e) {
-      throw new IOException("Error executing 'patch'", e);
+      throw new IOException("Error executing 'git apply'", e);
     }
   }
 
