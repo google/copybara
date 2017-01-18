@@ -69,6 +69,7 @@ public class GitOriginTest {
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
   private Glob originFiles;
+  private String moreOriginArgs;
 
   @Rule public final ExpectedException thrown = ExpectedException.none();
 
@@ -95,6 +96,7 @@ public class GitOriginTest {
 
     url = "file://" + remote.toFile().getAbsolutePath();
     ref = "other";
+    moreOriginArgs = "";
 
     origin = origin();
 
@@ -121,7 +123,8 @@ public class GitOriginTest {
         String.format("result = git.origin(\n"
             + "    url = '%s',\n"
             + "    ref = '%s',\n"
-            + ")", url, ref));
+            + "    %s"
+            + ")", url, ref, moreOriginArgs));
   }
 
   private String git(String... params) throws RepoException {
@@ -581,6 +584,87 @@ public class GitOriginTest {
     GitReference firstRef = origin.resolve(firstCommitRef);
     List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
     assertThat(Iterables.getOnlyElement(changes).getMessage()).contains("empty_commit");
+  }
+
+  @Test
+  public void includeBranchCommitLogs() throws Exception {
+    git("checkout", "-b", "the-branch");
+    Files.write(remote.resolve("branch-file.txt"), new byte[0]);
+    git("add", "branch-file.txt");
+    git("commit", "-m", "i hope this is included in the migrated message!");
+    git("checkout", "master");
+
+    // Make a commit on mainline so that Git doesn't turn this into a fast-forward.
+    Files.write(remote.resolve("mainline-file.txt"), new byte[0]);
+    git("add", "mainline-file.txt");
+    git("commit", "-m", "mainline message!");
+    git("merge", "the-branch");
+
+    moreOriginArgs = "include_branch_commit_logs = True";
+    origin = origin();
+
+    GitReference firstRef = origin.resolve(firstCommitRef);
+    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    assertThat(changes).hasSize(2);
+
+    assertThat(changes.get(0).getMessage())
+        .contains("mainline message!");
+    assertThat(changes.get(1).getMessage())
+        .contains(ChangeReader.BRANCH_COMMIT_LOG_HEADING);
+    assertThat(changes.get(1).getMessage())
+        .contains("i hope this is included in the migrated message!");
+  }
+
+  @Test
+  public void branchCommitLogsOnlyCoverIncludedOriginFileRoots() throws Exception {
+    String excludedMessage = "i hope this IS NOT included in the migrated message!";
+
+    // Make two commits on 'the-branch' branch, one being in an excluded directory, the other
+    // included.
+    git("checkout", "-b", "the-branch");
+    Files.write(remote.resolve("branch-file.txt"), new byte[0]);
+    git("add", "branch-file.txt");
+    git("commit", "-m", excludedMessage);
+
+    Files.createDirectories(remote.resolve("include"));
+    Files.write(remote.resolve("include/branch-file.txt"), new byte[0]);
+    git("add", "include/branch-file.txt");
+    git("commit", "-m", "i hope this is included@@@");
+
+    git("checkout", "master");
+
+    // Make a commit on mainline so that Git doesn't turn this into a fast-forward.
+    Files.createDirectories(remote.resolve("include"));
+    Files.write(remote.resolve("include/mainline-file.txt"), new byte[0]);
+    git("add", "include/mainline-file.txt");
+    git("commit", "-m", "mainline message!");
+    git("merge", "the-branch");
+
+    moreOriginArgs = "include_branch_commit_logs = True";
+    originFiles = new Glob(ImmutableList.of("include/**"), ImmutableList.of());
+    origin = origin();
+
+    GitReference firstRef = origin.resolve(firstCommitRef);
+    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    assertThat(changes).hasSize(2);
+    assertThat(changes.get(0).getMessage()).contains("mainline message!");
+    assertThat(changes.get(1).getMessage()).doesNotContain(excludedMessage);
+    assertThat(changes.get(1).getMessage()).contains("i hope this is included@@@");
+  }
+
+  @Test
+  public void doesNotIncludeBranchCommitLogHeadingForNonMergeCommits() throws Exception {
+    Files.write(remote.resolve("foofile.txt"), new byte[0]);
+    git("add", "foofile.txt");
+    git("commit", "-m", "i hope this is included in the migrated message!");
+    moreOriginArgs = "include_branch_commit_logs = True";
+    origin = origin();
+
+    GitReference firstRef = origin.resolve(firstCommitRef);
+    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    String message = Iterables.getOnlyElement(changes).getMessage();
+    assertThat(message).doesNotContain(ChangeReader.BRANCH_COMMIT_LOG_HEADING);
+    assertThat(message).contains("i hope this is included in the migrated message!");
   }
 
   private GitReference getLastCommitRef() throws RepoException, CannotResolveReferenceException {

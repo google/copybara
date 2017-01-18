@@ -22,10 +22,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.Authoring;
@@ -53,20 +53,32 @@ class ChangeReader {
   private final boolean verbose;
   private final int limit;
   private final ImmutableList<String> roots;
+  private final boolean includeBranchCommitLogs;
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, Console console,
-      boolean verbose, int limit, Iterable<String> roots) {
+      boolean verbose, int limit, Iterable<String> roots, boolean includeBranchCommitLogs) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
     this.console = checkNotNull(console, "console");
     this.verbose = verbose;
     this.limit = limit;
     this.roots = ImmutableList.copyOf(roots);
+    this.includeBranchCommitLogs = includeBranchCommitLogs;
+  }
+
+  private String runLog(Iterable<String> params) throws RepoException {
+    List<String> fullParams =
+        new ArrayList<>(Arrays.asList("log", "--no-color", "--date=iso-strict"));
+    Iterables.addAll(fullParams, params);
+    if (!roots.get(0).isEmpty()) {
+      fullParams.add("--");
+      fullParams.addAll(roots);
+    }
+    return repository.simpleCommand(fullParams.toArray(new String[0])).getStdout();
   }
 
   ImmutableList<GitChange> run(String refExpression) throws RepoException {
-    List<String> params = new ArrayList<>(
-        Arrays.asList("log", "--no-color", "--date=iso-strict"));
+    List<String> params = new ArrayList<>();
 
     if (limit != -1) {
       params.add("-" + limit);
@@ -76,13 +88,26 @@ class ChangeReader {
     params.add("--first-parent");
 
     params.add(refExpression);
-    if (!roots.get(0).isEmpty()) {
-      params.add("--");
-      params.addAll(roots);
+
+    return parseChanges(runLog(params));
+  }
+
+  static final String BRANCH_COMMIT_LOG_HEADING = "-- Branch commit log --";
+
+  private CharSequence branchCommitLog(GitReference ref, List<GitReference> parents)
+      throws RepoException {
+    if (parents.size() <= 1) {
+      // Not a merge commit, so don't bother showing full log of branch commits. This would only
+      // contain the raw commit of 'ref', which will be redundant.
+      return "";
+    }
+    if (!includeBranchCommitLogs) {
+      return "";
     }
 
-    return parseChanges(
-        repository.simpleCommand(params.toArray(new String[params.size()])).getStdout());
+    return new StringBuilder()
+        .append("\n").append(BRANCH_COMMIT_LOG_HEADING).append("\n")
+        .append(runLog(ImmutableList.of(parents.get(0) + ".." + ref)));
   }
 
   private ImmutableList<GitChange> parseChanges(String log) throws RepoException {
@@ -100,7 +125,7 @@ class ChangeReader {
           .split(removePrefix(log, rawCommitLine, "commit")).iterator();
 
       GitReference ref = repository.createReferenceFromCompleteSha1(commitReferences.next());
-      ImmutableList.Builder<GitReference> parents = ImmutableList.builder();
+      ArrayList<GitReference> parents = new ArrayList<>();
       while (commitReferences.hasNext()) {
         parents.add(repository.createReferenceFromCompleteSha1(commitReferences.next()));
       }
@@ -149,9 +174,10 @@ class ChangeReader {
         }
         message.append(s, GitOrigin.GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
       }
+      message.append(branchCommitLog(ref, parents));
       Change<GitReference> change = new Change<>(
           ref, author, message.toString(), dateTime, ImmutableMap.copyOf(labels));
-      builder.add(new GitChange(change, parents.build()));
+      builder.add(new GitChange(change, parents));
     }
     // Return older commit first.
     return builder.build().reverse();
@@ -170,9 +196,9 @@ class ChangeReader {
     private final Change<GitReference> change;
     private final ImmutableList<GitReference> parents;
 
-    GitChange(Change<GitReference> change, ImmutableList<GitReference> parents) {
+    GitChange(Change<GitReference> change, Iterable<GitReference> parents) {
       this.change = change;
-      this.parents = parents;
+      this.parents = ImmutableList.copyOf(parents);
     }
 
     public Change<GitReference> getChange() {
@@ -194,6 +220,7 @@ class ChangeReader {
     private boolean verbose = false;
     private int limit = -1;
     private ImmutableList<String> roots = ImmutableList.of("");
+    private boolean includeBranchCommitLogs = false;
 
     // TODO(matvore): Consider adding destinationFiles.
     // For ALL_FILES and where roots is [""], This will skip merges that don't affect the tree
@@ -230,13 +257,19 @@ class ChangeReader {
       return this;
     }
 
+    Builder setIncludeBranchCommitLogs(boolean includeBranchCommitLogs) {
+      this.includeBranchCommitLogs = includeBranchCommitLogs;
+      return this;
+    }
+
     private Builder setRoots(Iterable<String> roots) {
       this.roots = ImmutableList.copyOf(roots);
       return this;
     }
 
     ChangeReader build() {
-      return new ChangeReader(authoring, repository, console, verbose, limit, roots);
+      return new ChangeReader(
+          authoring, repository, console, verbose, limit, roots, includeBranchCommitLogs);
     }
   }
 

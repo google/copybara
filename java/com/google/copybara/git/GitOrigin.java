@@ -81,10 +81,12 @@ public final class GitOrigin implements Origin<GitReference> {
   @Nullable
   private final Map<String, String> environment;
   private final SubmoduleStrategy submoduleStrategy;
+  private final boolean includeBranchCommitLogs;
 
   private GitOrigin(Console console, GitRepository repository, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions, boolean verbose,
-      @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy) {
+      @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy,
+      boolean includeBranchCommitLogs) {
     this.console = checkNotNull(console);
     this.repository = checkNotNull(repository);
     // Remove a possible trailing '/' so that the url is normalized.
@@ -95,6 +97,7 @@ public final class GitOrigin implements Origin<GitReference> {
     this.verbose = verbose;
     this.environment = environment;
     this.submoduleStrategy = submoduleStrategy;
+    this.includeBranchCommitLogs = includeBranchCommitLogs;
   }
 
   public GitRepository getRepository() {
@@ -113,7 +116,8 @@ public final class GitOrigin implements Origin<GitReference> {
 
     private ChangeReader.Builder changeReaderBuilder() {
       return ChangeReader.Builder.forOrigin(authoring, repository, console, originFiles)
-          .setVerbose(verbose);
+          .setVerbose(verbose)
+          .setIncludeBranchCommitLogs(includeBranchCommitLogs);
     }
 
     /**
@@ -280,7 +284,8 @@ public final class GitOrigin implements Origin<GitReference> {
    * Builds a new {@link GitOrigin}.
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
-      Map<String, String> environment, SubmoduleStrategy submoduleStrategy) {
+      Map<String, String> environment, SubmoduleStrategy submoduleStrategy,
+      boolean includeBranchCommitLogs) {
 
     GitOptions gitConfig = options.get(GitOptions.class);
     boolean verbose = options.get(GeneralOptions.class).isVerbose();
@@ -288,7 +293,8 @@ public final class GitOrigin implements Origin<GitReference> {
     return new GitOrigin(
         options.get(GeneralOptions.class).console(),
         GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
-        url, ref, type, options.get(GitOptions.class), verbose, environment, submoduleStrategy);
+        url, ref, type, options.get(GitOptions.class), verbose, environment, submoduleStrategy,
+        includeBranchCommitLogs);
   }
 
   @Override

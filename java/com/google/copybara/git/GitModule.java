@@ -81,16 +81,21 @@ public class GitModule implements OptionsAwareModule {
                   + "from the git repository. For example: 'master'"),
           @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+          @Param(name = "include_branch_commit_logs", type = Boolean.class, defaultValue = "False",
+              doc = "Whether to include raw logs of branch commits in the migrated change message."
+              + " This setting *only* affects merge commits. Because the logs are raw, this does"
+              + " not filter out commit authors.", positional = false),
       },
       objectType = GitModule.class)
   public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
-    public GitOrigin invoke(GitModule self, String url, Object ref, String submodules)
-        throws EvalException {
+    public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
+        Boolean includeBranchCommitLogs) throws EvalException {
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
           self.options.get(GeneralOptions.class).getEnvironment(),
           SkylarkUtil.stringToEnum(location, "submodules",
-              submodules, GitOrigin.SubmoduleStrategy.class));
+              submodules, GitOrigin.SubmoduleStrategy.class),
+          includeBranchCommitLogs);
     }
   };
 
@@ -154,11 +159,13 @@ public class GitModule implements OptionsAwareModule {
     public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
         Location location) throws EvalException {
       // TODO(copybara-team): Validate that URL is a Gerrit one
+      // TODO(copybara-team): See if we want to support includeBranchCommitLogs for Gerrit repos.
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GERRIT,
           self.options.get(GeneralOptions.class).getEnvironment(),
           SkylarkUtil.stringToEnum(location, "submodules",
-              submodules, GitOrigin.SubmoduleStrategy.class));
+              submodules, GitOrigin.SubmoduleStrategy.class),
+          /*includeBranchCommitLogs=*/false);
     }
   };
 
@@ -182,11 +189,13 @@ public class GitModule implements OptionsAwareModule {
         throw new EvalException(location, "Invalid Github URL: " + url);
       }
 
+      // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
           self.options.get(GeneralOptions.class).getEnvironment(),
           SkylarkUtil.stringToEnum(location, "submodules",
-              submodules, GitOrigin.SubmoduleStrategy.class));
+              submodules, GitOrigin.SubmoduleStrategy.class),
+          /*includeBranchCommitLogs=*/false);
     }
   };
 
