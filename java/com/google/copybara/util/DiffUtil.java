@@ -45,7 +45,7 @@ public class DiffUtil {
         "Paths 'one' and 'other' must be sibling directories.");
     Path root = one.getParent();
     String[] params = new String[] {
-        "git", "diff", "--no-color",
+        "git", "diff", "--no-color", "--",
         root.relativize(one).toString(),
         root.relativize(other).toString()
     };

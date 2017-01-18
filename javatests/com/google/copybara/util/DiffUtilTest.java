@@ -77,6 +77,22 @@ public class DiffUtilTest {
     assertThat(diffContents).isEmpty();
   }
 
+  /**
+   * Don't treat origin/destination folders as flags or other special argument. This means that
+   * we run 'git options -- origin dest' instead of 'git options origin dest' that is
+   * ambiguous.
+   */
+  @Test
+  public void originDestinationFolderSeparatedArguments() throws Exception {
+    // Should not be treated as an illegal flag
+    left = createDir(tmpFolder.getRoot().toPath(), "-foo");
+    right = createDir(tmpFolder.getRoot().toPath(), "reverse");
+    writeFile(left, "file1.txt", "foo");
+    writeFile(right, "file1.txt", "foo");
+
+    assertThat(DiffUtil.diff(left, right, VERBOSE)).isEmpty();
+  }
+
   @Test
   public void apply() throws Exception {
     writeFile(left, "file1.txt", "foo");
