@@ -16,6 +16,7 @@
 
 package com.google.copybara.util;
 
+import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 
@@ -50,7 +51,11 @@ public final class ReadablePathMatcher implements PathMatcher {
    */
   public static ReadablePathMatcher relativeGlob(Path path, String glob) {
     FileUtil.checkNormalizedRelative(glob);
-    return new ReadablePathMatcher(
-        path.getFileSystem().getPathMatcher("glob:" + path.resolve(glob)), glob);
+    FileSystem fs = path.getFileSystem();
+    String root = path.normalize().toString();
+    if (!root.endsWith(fs.getSeparator())) {
+      root += fs.getSeparator();
+    }
+    return new ReadablePathMatcher(fs.getPathMatcher("glob:" + root + glob), glob);
   }
 }
