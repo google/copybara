@@ -24,13 +24,12 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
-import com.google.copybara.ValidationException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -78,7 +77,7 @@ public final class TemplateTokens {
     builder.location = location;
     builder.parse(template);
     this.before = builder.buildBefore(regexGroups, repeatedGroups);
-    this.groupIndexes = ArrayListMultimap.create(builder.groupIndexes);
+    this.groupIndexes = MultimapBuilder.hashKeys().arrayListValues().build(builder.groupIndexes);
     this.tokens = ImmutableList.copyOf(builder.tokens);
     this.unusedGroups = Sets.difference(regexGroups.keySet(), groupIndexes.keySet());
   }
