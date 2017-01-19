@@ -922,6 +922,27 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testReverseMetadata() throws IOException, ValidationException, RepoException {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+
+    String config = ""
+        + "def forward(ctx):\n"
+        + "  ctx.set_message('modified message')\n"
+        + "def reverse(ctx):\n"
+        + "  if ctx.message != 'modified message':\n"
+        + "    ctx.console.error('Expecting \"modified message\": '+ ctx.message)\n"
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = testing.origin(),\n"
+        + "    destination = testing.destination(),\n"
+        + "    transformations = [core.transform([forward], reversal=[reverse])],\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    reversible_check = True,\n"
+        + ")\n";
+    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+  }
+
+  @Test
   public void errorWritingFileThatDoesNotMatchDestinationFiles() throws Exception {
     destinationFiles = "glob(['foo*'], exclude = ['foo42'])";
     transformations = "[]";
