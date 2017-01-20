@@ -51,11 +51,22 @@ public final class ReadablePathMatcher implements PathMatcher {
    */
   public static ReadablePathMatcher relativeGlob(Path path, String glob) {
     FileUtil.checkNormalizedRelative(glob);
+
     FileSystem fs = path.getFileSystem();
     String root = path.normalize().toString();
-    if (!root.endsWith(fs.getSeparator())) {
-      root += fs.getSeparator();
+    String separator = fs.getSeparator();
+
+    if (!root.endsWith(separator)) {
+      root += separator;
     }
+
+    // If the current filesystem uses a backslash as the separator, the root must be escaped
+    // first to be valid glob syntax since backslash is considered an escaping character.
+    if ("\\".equals(separator)) {
+      root = root.replace("\\", "\\\\");
+      glob = glob.replace("/", "\\\\");
+    }
+
     return new ReadablePathMatcher(fs.getPathMatcher("glob:" + root + glob), glob);
   }
 }

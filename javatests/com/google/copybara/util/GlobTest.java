@@ -19,12 +19,15 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 import com.google.copybara.ValidationException;
 import com.google.copybara.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -165,6 +168,18 @@ public class GlobTest {
         .containsExactly("foo");
     assertThat(new Glob(ImmutableList.of("foo/barbar/mer", "foo/bar/mer")).roots())
         .containsExactly("foo/bar", "foo/barbar");
+  }
+
+  @Test
+  public void windowsGlobWorks() throws Exception {
+    FileSystem workFs = Jimfs.newFileSystem(Configuration.windows());
+    workdir = workFs.getPath("c:/tmp");
+    Path folder = workdir.resolve("foo");
+    Files.createDirectories(folder);
+    Files.write(folder.resolve("bar"), new byte[0]);
+
+    PathMatcher matcher = createPathMatcher("glob(['foo/**'])");
+    assertThat(matcher.matches(workdir.resolve("foo/bar"))).isTrue();
   }
 
   private PathMatcher createPathMatcher(final String expression)
