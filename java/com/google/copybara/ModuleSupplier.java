@@ -21,6 +21,7 @@ import static com.google.common.base.StandardSystemProperty.USER_HOME;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
@@ -35,7 +36,7 @@ import com.google.copybara.transform.metadata.MetadataModule;
 /**
  * A supplier of modules and {@link Option}s for Copybara.
  */
-public class ConfigSupplier {
+public abstract class ModuleSupplier<T> {
 
   private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
       FolderModule.class,
@@ -48,14 +49,14 @@ public class ConfigSupplier {
   /**
    * Creates a new instance using the {@code USER_HOME} as the home dir.
    */
-  public ConfigSupplier() {
+  public ModuleSupplier() {
     this(USER_HOME.value());
   }
 
   /**
    * Creates a new instance with the given {@code homeDir}.
    */
-  public ConfigSupplier(String homeDir) {
+  public ModuleSupplier(String homeDir) {
     this.homeDir = Preconditions.checkNotNull(homeDir);
   }
 
@@ -79,4 +80,11 @@ public class ConfigSupplier {
         new GerritOptions(),
         new WorkflowOptions());
   }
+
+  /**
+   * Returns a new {@link ConfigLoader} with the given {@code configLocation} and this supplier's
+   * module configuration.
+   */
+  public abstract ConfigLoader<T> newConfigLoader(
+      GeneralOptions generalOptions, String configLocation);
 }

@@ -25,9 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.config.ConfigFile;
-import com.google.copybara.config.PathBasedConfigFile;
-import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
@@ -113,12 +111,12 @@ public class Main {
    */
   private ExitCode runInternal(String[] args, Console console, FileSystem fs) {
     try {
-      ConfigSupplier configSupplier = newConfigSupplier();
-      Copybara copybara = newCopybaraTool(configSupplier);
+      ModuleSupplier moduleSupplier = newModuleSupplier();
+      Copybara copybara = newCopybaraTool();
 
       final MainArguments mainArgs = new MainArguments();
       GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-      List<Option> allOptions = new ArrayList<>(configSupplier.newOptions());
+      List<Option> allOptions = new ArrayList<>(moduleSupplier.newOptions());
       JCommander jcommander = new JCommander(ImmutableList.builder()
           .addAll(allOptions)
           .add(mainArgs)
@@ -144,22 +142,22 @@ public class Main {
 
       initEnvironment(options, mainArgs, jcommander);
 
-      final Path configPath = fs.getPath(mainArgs.getConfigPath());
-      ConfigFile configFile = loadConfig(configPath, generalOptions.getConfigRoot());
+      ConfigLoader configLoader =
+          moduleSupplier.newConfigLoader(generalOptions, mainArgs.getConfigPath());
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
-          return copybara.validate(options, configFile, mainArgs.getWorkflowName())
+          return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
               ? ExitCode.SUCCESS : ExitCode.CONFIGURATION_ERROR;
         case MIGRATE:
           copybara.run(
               options,
-              configFile,
+              configLoader,
               mainArgs.getWorkflowName(),
               mainArgs.getBaseWorkdir(generalOptions, fs),
               mainArgs.getSourceRef());
           return ExitCode.SUCCESS;
         case INFO:
-          copybara.info(options, configFile, mainArgs.getWorkflowName());
+          copybara.info(options, configLoader, mainArgs.getWorkflowName());
           return ExitCode.SUCCESS;
         default:
           console.error(String.format("Subcommand %s not implemented.", mainArgs.getSubcommand()));
@@ -188,45 +186,6 @@ public class Main {
     }
   }
 
-  private ConfigFile loadConfig(Path configPath, @Nullable Path rootCfgPath)
-      throws IOException, CommandLineException, ValidationException {
-    String fileName = configPath.getFileName().toString();
-
-    ValidationException.checkCondition(
-        fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
-        String.format("Copybara config file filename should be '%s' but it is '%s'.",
-            COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName()));
-
-    // Treat the top level element specially since it is passed thru the command line.
-    if (!Files.exists(configPath)) {
-      throw new CommandLineException("Configuration file not found: " + configPath);
-    }
-    Path root = rootCfgPath;
-    if (root == null) {
-      root = findConfigRootHeuristic(configPath.toAbsolutePath());
-    }
-    return new PathBasedConfigFile(configPath.toAbsolutePath(), root).withContentLogging();
-  }
-
-  /**
-   * Find the root path for resolving configuration file paths and resources. This method
-   * assumes that the .git containing directory is the root path.
-   *
-   * <p>This could be extended to other kind of source control systems.
-   */
-  @Nullable
-  protected Path findConfigRootHeuristic(Path configPath) {
-    Path parent = configPath.getParent();
-    while (parent != null) {
-      if (Files.isDirectory(parent.resolve(".git"))) {
-        return parent;
-      }
-      parent = parent.getParent();
-    }
-    return null;
-  }
-
-
   /**
    * Returns a short String representing the version of the binary
    */
@@ -245,15 +204,22 @@ public class Main {
   /**
    * Returns a new instance of {@link Copybara}.
    */
-  protected Copybara newCopybaraTool(ConfigSupplier configSupplier) {
-    return new Copybara(new SkylarkParser(configSupplier.getModules()));
+  protected Copybara newCopybaraTool() {
+    return new Copybara();
   }
 
   /**
-   * Returns a configuration supplier.
+   * Returns a module supplier.
    */
-  protected ConfigSupplier newConfigSupplier() {
-    return new ConfigSupplier();
+  protected ModuleSupplier newModuleSupplier() {
+    return new ModuleSupplier<Path>() {
+      @Override
+      public ConfigLoader<Path> newConfigLoader(
+          GeneralOptions generalOptions, String configLocation) {
+        Path configPath = generalOptions.getFileSystem().getPath(configLocation);
+        return new LocalConfigLoader(this, generalOptions, configPath);
+      }
+    };
   }
 
   private Console getConsole(String[] args) {

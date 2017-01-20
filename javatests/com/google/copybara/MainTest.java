@@ -48,7 +48,8 @@ public class MainTest {
 
   @Test
   public void testNoArguments() {
-    assertThat(new Main().run(args)).isEqualTo(ExitCode.COMMAND_LINE_ERROR);
+    assertThat(new Main().run(/*no arguments*/ new String[]{}))
+        .isEqualTo(ExitCode.COMMAND_LINE_ERROR);
   }
 
   @Test

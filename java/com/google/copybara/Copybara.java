@@ -18,9 +18,8 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.Info.MigrationReference;
-import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.config.ConfigValidator;
-import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
@@ -39,30 +38,27 @@ import javax.annotation.Nullable;
  */
 public class Copybara {
 
-  private final SkylarkParser skylarkParser;
   private final ConfigValidator configValidator;
 
-  public Copybara(SkylarkParser skylarkParser) {
-    this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
+  public Copybara() {
     this.configValidator = new ConfigValidator();
   }
 
-  public Copybara(SkylarkParser skylarkParser, ConfigValidator configValidator) {
-    this.skylarkParser = Preconditions.checkNotNull(skylarkParser);
+  public Copybara(ConfigValidator configValidator) {
     this.configValidator = Preconditions.checkNotNull(configValidator);
   }
 
-  public void run(Options options, ConfigFile<?> configContents, String migrationName,
+  public void run(Options options, ConfigLoader<?> configLoader, String migrationName,
       Path baseWorkdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
-    Config config = loadConfig(options, configContents, migrationName);
+    Config config = loadConfig(options, configLoader, migrationName);
     config.getMigration(migrationName).run(baseWorkdir, sourceRef);
   }
 
-  public Config info(Options options, ConfigFile<?> configContents, String migrationName)
+  public Config info(Options options, ConfigLoader<?> configLoader, String migrationName)
       throws IOException, ValidationException, RepoException {
     Console console = options.get(GeneralOptions.class).console();
-    Config config = loadConfig(options, configContents, migrationName);
+    Config config = loadConfig(options, configLoader, migrationName);
     Info info = config.getMigration(migrationName).getInfo();
     for (MigrationReference ref : info.migrationReferences()) {
       console.info(
@@ -74,12 +70,12 @@ public class Copybara {
     return config;
   }
 
-  public boolean validate(Options options, ConfigFile<?> configContent, String migrationName)
+  public boolean validate(Options options, ConfigLoader<?> configLoader, String migrationName)
       throws RepoException, IOException {
     Console console = options.get(GeneralOptions.class).console();
     ArrayList<Message> messages = new ArrayList<>();
     try {
-      Config config = skylarkParser.loadConfig(configContent, options);
+      Config config = configLoader.loadConfig(options);
       messages.addAll(validateConfig(config, migrationName));
     } catch (ValidationException e) {
       // The validate subcommand should not throw Validation exceptions but log a result
@@ -96,18 +92,18 @@ public class Copybara {
     boolean hasNoErrors =
         messages.stream().noneMatch(message -> message.getType() == MessageType.ERROR);
     if (hasNoErrors) {
-      console.info(String.format("Configuration '%s' is valid.", configContent.path()));
+      console.info(String.format("Configuration '%s' is valid.", configLoader.location()));
     } else {
-      console.error(String.format("Configuration '%s' is invalid.", configContent.path()));
+      console.error(String.format("Configuration '%s' is invalid.", configLoader.location()));
     }
     return hasNoErrors;
   }
 
-  private Config loadConfig(Options options, ConfigFile<?> configContents, String migrationName)
+  private Config loadConfig(Options options, ConfigLoader<?> configLoader, String migrationName)
       throws IOException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Console console = generalOptions.console();
-    Config config = skylarkParser.loadConfig(configContents, options);
+    Config config = configLoader.loadConfig(options);
     console.progress("Validating configuration");
     List<Message> validationMessages = validateConfig(config, migrationName);
 

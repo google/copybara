@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.testing.OptionsBuilder;
@@ -69,7 +70,13 @@ public class ExamplesTest {
   }
 
   protected ImmutableSet<Class<?>> getUserModules() {
-    return new ConfigSupplier().getModules();
+    return new ModuleSupplier<String>() {
+      @Override
+      public ConfigLoader<String> newConfigLoader(GeneralOptions generalOptions,
+          String configLocation) {
+        throw new UnsupportedOperationException("Not implemented");
+      }
+    }.getModules();
   }
 
 }
