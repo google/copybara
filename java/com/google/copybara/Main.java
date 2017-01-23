@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
 
 /**
  * Main class that invokes {@link Copybara} from command-line.
@@ -111,7 +110,7 @@ public class Main {
    */
   private ExitCode runInternal(String[] args, Console console, FileSystem fs) {
     try {
-      ModuleSupplier moduleSupplier = newModuleSupplier();
+      ModuleSupplier<Path> moduleSupplier = newModuleSupplier();
       Copybara copybara = newCopybaraTool();
 
       final MainArguments mainArgs = new MainArguments();
@@ -211,7 +210,7 @@ public class Main {
   /**
    * Returns a module supplier.
    */
-  protected ModuleSupplier newModuleSupplier() {
+  protected ModuleSupplier<Path> newModuleSupplier() {
     return new ModuleSupplier<Path>() {
       @Override
       public ConfigLoader<Path> newConfigLoader(
