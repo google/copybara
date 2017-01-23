@@ -141,7 +141,7 @@ public class Main {
 
       initEnvironment(options, mainArgs, jcommander);
 
-      ConfigLoader configLoader =
+      ConfigLoader<Path> configLoader =
           moduleSupplier.newConfigLoader(generalOptions, mainArgs.getConfigPath());
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
