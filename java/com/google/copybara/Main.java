@@ -110,7 +110,7 @@ public class Main {
    */
   private ExitCode runInternal(String[] args, Console console, FileSystem fs) {
     try {
-      ModuleSupplier<Path> moduleSupplier = newModuleSupplier();
+      ModuleSupplier moduleSupplier = newModuleSupplier();
       Copybara copybara = newCopybaraTool();
 
       final MainArguments mainArgs = new MainArguments();
@@ -142,7 +142,7 @@ public class Main {
       initEnvironment(options, mainArgs, jcommander);
 
       ConfigLoader<Path> configLoader =
-          moduleSupplier.newConfigLoader(generalOptions, mainArgs.getConfigPath());
+          newConfigLoader(moduleSupplier, generalOptions, mainArgs.getConfigPath());
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
           return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
@@ -210,15 +210,14 @@ public class Main {
   /**
    * Returns a module supplier.
    */
-  protected ModuleSupplier<Path> newModuleSupplier() {
-    return new ModuleSupplier<Path>() {
-      @Override
-      public ConfigLoader<Path> newConfigLoader(
-          GeneralOptions generalOptions, String configLocation) {
-        Path configPath = generalOptions.getFileSystem().getPath(configLocation);
-        return new LocalConfigLoader(this, generalOptions, configPath);
-      }
-    };
+  protected ModuleSupplier newModuleSupplier() {
+    return new ModuleSupplier();
+  }
+
+  protected ConfigLoader<Path> newConfigLoader(
+      ModuleSupplier moduleSupplier, GeneralOptions generalOptions, String configLocation) {
+    return new LocalConfigLoader(moduleSupplier, generalOptions,
+        generalOptions.getFileSystem().getPath(configLocation));
   }
 
   private Console getConsole(String[] args) {

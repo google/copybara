@@ -29,7 +29,7 @@ public abstract class ConfigLoader<T> {
 
   private final SkylarkParser skylarkParser;
 
-  public ConfigLoader(ModuleSupplier<T> moduleSupplier) {
+  public ConfigLoader(ModuleSupplier moduleSupplier) {
     this.skylarkParser = new SkylarkParser(moduleSupplier.getModules());
   }
 

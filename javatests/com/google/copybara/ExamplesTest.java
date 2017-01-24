@@ -21,7 +21,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.testing.OptionsBuilder;
@@ -51,12 +50,12 @@ public class ExamplesTest {
         if (examples == null) {
           Example singleSample = field.getAnnotation(Example.class);
           if (singleSample != null) {
-            samples = ImmutableList.<Example>of(singleSample);
+            samples = ImmutableList.of(singleSample);
           } else {
             continue;
           }
         } else {
-          samples = ImmutableList.<Example>copyOf(examples.value());
+          samples = ImmutableList.copyOf(examples.value());
         }
         for (Example example : samples) {
           anyFound = true;
@@ -70,13 +69,7 @@ public class ExamplesTest {
   }
 
   protected ImmutableSet<Class<?>> getUserModules() {
-    return new ModuleSupplier<String>() {
-      @Override
-      public ConfigLoader<String> newConfigLoader(GeneralOptions generalOptions,
-          String configLocation) {
-        throw new UnsupportedOperationException("Not implemented");
-      }
-    }.getModules();
+    return new ModuleSupplier().getModules();
   }
 
 }

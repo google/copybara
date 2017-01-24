@@ -16,26 +16,18 @@
 
 package com.google.copybara;
 
-import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
-
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination.Writer;
-import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -174,7 +166,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
             name, resolvedRef.asString(),
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-    mode.run(new RunHelper<>(workdir, resolvedRef));
+    mode.run(new WorkflowRunHelper<>(this, workdir, resolvedRef));
   }
 
   @Override
@@ -199,199 +191,37 @@ public final class Workflow<O extends Reference, D extends Reference> implements
     return destination.describe(destinationFiles);
   }
 
-  final class RunHelper<M extends O> {
-    private final Path workdir;
-    final M resolvedRef;
-    private final Origin.Reader<O> originReader;
-    @Nullable private final Destination.Reader<D> destinationReader;
-    private final Destination.Writer writer;
+  public Glob getOriginFiles() {
+    return originFiles;
+  }
 
-    /**
-     * @param workdir working directory to use for the transformations
-     * @param resolvedRef reference to migrate
-     */
-    RunHelper(Path workdir, M resolvedRef) throws ValidationException, IOException, RepoException {
-      this.workdir = Preconditions.checkNotNull(workdir);
-      this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
-      this.originReader = origin.newReader(originFiles, authoring);
-      this.writer = destination.newWriter(destinationFiles);
-      this.destinationReader = destination.newReader(destinationFiles);
-    }
+  public Glob getDestinationFiles() {
+    return destinationFiles;
+  }
 
-    M getResolvedRef() {
-      return resolvedRef;
-    }
+  public Console getConsole() {
+    return console;
+  }
 
-    /**
-     * Authoring configuration.
-     */
-    Authoring getAuthoring() {
-      return authoring;
-    }
+  public WorkflowOptions getWorkflowOptions() {
+    return workflowOptions;
+  }
 
-    /** Console to use for printing messages. */
-    Console getConsole() {
-      return console;
-    }
+  public boolean isForce() {
+    return force;
+  }
 
-    /**
-     * Options that change how workflows behave.
-     */
-    WorkflowOptions workflowOptions() {
-      return workflowOptions;
-    }
+  @Nullable
+  public Transformation getReverseTransformForCheck() {
+    return reverseTransformForCheck;
+  }
 
-    boolean isForce() {
-      return force;
-    }
+  public boolean isVerbose() {
+    return verbose;
+  }
 
-    Destination getDestination() {
-      return destination;
-    }
-
-    Origin.Reader<O> getOriginReader() {
-      return originReader;
-    }
-
-    Destination.Reader<D> getDestinationReader() {
-      return destinationReader;
-    }
-
-    boolean destinationSupportsPreviousRef() {
-      return writer.supportsPreviousRef();
-    }
-
-    /**
-     * Performs a full migration, including checking out files from the origin, deleting excluded
-     * files, transforming the code, and writing to the destination. This writes to the destination
-     * exactly once.
-     * @param ref reference to the version which will be written to the destination
-     * @param processConsole console to use to print progress messages
-     * @param metadata metadata of the change to be migrated
-     * @param changes changes included in this migration
-     *
-     * @return The result of this migration
-     */
-    WriterResult migrate(O ref, Console processConsole, Metadata metadata,
-        Changes changes)
-        throws IOException, RepoException, ValidationException {
-      return migrate(ref, processConsole, metadata, changes, /*destinationBaseline=*/ null);
-    }
-
-    WriterResult migrate(O ref, Console processConsole,
-        Metadata metadata, Changes changes, @Nullable String destinationBaseline)
-        throws IOException, RepoException, ValidationException {
-      processConsole.progress("Cleaning working directory");
-      FileUtil.deleteAllFilesRecursively(workdir);
-      Path checkoutDir = workdir.resolve("checkout");
-      Files.createDirectories(checkoutDir);
-
-      processConsole.progress("Checking out the change");
-      originReader.checkout(ref, checkoutDir);
-
-      // Remove excluded origin files.
-      PathMatcher originFiles = Workflow.this.originFiles.relativeTo(checkoutDir);
-      processConsole.progress("Removing excluded origin files");
-
-      int deleted = FileUtil.deleteFilesRecursively(
-          checkoutDir, FileUtil.notPathMatcher(originFiles));
-      if (deleted != 0) {
-        processConsole.info(
-            String.format("Removed %d files from workdir that do not match origin_files", deleted));
-      }
-
-      Path originCopy = null;
-      if (reverseTransformForCheck != null) {
-        console.progress("Making a copy or the workdir for reverse checking");
-        originCopy = Files.createDirectories(workdir.resolve("origin"));
-        FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
-      }
-
-      TransformWork transformWork = new TransformWork(checkoutDir, metadata, changes, console,
-          new MigrationInfo(origin.getLabelName(), getDestinationReader()));
-      transformation.transform(transformWork);
-
-      if (reverseTransformForCheck != null) {
-        console.progress("Checking that the transformations can be reverted");
-        Path reverse = Files.createDirectories(workdir.resolve("reverse"));
-        FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
-        reverseTransformForCheck.transform(
-            new TransformWork(reverse,
-                new Metadata(transformWork.getMessage(), transformWork.getAuthor()),
-                changes,
-                console,
-                new MigrationInfo(/*originLabel=*/ null, (ChangeVisitable) null))
-        );
-        String diff = new String(DiffUtil.diff(originCopy, reverse, verbose),
-            StandardCharsets.UTF_8);
-        if (!diff.trim().isEmpty()) {
-          console.error("Non reversible transformations:\n"
-              + DiffUtil.colorize(console, diff));
-          throw new ValidationException(String.format("Workflow '%s' is not reversible", name));
-        }
-      }
-
-      console.progress("Checking that destination_files covers all files in transform result");
-      new ValidateDestinationFilesVisitor(destinationFiles, checkoutDir)
-          .verifyFilesToWrite();
-
-      // TODO(malcon): Pass metadata object instead
-      TransformResult transformResult = new TransformResult(checkoutDir, ref,
-          transformWork.getAuthor(),
-          transformWork.getMessage());
-      if (destinationBaseline != null) {
-        transformResult = transformResult.withBaseline(destinationBaseline);
-      }
-
-      transformResult = transformResult.withAskForConfirmation(askForConfirmation);
-
-      WriterResult result = writer.write(transformResult, processConsole);
-      Verify.verifyNotNull(result, "Destination returned a null result.");
-      return result;
-    }
-
-
-    ImmutableList<Change<O>> changesSinceLastImport() throws RepoException, ValidationException {
-      return originReader.changes(getLastRev(), resolvedRef);
-    }
-
-    /**
-     * Get last imported reference or fail if it cannot be found.
-     *
-     * @throws RepoException if a last revision couldn't be found
-     */
-    O getLastRev() throws RepoException, ValidationException {
-      O lastRev = maybeGetLastRev();
-      if (lastRev == null) {
-        throw new CannotResolveReferenceException(String.format(
-                "Previous revision label %s could not be found in %s and --last-rev flag"
-                + " was not passed", origin.getLabelName(), destination));
-      }
-      return lastRev;
-    }
-
-    /**
-     * Returns the last revision that was imported from this origin to the destination. Returns
-     * {@code null} if it cannot be determined.
-     *
-     * <p>If {@code --last-rev} is specified, that revision will be used. Otherwise, the previous
-     * reference will be resolved in the destination with the origin label.
-     */
-    @Nullable
-    O maybeGetLastRev() throws RepoException, ValidationException {
-      if (lastRevisionFlag != null) {
-        try {
-          return origin.resolve(lastRevisionFlag);
-        } catch (RepoException e) {
-          throw new CannotResolveReferenceException(
-              "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
-                  + lastRevisionFlag,
-              e);
-        }
-      }
-
-      String previousRef = writer.getPreviousRef(origin.getLabelName());
-      return (previousRef == null) ? null : origin.resolve(previousRef);
-    }
+  @Nullable
+  public String getLastRevisionFlag() {
+    return lastRevisionFlag;
   }
 }

@@ -37,7 +37,7 @@ public class LocalConfigLoader extends ConfigLoader<Path> {
   private final Path configPath;
 
   public LocalConfigLoader(
-      ModuleSupplier<Path> moduleSupplier, GeneralOptions generalOptions, Path configPath) {
+      ModuleSupplier moduleSupplier, GeneralOptions generalOptions, Path configPath) {
     super(moduleSupplier);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.configPath = Preconditions.checkNotNull(configPath);

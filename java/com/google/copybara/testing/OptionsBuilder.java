@@ -53,6 +53,7 @@ public class OptionsBuilder {
           LogConsole.readWriteConsole(System.in, System.out),
           /*rootCfgPath=*/null,
           /*outputRoot*/ null,
+          /*configOriginLocation*/ null,
           /*forceReversibleCheck=*/false,
           /*force=*/false);
 
@@ -78,7 +79,7 @@ public class OptionsBuilder {
         updateEnvironment(general.getEnvironment(), "PWD", cwd),
         FileSystems.getDefault(), /*verbose=*/true,
         LogConsole.readWriteConsole(System.in, System.out),
-        general.getConfigRoot(), general.getOutputRoot(),
+        general.getConfigRoot(), general.getOutputRoot(), general.getConfigOriginLocation(),
         general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
@@ -91,15 +92,15 @@ public class OptionsBuilder {
         // Using Files.createTempDirectory() generates paths > 255 in some tests and that causes
         // 'File name too long' exceptions in Linux
         FileSystems.getDefault().getPath(StandardSystemProperty.JAVA_IO_TMPDIR.value()),
-        general.isDisableReversibleCheck(), general.isForced());
+        general.getConfigOriginLocation(), general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
-        general.getConfigRoot(), general.getOutputRoot(), general.isDisableReversibleCheck(),
-        general.isForced());
+        general.getConfigRoot(), general.getOutputRoot(), general.getConfigOriginLocation(),
+        general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
 
@@ -107,8 +108,8 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "HOME", homeDir),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), general.getOutputRoot(), general.isDisableReversibleCheck(),
-        general.isForced());
+        general.getConfigRoot(), general.getOutputRoot(), general.getConfigOriginLocation(),
+        general.isDisableReversibleCheck(), general.isForced());
     git = new GitOptions(homeDir);
     return this;
   }
@@ -117,7 +118,8 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        path, general.getOutputRoot(), general.isDisableReversibleCheck(), general.isForced());
+        path, general.getOutputRoot(), general.getConfigOriginLocation(),
+        general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
 
@@ -125,8 +127,8 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), general.getOutputRoot(), general.isDisableReversibleCheck(),
-        force);
+        general.getConfigRoot(), general.getOutputRoot(), general.getConfigOriginLocation(),
+        general.isDisableReversibleCheck(), force);
     return this;
   }
 

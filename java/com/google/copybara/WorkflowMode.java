@@ -44,7 +44,7 @@ public enum WorkflowMode {
   @DocField(description = "Create a single commit in the destination with new tree state.")
   SQUASH {
     @Override
-    <O extends Reference, D extends Reference> void run(Workflow<O, D>.RunHelper<O> runHelper)
+    <O extends Reference, D extends Reference> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
 
       Changes changes = new LazyChangesForSquash<>(runHelper);
@@ -91,7 +91,7 @@ public enum WorkflowMode {
      * Return true if we should validate that the already migrated change is an ancestor
      * of the current migrated ones.
      */
-    private boolean validateFastForward(Workflow<?, ?>.RunHelper<?> runHelper) {
+    private boolean validateFastForward(WorkflowRunHelper<?, ?> runHelper) {
       return !runHelper.isForce()
           && runHelper.destinationSupportsPreviousRef()
           && runHelper.getOriginReader().supportsHistory();
@@ -104,7 +104,7 @@ public enum WorkflowMode {
   @DocField(description = "Import each origin change individually.")
   ITERATIVE {
     @Override
-    <O extends Reference, D extends Reference> void run(Workflow<O, D>.RunHelper<O> runHelper)
+    <O extends Reference, D extends Reference> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
       ImmutableList<Change<O>> changes = runHelper.changesSinceLastImport();
       if (changes.isEmpty()) {
@@ -155,7 +155,7 @@ public enum WorkflowMode {
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
     @Override
-    <O extends Reference, D extends Reference> void run(Workflow<O, D>.RunHelper<O> runHelper)
+    <O extends Reference, D extends Reference> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
@@ -182,7 +182,7 @@ public enum WorkflowMode {
           runHelper.getResolvedRef(),
           runHelper.getConsole(),
           new Metadata(change.getMessage(), change.getAuthor()),
-          new ComputedChanges(ImmutableList.of(change), ImmutableList.<Change<?>>of()),
+          new ComputedChanges(ImmutableList.of(change), ImmutableList.of()),
           requestParent.get());
     }
   };
@@ -190,7 +190,7 @@ public enum WorkflowMode {
   private static final Logger logger = Logger.getLogger(WorkflowMode.class.getName());
 
   abstract <O extends Reference, D extends Reference> void run(
-      Workflow<O, D>.RunHelper<O> runHelper) throws RepoException, IOException, ValidationException;
+      WorkflowRunHelper<O, D> runHelper) throws RepoException, IOException, ValidationException;
 
   /**
    * An implementation of {@link Changes} that compute the list of changes lazily. Only when
@@ -200,10 +200,10 @@ public enum WorkflowMode {
   private static class LazyChangesForSquash<R extends Reference, S extends Reference>
       extends Changes {
 
-    private final Workflow<R,S>.RunHelper<R> runHelper;
+    private final WorkflowRunHelper<R, S> runHelper;
     private SkylarkList<? extends Change<?>> cached;
 
-    private LazyChangesForSquash(Workflow<R,S>.RunHelper<R> runHelper) {
+    private LazyChangesForSquash(WorkflowRunHelper<R, S> runHelper) {
       this.runHelper = runHelper;
       cached = null;
     }
@@ -230,7 +230,7 @@ public enum WorkflowMode {
     }
   }
 
-  @SkylarkModule(name = "ComputedChanges", doc = "Compyted changes implementation",
+  @SkylarkModule(name = "ComputedChanges", doc = "Computed changes implementation",
       documented = false)
   private static class ComputedChanges extends Changes {
 
