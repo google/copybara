@@ -23,9 +23,9 @@ import java.nio.file.PathMatcher;
  * An exception that indicates a file that was to be written to a destination is not actually
  * included in {@code destination_files}, indicating a bad configuration.
  */
-public class NotADestinationFileException extends RepoException {
+public class NotADestinationFileException extends ValidationException {
 
-  public NotADestinationFileException(String message) {
+  NotADestinationFileException(String message) {
     super(message);
   }
 }
