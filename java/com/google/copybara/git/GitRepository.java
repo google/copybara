@@ -462,7 +462,7 @@ public class GitRepository {
 
   void commit(String author, Instant timestamp, String message)
       throws RepoException, ValidationException {
-    CommandOutput status = simpleCommand("diff", "--staged");
+    CommandOutput status = simpleCommand("diff", "--staged", "--stat");
     if (status.getStdout().trim().isEmpty()) {
       throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
           + "Is the change already migrated?");
