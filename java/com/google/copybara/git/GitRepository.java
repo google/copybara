@@ -276,9 +276,11 @@ public class GitRepository {
    *
    * @param url - see <repository> in git help ls-remote
    * @param refs - see <refs> in git help ls-remote
+   * @param env - determines where the Git binaries are
    * @return - a map of refs to sha1 from the git ls-remote output.
    */
-  public static Map<String, String> lsRemote(String url, Collection<String> refs)
+  public static Map<String, String> lsRemote(
+      String url, Collection<String> refs, Map<String, String> env)
       throws RepoException, CommandException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
@@ -286,7 +288,7 @@ public class GitRepository {
     args.addAll(refs);
 
     CommandOutputWithStatus output =
-        executeGit(FileSystems.getDefault().getPath("."), args, System.getenv(), false);
+        executeGit(FileSystems.getDefault().getPath("."), args, env, false);
     if (output.getTerminationStatus().success()) {
       for (String line : Splitter.on('\n').split(output.getStdout())) {
         if (line.isEmpty()) {
@@ -300,6 +302,11 @@ public class GitRepository {
       }
     }
     return result.build();
+  }
+
+  public static Map<String, String> lsRemote(String url, Collection<String> refs)
+      throws RepoException, CommandException {
+    return lsRemote(url, refs, System.getenv());
   }
 
   // TODO(team): Use JGit URIish.java
