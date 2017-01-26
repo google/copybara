@@ -159,6 +159,38 @@ public class MetadataModule {
                   + " numbers can be used in the form of $1, $2, etc.",
               defaultValue = "''"),
       }, objectType = MetadataModule.class, useLocation = true)
+  @Example(title = "Remove from a keyword to the end of the message",
+      before = "When change messages are in the following format:\n\n"
+          + "```\n"
+          + "Public change description\n\n"
+          + "This is a public description for a commit\n\n"
+          + "CONFIDENTIAL:\n"
+          + "This fixes internal project foo-bar\n"
+          + "```\n\n"
+          + "Using the following transformation:",
+      code = "metadata.scrubber('(^|\\n)CONFIDENTIAL:(.|\\n)*')",
+      after = "Will remove the confidential part, leaving the message as:\n"
+          + "```\n"
+          + "Public change description\n\n"
+          + "This is a public description for a commit\n\n"
+          + "```\n\n")
+  @Example(title = "Keep only message enclosed in tags",
+      before = "The previous example is prone to leak confidential information since a developer"
+          + " could easily forget to include the CONFIDENTIAL label. A different approach for this"
+          + " is to scrub everything by default except what is explicitly allowed. For example,"
+          + " the following scrubber would remove anything not enclosed in <public></public>"
+          + " tags:\n",
+      code = "metadata.scrubber('^(?:\\n|.)*<public>((?:\\n|.)*)</public>(?:\\n|.)*$', "
+          + "replacement = '$1')",
+      after = "So a message like:\n\n"
+          + "```\n"
+          + "this\nis\nvery confidential<public>but this is public\nvery public\n</public>"
+          + "\nand this is a secret too\n"
+          + "```\n\n"
+          + "would be transformed into:\n\n"
+          + "```\n"
+          + "but this is public\nvery public\n"
+          + "```\n\n")
   static final BuiltinFunction SCRUB = new BuiltinFunction("scrubber") {
     public Transformation invoke(MetadataModule self, String regex, String replacement,
         Location location)

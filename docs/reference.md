@@ -197,6 +197,66 @@ regex|`string`<br><p>Any text matching the regex will be removed. Note that the 
 replacement|`string`<br><p>Text replacement for the matching substrings. References to regex group numbers can be used in the form of $1, $2, etc.</p>
 
 
+### Examples:
+
+#### Remove from a keyword to the end of the message:
+
+When change messages are in the following format:
+
+```
+Public change description
+
+This is a public description for a message
+
+CONFIDENTIAL:
+This fixes internal project foo-bar
+```
+
+Using the following transformation:
+
+```python
+metadata.scrubber('(^|\n)CONFIDENTIAL:(.|\n)*')
+```
+
+Will remove the confidential part, leaving the message as:
+```
+Public change description
+
+This is a public description for a message
+
+```
+
+
+
+#### Keep only message enclosed in tags:
+
+The previous example is prone to leak confidential information since a developer could easily forget to include the CONFIDENTIAL label. A different approach on this is to scrub everything by default except what is explicitly allowed. For example, the following scrubber would remove anything not enclosed in <public></public> tags:
+
+
+```python
+metadata.scrubber('^(?:\n|.)*<public>((?:\n|.)*)</public>(?:\n|.)*$', replacement = '$1')
+```
+
+So a message like:
+
+```
+this
+is
+very confidential<public>but this is public
+very public
+</public>
+and this is a secret too
+```
+
+would be transformed into:
+
+```
+but this is public
+very public
+```
+
+
+
 <a id="metadata.map_references" aria-hidden="true"></a>
 ## metadata.map_references
 
@@ -536,7 +596,7 @@ Name | Type | Description
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that currently it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-`gitOrigin git.origin(url, ref=None, submodules='NO')`
+`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False)`
 
 ### Parameters:
 
@@ -545,6 +605,7 @@ Parameter | Description
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+include_branch_commit_logs|`boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message. This setting *only* affects merge commits. Because the logs are raw, this does not filter out commit authors.</p>
 
 
 <a id="git.mirror" aria-hidden="true"></a>
