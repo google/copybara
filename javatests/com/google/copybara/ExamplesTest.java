@@ -59,9 +59,14 @@ public class ExamplesTest {
         }
         for (Example example : samples) {
           anyFound = true;
-          Object val = executor.eval("a", "a=" + example.code());
-          assertWithMessage(module.getName() + "#" + field.getName() + ": " + example.title())
-              .that(val).isNotNull();
+          Object val = null;
+          String exampleRef = module.getName() + "#" + field.getName() + ": " + example.title();
+          try {
+            val = executor.eval("a", "a=" + example.code());
+          } catch (ValidationException e) {
+            throw new ValidationException("'"+exampleRef + "' contains errors.", e);
+          }
+          assertWithMessage(exampleRef).that(val).isNotNull();
         }
       }
     }
