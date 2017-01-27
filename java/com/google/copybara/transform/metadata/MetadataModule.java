@@ -211,7 +211,7 @@ public class MetadataModule {
           + "documentation\n\n"
           + "GIT_URL=http://foo.com/1234"
           + "```\n\n"
-          + "Will be transformed into:\n"
+          + "Will be transformed into:\n\n"
           + "```\n"
           + "COPYBARA CHANGE FOR http://foo.com/1234\n"
           + "Example description for\n"

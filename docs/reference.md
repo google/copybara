@@ -204,7 +204,7 @@ oldest_first|`boolean`<br><p>If set to true, the list shows the oldest changes f
 
 #### Simple usage:
 
-Squash notes default is to print one line per change with information about the author
+'Squash notes' default is to print one line per change with information about the author
 
 ```python
 metadata.squash_notes("Changes for Project Foo:\n")
@@ -326,6 +326,7 @@ metadata.add_header("COPYBARA CHANGE")
 ```
 
 Messages like:
+
 ```
 A change
 
@@ -353,6 +354,7 @@ metadata.add_header("COPYBARA CHANGE FOR ${GIT_URL}",
 ```
 
 Messages like:
+
 ```
 A change
 
@@ -360,7 +362,9 @@ Example description for
 documentation
 
 GIT_URL=http://foo.com/1234```
+
 Will be transformed into:
+
 ```
 COPYBARA CHANGE FOR http://foo.com/1234
 Example description for
@@ -519,11 +523,11 @@ Globs can have multiple inclusive rules:
 glob(["foo/**", "bar/**", "baz/**.java"])
 ```
 
-This will include all files inside `foo` and `bar` folders and java files inside `baz` folder.
+This will include all files inside `foo` and `bar` folders and Java files inside `baz` folder.
 
 #### Multiple excludes:
 
-Globs can have multiple inclusive rules:
+Globs can have multiple exclusive rules:
 
 ```python
 glob(["foo/**"], exclude = ["foo/internal/**", "foo/confidential/**" ])
