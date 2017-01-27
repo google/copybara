@@ -182,6 +182,43 @@ public class MetadataModule {
                   + " don't add the header. By default it will stop the migration and fail.",
               defaultValue = "False"),
       }, objectType = MetadataModule.class)
+  @Example(title = "Add a header always",
+      before = "Adds a header to any message",
+      code = "metadata.add_header(\"COPYBARA CHANGE\")",
+      after = "Messages like:\n"
+          + "```\n"
+          + "A change\n\n"
+          + "Example description for\n"
+          + "documentation\n"
+          + "```\n"
+          + "Will be transformed into:\n"
+          + "```\n"
+          + "COPYBARA CHANGE\n"
+          + "A change\n\n"
+          + "Example description for\n"
+          + "documentation\n"
+          + "```\n")
+  @Example(title = "Add a header that uses a label",
+      before = "Adds a header to messages that contain a label. Otherwise it skips the message"
+          + " manipulation.",
+      code = "metadata.add_header(\"COPYBARA CHANGE FOR ${GIT_URL}\",\n"
+          + "    ignore_if_label_not_found = True,\n"
+          + ")",
+      after = "Messages like:\n"
+          + "```\n"
+          + "A change\n\n"
+          + "Example description for\n"
+          + "documentation\n\n"
+          + "GIT_URL=http://foo.com/1234"
+          + "```\n"
+          + "Will be transformed into:\n"
+          + "```\n"
+          + "COPYBARA CHANGE FOR http://foo.com/1234\n"
+          + "Example description for\n"
+          + "documentation\n\n"
+          + "GIT_URL=http://foo.com/1234"
+          + "```\n\n"
+          + "But any change without that label will not be transformed.")
   static final BuiltinFunction ADD_HEADER = new BuiltinFunction("add_header") {
     public Transformation invoke(MetadataModule self, String header, Boolean ignoreIfLabelNotFound)
         throws EvalException {

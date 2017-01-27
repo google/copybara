@@ -247,7 +247,7 @@ Changes for Project Foo:
 
 ```python
 metadata.squash_notes(
-  prefix = 'Importing foo project:\n',
+  prefix = 'Changes for Project Foo:',
   compact = False
 )
 ```
@@ -255,7 +255,7 @@ metadata.squash_notes(
 This transform will generate changes like:
 
 ```
-Importing foo project:
+Changes for Project Foo:
 --
 2 by Foo Baz <foo@baz.com>:
 
@@ -314,6 +314,61 @@ Parameter | Description
 text|`string`<br><p>The header text to include in the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
 ignore_if_label_not_found|`boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
 
+
+### Examples:
+
+#### Add a header always:
+
+Adds a header to any message
+
+```python
+metadata.add_header("COPYBARA CHANGE")
+```
+
+Messages like:
+```
+A change
+
+Example description for
+documentation
+```
+Will be transformed into:
+```
+COPYBARA CHANGE
+A change
+
+Example description for
+documentation
+```
+
+
+#### Add a header that uses a label:
+
+Adds a header to messages that contain a label. Otherwise it skips the message manipulation.
+
+```python
+metadata.add_header("COPYBARA CHANGE FOR ${GIT_URL}",
+    ignore_if_label_not_found = True,
+)
+```
+
+Messages like:
+```
+A change
+
+Example description for
+documentation
+
+GIT_URL=http://foo.com/1234```
+Will be transformed into:
+```
+COPYBARA CHANGE FOR http://foo.com/1234
+Example description for
+documentation
+
+GIT_URL=http://foo.com/1234```
+
+But any change without that label will not be transformed.
 
 <a id="metadata.scrubber" aria-hidden="true"></a>
 ## metadata.scrubber
