@@ -3,4 +3,11 @@ bazel build java/com/google/copybara:docs
 mkdir -p docs
 cp bazel-bin/java/com/google/copybara/docs.md docs/reference.md
 git add docs/reference.md
-git commit docs/reference.md -m "Update reference documentation to latest version"
+# If -a we ammend the current head commit
+if [[  $1 == '-a' ]]; then
+    echo "Ammending current commit ($(git rev-parse HEAD))"
+    git commit docs/reference.md --amend -C HEAD
+else
+    echo "Creating a new commit"
+    git commit docs/reference.md -m "Update reference documentation to latest version"
+fi
