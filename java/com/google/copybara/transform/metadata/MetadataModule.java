@@ -78,6 +78,49 @@ public class MetadataModule {
                   + " it shows the changes in descending order.",
               defaultValue = "False"),
       }, objectType = MetadataModule.class, useLocation = true)
+  @Example(title = "Simple usage",
+      before = "'Squash notes' default is to print one line per change with information about"
+          + " the author",
+      code = "metadata.squash_notes(\"Changes for Project Foo:\\n\")",
+      after = "This transform will generate changes like:\n\n"
+          + "```\n"
+          + "Changes for Project Foo:\n\n"
+          + "  - 1234abcde second commit description by Foo Bar <foo@bar.com>\n"
+          + "  - a4321bcde first commit description by Foo Bar <foo@bar.com>\n"
+          + "```\n")
+  @Example(title = "Removing authors and reversing the order",
+      before = "",
+      code = "metadata.squash_notes(\"Changes for Project Foo:\\n\",\n"
+          + "    oldest_first = True,\n"
+          + "    show_author = False,\n"
+          + ")",
+      after = "This transform will generate changes like:\n\n"
+          + "```\n"
+          + "Changes for Project Foo:\n\n"
+          + "  - a4321bcde first commit description\n"
+          + "  - 1234abcde second commit description\n"
+          + "```\n")
+  @Example(title = "Showing the full message",
+      before = "",
+      code = "metadata.squash_notes(\n"
+          + "  prefix = 'Changes for Project Foo:',\n"
+          + "  compact = False\n"
+          + ")",
+      after = "This transform will generate changes like:\n\n"
+          + "```\n"
+          + "Changes for Project Foo:\n"
+          + "--\n"
+          + "2 by Foo Baz <foo@baz.com>:\n"
+          + "\n"
+          + "second commit\n"
+          + "\n"
+          + "Extended text\n"
+          + "--\n"
+          + "1 by Foo Bar <foo@bar.com>:\n"
+          + "\n"
+          + "first commit\n"
+          + "\n"
+          + "Extended text\n" + "```\n")
   static final BuiltinFunction SQUASH_NOTES = new BuiltinFunction("squash_notes") {
     public Transformation invoke(MetadataModule self, String prefix, Integer max,
         Boolean compact, Boolean showRef, Boolean showAuthor, Boolean oldestFirst,

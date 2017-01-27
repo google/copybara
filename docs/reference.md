@@ -144,7 +144,10 @@ whitelist|`sequence of string`<br><p>List of white listed authors in the origin.
 authoring.whitelisted(
     default = "Foo Bar <noreply@foobar.com>",
     whitelist = [
-       "someuser@myorg.com",       "other@myorg.com",       "another@myorg.com",    ],
+       "someuser@myorg.com",
+       "other@myorg.com",
+       "another@myorg.com",
+    ],
 )
 ```
 
@@ -156,7 +159,10 @@ Some repositories are not based on email but use LDAPs/usernames. This is also s
 authoring.whitelisted(
     default = "Foo Bar <noreply@foobar.com>",
     whitelist = [
-       "someuser",       "other",       "another",    ],
+       "someuser",
+       "other",
+       "another",
+    ],
 )
 ```
 
@@ -192,6 +198,77 @@ compact|`boolean`<br><p>If compact is set, each change will be shown in just one
 show_ref|`boolean`<br><p>If each change reference should be present in the notes</p>
 show_author|`boolean`<br><p>If each change author should be present in the notes</p>
 oldest_first|`boolean`<br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
+
+
+### Examples:
+
+#### Simple usage:
+
+Squash notes default is to print one line per change with information about the author
+
+```python
+metadata.squash_notes("Changes for Project Foo:\n")
+```
+
+This transform will generate changes like:
+
+```
+Changes for Project Foo:
+
+  - 1234abcde second commit description by Foo Bar <foo@bar.com>
+  - a4321bcde first commit description by Foo Bar <foo@bar.com>
+```
+
+
+#### Removing authors and reversing the order:
+
+
+
+```python
+metadata.squash_notes("Changes for Project Foo:\n",
+    oldest_first = True,
+    show_author = False,
+)
+```
+
+This transform will generate changes like:
+
+```
+Changes for Project Foo:
+
+  - a4321bcde first commit description
+  - 1234abcde second commit description
+```
+
+
+#### Showing the full message:
+
+
+
+```python
+metadata.squash_notes(
+  prefix = 'Importing foo project:\n',
+  compact = False
+)
+```
+
+This transform will generate changes like:
+
+```
+Importing foo project:
+--
+2 by Foo Baz <foo@baz.com>:
+
+second commit
+
+Extended text
+--
+1 by Foo Bar <foo@bar.com>:
+
+first commit
+
+Extended text
+```
 
 
 <a id="metadata.save_author" aria-hidden="true"></a>
