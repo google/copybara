@@ -50,7 +50,7 @@ The authors mapping between an origin and a destination
 <a id="authoring.overwrite" aria-hidden="true"></a>
 ## authoring.overwrite
 
-Use the default author for all the submits in the destination.
+Use the default author for all the submits in the destination. Note that some destinations might choose to ignore this author and use the current user running the tool (In other words they don't allow impersonation).
 
 `authoring_class authoring.overwrite(default)`
 
@@ -60,6 +60,16 @@ Parameter | Description
 --------- | -----------
 default|`string`<br><p>The default author for commits in the destination</p>
 
+
+### Example:
+
+#### Overwrite usage example:
+
+Create an authoring object that will overwrite any origin author with noreply@foobar.com mail.
+
+```python
+authoring.overwrite("Foo Bar <noreply@foobar.com>")
+```
 
 <a id="new_author" aria-hidden="true"></a>
 ## new_author
@@ -75,6 +85,16 @@ Parameter | Description
 author_string|`string`<br><p>A string representation of the author with the form 'name <foo@bar.com>'</p>
 
 
+### Example:
+
+#### Create a new author:
+
+
+
+```python
+new_author('Foo Bar <foobar@myorg.com>')
+```
+
 <a id="authoring.pass_thru" aria-hidden="true"></a>
 ## authoring.pass_thru
 
@@ -86,8 +106,18 @@ Use the origin author as the author in the destination, no whitelisting.
 
 Parameter | Description
 --------- | -----------
-default|`string`<br><p>The default author for commits in the destination. This is used in squash mode workflows</p>
+default|`string`<br><p>The default author for commits in the destination. This is used in squash mode workflows or if author cannot be determined.</p>
 
+
+### Example:
+
+#### Pass thru usage example:
+
+
+
+```python
+authoring.pass_thru(default = "Foo Bar <noreply@foobar.com>")
+```
 
 <a id="authoring.whitelisted" aria-hidden="true"></a>
 ## authoring.whitelisted
@@ -103,6 +133,32 @@ Parameter | Description
 default|`string`<br><p>The default author for commits in the destination. This is used in squash mode workflows or when users are not whitelisted.</p>
 whitelist|`sequence of string`<br><p>List of white listed authors in the origin. The authors must be unique</p>
 
+
+### Examples:
+
+#### Only pass thru whitelisted users:
+
+
+
+```python
+authoring.whitelisted(
+    default = "Foo Bar <noreply@foobar.com>",
+    whitelist = [
+       "someuser@myorg.com",       "other@myorg.com",       "another@myorg.com",    ],
+)
+```
+
+#### Only pass thru whitelisted LDAPs/usernames:
+
+Some repositories are not based on email but use LDAPs/usernames. This is also supported since it is up to the origin how to check whether two authors are the same.
+
+```python
+authoring.whitelisted(
+    default = "Foo Bar <noreply@foobar.com>",
+    whitelist = [
+       "someuser",       "other",       "another",    ],
+)
+```
 
 
 # authoring_class
@@ -206,7 +262,7 @@ When change messages are in the following format:
 ```
 Public change description
 
-This is a public description for a message
+This is a public description for a commit
 
 CONFIDENTIAL:
 This fixes internal project foo-bar
@@ -222,7 +278,7 @@ Will remove the confidential part, leaving the message as:
 ```
 Public change description
 
-This is a public description for a message
+This is a public description for a commit
 
 ```
 
@@ -230,7 +286,7 @@ This is a public description for a message
 
 #### Keep only message enclosed in tags:
 
-The previous example is prone to leak confidential information since a developer could easily forget to include the CONFIDENTIAL label. A different approach on this is to scrub everything by default except what is explicitly allowed. For example, the following scrubber would remove anything not enclosed in <public></public> tags:
+The previous example is prone to leak confidential information since a developer could easily forget to include the CONFIDENTIAL label. A different approach for this is to scrub everything by default except what is explicitly allowed. For example, the following scrubber would remove anything not enclosed in <public></public> tags:
 
 
 ```python

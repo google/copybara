@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -107,12 +108,18 @@ public final class Authoring {
   public static final class Module {
 
     @SkylarkSignature(name = "overwrite", returnType = Authoring.class,
-        doc = "Use the default author for all the submits in the destination.",
+        doc = "Use the default author for all the submits in the destination. Note that some"
+            + " destinations might choose to ignore this author and use the current user running"
+            + " the tool (In other words they don't allow impersonation).",
         parameters = {
             @Param(name = "default", type = String.class,
                 doc = "The default author for commits in the destination"),
         },
         objectType = Module.class, useLocation = true)
+    @Example(title = "Overwrite usage example",
+        before = "Create an authoring object that will overwrite any origin author with"
+            + " noreply@foobar.com mail.",
+        code = "authoring.overwrite(\"Foo Bar <noreply@foobar.com>\")")
     public static final BuiltinFunction OVERWRITE = new BuiltinFunction("overwrite") {
       public Authoring invoke(String defaultAuthor, Location location)
           throws EvalException {
@@ -128,19 +135,22 @@ public final class Authoring {
             @Param(name = "author_string", type = String.class,
                 doc = "A string representation of the author with the form 'name <foo@bar.com>'"),
         }, useLocation = true)
+    @Example(title = "Create a new author", before = "",
+        code = "new_author('Foo Bar <foobar@myorg.com>')")
     public static final BuiltinFunction NEW_AUTHOR = new BuiltinFunction("new_author") {
       public Author invoke(String authorString, Location location)
           throws EvalException {
         return Author.parse(location, authorString);
       }
     };
-
+    @Example(title = "Pass thru usage example", before = "",
+        code = "authoring.pass_thru(default = \"Foo Bar <noreply@foobar.com>\")")
     @SkylarkSignature(name = "pass_thru", returnType = Authoring.class,
         doc = "Use the origin author as the author in the destination, no whitelisting.",
         parameters = {
             @Param(name = "default", type = String.class,
                 doc = "The default author for commits in the destination. This is used"
-                    + " in squash mode workflows"),
+                    + " in squash mode workflows or if author cannot be determined."),
         },
         objectType = Module.class, useLocation = true)
     public static final BuiltinFunction PASS_THRU = new BuiltinFunction("pass_thru") {
@@ -163,6 +173,29 @@ public final class Authoring {
                 doc = "List of white listed authors in the origin. The authors must be unique"),
         },
         objectType = Module.class, useLocation = true)
+    @Example(title = "Only pass thru whitelisted users",
+        before = "",
+        code = "authoring.whitelisted(\n"
+            + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
+            + "    whitelist = [\n"
+            + "       \"someuser@myorg.com\","
+            + "       \"other@myorg.com\","
+            + "       \"another@myorg.com\","
+            + "    ],\n"
+            + ")",
+        after = "")
+    @Example(title = "Only pass thru whitelisted LDAPs/usernames",
+        before = "Some repositories are not based on email but use LDAPs/usernames. This is also"
+            + " supported since it is up to the origin how to check whether two authors are the same.",
+        code = "authoring.whitelisted(\n"
+            + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
+            + "    whitelist = [\n"
+            + "       \"someuser\","
+            + "       \"other\","
+            + "       \"another\","
+            + "    ],\n"
+            + ")",
+        after = "")
     public static final BuiltinFunction WHITELISTED = new BuiltinFunction("whitelisted") {
       public Authoring invoke(String defaultAuthor, SkylarkList<String> whitelist,
           Location location)
