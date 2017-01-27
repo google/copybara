@@ -501,6 +501,56 @@ include|`sequence of string`<br><p>The list of glob patterns to include</p>
 exclude|`sequence of string`<br><p>The list of glob patterns to exclude</p>
 
 
+### Examples:
+
+#### Simple usage:
+
+Include all the files under a folder except for `internal` folder files:
+
+```python
+glob(["foo/**"], exclude = ["foo/internal/**"])
+```
+
+#### Multiple folders:
+
+Globs can have multiple inclusive rules:
+
+```python
+glob(["foo/**", "bar/**", "baz/**.java"])
+```
+
+This will include all files inside `foo` and `bar` folders and java files inside `baz` folder.
+
+#### Multiple excludes:
+
+Globs can have multiple inclusive rules:
+
+```python
+glob(["foo/**"], exclude = ["foo/internal/**", "foo/confidential/**" ])
+```
+
+Include all the files of `foo` except the ones in `internal` and `confidential` folders
+
+#### All BUILD files recursively:
+
+Copybara uses Java globbing. The globbing is very similar to Bash one. This means that recursive globbing for a filename is a bit more tricky:
+
+```python
+glob(["BUILD", "**/BUILD"])
+```
+
+This is the correct way of matching all `BUILD` files recursively, including the one in the root. `**/BUILD` would only match `BUILD` files in subdirectories.
+
+#### Matching multiple strings with one expression:
+
+While two globs can be used for matching two directories, there is a more compact approach:
+
+```python
+glob(["{java,javatests}/**"])
+```
+
+This matches any file in `java` and `javatests` folders.
+
 <a id="core.reverse" aria-hidden="true"></a>
 ## core.reverse
 

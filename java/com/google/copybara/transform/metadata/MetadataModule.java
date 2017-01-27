@@ -185,7 +185,7 @@ public class MetadataModule {
   @Example(title = "Add a header always",
       before = "Adds a header to any message",
       code = "metadata.add_header(\"COPYBARA CHANGE\")",
-      after = "Messages like:\n"
+      after = "Messages like:\n\n"
           + "```\n"
           + "A change\n\n"
           + "Example description for\n"
@@ -204,13 +204,13 @@ public class MetadataModule {
       code = "metadata.add_header(\"COPYBARA CHANGE FOR ${GIT_URL}\",\n"
           + "    ignore_if_label_not_found = True,\n"
           + ")",
-      after = "Messages like:\n"
+      after = "Messages like:\n\n"
           + "```\n"
           + "A change\n\n"
           + "Example description for\n"
           + "documentation\n\n"
           + "GIT_URL=http://foo.com/1234"
-          + "```\n"
+          + "```\n\n"
           + "Will be transformed into:\n"
           + "```\n"
           + "COPYBARA CHANGE FOR http://foo.com/1234\n"
