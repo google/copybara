@@ -178,24 +178,22 @@ public final class Authoring {
         code = "authoring.whitelisted(\n"
             + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
             + "    whitelist = [\n"
-            + "       \"someuser@myorg.com\","
-            + "       \"other@myorg.com\","
-            + "       \"another@myorg.com\","
+            + "       \"someuser@myorg.com\",\n"
+            + "       \"other@myorg.com\",\n"
+            + "       \"another@myorg.com\",\n"
             + "    ],\n"
-            + ")",
-        after = "")
+            + ")")
     @Example(title = "Only pass thru whitelisted LDAPs/usernames",
         before = "Some repositories are not based on email but use LDAPs/usernames. This is also"
             + " supported since it is up to the origin how to check whether two authors are the same.",
         code = "authoring.whitelisted(\n"
             + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
             + "    whitelist = [\n"
-            + "       \"someuser\","
-            + "       \"other\","
-            + "       \"another\","
+            + "       \"someuser\",\n"
+            + "       \"other\",\n"
+            + "       \"another\",\n"
             + "    ],\n"
-            + ")",
-        after = "")
+            + ")")
     public static final BuiltinFunction WHITELISTED = new BuiltinFunction("whitelisted") {
       public Authoring invoke(String defaultAuthor, SkylarkList<String> whitelist,
           Location location)
