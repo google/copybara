@@ -86,12 +86,11 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testEOFDetected() throws Exception {
+  public void testEOFReturnsFalse() throws Exception {
     Console console = LogConsole.readWriteConsole(
         new ByteArrayInputStream(new byte[]{}),new PrintStream(new ByteArrayOutputStream()));
 
-    thrown.expect(IOException.class);
-    console.promptConfirmation("Proceed?");
+    assertThat(console.promptConfirmation("Proceed?")).isFalse();
   }
 
   @Test

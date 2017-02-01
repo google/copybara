@@ -58,7 +58,7 @@ public class ProgressPrefixConsole implements Console {
   }
 
   @Override
-  public boolean promptConfirmation(String message) throws IOException {
+  public boolean promptConfirmation(String message) {
     return delegate.promptConfirmation(message);
   }
 

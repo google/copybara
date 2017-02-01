@@ -82,7 +82,7 @@ public interface Console {
   /**
    * Returns true if this Console's input registers Y/y after showing the prompt message.
    */
-  boolean promptConfirmation(String message) throws IOException;
+  boolean promptConfirmation(String message);
 
   /**
    * Like promptConfirmation, but takes a format String as argument.

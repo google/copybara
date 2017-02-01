@@ -71,7 +71,7 @@ public final class TestingConsole extends CapturingConsole {
   }
 
   @Override
-  public boolean promptConfirmation(String message) throws IOException {
+  public boolean promptConfirmation(String message) {
     Preconditions.checkState(!programmedResponses.isEmpty(), "No more programmed responses.");
     // Validate prompt messages with WARN level in tests
     warn(message);

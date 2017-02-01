@@ -129,7 +129,7 @@ public class SkylarkTransformation implements Transformation {
     }
 
     @Override
-    public boolean promptConfirmation(String message) throws IOException {
+    public boolean promptConfirmation(String message) {
       throw new UnsupportedOperationException("Shouldn't be called from skylark");
     }
 

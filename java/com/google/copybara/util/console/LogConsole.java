@@ -81,7 +81,7 @@ public class LogConsole implements Console {
   }
 
   @Override
-  public boolean promptConfirmation(String message) throws IOException {
+  public boolean promptConfirmation(String message) {
     Preconditions.checkState(input != null,
         "LogConsole cannot read user input if system console is not present.");
     return new ConsolePrompt(input,

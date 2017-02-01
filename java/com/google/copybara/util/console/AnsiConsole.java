@@ -99,7 +99,7 @@ public final class AnsiConsole implements Console {
   }
 
   @Override
-  public boolean promptConfirmation(String message) throws IOException {
+  public boolean promptConfirmation(String message) {
     return new ConsolePrompt(input, msg -> {
       synchronized (lock) {
         lastProgressLines = 0;

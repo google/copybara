@@ -101,7 +101,7 @@ public class CapturingConsole implements Console {
   }
 
   @Override
-  public boolean promptConfirmation(String message) throws IOException {
+  public boolean promptConfirmation(String message) {
     addMessage(MessageType.PROMPT, message);
     return delegate.promptConfirmation(message);
   }

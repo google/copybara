@@ -39,7 +39,7 @@ class ConsolePrompt {
     this.promptPrinter = Preconditions.checkNotNull(promptPrinter);
   }
 
-  boolean promptConfirmation(String message) throws IOException {
+  boolean promptConfirmation(String message) {
     Scanner scanner = new Scanner(input);
     promptPrinter.print(message);
     while (scanner.hasNextLine()) {
@@ -52,6 +52,7 @@ class ConsolePrompt {
       }
       promptPrinter.print(message);
     }
-    throw new IOException("EOF while reading from the input");
+    // EOF while readling from the input (user cancelled)
+    return false;
   }
 }
