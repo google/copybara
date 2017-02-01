@@ -37,6 +37,10 @@ public enum ExitCode {
    */
   REPOSITORY_ERROR(3),
   /**
+   * Execution resulted in no-op, which means that no changes were made in the destination.
+   */
+  NO_OP(4),
+  /**
    * Execution was interrupted.
    */
   INTERRUPTED(8),

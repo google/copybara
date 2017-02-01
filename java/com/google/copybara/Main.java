@@ -170,6 +170,11 @@ public class Main {
       logger.log(Level.SEVERE, "Repository exception", e);
       printCauseChain(console, e);
       return ExitCode.REPOSITORY_ERROR;
+    } catch (EmptyChangeException e) {
+      // This is not necessarily an error. Maybe the tool was run previously and there are no new
+      // changes to import.
+      console.warn(e.getMessage());
+      return ExitCode.NO_OP;
     } catch (ValidationException e) {
       printCauseChain(console, e);
       return ExitCode.CONFIGURATION_ERROR;

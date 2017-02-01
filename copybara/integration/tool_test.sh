@@ -21,6 +21,7 @@ readonly SUCCESS=0
 readonly COMMAND_LINE_ERROR=1
 readonly CONFIGURATION_ERROR=2
 readonly REPOSITORY_ERROR=3
+readonly NO_OP=4
 readonly INTERRUPTED=8
 readonly ENVIRONMENT_ERROR=30
 readonly INTERNAL_ERROR=31
@@ -236,6 +237,10 @@ EOF
     run_git log master~1..master > $TEST_log
   )
   expect_log "commit five"
+
+  # Running the same workflow with the same ref is no-op
+  copybara_with_exit_code $NO_OP copy.bara.sky default $commit_three
+  expect_log "No new changes to import for resolved ref"
 }
 
 function single_file_commit() {

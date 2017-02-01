@@ -61,7 +61,7 @@ public enum WorkflowMode {
                   + current.asString() + "'", e);
         }
         if (current.asString().equals(lastRev)) {
-          throw new ValidationException("'" + lastRev + "' has been already migrated. Use "
+          throw new EmptyChangeException("'" + lastRev + "' has been already migrated. Use "
               + GeneralOptions.FORCE + " if you really want to run the migration again"
               + " (For example if the copy.bara.sky file has changed).");
 
@@ -120,6 +120,7 @@ public enum WorkflowMode {
             limit, changes.size()));
       }
       Deque<Change<O>> migrated = new ArrayDeque<>();
+      int migratedChanges = 0;
       while (changesIterator.hasNext()) {
         Change<O> change = changesIterator.next();
         String prefix = String.format(
@@ -132,6 +133,7 @@ public enum WorkflowMode {
               new ProgressPrefixConsole(prefix, runHelper.getConsole()),
               new Metadata(change.getMessage(), change.getAuthor()),
               new ComputedChanges(ImmutableList.of(change), migrated));
+          migratedChanges++;
         } catch (EmptyChangeException e) {
           runHelper.getConsole().warn(e.getMessage());
           result = WriterResult.OK;
@@ -149,6 +151,14 @@ public enum WorkflowMode {
         }
         changeNumber++;
       }
+      if (migratedChanges == 0) {
+        throw new EmptyChangeException(
+            String.format(
+                "Iterative workflow produced no changes in the destination for resolved ref: %s",
+                runHelper.getResolvedRef().asString()));
+      }
+      logger.log(Level.INFO,
+          String.format("Imported %d change(s) out of %d", migratedChanges, changes.size()));
     }
   },
   @DocField(description = "Import an origin tree state diffed by a common parent"

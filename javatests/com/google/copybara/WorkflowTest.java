@@ -36,6 +36,7 @@ import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -211,6 +212,35 @@ public class WorkflowTest {
     // Check that we don't import anything else after we have migrated all pending changes.
     thrown.expect(EmptyChangeException.class);
     iterativeWorkflow(/*previousRef=*/null).run(workdir, /*sourceRef=*/null);
+  }
+
+  @Test
+  public void testIterativeModeProducesNoop() throws Exception {
+    for (int timestamp = 0; timestamp < 10; timestamp++) {
+      origin.addSimpleChange(timestamp);
+    }
+    // Override destination with one that always throws EmptyChangeException.
+    options.testingOptions.destination = new RecordsProcessCallDestination() {
+      @Override
+      public Writer newWriter(Glob destinationFiles) {
+        return new RecordsProcessCallDestination.WriterImpl(destinationFiles) {
+          @Override
+          public WriterResult write(TransformResult transformResult, Console console)
+              throws ValidationException, RepoException, IOException {
+            throw new EmptyChangeException("This was an empty change!");
+          }
+        };
+      }
+    };
+    Workflow workflow = iterativeWorkflow(/*previousRef=*/"1");
+
+    try {
+      workflow.run(workdir, /*sourceRef=*/"3");
+      fail();
+    } catch (EmptyChangeException expected) {
+      assertThat(expected).hasMessage(
+          "Iterative workflow produced no changes in the destination for resolved ref: 3");
+    }
   }
 
   @Test
@@ -391,7 +421,7 @@ public class WorkflowTest {
 
     String head = origin.getHead();
     workflow.run(workdir, head);
-    thrown.expect(ValidationException.class);
+    thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("'0' has been already migrated");
     workflow.run(workdir, oldRef);
   }

@@ -57,11 +57,11 @@ public class RecordsProcessCallDestination implements Destination {
 
   public boolean failOnEmptyChange = false;
 
-  private class WriterImpl implements Writer {
+  public class WriterImpl implements Writer {
 
     final Glob destinationFiles;
 
-    WriterImpl(Glob destinationFiles) {
+    public WriterImpl(Glob destinationFiles) {
       this.destinationFiles = destinationFiles;
     }
 
