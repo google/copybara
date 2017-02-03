@@ -19,6 +19,11 @@ package com.google.copybara.folder;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.attribute.PosixFilePermission.GROUP_WRITE;
+import static java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_READ;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_WRITE;
 
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableSet;
@@ -36,6 +41,8 @@ import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,6 +95,46 @@ public class FolderOriginTest {
         .containsFile("file3","three")
         .containsFile("file4","four")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testChangesFilePermissions() throws Exception {
+    Path localFolder = Files.createTempDirectory("local_folder");
+    Path regularFile = localFolder.resolve("foo/regular_file");
+    Path cannotWrite = localFolder.resolve("foo/file_cannot_write");
+    Path executableCannotWrite = localFolder.resolve("foo/executable_cannot_write");
+    touch(regularFile, "one");
+    touch(cannotWrite, "two");
+    touch(executableCannotWrite, "three");
+
+    // Regular file already has [GROUP_READ, OWNER_WRITE, OWNER_READ, OTHERS_READ]
+    // Removing write permissions from the second file
+    Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(cannotWrite);
+    permissions.removeAll(ImmutableSet.of(OWNER_WRITE, GROUP_WRITE, OTHERS_WRITE));
+    Files.setPosixFilePermissions(cannotWrite, permissions);
+    // Setting executable and removing write for third one
+    Set<PosixFilePermission> secondPermissions =
+        Files.getPosixFilePermissions(executableCannotWrite);
+    secondPermissions.removeAll(ImmutableSet.of(OWNER_WRITE, GROUP_WRITE, OTHERS_WRITE));
+    secondPermissions.add(OWNER_EXECUTE);
+    Files.setPosixFilePermissions(executableCannotWrite, secondPermissions);
+
+    FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
+
+    Reader<FolderReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    FolderReference ref = origin.resolve(localFolder.toString());
+    reader.checkout(ref, workdir);
+    assertThatPath(workdir)
+        .containsFile("foo/regular_file","one")
+        .containsFile("foo/file_cannot_write","two")
+        .containsFile("foo/executable_cannot_write","three")
+        .containsNoMoreFiles();
+    Path cannotWriteDestination = workdir.resolve("foo/file_cannot_write");
+    assertThat(Files.getPosixFilePermissions(cannotWriteDestination))
+        .containsAllOf(OWNER_READ, OWNER_WRITE);
+    Path executableCannotWriteDestination = workdir.resolve("foo/executable_cannot_write");
+    assertThat(Files.getPosixFilePermissions(executableCannotWriteDestination))
+        .containsAllOf(OWNER_READ, OWNER_WRITE, OWNER_EXECUTE);
   }
 
   @Test

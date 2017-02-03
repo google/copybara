@@ -122,6 +122,33 @@ public final class FileUtil {
     }
   }
 
+  /**
+   * Adds the given permissions to the matching files under the given path.
+   */
+  public static void addPermissionsRecursively(
+      Path path, Set<PosixFilePermission> permissionsToAdd, final PathMatcher pathMatcher)
+      throws IOException {
+    Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        if (pathMatcher.matches(file)) {
+          Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(file);
+          permissions.addAll(permissionsToAdd);
+          Files.setPosixFilePermissions(file, permissions);
+        }
+        return FileVisitResult.CONTINUE;
+      }
+    });
+  }
+
+  /**
+   * Adds the given permissions to all the files under the given path.
+   */
+  public static void addPermissionsAllRecursively(
+      Path path, Set<PosixFilePermission> permissionsToAdd) throws IOException {
+    addPermissionsRecursively(path, permissionsToAdd, ALL_FILES);
+  }
+
   public static int deleteAllFilesRecursively(Path path) throws IOException {
     return deleteFilesRecursively(path, ALL_FILES);
   }

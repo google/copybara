@@ -19,6 +19,7 @@ package com.google.copybara.folder;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
@@ -33,9 +34,11 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -44,6 +47,9 @@ import javax.annotation.Nullable;
 public class FolderOrigin implements Origin<FolderReference> {
 
   private static final String LABEL_NAME = "FolderOrigin-RevId";
+  private static final Set<PosixFilePermission> FILE_PERMISSIONS =
+      ImmutableSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
+
   private final FileSystem fs;
   private final Author author;
   private final String message;
@@ -92,6 +98,7 @@ public class FolderOrigin implements Origin<FolderReference> {
           throws RepoException, ValidationException {
         try {
           FileUtil.copyFilesRecursively(ref.path, workdir, copySymlinkStrategy, originFiles);
+          FileUtil.addPermissionsAllRecursively(workdir, FILE_PERMISSIONS);
         } catch (AbsoluteSymlinksNotAllowed e) {
           throw new ValidationException(String.format("Cannot copy files into the workdir: Some"
               + " symlinks refer to locations outside of the folder and"
