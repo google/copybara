@@ -35,7 +35,6 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 import java.io.IOException;
 import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,7 +52,6 @@ public class OptionsBuilder {
           LogConsole.readWriteConsole(System.in, System.out),
           /*rootCfgPath=*/null,
           /*outputRoot*/ null,
-          /*configOriginLocation*/ null,
           /*forceReversibleCheck=*/false,
           /*force=*/false);
 
@@ -79,7 +77,7 @@ public class OptionsBuilder {
         updateEnvironment(general.getEnvironment(), "PWD", cwd),
         FileSystems.getDefault(), /*verbose=*/true,
         LogConsole.readWriteConsole(System.in, System.out),
-        general.getConfigRoot(), general.getOutputRoot(), general.getConfigOriginLocation(),
+        general.getConfigRoot(), general.getOutputRoot(),
         general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
@@ -92,14 +90,14 @@ public class OptionsBuilder {
         // Using Files.createTempDirectory() generates paths > 255 in some tests and that causes
         // 'File name too long' exceptions in Linux
         FileSystems.getDefault().getPath(StandardSystemProperty.JAVA_IO_TMPDIR.value()),
-        general.getConfigOriginLocation(), general.isDisableReversibleCheck(), general.isForced());
+        general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
     general = new GeneralOptions(
         general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
-        general.getConfigRoot(), general.getOutputRoot(), general.getConfigOriginLocation(),
+        general.getConfigRoot(), general.getOutputRoot(),
         general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
@@ -108,7 +106,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "HOME", homeDir),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), general.getOutputRoot(), general.getConfigOriginLocation(),
+        general.getConfigRoot(), general.getOutputRoot(),
         general.isDisableReversibleCheck(), general.isForced());
     git = new GitOptions(homeDir);
     return this;
@@ -118,7 +116,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        path, general.getOutputRoot(), general.getConfigOriginLocation(),
+        path, general.getOutputRoot(),
         general.isDisableReversibleCheck(), general.isForced());
     return this;
   }
@@ -127,7 +125,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), general.getOutputRoot(), general.getConfigOriginLocation(),
+        general.getConfigRoot(), general.getOutputRoot(),
         general.isDisableReversibleCheck(), force);
     return this;
   }

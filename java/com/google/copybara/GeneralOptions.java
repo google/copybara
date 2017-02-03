@@ -37,7 +37,6 @@ public final class GeneralOptions implements Option {
   public static final String NOANSI = "--noansi";
   public static final String FORCE = "--force";
   public static final String CONFIG_ROOT_FLAG = "--config-root";
-  public static final String CONFIG_ORIGIN_LOCATION_FLAG = "--config-origin-location";
 
   private final Map<String, String> environment;
   private final FileSystem fileSystem;
@@ -49,26 +48,24 @@ public final class GeneralOptions implements Option {
   private final Path configRoot;
   @Nullable
   private final Path outputRoot;
-  @Nullable
-  private final String configOriginLocation;
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
     this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
-        /*configOriginLocation=*/null, /*disableReversibleCheck=*/false, /*force=*/false);
+        /*disableReversibleCheck=*/false, /*force=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(
       Map<String, String> environment, FileSystem fileSystem, boolean verbose, Console console) {
     this(environment, fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
-        /*configOriginLocation=*/null, /*disableReversibleCheck=*/false, /*force=*/false);
+        /*disableReversibleCheck=*/false, /*force=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
       Console console, @Nullable Path configRoot, @Nullable Path outputRoot,
-      @Nullable String configOriginLocation, boolean disableReversibleCheck, boolean force)
+      boolean disableReversibleCheck, boolean force)
   {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
@@ -76,7 +73,6 @@ public final class GeneralOptions implements Option {
     this.verbose = verbose;
     this.configRoot = configRoot;
     this.outputRoot = outputRoot;
-    this.configOriginLocation = configOriginLocation;
     this.disableReversibleCheck = disableReversibleCheck;
     this.force = force;
   }
@@ -122,11 +118,6 @@ public final class GeneralOptions implements Option {
     return outputRoot;
   }
 
-  @Nullable
-  public String getConfigOriginLocation() {
-    return configOriginLocation;
-  }
-
   /**
    * Returns a {@link TempDirectoryFactory} capable of creating temporary directories.
    *
@@ -162,15 +153,6 @@ public final class GeneralOptions implements Option {
             + " like '//foo/bar'")
     String configRoot;
 
-    // TODO(copybara-team): Set hidden=false
-    @Parameter(names = CONFIG_ORIGIN_LOCATION_FLAG, hidden = true,
-        description = "If set, for each imported change Copybara will load the "
-            + "configuration from the origin change using the given location. For iterative "
-            + "workflows, each change will be imported loading the config from the given change. "
-            + "For squash workflows, the config will be read from the last change part of the "
-            + "squash. Defaults to null.")
-    String configOriginLocation;
-
     @Parameter(names = "--disable-reversible-check",
         description = "If set, all workflows will be executed without reversible_check, overriding"
             + " the  workflow config and the normal behavior for CHANGE_REQUEST mode.")
@@ -190,7 +172,7 @@ public final class GeneralOptions implements Option {
       Path configRoot = this.configRoot != null ? fileSystem.getPath(this.configRoot) : null;
       Path outputRoot = this.outputRoot != null ? fileSystem.getPath(this.outputRoot) : null;
       return new GeneralOptions(
-          environment, fileSystem, verbose, console, configRoot, outputRoot, configOriginLocation,
+          environment, fileSystem, verbose, console, configRoot, outputRoot,
           disableReversibleCheck, force);
     }
   }
