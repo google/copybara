@@ -87,7 +87,7 @@ public abstract class ConfigFile<T> {
   private void checkNormalized(String label) throws CannotResolveLabel {
     try {
       FileUtil.checkNormalizedRelative(label);
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       throw new CannotResolveLabel(String.format("Invalid label '%s': %s", label, e.getMessage()));
     }
   }

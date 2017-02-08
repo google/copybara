@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 /**
  * Runs a single migration step for a {@link Workflow}, using its configuration.
  */
-final class WorkflowRunHelper<O extends Reference, D extends Reference> {
+public class WorkflowRunHelper<O extends Reference, D extends Reference> {
 
   private final Workflow<O, D> workflow;
   private final Path workdir;
@@ -50,7 +50,7 @@ final class WorkflowRunHelper<O extends Reference, D extends Reference> {
    * @param workdir working directory to use for the transformations
    * @param resolvedRef reference to migrate
    */
-  WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef)
+  public WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef)
       throws ValidationException, IOException, RepoException {
     this.workflow = Preconditions.checkNotNull(workflow);
     this.workdir = Preconditions.checkNotNull(workdir);
@@ -61,7 +61,16 @@ final class WorkflowRunHelper<O extends Reference, D extends Reference> {
     this.destinationReader = workflow.getDestination().newReader(workflow.getDestinationFiles());
   }
 
-  O getResolvedRef() {
+  protected WorkflowRunHelper<O, D> forChanges(Changes changes)
+      throws RepoException, ValidationException, IOException {
+    return this;
+  }
+
+  protected Path getWorkdir() {
+    return workdir;
+  }
+
+  protected O getResolvedRef() {
     return resolvedRef;
   }
 

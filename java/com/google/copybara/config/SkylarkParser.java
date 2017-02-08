@@ -302,7 +302,6 @@ public class SkylarkParser {
     private final String path;
 
     private InputSourceForConfigFile(ConfigFile content) throws IOException {
-
       this.content = Preconditions.checkNotNull(new String(content.content(), UTF_8));
       path = Preconditions.checkNotNull(content.path());
     }

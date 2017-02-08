@@ -50,5 +50,5 @@ public abstract class ConfigLoader<T> {
   /**
    * Returns the {@link ConfigFile} for this loader.
    */
-  protected abstract ConfigFile<T> getConfigFile() throws ValidationException;
+  protected abstract ConfigFile<T> getConfigFile() throws ValidationException, IOException;
 }

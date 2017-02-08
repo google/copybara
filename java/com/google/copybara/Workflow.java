@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
  * @param <O> Origin reference type.
  * @param <D> Destination reference type.
  */
-public final class Workflow<O extends Reference, D extends Reference> implements Migration {
+public class Workflow<O extends Reference, D extends Reference> implements Migration {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
@@ -62,7 +62,7 @@ public final class Workflow<O extends Reference, D extends Reference> implements
   private final boolean askForConfirmation;
   private final boolean force;
 
-  Workflow(
+  public Workflow(
       String name,
       Origin<O> origin,
       Destination<D> destination,
@@ -166,7 +166,12 @@ public final class Workflow<O extends Reference, D extends Reference> implements
             name, resolvedRef.asString(),
             this.toString()));
     logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-    mode.run(new WorkflowRunHelper<>(this, workdir, resolvedRef));
+    mode.run(newRunHelper(workdir, resolvedRef));
+  }
+
+  protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)
+      throws ValidationException, IOException, RepoException {
+    return new WorkflowRunHelper<>(this, workdir, resolvedRef);
   }
 
   @Override
@@ -223,5 +228,9 @@ public final class Workflow<O extends Reference, D extends Reference> implements
   @Nullable
   public String getLastRevisionFlag() {
     return lastRevisionFlag;
+  }
+
+  public WorkflowMode getMode() {
+    return mode;
   }
 }

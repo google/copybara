@@ -49,10 +49,10 @@ public class Copybara {
   }
 
   public void run(Options options, ConfigLoader<?> configLoader, String migrationName,
-      Path baseWorkdir, @Nullable String sourceRef)
+      Path workdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
     Config config = loadConfig(options, configLoader, migrationName);
-    config.getMigration(migrationName).run(baseWorkdir, sourceRef);
+    config.getMigration(migrationName).run(workdir, sourceRef);
   }
 
   public Config info(Options options, ConfigLoader<?> configLoader, String migrationName)
@@ -99,7 +99,7 @@ public class Copybara {
     return hasNoErrors;
   }
 
-  private Config loadConfig(Options options, ConfigLoader<?> configLoader, String migrationName)
+  protected Config loadConfig(Options options, ConfigLoader<?> configLoader, String migrationName)
       throws IOException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Console console = generalOptions.console();
