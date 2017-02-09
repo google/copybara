@@ -23,21 +23,39 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermission;
+
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+
 @RunWith(JUnit4.class)
 public class FileUtilTest {
 
   @Rule public final ExpectedException thrown = ExpectedException.none();
+
+  private Path temp;
+
+  @Before
+  public void setup() throws Exception {
+    temp = newTempDirectory("temp");
+  }
+
+  private Path newTempDirectory(String prefix) throws IOException {
+    // TODO(copybara-team): Explore running the tests against different filesystems using:
+    // Jimfs.newFileSystem(Configuration.windows());
+    // Right now it's not possible because we rely on {@link Path#toFile}, which is not supported
+    // by Jimfs.
+    return Files.createTempDirectory(prefix);
+  }
 
   @Test
   public void checkRelativism_string_absolute() {
@@ -95,19 +113,18 @@ public class FileUtilTest {
 
   @Test
   public void testCopyMaterializeAbsolutePaths() throws Exception {
-    Path temp = Files.createTempDirectory("temp");
     Path one = Files.createDirectory(temp.resolve("one"));
     Path two = Files.createDirectory(temp.resolve("two"));
     Path absolute = touch(Files.createDirectory(temp.resolve("absolute")).resolve("absolute"));
     Path absoluteSymlink = Files.createSymbolicLink(
         temp.resolve("absolute").resolve("symlink"), absolute);
 
-    Path absoluteDir = Files.createTempDirectory("absoluteDir");
+    Path absoluteDir = newTempDirectory("absoluteDir");
     Files.createDirectories(absoluteDir.resolve("absoluteDirDir"));
     Files.write(absoluteDir.resolve("absoluteDirElement"), "abc".getBytes(UTF_8));
     Files.write(absoluteDir.resolve("absoluteDirDir/element"), "abc".getBytes(UTF_8));
 
-    Files.setPosixFilePermissions(touch(one.resolve("foo")),
+    FileUtil.addPermissions(touch(one.resolve("foo")),
         ImmutableSet.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
     touch(one.resolve("some/folder/bar"));
 
@@ -164,7 +181,6 @@ public class FileUtilTest {
 
   @Test
   public void testCopyFailAbsoluteSymlinks() throws Exception {
-    Path temp = Files.createTempDirectory("temp");
     Path one = Files.createDirectory(temp.resolve("one"));
     Path two = Files.createDirectory(temp.resolve("two"));
     Path absolute = touch(Files.createDirectory(temp.resolve("absolute")).resolve("absolute"));
@@ -179,17 +195,16 @@ public class FileUtilTest {
 
   private Path touch(Path path) throws IOException {
     Files.createDirectories(path.getParent());
-    Files.write(path, "abc".getBytes());
+    Files.write(path, "abc".getBytes(UTF_8));
     return path;
   }
 
   @Test
   public void testMaterializedSymlinksAreWriteable() throws Exception {
-    Path temp = Files.createTempDirectory("temp");
     Path one = Files.createDirectory(temp.resolve("one"));
     Path two = Files.createDirectory(temp.resolve("two"));
     Path absolute = touch(Files.createDirectory(temp.resolve("absolute")).resolve("absolute"));
-    Files.setPosixFilePermissions(absolute, ImmutableSet.of(PosixFilePermission.OWNER_READ));
+    FileUtil.addPermissions(absolute, ImmutableSet.of(PosixFilePermission.OWNER_READ));
 
     Path absoluteTarget = one.relativize(absolute);
     Files.createSymbolicLink(one.resolve("absolute"), absoluteTarget);
@@ -201,7 +216,6 @@ public class FileUtilTest {
 
   @Test
   public void testCopyWithGlob() throws Exception {
-    Path temp = Files.createTempDirectory("temp");
     Path one = Files.createDirectory(temp.resolve("one"));
     Path two = Files.createDirectory(temp.resolve("two"));
     Files.createDirectories(one.resolve("foo"));
@@ -220,7 +234,6 @@ public class FileUtilTest {
 
   @Test
   public void testNoGlobs() throws Exception {
-    Path temp = Files.createTempDirectory("temp");
     Path one = Files.createDirectory(temp.resolve("one"));
     Path two = Files.createDirectory(temp.resolve("two"));
     Files.createDirectories(one.resolve("foo"));

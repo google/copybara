@@ -21,7 +21,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -31,7 +34,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -132,9 +134,7 @@ public final class FileUtil {
       @Override
       public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
         if (pathMatcher.matches(file)) {
-          Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(file);
-          permissions.addAll(permissionsToAdd);
-          Files.setPosixFilePermissions(file, permissions);
+          addPermissions(file, permissionsToAdd);
         }
         return FileVisitResult.CONTINUE;
       }
@@ -295,11 +295,7 @@ public final class FileUtil {
       // Make writable any symlink that we materialize. This is safe since we have already
       // done a copy of the file. And it is probable that we will want to modify it.
       if (symlink) {
-        Set<PosixFilePermission> perms = new HashSet<>(Files.getPosixFilePermissions(destFile));
-        if (!perms.contains(PosixFilePermission.OWNER_WRITE)) {
-          perms.add(PosixFilePermission.OWNER_WRITE);
-          Files.setPosixFilePermissions(destFile, perms);
-        }
+        addPermissions(destFile, ImmutableSet.of(PosixFilePermission.OWNER_WRITE));
       }
       return FileVisitResult.CONTINUE;
     }
@@ -357,7 +353,7 @@ public final class FileUtil {
      * that is true if during all the symlink steps resolution, all the paths found where relative
      * to the root directory.
      */
-    private final class ResolvedSymlink {
+    private static final class ResolvedSymlink {
 
       private final Path regularFile;
       private final boolean allUnderRoot;
@@ -365,6 +361,39 @@ public final class FileUtil {
       ResolvedSymlink(Path regularFile, boolean allUnderRoot) {
         this.regularFile = checkNotNull(regularFile);
         this.allUnderRoot = allUnderRoot;
+      }
+    }
+  }
+
+  /**
+   * Tries to add the Posix permissions if the file belongs to a Posix filesystem. This is an
+   * addition, which means that no permissions are removed.
+   *
+   * <p>For Windows type filesystems, it uses setReadable/setWritable/setExecutable, which is only
+   * supported for the owner, and ignores the rest of permissions.
+   */
+  public static void addPermissions(Path path, Set<PosixFilePermission> permissionsToAdd)
+      throws IOException {
+    if (path.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+      Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(path);
+      permissions.addAll(permissionsToAdd);
+      Files.setPosixFilePermissions(path, permissions);
+    } else {
+      File file = path.toFile();
+      if (permissionsToAdd.contains(PosixFilePermission.OWNER_READ)) {
+        if (!file.setReadable(true)) {
+          throw new IOException("Could not set 'readable' permission for file: " + path);
+        }
+      }
+      if (permissionsToAdd.contains(PosixFilePermission.OWNER_WRITE)) {
+        if (!file.setWritable(true)) {
+          throw new IOException("Could not set 'writable' permission for file: " + path);
+        }
+      }
+      if (permissionsToAdd.contains(PosixFilePermission.OWNER_EXECUTE)) {
+        if (!file.setExecutable(true)) {
+          throw new IOException("Could not set 'executable' permission for file: " + path);
+        }
       }
     }
   }
