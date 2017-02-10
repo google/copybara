@@ -667,7 +667,7 @@ public class GitOriginTest {
     assertThat(message).contains("i hope this is included in the migrated message!");
   }
 
-  private GitReference getLastCommitRef() throws RepoException, CannotResolveReferenceException {
+  private GitReference getLastCommitRef() throws RepoException, ValidationException {
     String head = git("rev-parse", "HEAD");
     String lastCommit = head.substring(0, head.length() -1);
     return origin.resolve(lastCommit);

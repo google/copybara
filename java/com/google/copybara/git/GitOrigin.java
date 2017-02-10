@@ -30,6 +30,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
@@ -242,14 +243,14 @@ public final class GitOrigin implements Origin<GitReference> {
 
   @Override
   public GitReference resolve(@Nullable String reference)
-      throws RepoException, CannotResolveReferenceException {
+      throws RepoException, ValidationException {
     console.progress("Git Origin: Initializing local repo");
     repository.initGitDir();
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
       if (configRef == null) {
-        throw new RepoException("No reference was pass for " + repoUrl
-            + " and no default reference was configured in the config file");
+        throw new ValidationException("No reference was passed as an command line argument for "
+            + repoUrl + " and no default reference was configured in the config file");
       }
       ref = configRef;
     } else {
