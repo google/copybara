@@ -20,15 +20,16 @@ import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.base.Suppliers;
 import com.google.copybara.Option;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-/**
- * Arguments for {@link GerritDestination}.
- */
+/** Arguments for {@link GerritDestination}. */
 @Parameters(separators = "=")
-public final class GerritOptions implements Option {
+public class GerritOptions implements Option {
 
   private static final Pattern CHANGE_ID_PATTERN = Pattern.compile("I[0-9a-f]{40}");
 
@@ -51,4 +52,34 @@ public final class GerritOptions implements Option {
 
   @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
   String gerritTopic = "";
+
+  protected GerritChangeFinder changeFinder;
+
+  /** Create options with a specific change finder. */
+  protected GerritOptions(GerritChangeFinder changeFinder) {
+    this.changeFinder = Preconditions.checkNotNull(changeFinder);
+  }
+
+  /** Instantiate options with a null change finder. */
+  public GerritOptions() {
+    this.changeFinder = null;
+  }
+
+  public synchronized Supplier<GerritChangeFinder> getChangeFinder() {
+    return Suppliers.memoize(
+        new com.google.common.base.Supplier<GerritChangeFinder>() {
+          @Override
+          public synchronized GerritChangeFinder get() {
+            if (changeFinder == null) {
+              changeFinder = newChangeFinder();
+            }
+            return changeFinder;
+          }
+        });
+  }
+
+  /** Override this method in a class for a specific Gerrit implementation. */
+  protected GerritChangeFinder newChangeFinder() {
+    return new GerritChangeFinder.Default();
+  }
 }

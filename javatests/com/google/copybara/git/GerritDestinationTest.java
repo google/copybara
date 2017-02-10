@@ -31,6 +31,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.ByteArrayOutputStream;
@@ -181,6 +182,30 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void changeExists() throws Exception {
+    fetch = "master";
+
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+
+    options.setForce(true);
+    String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
+    options.gerrit =
+        new GerritOptions() {
+          @Override
+          protected GerritChangeFinder newChangeFinder() {
+            return new GerritChangeFinder() {
+              @Override
+              public Response find(String repoUrl, String query, Console console) {
+                return new Response(ImmutableList.of(new GerritChange(changeId)));
+              }
+            };
+          }
+        };
+    process(new DummyRevision("origin_ref"));
+    assertThat(lastCommitChangeIdLine()).isEqualTo("    Change-Id: " + changeId);
+  }
+
+  @Test
   public void specifyTopic() throws Exception {
     fetch = "master";
     options.setForce(true);
@@ -233,11 +258,11 @@ public class GerritDestinationTest {
   @Test
   public void testProcessPushOutput_new() {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    GerritProcessPushOutput process = new GerritProcessPushOutput(
-        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
-        /*newReview*/ true);
+    GerritProcessPushOutput process =
+        new GerritProcessPushOutput(
+            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false));
 
-    process.process(GERRIT_RESPONSE);
+    process.process(GERRIT_RESPONSE, /*newReview*/ true);
 
     assertThat(out.toString())
         .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
@@ -247,10 +272,9 @@ public class GerritDestinationTest {
   public void testProcessPushOutput_existing() {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     GerritProcessPushOutput process = new GerritProcessPushOutput(
-        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
-        /*newReview*/ false);
+        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false));
 
-    process.process(GERRIT_RESPONSE);
+    process.process(GERRIT_RESPONSE, /*newReview*/ false);
 
     assertThat(out.toString())
         .contains("INFO: Updated existing Gerrit review at https://some.url.google.com/1234");

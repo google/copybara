@@ -51,22 +51,31 @@ public final class GitDestination implements Destination<GitRevision> {
 
   private static final ImmutableSet<String> SINGLE_ROOT_WITHOUT_FOLDER = ImmutableSet.of("");
 
+  static class MessageInfo {
+    final String text;
+    final boolean newPush;
+
+    MessageInfo(String text, boolean newPush) {
+      this.text = text;
+      this.newPush = newPush;
+    }
+  }
+
   interface CommitGenerator {
-    /**
-     * Generates a commit message based on the uncommitted index stored in the given repository.
-     */
-    String message(TransformResult transformResult, GitRepository repo)
-        throws RepoException;
+    /** Generates a commit message based on the uncommitted index stored in the given repository. */
+    MessageInfo message(TransformResult transformResult, GitRepository repo) throws RepoException;
   }
 
   static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
-    public String message(TransformResult transformResult, GitRepository repo) {
-      return String.format("%s\n\n%s: %s\n",
-          transformResult.getSummary(),
-          transformResult.getOriginRef().getLabelName(),
-          transformResult.getOriginRef().asString()
-      );
+    public MessageInfo message(TransformResult transformResult, GitRepository repo) {
+      return new MessageInfo(
+          String.format(
+              "%s\n\n%s: %s\n",
+              transformResult.getSummary(),
+              transformResult.getOriginRef().getLabelName(),
+              transformResult.getOriginRef().asString()),
+          /*newPush*/ true);
     }
   }
 
@@ -242,8 +251,11 @@ public final class GitDestination implements Destination<GitRevision> {
       excludedAdder.add();
 
       console.progress("Git Destination: Creating a local commit");
-      alternate.commit(transformResult.getAuthor().toString(), transformResult.getTimestamp(),
-          commitGenerator.message(transformResult, alternate));
+      MessageInfo messageInfo = commitGenerator.message(transformResult, alternate);
+      alternate.commit(
+          transformResult.getAuthor().toString(),
+          transformResult.getTimestamp(),
+          messageInfo.text);
 
       if (baseline != null) {
         // Our current implementation (That we should change) leaves unstaged files in the
@@ -267,7 +279,8 @@ public final class GitDestination implements Destination<GitRevision> {
       console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
       // Git push writes to Stderr
       processPushOutput.process(
-          alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push).getStderr());
+          alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push).getStderr(),
+          messageInfo.newPush);
       return WriterResult.OK;
     }
   }
@@ -315,9 +328,11 @@ public final class GitDestination implements Destination<GitRevision> {
    */
   static class ProcessPushOutput {
 
-    void process(String output) {
-
-    }
+    /**
+     * @param output - the message for the commit
+     * @param newPush - true if is the first time we are pushing to the origin ref
+     */
+    void process(String output, boolean newPush) {}
   }
 
   @Override

@@ -28,6 +28,8 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.git.GerritChangeFinder.Response;
+import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -48,30 +50,41 @@ public final class GerritDestination implements Destination<GitRevision> {
   private static final class CommitGenerator implements GitDestination.CommitGenerator {
 
     private final GerritOptions gerritOptions;
+    private final String repoUrl;
+    private final Console console;
 
-    CommitGenerator(GerritOptions gerritOptions) {
+    private CommitGenerator(GerritOptions gerritOptions, String repoUrl, Console console) {
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
+      this.repoUrl = Preconditions.checkNotNull(repoUrl);
+      this.console = Preconditions.checkNotNull(console);
     }
 
     /**
-     * Generates a message with a trailing Gerrit change id in the form:
+     * Returns message with a trailing Gerrit change id and if the change already exists or not. The
+     * Gerrit change id has the form:
      *
      * <pre>
      * Change-Id: I{SHA1 hash}
      * </pre>
      *
      * Where the hash is generated from the data in the current tree and other data, including the
-     * values of the git variables {@code GIT_AUTHOR_IDENT} and {@code GIT_COMMITTER_IDENT}.
+     * values of the git variables {@code GIT_AUTHOR_IDENT} and {@code GIT_COMMITTER_IDENT}. Checks
+     * if the change exists or not by querying Gerrit. It needs to return if the change exists or
+     * not because copybara prints a different output based on if the change already exists in
+     * Gerrit or not.
      */
     @Override
-    public String message(TransformResult transformResult, GitRepository repo)
+    public MessageInfo message(TransformResult transformResult, GitRepository repo)
         throws RepoException {
-      return String.format("%s\n%s: %s\nChange-Id: %s\n",
-          transformResult.getSummary(),
-          transformResult.getOriginRef().getLabelName(),
-          transformResult.getOriginRef().asString(),
-          changeId(repo)
-      );
+      MessageInfo changeIdAndNew = changeId(repo, transformResult);
+      return new MessageInfo(
+          String.format(
+              "%s\n%s: %s\nChange-Id: %s\n",
+              transformResult.getSummary(),
+              transformResult.getOriginRef().getLabelName(),
+              transformResult.getOriginRef().asString(),
+              changeIdAndNew.text),
+          changeIdAndNew.newPush);
     }
 
     private String maybeParentHash(GitRepository repo) {
@@ -82,25 +95,50 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
     }
 
-    private String changeId(GitRepository repo) throws RepoException {
+    /**
+     * Returns the change id and if the change is new or not. Reuse the {@link MessageInfo} type for
+     * a lack of better alternative.
+     */
+    private MessageInfo changeId(GitRepository repo, TransformResult transformResult)
+        throws RepoException {
       if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
-        return gerritOptions.gerritChangeId;
+        return new MessageInfo(gerritOptions.gerritChangeId, /*newPush */ false);
       }
-
-      return "I" + Hashing.sha1().newHasher()
-          .putString(repo.simpleCommand("write-tree").getStdout(), Charsets.UTF_8)
-          .putString(maybeParentHash(repo), Charsets.UTF_8)
-          .putString(repo.simpleCommand("var", "GIT_AUTHOR_IDENT").getStdout(), Charsets.UTF_8)
-          .putString(repo.simpleCommand("var", "GIT_COMMITTER_IDENT").getStdout(), Charsets.UTF_8)
-          .hash();
+      // Try to see if there is already a Gerrit change for the origin ref and with the same author.
+      String query =
+          String.format(
+              "owner:%s status:open message:`%s: %s`",
+              transformResult.getAuthor().getEmail(),
+              transformResult.getOriginRef().getLabelName(),
+              transformResult.getOriginRef().asString());
+      Response response = gerritOptions.getChangeFinder().get().find(repoUrl, query, console);
+      if (!response.getParts().isEmpty()) {
+        // Just take the first one.
+        return new MessageInfo(response.getParts().get(0).getChangeId(), /*newPush */ false);
+      }
+      return new MessageInfo(
+          "I"
+              + Hashing.sha1()
+                  .newHasher()
+                  .putString(repo.simpleCommand("write-tree").getStdout(), Charsets.UTF_8)
+                  .putString(maybeParentHash(repo), Charsets.UTF_8)
+                  .putString(
+                      repo.simpleCommand("var", "GIT_AUTHOR_IDENT").getStdout(), Charsets.UTF_8)
+                  .putString(
+                      repo.simpleCommand("var", "GIT_COMMITTER_IDENT").getStdout(), Charsets.UTF_8)
+                  .hash(),
+          /*newPush */ true);
     }
-
   }
 
   private final GitDestination gitDestination;
 
   private GerritDestination(GitDestination gitDestination) {
     this.gitDestination = Preconditions.checkNotNull(gitDestination);
+  }
+
+  public GitDestination getGitDestination() {
+    return gitDestination;
   }
 
   @Override
@@ -143,9 +181,8 @@ public final class GerritDestination implements Destination<GitRevision> {
             options.get(GitDestinationOptions.class),
             generalOptions.isVerbose(),
             firstMigration,
-            new CommitGenerator(gerritOptions),
-            new GerritProcessPushOutput(
-                generalOptions.console(), Strings.isNullOrEmpty(gerritOptions.gerritChangeId)),
+            new CommitGenerator(gerritOptions, url, generalOptions.console()),
+            new GerritProcessPushOutput(generalOptions.console()),
             environment,
             generalOptions.console(),
             generalOptions.getTmpDirectoryFactory()));
@@ -156,15 +193,13 @@ public final class GerritDestination implements Destination<GitRevision> {
     private static final Pattern GERRIT_URL_LINE = Pattern.compile(
         ".*: *(http(s)?://[^ ]+)( .*)?");
     private final Console console;
-    private final boolean newReview;
 
-    GerritProcessPushOutput(Console console, boolean newReview) {
+    GerritProcessPushOutput(Console console) {
       this.console = console;
-      this.newReview = newReview;
     }
 
     @Override
-    void process(String output) {
+    void process(String output, boolean newReview) {
       List<String> lines = Splitter.on("\n").splitToList(output);
       for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
         String line = iterator.next();

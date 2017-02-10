@@ -76,7 +76,15 @@ public class ModuleSupplier {
         new GitOptions(homeDir),
         new GitDestinationOptions(),
         new GitMirrorOptions(),
-        new GerritOptions(),
+        newGerritOptions(),
         new WorkflowOptions());
   }
+
+  /**
+   * Create the Gerrit options. For a different implementation override this method in a subclass.
+   */
+  protected GerritOptions newGerritOptions() {
+    return new GerritOptions();
+  }
+
 }

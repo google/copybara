@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Map.Entry;
 
 /**
  * A class that groups all the options used in the program
@@ -40,10 +41,16 @@ public class Options {
    */
   @SuppressWarnings("unchecked")
   public <T extends Option> T get(Class<? extends T> optionClass) {
-    Option config = this.config.get(optionClass);
-    if (config == null) {
+    Option option = config.get(optionClass);
+    if (option == null) {
+      // If we didn't find the exact class, look for a subclass.
+      for (Entry<Class<? extends Option>, Option> entry : config.entrySet()) {
+        if (optionClass.isAssignableFrom(entry.getKey())) {
+          return (T) entry.getValue();
+        }
+      }
       throw new IllegalStateException("No option type found for " + optionClass);
     }
-    return (T) config;
+    return (T) option;
   }
 }
