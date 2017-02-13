@@ -111,7 +111,7 @@ public final class MainArguments {
     return argumentHolder;
   }
 
-  MainArguments(String[] args) {
+  public MainArguments(String[] args) {
     this.args = Preconditions.checkNotNull(args);
   }
 
