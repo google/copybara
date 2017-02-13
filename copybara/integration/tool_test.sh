@@ -288,6 +288,12 @@ EOF
   # Before running the tool for the first time, the last imported ref is empty
   copybara info copy.bara.sky default
   expect_log "'workflow_default': last_migrated None - last_available $commit_five"
+  expect_log "Available changes:"
+  expect_log "1 - $commit_one commit one by Bara Kopi <bara@kopi.com>"
+  expect_log "2 - $commit_two commit two by Bara Kopi <bara@kopi.com>"
+  expect_log "3 - $commit_three commit three by Bara Kopi <bara@kopi.com>"
+  expect_log "4 - $commit_four commit four by Bara Kopi <bara@kopi.com>"
+  expect_log "5 - $commit_five commit five by Bara Kopi <bara@kopi.com>"
 
   copybara copy.bara.sky default $commit_one --force
 
@@ -295,6 +301,11 @@ EOF
 
   copybara info copy.bara.sky default
   expect_log "'workflow_default': last_migrated $commit_one - last_available $commit_five"
+  expect_log "Available changes:"
+  expect_log "1 - $commit_two commit two by Bara Kopi <bara@kopi.com>"
+  expect_log "2 - $commit_three commit three by Bara Kopi <bara@kopi.com>"
+  expect_log "3 - $commit_four commit four by Bara Kopi <bara@kopi.com>"
+  expect_log "4 - $commit_five commit five by Bara Kopi <bara@kopi.com>"
 
   ( cd $destination
     run_git log master~1..master > $TEST_log
@@ -306,6 +317,8 @@ EOF
 
   copybara info copy.bara.sky default
   expect_log "'workflow_default': last_migrated $commit_four - last_available $commit_five"
+  expect_log "Available changes:"
+  expect_log "1 - $commit_five commit five by Bara Kopi <bara@kopi.com>"
 
   check_copybara_rev_id "$destination" "$commit_four"
 

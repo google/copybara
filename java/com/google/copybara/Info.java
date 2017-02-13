@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.auto.value.AutoValue;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -27,15 +28,16 @@ import javax.annotation.Nullable;
  * <p>A migration can have one or more {@link MigrationReference}s.
  */
 @AutoValue
-public abstract class Info {
+public abstract class Info<O extends Reference> {
 
-  static final Info EMPTY = create(ImmutableList.of());
+  static final Info<? extends Reference> EMPTY = create(ImmutableList.of());
 
-  public static Info create(Iterable<MigrationReference> migrationReferences) {
-    return new AutoValue_Info(ImmutableList.copyOf(migrationReferences));
+  public static <O extends Reference> Info<O> create(
+      Iterable<MigrationReference<O>> migrationReferences) {
+    return new AutoValue_Info<O>(ImmutableList.copyOf(migrationReferences));
   }
 
-  abstract Iterable<MigrationReference> migrationReferences();
+  abstract Iterable<MigrationReference<O>> migrationReferences();
 
   @Override
   public String toString() {
@@ -45,11 +47,14 @@ public abstract class Info {
   }
 
   @AutoValue
-  public static abstract class MigrationReference {
+  public static abstract class MigrationReference<O extends Reference> {
 
-    public static MigrationReference create(
-        String label, @Nullable Reference lastMigrated, @Nullable Reference nextToMigrate) {
-      return new AutoValue_Info_MigrationReference(label, lastMigrated, nextToMigrate);
+    public static <O extends Reference> MigrationReference<O> create(
+        String label,
+        @Nullable O lastMigrated,
+        Iterable<Change<O>> availableToMigrate) {
+      return new AutoValue_Info_MigrationReference<O>(
+          label, lastMigrated, ImmutableList.copyOf(availableToMigrate));
     }
 
     /**
@@ -66,20 +71,35 @@ public abstract class Info {
      * Returns the last migrated {@link Reference} from the origin.
      */
     @Nullable
-    abstract Reference getLastMigrated();
+    abstract O getLastMigrated();
 
     /**
-     * Returns the next available {@link Reference} to migrate from the origin.
+     * Returns the last available {@link Reference} to migrate from the origin.
+     *
+     * <p>There might be more available changes to migrate, but this is the reference of the most
+     * recent change available at this moment.
      */
     @Nullable
-    abstract Reference getNextToMigrate();
+    O getLastAvailableToMigrate() {
+      Optional<O> lastAvailable =
+          getAvailableToMigrate()
+              .stream()
+              .map(Change::getReference)
+              .reduce((first, second) -> second);
+      return lastAvailable.isPresent() ? lastAvailable.get() : null;
+    }
+
+    /**
+     * Returns a list of the next available {@link Change}s to migrate from the origin.
+     */
+    abstract ImmutableList<Change<O>> getAvailableToMigrate();
 
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
           .add("label", getLabel())
           .add("lastMigrated", getLastMigrated())
-          .add("nextToMigrate", getNextToMigrate())
+          .add("availableToMigrate", getAvailableToMigrate())
           .toString();
     }
   }

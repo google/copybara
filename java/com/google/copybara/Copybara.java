@@ -59,13 +59,27 @@ public class Copybara {
       throws IOException, ValidationException, RepoException {
     Console console = options.get(GeneralOptions.class).console();
     Config config = loadConfig(options, configLoader, migrationName);
-    Info info = config.getMigration(migrationName).getInfo();
-    for (MigrationReference ref : info.migrationReferences()) {
-      console.info(
-          String.format("'%s': last_migrated %s - last_available %s.",
-              ref.getLabel(),
-              ref.getLastMigrated() != null ? ref.getLastMigrated().asString() : "None",
-              ref.getNextToMigrate() != null ? ref.getNextToMigrate().asString() : "None"));
+    @SuppressWarnings("unchecked")
+    Info<? extends Reference> info = config.getMigration(migrationName).getInfo();
+    for (MigrationReference<? extends Reference> migrationRef : info.migrationReferences()) {
+      console.info(String.format(
+          "'%s': last_migrated %s - last_available %s.",
+          migrationRef.getLabel(),
+          migrationRef.getLastMigrated() != null ?
+              migrationRef.getLastMigrated().asString() : "None",
+          migrationRef.getLastAvailableToMigrate() != null
+              ? migrationRef.getLastAvailableToMigrate().asString() : "None"));
+      if (!migrationRef.getAvailableToMigrate().isEmpty()) {
+        console.info("Available changes:");
+        int changeNumber = 1;
+        for (Change change : migrationRef.getAvailableToMigrate()) {
+          console.info(String.format("%d - %s %s by %s",
+              changeNumber++,
+              change.getReference().asString(),
+              change.firstLineMessage(),
+              change.getAuthor()));
+        }
+      }
     }
     return config;
   }

@@ -28,8 +28,10 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -181,8 +183,11 @@ public class Workflow<O extends Reference, D extends Reference> implements Migra
     O lastMigrated = (lastRef == null) ? null : origin.resolve(lastRef);
     O lastResolved = origin.resolve(/*sourceRef=*/ null);
 
-    MigrationReference migrationRef = MigrationReference.create(
-        String.format("workflow_%s", name), lastMigrated, lastResolved);
+    ImmutableList<Change<O>> changes =
+        origin.newReader(originFiles, authoring).changes(lastMigrated, lastResolved);
+
+    MigrationReference<O> migrationRef = MigrationReference.create(
+        String.format("workflow_%s", name), lastMigrated, changes);
     return Info.create(ImmutableList.of(migrationRef));
   }
 
