@@ -22,7 +22,6 @@ import static com.google.copybara.Subcommand.VALIDATE;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import java.io.IOException;
@@ -78,13 +77,13 @@ public final class MainArguments {
   @Nullable
   private ArgumentHolder argumentHolder;
 
-  private String[] args;
+  private ImmutableList<String> originalArgs;
 
   /**
    * A list containing the original invocation arguments. Solely meant for debugging/logging.
    */
   public ImmutableList<String> getOriginalArgsForLogging() {
-    return ImmutableList.<String>copyOf(args);
+    return originalArgs;
   }
 
   public Subcommand getSubcommand() {
@@ -112,7 +111,7 @@ public final class MainArguments {
   }
 
   public MainArguments(String[] args) {
-    this.args = Preconditions.checkNotNull(args);
+    this.originalArgs = ImmutableList.<String>copyOf(Preconditions.checkNotNull(args));
   }
 
   /**

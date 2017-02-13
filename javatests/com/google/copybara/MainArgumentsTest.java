@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
@@ -60,7 +61,7 @@ public class MainArgumentsTest {
 
   @Test
   public void getWorkdirIsNotDirectory() throws Exception {
-    Files.write(fs.getPath("file"), "hello".getBytes());
+    Files.write(fs.getPath("file"), "hello".getBytes(UTF_8));
 
     mainArguments.baseWorkdir = "file";
     thrown.expect(IOException.class);
