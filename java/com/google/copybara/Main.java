@@ -113,7 +113,7 @@ public class Main {
       ModuleSupplier moduleSupplier = newModuleSupplier();
       Copybara copybara = newCopybaraTool();
 
-      final MainArguments mainArgs = new MainArguments();
+      final MainArguments mainArgs = new MainArguments(args);
       GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
       List<Option> allOptions = new ArrayList<>(moduleSupplier.newOptions());
       JCommander jcommander = new JCommander(ImmutableList.builder()

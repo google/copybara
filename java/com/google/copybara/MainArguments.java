@@ -23,6 +23,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -77,6 +78,15 @@ public final class MainArguments {
   @Nullable
   private ArgumentHolder argumentHolder;
 
+  private String[] args;
+
+  /**
+   * A list containing the original invocation arguments. Solely meant for debugging/logging.
+   */
+  public ImmutableList<String> getOriginalArgsForLogging() {
+    return ImmutableList.<String>copyOf(args);
+  }
+
   public Subcommand getSubcommand() {
     return getArgs().subcommand;
   }
@@ -99,6 +109,10 @@ public final class MainArguments {
     Preconditions.checkNotNull(argumentHolder, "parseUnnamedArgs() should be invoked first. "
         + "This is probably a bug.");
     return argumentHolder;
+  }
+
+  MainArguments(String[] args) {
+    this.args = Preconditions.checkNotNull(args);
   }
 
   /**

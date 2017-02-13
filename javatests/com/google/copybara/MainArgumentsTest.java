@@ -46,7 +46,7 @@ public class MainArgumentsTest {
 
   @Before
   public void setup() {
-    mainArguments = new MainArguments();
+    mainArguments = new MainArguments(new String[] {"one", "two"});
     fs = Jimfs.newFileSystem();
     options = new OptionsBuilder();
   }
@@ -83,6 +83,12 @@ public class MainArgumentsTest {
     thrown.expectMessage("Expected at most four arguments");
     mainArguments.parseUnnamedArgs();
   }
+
+  @Test
+  public void testGetOriginalArgsForLogging() throws Exception {
+    assertThat(mainArguments.getOriginalArgsForLogging()).containsExactly("one", "two");
+  }
+
 
   /**
    * Subcommand 'migrate' allows all the parameters.
@@ -129,7 +135,8 @@ public class MainArgumentsTest {
     checkParsing(ImmutableList.of("info", "copy.bara.sky", "import_wf", "some_ref"));
   }
 
-  private void checkParsing(List<String> args, Subcommand expectedSubcommand, String expectedConfigPath,
+  private void checkParsing(
+      List<String> args, Subcommand expectedSubcommand, String expectedConfigPath,
       String expectedWorkflowName, @Nullable String expectedSourceRef) throws CommandLineException {
     checkParsing(args);
     assertThat(mainArguments.getSubcommand()).isEqualTo(expectedSubcommand);
@@ -139,7 +146,7 @@ public class MainArgumentsTest {
   }
 
   private void checkParsing(List<String> args) throws CommandLineException {
-    mainArguments = new MainArguments();
+    mainArguments = new MainArguments(new String[] {"one", "two"});
     mainArguments.unnamed = args;
     mainArguments.parseUnnamedArgs();
   }
