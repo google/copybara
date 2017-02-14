@@ -156,7 +156,9 @@ public class Main {
               mainArgs.getSourceRef());
           return ExitCode.SUCCESS;
         case INFO:
-          copybara.info(options, configLoader, mainArgs.getWorkflowName());
+          // TODO(malcon): Use the same mechanism (if possible) for the other commands.
+          Config config = configLoader.loadConfig(options);
+          copybara.info(options, config, mainArgs.getWorkflowName());
           return ExitCode.SUCCESS;
         default:
           console.error(String.format("Subcommand %s not implemented.", mainArgs.getSubcommand()));

@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.copybara.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
@@ -30,9 +31,11 @@ import java.util.Objects;
  */
 public final class Config {
   private final ImmutableMap<String, Migration> migrations;
+  private final String location;
 
-  public Config(Map<String, Migration> migrations) {
+  public Config(Map<String, Migration> migrations, String location) {
     this.migrations = ImmutableMap.copyOf(migrations);
+    this.location = Preconditions.checkNotNull(location);
   }
 
   /**
@@ -43,6 +46,14 @@ public final class Config {
         String.format("No migration with '%s' name exists. Valid migrations: %s",
         migrationName, migrations.keySet()));
     return migrations.get(migrationName);
+  }
+
+  /**
+   * Location of the top-level config file. An arbitrary string meant to be used
+   * for logging/debugging. It shouldn't be parsed, as the format might change.
+   */
+  public String getLocation() {
+    return location;
   }
 
   /**

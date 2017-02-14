@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -62,10 +61,10 @@ public class Copybara {
   /**
    * Retrieves the {@link Info} of the {@code migrationName} and prints it to the console.
    */
-  public void info(Options options, ConfigLoader<?> configLoader, String migrationName)
+  public void info(Options options, Config config, String migrationName)
       throws IOException, ValidationException, RepoException {
     @SuppressWarnings("unchecked")
-    Info<? extends Reference> info = getInfo(options, configLoader, migrationName);
+    Info<? extends Reference> info = getInfo(migrationName, config);
     Console console = options.get(GeneralOptions.class).console();
     for (MigrationReference<? extends Reference> migrationRef : info.migrationReferences()) {
       console.info(String.format(
@@ -92,13 +91,9 @@ public class Copybara {
   /**
    * Returns the {@link Info} of the {@code migrationName}.
    */
-  public Info<? extends Reference> getInfo(
-      Options options, ConfigLoader<?> configLoader, String migrationName)
+  public Info<? extends Reference> getInfo(String migrationName, Config config)
       throws IOException, ValidationException, RepoException {
-    Config config = loadConfig(options, configLoader, migrationName);
-    Info<? extends Reference> info =
-        (Info<? extends Reference>) config.getMigration(migrationName).getInfo();
-    return info;
+    return (Info<? extends Reference>) config.getMigration(migrationName).getInfo();
   }
 
   /**
