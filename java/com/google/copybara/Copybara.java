@@ -27,13 +27,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
  * Copybara tool main class.
  *
- * <p>Executes Copybara workflows independently from the environment that they are invoked from
+ * <p>Executes Copybara subcommands independently from the environment that they are invoked from
  * (command-line, service).
  */
 public class Copybara {
@@ -48,6 +49,9 @@ public class Copybara {
     this.configValidator = Preconditions.checkNotNull(configValidator);
   }
 
+  /**
+   * Runs the migration specified by {@code migrationName}.
+   */
   public void run(Options options, ConfigLoader<?> configLoader, String migrationName,
       Path workdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
@@ -55,12 +59,14 @@ public class Copybara {
     config.getMigration(migrationName).run(workdir, sourceRef);
   }
 
-  public Config info(Options options, ConfigLoader<?> configLoader, String migrationName)
+  /**
+   * Retrieves the {@link Info} of the {@code migrationName} and prints it to the console.
+   */
+  public void info(Options options, ConfigLoader<?> configLoader, String migrationName)
       throws IOException, ValidationException, RepoException {
-    Console console = options.get(GeneralOptions.class).console();
-    Config config = loadConfig(options, configLoader, migrationName);
     @SuppressWarnings("unchecked")
-    Info<? extends Reference> info = config.getMigration(migrationName).getInfo();
+    Info<? extends Reference> info = getInfo(options, configLoader, migrationName);
+    Console console = options.get(GeneralOptions.class).console();
     for (MigrationReference<? extends Reference> migrationRef : info.migrationReferences()) {
       console.info(String.format(
           "'%s': last_migrated %s - last_available %s.",
@@ -81,9 +87,27 @@ public class Copybara {
         }
       }
     }
-    return config;
   }
 
+  /**
+   * Returns the {@link Info} of the {@code migrationName}.
+   */
+  public Info<? extends Reference> getInfo(
+      Options options, ConfigLoader<?> configLoader, String migrationName)
+      throws IOException, ValidationException, RepoException {
+    Config config = loadConfig(options, configLoader, migrationName);
+    Info<? extends Reference> info =
+        (Info<? extends Reference>) config.getMigration(migrationName).getInfo();
+    return info;
+  }
+
+  /**
+   * Validates that the configuration is correct and that there is a valid migration specified by
+   * {@code migrationName}.
+   *
+   * <p>Note that, besides validating the specific migration, all the configuration will be
+   * validated syntactically.
+   */
   public boolean validate(Options options, ConfigLoader<?> configLoader, String migrationName)
       throws RepoException, IOException {
     Console console = options.get(GeneralOptions.class).console();
