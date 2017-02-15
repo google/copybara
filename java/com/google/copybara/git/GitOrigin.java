@@ -24,7 +24,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.copybara.CannotResolveReferenceException;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -52,7 +52,7 @@ import javax.annotation.Nullable;
 /**
  * A class for manipulating Git repositories
  */
-public final class GitOrigin implements Origin<GitReference> {
+public final class GitOrigin implements Origin<GitRevision> {
 
   enum SubmoduleStrategy {
     /** Don't download any submodule. */
@@ -105,7 +105,7 @@ public final class GitOrigin implements Origin<GitReference> {
     return repository;
   }
 
-  private class ReaderImpl implements Reader<GitReference> {
+  private class ReaderImpl implements Reader<GitRevision> {
 
     final Glob originFiles;
     final Authoring authoring;
@@ -127,8 +127,8 @@ public final class GitOrigin implements Origin<GitReference> {
      * <p>Any content in the workdir is removed/overwritten.
      */
     @Override
-    public void checkout(GitReference ref, Path workdir)
-        throws RepoException, CannotResolveReferenceException {
+    public void checkout(GitRevision ref, Path workdir)
+        throws RepoException, CannotResolveRevisionException {
       checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref);
       if (!Strings.isNullOrEmpty(gitOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
@@ -136,8 +136,8 @@ public final class GitOrigin implements Origin<GitReference> {
     }
 
     private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
-        SubmoduleStrategy submoduleStrategy, GitReference ref)
-        throws RepoException, CannotResolveReferenceException {
+        SubmoduleStrategy submoduleStrategy, GitRevision ref)
+        throws RepoException, CannotResolveRevisionException {
 
       GitRepository repo = repository.withWorkTree(workdir);
       repo.simpleCommand("checkout", "-q", "-f", ref.asString());
@@ -158,7 +158,7 @@ public final class GitOrigin implements Origin<GitReference> {
             submodule.getUrl(), environment, verbose, gitOptions.repoStorage);
         subRepo.initGitDir();
         subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
-        GitReference submoduleRef = subRepo.resolveReference(element.getRef());
+        GitRevision submoduleRef = subRepo.resolveReference(element.getRef());
 
         Path subdir = workdir.resolve(submodule.getPath());
         try {
@@ -176,8 +176,8 @@ public final class GitOrigin implements Origin<GitReference> {
     }
 
     @Override
-    public ImmutableList<Change<GitReference>> changes(@Nullable GitReference fromRef,
-        GitReference toRef) throws RepoException {
+    public ImmutableList<Change<GitRevision>> changes(@Nullable GitRevision fromRef,
+        GitRevision toRef) throws RepoException {
 
       String refRange = fromRef == null
           ? toRef.asString()
@@ -187,7 +187,7 @@ public final class GitOrigin implements Origin<GitReference> {
     }
 
     @Override
-    public Change<GitReference> change(GitReference ref) throws RepoException {
+    public Change<GitRevision> change(GitRevision ref) throws RepoException {
       // The limit=1 flag guarantees that only one change is returned
       ChangeReader changeReader = changeReaderBuilder()
           .setLimit(1)
@@ -196,15 +196,15 @@ public final class GitOrigin implements Origin<GitReference> {
     }
 
     @Override
-    public void visitChanges(GitReference start, ChangesVisitor visitor)
-        throws RepoException, CannotResolveReferenceException {
+    public void visitChanges(GitRevision start, ChangesVisitor visitor)
+        throws RepoException, CannotResolveRevisionException {
       ChangeReader queryChanges = changeReaderBuilder()
           .setLimit(1)
           .build();
 
       ImmutableList<GitChange> result = queryChanges.run(start.asString());
       if (result.isEmpty()) {
-        throw new CannotResolveReferenceException("Cannot resolve reference " + start.asString());
+        throw new CannotResolveRevisionException("Cannot resolve reference " + start.asString());
       }
       GitChange current = Iterables.getOnlyElement(result);
       while (current != null) {
@@ -219,7 +219,7 @@ public final class GitOrigin implements Origin<GitReference> {
   }
 
   @Override
-  public Reader<GitReference> newReader(Glob originFiles, Authoring authoring) {
+  public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(originFiles, authoring);
   }
 
@@ -242,7 +242,7 @@ public final class GitOrigin implements Origin<GitReference> {
   }
 
   @Override
-  public GitReference resolve(@Nullable String reference)
+  public GitRevision resolve(@Nullable String reference)
       throws RepoException, ValidationException {
     console.progress("Git Origin: Initializing local repo");
     repository.initGitDir();
@@ -259,8 +259,8 @@ public final class GitOrigin implements Origin<GitReference> {
     return repoType.resolveRef(repository, repoUrl, ref, console);
   }
 
-  private ImmutableList<Change<GitReference>> asChanges(ImmutableList<GitChange> gitChanges) {
-    ImmutableList.Builder<Change<GitReference>> result = ImmutableList.builder();
+  private ImmutableList<Change<GitRevision>> asChanges(ImmutableList<GitChange> gitChanges) {
+    ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
     for (GitChange gitChange : gitChanges) {
       result.add(gitChange.getChange());
     }

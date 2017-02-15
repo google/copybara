@@ -20,12 +20,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.CannotResolveReferenceException;
-import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.Authoring;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -44,7 +44,7 @@ import javax.annotation.Nullable;
  * An origin for testing with very basic features. It allows specifying the timestamp of references
  * and populates the workdir with a single file.
  */
-public class DummyOrigin implements Origin<DummyReference> {
+public class DummyOrigin implements Origin<DummyRevision> {
 
   private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
@@ -58,7 +58,7 @@ public class DummyOrigin implements Origin<DummyReference> {
 
   public static final String LABEL_NAME = "DummyOrigin-RevId";
 
-  public final List<DummyReference> changes = new ArrayList<>();
+  public final List<DummyRevision> changes = new ArrayList<>();
 
   /**
    * Sets the author to use for the following changes that get added.
@@ -87,7 +87,7 @@ public class DummyOrigin implements Origin<DummyReference> {
   }
 
   public DummyOrigin addChange(int timestamp, Path path, String message) {
-    changes.add(new DummyReference(
+    changes.add(new DummyRevision(
         "" + changes.size(), message, author, path, Instant.ofEpochSecond(timestamp)));
     return this;
   }
@@ -100,8 +100,8 @@ public class DummyOrigin implements Origin<DummyReference> {
   }
 
   @Override
-  public DummyReference resolve(@Nullable final String reference)
-      throws RepoException, CannotResolveReferenceException {
+  public DummyRevision resolve(@Nullable final String reference)
+      throws RepoException, CannotResolveRevisionException {
     int idx = changes.size() - 1;
     if (reference != null) {
       try {
@@ -111,13 +111,13 @@ public class DummyOrigin implements Origin<DummyReference> {
       }
     }
     if (idx >= changes.size()) {
-      throw new CannotResolveReferenceException("Cannot find any change for " + reference
+      throw new CannotResolveRevisionException("Cannot find any change for " + reference
           + ". Only " + changes.size() + " changes exist");
     }
     return changes.get(idx);
   }
 
-  private class ReaderImpl implements Reader<DummyReference> {
+  private class ReaderImpl implements Reader<DummyRevision> {
 
     final Authoring authoring;
 
@@ -126,7 +126,7 @@ public class DummyOrigin implements Origin<DummyReference> {
     }
 
     @Override
-    public void checkout(final DummyReference ref, final Path workdir) throws RepoException {
+    public void checkout(final DummyRevision ref, final Path workdir) throws RepoException {
       try {
         Files.walkFileTree(ref.changesBase, new SimpleFileVisitor<Path>() {
             @Override
@@ -144,14 +144,14 @@ public class DummyOrigin implements Origin<DummyReference> {
     }
 
     @Override
-    public ImmutableList<Change<DummyReference>> changes(
-        DummyReference oldRef, @Nullable DummyReference newRef) throws RepoException {
+    public ImmutableList<Change<DummyRevision>> changes(
+        DummyRevision oldRef, @Nullable DummyRevision newRef) throws RepoException {
 
       int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
 
-      ImmutableList.Builder<Change<DummyReference>> result = ImmutableList.builder();
+      ImmutableList.Builder<Change<DummyRevision>> result = ImmutableList.builder();
       while (current < changes.size()) {
-        DummyReference ref = changes.get(current);
+        DummyRevision ref = changes.get(current);
         result.add(ref.toChange(authoring));
         if (newRef == ref) {
           break;
@@ -162,9 +162,9 @@ public class DummyOrigin implements Origin<DummyReference> {
     }
 
     @Override
-    public Change<DummyReference> change(DummyReference ref) throws RepoException {
+    public Change<DummyRevision> change(DummyRevision ref) throws RepoException {
       int idx = Integer.parseInt(ref.asString());
-      DummyReference dummyRef;
+      DummyRevision dummyRef;
       try {
         dummyRef = changes.get(idx);
       } catch (IndexOutOfBoundsException e) {
@@ -174,10 +174,10 @@ public class DummyOrigin implements Origin<DummyReference> {
     }
 
     @Override
-    public void visitChanges(DummyReference start, ChangesVisitor visitor)
+    public void visitChanges(DummyRevision start, ChangesVisitor visitor)
         throws RepoException {
       boolean found = false;
-      for (DummyReference change : Lists.reverse(changes)) {
+      for (DummyRevision change : Lists.reverse(changes)) {
         if (change.equals(start)) {
           found = true;
         }
@@ -195,7 +195,7 @@ public class DummyOrigin implements Origin<DummyReference> {
   }
 
   @Override
-  public Reader<DummyReference> newReader(Glob originFiles, Authoring authoring) {
+  public Reader<DummyRevision> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(authoring);
   }
 

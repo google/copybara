@@ -28,19 +28,17 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
  * Represents a particular migration operation that can occur for a project. Each project can have
  * multiple workflows. Each workflow has a particular origin and destination.
- * @param <O> Origin reference type.
- * @param <D> Destination reference type.
+ * @param <O> Origin revision type.
+ * @param <D> Destination revision type.
  */
-public class Workflow<O extends Reference, D extends Reference> implements Migration {
+public class Workflow<O extends Revision, D extends Revision> implements Migration {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 

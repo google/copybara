@@ -44,7 +44,7 @@ public enum WorkflowMode {
   @DocField(description = "Create a single commit in the destination with new tree state.")
   SQUASH {
     @Override
-    <O extends Reference, D extends Reference> void run(WorkflowRunHelper<O, D> runHelper)
+    <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
 
       Changes changes = new LazyChangesForSquash<>(runHelper);
@@ -54,7 +54,7 @@ public enum WorkflowMode {
         String lastRev;
         try {
           lastRev = runHelper.getLastRev().asString();
-        } catch (CannotResolveReferenceException e) {
+        } catch (CannotResolveRevisionException e) {
           throw new ValidationException(
               "Cannot find last imported revision. Use "
                   + GeneralOptions.FORCE + " if you really want to import '"
@@ -69,7 +69,7 @@ public enum WorkflowMode {
           ImmutableList<Change<O>> computed = runHelper.changesSinceLastImport();
           if (computed.isEmpty()) {
             throw new ValidationException(
-                "Last imported revision '" + lastRev + "' is not an ancestor of the reference "
+                "Last imported revision '" + lastRev + "' is not an ancestor of the revision "
                     + "currently being migrated ('" + current.asString() + "'). Use "
                     + GeneralOptions.FORCE + " if you really want to migrate the reference.");
           }
@@ -107,7 +107,7 @@ public enum WorkflowMode {
   @DocField(description = "Import each origin change individually.")
   ITERATIVE {
     @Override
-    <O extends Reference, D extends Reference> void run(WorkflowRunHelper<O, D> runHelper)
+    <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
       ImmutableList<Change<O>> changes = runHelper.changesSinceLastImport();
       if (changes.isEmpty()) {
@@ -128,7 +128,7 @@ public enum WorkflowMode {
         Change<O> change = changesIterator.next();
         String prefix = String.format(
             "Change %d of %d (%s): ",
-            changeNumber, Math.min(changes.size(), limit), change.getReference().asString());
+            changeNumber, Math.min(changes.size(), limit), change.getRevision().asString());
         WriterResult result;
         try {
           ComputedChanges computedChanges = new ComputedChanges(ImmutableList.of(change), migrated);
@@ -136,7 +136,7 @@ public enum WorkflowMode {
               runHelper
                   .forChanges(computedChanges)
                   .migrate(
-                      change.getReference(),
+                      change.getRevision(),
                       new ProgressPrefixConsole(prefix, runHelper.getConsole()),
                       new Metadata(change.getMessage(), change.getAuthor()),
                       computedChanges);
@@ -172,7 +172,7 @@ public enum WorkflowMode {
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
     @Override
-    <O extends Reference, D extends Reference> void run(WorkflowRunHelper<O, D> runHelper)
+    <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
@@ -209,7 +209,7 @@ public enum WorkflowMode {
 
   private static final Logger logger = Logger.getLogger(WorkflowMode.class.getName());
 
-  abstract <O extends Reference, D extends Reference> void run(
+  abstract <O extends Revision, D extends Revision> void run(
       WorkflowRunHelper<O, D> runHelper) throws RepoException, IOException, ValidationException;
 
   /**
@@ -217,7 +217,7 @@ public enum WorkflowMode {
    * a transformer request it.
    */
   @SkylarkModule(name = "LazyChanges", doc = "Lazy changes implementation", documented = false)
-  private static class LazyChangesForSquash<R extends Reference, S extends Reference>
+  private static class LazyChangesForSquash<R extends Revision, S extends Revision>
       extends Changes {
 
     private final WorkflowRunHelper<R, S> runHelper;
@@ -236,7 +236,7 @@ public enum WorkflowMode {
           // first.
           cached = SkylarkList.createImmutable(runHelper.changesSinceLastImport().reverse());
         } catch (ValidationException | RepoException e) {
-          logger.log(Level.WARNING, "Previous reference couldn't be resolved."
+          logger.log(Level.WARNING, "Previous revision couldn't be resolved."
               + " Cannot compute the set of changes in the migration");
           cached = SkylarkList.createImmutable(ImmutableList.<Change<?>>of());
         }

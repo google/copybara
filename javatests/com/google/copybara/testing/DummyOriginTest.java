@@ -20,13 +20,13 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.CannotResolveReferenceException;
-import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.Authoring;
-import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.util.Glob;
 import java.time.Instant;
 import org.junit.Rule;
@@ -63,8 +63,8 @@ public class DummyOriginTest {
 
     Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
         AuthoringMappingMode.OVERWRITE, ImmutableSet.<String>of());
-    Reader<DummyReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
-    ImmutableList<Change<DummyReference>> changes =
+    Reader<DummyRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    ImmutableList<Change<DummyRevision>> changes =
         reader.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0"));
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getMessage()).isEqualTo("foo msg");
@@ -85,7 +85,7 @@ public class DummyOriginTest {
         .addSimpleChange(/*timestamp*/ 9)
         .addSimpleChange(/*timestamp*/ 98);
 
-    thrown.expect(CannotResolveReferenceException.class);
+    thrown.expect(CannotResolveRevisionException.class);
     thrown.expectMessage("Cannot find any change for 42. Only 2 changes exist");
     origin.resolve("42");
   }
@@ -100,7 +100,7 @@ public class DummyOriginTest {
 
     Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
         AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
-    ImmutableList<Change<DummyReference>> changes = origin.newReader(Glob.ALL_FILES, authoring)
+    ImmutableList<Change<DummyRevision>> changes = origin.newReader(Glob.ALL_FILES, authoring)
         .changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"));
 
     assertThat(changes).hasSize(2);

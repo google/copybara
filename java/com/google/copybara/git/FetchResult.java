@@ -29,13 +29,13 @@ import java.util.stream.Collectors;
  */
 public class FetchResult {
 
-  private final ImmutableMap<String, GitReference> deleted;
-  private final ImmutableMap<String, GitReference> inserted;
+  private final ImmutableMap<String, GitRevision> deleted;
+  private final ImmutableMap<String, GitRevision> inserted;
   private final ImmutableMap<String, RefUpdate> updated;
 
-  FetchResult(ImmutableMap<String, GitReference> before,
-      ImmutableMap<String, GitReference> after) {
-    MapDifference<String, GitReference> diff = Maps.difference(before, after);
+  FetchResult(ImmutableMap<String, GitRevision> before,
+      ImmutableMap<String, GitRevision> after) {
+    MapDifference<String, GitRevision> diff = Maps.difference(before, after);
     deleted = ImmutableMap.copyOf(diff.entriesOnlyOnLeft());
     inserted = ImmutableMap.copyOf(diff.entriesOnlyOnRight());
     updated = ImmutableMap.copyOf(diff.entriesDiffering().entrySet().stream()
@@ -53,11 +53,11 @@ public class FetchResult {
         .toString();
   }
 
-  public ImmutableMap<String, GitReference> getDeleted() {
+  public ImmutableMap<String, GitRevision> getDeleted() {
     return deleted;
   }
 
-  public ImmutableMap<String, GitReference> getInserted() {
+  public ImmutableMap<String, GitRevision> getInserted() {
     return inserted;
   }
 
@@ -70,19 +70,19 @@ public class FetchResult {
    */
   public static final class RefUpdate {
 
-    private final GitReference before;
-    private final GitReference after;
+    private final GitRevision before;
+    private final GitRevision after;
 
-    RefUpdate(GitReference before, GitReference after) {
+    RefUpdate(GitRevision before, GitRevision after) {
       this.before = before;
       this.after = after;
     }
 
-    public GitReference getBefore() {
+    public GitRevision getBefore() {
       return before;
     }
 
-    public GitReference getAfter() {
+    public GitRevision getAfter() {
       return after;
     }
 

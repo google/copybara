@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 /**
  * Runs a single migration step for a {@link Workflow}, using its configuration.
  */
-public class WorkflowRunHelper<O extends Reference, D extends Reference> {
+public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   private final Workflow<O, D> workflow;
   private final Path workdir;
@@ -48,7 +48,7 @@ public class WorkflowRunHelper<O extends Reference, D extends Reference> {
 
   /**
    * @param workdir working directory to use for the transformations
-   * @param resolvedRef reference to migrate
+   * @param resolvedRef revision to migrate
    */
   public WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef)
       throws ValidationException, IOException, RepoException {
@@ -120,16 +120,16 @@ public class WorkflowRunHelper<O extends Reference, D extends Reference> {
    * files, transforming the code, and writing to the destination. This writes to the destination
    * exactly once.
    *
-   * @param ref reference to the version which will be written to the destination
+   * @param rev revision to the version which will be written to the destination
    * @param processConsole console to use to print progress messages
    * @param metadata metadata of the change to be migrated
    * @param changes changes included in this migration
    * @return The result of this migration
    */
-  WriterResult migrate(O ref, Console processConsole, Metadata metadata,
+  WriterResult migrate(O rev, Console processConsole, Metadata metadata,
       Changes changes)
       throws IOException, RepoException, ValidationException {
-    return migrate(ref, processConsole, metadata, changes, /*destinationBaseline=*/ null);
+    return migrate(rev, processConsole, metadata, changes, /*destinationBaseline=*/ null);
   }
 
   WriterResult migrate(O ref, Console processConsole,
@@ -211,14 +211,14 @@ public class WorkflowRunHelper<O extends Reference, D extends Reference> {
   }
 
   /**
-   * Get last imported reference or fail if it cannot be found.
+   * Get last imported revision or fail if it cannot be found.
    *
    * @throws RepoException if a last revision couldn't be found
    */
   O getLastRev() throws RepoException, ValidationException {
     O lastRev = maybeGetLastRev();
     if (lastRev == null) {
-      throw new CannotResolveReferenceException(String.format(
+      throw new CannotResolveRevisionException(String.format(
           "Previous revision label %s could not be found in %s and --last-rev flag"
               + " was not passed", workflow.getOrigin().getLabelName(), workflow.getDestination()));
     }
@@ -230,7 +230,7 @@ public class WorkflowRunHelper<O extends Reference, D extends Reference> {
    * {@code null} if it cannot be determined.
    *
    * <p>If {@code --last-rev} is specified, that revision will be used. Otherwise, the previous
-   * reference will be resolved in the destination with the origin label.
+   * revision will be resolved in the destination with the origin label.
    */
   @Nullable
   O maybeGetLastRev() throws RepoException, ValidationException {
@@ -238,7 +238,7 @@ public class WorkflowRunHelper<O extends Reference, D extends Reference> {
       try {
         return workflow.getOrigin().resolve(workflow.getLastRevisionFlag());
       } catch (RepoException e) {
-        throw new CannotResolveReferenceException(
+        throw new CannotResolveRevisionException(
             "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
                 + workflow.getLastRevisionFlag(),
             e);

@@ -16,7 +16,7 @@
 
 package com.google.copybara.git;
 
-import com.google.copybara.CannotResolveReferenceException;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.util.console.Console;
@@ -47,8 +47,8 @@ public enum GitRepoType {
      * </ul>
      */
     @Override
-    GitReference resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
-        throws RepoException, CannotResolveReferenceException {
+    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
+        throws RepoException, CannotResolveRevisionException {
       logger.log(Level.INFO, "Resolving " + repoUrl + " reference: " + ref);
       if (!GIT_URL.matcher(ref).matches() && !FILE_URL.matcher(ref).matches()) {
         // If ref is not an url try a normal fetch of repoUrl and ref
@@ -58,7 +58,7 @@ public enum GitRepoType {
       console.warn(msg);
       logger.warning(msg + ". Config value was: " + repoUrl);
       console.progress("Fetching HEAD for " + ref);
-      GitReference ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
+      GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
       if (ghPullRequest != null) {
         return ghPullRequest;
       }
@@ -79,10 +79,10 @@ public enum GitRepoType {
      * it to a valid git fetch of the equivalent ref.
      */
     @Override
-    GitReference resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
-        throws RepoException, CannotResolveReferenceException {
+    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
+        throws RepoException, CannotResolveRevisionException {
       if (ref.startsWith("https://github.com") && ref.startsWith(repoUrl)) {
-        GitReference ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
+        GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
         if (ghPullRequest != null) {
           return ghPullRequest;
         }
@@ -93,8 +93,8 @@ public enum GitRepoType {
   @DocField(description = "A Gerrit code review repository")
   GERRIT {
     @Override
-    GitReference resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
-        throws RepoException, CannotResolveReferenceException {
+    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
+        throws RepoException, CannotResolveRevisionException {
       // TODO(copybara-team): if ref is gerrit url, resolve it properly
       return GIT.resolveRef(repository, repoUrl, ref, console);
     }
@@ -105,8 +105,8 @@ public enum GitRepoType {
    * reference. Otherwise return null.
    */
   @Nullable
-  static protected GitReference maybeFetchGithubPullRequest(GitRepository repository, String ref)
-      throws RepoException, CannotResolveReferenceException {
+  static protected GitRevision maybeFetchGithubPullRequest(GitRepository repository, String ref)
+      throws RepoException, CannotResolveRevisionException {
     Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
     if (matcher.matches()) {
       return repository.fetchSingleRef(matcher.group(1), "refs" + matcher.group(2) + "/head");
@@ -124,6 +124,6 @@ public enum GitRepoType {
 
   private static final Pattern FILE_URL = Pattern.compile("file://(.*)");
 
-  abstract GitReference resolveRef(GitRepository repository, String repoUrl, String ref,
-      Console console) throws RepoException, CannotResolveReferenceException;
+  abstract GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
+      Console console) throws RepoException, CannotResolveRevisionException;
 }

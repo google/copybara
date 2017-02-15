@@ -19,13 +19,13 @@ package com.google.copybara.testing;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
-import com.google.copybara.authoring.Author;
 import com.google.copybara.Destination;
 import com.google.copybara.EmptyChangeException;
-import com.google.copybara.Reference;
+import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
+import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -136,7 +136,7 @@ public class RecordsProcessCallDestination implements Destination {
       return transformResult.getTimestamp();
     }
 
-    public Reference getOriginRef() {
+    public Revision getOriginRef() {
       return transformResult.getOriginRef();
     }
 

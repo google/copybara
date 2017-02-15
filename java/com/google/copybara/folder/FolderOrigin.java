@@ -44,7 +44,7 @@ import javax.annotation.Nullable;
 /**
  * Use a folder as the input for the migration.
  */
-public class FolderOrigin implements Origin<FolderReference> {
+public class FolderOrigin implements Origin<FolderRevision> {
 
   private static final String LABEL_NAME = "FolderOrigin-RevId";
   private static final Set<PosixFilePermission> FILE_PERMISSIONS =
@@ -68,7 +68,7 @@ public class FolderOrigin implements Origin<FolderReference> {
   }
 
   @Override
-  public FolderReference resolve(@Nullable String reference) throws ValidationException {
+  public FolderRevision resolve(@Nullable String reference) throws ValidationException {
     if (reference == null) {
       throw new ValidationException(""
           + "A path is expected as reference in the command line. Invoke copybara as:\n"
@@ -86,15 +86,15 @@ public class FolderOrigin implements Origin<FolderReference> {
       throw new ValidationException(path + " is not readable/executable");
     }
 
-    return new FolderReference(path, Instant.now(), LABEL_NAME);
+    return new FolderRevision(path, Instant.now(), LABEL_NAME);
   }
 
   @Override
-  public Reader<FolderReference> newReader(Glob originFiles, Authoring authoring)
+  public Reader<FolderRevision> newReader(Glob originFiles, Authoring authoring)
       throws ValidationException {
-    return new Reader<FolderReference>() {
+    return new Reader<FolderRevision>() {
       @Override
-      public void checkout(FolderReference ref, Path workdir)
+      public void checkout(FolderRevision ref, Path workdir)
           throws RepoException, ValidationException {
         try {
           FileUtil.copyFilesRecursively(ref.path, workdir, copySymlinkStrategy, originFiles);
@@ -113,8 +113,8 @@ public class FolderOrigin implements Origin<FolderReference> {
       }
 
       @Override
-      public ImmutableList<Change<FolderReference>> changes(@Nullable FolderReference fromRef,
-          FolderReference toRef) throws RepoException {
+      public ImmutableList<Change<FolderRevision>> changes(@Nullable FolderRevision fromRef,
+          FolderRevision toRef) throws RepoException {
         // Ignore fromRef since a folder doesn't have history of changes
         return ImmutableList.of(change(toRef));
       }
@@ -125,14 +125,14 @@ public class FolderOrigin implements Origin<FolderReference> {
       }
 
       @Override
-      public Change<FolderReference> change(FolderReference ref) throws RepoException {
+      public Change<FolderRevision> change(FolderRevision ref) throws RepoException {
         ZonedDateTime time = ZonedDateTime.ofInstant(
             Preconditions.checkNotNull(ref.readTimestamp()), ZoneId.systemDefault());
         return new Change<>(ref, author, message, time, ImmutableMap.of());
       }
 
       @Override
-      public void visitChanges(FolderReference start, ChangesVisitor visitor)
+      public void visitChanges(FolderRevision start, ChangesVisitor visitor)
           throws RepoException {
         visitor.visit(change(start));
       }

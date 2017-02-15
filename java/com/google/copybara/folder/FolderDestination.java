@@ -20,8 +20,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.util.FileUtil;
@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
  * Writes the output tree to a local destination. Any file that is not excluded in the configuration
  * gets deleted before writing the new files.
  */
-public class FolderDestination implements Destination<Reference> {
+public class FolderDestination implements Destination<Revision> {
 
   private static final String FOLDER_DESTINATION_NAME = "folder.destination";
   private final GeneralOptions generalOptions;

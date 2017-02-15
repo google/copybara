@@ -24,7 +24,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
-import com.google.copybara.testing.DummyReference;
+import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
@@ -71,7 +71,7 @@ public class FolderDestinationTest {
         .write(
             TransformResults.of(
                 workdir,
-                new DummyReference("origin_ref")),
+                new DummyRevision("origin_ref")),
             options.general.console());
   }
 

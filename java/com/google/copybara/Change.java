@@ -33,17 +33,17 @@ import java.util.Objects;
 @SkylarkModule(name = "change",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "A change metadata. Contains information like author, change message or detected labels")
-public final class Change<R extends Reference> {
+public final class Change<R extends Revision> {
 
-  private final R reference;
+  private final R revision;
   private final Author author;
   private final String message;
   private final ZonedDateTime dateTime;
   private final ImmutableMap<String, String> labels;
 
-  public Change(R reference, Author author, String message, ZonedDateTime dateTime,
+  public Change(R revision, Author author, String message, ZonedDateTime dateTime,
       ImmutableMap<String, String> labels) {
-    this.reference = Preconditions.checkNotNull(reference);
+    this.revision = Preconditions.checkNotNull(revision);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
     this.dateTime = dateTime;
@@ -53,13 +53,13 @@ public final class Change<R extends Reference> {
   /**
    * Reference of the change. For example a SHA-1 reference in git.
    */
-  public R getReference() {
-    return reference;
+  public R getRevision() {
+    return revision;
   }
 
   @SkylarkCallable(name = "ref", doc = "A string identifier of the change.", structField = true)
   public String refAsString() {
-    return reference.asString();
+    return revision.asString();
   }
 
   @SkylarkCallable(name = "author", doc = "The author of the change", structField = true)
@@ -100,7 +100,7 @@ public final class Change<R extends Reference> {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("reference", reference.asString())
+        .add("revision", revision.asString())
         .add("author", author)
         .add("dateTime", dateTime)
         .add("message", message)
@@ -116,7 +116,7 @@ public final class Change<R extends Reference> {
       return false;
     }
     Change<?> change = (Change<?>) o;
-    return Objects.equals(reference, change.reference) &&
+    return Objects.equals(revision, change.revision) &&
         Objects.equals(author, change.author) &&
         Objects.equals(message, change.message) &&
         Objects.equals(dateTime, change.dateTime) &&
@@ -125,6 +125,6 @@ public final class Change<R extends Reference> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(reference, author, message, dateTime, labels);
+    return Objects.hash(revision, author, message, dateTime, labels);
   }
 }

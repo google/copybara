@@ -20,22 +20,22 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 
 /**
- * A reference of {@link Origin}.
+ * A revision of {@link Origin}.
  *
- * <p>For example, in Git it would be a reference to a commit SHA-1.
+ * <p>For example, in Git it would be a commit SHA-1.
  */
-public interface Reference {
+public interface Revision {
 
   /**
-   * Reads the timestamp of this reference from the repository, or {@code null} if this repo type
-   * does not support it. This is the {@link Instant} from the UNIX epoch when the reference was
+   * Reads the timestamp of this revision from the repository, or {@code null} if this repo type
+   * does not support it. This is the {@link Instant} from the UNIX epoch when the revision was
    * submitted to the source repository.
    */
   @Nullable
   Instant readTimestamp() throws RepoException;
 
   /**
-   * String representation of the reference that can be parsed by {@link Origin#resolve(String)}.
+   * String representation of the revision that can be parsed by {@link Origin#resolve(String)}.
    *
    * <p> Unlike {@link #toString()} method, this method is guaranteed to be stable.
    */
@@ -43,7 +43,7 @@ public interface Reference {
 
   /**
    * Label name to be used in when creating a commit message in the destination to refer to a
-   * reference. For example "Git-RevId".
+   * revision. For example "Git-RevId".
    */
   String getLabelName();
 }

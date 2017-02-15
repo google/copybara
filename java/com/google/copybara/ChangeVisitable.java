@@ -20,17 +20,17 @@ package com.google.copybara;
  * An interface stating that the implementing class accepts child visitors to explore repository
  * state beyond the changes being migrated.
  */
-public interface ChangeVisitable <R extends Reference> {
+public interface ChangeVisitable <R extends Revision> {
 
   /**
-   * Visit the parents of the {@code start} reference and call the visitor for each
+   * Visit the parents of the {@code start} revision and call the visitor for each
    * change. The visitor can stop the stream of changes at any moment by returning {@see
    * VisitResult#TERMINATE}.
    *
    * <p>It is up to the Origin how and what changes it provides to the function.
    */
   void visitChanges(R start, ChangesVisitor visitor)
-      throws RepoException, CannotResolveReferenceException;
+      throws RepoException, CannotResolveRevisionException;
 
   /**
    * A visitor of changes. An implementation of this interface is provided to {@see
@@ -43,7 +43,7 @@ public interface ChangeVisitable <R extends Reference> {
      * Invoked for each change found. The implementation can chose to cancel the visitation by
      * returning {@link VisitResult#TERMINATE}.
      */
-    VisitResult visit(Change<? extends Reference> input);
+    VisitResult visit(Change<? extends Revision> input);
   }
 
   /**

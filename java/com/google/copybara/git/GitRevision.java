@@ -17,8 +17,8 @@
 package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 /**
  * A Git repository reference
  */
-public final class GitReference implements Reference {
+public final class GitRevision implements Revision {
 
   static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
 
@@ -39,7 +39,7 @@ public final class GitReference implements Reference {
    * @param repository git repository that should contain the {@code reference}
    * @param reference a 40 characters SHA-1
    */
-  GitReference(GitRepository repository, String reference) {
+  GitRevision(GitRepository repository, String reference) {
     Preconditions.checkArgument(COMPLETE_SHA1_PATTERN.matcher(reference).matches(),
         "Reference '%s' is not a 40 characters SHA-1", reference);
 
@@ -83,7 +83,7 @@ public final class GitReference implements Reference {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    GitReference that = (GitReference) o;
+    GitRevision that = (GitRevision) o;
     return Objects.equals(reference, that.reference);
   }
 

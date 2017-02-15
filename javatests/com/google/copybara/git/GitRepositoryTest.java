@@ -65,7 +65,7 @@ public class GitRepositoryTest {
   public void testShowRef() throws RepoException, IOException {
     GitRepository repo = repository.withWorkTree(workdir);
     repo.initGitDir();
-    ImmutableMap<String, GitReference> before = repo.showRef();
+    ImmutableMap<String, GitRevision> before = repo.showRef();
 
     assertThat(before).isEmpty();
 
@@ -73,7 +73,7 @@ public class GitRepositoryTest {
     repository.add().files("foo.txt").run();
     repo.simpleCommand("commit", "foo.txt", "-m", "message");
     repo.simpleCommand("branch", "bar");
-    ImmutableMap<String, GitReference> after = repo.showRef();
+    ImmutableMap<String, GitRevision> after = repo.showRef();
 
     assertThat(after.keySet()).containsExactly("refs/heads/master", "refs/heads/bar");
 

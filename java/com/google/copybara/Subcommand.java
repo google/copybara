@@ -29,7 +29,7 @@ public enum Subcommand {
    */
   VALIDATE,
   /**
-   * Reads the last migrated reference in the origin and destination.
+   * Reads the last migrated revision in the origin and destination.
    */
   INFO
 }

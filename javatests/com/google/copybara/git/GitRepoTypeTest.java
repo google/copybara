@@ -19,7 +19,6 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Strings;
-import com.google.copybara.CannotResolveReferenceException;
 import com.google.copybara.RepoException;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -51,9 +50,9 @@ public class GitRepoTypeTest {
     // We mock by default to avoid accidental network calls.
     testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, System.getenv()) {
       @Override
-      public GitReference fetchSingleRef(String url, String ref) throws RepoException {
+      public GitRevision fetchSingleRef(String url, String ref) throws RepoException {
         interceptedFetches.add(new String[]{url, ref});
-        return new GitReference(this, Strings.repeat("0", 40));
+        return new GitRevision(this, Strings.repeat("0", 40));
       }
     };
 

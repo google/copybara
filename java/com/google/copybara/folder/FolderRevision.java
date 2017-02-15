@@ -17,8 +17,8 @@
 package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.annotation.Nullable;
@@ -26,13 +26,13 @@ import javax.annotation.Nullable;
 /**
  * A reference for folder origins.
  */
-public class FolderReference implements Reference {
+public class FolderRevision implements Revision {
 
   final Path path;
   private final Instant timestamp;
   private final String labelName;
 
-  FolderReference(Path path, Instant timestamp, String labelName) {
+  FolderRevision(Path path, Instant timestamp, String labelName) {
     Preconditions.checkState(path.isAbsolute());
     this.path = path;
     this.timestamp = timestamp;

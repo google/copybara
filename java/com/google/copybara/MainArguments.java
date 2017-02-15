@@ -23,7 +23,6 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.GeneralOptions;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
@@ -51,7 +50,7 @@ public final class MainArguments {
           + "Copybara. Available subcommands:\n"
           + "  - migrate: Executes the migration for the given config.\n"
           + "  - validate: Validates that the configuration is correct.\n"
-          + "  - info: Reads the last migrated reference in the origin and destination.\n")
+          + "  - info: Reads the last migrated revision in the origin and destination.\n")
           + "\n"
           + "config_path: Required. Relative or absolute path to the main Copybara config file.\n"
           + "\n"

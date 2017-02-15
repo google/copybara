@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
   doc = "A repository which a source of truth can be copied to",
   category = SkylarkModuleCategory.TOP_LEVEL_TYPE
 )
-public interface Destination<R extends Reference> extends ConfigItemDescription {
+public interface Destination<R extends Revision> extends ConfigItemDescription {
 
   /**
    * The result of invoking {@link Writer#write(TransformResult, Console)}.
@@ -52,7 +52,7 @@ public interface Destination<R extends Reference> extends ConfigItemDescription 
    * An object which is capable of introspecting the destination repository. This can also enumerate
    * changes in the history.
    **/
-  interface Reader<R extends Reference> extends ChangeVisitable<R> { }
+  interface Reader<R extends Revision> extends ChangeVisitable<R> { }
 
   /**
    * Creates a new reader of this destination.
@@ -91,7 +91,7 @@ public interface Destination<R extends Reference> extends ConfigItemDescription 
     String getPreviousRef(String labelName) throws RepoException;
 
     /**
-     * Returns true if this destination stores references in the repository so that
+     * Returns true if this destination stores revisions in the repository so that
      * {@code getPreviousRef} can be used for discovering previous imported revisions.
      */
     default boolean supportsPreviousRef() {

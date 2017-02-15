@@ -17,14 +17,14 @@
 package com.google.copybara;
 
 /**
- * Indicates that a reference could not be resolved in a repository.
+ * Indicates that a revision could not be resolved in a repository.
  */
-public class CannotResolveReferenceException extends ValidationException {
-  public CannotResolveReferenceException(String message) {
+public class CannotResolveRevisionException extends ValidationException {
+  public CannotResolveRevisionException(String message) {
     super(message);
   }
 
-  public CannotResolveReferenceException(String message, Throwable cause) {
+  public CannotResolveRevisionException(String message, Throwable cause) {
     super(message, cause);
   }
 }

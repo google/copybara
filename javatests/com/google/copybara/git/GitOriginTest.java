@@ -25,7 +25,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.copybara.CannotResolveReferenceException;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Origin.Reader;
@@ -39,7 +39,6 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -114,7 +113,7 @@ public class GitOriginTest {
     repo = GitRepository.initScratchRepo(/*verbose*/true, remote, options.general.getEnvironment());
   }
 
-  private Reader<GitReference> newReader() {
+  private Reader<GitRevision> newReader() {
     return origin.newReader(originFiles, authoring);
   }
 
@@ -238,13 +237,13 @@ public class GitOriginTest {
 
   @Test
   public void testResolveNonExistentFullSha1() throws Exception {
-    thrown.expect(CannotResolveReferenceException.class);
+    thrown.expect(CannotResolveRevisionException.class);
     origin.resolve(Strings.repeat("a", 40));
   }
 
   @Test
   public void testResolveNonExistentRef() throws Exception {
-    thrown.expect(CannotResolveReferenceException.class);
+    thrown.expect(CannotResolveRevisionException.class);
     origin.resolve("refs/for/copy/bara");
   }
 
@@ -274,7 +273,7 @@ public class GitOriginTest {
 
     options.git.originCheckoutHook = hook.toAbsolutePath().toString();
     origin = origin();
-    Reader<GitReference> reader = newReader();
+    Reader<GitRevision> reader = newReader();
     thrown.expect(RepoException.class);
     thrown.expectMessage("Error executing the git checkout hook");
     reader.checkout(origin.resolve("master"), checkoutDir);
@@ -283,8 +282,8 @@ public class GitOriginTest {
   @Test
   public void testCheckoutWithLocalModifications()
       throws Exception, ValidationException {
-    GitReference master = origin.resolve("master");
-    Reader<GitReference> reader = newReader();
+    GitRevision master = origin.resolve("master");
+    Reader<GitRevision> reader = newReader();
     reader.checkout(master, checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
@@ -301,7 +300,7 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutOfARef() throws Exception, ValidationException {
-    GitReference reference = origin.resolve(firstCommitRef);
+    GitRevision reference = origin.resolve(firstCommitRef);
     newReader().checkout(reference, checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
@@ -317,14 +316,14 @@ public class GitOriginTest {
     singleFileCommit(author, "change3", "test.txt", "some content3");
     singleFileCommit(author, "change4", "test.txt", "some content4");
 
-    ImmutableList<Change<GitReference>> changes = newReader()
+    ImmutableList<Change<GitRevision>> changes = newReader()
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("change2\n");
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
-    for (Change<GitReference> change : changes) {
+    for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
       assertThat(change.getDateTime()).isAtLeast(beforeTime);
       assertThat(change.getDateTime()).isAtMost(ZonedDateTime.now().plusSeconds(1));
@@ -333,7 +332,7 @@ public class GitOriginTest {
 
   @Test
   public void testNoChanges() throws Exception {
-    ImmutableList<Change<GitReference>> changes = newReader()
+    ImmutableList<Change<GitRevision>> changes = newReader()
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
     assertThat(changes).isEmpty();
@@ -344,12 +343,12 @@ public class GitOriginTest {
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "change2", "test.txt", "some content2");
 
-    GitReference lastCommitRef = getLastCommitRef();
-    Change<GitReference> change = newReader().change(lastCommitRef);
+    GitRevision lastCommitRef = getLastCommitRef();
+    Change<GitRevision> change = newReader().change(lastCommitRef);
 
     assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
     assertThat(change.firstLineMessage()).isEqualTo("change2");
-    assertThat(change.getReference().asString()).isEqualTo(lastCommitRef.asString());
+    assertThat(change.getRevision().asString()).isEqualTo(lastCommitRef.asString());
   }
 
   @Test
@@ -362,7 +361,7 @@ public class GitOriginTest {
         + "foo: baz\n";
     singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
 
-    Change<GitReference> change = newReader().change(getLastCommitRef());
+    Change<GitRevision> change = newReader().change(getLastCommitRef());
     // We keep the last label. The probability that the last one is a label and the first one
     // is just description is very high.
     assertThat(change.getLabels()).containsEntry("foo", "baz");
@@ -377,7 +376,7 @@ public class GitOriginTest {
     // This is needed to initialize the local repo
     origin.resolve(firstCommitRef);
 
-    thrown.expect(CannotResolveReferenceException.class);
+    thrown.expect(CannotResolveRevisionException.class);
     thrown.expectMessage("Cannot find references: [foo]");
 
     origin.resolve("foo");
@@ -389,7 +388,7 @@ public class GitOriginTest {
     singleFileCommit(author, "one", "test.txt", "some content1");
     singleFileCommit(author, "two", "test.txt", "some content2");
     singleFileCommit(author, "three", "test.txt", "some content3");
-    GitReference lastCommitRef = getLastCommitRef();
+    GitRevision lastCommitRef = getLastCommitRef();
     final List<Change<?>> visited = new ArrayList<>();
     newReader().visitChanges(lastCommitRef,
         input -> {
@@ -408,7 +407,7 @@ public class GitOriginTest {
   @Test
   public void testVisitMerge() throws Exception {
     createBranchMerge("John Name <john@name.com>");
-    GitReference lastCommitRef = getLastCommitRef();
+    GitRevision lastCommitRef = getLastCommitRef();
     final List<Change<?>> visited = new ArrayList<>();
     newReader().visitChanges(lastCommitRef,
         input -> {
@@ -441,10 +440,10 @@ public class GitOriginTest {
     origin = origin();
 
     String newUrl = "file://" + remote.toFile().getAbsolutePath();
-    Reader<GitReference> reader = newReader();
-    Change<GitReference> cliHead = reader.change(origin.resolve(newUrl));
+    Reader<GitRevision> reader = newReader();
+    Change<GitRevision> cliHead = reader.change(origin.resolve(newUrl));
 
-    reader.checkout(cliHead.getReference(), checkoutDir);
+    reader.checkout(cliHead.getRevision(), checkoutDir);
 
     assertThat(cliHead.firstLineMessage()).isEqualTo("a change from somewhere");
 
@@ -465,14 +464,14 @@ public class GitOriginTest {
     String author = "John Name <john@name.com>";
     createBranchMerge(author);
 
-    ImmutableList<Change<GitReference>> changes = newReader()
+    ImmutableList<Change<GitRevision>> changes = newReader()
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
     assertThat(changes.get(1).getMessage()).isEqualTo("master2\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("Merge branch 'feature'\n");
-    for (Change<GitReference> change : changes) {
+    for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
       assertThat(change.getDateTime()).isAtLeast(beforeTime);
       assertThat(change.getDateTime()).isAtMost(ZonedDateTime.now().plusSeconds(1));
@@ -497,7 +496,7 @@ public class GitOriginTest {
     Files.write(remote.resolve("test2.txt"), "some more content".getBytes());
     repo.add().files("test2.txt").run();
     git("commit", "-m", "second file", "--date=1400110011");
-    GitReference master = origin.resolve("master");
+    GitRevision master = origin.resolve("master");
     Instant timestamp = master.readTimestamp();
     assertThat(timestamp).isNotNull();
     assertThat(timestamp.getEpochSecond()).isEqualTo(1400110011L);
@@ -507,14 +506,14 @@ public class GitOriginTest {
   public void testColor() throws Exception {
     git("config", "--global", "color.ui", "always");
 
-    GitReference firstRef = origin.resolve(firstCommitRef);
+    GitRevision firstRef = origin.resolve(firstCommitRef);
 
     Files.write(remote.resolve("test.txt"), "new content".getBytes());
     repo.add().files("test.txt").run();
     git("commit", "-m", "second commit");
-    GitReference secondRef = origin.resolve("HEAD");
+    GitRevision secondRef = origin.resolve("HEAD");
 
-    Reader<GitReference> reader = newReader();
+    Reader<GitRevision> reader = newReader();
     assertThat(reader.change(firstRef).getMessage()).contains("first file");
     assertThat(reader.changes(null, secondRef)).hasSize(2);
     assertThat(reader.changes(firstRef, secondRef)).hasSize(1);
@@ -538,7 +537,7 @@ public class GitOriginTest {
     originFiles = new Glob(ImmutableList.of("include/**", "--parents/**"), ImmutableList.of());
 
     // No files are in the included roots - make sure we can get an empty list of changes.
-    GitReference firstRef = origin.resolve(firstCommitRef);
+    GitRevision firstRef = origin.resolve(firstCommitRef);
     assertThat(newReader().changes(firstRef, origin.resolve("HEAD")))
         .isEmpty();
 
@@ -547,19 +546,19 @@ public class GitOriginTest {
     Files.write(remote.resolve("--parents/included_file.txt"), "some content".getBytes());
     repo.add().files("--parents/included_file.txt").run();
     git("commit", "-m", "included_file", "--date", commitTime);
-    GitReference firstIncludedRef =
+    GitRevision firstIncludedRef =
         Iterables.getOnlyElement(
             newReader().changes(firstRef, origin.resolve("HEAD")))
-        .getReference();
+        .getRevision();
 
     // Add an excluded file, and make sure the commit is skipped.
     Files.write(remote.resolve("excluded_file_2.txt"), "some content".getBytes());
     repo.add().files("excluded_file_2.txt").run();
     git("commit", "-m", "excluded_file_2", "--date", commitTime);
 
-    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
     assertThat(changes).hasSize(1);
-    assertThat(changes.get(0).getReference().asString())
+    assertThat(changes.get(0).getRevision().asString())
         .isEqualTo(firstIncludedRef.asString());
 
     // Add another included file, and make sure we only get the 2 included changes, and the
@@ -569,7 +568,7 @@ public class GitOriginTest {
     git("commit", "-m", "included_file_2", "--date", commitTime);
     changes = newReader().changes(firstRef, origin.resolve("HEAD"));
     assertThat(changes).hasSize(2);
-    assertThat(changes.get(0).getReference().asString())
+    assertThat(changes.get(0).getRevision().asString())
         .isEqualTo(firstIncludedRef.asString());
     assertThat(changes.get(1).getMessage())
         .contains("included_file_2");
@@ -581,8 +580,8 @@ public class GitOriginTest {
     // include commits even if they don't change the tree. We exclude such commits if the roots are
     // limited.
     git("commit", "-m", "empty_commit", "--date", commitTime, "--allow-empty");
-    GitReference firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    GitRevision firstRef = origin.resolve(firstCommitRef);
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
     assertThat(Iterables.getOnlyElement(changes).getMessage()).contains("empty_commit");
   }
 
@@ -603,8 +602,8 @@ public class GitOriginTest {
     moreOriginArgs = "include_branch_commit_logs = True";
     origin = origin();
 
-    GitReference firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    GitRevision firstRef = origin.resolve(firstCommitRef);
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
     assertThat(changes).hasSize(2);
 
     assertThat(changes.get(0).getMessage())
@@ -644,8 +643,8 @@ public class GitOriginTest {
     originFiles = new Glob(ImmutableList.of("include/**"), ImmutableList.of());
     origin = origin();
 
-    GitReference firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    GitRevision firstRef = origin.resolve(firstCommitRef);
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
     assertThat(changes).hasSize(2);
     assertThat(changes.get(0).getMessage()).contains("mainline message!");
     assertThat(changes.get(1).getMessage()).doesNotContain(excludedMessage);
@@ -660,14 +659,14 @@ public class GitOriginTest {
     moreOriginArgs = "include_branch_commit_logs = True";
     origin = origin();
 
-    GitReference firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitReference>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    GitRevision firstRef = origin.resolve(firstCommitRef);
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
     String message = Iterables.getOnlyElement(changes).getMessage();
     assertThat(message).doesNotContain(ChangeReader.BRANCH_COMMIT_LOG_HEADING);
     assertThat(message).contains("i hope this is included in the migrated message!");
   }
 
-  private GitReference getLastCommitRef() throws RepoException, ValidationException {
+  private GitRevision getLastCommitRef() throws RepoException, ValidationException {
     String head = git("rev-parse", "HEAD");
     String lastCommit = head.substring(0, head.length() -1);
     return origin.resolve(lastCommit);

@@ -28,11 +28,11 @@ import javax.annotation.Nullable;
  * <p>A migration can have one or more {@link MigrationReference}s.
  */
 @AutoValue
-public abstract class Info<O extends Reference> {
+public abstract class Info<O extends Revision> {
 
-  static final Info<? extends Reference> EMPTY = create(ImmutableList.of());
+  static final Info<? extends Revision> EMPTY = create(ImmutableList.of());
 
-  public static <O extends Reference> Info<O> create(
+  public static <O extends Revision> Info<O> create(
       Iterable<MigrationReference<O>> migrationReferences) {
     return new AutoValue_Info<O>(ImmutableList.copyOf(migrationReferences));
   }
@@ -47,9 +47,9 @@ public abstract class Info<O extends Reference> {
   }
 
   @AutoValue
-  public static abstract class MigrationReference<O extends Reference> {
+  public static abstract class MigrationReference<O extends Revision> {
 
-    public static <O extends Reference> MigrationReference<O> create(
+    public static <O extends Revision> MigrationReference<O> create(
         String label,
         @Nullable O lastMigrated,
         Iterable<Change<O>> availableToMigrate) {
@@ -68,15 +68,15 @@ public abstract class Info<O extends Reference> {
     abstract String getLabel();
 
     /**
-     * Returns the last migrated {@link Reference} from the origin.
+     * Returns the last migrated {@link Revision} from the origin.
      */
     @Nullable
     abstract O getLastMigrated();
 
     /**
-     * Returns the last available {@link Reference} to migrate from the origin.
+     * Returns the last available {@link Revision} to migrate from the origin.
      *
-     * <p>There might be more available changes to migrate, but this is the reference of the most
+     * <p>There might be more available changes to migrate, but this is the revision of the most
      * recent change available at this moment.
      */
     @Nullable
@@ -84,7 +84,7 @@ public abstract class Info<O extends Reference> {
       Optional<O> lastAvailable =
           getAvailableToMigrate()
               .stream()
-              .map(Change::getReference)
+              .map(Change::getRevision)
               .reduce((first, second) -> second);
       return lastAvailable.isPresent() ? lastAvailable.get() : null;
     }

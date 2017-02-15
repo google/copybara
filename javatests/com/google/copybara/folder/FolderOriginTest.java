@@ -86,8 +86,8 @@ public class FolderOriginTest {
     touch(localFolder.resolve("file4"), "four");
     FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
 
-    Reader<FolderReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
-    FolderReference ref = origin.resolve(localFolder.toString());
+    Reader<FolderRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    FolderRevision ref = origin.resolve(localFolder.toString());
     reader.checkout(ref, workdir);
     assertThatPath(workdir)
         .containsFile("foo/file1","one")
@@ -121,8 +121,8 @@ public class FolderOriginTest {
 
     FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
 
-    Reader<FolderReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
-    FolderReference ref = origin.resolve(localFolder.toString());
+    Reader<FolderRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    FolderRevision ref = origin.resolve(localFolder.toString());
     reader.checkout(ref, workdir);
     assertThatPath(workdir)
         .containsFile("foo/regular_file","one")
@@ -147,9 +147,9 @@ public class FolderOriginTest {
     touch(localFolder.resolve("file4"), "four");
     FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
 
-    Reader<FolderReference> reader = origin.newReader(
+    Reader<FolderRevision> reader = origin.newReader(
         new Glob(ImmutableSet.of("foo/*1", "file4")), authoring);
-    FolderReference ref = origin.resolve(localFolder.toString());
+    FolderRevision ref = origin.resolve(localFolder.toString());
     reader.checkout(ref, workdir);
     assertThatPath(workdir)
         .containsFile("foo/file1", "one")
@@ -165,20 +165,20 @@ public class FolderOriginTest {
   @Test
   public void testChangesWithDefaults() throws Exception {
     Path localFolder = Files.createTempDirectory("local_folder");
-    Change<FolderReference> change = getChange(localFolder);
+    Change<FolderRevision> change = getChange(localFolder);
 
     assertThat(change.getAuthor().toString()).isEqualTo("Copybara <noreply@copybara.io>");
     assertThat(change.getMessage()).isEqualTo("Copybara code migration");
-    assertThat(change.getReference().asString()).isEqualTo(localFolder.toString());
+    assertThat(change.getRevision().asString()).isEqualTo(localFolder.toString());
   }
 
-  private Change<FolderReference> getChange(Path localFolder)
+  private Change<FolderRevision> getChange(Path localFolder)
       throws ValidationException, RepoException {
     FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
 
-    Reader<FolderReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
-    FolderReference ref = origin.resolve(localFolder.toString());
-    Change<FolderReference> change = reader.change(ref);
+    Reader<FolderRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    FolderRevision ref = origin.resolve(localFolder.toString());
+    Change<FolderRevision> change = reader.change(ref);
 
     assertThat(Iterables.getOnlyElement(reader.changes(/*fromRef=*/null, ref))).isEqualTo(change);
     return change;
@@ -189,11 +189,11 @@ public class FolderOriginTest {
     options.folderOrigin.author = "Foo <foo@foo.bar>";
     options.folderOrigin.message = "A message";
     Path localFolder = Files.createTempDirectory("local_folder");
-    Change<FolderReference> change = getChange(localFolder);
+    Change<FolderRevision> change = getChange(localFolder);
 
     assertThat(change.getAuthor().toString()).isEqualTo("Foo <foo@foo.bar>");
     assertThat(change.getMessage()).isEqualTo("A message");
-    assertThat(change.getReference().asString()).isEqualTo(localFolder.toString());
+    assertThat(change.getRevision().asString()).isEqualTo(localFolder.toString());
   }
 
   @Test
@@ -235,8 +235,8 @@ public class FolderOriginTest {
 
     FolderOrigin origin = skylark.eval("f", "f = " + originStr);
 
-    Reader<FolderReference> reader = origin.newReader(Glob.ALL_FILES, authoring);
-    FolderReference ref = origin.resolve(localFolder.toString());
+    Reader<FolderRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    FolderRevision ref = origin.resolve(localFolder.toString());
     reader.checkout(ref, workdir);
   }
 }

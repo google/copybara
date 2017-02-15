@@ -18,7 +18,6 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.authoring.Author;
-
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.annotation.Nullable;
@@ -29,7 +28,7 @@ import javax.annotation.Nullable;
  */
 public final class TransformResult {
   private final Path path;
-  private final Reference originRef;
+  private final Revision originRef;
   private final Author author;
   private final Instant timestamp;
   private final String summary;
@@ -37,19 +36,19 @@ public final class TransformResult {
   private final String baseline;
   private final boolean askForConfirmation;
 
-  private static Instant readTimestampOrCurrentTime(Reference originRef) throws RepoException {
+  private static Instant readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     Instant refTimestamp = originRef.readTimestamp();
     return (refTimestamp != null) ? refTimestamp : Instant.now();
   }
 
-  public TransformResult(Path path, Reference originRef, Author author, String summary)
+  public TransformResult(Path path, Revision originRef, Author author, String summary)
       throws RepoException {
     this(path, originRef, author,
         readTimestampOrCurrentTime(originRef), summary,
         /*baseline=*/ null, /*askForConfirmation=*/ false);
   }
 
-  private TransformResult(Path path, Reference originRef, Author author, Instant timestamp,
+  private TransformResult(Path path, Revision originRef, Author author, Instant timestamp,
       String summary, @Nullable String baseline,
       boolean askForConfirmation) {
     this.path = Preconditions.checkNotNull(path);
@@ -82,9 +81,9 @@ public final class TransformResult {
   }
 
   /**
-   * Reference to the origin revision being moved.
+   * Revision to the origin revision being moved.
    */
-  public Reference getOriginRef() {
+  public Revision getOriginRef() {
     return originRef;
   }
 

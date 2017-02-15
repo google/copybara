@@ -43,7 +43,7 @@ import javax.annotation.Nullable;
 /**
  * Gerrit repository destination.
  */
-public final class GerritDestination implements Destination<GitReference> {
+public final class GerritDestination implements Destination<GitRevision> {
 
   private static final class CommitGenerator implements GitDestination.CommitGenerator {
 
@@ -184,7 +184,7 @@ public final class GerritDestination implements Destination<GitReference> {
   }
 
   @Override
-  public Reader<GitReference> newReader(Glob destinationFiles) {
+  public Reader<GitRevision> newReader(Glob destinationFiles) {
     return gitDestination.newReader(destinationFiles);
   }
 

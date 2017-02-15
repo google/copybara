@@ -324,7 +324,7 @@ public class WorkflowTest {
   public void iterativeWorkflowNoPreviousRef() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     Workflow workflow = iterativeWorkflow(/*previousRef=*/null);
-    thrown.expect(CannotResolveReferenceException.class);
+    thrown.expect(CannotResolveRevisionException.class);
     thrown.expectMessage("Previous revision label DummyOrigin-RevId could not be found");
     workflow.run(workdir, /*sourceRef=*/"0");
   }
@@ -674,7 +674,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 42);
 
     Workflow workflow = iterativeWorkflow("deadbeef");
-    thrown.expect(CannotResolveReferenceException.class);
+    thrown.expect(CannotResolveRevisionException.class);
     thrown.expectMessage(
         "Could not resolve --last-rev flag. Please make sure it exists in the origin: deadbeef");
     workflow.run(workdir, origin.getHead());

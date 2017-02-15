@@ -64,9 +64,9 @@ public class Copybara {
   public void info(Options options, Config config, String migrationName)
       throws IOException, ValidationException, RepoException {
     @SuppressWarnings("unchecked")
-    Info<? extends Reference> info = getInfo(migrationName, config);
+    Info<? extends Revision> info = getInfo(migrationName, config);
     Console console = options.get(GeneralOptions.class).console();
-    for (MigrationReference<? extends Reference> migrationRef : info.migrationReferences()) {
+    for (MigrationReference<? extends Revision> migrationRef : info.migrationReferences()) {
       console.info(String.format(
           "'%s': last_migrated %s - last_available %s.",
           migrationRef.getLabel(),
@@ -80,7 +80,7 @@ public class Copybara {
         for (Change change : migrationRef.getAvailableToMigrate()) {
           console.info(String.format("%d - %s %s by %s",
               changeNumber++,
-              change.getReference().asString(),
+              change.getRevision().asString(),
               change.firstLineMessage(),
               change.getAuthor()));
         }
@@ -91,9 +91,9 @@ public class Copybara {
   /**
    * Returns the {@link Info} of the {@code migrationName}.
    */
-  public Info<? extends Reference> getInfo(String migrationName, Config config)
+  public Info<? extends Revision> getInfo(String migrationName, Config config)
       throws IOException, ValidationException, RepoException {
-    return (Info<? extends Reference>) config.getMigration(migrationName).getInfo();
+    return (Info<? extends Revision>) config.getMigration(migrationName).getInfo();
   }
 
   /**

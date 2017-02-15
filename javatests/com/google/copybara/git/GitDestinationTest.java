@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Change;
@@ -33,7 +32,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
-import com.google.copybara.testing.DummyReference;
+import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
@@ -161,12 +160,12 @@ public class GitDestinationTest {
         .isEqualTo("\"" + author + "\"");
   }
 
-  private void process(Destination.Writer writer, DummyReference originRef)
+  private void process(Destination.Writer writer, DummyRevision originRef)
       throws ValidationException, RepoException, IOException {
     processWithBaseline(writer, originRef, /*baseline=*/ null);
   }
 
-  private void processWithBaseline(Destination.Writer writer, DummyReference originRef,
+  private void processWithBaseline(Destination.Writer writer, DummyRevision originRef,
       String baseline)
       throws RepoException, ValidationException, IOException {
     processWithBaselineAndConfirmation(writer, originRef, baseline,
@@ -174,7 +173,7 @@ public class GitDestinationTest {
   }
 
   private void processWithBaselineAndConfirmation(Destination.Writer writer,
-      DummyReference originRef,
+      DummyRevision originRef,
       String baseline, boolean askForConfirmation)
       throws ValidationException, RepoException, IOException {
     TransformResult result = TransformResults.of(workdir, originRef);
@@ -196,7 +195,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(
         destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("origin_ref"));
+        new DummyRevision("origin_ref"));
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "testPushToRef");
@@ -218,7 +217,7 @@ public class GitDestinationTest {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("User aborted execution: did not confirm diff changes");
     processWithBaselineAndConfirmation(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("origin_ref"),
+        new DummyRevision("origin_ref"),
         /*baseline=*/null, /*askForConfirmation=*/true);
   }
 
@@ -230,14 +229,14 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     processWithBaselineAndConfirmation(
         destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("origin_ref1"),
+        new DummyRevision("origin_ref1"),
         /*baseline=*/null, /*askForConfirmation=*/true);
 
     thrown.expect(EmptyChangeException.class);
     // process empty change. Shouldn't ask anything.
     processWithBaselineAndConfirmation(
         destination().newWriter(destinationFiles),
-        new DummyReference("origin_ref2"),
+        new DummyRevision("origin_ref2"),
         /*baseline=*/null, /*askForConfirmation=*/true);
   }
 
@@ -249,7 +248,7 @@ public class GitDestinationTest {
     push = "master";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     processWithBaselineAndConfirmation(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("origin_ref"),
+        new DummyRevision("origin_ref"),
         /*baseline=*/null, /*askForConfirmation=*/true);
 
     String change = git("--git-dir", repoGitDir.toString(), "show", "HEAD");
@@ -285,7 +284,7 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    DummyReference ref = new DummyReference("origin_ref");
+    DummyRevision ref = new DummyRevision("origin_ref");
     process(destinationFirstCommit().newWriter(destinationFiles), ref);
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("empty change");
@@ -306,7 +305,7 @@ public class GitDestinationTest {
     destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("excluded"));
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("empty change");
-    process(destination().newWriter(destinationFiles), new DummyReference("origin_ref"));
+    process(destination().newWriter(destinationFiles), new DummyRevision("origin_ref"));
   }
 
   @Test
@@ -317,7 +316,7 @@ public class GitDestinationTest {
 
     thrown.expect(RepoException.class);
     thrown.expectMessage("'testPullFromRef' doesn't exist");
-    process(destination().newWriter(destinationFiles), new DummyReference("origin_ref"));
+    process(destination().newWriter(destinationFiles), new DummyRevision("origin_ref"));
   }
 
   @Test
@@ -327,14 +326,14 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("deleted_file"), "deleted content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("origin_ref"));
+        new DummyRevision("origin_ref"));
     git("--git-dir", repoGitDir.toString(), "branch", "pullFromBar", "pushToFoo");
 
     workdir = Files.createTempDirectory("workdir2");
     Files.write(workdir.resolve("1.txt"), "content 1".getBytes());
     Files.createDirectories(workdir.resolve("subdir"));
     Files.write(workdir.resolve("subdir/2.txt"), "content 2".getBytes());
-    process(destination().newWriter(destinationFiles), new DummyReference("origin_ref"));
+    process(destination().newWriter(destinationFiles), new DummyRevision("origin_ref"));
 
     // Make sure original file was deleted.
     assertFilesInDir(2, "pushToFoo", ".");
@@ -362,7 +361,7 @@ public class GitDestinationTest {
     // only the contents.
     destinationFiles = new Glob(ImmutableList.of("foo/**"));
     process(destination().newWriter(destinationFiles),
-        new DummyReference("origin_ref"));
+        new DummyRevision("origin_ref"));
 
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("foo/bar", "content")
@@ -383,14 +382,14 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("bar/one"), "content".getBytes(UTF_8));
     Files.write(workdir.resolve("baz/one"), "content".getBytes(UTF_8));
 
-    DummyReference ref1 = new DummyReference("first");
+    DummyRevision ref1 = new DummyRevision("first");
 
     Glob firstGlob = new Glob(ImmutableList.of("foo/**", "bar/**"));
     Writer writer1 = destinationFirstCommit().newWriter(firstGlob);
     process(writer1, ref1);
 
     Files.write(workdir.resolve("baz/one"), "content2".getBytes(UTF_8));
-    DummyReference ref2 = new DummyReference("second");
+    DummyRevision ref2 = new DummyRevision("second");
 
     Writer writer2 = destination().newWriter(new Glob(ImmutableList.of("baz/**")));
     process(writer2, ref2);
@@ -412,19 +411,19 @@ public class GitDestinationTest {
     Files.write(file, "some content".getBytes());
     Destination.Writer writer = destinationFirstCommit().newWriter(destinationFiles);
     assertThat(writer.getPreviousRef(DummyOrigin.LABEL_NAME)).isNull();
-    process(writer, new DummyReference("first_commit"));
+    process(writer, new DummyRevision("first_commit"));
     assertCommitHasOrigin("master", "first_commit");
 
     Files.write(file, "some other content".getBytes());
     writer = destination().newWriter(destinationFiles);
     assertThat(writer.getPreviousRef(DummyOrigin.LABEL_NAME)).isEqualTo("first_commit");
-    process(writer, new DummyReference("second_commit"));
+    process(writer, new DummyRevision("second_commit"));
     assertCommitHasOrigin("master", "second_commit");
 
     Files.write(file, "just more text".getBytes());
     writer = destination().newWriter(destinationFiles);
     assertThat(writer.getPreviousRef(DummyOrigin.LABEL_NAME)).isEqualTo("second_commit");
-    process(writer, new DummyReference("third_commit"));
+    process(writer, new DummyRevision("third_commit"));
     assertCommitHasOrigin("master", "third_commit");
   }
 
@@ -435,7 +434,7 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit"));
+        new DummyRevision("first_commit"));
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     for (int i = 0; i < 20; i++) {
@@ -457,7 +456,7 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit"));
+        new DummyRevision("first_commit"));
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     GitRepository scratchRepo = repo().withWorkTree(scratchTree);
@@ -490,12 +489,12 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
+        new DummyRevision("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
     GitTesting.assertAuthorTimestamp(repo(), "master", Instant.ofEpochSecond(1414141414));
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     process(destination().newWriter(destinationFiles),
-        new DummyReference("second_commit").withTimestamp(Instant.ofEpochSecond(1515151515)));
+        new DummyRevision("second_commit").withTimestamp(Instant.ofEpochSecond(1515151515)));
     GitTesting.assertAuthorTimestamp(repo(), "master", Instant.ofEpochSecond(1515151515));
   }
 
@@ -509,7 +508,7 @@ public class GitDestinationTest {
     options.gitDestination.url = "file://" + newDestination.toAbsolutePath();
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit"));
+        new DummyRevision("first_commit"));
     GitTesting.assertCommitterLineMatches(repoForPath(newDestination),
         "master", "Bara Kopi <.*> [-+ 0-9]+");
     // No branches were created in the config file url.
@@ -524,13 +523,13 @@ public class GitDestinationTest {
     options.gitDestination.committerName = "Bara Kopi";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
+        new DummyRevision("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Bara Kopi <.*> [-+ 0-9]+");
 
     options.gitDestination.committerName = "Piko Raba";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     process(destination().newWriter(destinationFiles),
-        new DummyReference("second_commit").withTimestamp(Instant.ofEpochSecond(1414141490)));
+        new DummyRevision("second_commit").withTimestamp(Instant.ofEpochSecond(1414141490)));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Piko Raba <.*> [-+ 0-9+]+");
   }
 
@@ -543,14 +542,14 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
+        new DummyRevision("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <bara[.]bara@gocha[.]gocha> [-+ 0-9]+");
 
     options.gitDestination.committerEmail = "kupo.kupo@tan.kou";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     process(destination().newWriter(destinationFiles),
-        new DummyReference("second_commit").withTimestamp(Instant.ofEpochSecond(1414141490)));
+        new DummyRevision("second_commit").withTimestamp(Instant.ofEpochSecond(1414141490)));
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <kupo[.]kupo@tan[.]kou> [-+ 0-9]+");
   }
@@ -565,7 +564,7 @@ public class GitDestinationTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit"));
+        new DummyRevision("first_commit"));
   }
 
   @Test
@@ -578,7 +577,7 @@ public class GitDestinationTest {
     thrown.expect(RepoException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
     process(destinationFirstCommit().newWriter(destinationFiles),
-        new DummyReference("first_commit"));
+        new DummyRevision("first_commit"));
   }
 
   @Test
@@ -588,7 +587,7 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
-    DummyReference firstCommit = new DummyReference("first_commit")
+    DummyRevision firstCommit = new DummyRevision("first_commit")
         .withAuthor(new Author("Foo Bar", "foo@bar.com"))
         .withTimestamp(Instant.ofEpochSecond(1414141414));
     process(destinationFirstCommit().newWriter(destinationFiles), firstCommit);
@@ -610,7 +609,7 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
     destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
-    process(destination().newWriter(destinationFiles), new DummyReference("ref"));
+    process(destination().newWriter(destinationFiles), new DummyRevision("ref"));
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("excluded.txt", "some content")
         .containsFile("normal_file.txt", "some more content")
@@ -635,7 +634,7 @@ public class GitDestinationTest {
     // Make sure this glob does not cause .git/HEAD to be added.
     destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("**/HEAD"));
 
-    process(destination().newWriter(destinationFiles), new DummyReference("ref"));
+    process(destination().newWriter(destinationFiles), new DummyRevision("ref"));
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("notgit/HEAD", "some content")
         .containsFile("normal_file.txt", "some more content")
@@ -646,7 +645,7 @@ public class GitDestinationTest {
   public void processWithBaseline() throws Exception {
     fetch = "master";
     push = "master";
-    DummyReference ref = new DummyReference("origin_ref");
+    DummyRevision ref = new DummyRevision("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Files.write(workdir.resolve("excluded"), "some content".getBytes());
@@ -675,7 +674,7 @@ public class GitDestinationTest {
   public void processWithBaselineSameFileConflict() throws Exception {
     fetch = "master";
     push = "master";
-    DummyReference ref = new DummyReference("origin_ref");
+    DummyRevision ref = new DummyRevision("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles), ref);
@@ -697,7 +696,7 @@ public class GitDestinationTest {
     for (int i = 0; i < 1000; i++) {
       text += "Line " + i + "\n";
     }
-    DummyReference ref = new DummyReference("origin_ref");
+    DummyRevision ref = new DummyRevision("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), text.getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles), ref);
@@ -725,12 +724,12 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("test42"), "42".getBytes(UTF_8));
     WriterResult result =
-        writer.write(TransformResults.of(workdir, new DummyReference("ref1")), console);
+        writer.write(TransformResults.of(workdir, new DummyRevision("ref1")), console);
     assertThat(result).isEqualTo(WriterResult.OK);
     String firstCommitHash = repo().simpleCommand("rev-parse", "refs_for_master").getStdout();
 
     Files.write(workdir.resolve("test99"), "99".getBytes(UTF_8));
-    result = writer.write(TransformResults.of(workdir, new DummyReference("ref2")), console);
+    result = writer.write(TransformResults.of(workdir, new DummyRevision("ref2")), console);
     assertThat(result).isEqualTo(WriterResult.OK);
 
     // Make sure parent of second commit is the first commit.
@@ -753,7 +752,7 @@ public class GitDestinationTest {
     push = "master";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Files.write(workdir.resolve(".gitignore"), ".gitignore\n".getBytes());
-    DummyReference ref = new DummyReference("origin_ref");
+    DummyRevision ref = new DummyRevision("origin_ref");
     process(destinationFirstCommit().newWriter(destinationFiles), ref);
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "some content")
@@ -773,7 +772,7 @@ public class GitDestinationTest {
 
     destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of(".gitignore"));
 
-    DummyReference ref = new DummyReference("origin_ref");
+    DummyRevision ref = new DummyRevision("origin_ref");
     process(destination().newWriter(destinationFiles), ref);
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "some content")
@@ -821,8 +820,8 @@ public class GitDestinationTest {
   public void testVisit() throws Exception {
     fetch = "master";
     push = "master";
-    DummyReference ref1 = new DummyReference("origin_ref1");
-    DummyReference ref2 = new DummyReference("origin_ref2");
+    DummyRevision ref1 = new DummyRevision("origin_ref1");
+    DummyRevision ref2 = new DummyRevision("origin_ref2");
     Files.write(workdir.resolve("test.txt"), "Visit me".getBytes());
     process(destinationFirstCommit().newWriter(destinationFiles), ref1);
     Files.write(workdir.resolve("test.txt"), "Visit me soon".getBytes());

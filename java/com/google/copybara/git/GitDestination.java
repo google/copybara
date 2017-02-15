@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.copybara.CannotResolveReferenceException;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
@@ -47,7 +47,7 @@ import javax.annotation.Nullable;
 /**
  * A Git repository destination.
  */
-public final class GitDestination implements Destination<GitReference> {
+public final class GitDestination implements Destination<GitRevision> {
 
   private static final ImmutableSet<String> SINGLE_ROOT_WITHOUT_FOLDER = ImmutableSet.of("");
 
@@ -277,7 +277,7 @@ public final class GitDestination implements Destination<GitReference> {
         GitRepository.initScratchRepo(verbose, environment, tempDirectoryFactory);
     try {
       scratchClone.fetchSingleRef(repoUrl, fetch);
-    } catch (CannotResolveReferenceException e) {
+    } catch (CannotResolveRevisionException e) {
       if (!force) {
         throw new RepoException("'" + fetch + "' doesn't exist in '" + repoUrl
             + "'. Use " + GeneralOptions.FORCE + " flag if you want to push anyway");
@@ -321,16 +321,16 @@ public final class GitDestination implements Destination<GitReference> {
   }
 
   @Override
-  public Reader<GitReference> newReader(Glob destinationFiles) {
+  public Reader<GitRevision> newReader(Glob destinationFiles) {
     // TODO(hsudhof): limit the reader to changes affecting destinationFiles.
     return new GitReader();
   }
 
-  class GitReader implements Reader<GitReference> {
+  class GitReader implements Reader<GitRevision> {
 
     @Override
-    public void visitChanges(GitReference start, ChangesVisitor visitor)
-        throws RepoException, CannotResolveReferenceException {
+    public void visitChanges(GitRevision start, ChangesVisitor visitor)
+        throws RepoException, CannotResolveRevisionException {
       GitRepository repository = cloneBaseline();
       String revString = start == null ? "FETCH_HEAD" : start.asString();
       ChangeReader changeReader =
@@ -344,7 +344,7 @@ public final class GitDestination implements Destination<GitReference> {
         if (start == null) {
           console.error("Unable to find HEAD - is the destination repository bare?");
         }
-        throw new CannotResolveReferenceException("Cannot find reference " + revString);
+        throw new CannotResolveRevisionException("Cannot find reference " + revString);
       }
       GitChange current = Iterables.getOnlyElement(result);
       while (current != null) {

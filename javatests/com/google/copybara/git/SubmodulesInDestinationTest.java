@@ -24,7 +24,7 @@ import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.testing.GitTesting;
-import com.google.copybara.testing.DummyReference;
+import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
@@ -113,7 +113,7 @@ public final class SubmodulesInDestinationTest {
     Files.write(workdir.resolve("test42"), new byte[] {42});
     Destination.Writer writer = destination().newWriter(destinationFiles);
     WriterResult result = writer.write(
-        TransformResults.of(workdir, new DummyReference("ref1")),
+        TransformResults.of(workdir, new DummyRevision("ref1")),
         console);
     assertThat(result).isEqualTo(WriterResult.OK);
   }
@@ -165,7 +165,7 @@ public final class SubmodulesInDestinationTest {
 
     Destination.Writer writer = destination().newWriter(destinationFiles);
     WriterResult result = writer.write(
-        TransformResults.of(workdir, new DummyReference("ref1")),
+        TransformResults.of(workdir, new DummyRevision("ref1")),
         console);
     assertThat(result).isEqualTo(WriterResult.OK);
 

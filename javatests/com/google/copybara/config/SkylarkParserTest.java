@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Config;
 import com.google.copybara.Destination;
 import com.google.copybara.Origin;
-import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
@@ -408,7 +408,7 @@ public class SkylarkParserTest {
     return new String(file.content(), UTF_8);
   }
 
-  public static class MockOrigin implements Origin<Reference> {
+  public static class MockOrigin implements Origin<Revision> {
 
     private final String url;
     private final String branch;
@@ -419,12 +419,12 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public Reference resolve(@Nullable String reference) throws RepoException {
+    public Revision resolve(@Nullable String reference) throws RepoException {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Origin.Reader<Reference> newReader(Glob originFiles, Authoring authoring) {
+    public Origin.Reader<Revision> newReader(Glob originFiles, Authoring authoring) {
       throw new UnsupportedOperationException();
     }
 

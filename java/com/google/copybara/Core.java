@@ -269,7 +269,7 @@ public class Core implements OptionsAwareModule {
     }
 
     public NoneType invoke(Core self, String workflowName,
-        Origin<Reference> origin, Destination<?> destination, Authoring authoring,
+        Origin<Revision> origin, Destination<?> destination, Authoring authoring,
         SkylarkList<?> transformations,
         Object excludeInOrigin,
         Object excludeInDestination,

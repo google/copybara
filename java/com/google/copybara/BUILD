@@ -59,7 +59,7 @@ doc_generator(
 )
 
 BASE_SRCS = [
-    "CannotResolveReferenceException.java",
+    "CannotResolveRevisionException.java",
     "Change.java",
     "ChangeVisitable.java",
     "CheckoutPath.java",
@@ -75,7 +75,7 @@ BASE_SRCS = [
     "Options.java",
     "Origin.java",
     "RepoException.java",
-    "Reference.java",
+    "Revision.java",
     "Transformation.java",
     "TransformResult.java",
     "TransformWork.java",

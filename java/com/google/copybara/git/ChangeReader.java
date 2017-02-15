@@ -94,7 +94,7 @@ class ChangeReader {
 
   static final String BRANCH_COMMIT_LOG_HEADING = "-- Branch commit log --";
 
-  private CharSequence branchCommitLog(GitReference ref, List<GitReference> parents)
+  private CharSequence branchCommitLog(GitRevision ref, List<GitRevision> parents)
       throws RepoException {
     if (parents.size() <= 1) {
       // Not a merge commit, so don't bother showing full log of branch commits. This would only
@@ -121,13 +121,13 @@ class ChangeReader {
 
     while (rawLines.hasNext()) {
       String rawCommitLine = rawLines.next();
-      Iterator<String> commitReferences = Splitter.on(" ")
+      Iterator<String> commitRevisions = Splitter.on(" ")
           .split(removePrefix(log, rawCommitLine, "commit")).iterator();
 
-      GitReference ref = repository.createReferenceFromCompleteSha1(commitReferences.next());
-      ArrayList<GitReference> parents = new ArrayList<>();
-      while (commitReferences.hasNext()) {
-        parents.add(repository.createReferenceFromCompleteSha1(commitReferences.next()));
+      GitRevision ref = repository.createReferenceFromCompleteSha1(commitRevisions.next());
+      ArrayList<GitRevision> parents = new ArrayList<>();
+      while (commitRevisions.hasNext()) {
+        parents.add(repository.createReferenceFromCompleteSha1(commitRevisions.next()));
       }
       String line = rawLines.next();
       Author author = null;
@@ -152,7 +152,7 @@ class ChangeReader {
         line = rawLines.next();
       }
       Preconditions.checkState(author != null || dateTime != null,
-          "Could not find author and/or date for commitReferences %s in log\n:%s", rawCommitLine,
+          "Could not find author and/or date for commitRevisions %s in log\n:%s", rawCommitLine,
           log);
       StringBuilder message = new StringBuilder();
       // Maintain labels in order just in case we print them back in the destination.
@@ -175,7 +175,7 @@ class ChangeReader {
         message.append(s, GitOrigin.GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
       }
       message.append(branchCommitLog(ref, parents));
-      Change<GitReference> change = new Change<>(
+      Change<GitRevision> change = new Change<>(
           ref, author, message.toString(), dateTime, ImmutableMap.copyOf(labels));
       builder.add(new GitChange(change, parents));
     }
@@ -193,19 +193,19 @@ class ChangeReader {
    */
   static class GitChange {
 
-    private final Change<GitReference> change;
-    private final ImmutableList<GitReference> parents;
+    private final Change<GitRevision> change;
+    private final ImmutableList<GitRevision> parents;
 
-    GitChange(Change<GitReference> change, Iterable<GitReference> parents) {
+    GitChange(Change<GitRevision> change, Iterable<GitRevision> parents) {
       this.change = change;
       this.parents = ImmutableList.copyOf(parents);
     }
 
-    public Change<GitReference> getChange() {
+    public Change<GitRevision> getChange() {
       return change;
     }
 
-    public ImmutableList<GitReference> getParents() {
+    public ImmutableList<GitRevision> getParents() {
       return parents;
     }
   }

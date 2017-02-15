@@ -19,13 +19,13 @@ package com.google.copybara.testing;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.Authoring;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Origin;
-import com.google.copybara.Reference;
 import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
  * A reference of a change used for testing. This can be used with a {@link DummyOrigin} instance or
  * without an actual {@link Origin} implementation.
  */
-public class DummyReference implements Reference {
+public class DummyRevision implements Revision {
 
   private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
 
@@ -48,12 +48,12 @@ public class DummyReference implements Reference {
   private final Instant timestamp;
   private final ImmutableMap<String, String> labels;
 
-  public DummyReference(String reference) {
+  public DummyRevision(String reference) {
     this(reference, "DummyReference message", DEFAULT_AUTHOR,
         Paths.get("/DummyReference", reference), /*timestamp=*/null);
   }
 
-  DummyReference(
+  DummyRevision(
       String reference, String message, Author author, Path changesBase,
       @Nullable Instant timestamp) {
     this.reference = Preconditions.checkNotNull(reference);
@@ -75,13 +75,13 @@ public class DummyReference implements Reference {
   /**
    * Returns an instance equivalent to this one but with the timestamp set to the specified value.
    */
-  public DummyReference withTimestamp(Instant newTimestamp) {
-    return new DummyReference(
+  public DummyRevision withTimestamp(Instant newTimestamp) {
+    return new DummyRevision(
         this.reference, this.message, this.author, this.changesBase, newTimestamp);
   }
 
-  public DummyReference withAuthor(Author newAuthor) {
-    return new DummyReference(
+  public DummyRevision withAuthor(Author newAuthor) {
+    return new DummyRevision(
         this.reference, this.message, newAuthor, this.changesBase, this.timestamp);
   }
 
@@ -101,7 +101,7 @@ public class DummyReference implements Reference {
     return DummyOrigin.LABEL_NAME;
   }
 
-  Change<DummyReference> toChange(Authoring authoring) {
+  Change<DummyRevision> toChange(Authoring authoring) {
     Author safeAuthor = authoring.useAuthor(this.author.getEmail())
         ? this.author
         : authoring.getDefaultAuthor();

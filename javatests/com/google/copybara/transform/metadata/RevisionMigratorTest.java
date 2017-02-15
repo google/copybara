@@ -21,7 +21,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable;
 import com.google.copybara.Changes;
@@ -31,8 +30,9 @@ import com.google.copybara.MigrationInfo;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.testing.DummyOrigin;
-import com.google.copybara.testing.DummyReference;
+import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -54,7 +54,7 @@ import org.junit.runners.JUnit4;
  * Unittests for the @link{ReferenceMigrator} and {@link MetadataModule#UPDATE_REFS}.
  */
 @RunWith(JUnit4.class)
-public class ReferenceMigratorTest {
+public class RevisionMigratorTest {
 
   private DummyOrigin origin;
   private ChangeVisitable<?> destinationReader;
@@ -303,12 +303,12 @@ public class ReferenceMigratorTest {
         " uses the reserved token");
   }
 
-  class MockReader implements Reader<DummyReference> {
+  class MockReader implements Reader<DummyRevision> {
     @Override
-    public void visitChanges(DummyReference start, ChangesVisitor visitor)
+    public void visitChanges(DummyRevision start, ChangesVisitor visitor)
         throws RepoException {
       int changeNumber = 0;
-      Change<DummyReference> change;
+      Change<DummyRevision> change;
       do {
         changeNumber++;
         ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
@@ -320,7 +320,7 @@ public class ReferenceMigratorTest {
         if (changeNumber % 11 == 0) {
           labels.put("LegacyImporter", "" + changeNumber);
         }
-        change = new Change<>(new DummyReference(destinationId),
+        change = new Change<>(new DummyRevision(destinationId),
             new Author("Foo", "Bar"),
             "Lorem Ipsum", ZonedDateTime.now(),
             labels.build());

@@ -31,7 +31,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.net.PercentEscaper;
-import com.google.copybara.CannotResolveReferenceException;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
@@ -199,10 +199,10 @@ public class GitRepository {
    * locations. IOW
    * "refs/foo" is allowed but not "refs/foo:remote/origin/foo". Wildcards are also not allowed.
    */
-  public GitReference fetchSingleRef(String url, String ref)
-      throws RepoException, CannotResolveReferenceException {
+  public GitRevision fetchSingleRef(String url, String ref)
+      throws RepoException, CannotResolveRevisionException {
     if (ref.contains(":") || ref.contains("*")) {
-      throw new CannotResolveReferenceException("Fetching refspecs that"
+      throw new CannotResolveRevisionException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
     }
     // This is not strictly necessary for some Git repos that allow fetching from any sha1 ref, like
@@ -235,7 +235,7 @@ public class GitRepository {
    * updated, etc.)
    */
   FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
-      throws RepoException, CannotResolveReferenceException {
+      throws RepoException, CannotResolveRevisionException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
     args.add("--verbose");
@@ -255,15 +255,15 @@ public class GitRepository {
       args.add(ref);
     }
 
-    ImmutableMap<String, GitReference> before = showRef();
+    ImmutableMap<String, GitRevision> before = showRef();
     CommandOutputWithStatus output = gitAllowNonZeroExit(args);
     if (output.getTerminationStatus().success()) {
-      ImmutableMap<String, GitReference> after = showRef();
+      ImmutableMap<String, GitRevision> after = showRef();
       return new FetchResult(before, after);
     }
     if (output.getStderr().isEmpty()
         || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
-      throw new CannotResolveReferenceException("Cannot find references: " + refspecs);
+      throw new CannotResolveRevisionException("Cannot find references: " + refspecs);
     } else {
       throw throwUnknownGitError(output);
     }
@@ -321,8 +321,8 @@ public class GitRepository {
    * Execute show-ref git command in the local repository and returns a map from reference name to
    * GitReference(SHA-1).
    */
-  ImmutableMap<String, GitReference> showRef() throws RepoException {
-    ImmutableMap.Builder<String, GitReference> result = ImmutableMap.builder();
+  ImmutableMap<String, GitRevision> showRef() throws RepoException {
+    ImmutableMap.Builder<String, GitRevision> result = ImmutableMap.builder();
     CommandOutput commandOutput = gitAllowNonZeroExit(ImmutableList.of("show-ref"));
 
     if (!commandOutput.getStderr().isEmpty()) {
@@ -338,7 +338,7 @@ public class GitRepository {
       Preconditions.checkState(strings.size() == 2
           && SHA1_PATTERN.matcher(strings.get(0)).matches(), "Cannot parse line: '%s'", line);
       // Ref -> SHA1
-      result.put(strings.get(1), new GitReference(this, strings.get(0)));
+      result.put(strings.get(1), new GitRevision(this, strings.get(0)));
     }
     return result.build();
   }
@@ -556,7 +556,7 @@ public class GitRepository {
     return result.build();
   }
 
-  ImmutableList<TreeElement> lsTree(GitReference reference, String treeish) throws RepoException {
+  ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish) throws RepoException {
     ImmutableList.Builder<TreeElement> result = ImmutableList.builder();
     String stdout = simpleCommand("ls-tree", reference.asString(), treeish).getStdout();
     for (String line : Splitter.on('\n').split(stdout)) {
@@ -756,20 +756,20 @@ public class GitRepository {
   /**
    * Resolve a reference
    *
-   * @throws CannotResolveReferenceException if it cannot resolve the reference
+   * @throws CannotResolveRevisionException if it cannot resolve the reference
    */
-  GitReference resolveReference(String reference)
-      throws RepoException, CannotResolveReferenceException {
+  GitRevision resolveReference(String reference)
+      throws RepoException, CannotResolveRevisionException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
     // check that the reference exists.
-    if (GitReference.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
+    if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
       if (checkSha1Exists(reference)) {
-        return new GitReference(this, reference);
+        return new GitRevision(this, reference);
       }
-      throw new CannotResolveReferenceException(
+      throw new CannotResolveRevisionException(
           "Cannot find '" + reference + "' object in the repository");
     }
-    return new GitReference(this, revParse(reference));
+    return new GitRevision(this, revParse(reference));
   }
 
   /**
@@ -790,8 +790,8 @@ public class GitRepository {
   /**
    * Creates a reference from a complete SHA-1 string without any validation that it exists.
    */
-  GitReference createReferenceFromCompleteSha1(String ref) {
-    return new GitReference(this, ref);
+  GitRevision createReferenceFromCompleteSha1(String ref) {
+    return new GitRevision(this, ref);
   }
 
   private boolean isSha1Reference(String ref) {

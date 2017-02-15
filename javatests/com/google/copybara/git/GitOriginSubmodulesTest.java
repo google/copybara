@@ -105,7 +105,7 @@ public class GitOriginSubmodulesTest {
     commit(r3, "adding r2 submodule");
 
     GitOrigin origin = origin("file://" + r3.getGitDir(), "master");
-    GitReference master = origin.resolve("master");
+    GitRevision master = origin.resolve("master");
     origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
@@ -144,7 +144,7 @@ public class GitOriginSubmodulesTest {
     commit(r2, "adding r1 submodule");
 
     GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
-    GitReference master = origin.resolve("master");
+    GitRevision master = origin.resolve("master");
     origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
@@ -167,7 +167,7 @@ public class GitOriginSubmodulesTest {
     r2.simpleCommand("submodule", "add", "--branch", "master", "--name", "r1",
         "file://" + r1.getWorkTree());
     commit(r2, "adding r1 submodule");
-    GitReference r2FirstSha1 = r2.showRef().get("refs/heads/master");
+    GitRevision r2FirstSha1 = r2.showRef().get("refs/heads/master");
 
     addFile(r1, "bar", "bar");
     addFile(r1, "foo", "foo");
@@ -177,7 +177,7 @@ public class GitOriginSubmodulesTest {
     r2.add().all().run();
     commit(r2, "updating r1 submodule");
 
-    GitReference r2SecondSha1 = r2.showRef().get("refs/heads/master");
+    GitRevision r2SecondSha1 = r2.showRef().get("refs/heads/master");
 
     GitOrigin origin = origin("file://" + r2.getGitDir(), "refs/heads/master");
     origin.resolve(r2FirstSha1.asString());
