@@ -38,11 +38,16 @@ public final class TestingConsole extends CapturingConsole {
   }
 
   private final CapturingConsole outputConsole =
-      CapturingConsole.captureAllConsole(LogConsole.writeOnlyConsole(System.out));
+      CapturingConsole.captureAllConsole(LogConsole.writeOnlyConsole(System.out, /*verbose=*/true));
   private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
 
   public TestingConsole() {
-    super(CapturingConsole.captureAllConsole(LogConsole.writeOnlyConsole(System.out)), ALL_TYPES);
+    this(/*verbose=*/ true);
+  }
+
+  public TestingConsole(boolean verbose) {
+    super(CapturingConsole.captureAllConsole(
+        LogConsole.writeOnlyConsole(System.out, verbose)), ALL_TYPES);
   }
 
   public TestingConsole respondYes() {

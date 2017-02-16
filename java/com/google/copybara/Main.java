@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -101,6 +102,11 @@ public class Main {
       handleUnexpectedError(console, "Execution was interrupted.", e);
     }
     return exitCode;
+  }
+
+  /** Helper to find out about verbose output before JCommander has been initialized .*/
+  private static boolean isVerbose(String[] args) {
+    return Arrays.stream(args).anyMatch(Predicate.isEqual("-v"));
   }
 
   /**
@@ -228,16 +234,17 @@ public class Main {
   }
 
   private Console getConsole(String[] args) {
+    boolean verbose = isVerbose(args);
     // If System.console() is not present, we are forced to use LogConsole
     if (System.console() == null) {
-      return LogConsole.writeOnlyConsole(System.err);
+      return LogConsole.writeOnlyConsole(System.err, verbose);
     }
     if (Arrays.asList(args).contains(GeneralOptions.NOANSI)) {
       // The System.console doesn't detect redirects/pipes, but at least we have
       // jobs covered.
-      return LogConsole.readWriteConsole(System.in, System.err);
+      return LogConsole.readWriteConsole(System.in, System.err, verbose);
     }
-    return new AnsiConsole(System.in, System.err);
+    return new AnsiConsole(System.in, System.err, verbose);
   }
 
   protected void configureLog(FileSystem fs) throws IOException {

@@ -38,6 +38,11 @@ public class ProgressPrefixConsole implements Console {
   }
 
   @Override
+  public boolean isVerbose() {
+    return delegate.isVerbose();
+  }
+
+  @Override
   public void error(String message) {
     delegate.error(message);
   }

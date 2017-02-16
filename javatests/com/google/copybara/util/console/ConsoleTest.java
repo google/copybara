@@ -88,14 +88,16 @@ public class ConsoleTest {
   @Test
   public void testEOFReturnsFalse() throws Exception {
     Console console = LogConsole.readWriteConsole(
-        new ByteArrayInputStream(new byte[]{}),new PrintStream(new ByteArrayOutputStream()));
+        new ByteArrayInputStream(
+            new byte[]{}),new PrintStream(new ByteArrayOutputStream()), /*verbose=*/ false);
 
     assertThat(console.promptConfirmation("Proceed?")).isFalse();
   }
 
   @Test
   public void logConsolePromtFailsOnMissingSystemConsole() throws Exception {
-    Console console = LogConsole.writeOnlyConsole(new PrintStream(new ByteArrayOutputStream()));
+    Console console = LogConsole.writeOnlyConsole(
+        new PrintStream(new ByteArrayOutputStream()), /*verbose=*/ false);
     thrown.expect(IllegalStateException.class);
     thrown.expectMessage("LogConsole cannot read user input if system console is not present");
     console.promptConfirmation("Do you want to proceed?");
@@ -130,6 +132,31 @@ public class ConsoleTest {
         new Message(MessageType.INFO, "This is info"),
         new Message(MessageType.PROGRESS, "This is progress"),
         new Message(MessageType.PROMPT, "Do you want to continue?"));
+  }
+
+  @Test
+  public void testVerbose() throws Exception {
+    TestingConsole delegate = new TestingConsole(/*verbose=*/ false);
+    CapturingConsole console = CapturingConsole.captureAllConsole(delegate);
+
+    console.verboseFmt("This is %s", "verbose!");
+    console.verboseFmt("This is also verbose");
+    console.info("This is info");
+
+    assertThat(console.getMessages()).containsExactly(
+        new Message(MessageType.INFO, "This is info"));
+
+    TestingConsole verboseDelegate = new TestingConsole(/*verbose=*/ true);
+    CapturingConsole verboseConsole= CapturingConsole.captureAllConsole(verboseDelegate);
+
+    verboseConsole.verboseFmt("This is %s", "verbose!");
+    verboseConsole.verboseFmt("This is also verbose");
+    verboseConsole.info("This is info");
+
+    assertThat(verboseConsole.getMessages()).containsExactly(
+        new Message(MessageType.INFO, "This is verbose!"),
+        new Message(MessageType.INFO, "This is also verbose"),
+        new Message(MessageType.INFO, "This is info"));
   }
 
   @Test
@@ -192,7 +219,7 @@ public class ConsoleTest {
       throws IOException {
     ByteArrayInputStream in = new ByteArrayInputStream(inputText.getBytes(StandardCharsets.UTF_8));
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    Console console = new AnsiConsole(in, new PrintStream(out));
+    Console console = new AnsiConsole(in, new PrintStream(out), /*verbose=*/ false);
 
     checkExpectedPrompt(console, out, inputText, expectedResponse);
   }
@@ -201,7 +228,7 @@ public class ConsoleTest {
       throws IOException {
     ByteArrayInputStream in = new ByteArrayInputStream(inputText.getBytes(StandardCharsets.UTF_8));
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    Console console = LogConsole.readWriteConsole(in, new PrintStream(out));
+    Console console = LogConsole.readWriteConsole(in, new PrintStream(out), /*verbose=*/ false);
 
     checkExpectedPrompt(console, out, inputText, expectedResponse);
   }

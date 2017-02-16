@@ -95,6 +95,11 @@ public class CapturingConsole implements Console {
   }
 
   @Override
+  public boolean isVerbose() {
+    return delegate.isVerbose();
+  }
+
+  @Override
   public void progress(String message) {
     addMessage(MessageType.PROGRESS, message);
     delegate.progress(message);

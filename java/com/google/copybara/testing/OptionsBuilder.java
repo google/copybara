@@ -49,7 +49,7 @@ public class OptionsBuilder {
           System.getenv(),
           Jimfs.newFileSystem(),
           /*verbose=*/true,
-          LogConsole.readWriteConsole(System.in, System.out),
+          LogConsole.readWriteConsole(System.in, System.out, /*verbose*/ true),
           /*rootCfgPath=*/null,
           /*outputRoot*/ null,
           /*forceReversibleCheck=*/false,
@@ -76,7 +76,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "PWD", cwd),
         FileSystems.getDefault(), /*verbose=*/true,
-        LogConsole.readWriteConsole(System.in, System.out),
+        LogConsole.readWriteConsole(System.in, System.out, /*verbose*/ true),
         general.getConfigRoot(), general.getOutputRoot(),
         general.isDisableReversibleCheck(), general.isForced());
     return this;

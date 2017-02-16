@@ -52,11 +52,33 @@ public interface Console {
     warn(String.format(format, args));
   }
 
+
+  /**
+   * Returns true if verbose
+   */
+  boolean isVerbose();
+
+  /**
+   * Print an informational message in the console, if verbose logging is enabled
+   */
+  default void verbose(String message) {
+    if (isVerbose()) {
+      info(message);
+    }
+  }
+
+  /**
+   * Print a format string as info on the console, if verbose logging is enabled
+   */
+  default void verboseFmt(String format, Object... args) {
+    verbose(String.format(format, args));
+  }
+
   /**
    * Print an informational message in the console
    *
    * <p> Warning: Do not abuse the usage of this method. We don't
-   * want to spam our users.
+   * want to spam our users. When in doubt, use verbose.
    */
   void info(String message);
 

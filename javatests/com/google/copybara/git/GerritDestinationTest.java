@@ -234,7 +234,8 @@ public class GerritDestinationTest {
   public void testProcessPushOutput_new() {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     GerritProcessPushOutput process = new GerritProcessPushOutput(
-        LogConsole.readWriteConsole(System.in, new PrintStream(out)), /*newReview*/ true);
+        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
+        /*newReview*/ true);
 
     process.process(GERRIT_RESPONSE);
 
@@ -246,7 +247,8 @@ public class GerritDestinationTest {
   public void testProcessPushOutput_existing() {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     GerritProcessPushOutput process = new GerritProcessPushOutput(
-        LogConsole.readWriteConsole(System.in, new PrintStream(out)), /*newReview*/ false);
+        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
+        /*newReview*/ false);
 
     process.process(GERRIT_RESPONSE);
 

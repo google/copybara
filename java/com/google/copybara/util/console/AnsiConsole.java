@@ -39,13 +39,15 @@ public final class AnsiConsole implements Console {
   private final InputStream input;
   private final PrintStream output;
   private final Object lock = new Object();
-  
+  private final boolean verbose;
+
   private int lastProgressLines = 0;
 
   //blue red yellow blue green red
-  public AnsiConsole(InputStream input, PrintStream output) {
+  public AnsiConsole(InputStream input, PrintStream output, boolean verbose) {
     this.input = Preconditions.checkNotNull(input);
     this.output = Preconditions.checkNotNull(output);
+    this.verbose = verbose;
   }
 
   @Override
@@ -85,6 +87,11 @@ public final class AnsiConsole implements Console {
       lastProgressLines = 0;
       output.println(GREEN.write("INFO: ") + message);
     }
+  }
+
+  @Override
+  public boolean isVerbose() {
+    return verbose;
   }
 
   @Override

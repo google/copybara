@@ -35,29 +35,37 @@ public class LogConsole implements Console {
   @Nullable
   private final InputStream input;
   private final PrintStream output;
+  private final boolean verbose;
 
   /**
    * Creates a new instance of {@link LogConsole} with write capabilities, only.
    */
-  public static LogConsole writeOnlyConsole(PrintStream output) {
-    return new LogConsole(/*input*/ null, Preconditions.checkNotNull(output));
+  public static LogConsole writeOnlyConsole(PrintStream output, boolean verbose) {
+    return new LogConsole(/*input*/ null, Preconditions.checkNotNull(output), verbose);
   }
 
   /**
    * Creates a new instance of {@link LogConsole} with read and write capabilities.
    */
-  public static LogConsole readWriteConsole(InputStream input, PrintStream output) {
-    return new LogConsole(Preconditions.checkNotNull(input), Preconditions.checkNotNull(output));
+  public static LogConsole readWriteConsole(InputStream input, PrintStream output, boolean verbose) {
+    return new LogConsole(
+        Preconditions.checkNotNull(input), Preconditions.checkNotNull(output), verbose);
   }
 
-  private LogConsole(InputStream input, PrintStream output) {
+  private LogConsole(InputStream input, PrintStream output, boolean verbose) {
     this.input = input;
     this.output = Preconditions.checkNotNull(output);
+    this.verbose = verbose;
   }
 
   @Override
   public void startupMessage(String version) {
     output.println("Copybara source mover (Version: " + version + ")");
+  }
+
+  @Override
+  public boolean isVerbose() {
+    return verbose;
   }
 
   @Override

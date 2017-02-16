@@ -110,10 +110,22 @@ public class SkylarkTransformation implements Transformation {
       errorCount++;
     }
 
+    @Override
+    public boolean isVerbose() {
+      return delegate.isVerbose();
+    }
+
     @SkylarkCallable(name = "warn", doc = "Show a warning in the console")
     @Override
     public void warn(String message) {
       delegate.warn(message);
+    }
+
+    @SkylarkCallable(name = "verbose",
+        doc = "Show an info message in the console if verbose logging is enabled.")
+    @Override
+    public void verbose(String message) {
+      delegate.verbose(message);
     }
 
     @SkylarkCallable(name = "info", doc = "Show an info message in the console")
