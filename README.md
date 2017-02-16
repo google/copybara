@@ -44,6 +44,24 @@ you need:
   * Build: *bazel build //java/com/google/copybara*.
   * Tests: *bazel test //...* if you want to ensure you are not using a broken version.
 
+### Using Intellij with Bazel plugin
+
+If you use Intellij and the Bazel plugin, use this project configuration:
+
+```
+directories:
+  copybara/integration
+  java/com/google/copybara
+  javatests/com/google/copybara
+  third_party
+
+targets:
+  //copybara/integration/...
+  //java/com/google/copybara/...
+  //javatests/com/google/copybara/...
+  //third_party/...
+```
+
 Note that configuration files can be stored in any place, Even in a local folder. We recommend to
 use a VCS (like git) to store them; treat them as source code.
 
