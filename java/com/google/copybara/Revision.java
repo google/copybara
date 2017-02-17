@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import javax.annotation.Nullable;
 
@@ -46,4 +47,24 @@ public interface Revision {
    * revision. For example "Git-RevId".
    */
   String getLabelName();
+
+  /**
+   * If not null, returns a stable name representing the reference from where this {@code Revision}
+   * was created.
+   *
+   * <p>For example if the user passed 'master' in the command line, the {@link #asString()}  would
+   * return the SHA-1 and this method would return 'master'. Note that it is a valid response
+   * to return {@link #asString()} here if the implementation chooses to.
+   */
+  default @Nullable String contextReference() {
+    return null;
+  }
+
+  /**
+   * Return any associated label with the revision. Keys are the label name and values are the
+   * content of the label.
+   */
+  default ImmutableMap<String, String> associatedLabels() {
+    return ImmutableMap.of();
+  }
 }

@@ -158,7 +158,7 @@ public final class GitOrigin implements Origin<GitRevision> {
             submodule.getUrl(), environment, verbose, gitOptions.repoStorage);
         subRepo.initGitDir();
         subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
-        GitRevision submoduleRef = subRepo.resolveReference(element.getRef());
+        GitRevision submoduleRef = subRepo.resolveReference(element.getRef(), submodule.getName());
 
         Path subdir = workdir.resolve(submodule.getPath());
         try {

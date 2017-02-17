@@ -214,13 +214,13 @@ public class GitRepository {
     if (isSha1Reference(ref)) {
       fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of());
       try {
-        return resolveReference(ref);
+        return resolveReference(ref, /*contextRef=*/null);
       } catch (RepoException ignore) {
         // Ignore, the fetch below will attempt using the SHA-1.
       }
     }
     fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(ref));
-    return resolveReference("FETCH_HEAD");
+    return resolveReference("FETCH_HEAD", /*contextRef=*/ref);
   }
 
   /**
@@ -758,7 +758,7 @@ public class GitRepository {
    *
    * @throws CannotResolveRevisionException if it cannot resolve the reference
    */
-  GitRevision resolveReference(String reference)
+  GitRevision resolveReference(String reference, @Nullable String contextRef)
       throws RepoException, CannotResolveRevisionException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
     // check that the reference exists.
@@ -769,7 +769,7 @@ public class GitRepository {
       throw new CannotResolveRevisionException(
           "Cannot find '" + reference + "' object in the repository");
     }
-    return new GitRevision(this, revParse(reference));
+    return new GitRevision(this, revParse(reference), contextRef);
   }
 
   /**

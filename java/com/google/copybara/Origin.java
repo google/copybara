@@ -16,15 +16,12 @@
 
 package com.google.copybara;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.nio.file.Path;
-import java.util.List;
 import javax.annotation.Nullable;
 
 /**
@@ -46,18 +43,6 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
    */
   //TODO(malcon): change String to Reference. But the change is massive for this change.
   R resolve(String reference) throws RepoException, ValidationException;
-
-  /**
-   * Given a request for a migration from the command line, resolve to an object that represents
-   * what to migrate.
-   *
-   * @param args commandline arguments
-   */
-  default Reference<R> migrationReference(List<String> args) {
-    // TODO(malcon): Implement this in the origins, but I want to show the intention of the
-    // refactor.
-    return null;
-  }
 
   /**
    * An object which is capable of checking out code from the origin at particular paths. This can
@@ -125,47 +110,4 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
    */
   String getLabelName();
 
-  /**
-   * A reference to a version that can have a meaningful name and that can mutate (For example
-   * 'master' SHA-1 can change).
-   *
-   * It can contain an optional revision object to pin the reference to an specific revision.
-   */
-  class Reference<R> {
-
-    private final String reference;
-    @Nullable
-    private final R revision;
-    private final ImmutableMap<String, String> labels;
-
-    public Reference(String reference, R revision, ImmutableMap<String, String> labels) {
-      this.reference = Preconditions.checkNotNull(reference);
-      this.labels = Preconditions.checkNotNull(labels);
-      this.revision = revision;
-    }
-
-    /**
-     * The named reference to migrate
-     */
-    public String getReference() {
-      return reference;
-    }
-
-    /**
-     * An optional revision of the reference. Otherwise when resolved it will be resolved to the
-     * HEAD of that reference.
-     */
-    @Nullable
-    public R getRevision() {
-      return revision;
-    }
-
-    /**
-     * Additional labels that the origin wants to make available to the workflow with information
-     * about the reference. For example this could be the code review url for git.
-     */
-    public ImmutableMap<String, String> getLabels() {
-      return labels;
-    }
-  }
 }
