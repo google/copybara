@@ -68,13 +68,15 @@ public abstract class Info<O extends Revision> {
     abstract String getLabel();
 
     /**
-     * Returns the last migrated {@link Revision} from the origin.
+     * Returns the last migrated {@link Revision} from the origin, or {@code null} if no change was
+     * ever migrated.
      */
     @Nullable
     abstract O getLastMigrated();
 
     /**
-     * Returns the last available {@link Revision} to migrate from the origin.
+     * Returns the last available {@link Revision} to migrate from the origin, or {@code null} if
+     * there are no changes available to migrate.
      *
      * <p>There might be more available changes to migrate, but this is the revision of the most
      * recent change available at this moment.
