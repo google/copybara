@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.junit.Assert.fail;
 
@@ -369,7 +370,7 @@ public class WorkflowTest {
   @Test
   public void processIsCalledWithCurrentTimeIfTimestampNotInOrigin() throws Exception {
     Workflow workflow = workflow();
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
 
     Instant timestamp = destination.processed.get(0).getTimestamp();
     assertThat(timestamp.getEpochSecond()).isEqualTo(42);
@@ -378,8 +379,8 @@ public class WorkflowTest {
   @Test
   public void processIsCalledWithCorrectWorkdir() throws Exception {
     Workflow workflow = workflow();
-    String head = origin.getHead();
-    workflow.run(workdir, head);
+    String head = resolveHead();
+    workflow.run(workdir, HEAD);
     assertThat(Files.readAllLines(workdir.resolve("checkout/file.txt"), StandardCharsets.UTF_8))
         .contains(PREFIX + head);
   }
@@ -388,7 +389,7 @@ public class WorkflowTest {
   public void sendsOriginTimestampToDest() throws Exception {
     Workflow workflow = workflow();
     origin.addSimpleChange(/*timestamp*/ 42918273);
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getTimestamp().getEpochSecond())
         .isEqualTo(42918273);
@@ -398,14 +399,14 @@ public class WorkflowTest {
   public void usesDefaultAuthorForSquash() throws Exception {
     // Squash always sets the default author for the commit but not in the release notes
     origin.addSimpleChange(/*timestamp*/ 1);
-    options.workflowOptions.lastRevision = origin.getHead();
+    options.workflowOptions.lastRevision = resolveHead();
     origin.addSimpleChange(/*timestamp*/ 2);
     origin.addSimpleChange(/*timestamp*/ 3);
     includeReleaseNotes = true;
 
     Workflow workflow = workflow();
 
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
     assertThat(destination.processed).hasSize(1);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary()).contains(DEFAULT_AUTHOR.toString());
@@ -416,7 +417,7 @@ public class WorkflowTest {
   public void testSquashAlreadyMigrated() throws Exception {
     options.setForce(false); // Disable force so that we get an error
     origin.addSimpleChange(/*timestamp*/ 1);
-    String oldRef = origin.getHead();
+    String oldRef = resolveHead();
     options.workflowOptions.lastRevision = oldRef;
     origin.addSimpleChange(/*timestamp*/ 2);
     origin.addSimpleChange(/*timestamp*/ 3);
@@ -424,7 +425,7 @@ public class WorkflowTest {
 
     Workflow workflow = workflow();
 
-    String head = origin.getHead();
+    String head = HEAD;
     workflow.run(workdir, head);
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("'0' has been already migrated");
@@ -442,14 +443,14 @@ public class WorkflowTest {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot find last imported revision."
         + " Use --force if you really want to import '1'");
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
   }
 
   @Test
   public void testSquashAlreadyMigratedWithForce() throws Exception {
     options.setForce(true);
     origin.addSimpleChange(/*timestamp*/ 1);
-    String oldRef = origin.getHead();
+    String oldRef = resolveHead();
     options.workflowOptions.lastRevision = oldRef;
     origin.addSimpleChange(/*timestamp*/ 2);
     origin.addSimpleChange(/*timestamp*/ 3);
@@ -457,7 +458,7 @@ public class WorkflowTest {
 
     Workflow workflow = workflow();
 
-    String head = origin.getHead();
+    String head = HEAD;
     workflow.run(workdir, head);
     assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
         .isEqualTo("3");
@@ -468,7 +469,7 @@ public class WorkflowTest {
 
   @Test
   public void runsTransformations() throws Exception {
-    workflow().run(workdir, origin.getHead());
+    workflow().run(workdir, HEAD);
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).numFiles()).isEqualTo(1);
     assertThat(destination.processed.get(0).getContent("file.txt")).isEqualTo(PREFIX + "0");
@@ -485,7 +486,7 @@ public class WorkflowTest {
     originFiles = "glob(['" + outsideFolder + "'])";
 
     try {
-      workflow().run(workdir, origin.getHead());
+      workflow().run(workdir, HEAD);
       fail("should have thrown");
     } catch (ValidationException e) {
       console().assertThat()
@@ -502,7 +503,7 @@ public class WorkflowTest {
     originFiles = "glob(['{'])";
 
     try {
-      workflow().run(workdir, origin.getHead());
+      workflow().run(workdir, HEAD);
       fail("should have thrown");
     } catch (ValidationException e) {
       console().assertThat()
@@ -519,7 +520,7 @@ public class WorkflowTest {
     originFiles = "glob(['**'], exclude = ['folder'])";
     Workflow workflow = workflow();
     prepareOriginExcludes();
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder/file.txt", "folder2/file.txt");
   }
@@ -530,7 +531,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes();
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
 
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2")
@@ -544,7 +545,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes();
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
 
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt")
@@ -557,7 +558,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes();
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
     console().assertThat()
         .timesInLog(0, MessageType.INFO, "Removed .* files from workdir");
   }
@@ -567,11 +568,11 @@ public class WorkflowTest {
     originFiles = "glob(['**'], exclude = ['folder/**/*.java'])";
     transformations = ImmutableList.of();
     prepareOriginExcludes();
-    Workflow workflow = iterativeWorkflow(origin.getHead());
+    Workflow workflow = iterativeWorkflow(resolveHead());
     prepareOriginExcludes();
     prepareOriginExcludes();
     prepareOriginExcludes();
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
     for (ProcessedChange processedChange : destination.processed) {
       for (String path : ImmutableList.of("folder/file.txt",
           "folder2/file.txt",
@@ -601,9 +602,9 @@ public class WorkflowTest {
   public void testExcludedDestinationPathsPassedToDestination_iterative() throws Exception {
     excludedInDestination = "glob(['foo', 'bar/**'])";
     origin.addSimpleChange(/*timestamp*/ 42);
-    Workflow workflow = iterativeWorkflow(origin.getHead());
+    Workflow workflow = iterativeWorkflow(resolveHead());
     origin.addSimpleChange(/*timestamp*/ 4242);
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
 
     assertThat(destination.processed).hasSize(1);
 
@@ -617,7 +618,7 @@ public class WorkflowTest {
   @Test
   public void testExcludedDestinationPathsPassedToDestination_squash() throws Exception {
     excludedInDestination = "glob(['foo', 'bar/**'])";
-    workflow().run(workdir, origin.getHead());
+    workflow().run(workdir, HEAD);
 
     assertThat(destination.processed).hasSize(1);
 
@@ -635,7 +636,7 @@ public class WorkflowTest {
   public void testExcludedOriginPaths_showDeprecationWarning() throws Exception {
     excludedInOrigin = "glob(['foo', 'bar/**'])";
     options.workflowOptions.ignoreNoop = true;
-    workflow().run(workdir, origin.getHead());
+    workflow().run(workdir, HEAD);
 
     assertThat(destination.processed).hasSize(1);
 
@@ -647,9 +648,9 @@ public class WorkflowTest {
   public void testDestinationFilesPassedToDestination_iterative() throws Exception {
     destinationFiles = "glob(['**'], exclude = ['foo', 'bar/**'])";
     origin.addSimpleChange(/*timestamp*/ 42);
-    Workflow workflow = iterativeWorkflow(origin.getHead());
+    Workflow workflow = iterativeWorkflow(resolveHead());
     origin.addSimpleChange(/*timestamp*/ 4242);
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
 
     assertThat(destination.processed).hasSize(1);
 
@@ -660,10 +661,14 @@ public class WorkflowTest {
     assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
   }
 
+  private String resolveHead() throws RepoException, CannotResolveRevisionException {
+    return origin.resolve(HEAD).asString();
+  }
+
   @Test
   public void testDestinationFilesPassedToDestination_squash() throws Exception {
     destinationFiles = "glob(['**'], exclude = ['foo', 'bar/**'])";
-    workflow().run(workdir, origin.getHead());
+    workflow().run(workdir, HEAD);
 
     assertThat(destination.processed).hasSize(1);
 
@@ -682,7 +687,7 @@ public class WorkflowTest {
     thrown.expect(CannotResolveRevisionException.class);
     thrown.expectMessage(
         "Could not resolve --last-rev flag. Please make sure it exists in the origin: deadbeef");
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
   }
 
   @Test
@@ -987,7 +992,7 @@ public class WorkflowTest {
 
     thrown.expect(NotADestinationFileException.class);
     thrown.expectMessage("[bar.txt]");
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
   }
 
   @Test
@@ -1007,7 +1012,7 @@ public class WorkflowTest {
 
     thrown.expect(NotADestinationFileException.class);
     thrown.expectMessage("[bar, foo42]");
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
   }
 
   @Test
@@ -1020,7 +1025,7 @@ public class WorkflowTest {
     origin.singleFileChange(/*timestamp=*/45, "commit 2", "foo42", "1");
     Workflow workflow = skylarkWorkflow("default", WorkflowMode.SQUASH);
 
-    workflow.run(workdir, origin.getHead());
+    workflow.run(workdir, HEAD);
   }
 
   private void prepareOriginExcludes() throws IOException {

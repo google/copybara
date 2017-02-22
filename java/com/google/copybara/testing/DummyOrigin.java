@@ -18,6 +18,7 @@ package com.google.copybara.testing;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.CannotResolveRevisionException;
@@ -47,6 +48,7 @@ import javax.annotation.Nullable;
 public class DummyOrigin implements Origin<DummyRevision> {
 
   private static final Author DEFAULT_AUTHOR = new Author("Dummy Author", "no-reply@dummy.com");
+  public static final String HEAD = "HEAD";
 
   private final FileSystem fs;
   private Author author;
@@ -88,20 +90,20 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   public DummyOrigin addChange(int timestamp, Path path, String message) {
     changes.add(new DummyRevision(
-        "" + changes.size(), message, author, path, Instant.ofEpochSecond(timestamp)));
+        "" + changes.size(), message, author, path, Instant.ofEpochSecond(timestamp),
+        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of()));
     return this;
-  }
-
-  public String getHead() {
-    if (changes.isEmpty()) {
-      throw new IllegalStateException("Empty respository");
-    }
-    return Integer.toString(changes.size() - 1);
   }
 
   @Override
   public DummyRevision resolve(@Nullable final String reference)
       throws RepoException, CannotResolveRevisionException {
+    if (HEAD.equals(reference)) {
+      if (changes.isEmpty()) {
+        throw new IllegalStateException("Empty respository");
+      }
+      return changes.get(changes.size() - 1).withContextReference(HEAD);
+    }
     int idx = changes.size() - 1;
     if (reference != null) {
       try {

@@ -46,21 +46,28 @@ public class DummyRevision implements Revision {
   private final Author author;
   final Path changesBase;
   private final Instant timestamp;
-  private final ImmutableMap<String, String> labels;
+  @Nullable
+  private final String contextReference;
+  private final ImmutableMap<String, String> referenceLabels;
+  private final ImmutableMap<String, String> descriptionLabels;
 
   public DummyRevision(String reference) {
     this(reference, "DummyReference message", DEFAULT_AUTHOR,
-        Paths.get("/DummyReference", reference), /*timestamp=*/null);
+        Paths.get("/DummyReference", reference), /*timestamp=*/null,
+        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of());
   }
 
   DummyRevision(
       String reference, String message, Author author, Path changesBase,
-      @Nullable Instant timestamp) {
+      @Nullable Instant timestamp, @Nullable String contextReference,
+      ImmutableMap<String, String> referenceLabels) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
     this.author = Preconditions.checkNotNull(author);
     this.changesBase = Preconditions.checkNotNull(changesBase);
     this.timestamp = timestamp;
+    this.contextReference = contextReference;
+    this.referenceLabels = Preconditions.checkNotNull(referenceLabels);
 
     ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
     for (String line : message.split("\n")) {
@@ -69,7 +76,7 @@ public class DummyRevision implements Revision {
         labels.put(labelFinder.getName(), labelFinder.getValue());
       }
     }
-    this.labels = labels.build();
+    this.descriptionLabels = labels.build();
   }
 
   /**
@@ -77,12 +84,21 @@ public class DummyRevision implements Revision {
    */
   public DummyRevision withTimestamp(Instant newTimestamp) {
     return new DummyRevision(
-        this.reference, this.message, this.author, this.changesBase, newTimestamp);
+        this.reference, this.message, this.author, this.changesBase, newTimestamp,
+        this.contextReference, this.referenceLabels);
   }
 
   public DummyRevision withAuthor(Author newAuthor) {
     return new DummyRevision(
-        this.reference, this.message, newAuthor, this.changesBase, this.timestamp);
+        this.reference, this.message, newAuthor, this.changesBase, this.timestamp,
+        this.contextReference, this.referenceLabels);
+  }
+
+  public DummyRevision withContextReference(String contextReference) {
+    Preconditions.checkNotNull(contextReference);
+    return new DummyRevision(
+        this.reference, this.message, this.getAuthor(), this.changesBase, this.timestamp,
+        contextReference, this.referenceLabels);
   }
 
   @Nullable
@@ -106,7 +122,18 @@ public class DummyRevision implements Revision {
         ? this.author
         : authoring.getDefaultAuthor();
     return new Change<>(this, safeAuthor, message,
-        ZonedDateTime.ofInstant(timestamp, ZoneId.systemDefault()), labels);
+        ZonedDateTime.ofInstant(timestamp, ZoneId.systemDefault()), descriptionLabels);
+  }
+
+  @Nullable
+  @Override
+  public String contextReference() {
+    return contextReference;
+  }
+
+  @Override
+  public ImmutableMap<String, String> associatedLabels() {
+    return referenceLabels;
   }
 
   public Author getAuthor() {
@@ -121,7 +148,7 @@ public class DummyRevision implements Revision {
         .add("author", author)
         .add("changesBase", changesBase)
         .add("timestamp", timestamp)
-        .add("labels", labels)
+        .add("descriptionLabels", descriptionLabels)
         .toString();
   }
 }

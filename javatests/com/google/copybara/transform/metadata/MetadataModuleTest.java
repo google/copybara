@@ -243,7 +243,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testAddHeader() throws Exception {
-    options.setLastRevision(origin.getHead());
+    options.setLastRevision(origin.resolve("HEAD").asString());
 
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]')");
@@ -266,7 +266,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testAddHeaderLabelNotFound() throws Exception {
-    options.setLastRevision(origin.getHead());
+    options.setLastRevision(origin.resolve("HEAD").asString());
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]')");
     origin.addSimpleChange(0, "foo");
@@ -279,7 +279,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testAddHeaderLabelNotFoundIgnore() throws Exception {
-    options.setLastRevision(origin.getHead());
+    options.setLastRevision(origin.resolve("HEAD").asString());
 
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]', "
