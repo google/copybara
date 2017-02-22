@@ -17,15 +17,15 @@ workspace(name = "copybara")
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava",
-    artifact = "com.google.guava:guava:19.0",
-    sha1 = "6ce200f6b23222af3d8abb6b6459e6c44f4bb0e9",
+    artifact = "com.google.guava:guava:21.0",
+    sha1 = "3a3d111be1be1b745edfa7d91678a12d7ed38709",
 )
 
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava_testlib",
-    artifact = "com.google.guava:guava-testlib:19.0",
-    sha1 = "ce5b880b206de3f76d364988a6308c68c726f74a",
+    artifact = "com.google.guava:guava-testlib:21.0",
+    sha1 = "1ec77c45666cf17da76cd80725194148a8ffc440",
 )
 
 # LICENSE: The Apache Software License, Version 2.0
