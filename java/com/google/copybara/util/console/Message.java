@@ -28,7 +28,7 @@ public final class Message {
    * The type of messages registered in a console.
    */
   public enum MessageType {
-    ERROR, WARNING, INFO, PROGRESS, PROMPT
+    ERROR, WARNING, INFO, VERBOSE, PROGRESS, PROMPT
   }
 
   private final MessageType type;

@@ -136,17 +136,7 @@ public class ConsoleTest {
 
   @Test
   public void testVerbose() throws Exception {
-    TestingConsole delegate = new TestingConsole(/*verbose=*/ false);
-    CapturingConsole console = CapturingConsole.captureAllConsole(delegate);
-
-    console.verboseFmt("This is %s", "verbose!");
-    console.verboseFmt("This is also verbose");
-    console.info("This is info");
-
-    assertThat(console.getMessages()).containsExactly(
-        new Message(MessageType.INFO, "This is info"));
-
-    TestingConsole verboseDelegate = new TestingConsole(/*verbose=*/ true);
+    TestingConsole verboseDelegate = new TestingConsole();
     CapturingConsole verboseConsole= CapturingConsole.captureAllConsole(verboseDelegate);
 
     verboseConsole.verboseFmt("This is %s", "verbose!");
@@ -154,8 +144,8 @@ public class ConsoleTest {
     verboseConsole.info("This is info");
 
     assertThat(verboseConsole.getMessages()).containsExactly(
-        new Message(MessageType.INFO, "This is verbose!"),
-        new Message(MessageType.INFO, "This is also verbose"),
+        new Message(MessageType.VERBOSE, "This is verbose!"),
+        new Message(MessageType.VERBOSE, "This is also verbose"),
         new Message(MessageType.INFO, "This is info"));
   }
 

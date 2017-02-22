@@ -41,6 +41,13 @@ public final class ConsolesTest {
   }
 
   @Test
+  public void verboseLogLines_empty() {
+    Consoles.verboseLogLines(console, "prefix", /*text*/ "");
+    console.assertThat()
+        .containsNoMoreMessages();
+  }
+
+  @Test
   public void logLines_oneLine() {
     Consoles.logLines(console, "fooprefix-", ""
         + "hello\n"
@@ -48,6 +55,17 @@ public final class ConsolesTest {
     console.assertThat()
         .equalsNext(MessageType.INFO, "fooprefix-hello")
         .equalsNext(MessageType.INFO, "fooprefix-goodbye")
+        .containsNoMoreMessages();
+  }
+
+  @Test
+  public void verboseLogLines_oneLine() {
+    Consoles.verboseLogLines(console, "fooprefix-", ""
+        + "hello\n"
+        + "goodbye\n");
+    console.assertThat()
+        .equalsNext(MessageType.VERBOSE, "fooprefix-hello")
+        .equalsNext(MessageType.VERBOSE, "fooprefix-goodbye")
         .containsNoMoreMessages();
   }
 

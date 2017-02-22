@@ -22,7 +22,6 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.CapturingConsole;
 import com.google.copybara.util.console.LogConsole;
-import java.io.IOException;
 import java.util.ArrayDeque;
 
 /**
@@ -42,12 +41,8 @@ public final class TestingConsole extends CapturingConsole {
   private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
 
   public TestingConsole() {
-    this(/*verbose=*/ true);
-  }
-
-  public TestingConsole(boolean verbose) {
     super(CapturingConsole.captureAllConsole(
-        LogConsole.writeOnlyConsole(System.out, verbose)), ALL_TYPES);
+        LogConsole.writeOnlyConsole(System.out, /*verbose=*/ true)), ALL_TYPES);
   }
 
   public TestingConsole respondYes() {

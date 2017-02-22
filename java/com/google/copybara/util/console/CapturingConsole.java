@@ -16,17 +16,10 @@
 
 package com.google.copybara.util.console;
 
-import static com.google.copybara.util.console.Message.MessageType.ERROR;
-import static com.google.copybara.util.console.Message.MessageType.INFO;
-import static com.google.copybara.util.console.Message.MessageType.PROGRESS;
-import static com.google.copybara.util.console.Message.MessageType.PROMPT;
-import static com.google.copybara.util.console.Message.MessageType.WARNING;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.Message.MessageType;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
@@ -40,8 +33,7 @@ import java.util.Set;
  */
 public class CapturingConsole implements Console {
 
-  protected static final Set<MessageType> ALL_TYPES =
-      ImmutableSet.of(ERROR, WARNING, INFO, PROGRESS, PROMPT);
+  protected static final Set<MessageType> ALL_TYPES = ImmutableSet.copyOf(MessageType.values());
 
   private final Console delegate;
   private final ArrayList<Message> messages = new ArrayList<>();
@@ -92,6 +84,13 @@ public class CapturingConsole implements Console {
   public void info(String message) {
     addMessage(MessageType.INFO, message);
     delegate.info(message);
+  }
+
+  @Override
+  public void verbose(String message) {
+    System.err.println("VERBOSE: " + message);
+    addMessage(MessageType.VERBOSE, message);
+    delegate.verbose(message);
   }
 
   @Override
