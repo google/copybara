@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.authoring.Author;
@@ -35,6 +36,7 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
@@ -47,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.time.Instant;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -74,7 +77,7 @@ public class WorkflowTest {
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
-  private String transformations;
+  private ImmutableList<String> transformations;
   private Path workdir;
   private boolean includeReleaseNotes;
   private String excludedInOrigin;
@@ -95,7 +98,7 @@ public class WorkflowTest {
     originFiles = "None";
     destinationFiles = "None";
     destination = new RecordsProcessCallDestination();
-    transformations = "[\n"
+    transformations = ImmutableList.of(""
         + "        core.replace(\n"
         + "             before = '${linestart}${number}',\n"
         + "             after = '${linestart}" + PREFIX + "${number}',\n"
@@ -104,13 +107,12 @@ public class WorkflowTest {
         + "                 'linestart' : '^',\n"
         + "             },\n"
         + "             multiline = True,"
-        + "        ),\n"
-        + "    ]";
+        + "        )");
     options.setConsole(new TestingConsole());
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     options.setForce(true); // Force by default unless we are testing the flag.
-    skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class));
+    skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class, MetadataModule.class));
   }
 
   private TestingConsole console() {
@@ -124,6 +126,10 @@ public class WorkflowTest {
 
   private Workflow<?, ?> skylarkWorkflow(String name, WorkflowMode mode)
       throws IOException, ValidationException {
+    List<String> transformations = Lists.newArrayList(this.transformations);
+    if (includeReleaseNotes) {
+      transformations.add("metadata.squash_notes()");
+    }
     String config = ""
         + "core.workflow(\n"
         + "    name = '" + name + "',\n"
@@ -135,7 +141,6 @@ public class WorkflowTest {
         + "    destination_files = " + destinationFiles + ",\n"
         + "    transformations = " + transformations + ",\n"
         + "    authoring = " + authoring + ",\n"
-        + "    include_changelist_notes = " + (includeReleaseNotes ? "True" : "False") + ",\n"
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
@@ -344,7 +349,7 @@ public class WorkflowTest {
     origin.singleFileChange(1, "two", "file.txt", "b");
     origin.singleFileChange(2, "three", "file.txt", "b");
     origin.singleFileChange(3, "four", "file.txt", "c");
-    transformations = "[]";
+    transformations = ImmutableList.of();
     destination.failOnEmptyChange = true;
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"0");
     workflow.run(workdir, /*sourceRef=*/"3");
@@ -354,7 +359,7 @@ public class WorkflowTest {
   @Test
   public void emptyTransformList() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
-    transformations = "[]";
+    transformations = ImmutableList.of();
     Workflow workflow = workflow();
     workflow.run(workdir, /*sourceRef=*/"0");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
@@ -522,7 +527,7 @@ public class WorkflowTest {
   @Test
   public void excludedOriginPathRecursive() throws Exception {
     originFiles = "glob(['**'], exclude = ['folder/**'])";
-    transformations = "[]";
+    transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
@@ -536,7 +541,7 @@ public class WorkflowTest {
   @Test
   public void excludedOriginRecursiveByType() throws Exception {
     originFiles = "glob(['**'], exclude = ['folder/**/*.java'])";
-    transformations = "[]";
+    transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
@@ -549,7 +554,7 @@ public class WorkflowTest {
   @Test
   public void originFilesNothingRemovedNoopNothingInLog() throws Exception {
     originFiles = "glob(['**'], exclude = ['I_dont_exist'])";
-    transformations = "[]";
+    transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes();
     workflow.run(workdir, origin.getHead());
@@ -560,7 +565,7 @@ public class WorkflowTest {
   @Test
   public void excludeOriginPathIterative() throws Exception {
     originFiles = "glob(['**'], exclude = ['folder/**/*.java'])";
-    transformations = "[]";
+    transformations = ImmutableList.of();
     prepareOriginExcludes();
     Workflow workflow = iterativeWorkflow(origin.getHead());
     prepareOriginExcludes();
@@ -975,7 +980,7 @@ public class WorkflowTest {
   @Test
   public void errorWritingFileThatDoesNotMatchDestinationFiles() throws Exception {
     destinationFiles = "glob(['foo*'], exclude = ['foo42'])";
-    transformations = "[]";
+    transformations = ImmutableList.of();
 
     origin.singleFileChange(/*timestamp=*/44, "one commit", "bar.txt", "1");
     Workflow workflow = skylarkWorkflow("default", WorkflowMode.SQUASH);
@@ -991,7 +996,7 @@ public class WorkflowTest {
     // originating from the origin repo (e.g. a metadata file specific to one repo type).
     // In this example, though, the file is copied from the origin, hence an error.
     destinationFiles = "glob(['foo*'], exclude = ['foo42'])";
-    transformations = "[]";
+    transformations = ImmutableList.of();
 
     Path originDir = Files.createTempDirectory("change1");
     Files.write(originDir.resolve("bar"), new byte[] {});
@@ -1009,7 +1014,7 @@ public class WorkflowTest {
   public void checkForNonMatchingDestinationFilesAfterTransformations() throws Exception {
     destinationFiles = "glob(['foo*'])";
     options.workflowOptions.ignoreNoop = true;
-    transformations = "[core.move('bar.txt', 'foo53')]";
+    transformations = ImmutableList.of("core.move('bar.txt', 'foo53')");
 
     origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
     origin.singleFileChange(/*timestamp=*/45, "commit 2", "foo42", "1");

@@ -574,7 +574,7 @@ transformations|`sequence of transformation`<br><p>The transformations to revers
 
 Defines a migration pipeline which can be invoked via the Copybara command.
 
-`core.workflow(name, origin, destination, authoring, transformations=[], exclude_in_origin=N/A, exclude_in_destination=N/A, origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", include_changelist_notes=False, reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, ask_for_confirmation=False)`
+`core.workflow(name, origin, destination, authoring, transformations=[], exclude_in_origin=N/A, exclude_in_destination=N/A, origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, ask_for_confirmation=False)`
 
 ### Parameters:
 
@@ -590,7 +590,6 @@ exclude_in_destination|`glob`<br><p>For compatibility purposes only. Use detinat
 origin_files|`glob`<br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
 destination_files|`glob`<br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
 mode|`string`<br><p>Workflow mode. Currently we support three modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import an origin tree state diffed by a common parent in destination. This could be a GH Pull Request, a Gerrit Change, etc.</li></ul></p>
-include_changelist_notes|`boolean`<br><p>Include a list of change list messages that were imported.**DEPRECATED**: This method is about to be removed.</p>
 reversible_check|`boolean`<br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
 ask_for_confirmation|`boolean`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
 
@@ -601,7 +600,7 @@ ask_for_confirmation|`boolean`<br><p>Indicates that the tool should show the dif
 
 Name | Type | Description
 ---- | ----------- | -----------
---change_request_parent | *string* | Commit reference to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
+--change_request_parent | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 --last-rev | *string* | Last revision that was migrated to the destination
 --iterative-limit-changes | *int* | Import just a number of changes instead of all the pending ones
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
