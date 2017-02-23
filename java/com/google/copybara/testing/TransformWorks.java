@@ -35,8 +35,8 @@ public class TransformWorks {
    */
   public static TransformWork of(Path checkoutDir, String msg, Console console) {
     return new TransformWork(checkoutDir,
-        new Metadata(msg, new Author("foo", "foo@foo.com")),
-        new Changes() {
+                             new Metadata(msg, new Author("foo", "foo@foo.com")),
+                             new Changes() {
           @Override
           public SkylarkList<? extends Change<?>> getCurrent() {
             throw new UnsupportedOperationException();
@@ -47,7 +47,8 @@ public class TransformWorks {
             throw new UnsupportedOperationException();
           }
           // TODO(malcon): Pass this from test.
-        }, console, new MigrationInfo(DummyOrigin.LABEL_NAME, /*destinationReader=*/ null));
+        }, console, new MigrationInfo(DummyOrigin.LABEL_NAME, /*destinationReader=*/ null),
+                             new DummyRevision("1234567890"));
   }
 
 }

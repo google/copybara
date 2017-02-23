@@ -161,22 +161,30 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
     }
 
-    TransformWork transformWork = new TransformWork(
-        checkoutDir, metadata, changes, workflow.getConsole(),
-        new MigrationInfo(workflow.getOrigin().getLabelName(), getDestinationReader()));
+    TransformWork transformWork =
+        new TransformWork(
+            checkoutDir,
+            metadata,
+            changes,
+            workflow.getConsole(),
+            new MigrationInfo(workflow.getOrigin().getLabelName(), getDestinationReader()),
+            resolvedRef);
     workflow.getTransformation().transform(transformWork);
 
     if (workflow.getReverseTransformForCheck() != null) {
       workflow.getConsole().progress("Checking that the transformations can be reverted");
       Path reverse = Files.createDirectories(workdir.resolve("reverse"));
       FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
-      workflow.getReverseTransformForCheck().transform(
-          new TransformWork(reverse,
-              new Metadata(transformWork.getMessage(), transformWork.getAuthor()),
-              changes,
-              workflow.getConsole(),
-              new MigrationInfo(/*originLabel=*/ null, (ChangeVisitable) null))
-      );
+      workflow
+          .getReverseTransformForCheck()
+          .transform(
+              new TransformWork(
+                  reverse,
+                  new Metadata(transformWork.getMessage(), transformWork.getAuthor()),
+                  changes,
+                  workflow.getConsole(),
+                  new MigrationInfo(/*originLabel=*/ null, (ChangeVisitable) null),
+                  resolvedRef));
       String diff = new String(DiffUtil.diff(originCopy, reverse, workflow.isVerbose()),
           StandardCharsets.UTF_8);
       if (!diff.trim().isEmpty()) {
@@ -191,9 +199,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         .verifyFilesToWrite();
 
     // TODO(malcon): Pass metadata object instead
-    TransformResult transformResult = new TransformResult(checkoutDir, ref,
-        transformWork.getAuthor(),
-        transformWork.getMessage());
+    TransformResult transformResult =
+        new TransformResult(
+            checkoutDir, ref, transformWork.getAuthor(), transformWork.getMessage(), resolvedRef);
     if (destinationBaseline != null) {
       transformResult = transformResult.withBaseline(destinationBaseline);
     }

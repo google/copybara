@@ -81,8 +81,8 @@ public final class GerritDestination implements Destination<GitRevision> {
           String.format(
               "%s\n%s: %s\nChange-Id: %s\n",
               transformResult.getSummary(),
-              transformResult.getOriginRef().getLabelName(),
-              transformResult.getOriginRef().asString(),
+              transformResult.getCurrentRevision().getLabelName(),
+              transformResult.getCurrentRevision().asString(),
               changeIdAndNew.text),
           changeIdAndNew.newPush);
     }
@@ -109,8 +109,8 @@ public final class GerritDestination implements Destination<GitRevision> {
           String.format(
               "owner:%s status:open message:`%s: %s`",
               transformResult.getAuthor().getEmail(),
-              transformResult.getOriginRef().getLabelName(),
-              transformResult.getOriginRef().asString());
+              transformResult.getCurrentRevision().getLabelName(),
+              transformResult.getCurrentRevision().asString());
       Response response = gerritOptions.getChangeFinder().get().find(repoUrl, query, console);
       if (!response.getParts().isEmpty()) {
         // Just take the first one.

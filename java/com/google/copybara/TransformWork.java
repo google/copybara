@@ -60,14 +60,16 @@ public final class TransformWork {
   private final Changes changes;
   private final Console console;
   private final MigrationInfo migrationInfo;
+  private final Revision resolvedReference;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
-      MigrationInfo migrationInfo) {
+      MigrationInfo migrationInfo, Revision resolvedReference) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
     this.console = console;
     this.migrationInfo = migrationInfo;
+    this.resolvedReference = Preconditions.checkNotNull(resolvedReference);
   }
 
   /**
@@ -254,12 +256,16 @@ public final class TransformWork {
     return migrationInfo;
   }
 
+  public Revision getResolvedReference() {
+    return resolvedReference;
+  }
+
   /**
    * Create a clone of the transform work but use a different console.
    */
   public TransformWork withConsole(Console newConsole) {
-    return new TransformWork(checkoutDir, metadata, changes,
-        Preconditions.checkNotNull(newConsole), migrationInfo);
+    return new TransformWork(checkoutDir, metadata, changes, Preconditions.checkNotNull(newConsole),
+                             migrationInfo, resolvedReference);
   }
 
   /**

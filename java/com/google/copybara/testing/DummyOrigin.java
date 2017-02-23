@@ -16,6 +16,7 @@
 
 package com.google.copybara.testing;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -180,7 +181,9 @@ public class DummyOrigin implements Origin<DummyRevision> {
         throws RepoException {
       boolean found = false;
       for (DummyRevision change : Lists.reverse(changes)) {
-        if (change.equals(start)) {
+        // Use ref equality since start could be a revision with contextReference/labels,
+        // so Object equality is not good.
+        if (change.asString().equals(start.asString())) {
           found = true;
         }
         if (found) {
@@ -191,7 +194,9 @@ public class DummyOrigin implements Origin<DummyRevision> {
       }
       if (!found) {
         throw new RepoException(
-            "Could not find " + start.asString() + " reference in the repository");
+            String.format("Could not find '%s' reference in the repository. Available changes:\n"
+                              + "  %s",
+                          start.asString(), Joiner.on("\n  ").join(changes)));
       }
     }
   }

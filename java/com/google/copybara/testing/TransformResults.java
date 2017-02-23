@@ -32,6 +32,7 @@ public class TransformResults {
    */
   public static TransformResult of(Path path, DummyRevision originRef)
       throws ValidationException, RepoException {
-    return new TransformResult(path, originRef, originRef.getAuthor(), "test summary\n");
+    return new TransformResult(path, originRef, originRef.getAuthor(), "test summary\n",
+                               originRef);
   }
 }

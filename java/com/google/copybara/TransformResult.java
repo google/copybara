@@ -28,49 +28,52 @@ import javax.annotation.Nullable;
  */
 public final class TransformResult {
   private final Path path;
-  private final Revision originRef;
   private final Author author;
   private final Instant timestamp;
   private final String summary;
   @Nullable
   private final String baseline;
   private final boolean askForConfirmation;
+  private final Revision currentRevision;
+  private final Revision requestedRevision;
 
   private static Instant readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     Instant refTimestamp = originRef.readTimestamp();
     return (refTimestamp != null) ? refTimestamp : Instant.now();
   }
 
-  public TransformResult(Path path, Revision originRef, Author author, String summary)
+  public TransformResult(Path path, Revision currentRevision, Author author, String summary,
+      Revision requestedRevision)
       throws RepoException {
-    this(path, originRef, author,
-        readTimestampOrCurrentTime(originRef), summary,
-        /*baseline=*/ null, /*askForConfirmation=*/ false);
+    this(path, currentRevision, author, readTimestampOrCurrentTime(currentRevision), summary,
+        /*baseline=*/ null, /*askForConfirmation=*/ false,
+         requestedRevision);
   }
 
-  private TransformResult(Path path, Revision originRef, Author author, Instant timestamp,
-      String summary, @Nullable String baseline,
-      boolean askForConfirmation) {
+  private TransformResult(Path path, Revision currentRevision, Author author, Instant timestamp,
+      String summary, @Nullable String baseline, boolean askForConfirmation,
+      Revision requestedRevision) {
     this.path = Preconditions.checkNotNull(path);
-    this.originRef = Preconditions.checkNotNull(originRef);
+    this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
     this.timestamp = timestamp;
     this.summary = Preconditions.checkNotNull(summary);
     this.baseline = baseline;
     this.askForConfirmation = askForConfirmation;
+    this.requestedRevision = Preconditions.checkNotNull(requestedRevision);
   }
 
   public TransformResult withBaseline(String newBaseline) {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
-        this.path, this.originRef, this.author, this.timestamp, this.summary,
-        newBaseline, this.askForConfirmation);
+        this.path, this.currentRevision, this.author, this.timestamp, this.summary,
+        newBaseline, this.askForConfirmation, this.requestedRevision);
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
     return new TransformResult(
-        this.path, this.originRef, this.author, this.timestamp, this.summary,
-        this.baseline, askForConfirmation);
+        this.path, this.currentRevision, this.author, this.timestamp, this.summary,
+        this.baseline, askForConfirmation, this.requestedRevision);
   }
 
   /**
@@ -81,10 +84,22 @@ public final class TransformResult {
   }
 
   /**
-   * Revision to the origin revision being moved.
+   * The current revision being migrated. In ITERATIVE mode this would change per
+   * migration.
    */
-  public Revision getOriginRef() {
-    return originRef;
+  public Revision getCurrentRevision() {
+    return currentRevision;
+  }
+
+  /**
+   * The revision that the user asked to migrate to. For example in ITERATIVE mode this would be
+   * always the same revision for one Copybara invocation.
+   *
+   * <p>This revision might contain {@link Revision#contextReference()}, labels or other metadata
+   * associated with it.
+   */
+  public Revision getRequestedRevision() {
+    return requestedRevision;
   }
 
   /**

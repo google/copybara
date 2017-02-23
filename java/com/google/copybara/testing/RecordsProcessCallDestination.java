@@ -137,7 +137,7 @@ public class RecordsProcessCallDestination implements Destination {
     }
 
     public Revision getOriginRef() {
-      return transformResult.getOriginRef();
+      return transformResult.getCurrentRevision();
     }
 
     public Author getAuthor() {
@@ -146,6 +146,10 @@ public class RecordsProcessCallDestination implements Destination {
 
     public String getChangesSummary() {
       return transformResult.getSummary();
+    }
+
+    public Revision getRequestedRevision() {
+      return transformResult.getRequestedRevision();
     }
 
     public int numFiles() {

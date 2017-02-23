@@ -105,7 +105,8 @@ public class RevisionMigratorTest {
           public SkylarkList<? extends Change<?>> getMigrated() {
             throw new UnsupportedOperationException();
           }
-        }, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader));
+        }, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader),
+                             new DummyRevision("1234567890"));
   }
 
   @Test

@@ -174,13 +174,55 @@ public class WorkflowTest {
   }
 
   @Test
+  public void squashWorkflowTestRecordContextReference() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
+    transformations = ImmutableList.of();
+    Workflow workflow = workflow();
+    workflow.run(workdir, /*sourceRef=*/"HEAD");
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getRequestedRevision().contextReference()).isEqualTo("HEAD");
+  }
+
+  @Test
+  public void iterativeWorkflowTestRecordContextReference() throws Exception {
+    for (int timestamp = 0; timestamp < 10; timestamp++) {
+      origin.addSimpleChange(timestamp);
+    }
+    Workflow workflow = iterativeWorkflow("0");
+
+    // First change is migrated without context reference. Then we run again with
+    // context ("HEAD").
+    workflow.run(workdir, /*sourceRef=*/ "1");
+    workflow = iterativeWorkflow(/*previousRef=*/ null);
+    workflow.run(workdir, /*sourceRef=*/ "HEAD");
+    for (ProcessedChange change : destination.processed) {
+      assertThat(change.getRequestedRevision().contextReference())
+          .isEqualTo(change.getOriginRef().asString().equals("1") ? null : "HEAD");
+    }
+  }
+
+  @Test
+  public void changeRequestWorkflowTestRecordContextReference() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change");
+
+    Workflow workflow = changeRequestWorkflow(null);
+    workflow.run(workdir, "HEAD");
+    ProcessedChange change = destination.processed.get(0);
+
+    assertThat(change.getBaseline()).isEqualTo("42");
+    assertThat(change.getRequestedRevision().contextReference()).isEqualTo("HEAD");
+  }
+
+  @Test
   public void iterativeWorkflowTest_defaultAuthoring() throws Exception {
     for (int timestamp = 0; timestamp < 61; timestamp++) {
       origin.addSimpleChange(timestamp);
     }
-    Workflow workflow = iterativeWorkflow(/*previousRef=*/"42");
+    Workflow workflow = iterativeWorkflow(/*previousRef=*/ "42");
 
-    workflow.run(workdir, /*sourceRef=*/"50");
+    workflow.run(workdir, /*sourceRef=*/ "50");
     assertThat(destination.processed).hasSize(8);
     int nextChange = 43;
     for (ProcessedChange change : destination.processed) {
@@ -194,7 +236,7 @@ public class WorkflowTest {
     }
 
     workflow = iterativeWorkflow(null);
-    workflow.run(workdir, /*sourceRef=*/"60");
+    workflow.run(workdir, /*sourceRef=*/ "60");
     assertThat(destination.processed).hasSize(18);
   }
 

@@ -73,8 +73,8 @@ public final class GitDestination implements Destination<GitRevision> {
           String.format(
               "%s\n\n%s: %s\n",
               transformResult.getSummary(),
-              transformResult.getOriginRef().getLabelName(),
-              transformResult.getOriginRef().asString()),
+              transformResult.getCurrentRevision().getLabelName(),
+              transformResult.getCurrentRevision().asString()),
           /*newPush*/ true);
     }
   }
