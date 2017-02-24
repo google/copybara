@@ -57,7 +57,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
     this.originReader = workflow.getOrigin()
         .newReader(workflow.getOriginFiles(), workflow.getAuthoring());
-    this.writer = workflow.getDestination().newWriter(workflow.getDestinationFiles());
+    this.writer = workflow.getDestination().newWriter(workflow.getDestinationFiles(),
+                                                      workflow.getMigrationIdentity(resolvedRef));
     this.destinationReader = workflow.getDestination().newReader(workflow.getDestinationFiles());
   }
 

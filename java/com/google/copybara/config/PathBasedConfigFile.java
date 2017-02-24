@@ -61,6 +61,11 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
   }
 
   @Override
+  public String relativeToRoot(){
+    return rootPath == null ? super.relativeToRoot() : rootPath.relativize(path).toString();
+  }
+
+  @Override
   protected Path relativeToCurrentPath(String label) throws CannotResolveLabel {
     return this.path.resolveSibling(label);
   }

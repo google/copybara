@@ -63,8 +63,8 @@ public final class SkylarkTestExecutorTest {
     private ConfigFile configFile;
 
     @Override
-    public void setConfigFile(ConfigFile configFile) {
-      this.configFile = configFile;
+    public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+      this.configFile = currentConfigFile;
     }
 
     @SkylarkSignature(name = "read_foo_extra", returnType = String.class,

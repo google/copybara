@@ -20,8 +20,9 @@ import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.base.SkylarkUtil.stringToEnum;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -30,7 +31,6 @@ import com.google.copybara.transform.Move;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.VerifyMatch;
-import com.google.copybara.transform.metadata.MetadataSquashNotes;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -69,13 +69,14 @@ import java.util.Map;
     doc = "Core functionality for creating migrations, and basic transformations.",
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(GeneralOptions.class)
-public class Core implements OptionsAwareModule {
+public class Core implements OptionsAwareModule, LabelsAwareModule {
 
   public static final String CORE_VAR = "core";
 
   private final Map<String, Migration> migrations = new HashMap<>();
   private GeneralOptions generalOptions;
   private WorkflowOptions workflowOptions;
+  private ConfigFile<?> mainConfigFile;
 
   @Override
   public void setOptions(Options options) {
@@ -313,7 +314,8 @@ public class Core implements OptionsAwareModule {
           reverseTransform,
           self.generalOptions.isVerbose(),
           askForConfirmation,
-          self.generalOptions.isForced()));
+          self.generalOptions.isForced(),
+          self.mainConfigFile));
       return Runtime.NONE;
     }
   };
@@ -551,5 +553,10 @@ public class Core implements OptionsAwareModule {
 
   public static Core getCore(Environment env) {
     return (Core) env.getGlobals().get(CORE_VAR);
+  }
+
+  @Override
+  public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+    this.mainConfigFile = mainConfigFile;
   }
 }

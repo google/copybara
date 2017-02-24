@@ -81,11 +81,13 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
      * Returns the latest origin ref that was pushed to this destination.
      *
      * <p>Returns null if the last origin ref cannot be identified or the destination doesn't
-     * support this feature. This requires that the {@code Destination} stores information about
-     * the origin ref.
+     * support this feature. This requires that the {@code Destination} stores information about the
+     * origin ref.
      *
-     * <p>This method may have undefined behavior if called after
-     * {@link #write(TransformResult, Console)}.
+     * <p>This method may have undefined behavior if called after {@link #write(TransformResult,
+     * Console)}.
+     *
+     * @param labelName the label used in the destination for storing the last migrated ref
      */
     @Nullable
     String getPreviousRef(String labelName) throws RepoException;
@@ -120,10 +122,13 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    *
    * @param destinationFiles A path matcher which matches files in the destination that should be
    *     deleted if they don't exist in the source.
+   * @param migrationIdentity an stable identifier that represents an entity (code review) for
+   *     destinations that might contain multiple entities.
    * @throws ValidationException if the writer could not be created because of a user error. For
    *     instance, the destination cannot be used with the given {@code destinationFiles}.
    */
-  Writer newWriter(Glob destinationFiles) throws ValidationException;
+  Writer newWriter(Glob destinationFiles, @Nullable String migrationIdentity)
+      throws ValidationException;
 
   /**
    * Given a reverse workflow with an {@code Origin} than is of the same type as this destination,

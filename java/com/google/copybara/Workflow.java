@@ -20,13 +20,17 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.hash.Hashing;
+import com.google.common.io.BaseEncoding;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.config.ConfigFile;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,6 +65,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean verbose;
   private final boolean askForConfirmation;
   private final boolean force;
+  private final ConfigFile<?> mainConfigFile;
 
   public Workflow(
       String name,
@@ -77,7 +82,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       @Nullable Transformation reverseTransformForCheck,
       boolean verbose,
       boolean askForConfirmation,
-      boolean force) {
+      boolean force,
+      ConfigFile<?> mainConfigFile) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -93,6 +99,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.verbose = verbose;
     this.askForConfirmation = askForConfirmation;
     this.force = force;
+    this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
   }
 
   public String getName() {
@@ -176,10 +183,12 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   @Override
   public Info getInfo() throws RepoException, ValidationException {
-    Writer writer = destination.newWriter(destinationFiles);
+    O lastResolved = origin.resolve(/*sourceRef=*/ null);
+    String migrationIdentity = getMigrationIdentity(lastResolved);
+    Writer writer = destination.newWriter(destinationFiles,
+                                          migrationIdentity);
     String lastRef = writer.getPreviousRef(origin.getLabelName());
     O lastMigrated = (lastRef == null) ? null : origin.resolve(lastRef);
-    O lastResolved = origin.resolve(/*sourceRef=*/ null);
 
     ImmutableList<Change<O>> changes =
         origin.newReader(originFiles, authoring).changes(lastMigrated, lastResolved);
@@ -235,5 +244,38 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public WorkflowMode getMode() {
     return mode;
+  }
+
+  /**
+   * Migration identity tries to create a stable identifier for the migration that is stable between
+   * Copybara invocations for the same reference. For example it will contain the copy.bara.sky
+   * config file location relative to the root, the workflow name or the context reference used in
+   * the request.
+   *
+   * <p>This identifier can be used by destinations to reuse code reviews, etc.
+   */
+  String getMigrationIdentity(Revision requestedRevision) {
+    boolean contextRefDefined = requestedRevision.contextReference() != null;
+    String ctxRef =
+        contextRefDefined ? requestedRevision.contextReference() : requestedRevision.asString();
+
+    String identity = MoreObjects.toStringHelper("Migration")
+            .add("type", "workflow")
+            .add("config_path", mainConfigFile.relativeToRoot())
+            .add("workflow_name", this.name)
+            .add("context_ref", ctxRef)
+            .toString();
+    String hash = BaseEncoding.base16().encode(
+                Hashing.md5()
+                    .hashString(identity, StandardCharsets.UTF_8)
+                    .asBytes());
+
+    // Important to log the source of the hash and the hash for debugging purposes.
+    logger.info("Computed migration identity hash for " + identity + " as " + hash);
+    return hash;
+  }
+
+  public ConfigFile getMainConfigFile() {
+    return mainConfigFile;
   }
 }

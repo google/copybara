@@ -270,7 +270,7 @@ public class WorkflowTest {
     // Override destination with one that always throws EmptyChangeException.
     options.testingOptions.destination = new RecordsProcessCallDestination() {
       @Override
-      public Writer newWriter(Glob destinationFiles) {
+      public Writer newWriter(Glob destinationFiles, String migrationIdentity) {
         return new RecordsProcessCallDestination.WriterImpl(destinationFiles) {
           @Override
           public WriterResult write(TransformResult transformResult, Console console)
@@ -456,6 +456,25 @@ public class WorkflowTest {
   }
 
   @Test
+  public void migrationIdentityConstant() throws Exception {
+    // Squash always sets the default author for the commit but not in the release notes
+    origin.addSimpleChange(/*timestamp*/ 1);
+    String before = workflow().getMigrationIdentity(origin.resolve(HEAD));
+    origin.addSimpleChange(/*timestamp*/ 2);
+    origin.addSimpleChange(/*timestamp*/ 3);
+    String after = workflow().getMigrationIdentity(origin.resolve(HEAD));
+
+    // If we use 'HEAD' as reference it is constant
+    assertThat(before).isEqualTo(after);
+
+    String nonConstant = workflow().getMigrationIdentity(origin.resolve("3"));
+
+    // But if we use direct reference (3 instead of 'HEAD') it changes since we cannot
+    // find the context reference.
+    assertThat(after).isNotEqualTo(nonConstant);
+  }
+
+  @Test
   public void testSquashAlreadyMigrated() throws Exception {
     options.setForce(false); // Disable force so that we get an error
     origin.addSimpleChange(/*timestamp*/ 1);
@@ -502,10 +521,12 @@ public class WorkflowTest {
 
     String head = HEAD;
     workflow.run(workdir, head);
-    assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
+    assertThat(destination.newWriter(Glob.ALL_FILES, /*migrationIdentity=*/ null)
+                   .getPreviousRef(origin.getLabelName()))
         .isEqualTo("3");
     workflow.run(workdir, oldRef);
-    assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
+    assertThat(destination.newWriter(Glob.ALL_FILES,  /*migrationIdentity=*/ null)
+                   .getPreviousRef(origin.getLabelName()))
         .isEqualTo("0");
   }
 

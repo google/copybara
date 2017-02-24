@@ -31,5 +31,5 @@ public interface LabelsAwareModule {
    *
    * TODO(copybara-team): Figure out how this works with concurrent loading.
    */
-  void setConfigFile(ConfigFile configFile);
+  void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile);
 }

@@ -54,6 +54,7 @@ public class PathBasedConfigFileTest {
     ConfigFile fooConfig = new PathBasedConfigFile(foo, /*rootPath=*/null);
     assertThat(fooConfig.content()).isEqualTo("foo".getBytes());
     assertThat(fooConfig.path()).isEqualTo("/foo");
+    assertThat(fooConfig.relativeToRoot()).isEqualTo(fooConfig.path());
     assertThat(fooConfig.resolve("bar").content()).isEqualTo("bar".getBytes());
 
     ConfigFile bazFooConfig = fooConfig.resolve("baz/foo");
@@ -71,6 +72,7 @@ public class PathBasedConfigFileTest {
 
     ConfigFile fooConfig = new PathBasedConfigFile(fs.getPath("/foo"),
         /*rootPath=*/fs.getPath("/"));
+    assertThat(fooConfig.relativeToRoot()).isEqualTo("foo");
     assertThat(fooConfig.content()).isEqualTo("foo".getBytes());
     assertThat(fooConfig.path()).isEqualTo("/foo");
 

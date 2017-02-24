@@ -51,7 +51,7 @@ public class FolderDestination implements Destination<Revision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles) {
+  public Writer newWriter(Glob destinationFiles, String migrationIdentity) {
     return new WriterImpl(destinationFiles);
   }
 

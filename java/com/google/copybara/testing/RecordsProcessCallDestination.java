@@ -108,7 +108,7 @@ public class RecordsProcessCallDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles) {
+  public Writer newWriter(Glob destinationFiles, String migrationIdentity) {
     return new WriterImpl(destinationFiles);
   }
 

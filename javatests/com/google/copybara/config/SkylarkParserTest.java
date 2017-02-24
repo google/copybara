@@ -316,11 +316,11 @@ public class SkylarkParserTest {
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
   public static class MockLabelsAwareModule implements LabelsAwareModule {
-    private ConfigFile configFile;
+    private ConfigFile<?> configFile;
 
     @Override
-    public void setConfigFile(ConfigFile configFile) {
-      this.configFile = configFile;
+    public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+      this.configFile = currentConfigFile;
     }
 
     @SuppressWarnings("unused")
@@ -443,7 +443,7 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public Writer newWriter(Glob destinationFiles) {
+    public Writer newWriter(Glob destinationFiles, String migrationIdentity) {
       throw new UnsupportedOperationException();
     }
 

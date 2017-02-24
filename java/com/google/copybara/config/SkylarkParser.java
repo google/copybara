@@ -101,7 +101,7 @@ public class SkylarkParser {
   @VisibleForTesting
   public Environment executeSkylark(ConfigFile content, Options options)
       throws IOException, ValidationException, InterruptedException {
-    return new Evaluator(options).eval(content);
+    return new Evaluator(options, content).eval(content);
   }
 
   /**
@@ -153,15 +153,17 @@ public class SkylarkParser {
     private final Map<String, Environment> loaded = new HashMap<>();
     private final Options options;
     private final Console console;
+    private final ConfigFile<?> mainConfigFile;
     private final EventHandler eventHandler;
 
-    private Evaluator(Options options) {
+    private Evaluator(Options options, ConfigFile<?> mainConfigFile) {
       this.options = Preconditions.checkNotNull(options);
       console = options.get(GeneralOptions.class).console();
+      this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
       eventHandler = new ConsoleEventHandler(console);
     }
 
-    private Environment eval(ConfigFile content)
+    private Environment eval(ConfigFile<?> content)
         throws IOException, ValidationException, InterruptedException {
       if (pending.contains(content.path())) {
         throw throwCycleError(content.path());
@@ -170,7 +172,7 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      Frame globals = createGlobals(eventHandler, options, content);
+      Frame globals = createGlobals(eventHandler, options, content, mainConfigFile);
 
       BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
           new InputSourceForConfigFile(content), eventHandler);
@@ -223,7 +225,8 @@ public class SkylarkParser {
    * <p>The returned object can be reused for different instances of environments.
    */
   private Environment.Frame createGlobals(
-      EventHandler eventHandler, Options options, ConfigFile configFile) {
+      EventHandler eventHandler, Options options, ConfigFile<?> currentConfigFile,
+      ConfigFile<?> mainConfigFile) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK,
         ImmutableMap.<String, Extension>of());
 
@@ -236,7 +239,9 @@ public class SkylarkParser {
         ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(options);
       }
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
-        ((LabelsAwareModule) getModuleGlobal(env, module)).setConfigFile(configFile);
+        ((LabelsAwareModule) getModuleGlobal(env, module)).setConfigFile(mainConfigFile,
+                                                                         currentConfigFile
+        );
       }
     }
     env.mutability().close();

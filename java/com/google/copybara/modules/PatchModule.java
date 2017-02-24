@@ -44,12 +44,12 @@ import com.google.devtools.build.lib.syntax.Type;
 @UsesFlags(GeneralOptions.class)
 public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
 
-  private ConfigFile configFile;
+  private ConfigFile<?> configFile;
   private GeneralOptions generalOptions;
 
   @Override
-  public void setConfigFile(ConfigFile configFile) {
-    this.configFile = configFile;
+  public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+    this.configFile = currentConfigFile;
   }
 
   @SuppressWarnings("unused")
