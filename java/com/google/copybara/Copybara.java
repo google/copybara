@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
  */
 public class Copybara {
 
-  private final ConfigValidator configValidator;
+  protected final ConfigValidator configValidator;
 
   public Copybara() {
     this.configValidator = new ConfigValidator();
