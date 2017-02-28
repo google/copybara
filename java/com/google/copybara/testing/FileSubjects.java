@@ -107,6 +107,24 @@ public class FileSubjects {
     }
 
     /**
+     * Checks that a filename exists relative to the path and that it is a symlink pointing to
+     * target.
+     */
+    public PathSubject containsSymlink(String filename, String target) throws IOException {
+      Path filePath =  getSubject().resolve(filename);
+      Path targetPath = checkFile(target);
+
+      if (!Files.isSymbolicLink(filePath)) {
+        fail("%s is not a Symlink", filename);
+      }
+      Path realTarget = filePath.resolveSibling(Files.readSymbolicLink(filePath));
+      if (!Files.isSameFile(realTarget, targetPath)) {
+        failWithCustomSubject(filename + " Does not point to expected target", target, realTarget);
+      }
+      return this;
+    }
+
+    /**
      * Checks that there are no more files in the path.
      */
     public PathSubject containsNoMoreFiles() throws IOException {
