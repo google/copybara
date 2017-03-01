@@ -38,7 +38,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -47,7 +46,7 @@ import javax.annotation.Nullable;
 public class FolderOrigin implements Origin<FolderRevision> {
 
   private static final String LABEL_NAME = "FolderOrigin-RevId";
-  private static final Set<PosixFilePermission> FILE_PERMISSIONS =
+  private static final ImmutableSet<PosixFilePermission> FILE_PERMISSIONS =
       ImmutableSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
 
   private final FileSystem fs;
