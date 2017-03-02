@@ -17,14 +17,17 @@
 package com.google.copybara;
 
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,9 +59,47 @@ public final class CoreTransformTest {
   }
 
   @Test
-  public void errorForMissingReversalArgument() {
-    skylark.evalFails("core.transform([core.move('foo', 'bar')])",
-        "missing mandatory keyword arguments in call to transform");
+  public void errorForMissingReversalNonReversibleArgument() {
+    skylark.evalFails(""
+            + "core.transform([\n"
+            + "    core.replace(\n"
+            + "        before = 'foo${x}',\n"
+            + "        after = 'bar',\n"
+            + "        regex_groups = {\n"
+            + "            'x' : 'x+',\n"
+            + "        },\n"
+            + "  )\n"
+            + "])",
+        "transformations are not automatically reversible");
+  }
+
+  @Test
+  public void autoReversibleCheck() throws ValidationException, IOException {
+    ExplicitReversal t = skylark.eval("x", "x="
+        + "core.transform([\n"
+        + "    core.replace(\n"
+        + "        before = 'foo',\n"
+        + "        after = 'bar',\n"
+        + "    ),\n"
+        + "    core.replace(\n"
+        + "        before = 'bar',\n"
+        + "        after = 'baz',\n"
+        + "    ),\n"
+        + "])");
+
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+
+    t.transform(TransformWorks.of(checkoutDir, "msg", console));
+
+    assertThatPath(checkoutDir)
+        .containsFile("file.txt","baz")
+        .containsNoMoreFiles();
+
+    t.reverse().transform(TransformWorks.of(checkoutDir, "msg", console));
+
+    assertThatPath(checkoutDir)
+        .containsFile("file.txt","foo")
+        .containsNoMoreFiles();
   }
 
   @Test

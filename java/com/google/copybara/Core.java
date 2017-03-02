@@ -526,10 +526,14 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @SkylarkSignature(
       name = "transform",
       returnType = Transformation.class,
-      doc = "Creates a transformation with a particular, manually-specified, reversal, where the"
-      + " forward version and reversed version of the transform are represented as lists of"
-      + " transforms. The is useful if a transformation does not automatically reverse, or if the"
-      + " automatic reversal does not work for some reason.",
+      doc = "Groups some transformations in a transformation that can contain a particular,"
+          + " manually-specified, reversal, where the forward version and reversed version"
+          + " of the transform are represented as lists of transforms. The is useful if a"
+          + " transformation does not automatically reverse, or if the automatic reversal"
+          + " does not work for some reason."
+          + "<br>"
+          + "If reversal is not provided, the transform will try to compute the reverse of"
+          + " the transformations list.",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object"),
           @Param(name = "transformations",
@@ -538,16 +542,27 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               + " transformation."),
           @Param(name = "reversal", type = SkylarkList.class, generic1 = Transformation.class,
               doc = "The list of transformations to run as a result of running this"
-              + " transformation in reverse.", named = true, positional = false),
+                  + " transformation in reverse.", named = true, positional = false,
+              noneable = true, defaultValue = "The reverse of 'transformations'"),
       },
       objectType = Core.class, useEnvironment = true)
-  public static final BuiltinFunction TRANSFORM = new BuiltinFunction("transform") {
+  public static final BuiltinFunction TRANSFORM = new BuiltinFunction("transform",
+      ImmutableList.of(Runtime.NONE)) {
     public Transformation invoke(Core self,
         SkylarkList<Transformation> transformations,
-        SkylarkList<Transformation> reversal, Environment env) throws EvalException {
-      return new ExplicitReversal(
-          Sequence.fromConfig(transformations, "transformations", env),
-          Sequence.fromConfig(reversal, "reversal", env));
+        Object reversal, Environment env) throws EvalException {
+      Sequence forward = Sequence.fromConfig(transformations, "transformations", env);
+      SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
+      if (reverseList == null) {
+        try {
+          reverseList = SkylarkList.createImmutable(ImmutableList.of(forward.reverse()));
+        } catch (NonReversibleValidationException e) {
+          throw new EvalException(location, "transformations are not automatically reversible."
+              + " Use 'reversal' field to explicitly configure the reversal of the transform", e);
+        }
+      }
+      Sequence reverse = Sequence.fromConfig(reverseList, "reversal", env);
+      return new ExplicitReversal(forward, reverse);
     }
   };
 
