@@ -295,6 +295,49 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testMetadataVerifyMatch() throws Exception {
+    options.setLastRevision(origin.resolve("HEAD").asString());
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.verify_match(\"<public>(.|\\n)*</public>\")");
+    origin.addSimpleChange(0, "this\nshould\n<public>match\n\nreally!</public>match");
+    wf.run(workdir, /*sourceRef=*/"HEAD");
+  }
+
+  @Test
+  public void testMetadataVerifyMatchFails() throws Exception {
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.verify_match(\"foobar\")");
+    try {
+      wf.run(workdir, /*sourceRef=*/"HEAD");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e.getMessage()).contains("Could not find 'foobar' in the change message");
+    }
+  }
+
+  @Test
+  public void testMetadataVerifyNoMatch() throws Exception {
+    options.setLastRevision(origin.resolve("HEAD").asString());
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.verify_match(\"foo\", verify_no_match = True)");
+    origin.addSimpleChange(0, "bar");
+    wf.run(workdir, /*sourceRef=*/"HEAD");
+  }
+
+  @Test
+  public void testMetadataVerifyNoMatchFails() throws Exception {
+    options.setLastRevision(origin.resolve("HEAD").asString());
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.verify_match(\"bar\", verify_no_match = True)");
+    origin.addSimpleChange(0, "bar");
+    try {
+      wf.run(workdir, /*sourceRef=*/"HEAD");
+    } catch (ValidationException e) {
+      assertThat(e.getMessage()).contains("'bar' found in the change message");
+    }
+  }
+
+  @Test
   public void testScrubber() throws Exception {
     checkScrubber("foo\nbar\nfooooo", "metadata.scrubber('foo+\\n?')", "bar\n");
   }

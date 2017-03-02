@@ -285,6 +285,36 @@ public class MetadataModule {
     }
   };
 
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "verify_match", returnType = Transformation.class,
+      doc = "Verifies that a RegEx matches (or not matches) the change message. Does not, " +
+          "transform anything, but will stop the workflow if it fails.",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "regex", type = String.class,
+              doc = "The regex pattern to verify. The re2j pattern will be applied in multiline"
+                  + " mode, i.e. '^' refers to the beginning of a file and '$' to its end."),
+          @Param(name = "verify_no_match", type = Boolean.class,
+              doc = "If true, the transformation will verify that the RegEx does not match.",
+              defaultValue = "False"),
+      }, objectType = MetadataModule.class, useLocation = true)
+  @Example(title = "Check that a text is present in the change description",
+      before = "Check that the change message contains a text enclosed in <public></public>:",
+      code = "metadata.verify_match(\"<public>(.|\\n)*</public>\")"
+  )
+  static final BuiltinFunction VERIFY_MATCH = new BuiltinFunction("verify_match") {
+    public Transformation invoke(MetadataModule self, String regex, Boolean verifyNoMatch,
+        Location location)
+        throws EvalException {
+      Pattern pattern;
+      try {
+        pattern = Pattern.compile(regex, Pattern.MULTILINE);
+      } catch (PatternSyntaxException e) {
+        throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
+      }
+      return new MetadataVerifyMatch(pattern, verifyNoMatch);
+    }
+  };
 
   @SkylarkSignature(name = "map_references", returnType = ReferenceMigrator.class,
       doc = "Allows updating links to references in commit messages to match the destination's "
