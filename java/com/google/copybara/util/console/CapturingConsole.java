@@ -33,7 +33,8 @@ import java.util.Set;
  */
 public class CapturingConsole implements Console {
 
-  protected static final Set<MessageType> ALL_TYPES = ImmutableSet.copyOf(MessageType.values());
+  protected static final ImmutableSet<MessageType> ALL_TYPES =
+      ImmutableSet.copyOf(MessageType.values());
 
   private final Console delegate;
   private final ArrayList<Message> messages = new ArrayList<>();
