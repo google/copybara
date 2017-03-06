@@ -136,7 +136,7 @@ public class TransformWorkTest {
     Path base = fileSystem.getPath("foo");
     touchFile(base.resolve("not_important.txt"), "");
     Files.createDirectories(workdir.resolve("folder"));
-    origin.addChange(0, base, "message");
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
     runWorkflow("test", ""
         + "def test(ctx):\n"
@@ -155,7 +155,7 @@ public class TransformWorkTest {
     Path base = fileSystem.getPath("foo");
     touchFile(base.resolve("not_important.txt"), "");
     Files.createDirectories(workdir.resolve("folder"));
-    origin.addChange(0, base, "message");
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
     try {
       runWorkflow("test", ""
@@ -180,7 +180,7 @@ public class TransformWorkTest {
     touchFile(base, "folder/subfolder/file.java");
 
     Files.createDirectories(workdir.resolve("folder"));
-    origin.addChange(0, base, "message");
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
     runWorkflow("test", ""
         + "def test(ctx):\n"
@@ -205,7 +205,7 @@ public class TransformWorkTest {
     touchFile(base, "folder/file3.txt");
 
     Files.createDirectories(workdir.resolve("folder"));
-    origin.addChange(0, base, "message");
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
     runWorkflow("test", ""
         + "def test(ctx):\n"
@@ -247,7 +247,7 @@ public class TransformWorkTest {
     Path base = fileSystem.getPath("foo");
     touchFile(base.resolve("not_important.txt"), "");
     Files.createDirectories(workdir.resolve("folder"));
-    origin.addChange(0, base, "message");
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
     runWorkflow("test", ""
         + "def test(ctx):\n"
@@ -271,7 +271,7 @@ public class TransformWorkTest {
     Files.createDirectories(base);
     Files.write(base.resolve("file.txt"), "1234567890".getBytes(UTF_8));
     Files.createDirectories(workdir.resolve("folder"));
-    origin.addChange(0, base, "message");
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
     runWorkflow("test", "def test(ctx):\n"
         + "    size = ctx.run(glob(['**.txt']))[0].attr.size\n"

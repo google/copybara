@@ -100,6 +100,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return workflow.isForce();
   }
 
+  boolean isSquashWithoutHistory() {
+    return workflow.getWorkflowOptions().squashSkipHistory;
+  }
+
   Destination getDestination() {
     return workflow.getDestination();
   }
@@ -216,7 +220,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
 
   ImmutableList<Change<O>> changesSinceLastImport() throws RepoException, ValidationException {
-    return originReader.changes(getLastRev(), resolvedRef);
+    return getChanges(getLastRev(), resolvedRef);
+  }
+
+  ImmutableList<Change<O>> getChanges(@Nullable O from, O to)
+      throws RepoException, ValidationException {
+    return originReader.changes(from, to);
   }
 
   /**
@@ -242,7 +251,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * revision will be resolved in the destination with the origin label.
    */
   @Nullable
-  O maybeGetLastRev() throws RepoException, ValidationException {
+  private O maybeGetLastRev() throws RepoException, ValidationException {
     if (workflow.getLastRevisionFlag() != null) {
       try {
         return workflow.getOrigin().resolve(workflow.getLastRevisionFlag());

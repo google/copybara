@@ -85,14 +85,15 @@ public class DummyOrigin implements Origin<DummyRevision> {
     Path path = fs.getPath("" + changes.size());
     Files.createDirectories(path);
     Files.write(path.resolve(strPath), content.getBytes(StandardCharsets.UTF_8));
-    addChange(timestamp, path, message);
+    addChange(timestamp, path, message, /*matchesGlob=*/true);
     return this;
   }
 
-  public DummyOrigin addChange(int timestamp, Path path, String message) {
+  public DummyOrigin addChange(int timestamp, Path path, String message, boolean matchesGlob) {
     changes.add(new DummyRevision(
         "" + changes.size(), message, author, path, Instant.ofEpochSecond(timestamp),
-        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of()));
+        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of(),
+        matchesGlob));
     return this;
   }
 
@@ -148,14 +149,20 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
     @Override
     public ImmutableList<Change<DummyRevision>> changes(
-        DummyRevision oldRef, @Nullable DummyRevision newRef) throws RepoException {
+        @Nullable DummyRevision oldRef, DummyRevision newRef) throws RepoException {
 
+      if (oldRef != null
+          && Integer.parseInt(oldRef.asString()) >= Integer.parseInt(newRef.asString())) {
+        return ImmutableList.of();
+      }
       int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
 
       ImmutableList.Builder<Change<DummyRevision>> result = ImmutableList.builder();
       while (current < changes.size()) {
         DummyRevision ref = changes.get(current);
-        result.add(ref.toChange(authoring));
+        if (ref.matchesGlob()) {
+          result.add(ref.toChange(authoring));
+        }
         if (newRef == ref) {
           break;
         }
@@ -186,7 +193,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
         if (change.asString().equals(start.asString())) {
           found = true;
         }
-        if (found) {
+        if (found && change.matchesGlob()) {
           if (visitor.visit(change.toChange(authoring)) == VisitResult.TERMINATE) {
             return;
           }

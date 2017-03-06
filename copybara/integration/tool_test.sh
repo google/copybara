@@ -310,8 +310,9 @@ EOF
   ( cd $destination
     run_git log master~1..master > $TEST_log
   )
-  # We only record changes when we know the previous version
-  expect_not_log "commit one"
+  # By default we include the whole history if last_rev cannot be found. --squash-without-history
+  # can be used for disabling this.
+  expect_log "commit one"
 
   copybara copy.bara.sky default $commit_four
 

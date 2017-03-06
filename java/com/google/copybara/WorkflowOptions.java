@@ -50,6 +50,15 @@ public class WorkflowOptions implements Option {
           + " directories, etc.")
   public boolean ignoreNoop = false;
 
+  @Parameter(
+    names = "--squash-skip-history",
+    description =
+        "Avoid exposing the history of changes that are being migrated. This is"
+            + " useful when we want to migrate a new repository but we don't want to expose all"
+            + " the change history to metadata.squash_notes."
+  )
+  public boolean squashSkipHistory = false;
+
   /**
    * Reports that some operation is a no-op. This will either throw an exception or report the
    * incident to the console, depending on the options.

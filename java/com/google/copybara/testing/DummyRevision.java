@@ -49,18 +49,20 @@ public class DummyRevision implements Revision {
   @Nullable
   private final String contextReference;
   private final ImmutableMap<String, String> referenceLabels;
+  private final boolean matchesGlob;
   private final ImmutableMap<String, String> descriptionLabels;
 
   public DummyRevision(String reference) {
     this(reference, "DummyReference message", DEFAULT_AUTHOR,
         Paths.get("/DummyReference", reference), /*timestamp=*/null,
-        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of());
+        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of(),
+         /*matchesGlob=*/true);
   }
 
   DummyRevision(
       String reference, String message, Author author, Path changesBase,
       @Nullable Instant timestamp, @Nullable String contextReference,
-      ImmutableMap<String, String> referenceLabels) {
+      ImmutableMap<String, String> referenceLabels, boolean matchesGlob) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
     this.author = Preconditions.checkNotNull(author);
@@ -68,6 +70,7 @@ public class DummyRevision implements Revision {
     this.timestamp = timestamp;
     this.contextReference = contextReference;
     this.referenceLabels = Preconditions.checkNotNull(referenceLabels);
+    this.matchesGlob = matchesGlob;
 
     ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
     for (String line : message.split("\n")) {
@@ -85,20 +88,20 @@ public class DummyRevision implements Revision {
   public DummyRevision withTimestamp(Instant newTimestamp) {
     return new DummyRevision(
         this.reference, this.message, this.author, this.changesBase, newTimestamp,
-        this.contextReference, this.referenceLabels);
+        this.contextReference, this.referenceLabels, this.matchesGlob);
   }
 
   public DummyRevision withAuthor(Author newAuthor) {
     return new DummyRevision(
         this.reference, this.message, newAuthor, this.changesBase, this.timestamp,
-        this.contextReference, this.referenceLabels);
+        this.contextReference, this.referenceLabels, this.matchesGlob);
   }
 
   public DummyRevision withContextReference(String contextReference) {
     Preconditions.checkNotNull(contextReference);
     return new DummyRevision(
         this.reference, this.message, this.getAuthor(), this.changesBase, this.timestamp,
-        contextReference, this.referenceLabels);
+        contextReference, this.referenceLabels, this.matchesGlob);
   }
 
   @Nullable
@@ -138,6 +141,10 @@ public class DummyRevision implements Revision {
 
   public Author getAuthor() {
     return author;
+  }
+
+  public boolean matchesGlob() {
+    return matchesGlob;
   }
 
   @Override

@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.WorkflowMode.SQUASH;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.junit.Assert.fail;
@@ -32,6 +33,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
@@ -49,6 +51,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -122,7 +125,7 @@ public class WorkflowTest {
 
   private Workflow workflow() throws ValidationException, IOException {
     origin.addSimpleChange(/*timestamp*/ 42);
-    return skylarkWorkflow("default", WorkflowMode.SQUASH);
+    return skylarkWorkflow("default", SQUASH);
   }
 
   private Workflow<?, ?> skylarkWorkflow(String name, WorkflowMode mode)
@@ -169,7 +172,7 @@ public class WorkflowTest {
 
   @Test
   public void toStringIncludesName() throws Exception {
-    assertThat(skylarkWorkflow("toStringIncludesName", WorkflowMode.SQUASH).toString())
+    assertThat(skylarkWorkflow("toStringIncludesName", SQUASH).toString())
         .contains("toStringIncludesName");
   }
 
@@ -181,6 +184,24 @@ public class WorkflowTest {
     workflow.run(workdir, /*sourceRef=*/"HEAD");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getRequestedRevision().contextReference()).isEqualTo("HEAD");
+  }
+
+  @Test
+  public void squashReadsLatestAffectedChangeInRoot() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
+    transformations = ImmutableList.of();
+    Workflow workflow = workflow();
+    workflow.run(workdir, /*sourceRef=*/"HEAD");
+    origin.addSimpleChange(/*timestamp*/ 2);
+    DummyRevision expected = origin.resolve("HEAD");
+    origin.addChange(/*timestamp*/ 3, Paths.get("not important"), "message",
+                     /*matchesGlob=*/false);
+
+    options.setForce(false);
+    workflow = skylarkWorkflow("default", SQUASH);
+    workflow.run(workdir, /*sourceRef=*/"HEAD");
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getOriginRef().asString()).isEqualTo(expected.asString());
   }
 
   @Test
@@ -304,7 +325,7 @@ public class WorkflowTest {
 
     Workflow workflow = iterativeWorkflow("0");
 
-    workflow.run(workdir, /*sourceRef=*/"0");
+    workflow.run(workdir, /*sourceRef=*/HEAD);
     assertThat(destination.processed).hasSize(2);
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
@@ -330,7 +351,7 @@ public class WorkflowTest {
 
     passThruAuthoring();
 
-    iterativeWorkflow("0").run(workdir, /*sourceRef=*/"0");
+    iterativeWorkflow("0").run(workdir, /*sourceRef=*/HEAD);
 
     assertThat(destination.processed).hasSize(2);
 
@@ -476,21 +497,18 @@ public class WorkflowTest {
 
   @Test
   public void testSquashAlreadyMigrated() throws Exception {
-    options.setForce(false); // Disable force so that we get an error
     origin.addSimpleChange(/*timestamp*/ 1);
     String oldRef = resolveHead();
-    options.workflowOptions.lastRevision = oldRef;
     origin.addSimpleChange(/*timestamp*/ 2);
     origin.addSimpleChange(/*timestamp*/ 3);
     includeReleaseNotes = true;
 
-    Workflow workflow = workflow();
-
-    String head = HEAD;
-    workflow.run(workdir, head);
+    options.setForce(true);
+    skylarkWorkflow("default", SQUASH).run(workdir, HEAD);
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("'0' has been already migrated");
-    workflow.run(workdir, oldRef);
+    options.setForce(false); // Disable force so that we get an error
+    skylarkWorkflow("default", SQUASH).run(workdir, oldRef);
   }
 
   @Test
@@ -503,28 +521,25 @@ public class WorkflowTest {
 
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot find last imported revision."
-        + " Use --force if you really want to import '1'");
+        + " Use --force if you really want to proceed with the migration");
     workflow.run(workdir, HEAD);
   }
 
   @Test
   public void testSquashAlreadyMigratedWithForce() throws Exception {
-    options.setForce(true);
     origin.addSimpleChange(/*timestamp*/ 1);
     String oldRef = resolveHead();
-    options.workflowOptions.lastRevision = oldRef;
     origin.addSimpleChange(/*timestamp*/ 2);
     origin.addSimpleChange(/*timestamp*/ 3);
     includeReleaseNotes = true;
 
-    Workflow workflow = workflow();
+    options.setForce(true);
+    workflow().run(workdir, HEAD);
 
-    String head = HEAD;
-    workflow.run(workdir, head);
     assertThat(destination.newWriter(Glob.ALL_FILES, /*migrationIdentity=*/ null)
                    .getPreviousRef(origin.getLabelName()))
         .isEqualTo("3");
-    workflow.run(workdir, oldRef);
+    workflow().run(workdir, oldRef);
     assertThat(destination.newWriter(Glob.ALL_FILES,  /*migrationIdentity=*/ null)
                    .getPreviousRef(origin.getLabelName()))
         .isEqualTo("0");
@@ -852,7 +867,7 @@ public class WorkflowTest {
 
   @Test
   public void testMessageTransformerForSquash() throws Exception {
-    runWorkflowForMessageTransform(WorkflowMode.SQUASH, /*thirdTransform=*/null);
+    runWorkflowForMessageTransform(SQUASH, /*thirdTransform=*/null);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
         .isEqualTo(""
@@ -1051,7 +1066,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
 
     origin.singleFileChange(/*timestamp=*/44, "one commit", "bar.txt", "1");
-    Workflow workflow = skylarkWorkflow("default", WorkflowMode.SQUASH);
+    Workflow workflow = skylarkWorkflow("default", SQUASH);
 
     thrown.expect(NotADestinationFileException.class);
     thrown.expectMessage("[bar.txt]");
@@ -1070,8 +1085,8 @@ public class WorkflowTest {
     Files.write(originDir.resolve("bar"), new byte[] {});
     Files.write(originDir.resolve("foo_included"), new byte[] {});
     Files.write(originDir.resolve("foo42"), new byte[] {});
-    origin.addChange(/*timestamp=*/42, originDir, "change1");
-    Workflow workflow = skylarkWorkflow("default", WorkflowMode.SQUASH);
+    origin.addChange(/*timestamp=*/42, originDir, "change1", /*matchesGlob=*/true);
+    Workflow workflow = skylarkWorkflow("default", SQUASH);
 
     thrown.expect(NotADestinationFileException.class);
     thrown.expectMessage("[bar, foo42]");
@@ -1086,7 +1101,7 @@ public class WorkflowTest {
 
     origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
     origin.singleFileChange(/*timestamp=*/45, "commit 2", "foo42", "1");
-    Workflow workflow = skylarkWorkflow("default", WorkflowMode.SQUASH);
+    Workflow workflow = skylarkWorkflow("default", SQUASH);
 
     workflow.run(workdir, HEAD);
   }
@@ -1102,7 +1117,7 @@ public class WorkflowTest {
     touchFile(base, "folder2/file.txt");
     touchFile(base, "folder2/subfolder/file.txt");
     touchFile(base, "folder2/subfolder/file.java");
-    origin.addChange(1, base, "excludes");
+    origin.addChange(1, base, "excludes", /*matchesGlob=*/true);
   }
 
   private Path touchFile(Path base, String path) throws IOException {

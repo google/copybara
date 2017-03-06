@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 
 /**
  * Workflow type to run between origin an destination
@@ -46,35 +47,23 @@ public enum WorkflowMode {
     @Override
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
-
       Changes changes = new LazyChangesForSquash<>(runHelper);
-
       O current = runHelper.getResolvedRef();
-      if (validateFastForward(runHelper)) {
-        String lastRev;
-        try {
-          lastRev = runHelper.getLastRev().asString();
-        } catch (CannotResolveRevisionException e) {
-          throw new ValidationException(
-              "Cannot find last imported revision. Use "
-                  + GeneralOptions.FORCE + " if you really want to import '"
-                  + current.asString() + "'", e);
-        }
-        if (current.asString().equals(lastRev)) {
-          throw new EmptyChangeException("'" + lastRev + "' has been already migrated. Use "
-              + GeneralOptions.FORCE + " if you really want to run the migration again"
-              + " (For example if the copy.bara.sky file has changed).");
 
+      if (isHistorySupported(runHelper)) {
+        O lastRev = maybeGetLastRev(runHelper);
+        ImmutableList<Change<O>> detectedChanges = runHelper.getChanges(lastRev, current).reverse();
+
+        if (detectedChanges.isEmpty()) {
+          manageNoChangesDetectedForSquash(runHelper, current, lastRev);
         } else {
-          ImmutableList<Change<O>> computed = runHelper.changesSinceLastImport();
-          if (computed.isEmpty()) {
-            throw new ValidationException(
-                "Last imported revision '" + lastRev + "' is not an ancestor of the revision "
-                    + "currently being migrated ('" + current.asString() + "'). Use "
-                    + GeneralOptions.FORCE + " if you really want to migrate the reference.");
-          }
-          // Lets reuse the computed result instead of the lazy one that recomputes the list
-          changes = new ComputedChanges(computed, ImmutableList.of());
+          // Try to use the latest change that affected the origin_files roots instead of the
+          // current revision, that could be an unrelated change.
+          current = detectedChanges.get(0).getRevision();
+          changes = new ComputedChanges(
+              runHelper.isSquashWithoutHistory() ? ImmutableList.of() : detectedChanges,
+              ImmutableList.of()
+          );
         }
       }
 
@@ -88,16 +77,6 @@ public enum WorkflowMode {
                   // SQUASH workflows always use the default author
                   runHelper.getAuthoring().getDefaultAuthor()),
               changes);
-    }
-
-    /**
-     * Return true if we should validate that the already migrated change is an ancestor
-     * of the current migrated ones.
-     */
-    private boolean validateFastForward(WorkflowRunHelper<?, ?> runHelper) {
-      return !runHelper.isForce()
-          && runHelper.destinationSupportsPreviousRef()
-          && runHelper.getOriginReader().supportsHistory();
     }
   },
 
@@ -206,6 +185,63 @@ public enum WorkflowMode {
               requestParent.get());
     }
   };
+
+  private static <O extends Revision, D extends Revision> void manageNoChangesDetectedForSquash(
+      WorkflowRunHelper<O, D> runHelper, O current, O lastRev)
+      throws ValidationException, RepoException {
+    ValidationException.checkCondition(
+        lastRev != null || runHelper.isForce(), String.format(
+            "Cannot find any change in history up to '%s'. Use %s if you really want to migrate to"
+                + " the revision.", current.asString(), GeneralOptions.FORCE));
+    runHelper.getConsole().warnFmt(
+        "Cannot find any change in history up to '%s'. Trying the migration anyway", current);
+    // Check the reverse changes to see if there is a change from current...lastRev.
+    if (lastRev == null || runHelper.getChanges(current, lastRev).isEmpty()) {
+      ValidationException.checkCondition(runHelper.isForce(), String.format(
+          "Last imported revision '%s' is not an ancestor of the revision currently being"
+              + " migrated ('%s'). Use %s if you really want to migrate the reference.",
+          lastRev, current.asString(), GeneralOptions.FORCE));
+      runHelper.getConsole().warnFmt(
+          "Last imported revision '%s' is not an ancestor of the revision currently being"
+              + " migrated ('%s')", lastRev, current.asString());
+      return;
+    }
+    if (!runHelper.isForce()) {
+      throw new EmptyChangeException(String.format(
+          "'%s' has been already migrated. Use %s if you really want to run the migration"
+              + " again (For example if the copy.bara.sky file has changed).",
+          current.asString(), GeneralOptions.FORCE));
+    }
+    runHelper.getConsole().warnFmt("'%s' has been already migrated. Migrating anyway"
+                                       + " because of %s", lastRev.asString(),
+                                   GeneralOptions.FORCE);
+  }
+
+  private static boolean isHistorySupported(WorkflowRunHelper<?, ?> helper) {
+    return helper.destinationSupportsPreviousRef() && helper.getOriginReader().supportsHistory();
+  }
+
+  /**
+   * Returns the last rev if possible. If --force is not enabled it will fail if not found.
+   */
+  @Nullable
+  private static <O extends Revision, D extends Revision> O maybeGetLastRev(
+      WorkflowRunHelper<O, D> runHelper) throws RepoException, ValidationException {
+    try {
+      return runHelper.getLastRev();
+    } catch (CannotResolveRevisionException e) {
+      if (runHelper.isForce()) {
+        runHelper.getConsole().warn(String.format(
+            "Cannot find last imported revision, but proceeding because of %s flag",
+            GeneralOptions.FORCE));
+      } else {
+        throw new ValidationException(String.format(
+            "Cannot find last imported revision. Use %s if you really want to proceed with the"
+                + " migration", GeneralOptions.FORCE), e);
+      }
+      return null;
+    }
+  }
 
   private static final Logger logger = Logger.getLogger(WorkflowMode.class.getName());
 
