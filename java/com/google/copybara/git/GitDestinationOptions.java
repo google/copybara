@@ -27,12 +27,15 @@ import javax.annotation.Nullable;
 @Parameters(separators = "=")
 public final class GitDestinationOptions implements Option {
 
-  @Parameter(names = "--git-committer-name",
+  public static final String GIT_COMMITTER_NAME_FLAG = "--git-committer-name";
+  public static final String GIT_COMMITTER_EMAIL_FLAG = "--git-committer-email";
+
+  @Parameter(names = GIT_COMMITTER_NAME_FLAG,
       description = "If set, overrides the committer name for the generated commits in git"
           + " destination.")
   String committerName = "";
 
-  @Parameter(names = "--git-committer-email",
+  @Parameter(names = GIT_COMMITTER_EMAIL_FLAG,
       description = "If set, overrides the committer e-mail for the generated commits in git"
           + " destination.")
   String committerEmail = "";

@@ -29,6 +29,8 @@ import java.util.Objects;
 public class WorkflowOptions implements Option {
 
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
+  public static final String LAST_REV_FLAG = "--last-rev";
+  public static final String IGNORE_NOOP_FLAG = "--ignore-noop";
 
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
       description = "Commit revision to be used as parent when importing a commit using"
@@ -36,7 +38,7 @@ public class WorkflowOptions implements Option {
           + " to detect the parent commit message.")
   String changeBaseline = "";
 
-  @Parameter(names = "--last-rev",
+  @Parameter(names = LAST_REV_FLAG,
       description = "Last revision that was migrated to the destination")
   String lastRevision;
 
@@ -44,7 +46,7 @@ public class WorkflowOptions implements Option {
       description = "Import just a number of changes instead of all the pending ones")
   int iterativeLimitChanges = Integer.MAX_VALUE;
 
-  @Parameter(names = "--ignore-noop",
+  @Parameter(names = IGNORE_NOOP_FLAG,
       description = "Only warn about operations/transforms that didn't have any effect."
           + " For example: A transform that didn't modify any file, non-existent origin"
           + " directories, etc.")
