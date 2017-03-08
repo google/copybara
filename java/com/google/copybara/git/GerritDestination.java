@@ -79,7 +79,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       MessageInfo changeIdAndNew = changeId(repo, transformResult);
       return new MessageInfo(
           String.format(
-              "%s\n%s: %s\nChange-Id: %s\n",
+              "%s\n\n%s: %s\nChange-Id: %s\n",
               transformResult.getSummary(),
               transformResult.getCurrentRevision().getLabelName(),
               transformResult.getCurrentRevision().asString(),
