@@ -37,6 +37,7 @@ public final class GeneralOptions implements Option {
   public static final String NOANSI = "--noansi";
   public static final String FORCE = "--force";
   public static final String CONFIG_ROOT_FLAG = "--config-root";
+  public static final String DISABLE_REVERSIBLE_CHECK_FLAG = "--disable-reversible-check";
 
   private final Map<String, String> environment;
   private final FileSystem fileSystem;
@@ -142,7 +143,7 @@ public final class GeneralOptions implements Option {
     @Parameter(names = NOANSI, description = "Don't use ANSI output for messages")
     boolean noansi = false;
 
-    @Parameter(names = FORCE, description = "Force the migration even if Copybara ca  nnot find in"
+    @Parameter(names = FORCE, description = "Force the migration even if Copybara cannot find in"
         + " the destination a change that is an ancestor of the one(s) being migrated. This should"
         + " be used with care, as it could lose changes when migrating a previous/conflicting"
         + " change.")
@@ -153,7 +154,7 @@ public final class GeneralOptions implements Option {
             + " like '//foo/bar'")
     String configRoot;
 
-    @Parameter(names = "--disable-reversible-check",
+    @Parameter(names = DISABLE_REVERSIBLE_CHECK_FLAG,
         description = "If set, all workflows will be executed without reversible_check, overriding"
             + " the  workflow config and the normal behavior for CHANGE_REQUEST mode.")
     boolean disableReversibleCheck = false;

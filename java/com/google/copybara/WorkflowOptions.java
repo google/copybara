@@ -31,6 +31,7 @@ public class WorkflowOptions implements Option {
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
   public static final String LAST_REV_FLAG = "--last-rev";
   public static final String IGNORE_NOOP_FLAG = "--ignore-noop";
+  public static final String ITERATIVE_LIMIT_CHANGES_FLAG = "--iterative-limit-changes";
 
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
       description = "Commit revision to be used as parent when importing a commit using"
@@ -42,7 +43,7 @@ public class WorkflowOptions implements Option {
       description = "Last revision that was migrated to the destination")
   String lastRevision;
 
-  @Parameter(names = "--iterative-limit-changes",
+  @Parameter(names = ITERATIVE_LIMIT_CHANGES_FLAG,
       description = "Import just a number of changes instead of all the pending ones")
   int iterativeLimitChanges = Integer.MAX_VALUE;
 
