@@ -34,10 +34,15 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.shell.CommandException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -92,6 +97,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private final Map<String, String> environment;
   private final Console console;
   private final TempDirectoryFactory tempDirectoryFactory;
+  private boolean localRepoInitialized = false;
 
   GitDestination(String repoUrl, String fetch, String push,
       GitDestinationOptions destinationOptions, boolean verbose, boolean force,
@@ -265,6 +271,28 @@ public final class GitDestination implements Destination<GitRevision> {
         alternate.rebase("FETCH_HEAD");
       }
 
+      if (destinationOptions.localRepoPath != null) {
+        // If the user provided a directory for the local repo we don't want to leave changes
+        // in the checkout dir. Remove tracked changes:
+        scratchClone.simpleCommand("reset", "--hard");
+        // ...and untracked ones:
+        scratchClone.simpleCommand("clean", "-f");
+
+        // Update current HEAD to point to the push reference (master for example. Instead of
+        // a commit in top of FETCH_HEAD). Unfortunately we need to do a ls-remote to resolve
+        // if it is a tag/branch/arbitrary ref.
+        try {
+          String localRef = Iterables.getOnlyElement(
+              GitRepository.lsRemote(repoUrl, ImmutableList.of(push)).entrySet())
+              .getKey();
+          scratchClone.simpleCommand("update-ref", localRef, "HEAD");
+          scratchClone.simpleCommand("checkout", push);
+        } catch (CommandException e) {
+          throw new RepoException("", e);
+        }
+
+      }
+
       if (transformResult.isAskForConfirmation()) {
         // The git repo contains the staged changes at this point. Git diff writes to Stdout
         console.info(DiffUtil.colorize(
@@ -276,18 +304,63 @@ public final class GitDestination implements Destination<GitRevision> {
               "User aborted execution: did not confirm diff changes.");
         }
       }
-      console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
-      // Git push writes to Stderr
-      processPushOutput.process(
-          alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push).getStderr(),
-          messageInfo.newPush);
+      if (!destinationOptions.skipPush) {
+        console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
+        // Git push writes to Stderr
+        processPushOutput.process(
+            alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push)
+                .getStderr(),
+            messageInfo.newPush);
+      } else {
+        console.info("Local repository available at " + alternate.getWorkTree());
+      }
       return WriterResult.OK;
     }
   }
 
   private GitRepository cloneBaseline() throws RepoException {
-    GitRepository scratchClone =
-        GitRepository.initScratchRepo(verbose, environment, tempDirectoryFactory);
+    if (destinationOptions.localRepoPath == null) {
+      GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment, tempDirectoryFactory);
+      fetchFromRemote(scratchClone);
+      return scratchClone;
+    } else {
+      return configLocalRepo();
+    }
+  }
+
+  private GitRepository configLocalRepo() throws RepoException {
+    Path path = Paths.get(destinationOptions.localRepoPath);
+    // Skip creating initializing the repo twice, since we delete everything.
+    if (localRepoInitialized) {
+      GitRepository repo = new GitRepository(path.resolve(".git"), path, verbose, environment);
+      // Should be a no-op, but an iterative migration could take several minutes between migrations
+      // so lets fetch the latest first.
+      if (!destinationOptions.skipPush) {
+        fetchFromRemote(repo);
+      }
+      return repo;
+    }
+
+    try {
+      if (Files.exists(path)) {
+        FileUtil.deleteAllFilesRecursively(path);
+      } else {
+        Files.createDirectories(path);
+      }
+    } catch (IOException e) {
+      throw new RepoException("Cannot delete existing local repository", e);
+    }
+    GitRepository scratchClone = GitRepository.initScratchRepo(verbose, path, environment);
+    // Configure the local repo to allow pushing to the ref manually outside of Copybara
+    scratchClone.simpleCommand("remote", "add", "origin", repoUrl);
+    scratchClone.simpleCommand("config", "--local", "remote.origin.push", "HEAD:" + push);
+    fetchFromRemote(scratchClone);
+
+    localRepoInitialized = true;
+    return scratchClone;
+  }
+
+  private void fetchFromRemote(GitRepository scratchClone) throws RepoException {
     try {
       scratchClone.fetchSingleRef(repoUrl, fetch);
     } catch (CannotResolveRevisionException e) {
@@ -296,7 +369,6 @@ public final class GitDestination implements Destination<GitRevision> {
             + "'. Use " + GeneralOptions.FORCE + " flag if you want to push anyway");
       }
     }
-    return scratchClone;
   }
 
   @VisibleForTesting

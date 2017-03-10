@@ -823,6 +823,78 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testLocalRepo() throws Exception {
+    checkLocalRepo(false);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "another content")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testLocalRepoSkipPush() throws Exception {
+    GitRepository localRepo = checkLocalRepo(true);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo", "foo\n")
+        .containsNoMoreFiles();
+
+    // A simple push without origin is able to update the correct destination reference
+    localRepo.simpleCommand("push");
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "another content")
+        .containsNoMoreFiles();
+  }
+
+  private GitRepository checkLocalRepo(boolean skipPush) throws Exception {
+    fetch = "master";
+    push = "master";
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-testLocalRepo");
+    Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree).add().force().files("foo").run();
+    repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
+
+    options.gitDestination.skipPush = skipPush;
+    Path localPath = Files.createTempDirectory("local_repo");
+
+    options.gitDestination.localRepoPath = localPath.toString();
+    Writer writer = destination().newWriter(destinationFiles);
+    process(writer, new DummyRevision("origin_ref1"));
+
+    //    Path localPath = Files.createTempDirectory("local_repo");
+    GitRepository localRepo = GitRepository.initScratchRepo(/*verbose=*/true, localPath,
+        System.getenv());
+
+    GitTesting.assertThatCheckout(localRepo, "master")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+
+    Files.write(workdir.resolve("test.txt"), "another content".getBytes());
+    process(writer, new DummyRevision("origin_ref2"));
+
+    GitTesting.assertThatCheckout(localRepo, "master")
+        .containsFile("test.txt", "another content")
+        .containsNoMoreFiles();
+
+    String changes = localRepo.simpleCommand("log", "--no-color", "--format=%B---").getStdout();
+    assertThat(changes).isEqualTo("test summary\n"
+        + "\n"
+        + "DummyOrigin-RevId: origin_ref2\n"
+        + "---\n"
+        + "test summary\n"
+        + "\n"
+        + "DummyOrigin-RevId: origin_ref1\n"
+        + "---\n"
+        + "change\n"
+        + "---\n");
+    return localRepo;
+  }
+
+  @Test
   public void testFetchPushParamsSimple() throws Exception {
     GitDestination gitDestination = skylark.eval("result",
         "result = git.destination(\n"

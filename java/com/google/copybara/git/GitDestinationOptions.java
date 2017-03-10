@@ -53,4 +53,14 @@ public final class GitDestinationOptions implements Option {
   @Parameter(names = "--git-destination-push",
       description = "If set, overrides the git destination push reference.")
   String push = null;
+
+  @Nullable
+  @Parameter(names = "--git-destination-path",
+      description = "If set, the tool will use this directory for the local repository."
+          + " Note that the directory will be deleted each time Copybara ir run.")
+  String localRepoPath = null;
+
+  @Parameter(names = "--git-destination-skip-push",
+      description = "If set, the tool will not push to the remote destination")
+  boolean skipPush = false;
 }
