@@ -249,7 +249,7 @@ public class MetadataModule {
           + "```\n\n"
           + "Using the following transformation:",
       code = "metadata.scrubber('(^|\\n)CONFIDENTIAL:(.|\\n)*')",
-      after = "Will remove the confidential part, leaving the message as:\n"
+      after = "Will remove the confidential part, leaving the message as:\n\n"
           + "```\n"
           + "Public change description\n\n"
           + "This is a public description for a commit\n\n"
