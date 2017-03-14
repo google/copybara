@@ -36,6 +36,8 @@ public final class TransformResult {
   private final boolean askForConfirmation;
   private final Revision currentRevision;
   private final Revision requestedRevision;
+  @Nullable
+  private final String workflowIdentity;
 
   private static Instant readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     Instant refTimestamp = originRef.readTimestamp();
@@ -47,12 +49,12 @@ public final class TransformResult {
       throws RepoException {
     this(path, currentRevision, author, readTimestampOrCurrentTime(currentRevision), summary,
         /*baseline=*/ null, /*askForConfirmation=*/ false,
-         requestedRevision);
+         requestedRevision, /*workflowIdentity=*/null);
   }
 
   private TransformResult(Path path, Revision currentRevision, Author author, Instant timestamp,
       String summary, @Nullable String baseline, boolean askForConfirmation,
-      Revision requestedRevision) {
+      Revision requestedRevision, @Nullable String workflowIdentity) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -61,19 +63,26 @@ public final class TransformResult {
     this.baseline = baseline;
     this.askForConfirmation = askForConfirmation;
     this.requestedRevision = Preconditions.checkNotNull(requestedRevision);
+    this.workflowIdentity = workflowIdentity;
   }
 
   public TransformResult withBaseline(String newBaseline) {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        newBaseline, this.askForConfirmation, this.requestedRevision);
+        newBaseline, this.askForConfirmation, this.requestedRevision, this.workflowIdentity);
+  }
+
+  public TransformResult withWorkflowIdentity(String identity) {
+    return new TransformResult(
+        this.path, this.currentRevision, this.author, this.timestamp, this.summary,
+        this.baseline, this.askForConfirmation, this.requestedRevision, identity);
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        this.baseline, askForConfirmation, this.requestedRevision);
+        this.baseline, askForConfirmation, this.requestedRevision, this.workflowIdentity);
   }
 
   /**
@@ -100,6 +109,15 @@ public final class TransformResult {
    */
   public Revision getRequestedRevision() {
     return requestedRevision;
+  }
+
+  /**
+   * An stable identifier that represents an entity (code review for example) in the origin. For
+   * example a workflow location + Gerrit change number.
+   */
+  @Nullable
+  public String getWorkflowIdentity() {
+    return workflowIdentity;
   }
 
   /**

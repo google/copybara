@@ -16,6 +16,8 @@
 
 package com.google.copybara.testing;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -97,7 +99,8 @@ public class RecordsProcessCallDestination implements Destination {
 
         @Override
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-          result.put(workdir.relativize(file).toString(), new String(Files.readAllBytes(file)));
+          result.put(workdir.relativize(file).toString(),
+                     new String(Files.readAllBytes(file), UTF_8));
           return FileVisitResult.CONTINUE;
         }
       });
@@ -108,7 +111,7 @@ public class RecordsProcessCallDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, String migrationIdentity) {
+  public Writer newWriter(Glob destinationFiles) {
     return new WriterImpl(destinationFiles);
   }
 

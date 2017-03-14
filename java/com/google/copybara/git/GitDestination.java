@@ -132,7 +132,7 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, @Nullable String migrationIdentity) {
+  public Writer newWriter(Glob destinationFiles) {
     return new WriterImpl(destinationFiles);
   }
 

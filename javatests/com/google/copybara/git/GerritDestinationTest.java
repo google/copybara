@@ -129,8 +129,7 @@ public class GerritDestinationTest {
   private void process(DummyRevision originRef)
       throws ValidationException, RepoException, IOException {
     WriterResult result = destination()
-        .newWriter(new Glob(ImmutableList.of("**"), excludedDestinationPaths),
-                   /*migrationIdentity=*/ null)
+        .newWriter(new Glob(ImmutableList.of("**"), excludedDestinationPaths))
         .write(
             TransformResults.of(workdir, originRef),
             console);

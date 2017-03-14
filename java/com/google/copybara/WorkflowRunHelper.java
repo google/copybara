@@ -57,8 +57,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
     this.originReader = workflow.getOrigin()
         .newReader(workflow.getOriginFiles(), workflow.getAuthoring());
-    this.writer = workflow.getDestination().newWriter(workflow.getDestinationFiles(),
-                                                      workflow.getMigrationIdentity(resolvedRef));
+    this.writer = workflow.getDestination().newWriter(workflow.getDestinationFiles());
     this.destinationReader = workflow.getDestination().newReader(workflow.getDestinationFiles());
   }
 
@@ -120,6 +119,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return writer.supportsPreviousRef();
   }
 
+  String getWorkflowIdentity(O reference) {
+    return workflow.getMigrationIdentity(reference);
+  }
+
   /**
    * Performs a full migration, including checking out files from the origin, deleting excluded
    * files, transforming the code, and writing to the destination. This writes to the destination
@@ -129,16 +132,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * @param processConsole console to use to print progress messages
    * @param metadata metadata of the change to be migrated
    * @param changes changes included in this migration
+   * @param destinationBaseline it not null, use this baseline in the destination
+   * @param workflowIdentity if not null, an identifier that destination can use to reuse an
+   * existing destination entity (code review for example).
    * @return The result of this migration
    */
-  WriterResult migrate(O rev, Console processConsole, Metadata metadata,
-      Changes changes)
-      throws IOException, RepoException, ValidationException {
-    return migrate(rev, processConsole, metadata, changes, /*destinationBaseline=*/ null);
-  }
-
-  WriterResult migrate(O ref, Console processConsole,
-      Metadata metadata, Changes changes, @Nullable String destinationBaseline)
+  WriterResult migrate(O rev, Console processConsole,
+      Metadata metadata, Changes changes, @Nullable String destinationBaseline,
+      @Nullable String workflowIdentity)
       throws IOException, RepoException, ValidationException {
     processConsole.progress("Cleaning working directory");
     FileUtil.deleteAllFilesRecursively(workdir);
@@ -146,7 +147,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     Files.createDirectories(checkoutDir);
 
     processConsole.progress("Checking out the change");
-    originReader.checkout(ref, checkoutDir);
+    originReader.checkout(rev, checkoutDir);
 
     // Remove excluded origin files.
     PathMatcher originFiles = workflow.getOriginFiles().relativeTo(checkoutDir);
@@ -195,23 +196,26 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       if (!diff.trim().isEmpty()) {
         workflow.getConsole().error("Non reversible transformations:\n"
             + DiffUtil.colorize(workflow.getConsole(), diff));
-        throw new ValidationException(String.format("Workflow '%s' is not reversible", workflow.getName()));
+        throw new ValidationException(String.format("Workflow '%s' is not reversible",
+                                                    workflow.getName()));
       }
     }
 
-    workflow.getConsole().progress("Checking that destination_files covers all files in transform result");
+    workflow.getConsole()
+        .progress("Checking that destination_files covers all files in transform result");
     new ValidateDestinationFilesVisitor(workflow.getDestinationFiles(), checkoutDir)
         .verifyFilesToWrite();
 
     // TODO(malcon): Pass metadata object instead
     TransformResult transformResult =
         new TransformResult(
-            checkoutDir, ref, transformWork.getAuthor(), transformWork.getMessage(), resolvedRef);
+            checkoutDir, rev, transformWork.getAuthor(), transformWork.getMessage(), resolvedRef);
     if (destinationBaseline != null) {
       transformResult = transformResult.withBaseline(destinationBaseline);
     }
-
-    transformResult = transformResult.withAskForConfirmation(workflow.isAskForConfirmation());
+    transformResult = transformResult
+        .withAskForConfirmation(workflow.isAskForConfirmation())
+        .withWorkflowIdentity(workflowIdentity);
 
     WriterResult result = writer.write(transformResult, processConsole);
     Verify.verifyNotNull(result, "Destination returned a null result.");

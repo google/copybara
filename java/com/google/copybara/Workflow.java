@@ -184,9 +184,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Override
   public Info getInfo() throws RepoException, ValidationException {
     O lastResolved = origin.resolve(/*sourceRef=*/ null);
-    String migrationIdentity = getMigrationIdentity(lastResolved);
-    Writer writer = destination.newWriter(destinationFiles,
-                                          migrationIdentity);
+    Writer writer = destination.newWriter(destinationFiles);
     String lastRef = writer.getPreviousRef(origin.getLabelName());
     O lastMigrated = (lastRef == null) ? null : origin.resolve(lastRef);
 

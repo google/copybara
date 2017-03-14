@@ -42,8 +42,6 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class FolderDestinationTest {
 
-  private static final String CONFIG_NAME = "copybara_project";
-
   private OptionsBuilder options;
   private ImmutableList<String> excludedPathsForDeletion;
 
@@ -67,8 +65,7 @@ public class FolderDestinationTest {
 
   private void write() throws ValidationException, RepoException, IOException {
     skylark.<Destination>eval("dest", "dest = folder.destination()")
-        .newWriter(new Glob(ImmutableList.of("**"), excludedPathsForDeletion),
-                    /*migrationIdentity=*/ null)
+        .newWriter(new Glob(ImmutableList.of("**"), excludedPathsForDeletion))
         .write(
             TransformResults.of(
                 workdir,

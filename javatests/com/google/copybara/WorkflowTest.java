@@ -291,7 +291,7 @@ public class WorkflowTest {
     // Override destination with one that always throws EmptyChangeException.
     options.testingOptions.destination = new RecordsProcessCallDestination() {
       @Override
-      public Writer newWriter(Glob destinationFiles, String migrationIdentity) {
+      public Writer newWriter(Glob destinationFiles) {
         return new RecordsProcessCallDestination.WriterImpl(destinationFiles) {
           @Override
           public WriterResult write(TransformResult transformResult, Console console)
@@ -536,12 +536,10 @@ public class WorkflowTest {
     options.setForce(true);
     workflow().run(workdir, HEAD);
 
-    assertThat(destination.newWriter(Glob.ALL_FILES, /*migrationIdentity=*/ null)
-                   .getPreviousRef(origin.getLabelName()))
+    assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
         .isEqualTo("3");
     workflow().run(workdir, oldRef);
-    assertThat(destination.newWriter(Glob.ALL_FILES,  /*migrationIdentity=*/ null)
-                   .getPreviousRef(origin.getLabelName()))
+    assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
         .isEqualTo("0");
   }
 
