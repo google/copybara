@@ -512,6 +512,16 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testSquashAlreadyMigratedSameChange() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
+    skylarkWorkflow("default", SQUASH).run(workdir, HEAD);
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage("'0' has been already migrated");
+    options.setForce(false); // Disable force so that we get an error
+    skylarkWorkflow("default", SQUASH).run(workdir, HEAD);
+  }
+
+  @Test
   public void testSquashLastRevDoesntExist() throws Exception {
     options.setForce(false); // Disable force so that we get an error
     origin.addSimpleChange(/*timestamp*/ 1);

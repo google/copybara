@@ -204,7 +204,9 @@ public enum WorkflowMode {
     runHelper.getConsole().warnFmt(
         "Cannot find any change in history up to '%s'. Trying the migration anyway", current);
     // Check the reverse changes to see if there is a change from current...lastRev.
-    if (lastRev == null || runHelper.getChanges(current, lastRev).isEmpty()) {
+    if (lastRev == null
+        || !current.asString().equals(lastRev.asString())
+        && runHelper.getChanges(current, lastRev).isEmpty()) {
       ValidationException.checkCondition(runHelper.isForce(), String.format(
           "Last imported revision '%s' is not an ancestor of the revision currently being"
               + " migrated ('%s'). Use %s if you really want to migrate the reference.",
