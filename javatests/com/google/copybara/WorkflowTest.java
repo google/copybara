@@ -84,8 +84,6 @@ public class WorkflowTest {
   private ImmutableList<String> transformations;
   private Path workdir;
   private boolean includeReleaseNotes;
-  private String excludedInOrigin;
-  private String excludedInDestination;
   private String originFiles;
   private String destinationFiles;
 
@@ -97,10 +95,8 @@ public class WorkflowTest {
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
     origin = new DummyOrigin().setAuthor(ORIGINAL_AUTHOR);
-    excludedInOrigin = "None";
-    excludedInDestination = "None";
-    originFiles = "None";
-    destinationFiles = "None";
+    originFiles = "glob(['**'])";
+    destinationFiles = "glob(['**'])";
     destination = new RecordsProcessCallDestination();
     transformations = ImmutableList.of(""
         + "        core.replace(\n"
@@ -139,8 +135,6 @@ public class WorkflowTest {
         + "    name = '" + name + "',\n"
         + "    origin = testing.origin(),\n"
         + "    destination = testing.destination(),\n"
-        + "    exclude_in_origin = " + excludedInOrigin + ",\n"
-        + "    exclude_in_destination = " + excludedInDestination + ",\n"
         + "    origin_files = " + originFiles + ",\n"
         + "    destination_files = " + destinationFiles + ",\n"
         + "    transformations = " + transformations + ",\n"
@@ -682,52 +676,6 @@ public class WorkflowTest {
     destinationFiles = "glob(['**'], exclude = ['foo/**/bar.htm'])";
     String string = workflow().toString();
     assertThat(string).contains("foo/**/bar.htm");
-  }
-
-  @Test
-  public void testExcludedDestinationPathsPassedToDestination_iterative() throws Exception {
-    excludedInDestination = "glob(['foo', 'bar/**'])";
-    origin.addSimpleChange(/*timestamp*/ 42);
-    Workflow workflow = iterativeWorkflow(resolveHead());
-    origin.addSimpleChange(/*timestamp*/ 4242);
-    workflow.run(workdir, HEAD);
-
-    assertThat(destination.processed).hasSize(1);
-
-    PathMatcher matcher = destination.processed.get(0).getDestinationFiles()
-        .relativeTo(workdir);
-    assertThat(matcher.matches(workdir.resolve("foo"))).isFalse();
-    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isTrue();
-    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
-  }
-
-  @Test
-  public void testExcludedDestinationPathsPassedToDestination_squash() throws Exception {
-    excludedInDestination = "glob(['foo', 'bar/**'])";
-    workflow().run(workdir, HEAD);
-
-    assertThat(destination.processed).hasSize(1);
-
-    PathMatcher matcher = destination.processed.get(0).getDestinationFiles()
-        .relativeTo(workdir);
-    assertThat(matcher.matches(workdir.resolve("foo"))).isFalse();
-    assertThat(matcher.matches(workdir.resolve("foo/indir"))).isTrue();
-    assertThat(matcher.matches(workdir.resolve("bar/indir"))).isFalse();
-
-    console().assertThat()
-        .onceInLog(MessageType.WARNING, ".*exclude_in_destination.*arg is deprecated.*");
-  }
-
-  @Test
-  public void testExcludedOriginPaths_showDeprecationWarning() throws Exception {
-    excludedInOrigin = "glob(['foo', 'bar/**'])";
-    options.workflowOptions.ignoreNoop = true;
-    workflow().run(workdir, HEAD);
-
-    assertThat(destination.processed).hasSize(1);
-
-    console().assertThat()
-        .onceInLog(MessageType.WARNING, ".*exclude_in_origin.*arg is deprecated.*");
   }
 
   @Test

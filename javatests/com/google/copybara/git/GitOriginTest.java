@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.util.Glob.createGlob;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -534,7 +535,7 @@ public class GitOriginTest {
     repo.add().files("excluded_file.txt").run();
     git("commit", "-m", "excluded_file", "--date", commitTime);
     // Note that one of the roots looks like a flag for "git log"
-    originFiles = new Glob(ImmutableList.of("include/**", "--parents/**"), ImmutableList.of());
+    originFiles = createGlob(ImmutableList.of("include/**", "--parents/**"), ImmutableList.of());
 
     // No files are in the included roots - make sure we can get an empty list of changes.
     GitRevision firstRef = origin.resolve(firstCommitRef);
@@ -640,7 +641,7 @@ public class GitOriginTest {
     git("merge", "the-branch");
 
     moreOriginArgs = "include_branch_commit_logs = True";
-    originFiles = new Glob(ImmutableList.of("include/**"), ImmutableList.of());
+    originFiles = createGlob(ImmutableList.of("include/**"), ImmutableList.of());
     origin = origin();
 
     GitRevision firstRef = origin.resolve(firstCommitRef);

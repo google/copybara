@@ -69,7 +69,7 @@ public final class SubmodulesInDestinationTest {
         .setOutputRootToTmpDir();
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
-    destinationFiles = new Glob(ImmutableList.of("**"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"));
 
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options, GitModule.class);
@@ -121,7 +121,7 @@ public final class SubmodulesInDestinationTest {
   @Test
   public void submoduleInDestination_negativeDestinationFilesGlob() throws Exception {
     destinationFiles =
-        new Glob(ImmutableList.of("**"), ImmutableList.of(".gitmodules", "submodule"));
+        Glob.createGlob(ImmutableList.of("**"), ImmutableList.of(".gitmodules", "submodule"));
     writeWithSubmoduleInDestination();
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFiles(".gitmodules", "submodule", "test42");
@@ -129,7 +129,7 @@ public final class SubmodulesInDestinationTest {
 
   @Test
   public void submoduleInDestination_positiveDestinationFilesGlob() throws Exception {
-    destinationFiles = new Glob(ImmutableList.of("test42"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("test42"));
     writeWithSubmoduleInDestination();
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFiles(".gitmodules", "submodule", "test42");
@@ -137,7 +137,7 @@ public final class SubmodulesInDestinationTest {
 
   @Test
   public void submoduleInDestination_deletesIfMatchesDestinationFilesGlob() throws Exception {
-    destinationFiles = new Glob(ImmutableList.of("**"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"));
     writeWithSubmoduleInDestination();
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFiles("test42")
@@ -146,7 +146,7 @@ public final class SubmodulesInDestinationTest {
 
   @Test
   public void submoduleInSubdirectoryWithSiblingFiles() throws Exception {
-    destinationFiles = new Glob(ImmutableList.of("foo/a", "foo/c"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("foo/a", "foo/c"));
     fetch = "master";
     push = "master";
 

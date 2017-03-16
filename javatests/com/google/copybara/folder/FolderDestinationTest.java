@@ -65,7 +65,7 @@ public class FolderDestinationTest {
 
   private void write() throws ValidationException, RepoException, IOException {
     skylark.<Destination>eval("dest", "dest = folder.destination()")
-        .newWriter(new Glob(ImmutableList.of("**"), excludedPathsForDeletion))
+        .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedPathsForDeletion))
         .write(
             TransformResults.of(
                 workdir,

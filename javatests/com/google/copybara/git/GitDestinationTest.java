@@ -81,7 +81,7 @@ public class GitDestinationTest {
         .setOutputRootToTmpDir();
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
-    destinationFiles = new Glob(ImmutableList.of("**"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"));
 
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options, GitModule.class);
@@ -308,7 +308,7 @@ public class GitDestinationTest {
 
     Files.delete(workdir.resolve("excluded"));
 
-    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("excluded"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded"));
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("empty change");
     process(
@@ -372,7 +372,7 @@ public class GitDestinationTest {
 
     // Note the glob foo/** does not match the directory itself called 'foo',
     // only the contents.
-    destinationFiles = new Glob(ImmutableList.of("foo/**"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("foo/**"));
     process(
         destination().newWriter(destinationFiles),
         new DummyRevision("origin_ref"));
@@ -398,14 +398,14 @@ public class GitDestinationTest {
 
     DummyRevision ref1 = new DummyRevision("first");
 
-    Glob firstGlob = new Glob(ImmutableList.of("foo/**", "bar/**"));
+    Glob firstGlob = Glob.createGlob(ImmutableList.of("foo/**", "bar/**"));
     Writer writer1 = destinationFirstCommit().newWriter(firstGlob);
     process(writer1, ref1);
 
     Files.write(workdir.resolve("baz/one"), "content2".getBytes(UTF_8));
     DummyRevision ref2 = new DummyRevision("second");
 
-    Writer writer2 = destination().newWriter(new Glob(ImmutableList.of("baz/**")));
+    Writer writer2 = destination().newWriter(Glob.createGlob(ImmutableList.of("baz/**")));
     process(writer2, ref2);
 
     // Recreate the writer since a destinationFirstCommit writer never looks
@@ -642,7 +642,7 @@ public class GitDestinationTest {
         .simpleCommand("commit", "-m", "message");
 
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
-    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
     process(
         destination().newWriter(destinationFiles),
         new DummyRevision("ref"));
@@ -668,7 +668,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
 
     // Make sure this glob does not cause .git/HEAD to be added.
-    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("**/HEAD"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("**/HEAD"));
 
     process(
         destination().newWriter(destinationFiles),
@@ -694,7 +694,7 @@ public class GitDestinationTest {
 
     // Lets exclude now 'excluded' so that we check that the rebase correctly ignores
     // the missing file (IOW, it doesn't delete the file in the commit).
-    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of("excluded"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded"));
 
     Files.delete(workdir.resolve("excluded"));
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -812,7 +812,7 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).add().force().files(".gitignore").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "gitignore file");
 
-    destinationFiles = new Glob(ImmutableList.of("**"), ImmutableList.of(".gitignore"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of(".gitignore"));
 
     DummyRevision ref = new DummyRevision("origin_ref");
     process(destination().newWriter(destinationFiles), ref);

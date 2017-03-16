@@ -41,7 +41,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
@@ -130,7 +129,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       List<String> includeStrings = Type.STRING_LIST.convert(include, "include");
       List<String> excludeStrings = Type.STRING_LIST.convert(exclude, "exclude");
       try {
-        return new Glob(includeStrings, excludeStrings);
+        return Glob.createGlob(includeStrings, excludeStrings);
       } catch (IllegalArgumentException e) {
         throw new EvalException(location, String.format(
                 "Cannot create a glob from: include='%s' and exclude='%s': %s",
@@ -190,17 +189,11 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               generic1 = Object.class,
               doc = "The transformations to be run for this workflow. They will run in sequence.",
               positional = false, defaultValue = "[]"),
-          @Param(name = "exclude_in_origin", type = Glob.class,
-              doc = "For compatibility purposes only. Use origin_files instead.",
-              defaultValue = "N/A", positional = false, noneable = true),
-          @Param(name = "exclude_in_destination", type = Glob.class,
-              doc = "For compatibility purposes only. Use detination_files instead.",
-              defaultValue = "N/A", positional = false, noneable = true),
           @Param(name = "origin_files", type = Glob.class,
               doc = "A glob relative to the workdir that will be read from the"
               + " origin during the import. For example glob([\"**.java\"]), all java files,"
               + " recursively, which excludes all other file types.",
-              defaultValue = "glob(['**'])", positional = false, noneable = true),
+              defaultValue = "glob(['**'])", positional = false),
           @Param(name = "destination_files", type = Glob.class,
               doc = "A glob relative to the root of the destination repository that matches"
               + " files that are part of the migration. Files NOT matching this glob will never"
@@ -210,7 +203,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               + " migration to a subdirectory of the destination,"
               + " e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files"
               + " in java/src.",
-              defaultValue = "glob(['**'])", positional = false, noneable = true),
+              defaultValue = "glob(['**'])", positional = false),
           @Param(name = "mode", type = String.class, doc = ""
               + "Workflow mode. Currently we support three modes:<br>"
               + "<ul>"
@@ -237,40 +230,19 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow",
       ImmutableList.of(
           MutableList.EMPTY,
-          Runtime.NONE,
-          Runtime.NONE,
-          Runtime.NONE,
-          Runtime.NONE,
+          Glob.ALL_FILES,
+          Glob.ALL_FILES,
           "SQUASH",
           Runtime.NONE,
           false,
           MutableList.EMPTY
       )) {
-    // This converts a "FOO_files"/"exclude_in_FOO" pair of arguments to a single glob matcher.
-    // Only one or neither argument in the pair can be specified.
-    // TODO(copybara-team): Get all configurations using the positive specification method and
-    // remove support for exclude_in_FOO specifiers.
-    private Glob convertFileSpecifier(
-        Location location, Object positiveSpecifier, Object excludeSpecifier)
-        throws EvalException {
-      if (!EvalUtils.isNullOrNone(excludeSpecifier)) {
-        if (!EvalUtils.isNullOrNone(positiveSpecifier)) {
-          throw new EvalException(location, "Do not use exclude_in_{destination|origin} in new"
-              + " Copybara configs. Use only {destination|origin}_files.");
-        }
-        return new Glob(ImmutableList.of("**"), (Glob) excludeSpecifier);
-      } else {
-        return convertFromNoneable(positiveSpecifier, Glob.ALL_FILES);
-      }
-    }
 
     public NoneType invoke(Core self, String workflowName,
         Origin<Revision> origin, Destination<?> destination, Authoring authoring,
         SkylarkList<?> transformations,
-        Object excludeInOrigin,
-        Object excludeInDestination,
-        Object originFiles,
-        Object destinationFiles,
+        Glob originFiles,
+        Glob destinationFiles,
         String modeStr,
         Object reversibleCheckObj,
         Boolean askForConfirmation,
@@ -291,14 +263,6 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         }
       }
 
-      if (!EvalUtils.isNullOrNone(excludeInOrigin)) {
-        console.warn("core.workflow(exclude_in_origin) arg is deprecated, use"
-            + " origin_files = glob(['**'], exclude = [exclude globs]) instead");
-      }
-      if (!EvalUtils.isNullOrNone(excludeInDestination)) {
-        console.warn("core.workflow(exclude_in_destination) arg is deprecated, use"
-            + " destination_files = glob(['**'], exclude = [exclude globs]) instead");
-      }
       self.addMigration(location, workflowName, new Workflow<>(
           workflowName,
           origin,
@@ -307,8 +271,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           sequenceTransform,
           self.workflowOptions.getLastRevision(),
           console,
-          convertFileSpecifier(location, originFiles, excludeInOrigin),
-          convertFileSpecifier(location, destinationFiles, excludeInDestination),
+          originFiles,
+          destinationFiles,
           mode,
           self.workflowOptions,
           reverseTransform,

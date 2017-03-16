@@ -148,7 +148,7 @@ public class FolderOriginTest {
     FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
 
     Reader<FolderRevision> reader = origin.newReader(
-        new Glob(ImmutableSet.of("foo/*1", "file4")), authoring);
+        Glob.createGlob(ImmutableSet.of("foo/*1", "file4")), authoring);
     FolderRevision ref = origin.resolve(localFolder.toString());
     reader.checkout(ref, workdir);
     assertThatPath(workdir)

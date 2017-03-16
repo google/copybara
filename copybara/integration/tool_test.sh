@@ -369,7 +369,7 @@ core.workflow(
       url = "file://$remote",
       ref = "master",
     ),
-    exclude_in_origin = glob(["file2.txt"]),
+    origin_files = glob(include = ["**"], exclude = ["file2.txt"]),
     destination = git.destination(
       url = "file://$destination",
       fetch = "master",
@@ -559,7 +559,7 @@ core.workflow(
       push = "master",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    exclude_in_origin = glob(['**/*.java', 'subdir/**']),
+    origin_files = glob(include = ["**"], exclude = ['**/*.java', 'subdir/**']),
 )
 EOF
   copybara copy.bara.sky --force
@@ -658,7 +658,7 @@ core.workflow(
       url = "file://$remote",
       ref = "master",
     ),
-    exclude_in_destination = glob(["copy.bara.sky", "**.keep"]),
+    destination_files = glob(include = ["**"], exclude = ["copy.bara.sky", "**.keep"]),
     destination = folder.destination(),
     reversible_check = True, # enabled to test for regression where folder.origin caused exceptions
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
@@ -1132,7 +1132,7 @@ core.workflow(
       url = "file://$remote",
       ref = "master",
     ),
-    exclude_in_origin = glob(["file2.txt"]),
+    origin_files = glob(include = ["**"], exclude = ["file2.txt"]),
     destination = git.destination(
       url = "file://$destination",
       fetch = "master",
@@ -1180,7 +1180,7 @@ core.workflow(
       url = "file://$remote",
       ref = "master",
     ),
-    exclude_in_origin = glob(["file2.txt"]),
+    origin_files = glob(include = ["**"], exclude = ["file2.txt"]),
     destination = git.destination(
       url = "file://$destination",
       fetch = "master",

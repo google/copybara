@@ -23,19 +23,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermission;
 
 @RunWith(JUnit4.class)
 public class FileUtilTest {
@@ -225,8 +223,9 @@ public class FileUtilTest {
     touch(one.resolve("bar/nonono.txt"));
 
     FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS,
-        new Glob(ImmutableList.of("foo/**"),
-            ImmutableList.of("foo/exclude.txt")));
+                                  Glob.createGlob(
+                                      ImmutableList.of("foo/**"),
+                                      ImmutableList.of("foo/exclude.txt")));
 
     assertThatPath(two).containsFiles("foo/include.txt")
         .containsNoMoreFiles();
