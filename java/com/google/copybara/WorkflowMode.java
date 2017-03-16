@@ -128,7 +128,8 @@ public enum WorkflowMode {
                       runHelper.getWorkflowIdentity(change.getRevision()));
           migratedChanges++;
         } catch (EmptyChangeException e) {
-          runHelper.getConsole().warn(e.getMessage());
+          runHelper.getConsole().warn(change.getRevision() + " resulted in an empty change in"
+              + " the destination: " + e.getMessage());
           result = WriterResult.OK;
         }
         migrated.addFirst(change);
