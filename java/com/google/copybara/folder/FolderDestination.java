@@ -32,6 +32,8 @@ import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -39,6 +41,7 @@ import javax.annotation.Nullable;
  * gets deleted before writing the new files.
  */
 public class FolderDestination implements Destination<Revision> {
+  private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   private static final String FOLDER_DESTINATION_NAME = "folder.destination";
   private final GeneralOptions generalOptions;
@@ -103,8 +106,11 @@ public class FolderDestination implements Destination<Revision> {
     Path localFolder;
     if (Strings.isNullOrEmpty(localFolderOption)) {
       localFolder = generalOptions.getTmpDirectoryFactory().newTempDirectory("folder-destination");
-      console.info(String.format(
-          "Using folder '%s' in default root. Use --folder-dir to override.", localFolder));
+      String msg = String.format(
+          "Using folder in default root (--folder-dir to override): %s",
+          localFolder.toAbsolutePath());
+      logger.log(Level.INFO, msg);
+      console.info(msg);
     } else {
       // Lets assume we are in the same filesystem for now...
       localFolder = generalOptions.getFileSystem().getPath(localFolderOption);

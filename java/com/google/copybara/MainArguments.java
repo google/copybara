@@ -30,6 +30,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -39,6 +41,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 @NotThreadSafe
 @Parameters(separators = "=")
 public final class MainArguments {
+  private final Logger logger = Logger.getLogger(this.getClass().getName());
+
   static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
   @Parameter(description =
@@ -124,6 +128,7 @@ public final class MainArguments {
     workdirPath = baseWorkdir == null
         ? generalOptions.getTmpDirectoryFactory().newTempDirectory("workdir")
         : fs.getPath(baseWorkdir).normalize();
+    logger.log(Level.INFO, String.format("Using workdir: %s", workdirPath.toAbsolutePath()));
 
     if (Files.exists(workdirPath) && !Files.isDirectory(workdirPath)) {
       // Better being safe

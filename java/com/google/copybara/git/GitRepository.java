@@ -58,6 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -66,6 +68,7 @@ import javax.annotation.Nullable;
  * A class for manipulating Git repositories
  */
 public class GitRepository {
+  private static final Logger logger = Logger.getLogger(GitRepository.class.getName());
 
   private static final java.util.regex.Pattern SPACES = java.util.regex.Pattern.compile("( |\t)+");
 
@@ -156,6 +159,9 @@ public class GitRepository {
     Path scratchWorkTree;
     try {
       scratchWorkTree = tempDirectoryFactory.newTempDirectory("copybara-makeScratchClone");
+      logger.log(Level.INFO,
+          String.format("Created temporary folder for scratch repo: %s",
+              scratchWorkTree.toAbsolutePath()));
     } catch (IOException e) {
       throw new RepoException("Could not make temporary directory for scratch repo", e);
     }

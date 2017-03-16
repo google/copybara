@@ -26,7 +26,6 @@ import java.nio.file.Path;
  * <p>Creates the intermediate directories lazily in the first temporary directory creation.
  */
 public class TempDirectoryFactory {
-
   private final Path rootPath;
 
   public TempDirectoryFactory(Path rootPath) {
