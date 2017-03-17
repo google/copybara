@@ -46,7 +46,7 @@ final class ReplaceVisitor extends SimpleFileVisitor<Path> {
 
   @Override
   public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-    if (!Files.isRegularFile(file) || !pathMatcher.matches(file)) {
+    if (!pathMatcher.matches(file)) {
       return FileVisitResult.CONTINUE;
     }
     logger.log(Level.INFO, String.format("apply %s to %s", replacer, file));
