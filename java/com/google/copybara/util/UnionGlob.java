@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.util.Objects;
 
 /**
  * A glob that is the union of two globs. It matches if any of the two globs matches.
@@ -55,5 +56,23 @@ public class UnionGlob extends Glob {
   @Override
   public String toString() {
     return lval + " + " + rval;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    UnionGlob unionGlob = (UnionGlob) o;
+    return Objects.equals(lval, unionGlob.lval)
+        && Objects.equals(rval, unionGlob.rval);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(lval, rval);
   }
 }

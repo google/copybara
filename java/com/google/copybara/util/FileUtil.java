@@ -35,6 +35,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -184,22 +185,7 @@ public final class FileUtil {
    * true.
    */
   static PathMatcher anyPathMatcher(final ImmutableList<PathMatcher> pathMatchers) {
-    return new PathMatcher() {
-      @Override
-      public boolean matches(Path path) {
-        for (PathMatcher pathMatcher : pathMatchers) {
-          if (pathMatcher.matches(path)) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      @Override
-      public String toString() {
-        return "anyOf[" + Joiner.on(", ").join(pathMatchers) + "]";
-      }
-    };
+    return new AnyPathMatcher(pathMatchers);
   }
 
   /**
@@ -395,6 +381,47 @@ public final class FileUtil {
           throw new IOException("Could not set 'executable' permission for file: " + path);
         }
       }
+    }
+  }
+
+  private static class AnyPathMatcher implements PathMatcher {
+
+    private final ImmutableList<PathMatcher> pathMatchers;
+
+    AnyPathMatcher(ImmutableList<PathMatcher> pathMatchers) {
+      this.pathMatchers = pathMatchers;
+    }
+
+    @Override
+    public boolean matches(Path path) {
+      for (PathMatcher pathMatcher : pathMatchers) {
+        if (pathMatcher.matches(path)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      AnyPathMatcher that = (AnyPathMatcher) o;
+      return Objects.equals(pathMatchers, that.pathMatchers);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(pathMatchers);
+    }
+
+    @Override
+    public String toString() {
+      return "anyOf[" + Joiner.on(", ").join(pathMatchers) + "]";
     }
   }
 }

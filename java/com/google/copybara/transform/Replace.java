@@ -16,14 +16,19 @@
 
 package com.google.copybara.transform;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.WorkflowOptions;
+import com.google.copybara.transform.TemplateTokens.Replacer;
+import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -32,7 +37,9 @@ import com.google.re2j.PatternSyntaxException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -101,17 +108,25 @@ public final class Replace implements Transformation {
       throws IOException, ValidationException {
     Path checkoutDir = work.getCheckoutDir();
 
-    ReplaceVisitor visitor = new ReplaceVisitor(
-        before.replacer(after, firstOnly, multiline),
+    Iterable<FileState> files = work.getTreeState().find(
         fileMatcherBuilder.relativeTo(checkoutDir));
-    Files.walkFileTree(checkoutDir, visitor);
-
+    Replacer replacer = before.replacer(after, firstOnly, multiline);
+    List<FileState> changed = new ArrayList<>();
+    for (FileState file : files) {
+      String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
+      String transformed = replacer.replace(originalFileContent);
+      if (!originalFileContent.equals(transformed)) {
+        changed.add(file);
+        Files.write(file.getPath(), transformed.getBytes(UTF_8));
+      }
+    }
     logger.info(String.format("Applied %s to %s files. %s changed.",
-        this,
-        visitor.filesVisited,
-        visitor.filesChanged));
+                              this,
+                              Iterables.size(files),
+                              changed.size()));
 
-    if (visitor.filesChanged == 0) {
+    work.getTreeState().notifyModify(changed);
+    if (changed.isEmpty()) {
       workflowOptions.reportNoop(
           work.getConsole(),
           "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");

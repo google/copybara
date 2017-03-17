@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.util.Objects;
 
 /**
  * A path matcher which delegates to another path matcher but has a specifiable {@link #toString()}
@@ -68,5 +69,23 @@ public final class ReadablePathMatcher implements PathMatcher {
     }
 
     return new ReadablePathMatcher(fs.getPathMatcher("glob:" + root + glob), glob);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    ReadablePathMatcher that = (ReadablePathMatcher) o;
+    // Don't use the delegate as toString is unique.
+    return Objects.equals(toString, that.toString);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(toString);
   }
 }

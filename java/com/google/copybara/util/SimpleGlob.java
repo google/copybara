@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
@@ -107,5 +108,23 @@ final class SimpleGlob extends Glob {
     public String toString() {
       return SimpleGlob.this.toString();
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    SimpleGlob that = (SimpleGlob) o;
+    return Objects.equals(include, that.include)
+        && Objects.equals(exclude, that.exclude);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(include, exclude);
   }
 }

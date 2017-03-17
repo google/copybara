@@ -20,6 +20,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.treestate.FileSystemTreeState;
+import com.google.copybara.treestate.TreeState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -61,15 +63,22 @@ public final class TransformWork {
   private final Console console;
   private final MigrationInfo migrationInfo;
   private final Revision resolvedReference;
+  private final TreeState treeState;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference) {
+    this(checkoutDir, metadata, changes, console, migrationInfo, resolvedReference,
+         new FileSystemTreeState(checkoutDir));
+  }
+  public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
+      MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
     this.console = console;
     this.migrationInfo = migrationInfo;
     this.resolvedReference = Preconditions.checkNotNull(resolvedReference);
+    this.treeState = treeState;
   }
 
   /**
@@ -269,10 +278,23 @@ public final class TransformWork {
   }
 
   /**
+   * Creates a new {@link TransformWork} object that contains a new {@link TreeState}
+   * ready to be used by a transform.
+   */
+  public TransformWork withUpdatedTreeState() {
+    return new TransformWork(checkoutDir, metadata, changes, console,
+                             migrationInfo, resolvedReference, treeState.newTreeState());
+  }
+
+  /**
    * Update mutable state from another worker data. Should be used with an instance created with
    * {@link #withConsole(Console)}
    */
   public void updateFrom(TransformWork skylarkWork) {
     metadata = skylarkWork.metadata;
+  }
+
+  public TreeState getTreeState() {
+    return treeState;
   }
 }

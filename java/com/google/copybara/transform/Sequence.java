@@ -44,7 +44,8 @@ public class Sequence implements Transformation {
 
   protected final Logger logger = Logger.getLogger(Sequence.class.getName());
 
-  private Sequence(Profiler profiler, ImmutableList<Transformation> sequence) {
+  @VisibleForTesting
+  Sequence(Profiler profiler, ImmutableList<Transformation> sequence) {
     this.profiler = Preconditions.checkNotNull(profiler);
     this.sequence = Preconditions.checkNotNull(sequence);
   }
@@ -60,6 +61,9 @@ public class Sequence implements Transformation {
       return;
     }
 
+    // Force to create a new fresh copy of the tree state to leave the
+    // old one untouched so that a upper level call would return a fs based implementation.
+    TransformWork localWork = work.withUpdatedTreeState();
     for (int i = 0; i < sequence.size(); i++) {
       Transformation transformation = sequence.get(i);
       String transformMsg = String.format(
@@ -67,9 +71,13 @@ public class Sequence implements Transformation {
           transformation.describe());
       logger.log(Level.INFO, transformMsg);
 
-      work.getConsole().progress(transformMsg);
-      runOneTransform(work, transformation);
+      localWork.getConsole().progress(transformMsg);
+      runOneTransform(localWork, transformation);
+      localWork = localWork.withUpdatedTreeState();
     }
+    // Update parent work with potentially modified author and message.
+    work.setAuthor(localWork.getAuthor());
+    work.setMessage(localWork.getMessage());
   }
 
   private void runOneTransform(TransformWork work, Transformation transform)
