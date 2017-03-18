@@ -22,8 +22,8 @@ import static com.google.copybara.util.Glob.createGlob;
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.ValidationException;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -58,6 +58,41 @@ public class GlobTest {
     assertThat(matcher.matches(workdir.resolve("foo"))).isFalse();
     assertThat(matcher.matches(workdir.resolve("bar/foo"))).isFalse();
     assertThat(matcher.matches(workdir.resolve("baz"))).isFalse();
+  }
+
+  @Test
+  public void unionTest() throws Exception {
+    Glob glob = parseGlob("glob(['foo/**', 'bar/**']) + glob(['baz/**'])");
+
+    assertThat(glob.roots()).containsExactly("foo", "bar", "baz");
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("baz/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("other"))).isFalse();
+  }
+
+  @Test
+  public void unionSameParent() throws Exception {
+    Glob glob = parseGlob("glob(['foo/**']) + glob(['foo/bar/**', 'baz/**'])");
+    // 'foo/bar' is not a root as it is not in glob(['foo/**'], 'foo/bar/**', 'baz/**'])
+    assertThat(glob.roots()).containsExactly("foo", "baz");
+  }
+
+  @Test
+  public void unionWithExcludeAndInclude() throws Exception {
+    Glob glob = parseGlob("glob(['foo/**'], exclude = ['foo/bar/**'])"
+        + " + glob(['foo/bar/baz/**'])");
+
+    assertThat(glob.roots()).containsExactly("foo");
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo/bar/a"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("foo/bar/baz/a"))).isTrue();
   }
 
   @Test
@@ -185,7 +220,10 @@ public class GlobTest {
 
   private PathMatcher createPathMatcher(final String expression)
       throws ValidationException {
-    Glob result = skylark.eval("result", "result=" + expression);
-    return result.relativeTo(workdir);
+    return parseGlob(expression).relativeTo(workdir);
+  }
+
+  private Glob parseGlob(String expression) throws ValidationException {
+    return skylark.eval("result", "result=" + expression);
   }
 }

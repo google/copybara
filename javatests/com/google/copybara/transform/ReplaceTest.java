@@ -386,7 +386,7 @@ public final class ReplaceTest {
         + ")");
 
     String string = transformation.toString();
-    assertThat(string).contains("include=[foo/**/bar.htm], exclude=null");
+    assertThat(string).contains("glob(include = [\"foo/**/bar.htm\"])");
   }
 
   @Test
@@ -397,7 +397,7 @@ public final class ReplaceTest {
         + ")");
 
     String string = transformation.toString();
-    assertThat(string).contains("include=[**], exclude=null");
+    assertThat(string).contains("glob(include = [\"**\"])");
   }
 
   @Test

@@ -16,13 +16,24 @@
 
 package com.google.copybara.util;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.Concatable;
+import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.re2j.Pattern;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * A {@link PathMatcher} builder that creates a PathMatcher relative to a {@link Path}.
@@ -35,11 +46,25 @@ import java.nio.file.PathMatcher;
     doc = "Glob returns a list of every file in the workdir that matches at least one"
         + " pattern in include and does not match any of the patterns in exclude.",
     category = SkylarkModuleCategory.BUILTIN)
-public interface Glob {
+public abstract class Glob implements Concatable {
 
-  Glob ALL_FILES = createGlob(ImmutableList.of("**"));
+  private static final Pattern UNESCAPE = Pattern.compile("\\\\(.)");
 
-  PathMatcher relativeTo(Path path);
+  public static final Glob ALL_FILES = createGlob(ImmutableList.of("**"));
+
+  /**
+   * An implementation of {@link Concatter} for Globs so that we can create glob1 + glob2 as a
+   * union glob.
+   */
+  Concatter CONCATTER = (lval, rval, loc) -> {
+    if (lval instanceof Glob && rval instanceof Glob) {
+      return new UnionGlob(((Glob) lval), ((Glob) rval));
+    }
+    throw new EvalException(loc, "Cannot concatenate " + lval + " with " + rval + ". Only a glob"
+        + " can be concatenated to a glob");
+  };
+
+  public abstract PathMatcher relativeTo(Path path);
 
   /**
    * Creates a function {@link Glob} that when a {@link Path} is passed it returns a
@@ -49,7 +74,7 @@ public interface Glob {
    * @param exclude list of strings representing the globs to exclude from the include set
    * @throws IllegalArgumentException if any glob is not valid
    */
-  static Glob createGlob(Iterable<String> include, Iterable<String> exclude) {
+  public static Glob createGlob(Iterable<String> include, Iterable<String> exclude) {
     return new SimpleGlob(ImmutableList.copyOf(include),
                           Iterables.isEmpty(exclude) ? null : createGlob(exclude));
   }
@@ -61,7 +86,7 @@ public interface Glob {
    * @param include list of strings representing the globs to include/match
    * @throws IllegalArgumentException if any glob is not valid
    */
-  static Glob createGlob(Iterable<String> include) {
+  public static Glob createGlob(Iterable<String> include) {
     return new SimpleGlob(include, null);
   }
 
@@ -95,5 +120,69 @@ public interface Glob {
    * may store metadata at {root}/INFO for every root. See the documentation of the destination or
    * origin you are using for more information.
    */
-  ImmutableSet<String> roots();
+  public abstract ImmutableSet<String> roots();
+
+  @Nullable
+  @Override
+  public Concatter getConcatter() {
+    return CONCATTER;
+  }
+
+  protected abstract Iterable<String> getIncludes();
+
+  protected static ImmutableSet<String> computeRootsFromIncludes(Iterable<String> includes) {
+    List<String> roots = new ArrayList<>();
+
+    for (String includePath : includes) {
+      ArrayDeque<String> components = new ArrayDeque<>();
+      for (String component : Splitter.on('/').split(includePath)) {
+        components.add(unescape(component));
+        if (isMeta(component)) {
+          break;
+        }
+      }
+      components.removeLast();
+      if (components.isEmpty()) {
+        return ImmutableSet.of("");
+      }
+      roots.add(Joiner.on('/').join(components));
+    }
+
+    // Remove redundant roots - e.g. "foo" covers all paths that start with "foo/"
+    Collections.sort(roots);
+    int r = 0;
+    while (r < roots.size() - 1) {
+      if (roots.get(r + 1).startsWith(roots.get(r) + "/")) {
+        roots.remove(r + 1);
+      } else {
+        r++;
+      }
+    }
+
+    return ImmutableSet.copyOf(roots);
+  }
+
+  private static String unescape(String pathComponent) {
+    return UNESCAPE.matcher(pathComponent).replaceAll("$1");
+  }
+
+  private static boolean isMeta(String pathComponent) {
+    int c = 0;
+    while (c < pathComponent.length()) {
+      switch (pathComponent.charAt(c)) {
+        case '*':
+        case '{':
+        case '[':
+        case '?':
+          return true;
+        case '\\':
+          c++;
+          break;
+        default: // fall out
+      }
+      c++;
+    }
+    return false;
+  }
+
 }
