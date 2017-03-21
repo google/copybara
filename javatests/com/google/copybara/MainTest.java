@@ -19,8 +19,11 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.beust.jcommander.JCommander;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.util.ExitCode;
+import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.Files;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,16 +56,17 @@ public class MainTest {
   }
 
   @Test
-  public void testConfigureLogCalled() {
+  public void testConfigureLogCalled() throws IOException {
 
-    Main main =
-        new Main() {
+    ImmutableMap<String, String> envWithHome = ImmutableMap.of("HOME",
+        Files.createTempDirectory("foo").toString());
+    Main main = new Main(envWithHome) {
           @Override
           protected void configureLog(FileSystem fs) {
             called = true;
           }
         };
-    main.run(args);
+    assertThat(main.run(args)).isEqualTo(ExitCode.COMMAND_LINE_ERROR);
     assertThat(called).isTrue();
   }
 

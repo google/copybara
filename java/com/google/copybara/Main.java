@@ -25,7 +25,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.config.ConfigLoader;
+import com.google.copybara.profiler.LogProfiler;
+import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
@@ -62,14 +65,15 @@ public class Main {
    *
    * <p>Should not be mutated.
    */
-  protected final Map<String, String> environment;
+  protected final ImmutableMap<String, String> environment;
+  private Profiler profiler;
 
   public Main() {
     this(System.getenv());
   }
 
   public Main(Map<String, String> environment) {
-    this.environment = Preconditions.checkNotNull(environment);
+    this.environment = Preconditions.checkNotNull(ImmutableMap.copyOf(environment));
   }
 
   public static void main(String[] args) {
@@ -272,14 +276,17 @@ public class Main {
    * options are parsed, but before a file is read or a run started.
    */
   protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander) {
-    // intentional no-op
+    profiler = options.get(GeneralOptions.class).getProfiler();
+    profiler.init(ImmutableList.of(new LogProfiler()));
   }
 
   /**
    * Performs cleanup tasks after executing Copybara.
    */
   protected void shutdown(ExitCode exitCode) throws InterruptedException {
-    // intentional no-op
+    if (profiler != null) {
+      profiler.stop();
+    }
   }
 
   /**

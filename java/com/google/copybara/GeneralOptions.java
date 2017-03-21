@@ -20,7 +20,10 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Ticker;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -49,6 +52,8 @@ public final class GeneralOptions implements Option {
   private final Path configRoot;
   @Nullable
   private final Path outputRoot;
+
+  private final Profiler profiler = new Profiler(Ticker.systemTicker());
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
@@ -117,6 +122,10 @@ public final class GeneralOptions implements Option {
   @Nullable
   public Path getOutputRoot() {
     return outputRoot;
+  }
+
+  public Profiler getProfiler() {
+    return profiler;
   }
 
   /**
