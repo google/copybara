@@ -1,10 +1,26 @@
+/*
+ * Copyright (C) 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.copybara.profiler;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
+import com.google.common.testing.FakeTicker;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.util.ArrayList;
@@ -24,11 +40,11 @@ public class ProfilerTest {
 
   private Profiler profiler;
   private RecordingListener recordingCallback;
-  private MockTicker ticker;
+  private FakeTicker ticker;
 
   @Before
   public void setUp() throws Exception {
-    ticker = new MockTicker();
+    ticker = new FakeTicker().setAutoIncrementStep(1, TimeUnit.NANOSECONDS);
     profiler = new Profiler(ticker);
     recordingCallback = new RecordingListener();
     // We don't record anything  before start
@@ -141,12 +157,12 @@ public class ProfilerTest {
     }
     profiler.stop();
 
-    ticker.current = 42;
+     long time = ticker.advance(42).read();
     // Nothing was created in the stack. We cannot get the queue without forcing initialization
     // so we change the ticker and see that the value is a detached with start=42. IOW: Created
     // when we do tasQueue.get() here:
     assertThat(profiler.taskQueue.get()).containsExactly(
-        new Task("//detached_thread", 42, -1));
+        new Task("//detached_thread", time + 1, -1));
   }
 
   private static class RecordingListener implements Listener {
@@ -204,15 +220,5 @@ public class ProfilerTest {
   private enum EventType {
     START,
     END
-  }
-
-  private static class MockTicker extends Ticker {
-
-    long current = 0;
-
-    @Override
-    public long read() {
-      return current++;
-    }
   }
 }
