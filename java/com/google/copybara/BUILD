@@ -45,6 +45,7 @@ java_library(
     deps = [
         ":base",
         ":copybara_lib",
+        "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",
@@ -113,6 +114,7 @@ java_library(
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config/base",
         "//java/com/google/copybara/doc:annotations",
+        "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",

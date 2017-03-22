@@ -23,6 +23,8 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.profiler.Profiler;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
@@ -51,7 +53,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * @param resolvedRef revision to migrate
    */
   public WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef)
-      throws ValidationException, IOException, RepoException {
+      throws ValidationException, RepoException {
     this.workflow = Preconditions.checkNotNull(workflow);
     this.workdir = Preconditions.checkNotNull(workdir);
     this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
@@ -141,13 +143,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Metadata metadata, Changes changes, @Nullable String destinationBaseline,
       @Nullable String workflowIdentity)
       throws IOException, RepoException, ValidationException {
-    processConsole.progress("Cleaning working directory");
-    FileUtil.deleteAllFilesRecursively(workdir);
     Path checkoutDir = workdir.resolve("checkout");
-    Files.createDirectories(checkoutDir);
-
+    try (ProfilerTask ignored = profiler().start("prepare_workdir")) {
+      processConsole.progress("Cleaning working directory");
+      FileUtil.deleteAllFilesRecursively(workdir);
+      Files.createDirectories(checkoutDir);
+    }
     processConsole.progress("Checking out the change");
-    originReader.checkout(rev, checkoutDir);
+    try (ProfilerTask ignored = profiler().start("origin.checkout")) {
+      originReader.checkout(rev, checkoutDir);
+    }
 
     // Remove excluded origin files.
     PathMatcher originFiles = workflow.getOriginFiles().relativeTo(checkoutDir);
@@ -162,9 +167,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
     Path originCopy = null;
     if (workflow.getReverseTransformForCheck() != null) {
-      workflow.getConsole().progress("Making a copy or the workdir for reverse checking");
-      originCopy = Files.createDirectories(workdir.resolve("origin"));
-      FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
+      try (ProfilerTask ignored = profiler().start("reverse_copy")) {
+        workflow.getConsole().progress("Making a copy or the workdir for reverse checking");
+        originCopy = Files.createDirectories(workdir.resolve("origin"));
+        FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
+      }
     }
 
     TransformWork transformWork =
@@ -175,29 +182,36 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             workflow.getConsole(),
             new MigrationInfo(workflow.getOrigin().getLabelName(), getDestinationReader()),
             resolvedRef);
-    workflow.getTransformation().transform(transformWork);
+    try (ProfilerTask ignored = profiler().start("transforms")) {
+      workflow.getTransformation().transform(transformWork);
+    }
 
     if (workflow.getReverseTransformForCheck() != null) {
       workflow.getConsole().progress("Checking that the transformations can be reverted");
-      Path reverse = Files.createDirectories(workdir.resolve("reverse"));
-      FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
-      workflow
-          .getReverseTransformForCheck()
-          .transform(
-              new TransformWork(
-                  reverse,
-                  new Metadata(transformWork.getMessage(), transformWork.getAuthor()),
-                  changes,
-                  workflow.getConsole(),
-                  new MigrationInfo(/*originLabel=*/ null, (ChangeVisitable) null),
-                  resolvedRef));
+      Path reverse = null;
+      try (ProfilerTask ignored = profiler().start("reverse_copy")) {
+        reverse = Files.createDirectories(workdir.resolve("reverse"));
+        FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
+      }
+
+      try (ProfilerTask ignored = profiler().start("reverse_transform")) {
+        workflow.getReverseTransformForCheck()
+            .transform(
+                new TransformWork(
+                    reverse,
+                    new Metadata(transformWork.getMessage(), transformWork.getAuthor()),
+                    changes,
+                    workflow.getConsole(),
+                    new MigrationInfo(/*originLabel=*/ null, (ChangeVisitable) null),
+                    resolvedRef));
+      }
       String diff = new String(DiffUtil.diff(originCopy, reverse, workflow.isVerbose()),
           StandardCharsets.UTF_8);
       if (!diff.trim().isEmpty()) {
         workflow.getConsole().error("Non reversible transformations:\n"
             + DiffUtil.colorize(workflow.getConsole(), diff));
         throw new ValidationException(String.format("Workflow '%s' is not reversible",
-                                                    workflow.getName()));
+            workflow.getName()));
       }
     }
 
@@ -217,7 +231,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         .withAskForConfirmation(workflow.isAskForConfirmation())
         .withWorkflowIdentity(workflowIdentity);
 
-    WriterResult result = writer.write(transformResult, processConsole);
+    WriterResult result;
+    try (ProfilerTask ignored = profiler().start("destination.write")) {
+      result = writer.write(transformResult, processConsole);
+    }
     Verify.verifyNotNull(result, "Destination returned a null result.");
     return result;
   }
@@ -269,5 +286,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
     String previousRef = writer.getPreviousRef(workflow.getOrigin().getLabelName());
     return (previousRef == null) ? null : workflow.getOrigin().resolve(previousRef);
+  }
+
+  public Profiler profiler() {
+    return workflow.profiler();
   }
 }

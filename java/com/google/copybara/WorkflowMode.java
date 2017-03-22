@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.syntax.SkylarkList;
@@ -111,7 +112,7 @@ public enum WorkflowMode {
             "Change %d of %d (%s): ",
             changeNumber, Math.min(changes.size(), limit), change.getRevision().asString());
         WriterResult result;
-        try {
+        try(ProfilerTask ignored = runHelper.profiler().start(change.refAsString())) {
           ComputedChanges computedChanges = new ComputedChanges(ImmutableList.of(change), migrated);
           result =
               runHelper

@@ -32,7 +32,6 @@ import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -250,9 +249,9 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         Environment env)
         throws EvalException {
       WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
-      Console console = self.generalOptions.console();
 
-      Sequence sequenceTransform = Sequence.fromConfig(transformations, "transformations", env);
+      Sequence sequenceTransform = Sequence.fromConfig(self.generalOptions.profiler(),
+          transformations, "transformations", env);
       Transformation reverseTransform = null;
       if (!self.generalOptions.isDisableReversibleCheck() &&
               convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
@@ -270,15 +269,13 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           authoring,
           sequenceTransform,
           self.workflowOptions.getLastRevision(),
-          console,
+          self.generalOptions,
           originFiles,
           destinationFiles,
           mode,
           self.workflowOptions,
           reverseTransform,
-          self.generalOptions.isVerbose(),
           askForConfirmation,
-          self.generalOptions.isForced(),
           self.mainConfigFile));
       return Runtime.NONE;
     }
@@ -515,7 +512,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     public Transformation invoke(Core self,
         SkylarkList<Transformation> transformations,
         Object reversal, Environment env) throws EvalException {
-      Sequence forward = Sequence.fromConfig(transformations, "transformations", env);
+      Sequence forward = Sequence.fromConfig(self.generalOptions.profiler(), transformations,
+          "transformations", env);
       SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
       if (reverseList == null) {
         try {
@@ -525,7 +523,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               + " Use 'reversal' field to explicitly configure the reversal of the transform", e);
         }
       }
-      Sequence reverse = Sequence.fromConfig(reverseList, "reversal", env);
+      Sequence reverse = Sequence.fromConfig(self.generalOptions.profiler(), reverseList,
+          "reversal", env);
       return new ExplicitReversal(forward, reverse);
     }
   };

@@ -753,6 +753,48 @@ EOF
   [[ ! -z destination/test2.txt ]] || fail "test2.txt should have been moved"
 }
 
+function test_profile() {
+  remote=$(temp_dir remote)
+
+  ( cd $remote
+    run_git init .
+    echo "foo" > test.txt
+    run_git add test.txt
+    run_git commit -m "first commit"
+  )
+  mkdir destination
+
+  cat > destination/copy.bara.sky <<EOF
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$remote",
+      ref = "master",
+    ),
+    destination = folder.destination(),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    transformations = [
+        core.move('test.txt', 'test.moved'),
+        core.move('test.moved', 'test.moved2'),
+    ],
+)
+EOF
+
+  copybara destination/copy.bara.sky --folder-dir destination
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/clean_workdir"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/origin.resolve_source_ref"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/squash/prepare_workdir"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/squash/origin.checkout"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/squash/transforms/Moving test.txt"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/squash/transforms/Moving test.moved"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/squash/transforms"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/squash/destination.write"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run/default/squash"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara/run"
+  expect_log "taskFinished PROFILE: [0-9]* //copybara"
+  expect_in_file "foo" destination/test.moved2
+}
+
 function test_invalid_transformations_in_config() {
   cat > copy.bara.sky <<EOF
 core.workflow(

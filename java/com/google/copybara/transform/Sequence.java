@@ -23,6 +23,8 @@ import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
+import com.google.copybara.profiler.Profiler;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -37,11 +39,13 @@ import java.util.logging.Logger;
  */
 public class Sequence implements Transformation {
 
+  private final Profiler profiler;
   private final ImmutableList<Transformation> sequence;
 
   protected final Logger logger = Logger.getLogger(Sequence.class.getName());
 
-  private Sequence(ImmutableList<Transformation> sequence) {
+  private Sequence(Profiler profiler, ImmutableList<Transformation> sequence) {
+    this.profiler = Preconditions.checkNotNull(profiler);
     this.sequence = Preconditions.checkNotNull(sequence);
   }
 
@@ -52,7 +56,7 @@ public class Sequence implements Transformation {
       Transformation transform = sequence.get(0);
       logger.log(Level.INFO, transform.describe());
       work.getConsole().progress(transform.describe());
-      transform.transform(work);
+      runOneTransform(work, transform);
       return;
     }
 
@@ -64,7 +68,14 @@ public class Sequence implements Transformation {
       logger.log(Level.INFO, transformMsg);
 
       work.getConsole().progress(transformMsg);
-      transformation.transform(work);
+      runOneTransform(work, transformation);
+    }
+  }
+
+  private void runOneTransform(TransformWork work, Transformation transform)
+      throws IOException, ValidationException {
+    try(ProfilerTask ignored = profiler.start(transform.describe().replace('/', ' '))) {
+      transform.transform(work);
     }
   }
 
@@ -74,7 +85,7 @@ public class Sequence implements Transformation {
     for (Transformation element : sequence) {
       list.add(element.reverse());
     }
-    return new Sequence(list.build().reverse());
+    return new Sequence(profiler, list.build().reverse());
   }
 
   @VisibleForTesting
@@ -100,13 +111,13 @@ public class Sequence implements Transformation {
    * @param description a description of the argument being converted, such as its name
    * @param env skylark environment for user defined transformations
    */
-  public static Sequence fromConfig(SkylarkList<?> elements, String description, Environment env)
+  public static Sequence fromConfig(Profiler profiler, SkylarkList<?> elements, String description, Environment env)
       throws EvalException {
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
     for (Object element : elements) {
       transformations.add(convertToTransformation(description, env, element));
     }
-    return new Sequence(transformations.build());
+    return new Sequence(profiler, transformations.build());
   }
 
   private static Transformation convertToTransformation(String description, Environment env,

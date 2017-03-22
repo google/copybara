@@ -22,16 +22,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
-import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.profiler.Profiler;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -55,6 +57,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable
   private final String lastRevisionFlag;
   private final Console console;
+  private final GeneralOptions generalOptions;
   private final Glob originFiles;
   private final Glob destinationFiles;
   private final WorkflowMode mode;
@@ -74,15 +77,13 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       Authoring authoring,
       Transformation transformation,
       @Nullable String lastRevisionFlag,
-      Console console,
+      GeneralOptions generalOptions,
       Glob originFiles,
       Glob destinationFiles,
       WorkflowMode mode,
       WorkflowOptions workflowOptions,
       @Nullable Transformation reverseTransformForCheck,
-      boolean verbose,
       boolean askForConfirmation,
-      boolean force,
       ConfigFile<?> mainConfigFile) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
@@ -90,15 +91,16 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.authoring = Preconditions.checkNotNull(authoring);
     this.transformation = Preconditions.checkNotNull(transformation);
     this.lastRevisionFlag = lastRevisionFlag;
-    this.console = Preconditions.checkNotNull(console);
+    this.console = Preconditions.checkNotNull(generalOptions.console());
+    this.generalOptions = generalOptions;
     this.originFiles = Preconditions.checkNotNull(originFiles);
     this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
     this.mode = Preconditions.checkNotNull(mode);
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
     this.reverseTransformForCheck = reverseTransformForCheck;
-    this.verbose = verbose;
+    this.verbose = generalOptions.isVerbose();
     this.askForConfirmation = askForConfirmation;
-    this.force = force;
+    this.force = generalOptions.isForced();
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
   }
 
@@ -161,39 +163,52 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
-    console.progress("Cleaning working directory");
-    FileUtil.deleteAllFilesRecursively(workdir);
+    try (ProfilerTask ignore = profiler().start("run/" + name)) {
+      console.progress("Cleaning working directory");
+      generalOptions.ioRepoTask("clean_workdir",
+          () -> FileUtil.deleteAllFilesRecursively(workdir));
 
-    console.progress("Getting last revision: "
-        + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
-    O resolvedRef = origin.resolve(sourceRef);
-    logger.log(Level.INFO,
-        String.format(
-            "Running Copybara for workflow '%s' and ref '%s': %s",
-            name, resolvedRef.asString(),
-            this.toString()));
-    logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-    mode.run(newRunHelper(workdir, resolvedRef));
+      console.progress("Getting last revision: "
+          + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
+      O resolvedRef = generalOptions.repoTask("origin.resolve_source_ref",
+          () ->origin.resolve(sourceRef));
+
+      logger.log(Level.INFO, String.format(
+              "Running Copybara for workflow '%s' and ref '%s': %s",
+              name, resolvedRef.asString(),
+              this.toString()));
+      logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
+      try(ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
+        mode.run(newRunHelper(workdir, resolvedRef));
+      }
+    }
   }
 
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)
-      throws ValidationException, IOException, RepoException {
+      throws ValidationException, RepoException {
     return new WorkflowRunHelper<>(this, workdir, resolvedRef);
   }
 
   @Override
   public Info getInfo() throws RepoException, ValidationException {
-    O lastResolved = origin.resolve(/*sourceRef=*/ null);
-    Writer writer = destination.newWriter(destinationFiles);
-    String lastRef = writer.getPreviousRef(origin.getLabelName());
-    O lastMigrated = (lastRef == null) ? null : origin.resolve(lastRef);
+    return generalOptions.repoTask("info", (Callable<Info>) () -> {
+      O lastResolved = generalOptions.repoTask("origin.last_resolved",
+          () -> origin.resolve(/*sourceRef=*/ null));
 
-    ImmutableList<Change<O>> changes =
-        origin.newReader(originFiles, authoring).changes(lastMigrated, lastResolved);
+      String lastRef = generalOptions.repoTask("destination.previous_ref",
+          () -> destination.newWriter(destinationFiles)
+              .getPreviousRef(origin.getLabelName()));
 
-    MigrationReference<O> migrationRef = MigrationReference.create(
-        String.format("workflow_%s", name), lastMigrated, changes);
-    return Info.create(ImmutableList.of(migrationRef));
+      O lastMigrated = generalOptions.repoTask("origin.last_migrated",
+          () -> (lastRef == null) ? null : origin.resolve(lastRef));
+
+      ImmutableList<Change<O>> changes = generalOptions.repoTask("origin.changes",
+          () -> origin.newReader(originFiles, authoring).changes(lastMigrated, lastResolved));
+
+      MigrationReference<O> migrationRef = MigrationReference.create(
+          String.format("workflow_%s", name), lastMigrated, changes);
+      return Info.create(ImmutableList.of(migrationRef));
+    });
   }
 
   @Override
@@ -275,5 +290,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public ConfigFile getMainConfigFile() {
     return mainConfigFile;
+  }
+
+  public Profiler profiler() {
+    return generalOptions.profiler();
   }
 }

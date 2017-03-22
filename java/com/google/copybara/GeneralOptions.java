@@ -20,16 +20,18 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.profiler.Profiler;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 
 /**
@@ -124,8 +126,35 @@ public final class GeneralOptions implements Option {
     return outputRoot;
   }
 
-  public Profiler getProfiler() {
+  public Profiler profiler() {
     return profiler;
+  }
+
+  /**
+   * Run a repository task with profiling
+   */
+  public <T> T repoTask(String description, Callable<T> callable)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignored = profiler().start(description)) {
+      return callable.call();
+    } catch (Exception e) {
+      Throwables.propagateIfPossible(e, RepoException.class, ValidationException.class);
+      throw new RuntimeException("Unexpected exception", e);
+    }
+  }
+
+  /**
+   * Run a repository task that can throw IOException with profiling
+   */
+  public <T> T ioRepoTask(String description, Callable<T> callable)
+      throws RepoException, ValidationException, IOException{
+    try (ProfilerTask ignored = profiler().start(description)) {
+      return callable.call();
+    } catch (Exception e) {
+      Throwables.propagateIfPossible(e, RepoException.class, ValidationException.class);
+      Throwables.propagateIfPossible(e, IOException.class);
+      throw new RuntimeException("Unexpected exception", e);
+    }
   }
 
   /**
