@@ -16,11 +16,13 @@
 
 package com.google.copybara.config;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import java.util.function.Supplier;
 
 /**
- * A {@link SkylarkModule} that implements this interface will be given the current config file
- * which can be used to load content given labels.
+ * A {@link SkylarkModule} that implements this interface will be given information about the
+ * config files and resources loaded by theconfiguration.
  */
 public interface LabelsAwareModule {
 
@@ -31,5 +33,16 @@ public interface LabelsAwareModule {
    *
    * TODO(copybara-team): Figure out how this works with concurrent loading.
    */
-  void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile);
+  default void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+
+  }
+
+  /**
+   * A Supplier that returns all the files loaded by the configuration loading. The supplier
+   * shouldn't be evaluated before loading finishes.
+   */
+  default void setAllConfigResources(
+      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configs) {
+
+  }
 }

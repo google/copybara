@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.copybara.Config;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.ValidationException;
@@ -85,7 +84,7 @@ public final class SkylarkTestExecutor {
 
   public <T> Map<String, ConfigFile<T>> getConfigMap(ConfigFile<T> config)
       throws IOException, ValidationException {
-    return skylarkParser.getContentWithTransitiveImports(config, options.build());
+    return skylarkParser.getConfigWithTransitiveImports(config, options.build()).files;
   }
 
   private ConfigFile<String> createConfigFile(String configContent) {

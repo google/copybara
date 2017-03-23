@@ -16,9 +16,14 @@
 
 package com.google.copybara.testing;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Origin;
@@ -26,11 +31,19 @@ import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -50,19 +63,21 @@ public class DummyRevision implements Revision {
   private final String contextReference;
   private final ImmutableMap<String, String> referenceLabels;
   private final boolean matchesGlob;
+  @Nullable private final Path previousPath;
   private final ImmutableMap<String, String> descriptionLabels;
 
   public DummyRevision(String reference) {
     this(reference, "DummyReference message", DEFAULT_AUTHOR,
         Paths.get("/DummyReference", reference), /*timestamp=*/null,
         /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of(),
-         /*matchesGlob=*/true);
+         /*matchesGlob=*/true, /*previousPath=*/null);
   }
 
   DummyRevision(
       String reference, String message, Author author, Path changesBase,
       @Nullable Instant timestamp, @Nullable String contextReference,
-      ImmutableMap<String, String> referenceLabels, boolean matchesGlob) {
+      ImmutableMap<String, String> referenceLabels, boolean matchesGlob,
+      @Nullable Path previousPath) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
     this.author = Preconditions.checkNotNull(author);
@@ -71,6 +86,7 @@ public class DummyRevision implements Revision {
     this.contextReference = contextReference;
     this.referenceLabels = Preconditions.checkNotNull(referenceLabels);
     this.matchesGlob = matchesGlob;
+    this.previousPath = previousPath;
 
     ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
     for (String line : message.split("\n")) {
@@ -88,20 +104,20 @@ public class DummyRevision implements Revision {
   public DummyRevision withTimestamp(Instant newTimestamp) {
     return new DummyRevision(
         this.reference, this.message, this.author, this.changesBase, newTimestamp,
-        this.contextReference, this.referenceLabels, this.matchesGlob);
+        this.contextReference, this.referenceLabels, this.matchesGlob, this.previousPath);
   }
 
   public DummyRevision withAuthor(Author newAuthor) {
     return new DummyRevision(
         this.reference, this.message, newAuthor, this.changesBase, this.timestamp,
-        this.contextReference, this.referenceLabels, this.matchesGlob);
+        this.contextReference, this.referenceLabels, this.matchesGlob, this.previousPath);
   }
 
   public DummyRevision withContextReference(String contextReference) {
     Preconditions.checkNotNull(contextReference);
     return new DummyRevision(
         this.reference, this.message, this.getAuthor(), this.changesBase, this.timestamp,
-        contextReference, this.referenceLabels, this.matchesGlob);
+        contextReference, this.referenceLabels, this.matchesGlob, this.previousPath);
   }
 
   @Nullable
@@ -125,7 +141,40 @@ public class DummyRevision implements Revision {
         ? this.author
         : authoring.getDefaultAuthor();
     return new Change<>(this, safeAuthor, message,
-        ZonedDateTime.ofInstant(timestamp, ZoneId.systemDefault()), descriptionLabels);
+        ZonedDateTime.ofInstant(timestamp, ZoneId.systemDefault()), descriptionLabels,
+                        computeChangedFiles());
+  }
+
+  private Set<String> computeChangedFiles() {
+    Map<String, String> pathToContent = readAllFiles(changesBase);
+    Map<String, String> previousContent = previousPath == null
+        ? ImmutableMap.of()
+        : readAllFiles(previousPath);
+
+    MapDifference<String, String> diff = Maps.difference(pathToContent, previousContent);
+
+    return ImmutableSet.<String>builder()
+        .addAll(diff.entriesOnlyOnLeft().keySet())
+        .addAll(diff.entriesOnlyOnRight().keySet())
+        .addAll(diff.entriesDiffering().keySet())
+        .build();
+  }
+
+  private static Map<String, String> readAllFiles(Path basePath) {
+    Map<String, String> pathToContent = new HashMap<>();
+    try {
+      Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+          pathToContent.put(basePath.relativize(file).toString(),
+                            new String(Files.readAllBytes(file), UTF_8));
+          return FileVisitResult.CONTINUE;
+        }
+      });
+    } catch (IOException e) {
+      throw new RuntimeException("Shouldn't happen", e);
+    }
+    return pathToContent;
   }
 
   @Nullable

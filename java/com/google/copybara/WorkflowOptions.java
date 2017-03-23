@@ -62,6 +62,13 @@ public class WorkflowOptions implements Option {
   )
   public boolean squashSkipHistory = false;
 
+  @Parameter(names = "--iterative-all-changes",
+      description = "By default Copybara will only try to migrate changes that could affect the"
+          + " destination. Ignoring changes that only affect excluded files in origin_files. This"
+          + " flag disables that behavior and runs for all the changes.")
+  public boolean iterativeAllChanges = false;
+
+
   /**
    * Reports that some operation is a no-op. This will either throw an exception or report the
    * incident to the console, depending on the options.

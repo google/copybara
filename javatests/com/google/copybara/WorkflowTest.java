@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.WorkflowMode.SQUASH;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -46,7 +47,6 @@ import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,7 +95,7 @@ public class WorkflowTest {
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
     origin = new DummyOrigin().setAuthor(ORIGINAL_AUTHOR);
-    originFiles = "glob(['**'])";
+    originFiles = "glob(['**'], exclude = ['copy.bara.sky', 'excluded/**'])";
     destinationFiles = "glob(['**'])";
     destination = new RecordsProcessCallDestination();
     transformations = ImmutableList.of(""
@@ -142,7 +142,7 @@ public class WorkflowTest {
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
-    return (Workflow<?, ?>)loadConfig(config).getMigration(name);
+    return (Workflow<?, ?>) loadConfig(config).getMigration(name);
   }
 
   private Workflow iterativeWorkflow(@Nullable String previousRef)
@@ -415,6 +415,28 @@ public class WorkflowTest {
   }
 
   @Test
+  public void iterativeOnlyRunForMatchingOriginFiles() throws Exception {
+    origin.singleFileChange(0, "base", "file.txt", "a");
+    origin.singleFileChange(1, "one", "file.txt", "b");
+    origin.addChange(2, "two", ImmutableMap.of("excluded/two", "b",
+                                               "file.txt", "b"));
+    origin.addChange(3, "three", ImmutableMap.of("excluded/two", "b",
+                                                 "file.txt", "b",
+                                                 "copy.bara.sky", ""));
+    origin.addChange(4, "four", ImmutableMap.of("excluded/two", "b",
+                                                "file.txt", "c",
+                                                "copy.bara.sky", ""));
+    transformations = ImmutableList.of();
+    Workflow workflow = iterativeWorkflow(/*previousRef=*/"0");
+    workflow.run(workdir, /*sourceRef=*/HEAD);
+    for (ProcessedChange change : destination.processed) {
+      System.err.println(change.getChangesSummary());
+    }
+    assertThat(destination.processed.get(0).getChangesSummary()).contains("one");
+    assertThat(destination.processed.get(1).getChangesSummary()).contains("three");
+  }
+
+  @Test
   public void emptyTransformList() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = ImmutableList.of();
@@ -438,7 +460,7 @@ public class WorkflowTest {
     Workflow workflow = workflow();
     String head = resolveHead();
     workflow.run(workdir, HEAD);
-    assertThat(Files.readAllLines(workdir.resolve("checkout/file.txt"), StandardCharsets.UTF_8))
+    assertThat(Files.readAllLines(workdir.resolve("checkout/file.txt"), UTF_8))
         .contains(PREFIX + head);
   }
 
@@ -557,7 +579,7 @@ public class WorkflowTest {
 
   @Test
   public void invalidExcludedOriginPath() throws Exception {
-    prepareOriginExcludes();
+    prepareOriginExcludes("a");
     String outsideFolder = "../../file";
     Path file = workdir.resolve(outsideFolder);
     Files.createDirectories(file.getParent());
@@ -579,7 +601,7 @@ public class WorkflowTest {
 
   @Test
   public void invalidExcludedOriginGlob() throws Exception {
-    prepareOriginExcludes();
+    prepareOriginExcludes("a");
     originFiles = "glob(['{'])";
 
     try {
@@ -599,7 +621,7 @@ public class WorkflowTest {
 
     originFiles = "glob(['**'], exclude = ['folder'])";
     Workflow workflow = workflow();
-    prepareOriginExcludes();
+    prepareOriginExcludes("a");
     workflow.run(workdir, HEAD);
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder/file.txt", "folder2/file.txt");
@@ -610,7 +632,7 @@ public class WorkflowTest {
     originFiles = "glob(['**'], exclude = ['folder/**'])";
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    prepareOriginExcludes();
+    prepareOriginExcludes("a");
     workflow.run(workdir, HEAD);
 
     assertThatPath(workdir.resolve("checkout"))
@@ -624,7 +646,7 @@ public class WorkflowTest {
     originFiles = "glob(['**'], exclude = ['folder/**/*.java'])";
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    prepareOriginExcludes();
+    prepareOriginExcludes("a");
     workflow.run(workdir, HEAD);
 
     assertThatPath(workdir.resolve("checkout"))
@@ -637,7 +659,7 @@ public class WorkflowTest {
     originFiles = "glob(['**'], exclude = ['I_dont_exist'])";
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    prepareOriginExcludes();
+    prepareOriginExcludes("a");
     workflow.run(workdir, HEAD);
     console().assertThat()
         .timesInLog(0, MessageType.INFO, "Removed .* files from workdir");
@@ -647,11 +669,11 @@ public class WorkflowTest {
   public void excludeOriginPathIterative() throws Exception {
     originFiles = "glob(['**'], exclude = ['folder/**/*.java'])";
     transformations = ImmutableList.of();
-    prepareOriginExcludes();
+    prepareOriginExcludes("a");
     Workflow workflow = iterativeWorkflow(resolveHead());
-    prepareOriginExcludes();
-    prepareOriginExcludes();
-    prepareOriginExcludes();
+    prepareOriginExcludes("b");
+    prepareOriginExcludes("c");
+    prepareOriginExcludes("d");
     workflow.run(workdir, HEAD);
     for (ProcessedChange processedChange : destination.processed) {
       for (String path : ImmutableList.of("folder/file.txt",
@@ -949,7 +971,7 @@ public class WorkflowTest {
 
   @Test
   public void testNoNestedSequenceProgressMessage() throws Exception {
-    Transformation transformation = ((Workflow<?, ?>)loadConfig(""
+    Transformation transformation = ((Workflow<?, ?>) loadConfig(""
         + "core.workflow(\n"
         + "    name = 'default',\n"
         + "    authoring = " + authoring + "\n,"
@@ -1062,22 +1084,22 @@ public class WorkflowTest {
     workflow.run(workdir, HEAD);
   }
 
-  private void prepareOriginExcludes() throws IOException {
+  private void prepareOriginExcludes(String content) throws IOException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("excludesTest");
     Path folder = workdir.resolve("folder");
     Files.createDirectories(folder);
-    touchFile(base, "folder/file.txt");
-    touchFile(base, "folder/subfolder/file.txt");
-    touchFile(base, "folder/subfolder/file.java");
-    touchFile(base, "folder2/file.txt");
-    touchFile(base, "folder2/subfolder/file.txt");
-    touchFile(base, "folder2/subfolder/file.java");
+    touchFile(base, "folder/file.txt", content);
+    touchFile(base, "folder/subfolder/file.txt", content);
+    touchFile(base, "folder/subfolder/file.java", content);
+    touchFile(base, "folder2/file.txt", content);
+    touchFile(base, "folder2/subfolder/file.txt", content);
+    touchFile(base, "folder2/subfolder/file.java", content);
     origin.addChange(1, base, "excludes", /*matchesGlob=*/true);
   }
 
-  private Path touchFile(Path base, String path) throws IOException {
+  private Path touchFile(Path base, String path, String content) throws IOException {
     Files.createDirectories(base.resolve(path).getParent());
-    return Files.write(base.resolve(path), new byte[]{});
+    return Files.write(base.resolve(path), content.getBytes(UTF_8));
   }
 }

@@ -33,6 +33,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -290,5 +293,49 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   public Profiler profiler() {
     return workflow.profiler();
+  }
+
+  /**
+   * Return true if this change can be skipped because it would generate a noop in the
+   * destination.
+   *
+   * <p>First we check if the change contains the files of the change and if they match
+   * origin_files. Then we also check for potential changes in the config for configs that
+   * are stored in the origin.
+   */
+  boolean skipChanges(Changes changes) {
+    if (workflowOptions().iterativeAllChanges) {
+      return false;
+    }
+
+    Set<String> changesFiles = new HashSet<>();
+    for (Change<?> change : changes.getCurrent()) {
+      // We cannot know the files included in one of the changes. Try to migrate then.
+      if (change.getChangeFiles() == null) {
+        return false;
+      }
+      changesFiles.addAll(change.getChangeFiles());
+    }
+    PathMatcher pathMatcher = workflow.getOriginFiles().relativeTo(Paths.get("/"));
+    for (String changesFile : changesFiles) {
+      if (pathMatcher.matches(Paths.get("/" + changesFile))) {
+        return false;
+      }
+    }
+    // This is an heuristic for cases where the Copybara configuration is stored in the same folder
+    // as the origin code but excluded.
+    //
+    // The config root can be a subfolder of the files as seen by the origin. For example:
+    // admin/copy.bara.sky could be present in the origin as root/admin/copy.bara.sky.
+    // This might give us some false positives but they would be noop migrations.
+    for (String changesFile : changesFiles) {
+      for (String configPath : workflow.configPaths()) {
+        if (changesFile.endsWith(configPath)) {
+          return false;
+        }
+      }
+    }
+    workflow.configPaths();
+    return true;
   }
 }

@@ -20,6 +20,7 @@ import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.base.SkylarkUtil.stringToEnum;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
@@ -49,6 +50,7 @@ import com.google.devtools.build.lib.syntax.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Main configuration class for creating migrations.
@@ -75,6 +77,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   private GeneralOptions generalOptions;
   private WorkflowOptions workflowOptions;
   private ConfigFile<?> mainConfigFile;
+  private Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
 
   @Override
   public void setOptions(Options options) {
@@ -110,7 +113,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @Example(title = "Multiple excludes",
       before = "Globs can have multiple exclusive rules:",
       code = "glob([\"foo/**\"], exclude = [\"foo/internal/**\", \"foo/confidential/**\" ])",
-      after = "Include all the files of `foo` except the ones in `internal` and `confidential` folders")
+      after = "Include all the files of `foo` except the ones in `internal` and `confidential`"
+          + " folders")
   @Example(title = "All BUILD files recursively",
       before = "Copybara uses Java globbing. The globbing is very similar to Bash one. This"
           + " means that recursive globbing for a filename is a bit more tricky:",
@@ -253,8 +257,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       Sequence sequenceTransform = Sequence.fromConfig(self.generalOptions.profiler(),
           transformations, "transformations", env);
       Transformation reverseTransform = null;
-      if (!self.generalOptions.isDisableReversibleCheck() &&
-              convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
+      if (!self.generalOptions.isDisableReversibleCheck()
+          && convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
         try {
           reverseTransform = sequenceTransform.reverse();
         } catch (NonReversibleValidationException e) {
@@ -276,7 +280,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           self.workflowOptions,
           reverseTransform,
           askForConfirmation,
-          self.mainConfigFile));
+          self.mainConfigFile,
+          self.allConfigFiles));
       return Runtime.NONE;
     }
   };
@@ -451,8 +456,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @SkylarkSignature(
       name = "verify_match",
       returnType = VerifyMatch.class,
-      doc = "Verifies that a RegEx matches (or not matches) the specified files. Does not, " +
-          "transform anything, but will stop the workflow if it fails.",
+      doc = "Verifies that a RegEx matches (or not matches) the specified files. Does not, "
+          + "transform anything, but will stop the workflow if it fails.",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object"),
           @Param(name = "regex", type = String.class,
@@ -536,5 +541,11 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @Override
   public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
     this.mainConfigFile = mainConfigFile;
+  }
+
+  @Override
+  public void setAllConfigResources(
+      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles) {
+    this.allConfigFiles = allConfigFiles;
   }
 }

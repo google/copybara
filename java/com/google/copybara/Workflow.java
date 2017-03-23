@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
@@ -33,7 +34,9 @@ import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -69,6 +72,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean askForConfirmation;
   private final boolean force;
   private final ConfigFile<?> mainConfigFile;
+  private final Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
 
   public Workflow(
       String name,
@@ -84,7 +88,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       WorkflowOptions workflowOptions,
       @Nullable Transformation reverseTransformForCheck,
       boolean askForConfirmation,
-      ConfigFile<?> mainConfigFile) {
+      ConfigFile<?> mainConfigFile,
+      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -102,6 +107,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.askForConfirmation = askForConfirmation;
     this.force = generalOptions.isForced();
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
+    this.allConfigFiles = allConfigFiles;
   }
 
   public String getName() {
@@ -178,7 +184,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               name, resolvedRef.asString(),
               this.toString()));
       logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-      try(ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
+      try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
         mode.run(newRunHelper(workdir, resolvedRef));
       }
     }
@@ -187,6 +193,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)
       throws ValidationException, RepoException {
     return new WorkflowRunHelper<>(this, workdir, resolvedRef);
+  }
+
+  Set<String> configPaths() {
+    return allConfigFiles.get().keySet();
   }
 
   @Override
@@ -294,5 +304,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public Profiler profiler() {
     return generalOptions.profiler();
+  }
+
+  public Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> getAllConfigFiles() {
+    return allConfigFiles;
   }
 }

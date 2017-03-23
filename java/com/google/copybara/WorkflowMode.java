@@ -20,7 +20,6 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -98,26 +97,29 @@ public enum WorkflowMode {
       }
       int changeNumber = 1;
 
-      int limit = runHelper.workflowOptions().iterativeLimitChanges;
-      Iterator<Change<O>> changesIterator = Iterables.limit(changes, limit).iterator();
-      if (limit < changes.size()) {
+      Iterator<Change<O>> changesIterator = changes.iterator();
+      int limit = changes.size();
+      if (runHelper.workflowOptions().iterativeLimitChanges < changes.size()) {
         runHelper.getConsole().info(String.format("Importing first %d change(s) out of %d",
             limit, changes.size()));
+        limit = runHelper.workflowOptions().iterativeLimitChanges;
       }
       Deque<Change<O>> migrated = new ArrayDeque<>();
       int migratedChanges = 0;
-      while (changesIterator.hasNext()) {
+      while (changesIterator.hasNext() && migratedChanges < limit) {
         Change<O> change = changesIterator.next();
         String prefix = String.format(
             "Change %d of %d (%s): ",
             changeNumber, Math.min(changes.size(), limit), change.getRevision().asString());
         WriterResult result;
-        try(ProfilerTask ignored = runHelper.profiler().start(change.refAsString())) {
+
+        try (ProfilerTask ignored = runHelper.profiler().start(change.refAsString())) {
           ComputedChanges computedChanges = new ComputedChanges(ImmutableList.of(change), migrated);
-          result =
-              runHelper
-                  .forChanges(computedChanges)
-                  .migrate(
+          WorkflowRunHelper<O, D> currentHelper = runHelper.forChanges(computedChanges);
+          if (currentHelper.skipChanges(computedChanges)) {
+            continue;
+          }
+          result = currentHelper.migrate(
                       change.getRevision(),
                       new ProgressPrefixConsole(prefix, runHelper.getConsole()),
                       new Metadata(change.getMessage(), change.getAuthor()),

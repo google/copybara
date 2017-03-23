@@ -20,6 +20,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.CannotResolveRevisionException;
@@ -40,6 +41,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import javax.annotation.Nullable;
 
 /**
@@ -82,18 +85,28 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   public DummyOrigin singleFileChange(int timestamp, String message, String strPath, String content)
       throws IOException {
+     return addChange(timestamp, message, ImmutableMap.of(strPath, content));
+  }
+
+  public DummyOrigin addChange(int timestamp, String message, Map<String, String> pathToContent)
+      throws IOException {
     Path path = fs.getPath("" + changes.size());
     Files.createDirectories(path);
-    Files.write(path.resolve(strPath), content.getBytes(StandardCharsets.UTF_8));
+    for (Entry<String, String> entry : pathToContent.entrySet()) {
+      Path writePath = path.resolve(entry.getKey());
+      Files.createDirectories(writePath.getParent());
+      Files.write(writePath, entry.getValue().getBytes(StandardCharsets.UTF_8));
+    }
     addChange(timestamp, path, message, /*matchesGlob=*/true);
     return this;
   }
 
   public DummyOrigin addChange(int timestamp, Path path, String message, boolean matchesGlob) {
+    Path previousChanges = changes.isEmpty() ? null : Iterables.getLast(changes).changesBase;
     changes.add(new DummyRevision(
         "" + changes.size(), message, author, path, Instant.ofEpochSecond(timestamp),
         /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of(),
-        matchesGlob));
+        matchesGlob, previousChanges));
     return this;
   }
 

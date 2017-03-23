@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -26,6 +27,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.time.ZonedDateTime;
 import java.util.Objects;
+import java.util.Set;
+import javax.annotation.Nullable;
 
 /**
  * Represents a change in a Repository
@@ -40,14 +43,22 @@ public final class Change<R extends Revision> {
   private final String message;
   private final ZonedDateTime dateTime;
   private final ImmutableMap<String, String> labels;
+  @Nullable
+  private final ImmutableSet<String> changeFiles;
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
       ImmutableMap<String, String> labels) {
+    this(revision, author, message, dateTime, labels, /*changeFiles=*/null);
+  }
+
+  public Change(R revision, Author author, String message, ZonedDateTime dateTime,
+      ImmutableMap<String, String> labels, @Nullable Set<String> changeFiles) {
     this.revision = Preconditions.checkNotNull(revision);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
     this.dateTime = dateTime;
     this.labels = labels;
+    this.changeFiles = changeFiles == null ? null : ImmutableSet.copyOf(changeFiles);
   }
 
   /**
@@ -77,6 +88,14 @@ public final class Change<R extends Revision> {
       structField = true)
   public SkylarkDict<String, String> getLabelsForSkylark() {
     return SkylarkDict.copyOf(/*environment=*/null, labels);
+  }
+
+  /**
+   * If not null, the files that were affected in this change.
+   */
+  @Nullable
+  public ImmutableSet<String> getChangeFiles() {
+    return changeFiles;
   }
 
   public ZonedDateTime getDateTime() {
@@ -116,11 +135,11 @@ public final class Change<R extends Revision> {
       return false;
     }
     Change<?> change = (Change<?>) o;
-    return Objects.equals(revision, change.revision) &&
-        Objects.equals(author, change.author) &&
-        Objects.equals(message, change.message) &&
-        Objects.equals(dateTime, change.dateTime) &&
-        Objects.equals(labels, change.labels);
+    return Objects.equals(revision, change.revision)
+        && Objects.equals(author, change.author)
+        && Objects.equals(message, change.message)
+        && Objects.equals(dateTime, change.dateTime)
+        && Objects.equals(labels, change.labels);
   }
 
   @Override

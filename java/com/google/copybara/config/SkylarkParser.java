@@ -49,6 +49,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -85,11 +86,18 @@ public class SkylarkParser {
     return modules;
   }
 
-  public Config loadConfig(ConfigFile content, Options options)
+  @SuppressWarnings("unchecked")
+  public Config loadConfig(ConfigFile config, Options options)
+      throws IOException, ValidationException {
+    return getConfigWithTransitiveImports(config, options).config;
+  }
+
+  private Config loadConfigInternal(ConfigFile content, Options options,
+      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier)
       throws IOException, ValidationException {
     Core core;
     try {
-      Environment env = executeSkylark(content, options);
+      Environment env = new Evaluator(options, content, configFilesSupplier).eval(content);
       core = (Core) env.getGlobals().get(Core.CORE_VAR);
     } catch (InterruptedException e) {
       // This should not happen since we shouldn't have anything interruptable during loading.
@@ -99,9 +107,16 @@ public class SkylarkParser {
   }
 
   @VisibleForTesting
-  public Environment executeSkylark(ConfigFile content, Options options)
+  public <T> Environment executeSkylark(ConfigFile<T> content, Options options)
       throws IOException, ValidationException, InterruptedException {
-    return new Evaluator(options, content).eval(content);
+    CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(content);
+    ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
+
+    Environment eval = new Evaluator(options, content, configFilesSupplier).eval(content);
+
+    ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
+    configFilesSupplier.setConfigFiles(allLoadedFiles);
+    return eval;
   }
 
   /**
@@ -116,10 +131,40 @@ public class SkylarkParser {
   public <T> ConfigWithDependencies<T> getConfigWithTransitiveImports(
       ConfigFile<T> config, Options options) throws IOException, ValidationException {
     CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<T>(config);
-    Config parsedConfig = loadConfig(capturingConfigFile, options);
-    return new ConfigWithDependencies<T>(capturingConfigFile.getAllLoadedFiles(), parsedConfig);
+    ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
+
+    Config parsedConfig = loadConfigInternal(capturingConfigFile, options, configFilesSupplier);
+
+    ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
+
+    configFilesSupplier.setConfigFiles(allLoadedFiles);
+
+    return new ConfigWithDependencies<>(allLoadedFiles, parsedConfig);
   };
 
+  private static class ConfigFilesSupplier<T>
+      implements Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> {
+
+    private ImmutableMap<String, ConfigFile<T>> configFiles = null;
+
+    public void setConfigFiles(ImmutableMap<String, ConfigFile<T>> configFiles) {
+      Preconditions.checkState(this.configFiles == null, "Already set");
+      this.configFiles = Preconditions.checkNotNull(configFiles);
+    }
+
+    @Override
+    public ImmutableMap<String, ? extends ConfigFile<?>> get() {
+      // We need to load all the files before knowing the set of files in the config.
+      Preconditions.checkNotNull(configFiles, "Don't call the supplier before loading"
+          + " finishes.");
+      return configFiles;
+    }
+  }
+
+  /**
+   * A class that contains a loaded config and all the config files that were
+   * accessed during the parsing.
+   */
   public static class ConfigWithDependencies <T> {
     public final ImmutableMap<String, ConfigFile<T>> files;
     public final Config config;
@@ -131,20 +176,6 @@ public class SkylarkParser {
   }
 
   /**
-   * Collect all ConfigFiles retrieved by the parser while loading {code config}.
-   *
-   * @param config Root file of the configuration.
-   * @return A map linking paths to the captured ConfigFiles
-   * @throws IOException If files cannot be read
-   * @throws ValidationException If config is invalid, references an invalid file or contains
-   *     dependency cycles.
-   */
-  public <T> ImmutableMap<String, ConfigFile<T>> getContentWithTransitiveImports(
-      ConfigFile<T> config, Options options) throws IOException, ValidationException {
-    return getConfigWithTransitiveImports(config, options).files;
-  };
-
-  /**
    * An utility class for traversing and evaluating the config file dependency graph.
    */
   private final class Evaluator {
@@ -154,12 +185,15 @@ public class SkylarkParser {
     private final Options options;
     private final Console console;
     private final ConfigFile<?> mainConfigFile;
+    private final Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier;
     private final EventHandler eventHandler;
 
-    private Evaluator(Options options, ConfigFile<?> mainConfigFile) {
+    private Evaluator(Options options, ConfigFile<?> mainConfigFile,
+        Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier) {
       this.options = Preconditions.checkNotNull(options);
       console = options.get(GeneralOptions.class).console();
       this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
+      this.configFilesSupplier = Preconditions.checkNotNull(configFilesSupplier);
       eventHandler = new ConsoleEventHandler(console);
     }
 
@@ -172,7 +206,8 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      Frame globals = createGlobals(eventHandler, options, content, mainConfigFile);
+      Frame globals = createGlobals(eventHandler, options, content, mainConfigFile,
+                                    configFilesSupplier);
 
       BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
           new InputSourceForConfigFile(content), eventHandler);
@@ -206,8 +241,8 @@ public class SkylarkParser {
   /**
    * Creates a Skylark environment making the {@code modules} available as global variables.
    *
-   * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object so that
-   * the module can construct objects that require options.
+   * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object
+   * so that the module can construct objects that require options.
    */
   private static Environment createEnvironment(EventHandler eventHandler, Frame globals,
       Map<String, Extension> imports) {
@@ -226,7 +261,8 @@ public class SkylarkParser {
    */
   private Environment.Frame createGlobals(
       EventHandler eventHandler, Options options, ConfigFile<?> currentConfigFile,
-      ConfigFile<?> mainConfigFile) {
+      ConfigFile<?> mainConfigFile,
+      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK,
         ImmutableMap.<String, Extension>of());
 
@@ -239,9 +275,10 @@ public class SkylarkParser {
         ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(options);
       }
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
-        ((LabelsAwareModule) getModuleGlobal(env, module)).setConfigFile(mainConfigFile,
-                                                                         currentConfigFile
-        );
+        ((LabelsAwareModule) getModuleGlobal(env, module))
+            .setConfigFile(mainConfigFile, currentConfigFile);
+        ((LabelsAwareModule) getModuleGlobal(env, module))
+            .setAllConfigResources(configFilesSupplier);
       }
     }
     env.mutability().close();
