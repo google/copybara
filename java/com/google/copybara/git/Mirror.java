@@ -24,6 +24,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Migration;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.config.ConfigFile;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -35,23 +36,30 @@ import javax.annotation.Nullable;
  */
 public class Mirror implements Migration {
 
+  private static final String MODE_STRING = "MIRROR";
+
   private final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
+  private final String name;
   private final String origin;
   private final String destination;
   private final List<Refspec> refspec;
   private final boolean forcePush;
   private final boolean prune;
+  private final ConfigFile<?> mainConfigFile;
 
-  Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String origin, String destination,
-      List<Refspec> refspec, boolean forcePush, boolean prune) {
+  Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
+      String destination, List<Refspec> refspec, boolean forcePush, boolean prune,
+      ConfigFile<?> mainConfigFile) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
+    this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.refspec = Preconditions.checkNotNull(refspec);
     this.forcePush = forcePush;
     this.prune = prune;
+    this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
   }
 
   @Override
@@ -101,6 +109,22 @@ public class Mirror implements Migration {
         .put("url", destination)
         .putAll("ref", refspec.stream().map(Refspec::toString).collect(Collectors.toList()))
         .build();
+  }
+
+  @Override
+  public ConfigFile<?> getMainConfigFile() {
+    return mainConfigFile;
+  }
+
+  @Override
+  public String getName() {
+    return name;
+  }
+
+
+  @Override
+  public String getModeString() {
+    return MODE_STRING;
   }
 
 }

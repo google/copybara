@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -53,9 +55,10 @@ import java.util.List;
     doc = "Set of functions to define Git origins and destinations.",
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(GitOptions.class)
-public class GitModule implements OptionsAwareModule {
+public class GitModule implements OptionsAwareModule, LabelsAwareModule {
 
   private Options options;
+  private ConfigFile<?> mainConfigFile;
 
   @SkylarkSignature(name = "origin", returnType = GitOrigin.class,
       doc = "Defines a standard Git origin. For Git specific origins use: `github_origin` or "
@@ -136,8 +139,8 @@ public class GitModule implements OptionsAwareModule {
       }
       Core.getCore(env).addMigration(location, name,
           new Mirror(generalOptions, self.options.get(GitOptions.class),
-              origin, destination, refspecs,
-              self.options.get(GitMirrorOptions.class).forcePush, prune));
+              name, origin, destination, refspecs,
+              self.options.get(GitMirrorOptions.class).forcePush, prune, self.mainConfigFile));
       return Runtime.NONE;
     }
   };
@@ -302,5 +305,10 @@ public class GitModule implements OptionsAwareModule {
   @Override
   public void setOptions(Options options) {
     this.options = checkNotNull(options);
+  }
+
+  @Override
+  public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+    this.mainConfigFile = mainConfigFile;
   }
 }

@@ -110,6 +110,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.allConfigFiles = allConfigFiles;
   }
 
+  @Override
   public String getName() {
     return name;
   }
@@ -269,6 +270,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return mode;
   }
 
+  @Override
+  public String getModeString() {
+    return mode.toString();
+  }
+
   /**
    * Migration identity tries to create a stable identifier for the migration that is stable between
    * Copybara invocations for the same reference. For example it will contain the copy.bara.sky
@@ -298,7 +304,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return hash;
   }
 
-  public ConfigFile getMainConfigFile() {
+  @Override
+  public ConfigFile<?> getMainConfigFile() {
     return mainConfigFile;
   }
 
