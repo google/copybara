@@ -218,13 +218,16 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           @Param(name = "fetch", type = String.class,
               doc = "Indicates the ref from which to get the parent commit",
               defaultValue = "push reference", noneable = true),
+          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False",
+              doc = "If set, copybara will not actually push the result to the destination. This is"
+                  + " meant for testing workflows and dry runs."),
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination",
-      ImmutableList.of("master", Runtime.NONE)) {
+      ImmutableList.of("master", Runtime.NONE, false)) {
     public GitDestination invoke(GitModule self, String url, String push, Object fetch,
-        Location location) throws EvalException {
+        Boolean skipPush, Location location) throws EvalException {
       GitDestinationOptions destinationOptions = self.options.get(GitDestinationOptions.class);
       String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
           "push", location);
@@ -241,6 +244,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           destinationOptions,
           generalOptions.isVerbose(),
           generalOptions.isForced(),
+          skipPush,
           new DefaultCommitGenerator(),
           new ProcessPushOutput(),
           generalOptions.getEnvironment(),

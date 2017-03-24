@@ -180,6 +180,7 @@ public final class GerritDestination implements Destination<GitRevision> {
             options.get(GitDestinationOptions.class),
             generalOptions.isVerbose(),
             firstMigration,
+            /*skipPush=*/ false,
             new CommitGenerator(gerritOptions, url, generalOptions.console()),
             new GerritProcessPushOutput(generalOptions.console()),
             environment,

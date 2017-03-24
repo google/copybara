@@ -92,6 +92,10 @@ public final class GitDestination implements Destination<GitRevision> {
   private final GitDestinationOptions destinationOptions;
   private final boolean verbose;
   private final boolean force;
+  // Whether the skip_push flag is set in copy.bara.sky
+  private final boolean skipPush;
+  // Whether skip_push is set, either by command line or copy.bara.sky
+  private final boolean effectiveSkipPush;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
   private final Map<String, String> environment;
@@ -100,7 +104,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private boolean localRepoInitialized = false;
 
   GitDestination(String repoUrl, String fetch, String push,
-      GitDestinationOptions destinationOptions, boolean verbose, boolean force,
+      GitDestinationOptions destinationOptions, boolean verbose, boolean force, boolean skipPush,
       CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
       Map<String, String> environment, Console console, TempDirectoryFactory tempDirectoryFactory) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -109,6 +113,8 @@ public final class GitDestination implements Destination<GitRevision> {
     this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
     this.verbose = verbose;
     this.force = force;
+    this.skipPush = skipPush;
+    this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
     this.environment = environment;
@@ -304,7 +310,7 @@ public final class GitDestination implements Destination<GitRevision> {
               "User aborted execution: did not confirm diff changes.");
         }
       }
-      if (!destinationOptions.skipPush) {
+      if (!effectiveSkipPush) {
         console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
         // Git push writes to Stderr
         processPushOutput.process(
@@ -335,7 +341,7 @@ public final class GitDestination implements Destination<GitRevision> {
       GitRepository repo = new GitRepository(path.resolve(".git"), path, verbose, environment);
       // Should be a no-op, but an iterative migration could take several minutes between migrations
       // so lets fetch the latest first.
-      if (!destinationOptions.skipPush) {
+      if (!effectiveSkipPush) {
         fetchFromRemote(repo);
       }
       return repo;
@@ -392,6 +398,7 @@ public final class GitDestination implements Destination<GitRevision> {
         .add("repoUrl", repoUrl)
         .add("fetch", fetch)
         .add("push", push)
+        .add("skip_push", skipPush)
         .toString();
   }
 
@@ -447,12 +454,16 @@ public final class GitDestination implements Destination<GitRevision> {
 
   @Override
   public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
-    return new ImmutableSetMultimap.Builder<String, String>()
-        .put("type", "git.destination")
-        .put("url", repoUrl)
-        .put("fetch", fetch)
-        .put("push", push)
-        .build();
+    ImmutableSetMultimap.Builder<String, String> builder =
+        new ImmutableSetMultimap.Builder<String, String>()
+            .put("type", "git.destination")
+            .put("url", repoUrl)
+            .put("fetch", fetch)
+            .put("push", push);
+    if (skipPush) {
+      builder.put("skip_push", "" + skipPush);
+    }
+    return builder.build();
   }
 
 }

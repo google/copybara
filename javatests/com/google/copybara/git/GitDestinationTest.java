@@ -58,6 +58,7 @@ public class GitDestinationTest {
   private String url;
   private String fetch;
   private String push;
+  private boolean skipPush;
 
   private Path repoGitDir;
   private OptionsBuilder options;
@@ -136,7 +137,8 @@ public class GitDestinationTest {
             + "    url = '%s',\n"
             + "    fetch = '%s',\n"
             + "    push = '%s',\n"
-            + ")", url, fetch, push));
+            + "    skip_push = %s,\n"
+            + ")", url, fetch, push, skipPush ? "True" : "False"));
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {
@@ -833,6 +835,23 @@ public class GitDestinationTest {
 
   @Test
   public void testLocalRepoSkipPush() throws Exception {
+    skipPush = true;
+    GitRepository localRepo = checkLocalRepo(false);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo", "foo\n")
+        .containsNoMoreFiles();
+
+    // A simple push without origin is able to update the correct destination reference
+    localRepo.simpleCommand("push");
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "another content")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testLocalRepoSkipPushFlag() throws Exception {
     GitRepository localRepo = checkLocalRepo(true);
 
     GitTesting.assertThatCheckout(repo(), "master")
@@ -847,7 +866,8 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
   }
 
-  private GitRepository checkLocalRepo(boolean skipPush) throws Exception {
+  private GitRepository checkLocalRepo(boolean skipPushFlag)
+      throws Exception {
     fetch = "master";
     push = "master";
 
@@ -858,7 +878,7 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).add().force().files("foo").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
 
-    options.gitDestination.skipPush = skipPush;
+    options.gitDestination.skipPush = skipPushFlag;
     Path localPath = Files.createTempDirectory("local_repo");
 
     options.gitDestination.localRepoPath = localPath.toString();
