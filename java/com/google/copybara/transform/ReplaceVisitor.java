@@ -27,17 +27,15 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 final class ReplaceVisitor extends SimpleFileVisitor<Path> {
 
-  private static final Logger logger = Logger.getLogger(Replace.class.getName());
-
   private final Replacer replacer;
   private final PathMatcher pathMatcher;
 
-  boolean somethingWasChanged;
+  int filesVisited = 0;
+  int filesChanged = 0;
 
   ReplaceVisitor(Replacer replacer, PathMatcher pathMatcher) {
     this.replacer = Preconditions.checkNotNull(replacer);
@@ -49,12 +47,11 @@ final class ReplaceVisitor extends SimpleFileVisitor<Path> {
     if (!pathMatcher.matches(file)) {
       return FileVisitResult.CONTINUE;
     }
-    logger.log(Level.INFO, String.format("apply %s to %s", replacer, file));
-
+    filesVisited++;
     String originalFileContent = new String(Files.readAllBytes(file), UTF_8);
     String transformed = replacer.replace(originalFileContent);
     if (!originalFileContent.equals(transformed)) {
-      somethingWasChanged = true;
+      filesChanged++;
       Files.write(file, transformed.getBytes(UTF_8));
     }
 

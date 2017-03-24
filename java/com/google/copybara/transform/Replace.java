@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * A source code transformation which replaces a regular expression with some other string.
@@ -56,6 +57,8 @@ import java.util.Map;
  * TODO(copybara-team): Consider making this configurable to replace multiple matches.
  */
 public final class Replace implements Transformation {
+
+  private static final Logger logger = Logger.getLogger(Replace.class.getName());
 
   private final TemplateTokens before;
   private final TemplateTokens after;
@@ -102,7 +105,13 @@ public final class Replace implements Transformation {
         before.replacer(after, firstOnly, multiline),
         fileMatcherBuilder.relativeTo(checkoutDir));
     Files.walkFileTree(checkoutDir, visitor);
-    if (!visitor.somethingWasChanged) {
+
+    logger.info(String.format("Applied %s to %s files. %s changed.",
+        this,
+        visitor.filesVisited,
+        visitor.filesChanged));
+
+    if (visitor.filesChanged == 0) {
       workflowOptions.reportNoop(
           work.getConsole(),
           "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");
