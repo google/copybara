@@ -19,9 +19,13 @@ package com.google.copybara;
 /**
  * An exception due to a command line error
  */
-class CommandLineException extends ValidationException {
+public class CommandLineException extends ValidationException {
 
-  CommandLineException(String message) {
+  public CommandLineException(String message) {
     super(message);
+  }
+
+  public CommandLineException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

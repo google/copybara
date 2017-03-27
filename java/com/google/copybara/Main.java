@@ -121,7 +121,6 @@ public class Main {
   private ExitCode runInternal(String[] args, Console console, FileSystem fs) {
     try {
       ModuleSupplier moduleSupplier = newModuleSupplier();
-      Copybara copybara = newCopybaraTool();
 
       final MainArguments mainArgs = new MainArguments(args);
       GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
@@ -153,6 +152,8 @@ public class Main {
 
       ConfigLoader<Path> configLoader =
           newConfigLoader(moduleSupplier, generalOptions, mainArgs.getConfigPath());
+
+      Copybara copybara = newCopybaraTool();
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
           return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
@@ -275,7 +276,8 @@ public class Main {
    * Sample use case are remote logging, test harnesses and others. Called after command line
    * options are parsed, but before a file is read or a run started.
    */
-  protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander) {
+  protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander)
+      throws CommandLineException{
     profiler = options.get(GeneralOptions.class).profiler();
     profiler.init(ImmutableList.of(new LogProfiler()));
   }
