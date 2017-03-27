@@ -41,7 +41,7 @@ public class Copybara {
   protected final ConfigValidator configValidator;
 
   public Copybara() {
-    this.configValidator = new ConfigValidator();
+    this.configValidator = new ConfigValidator() {};
   }
 
   public Copybara(ConfigValidator configValidator) {

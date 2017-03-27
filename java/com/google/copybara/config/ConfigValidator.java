@@ -22,11 +22,13 @@ import com.google.copybara.util.console.Message;
 import java.util.List;
 
 /**
- * A default validator of Copybara {@link Config}s.
+ * Validates Copybara {@link Config}s and returns a list of {@link Message}s.
+ *
+ * <p>Implementations of this interface should not throw exceptions for validation errors.
  */
-public class ConfigValidator {
+public interface ConfigValidator {
 
-  public List<Message> validate(Config config, String migrationName) {
+  default List<Message> validate(Config config, String migrationName) {
     ImmutableList.Builder<Message> messages = ImmutableList.builder();
     if (config.getMigrations().isEmpty()) {
       messages.add(Message.error("At least one migration is required."));
