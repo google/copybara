@@ -642,6 +642,45 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testNoopGroup() throws Exception {
+    options.workflowOptions.ignoreNoop = false;
+    transformations = ImmutableList.of(""
+        + "        core.transform("
+        + "            transformations = ["
+        + "                core.replace("
+        + "                    before = 'foo',"
+        + "                    after = 'bar',"
+        + "                )"
+        + "            ],"
+        + "            ignore_noop = True,"
+        + "        )"
+    );
+    workflow().run(workdir, HEAD);
+    console().assertThat().onceInLog(MessageType.WARNING,
+        ".*Ignored noop because of 'ignore_noop' field.*");
+  }
+
+  @Test
+  public void testNoopGroupDefault() throws Exception {
+    options.workflowOptions.ignoreNoop = false;
+    transformations = ImmutableList.of(""
+        + "        core.transform("
+        + "            transformations = ["
+        + "                core.replace("
+        + "                    before = 'foo',"
+        + "                    after = 'bar',"
+        + "                )"
+        + "            ],"
+        + "        )"
+    );
+    try {
+      workflow().run(workdir, HEAD);
+      fail();
+    } catch (VoidOperationException ignored) {
+    }
+  }
+
+  @Test
   public void excludedOriginRecursiveByType() throws Exception {
     originFiles = "glob(['**'], exclude = ['folder/**/*.java'])";
     transformations = ImmutableList.of();

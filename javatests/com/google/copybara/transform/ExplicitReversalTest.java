@@ -19,10 +19,13 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.file.Paths.get;
 
+import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
+import com.google.copybara.VoidOperationException;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -93,9 +96,49 @@ public final class ExplicitReversalTest {
   }
 
   @Test
+  public void testIgnoreNoop() throws Exception {
+    explicit = new ExplicitReversal(new NoopTransform(), new NoopTransform(), /*ignoreNoop=*/
+        true, console);
+
+    transform(explicit);
+
+    console.assertThat()
+        .matchesNext(MessageType.WARNING,
+            ".*Ignored noop because of 'ignore_noop' field:.*Nothing happened")
+        .containsNoMoreMessages();
+
+    transform(explicit.reverse());
+
+    console.assertThat()
+        .matchesNext(MessageType.WARNING,
+            ".*Ignored noop because of 'ignore_noop' field:.*Nothing happened")
+        .matchesNext(MessageType.WARNING,
+            ".*Ignored noop because of 'ignore_noop' field:.*Nothing happened")
+        .containsNoMoreMessages();
+  }
+
+  @Test
   public void reverseTwiceForSameOperation() throws Exception {
     transform(explicit.reverse().reverse());
     assertThat(invokedTransforms)
         .containsExactly("t1-foo");
+  }
+
+  private static class NoopTransform implements Transformation {
+
+    @Override
+    public void transform(TransformWork work) throws IOException, ValidationException {
+      throw new VoidOperationException("Nothing happened");
+    }
+
+    @Override
+    public Transformation reverse() throws NonReversibleValidationException {
+      return this;
+    }
+
+    @Override
+    public String describe() {
+      return "noop";
+    }
   }
 }

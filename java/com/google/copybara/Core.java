@@ -510,13 +510,19 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               doc = "The list of transformations to run as a result of running this"
                   + " transformation in reverse.", named = true, positional = false,
               noneable = true, defaultValue = "The reverse of 'transformations'"),
+          @Param(name = "ignore_noop", type = Boolean.class,
+              doc = "In case a noop error happens in the group of transformations (Both forward and"
+                  + " reverse), it will be ignored. In general this is a bad idea and prevents"
+                  + " Copybara for detecting important transformation errors.",
+              named = true, positional = false,
+              defaultValue = "False"),
       },
       objectType = Core.class, useEnvironment = true)
   public static final BuiltinFunction TRANSFORM = new BuiltinFunction("transform",
-      ImmutableList.of(Runtime.NONE)) {
+      ImmutableList.of(Runtime.NONE, Boolean.FALSE)) {
     public Transformation invoke(Core self,
         SkylarkList<Transformation> transformations,
-        Object reversal, Environment env) throws EvalException {
+        Object reversal, Boolean ignoreNoop, Environment env) throws EvalException {
       Sequence forward = Sequence.fromConfig(self.generalOptions.profiler(), transformations,
           "transformations", env);
       SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
@@ -530,7 +536,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       }
       Sequence reverse = Sequence.fromConfig(self.generalOptions.profiler(), reverseList,
           "reversal", env);
-      return new ExplicitReversal(forward, reverse);
+      return new ExplicitReversal(forward, reverse, ignoreNoop,
+          self.generalOptions.console());
     }
   };
 

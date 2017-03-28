@@ -15,6 +15,7 @@
     - [metadata.restore_author](#metadata.restore_author)
     - [metadata.add_header](#metadata.add_header)
     - [metadata.scrubber](#metadata.scrubber)
+    - [metadata.verify_match](#metadata.verify_match)
     - [metadata.map_references](#metadata.map_references)
   - [core](#core)
     - [glob](#glob)
@@ -411,6 +412,7 @@ metadata.scrubber('(^|\n)CONFIDENTIAL:(.|\n)*')
 ```
 
 Will remove the confidential part, leaving the message as:
+
 ```
 Public change description
 
@@ -448,6 +450,31 @@ very public
 ```
 
 
+
+<a id="metadata.verify_match" aria-hidden="true"></a>
+## metadata.verify_match
+
+Verifies that a RegEx matches (or not matches) the change message. Does not, transform anything, but will stop the workflow if it fails.
+
+`transformation metadata.verify_match(regex, verify_no_match=False)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+regex|`string`<br><p>The regex pattern to verify. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end.</p>
+verify_no_match|`boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
+
+
+### Example:
+
+#### Check that a text is present in the change description:
+
+Check that the change message contains a text enclosed in <public></public>:
+
+```python
+metadata.verify_match("<public>(.|\n)*</public>")
+```
 
 <a id="metadata.map_references" aria-hidden="true"></a>
 ## metadata.map_references
@@ -574,7 +601,7 @@ transformations|`sequence of transformation`<br><p>The transformations to revers
 
 Defines a migration pipeline which can be invoked via the Copybara command.
 
-`core.workflow(name, origin, destination, authoring, transformations=[], exclude_in_origin=N/A, exclude_in_destination=N/A, origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, ask_for_confirmation=False)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, ask_for_confirmation=False)`
 
 ### Parameters:
 
@@ -585,8 +612,6 @@ origin|`origin`<br><p>Where to read from the code to be migrated, before applyin
 destination|`destination`<br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
 authoring|`authoring_class`<br><p>The author mapping configuration from origin to destination.</p>
 transformations|`sequence`<br><p>The transformations to be run for this workflow. They will run in sequence.</p>
-exclude_in_origin|`glob`<br><p>For compatibility purposes only. Use origin_files instead.</p>
-exclude_in_destination|`glob`<br><p>For compatibility purposes only. Use detination_files instead.</p>
 origin_files|`glob`<br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
 destination_files|`glob`<br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
 mode|`string`<br><p>Workflow mode. Currently we support three modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import an origin tree state diffed by a common parent in destination. This could be a GH Pull Request, a Gerrit Change, etc.</li></ul></p>
@@ -604,6 +629,8 @@ Name | Type | Description
 --last-rev | *string* | Last revision that was migrated to the destination
 --iterative-limit-changes | *int* | Import just a number of changes instead of all the pending ones
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
+--squash-skip-history | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
+--iterative-all-changes | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
 
 <a id="core.move" aria-hidden="true"></a>
 ## core.move
@@ -764,9 +791,9 @@ verify_no_match|`boolean`<br><p>If true, the transformation will verify that the
 <a id="core.transform" aria-hidden="true"></a>
 ## core.transform
 
-Creates a transformation with a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.
+Groups some transformations in a transformation that can contain a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.<br>If reversal is not provided, the transform will try to compute the reverse of the transformations list.
 
-`transformation core.transform(transformations, reversal)`
+`transformation core.transform(transformations, reversal=The reverse of 'transformations', ignore_noop=False)`
 
 ### Parameters:
 
@@ -774,6 +801,7 @@ Parameter | Description
 --------- | -----------
 transformations|`sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation.</p>
 reversal|`sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
+ignore_noop|`boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored. In general this is a bad idea and prevents Copybara for detecting important transformation errors.</p>
 
 
 
@@ -912,7 +940,7 @@ submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.
 
 Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`gitDestination git.destination(url, push=master, fetch=push reference)`
+`gitDestination git.destination(url, push=master, fetch=push reference, skip_push=False)`
 
 ### Parameters:
 
@@ -921,6 +949,7 @@ Parameter | Description
 url|`string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 push|`string`<br><p>Reference to use for pushing the change, for example 'master'</p>
 fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
+skip_push|`boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
 
 
 
@@ -934,6 +963,8 @@ Name | Type | Description
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
 --git-destination-push | *string* | If set, overrides the git destination push reference.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara ir run.
+--git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
 ## git.gerrit_destination
@@ -962,6 +993,8 @@ Name | Type | Description
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
 --git-destination-push | *string* | If set, overrides the git destination push reference.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara ir run.
+--git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 
 
 # patch
