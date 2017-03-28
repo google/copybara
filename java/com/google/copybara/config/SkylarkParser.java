@@ -63,20 +63,28 @@ public class SkylarkParser {
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
 
+  private static final Object initializationLock = new Object();
+
   public SkylarkParser(Set<Class<?>> modules) {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(Authoring.Module.class)
         .add(Core.class)
         .addAll(modules).build();
 
-    // Register module functions
-    for (Class<?> module : this.modules) {
-      // This method should be only called once for VM or at least not concurrently,
-      // since it registers functions in an static HashMap.
-      try {
-        SkylarkSignatureProcessor.configureSkylarkFunctions(module);
-      } catch (Exception e) {
-        throw new RuntimeException("Cannot register module " + module.getName(), e);
+    // Skylark initialization is not thread safe and manipulates static fields. While calling
+    // this concurrently doesn't happen in the tool, there can be other usages of this that
+    // tries to create two SkylarkParsers in parallel.
+    // DON'T REMOVE IT
+    synchronized (initializationLock) {
+      // Register module functions
+      for (Class<?> module : this.modules) {
+        // This method should be only called once for VM or at least not concurrently,
+        // since it registers functions in an static HashMap.
+        try {
+          SkylarkSignatureProcessor.configureSkylarkFunctions(module);
+        } catch (Exception e) {
+          throw new RuntimeException("Cannot register module " + module.getName(), e);
+        }
       }
     }
   }
