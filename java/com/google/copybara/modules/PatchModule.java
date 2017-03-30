@@ -16,6 +16,9 @@
 
 package com.google.copybara.modules;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -33,6 +36,7 @@ import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
+import java.io.IOException;
 
 /**
  * Skylark module that provides a basic transform to apply patchfiles.
@@ -43,6 +47,8 @@ import com.google.devtools.build.lib.syntax.Type;
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(GeneralOptions.class)
 public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
+  private static final Splitter LINES =
+      Splitter.onPattern("\\r?\\n").omitEmptyStrings().trimResults();
 
   private ConfigFile<?> configFile;
   private GeneralOptions generalOptions;
@@ -63,12 +69,19 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
               doc = "The list of patchfiles to apply, relative to the current config file."
                   + "The files will be applied relative to the checkout dir and the leading path"
                   + "component will be stripped (-p1)."),
-          @Param(name = "excluded_patch_paths", type = SkylarkList.class, generic1 = String.class,
-              defaultValue = "[]",
+          @Param(name = "excluded_patch_paths",
+              type = SkylarkList.class, generic1 = String.class, defaultValue = "[]",
               doc = "The list of paths to exclude from each of the patches. Each of the paths will "
                   + "be excluded from all the patches. Note that these are not workdir paths, but "
                   + "paths relative to the patch itself.\n"
                   + "If a path does not exist in a patch, it will be ignored."),
+          @Param(name = "series", named = true, noneable = true,
+              type = String.class, defaultValue = "None", positional = false,
+              doc = "The config file that contains a list of patches to apply. "
+                  + "The <i>series</i> file contains names of the patch files one per line. "
+                  + "The names of the patch files are relative to the <i>series</i> config file. "
+                  + "The files will be applied relative to the checkout dir and the leading path "
+                  + "component will be stripped (-p1)."),
       },
       objectType = PatchModule.class, useLocation = true)
   public static final BuiltinFunction APPLY = new BuiltinFunction("apply") {
@@ -77,10 +90,32 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
         PatchModule self,
         SkylarkList patches,
         SkylarkList excludedPaths,
+        Object seriesOrNone,
         Location location) throws EvalException {
       ImmutableList.Builder<ConfigFile<?>> builder = ImmutableList.builder();
       for (String patch : Type.STRING_LIST.convert(patches, "patches")) {
         builder.add(self.resolve(patch, location));
+      }
+      String series = Type.STRING.convertOptional(seriesOrNone, "series");
+      if (series != null && !series.trim().isEmpty()) {
+        try {
+          ConfigFile<?> seriesFile = self.resolve(series.trim(), location);
+          for (String line : LINES.split(new String(seriesFile.content(), UTF_8))) {
+            // Comment at the begining of the line or
+            // a whitespace followed by the hash character.
+            int comment = line.indexOf('#');
+            if (comment != 0) {
+              if (comment > 0 && Character.isWhitespace(line.charAt(comment - 1))) {
+                line = line.substring(0, comment - 1).trim();
+              }
+              if (!line.isEmpty()) {
+                builder.add(seriesFile.resolve(line));
+              }
+            }
+          }
+        } catch (CannotResolveLabel | IOException e) {
+          throw new EvalException(location, "Error reading patch series file: " + series, e);
+        }
       }
       return new PatchTransformation(
           builder.build(),

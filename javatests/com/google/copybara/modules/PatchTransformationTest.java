@@ -70,6 +70,7 @@ public class PatchTransformationTest {
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
   private ConfigFile<String> patchFile;
+  private ConfigFile<String> seriesFile;
   private ImmutableList<String> excludedFromPatch = ImmutableList.of("excluded/*");
 
   @Rule
@@ -83,8 +84,12 @@ public class PatchTransformationTest {
     options = new OptionsBuilder().setConsole(console);
     general = options.build().get(GeneralOptions.class);
     skylark = new SkylarkTestExecutor(options, PatchModule.class);
-    patchFile = new MapConfigFile(
-        ImmutableMap.of("diff.patch", (DIFF).getBytes(UTF_8)), "diff.patch");
+    ImmutableMap<String, byte[]> configFiles =
+        ImmutableMap.of(
+            "diff.patch", (DIFF).getBytes(UTF_8),
+            "series", ("diff.patch\n").getBytes(UTF_8));
+    patchFile = new MapConfigFile(configFiles , "diff.patch");
+    seriesFile = new MapConfigFile(configFiles, "series");
   }
 
   @Test
@@ -117,6 +122,23 @@ public class PatchTransformationTest {
         skylark.eval("r",
             "r = patch.apply(\n"
                 + "  patches = ['diff.patch'],\n"
+                + "  excluded_patch_paths = ['excluded/*'],\n"
+                + ")\n");
+    transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+    assertThatPath(checkoutDir)
+        .containsFile("test.txt", "bar\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testParseSkylarkSeries() throws Exception {
+    Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+    skylark.addExtraConfigFile("diff.patch", new String(patchFile.content(), UTF_8));
+    skylark.addExtraConfigFile("series", new String(seriesFile.content(), UTF_8));
+    PatchTransformation transformation =
+        skylark.eval("r",
+            "r = patch.apply(\n"
+                + "  series = 'series',\n"
                 + "  excluded_patch_paths = ['excluded/*'],\n"
                 + ")\n");
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
