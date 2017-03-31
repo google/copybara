@@ -1004,17 +1004,17 @@ Module for applying patches.
 <a id="patch.apply" aria-hidden="true"></a>
 ## patch.apply
 
-A transformation that applies the given patch files.
+A transformation that applies the given patch files. If a path does not exist in a patch, it will be ignored.
 
-`patchTransformation patch.apply(patches=[], excluded_patch_paths=[])`
+`patchTransformation patch.apply(patches=[], excluded_patch_paths=[], series=None)`
 
 ### Parameters:
 
 Parameter | Description
 --------- | -----------
 patches|`sequence of string`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).</p>
-excluded_patch_paths|`sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself.
-If a path does not exist in a patch, it will be ignored.</p>
+excluded_patch_paths|`sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself.</p>
+series|`string`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).</p>
 
 
 

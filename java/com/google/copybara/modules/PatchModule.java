@@ -61,7 +61,8 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "apply", returnType = PatchTransformation.class,
-      doc = "A transformation that applies the given patch files.",
+      doc = "A transformation that applies the given patch files. If a path does not exist in a"
+          + " patch, it will be ignored.",
       parameters = {
           @Param(name = "self", type = PatchModule.class, doc = "this object"),
           @Param(name = "patches",
@@ -73,8 +74,7 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
               type = SkylarkList.class, generic1 = String.class, defaultValue = "[]",
               doc = "The list of paths to exclude from each of the patches. Each of the paths will "
                   + "be excluded from all the patches. Note that these are not workdir paths, but "
-                  + "paths relative to the patch itself.\n"
-                  + "If a path does not exist in a patch, it will be ignored."),
+                  + "paths relative to the patch itself."),
           @Param(name = "series", named = true, noneable = true,
               type = String.class, defaultValue = "None", positional = false,
               doc = "The config file that contains a list of patches to apply. "
