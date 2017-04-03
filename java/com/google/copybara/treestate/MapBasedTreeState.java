@@ -85,7 +85,7 @@ public class MapBasedTreeState implements TreeState {
   @Override
   public TreeState newTreeState() {
     if (notified) {
-      return this;
+      return new MapBasedTreeState(checkoutDir, files, cachedMatches);
     }
     return new FileSystemTreeState(checkoutDir);
   }
