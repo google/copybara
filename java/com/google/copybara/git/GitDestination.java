@@ -284,19 +284,11 @@ public final class GitDestination implements Destination<GitRevision> {
         // ...and untracked ones:
         scratchClone.simpleCommand("clean", "-f");
 
-        // Update current HEAD to point to the push reference (master for example. Instead of
-        // a commit in top of FETCH_HEAD). Unfortunately we need to do a ls-remote to resolve
-        // if it is a tag/branch/arbitrary ref.
-        try {
-          String localRef = Iterables.getOnlyElement(
-              GitRepository.lsRemote(repoUrl, ImmutableList.of(push)).entrySet())
-              .getKey();
-          scratchClone.simpleCommand("update-ref", localRef, "HEAD");
-          scratchClone.simpleCommand("checkout", push);
-        } catch (CommandException e) {
-          throw new RepoException("", e);
-        }
-
+        // Update current HEAD to point to a named reference so that it shows nice in the created
+        // repo. This is purely cosmetic since we push using remote.origin.push.
+        String localRef = push.startsWith("refs/") ? push : "refs/heads/" + push;
+        scratchClone.simpleCommand("update-ref", localRef, "HEAD");
+        scratchClone.simpleCommand("checkout", localRef);
       }
 
       if (transformResult.isAskForConfirmation()) {
@@ -326,7 +318,8 @@ public final class GitDestination implements Destination<GitRevision> {
 
   private GitRepository cloneBaseline() throws RepoException {
     if (destinationOptions.localRepoPath == null) {
-      GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment, tempDirectoryFactory);
+      GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment,
+          tempDirectoryFactory);
       fetchFromRemote(scratchClone);
       return scratchClone;
     } else {

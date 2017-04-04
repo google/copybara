@@ -866,6 +866,20 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
   }
 
+  @Test
+  public void testMultipleRefs() throws Exception {
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-testLocalRepo");
+    Files.write(scratchTree.resolve("base"), "base\n".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree).add().force().files("base").run();
+    repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "base");
+
+    GitRevision master = repo().resolveReference("master", /*contextRef=*/null);
+
+    repo().simpleCommand("update-ref","refs/other/master", master.asString());
+
+    checkLocalRepo(true);
+  }
+
   private GitRepository checkLocalRepo(boolean skipPushFlag)
       throws Exception {
     fetch = "master";
@@ -901,7 +915,7 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
 
     String changes = localRepo.simpleCommand("log", "--no-color", "--format=%B---").getStdout();
-    assertThat(changes).isEqualTo("test summary\n"
+    assertThat(changes).startsWith("test summary\n"
         + "\n"
         + "DummyOrigin-RevId: origin_ref2\n"
         + "---\n"
