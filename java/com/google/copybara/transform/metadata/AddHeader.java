@@ -17,7 +17,6 @@
 package com.google.copybara.transform.metadata;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
@@ -33,7 +32,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import javax.annotation.Nullable;
 
 /**
  * Adds a header text in top of the change message.
@@ -64,7 +62,7 @@ public class AddHeader implements Transformation {
       throws IOException, ValidationException {
     Map<String, String> labelValues = new HashMap<>();
     for (String label : labels) {
-      String value = findLabel(work, label);
+      String value = work.getLabel(label);
       if (value != null) {
         labelValues.put(label, value);
         continue;
@@ -81,25 +79,6 @@ public class AddHeader implements Transformation {
       msgPrefix = msgPrefix.replace("${" + entry.getKey() + "}", entry.getValue());
     }
     work.setMessage(msgPrefix + "\n" + work.getMessage());
-  }
-
-  /**
-   * Tries to find a label. First it looks at the generated message (IOW labels that might
-   * have been added by previous steps) and then looks in all the commit messages being imported.
-   */
-  @Nullable
-  private String findLabel(TransformWork work, String label) {
-    String val = work.getLabel(label);
-    if (val != null) {
-      return val;
-    }
-    for (Change<?> change : work.getChanges().getCurrent()) {
-      val = change.getLabels().get(label);
-      if (val != null) {
-        return val;
-      }
-    }
-    return null;
   }
 
   @Override

@@ -26,6 +26,11 @@ import com.google.re2j.Pattern;
  *   <li>foo = bar</li>
  *   <li>baz : foo</li>
  * </ul>
+ *
+ * <p>In general this class should only be used in {@code Origin}s to create a labels map.
+ * During transformations/destination, it can be used to check if a line is a label but
+ * never to find labels. Use {@link TransformWork#getLabel(String)} instead, since it looks
+ * in more places for labels.
  */
 public class LabelFinder {
 

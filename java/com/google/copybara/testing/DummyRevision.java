@@ -116,8 +116,15 @@ public class DummyRevision implements Revision {
   public DummyRevision withContextReference(String contextReference) {
     Preconditions.checkNotNull(contextReference);
     return new DummyRevision(
-        this.reference, this.message, this.getAuthor(), this.changesBase, this.timestamp,
+        this.reference, this.message, this.author, this.changesBase, this.timestamp,
         contextReference, this.referenceLabels, this.matchesGlob, this.previousPath);
+  }
+
+  public DummyRevision withLabels(ImmutableMap<String, String> labels) {
+    Preconditions.checkNotNull(labels);
+    return new DummyRevision(
+        this.reference, this.message, this.author, this.changesBase, this.timestamp,
+        this.contextReference, labels, this.matchesGlob, this.previousPath);
   }
 
   @Nullable
@@ -136,7 +143,7 @@ public class DummyRevision implements Revision {
     return DummyOrigin.LABEL_NAME;
   }
 
-  Change<DummyRevision> toChange(Authoring authoring) {
+  public Change<DummyRevision> toChange(Authoring authoring) {
     Author safeAuthor = authoring.useAuthor(this.author.getEmail())
         ? this.author
         : authoring.getDefaultAuthor();
@@ -194,6 +201,16 @@ public class DummyRevision implements Revision {
 
   public boolean matchesGlob() {
     return matchesGlob;
+  }
+
+  public String getMessage() {
+    return message;
+  }
+
+  public ImmutableMap<String, String> getLabels() {
+    return ImmutableMap.<String, String>builder().putAll(associatedLabels())
+        .putAll(descriptionLabels)
+        .build();
   }
 
   @Override

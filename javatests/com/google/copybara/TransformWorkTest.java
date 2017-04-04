@@ -20,9 +20,15 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -30,11 +36,13 @@ import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,6 +52,11 @@ import org.junit.runners.JUnit4;
 public class TransformWorkTest {
 
   private static final Author ORIGINAL_AUTHOR = new Author("Foo Bar", "foo@bar.com");
+
+  private static final Authoring AUTHORING = new Authoring(
+      new Author("Copybara", "no-reply@google.com"),
+      AuthoringMappingMode.PASS_THRU,
+      ImmutableSet.of());
 
   private SkylarkTestExecutor skylark;
   private DummyOrigin origin;
@@ -115,8 +128,42 @@ public class TransformWorkTest {
 
   @Test
   public void testGetLabel() {
-    TransformWork work = create("Foo\n\nSOME=TEST\n");
+    TransformWork work = create("Foo\n\nSOME=TEST\n").withChanges(
+        new Changes() {
+          @Override
+          public SkylarkList<? extends Change<?>> getCurrent() {
+            return SkylarkList.createImmutable(ImmutableList.of(
+                toChange(
+                    new DummyRevision("1")
+                        .withLabels(ImmutableMap.of("ONE", "one", "SOME", "SHOULD_NOT_HAPPEN"))),
+                toChange(
+                    new DummyRevision("2").withLabels(ImmutableMap.of("TWO", "two"))),
+                toChange(
+                    new DummyRevision("3").withLabels(ImmutableMap.of("THREE", "three")))
+            ));
+          }
+
+          private Change<DummyRevision> toChange(DummyRevision dummyRevision) {
+            return new Change<>(dummyRevision, ORIGINAL_AUTHOR, dummyRevision.getMessage(),
+                                ZonedDateTime.now(), dummyRevision.getLabels(),
+                                /*changeFiles=*/null);
+          }
+
+          @Override
+          public SkylarkList<? extends Change<?>> getMigrated() {
+            throw new UnsupportedOperationException();
+          }
+        }
+    ).withResolvedReference(new DummyRevision("resolved").withLabels(
+        ImmutableMap.of("RESOLVED", "resolved",
+                        "ONE", "SHOULD_NOT_HAPPEN",
+                        "SOME", "SHOULD_NOT_HAPPEN")));
+
     assertThat(work.getLabel("SOME")).isEqualTo("TEST");
+    assertThat(work.getLabel("ONE")).isEqualTo("one");
+    assertThat(work.getLabel("TWO")).isEqualTo("two");
+    assertThat(work.getLabel("THREE")).isEqualTo("three");
+    assertThat(work.getLabel("RESOLVED")).isEqualTo("resolved");
     assertThat(work.getLabel("FOO")).isEqualTo(null);
   }
 
@@ -295,7 +342,7 @@ public class TransformWorkTest {
         + "    destination = testing.destination(),\n"
         + "    transformations = [" + functionName + "],\n"
         + "    authoring = authoring.pass_thru('foo <foo@foo.com>'),\n"
-        + ")\n").getMigration("default").run(workdir,/*sourceRef=*/null);
+        + ")\n").getMigration("default").run(workdir, /*sourceRef=*/null);
   }
 
   private void checkAddLabel(String originalMsg, String expected) {

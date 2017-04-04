@@ -63,6 +63,17 @@ public interface Revision {
   /**
    * Return any associated label with the revision. Keys are the label name and values are the
    * content of the label.
+   *
+   * <p>Labels should only be set when the origin knows for sure that the reference is in the
+   * context of the current migration. For example if origin resolves 'master' internally, it
+   * should not put the labels of the commit at HEAD master, since the workflows might choose to
+   * just migrate the affected changes (using origin_files) and not include that reference. This
+   * could potentially make labels from HEAD master for unrelated commits to be used in a
+   * migration.
+   *
+   * <p>On the other hand, a good usage of associated labels would be for a code review system
+   * like Gerrit. The returned reference could have associated labels like the gerrit url for
+   * the change.
    */
   default ImmutableMap<String, String> associatedLabels() {
     return ImmutableMap.of();

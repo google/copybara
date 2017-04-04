@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -202,9 +203,9 @@ public final class TransformWork {
       list.add(position, label + "=" + value);
       setMessage(Joiner.on("\n").join(list));
     } else {
-      setMessage(getMessage() +
-          (alreadyEmptyLine ? "" : "\n\n")
-          + label + "=" + value + "\n");
+      setMessage(getMessage()
+                     + (alreadyEmptyLine ? "" : "\n\n")
+                     + label + "=" + value + "\n");
     }
   }
 
@@ -226,10 +227,41 @@ public final class TransformWork {
     return "(^\\Q" + label + "\\E *[=:])(.*)(\n|$)";
   }
 
-  @SkylarkCallable(name = "find_label", doc = "Searches the message for a label and returns its "
-      + "value if found, None otherwise.", allowReturnNones = true)
+  @SkylarkCallable(name = "find_label", doc = ""
+      + "Tries to find a label. First it looks at the generated message (IOW labels that might"
+      + " have been added by previous steps), then looks in all the commit messages being imported"
+      + " and finally in the resolved reference passed in the CLI."
+      , allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
+    String msgLabel = getLabelInMessage(label);
+    if (msgLabel != null) {
+      return msgLabel;
+    }
+
+    // Try to find the label in the current changes migrated. We prioritize current
+    // changes over resolvedReference. Since in iterative mode this would be more
+    // specific to the current migration.
+    for (Change<?> change : changes.getCurrent()) {
+      String val = change.getLabels().get(label);
+      if (val != null) {
+        return val;
+      }
+    }
+
+    // Try to find the label in the resolved reference
+    String resolvedRefLabel = resolvedReference.associatedLabels().get(label);
+    if (resolvedRefLabel != null) {
+      return resolvedRefLabel;
+    }
+    return null;
+  }
+
+  /**
+   * Search for a label in the current message.
+   */
+  @Nullable
+  public String getLabelInMessage(String label) {
     Pattern pattern = Pattern.compile(labelRegex(label), Pattern.MULTILINE);
     Matcher matcher = pattern.matcher(getMessage());
     if (matcher.find()) {
@@ -250,7 +282,7 @@ public final class TransformWork {
     return changes;
   }
 
-  private void validateLabelName(String label) {
+  private static void validateLabelName(String label) {
     Preconditions.checkArgument(LabelFinder.VALID_LABEL.matcher(label).matches(),
         "Label '%s' is not a valid label", label);
   }
@@ -284,6 +316,20 @@ public final class TransformWork {
   public TransformWork withUpdatedTreeState() {
     return new TransformWork(checkoutDir, metadata, changes, console,
                              migrationInfo, resolvedReference, treeState.newTreeState());
+  }
+
+  @VisibleForTesting
+  public TransformWork withChanges(Changes changes) {
+    Preconditions.checkNotNull(changes);
+    return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
+                             resolvedReference, treeState);
+  }
+
+  @VisibleForTesting
+  public TransformWork withResolvedReference(Revision resolvedReference) {
+    Preconditions.checkNotNull(resolvedReference);
+    return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
+                             resolvedReference, treeState);
   }
 
   /**
