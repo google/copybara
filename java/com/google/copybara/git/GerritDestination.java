@@ -23,10 +23,12 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.hash.Hashing;
+import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.git.GerritChangeFinder.Response;
 import com.google.copybara.git.GitDestination.MessageInfo;
@@ -74,17 +76,16 @@ public final class GerritDestination implements Destination<GitRevision> {
      * Gerrit or not.
      */
     @Override
-    public MessageInfo message(TransformResult transformResult, GitRepository repo)
+    public MessageInfo message(TransformResult result, GitRepository repo)
         throws RepoException {
-      MessageInfo changeIdAndNew = changeId(repo, transformResult);
-      return new MessageInfo(
-          String.format(
-              "%s\n\n%s: %s\nChange-Id: %s\n",
-              transformResult.getSummary(),
-              transformResult.getCurrentRevision().getLabelName(),
-              transformResult.getCurrentRevision().asString(),
-              changeIdAndNew.text),
-          changeIdAndNew.newPush);
+      MessageInfo changeIdAndNew = changeId(repo, result);
+
+      Revision rev = result.getCurrentRevision();
+      ChangeMessage msg = ChangeMessage.parseMessage(result.getSummary())
+          .addOrReplaceLabel(rev.getLabelName(), ": ", rev.asString())
+          .addOrReplaceLabel("Change-Id", ": ", changeIdAndNew.text);
+
+      return new MessageInfo(msg.toString(), changeIdAndNew.newPush);
     }
 
     private String maybeParentHash(GitRepository repo) {

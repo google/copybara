@@ -26,10 +26,12 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
@@ -38,7 +40,6 @@ import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -74,13 +75,11 @@ public final class GitDestination implements Destination<GitRevision> {
   static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
     public MessageInfo message(TransformResult transformResult, GitRepository repo) {
-      return new MessageInfo(
-          String.format(
-              "%s\n\n%s: %s\n",
-              transformResult.getSummary(),
-              transformResult.getCurrentRevision().getLabelName(),
-              transformResult.getCurrentRevision().asString()),
-          /*newPush*/ true);
+
+      Revision rev = transformResult.getCurrentRevision();
+      ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary())
+          .addOrReplaceLabel(rev.getLabelName(), ": ", rev.asString());
+      return new MessageInfo(msg.toString(),/*newPush*/ true);
     }
   }
 

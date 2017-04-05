@@ -17,9 +17,7 @@
 package com.google.copybara;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.treestate.FileSystemTreeState;
 import com.google.copybara.treestate.TreeState;
@@ -33,14 +31,11 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.re2j.Matcher;
-import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -146,85 +141,74 @@ public final class TransformWork {
         checkoutDir);
   }
 
-  /**
-   * If a label group is already present (one or more labels preceded by an empty line or '--' and
-   * no more text except for empty lines after that) we inject the label at the end of the label
-   * group.
-   *
-   * <p>If we cannot find an existing label group we add an empty line and the label at the end of
-   * the message.
-   *
-   * <p>The injection is supposed to work for the vast majority of common cases but there might be
-   * cases that cannot be detected. In those cases it will be appended to the end.
-   */
-  @SkylarkCallable(name = "add_label", doc = "Add a label to the end of the description")
-  public void addLabel(String label, String value) {
-    validateLabelName(label);
-    List<String> byLine = Splitter.on("\n").splitToList(getMessage());
-    int idx = byLine.size() - 1;
-    boolean alreadyEmptyLine = false;
-    // Skip all the empty lines at the end
-    while (idx >= 0) {
-      String line = byLine.get(idx);
-      if (line.isEmpty()) {
-        idx--;
-        alreadyEmptyLine = true;
-      } else {
-        break;
-      }
-    }
-    // Assuming we find a valid group here, this is is the position for the new label.
-    int position = idx + 1;
-    boolean putInGroup = false;
-    while (idx >= 0) {
-      String line = byLine.get(idx);
-      if (new LabelFinder(line).isLabel()) {
-        // Put it at the end of the group of labels, since there is at least one label.
-        putInGroup = true;
-        idx--;
-      } else {
-        break;
-      }
-    }
-    if (idx >= 0) {
-      // A label group that is not preceded by a clear separator (empty line or '--')
-      String current = byLine.get(idx);
-      if (!current.isEmpty() && !current.equals("--")) {
-        // False alarm. This was not a label group since a non-empty line was before so it is
-        // probably a line wrap.
-        putInGroup = false;
-      }
-    }
-
-    // Inject the label in the correct location. Otherwise do the naive thing and inject at the
-    // end of the message.
-    if (putInGroup) {
-      ArrayList<String> list = new ArrayList<>(byLine);
-      list.add(position, label + "=" + value);
-      setMessage(Joiner.on("\n").join(list));
-    } else {
-      setMessage(getMessage()
-                     + (alreadyEmptyLine ? "" : "\n\n")
-                     + label + "=" + value + "\n");
-    }
+  @SkylarkCallable(name = "add_label",
+      doc = "Add a label to the end of the description",
+      parameters = {
+          @Param(name = "label", type = String.class, doc = "The label to replace"),
+          @Param(name = "value", type = String.class, doc = "The new value for the label"),
+          @Param(name = "separator", type = String.class,
+              doc = "The separator to use for the label", defaultValue = "\"=\""),
+      })
+  public void addLabel(String label, String value, String separator) {
+    setMessage(ChangeMessage.parseMessage(getMessage())
+        .addLabel(label, separator, value)
+        .toString());
   }
 
-  @SkylarkCallable(name = "replace_label", doc = "Replace a label if it exist in the message")
-  public void replaceLabel(String label, String value) {
-    validateLabelName(label);
-    Pattern pattern = Pattern.compile(labelRegex(label), Pattern.MULTILINE);
-    setMessage(pattern.matcher(getMessage()).replaceAll("$1" + value + "$3"));
+  @SkylarkCallable(name = "add_or_replace_label",
+      doc = "Replace an existing label or add it to the end of the description",
+      parameters = {
+          @Param(name = "label", type = String.class, doc = "The label to replace"),
+          @Param(name = "value", type = String.class, doc = "The new value for the label"),
+          @Param(name = "separator", type = String.class,
+              doc = "The separator to use for the label", defaultValue = "\"=\""),
+      })
+  public void addOrReplaceLabel(String label, String value, String separator) {
+    setMessage(ChangeMessage.parseMessage(getMessage())
+        .addOrReplaceLabel(label, separator, value)
+        .toString());
   }
 
-  @SkylarkCallable(name = "remove_label", doc = "Remove a label from the message if present")
-  public void removeLabel(String label) {
-    validateLabelName(label);
-    Pattern pattern = Pattern.compile(labelRegex(label), Pattern.MULTILINE);
-    setMessage(pattern.matcher(getMessage()).replaceAll(""));
+  @SkylarkCallable(name = "add_text_before_labels",
+      doc = "Add a text to the description before the labels paragraph")
+  public void addTextBeforeLabels(String text) {
+    ChangeMessage message = ChangeMessage.parseMessage(getMessage());
+    message.setText(message.getText() + '\n' + text);
+    setMessage(message.toString());
   }
 
-  private String labelRegex(String label) {
-    return "(^\\Q" + label + "\\E *[=:])(.*)(\n|$)";
+  @SkylarkCallable(name = "replace_label", doc = "Replace a label if it exist in the message",
+      parameters = {
+          @Param(name = "label", type = String.class, doc = "The label to replace"),
+          @Param(name = "value", type = String.class, doc = "The new value for the label"),
+          @Param(name = "separator", type = String.class,
+              doc = "The separator to use for the label", defaultValue = "\"=\""),
+          @Param(name = "whole_message", type = Boolean.class,
+              doc = "By default Copybara only looks in the last paragraph for labels. This flag"
+                  + "make it replace labels in the whole message.", defaultValue = "False"),
+      })
+  public void replaceLabel(String labelName, String value, String separator, Boolean wholeMessage) {
+    setMessage(parseMessage(wholeMessage)
+        .replaceLabel(labelName, separator, value)
+        .toString());
+  }
+
+  @SkylarkCallable(name = "remove_label", doc = "Remove a label from the message if present",
+      parameters = {
+          @Param(name = "label", type = String.class, doc = "The label to delete"),
+          @Param(name = "whole_message", type = Boolean.class,
+              doc = "By default Copybara only looks in the last paragraph for labels. This flag"
+                  + "make it replace labels in the whole message.", defaultValue = "False"),
+      }
+  )
+  public void removeLabel(String label, Boolean wholeMessage) {
+    setMessage(parseMessage(wholeMessage).removeLabelByName(label).toString());
+  }
+
+  private ChangeMessage parseMessage(Boolean wholeMessage) {
+    return wholeMessage
+        ? ChangeMessage.parseAllAsLabels(getMessage())
+        : ChangeMessage.parseMessage(getMessage());
   }
 
   @SkylarkCallable(name = "find_label", doc = ""
@@ -234,11 +218,10 @@ public final class TransformWork {
       , allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
-    String msgLabel = getLabelInMessage(label);
-    if (msgLabel != null) {
-      return msgLabel;
+    Optional<LabelFinder> msgLabel = getLabelInMessage(label);
+    if (msgLabel.isPresent()) {
+      return msgLabel.get().getValue();
     }
-
     // Try to find the label in the current changes migrated. We prioritize current
     // changes over resolvedReference. Since in iterative mode this would be more
     // specific to the current migration.
@@ -258,21 +241,16 @@ public final class TransformWork {
   }
 
   /**
-   * Search for a label in the current message.
+   * Search for a label in the current message. We are less strict and look in the whole message.
    */
-  @Nullable
-  public String getLabelInMessage(String label) {
-    Pattern pattern = Pattern.compile(labelRegex(label), Pattern.MULTILINE);
-    Matcher matcher = pattern.matcher(getMessage());
-    if (matcher.find()) {
-      return matcher.group(2);
-    }
-    return null;
+  private Optional<LabelFinder> getLabelInMessage(String name) {
+    return parseMessage(/*wholeMessage= */true).getLabels().stream()
+        .filter(label -> label.isLabel(name)).findFirst();
   }
 
   @SkylarkCallable(name = "set_author", doc = "Update the author to be used in the change")
   public void setAuthor(Author author) {
-    this.metadata = new Metadata(metadata.getMessage(),
+    this.metadata = new Metadata(getMessage(),
         Preconditions.checkNotNull(author, "Author cannot be null"));
   }
 
@@ -280,11 +258,6 @@ public final class TransformWork {
       structField = true)
   public Changes getChanges() {
     return changes;
-  }
-
-  private static void validateLabelName(String label) {
-    Preconditions.checkArgument(LabelFinder.VALID_LABEL.matcher(label).matches(),
-        "Label '%s' is not a valid label", label);
   }
 
   @SkylarkCallable(name = "console", doc = "Get an instance of the console to report errors or"

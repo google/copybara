@@ -21,16 +21,18 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 
 /**
- * A simple label finder/parser for labels like:
+ * A simple line finder/parser for labels like:
  * <ul>
  *   <li>foo = bar</li>
  *   <li>baz : foo</li>
  * </ul>
  *
  * <p>In general this class should only be used in {@code Origin}s to create a labels map.
- * During transformations/destination, it can be used to check if a line is a label but
+ * During transformations/destination, it can be used to check if a line is a line but
  * never to find labels. Use {@link TransformWork#getLabel(String)} instead, since it looks
  * in more places for labels.
+ *
+ * TODO(malcon): Rename to MaybeLabel
  */
 public class LabelFinder {
 
@@ -41,27 +43,44 @@ public class LabelFinder {
   private static final Pattern URL = Pattern.compile(VALID_LABEL + "://.*");
 
   private static final Pattern LABEL_PATTERN = Pattern.compile(
-      "^" + VALID_LABEL_EXPR + " *[:=] ?(.*)");
+      "^" + VALID_LABEL_EXPR + "( *[:=] ?)(.*)");
   private final Matcher matcher;
-  private final String label;
+  private final String line;
 
   public LabelFinder(String line) {
     matcher = LABEL_PATTERN.matcher(line);
-    this.label = line;
+    this.line = line;
   }
 
   public boolean isLabel() {
-    // It is a label if it looks like a label but it doesn't look like a url (foo://bar)
-    return matcher.matches() && !URL.matcher(label).matches();
+    // It is a line if it looks like a line but it doesn't look like a url (foo://bar)
+    return matcher.matches() && !URL.matcher(line).matches();
+  }
+
+  public boolean isLabel(String labelName) {
+    return isLabel() && getName().equals(labelName);
   }
 
   public String getName() {
-    Preconditions.checkState(isLabel(), "Not a label: '" + label + "'");
+    checkIsLabel();
     return matcher.group(1);
   }
 
-  public String getValue() {
-    Preconditions.checkState(isLabel(), "Not a label: '" + label + "'");
+  public String getSeparator() {
+    checkIsLabel();
     return matcher.group(2);
+  }
+
+  public String getValue() {
+    checkIsLabel();
+    return matcher.group(3);
+  }
+
+  private void checkIsLabel() {
+    Preconditions.checkState(isLabel(), "Not a label: '" + line + "'");
+  }
+
+  public String getLine() {
+    return line;
   }
 }

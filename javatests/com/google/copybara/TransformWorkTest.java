@@ -22,11 +22,8 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.Authoring;
-import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -34,6 +31,7 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.SkylarkList;
@@ -52,11 +50,6 @@ import org.junit.runners.JUnit4;
 public class TransformWorkTest {
 
   private static final Author ORIGINAL_AUTHOR = new Author("Foo Bar", "foo@bar.com");
-
-  private static final Authoring AUTHORING = new Authoring(
-      new Author("Copybara", "no-reply@google.com"),
-      AuthoringMappingMode.PASS_THRU,
-      ImmutableSet.of());
 
   private SkylarkTestExecutor skylark;
   private DummyOrigin origin;
@@ -79,51 +72,121 @@ public class TransformWorkTest {
   }
 
   @Test
-  public void testAddLabel() {
+  public void testAddLabel() throws Exception {
     checkAddLabel("foo", "foo\n\nTEST=VALUE\n");
   }
 
   @Test
-  public void testAddLabelToGroup() {
-    checkAddLabel("foo\n\nA=B\n\n", "foo\n\nA=B\nTEST=VALUE\n\n");
+  public void testAddLabelToGroup() throws Exception {
+    checkAddLabel("foo\n\nA=B\n\n", "foo\n\nA=B\nTEST=VALUE\n");
   }
 
   @Test
-  public void testAddLabelNoEmptyLineBeforeGroup() {
+  public void testAddLabelNoEmptyLineBeforeGroup() throws Exception {
     checkAddLabel("foo\nA=B\n\n", "foo\nA=B\n\nTEST=VALUE\n");
   }
 
   @Test
-  public void testAddLabelNoGroupNoEndLine() {
+  public void testAddLabelNoGroupNoEndLine() throws Exception {
     checkAddLabel("foo\nA=B", "foo\nA=B\n\nTEST=VALUE\n");
   }
 
   @Test
-  public void testReplaceLabel() {
-    TransformWork work = create("Foo\n\nSOME=TEST\n");
-    work.replaceLabel("SOME", "REPLACED");
-    assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=REPLACED\n");
+  public void testAddOrReplaceExistingLabel() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\nother=other\n",
+        "ctx.add_or_replace_label('SOME', 'REPLACED')",
+        "Foo\n\nSOME=REPLACED\nother=other\n");
   }
 
   @Test
-  public void testReplaceNonExistentLabel() {
-    TransformWork work = create("Foo\n\nFOO=TEST\n");
-    work.replaceLabel("SOME", "REPLACED");
-    assertThat(work.getMessage()).isEqualTo("Foo\n\nFOO=TEST\n");
+  public void testAddTextBeforeLabels() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+        "ctx.add_text_before_labels('\\nFixes #1234')",
+        "Foo\n\nFixes #1234\n\nSOME=TEST\n");
   }
 
   @Test
-  public void testsDeleteLabel() {
-    TransformWork work = create("Foo\n\nSOME=TEST\n");
-    work.removeLabel("SOME");
-    assertThat(work.getMessage()).isEqualTo("Foo\n\n");
+  public void testAddTextBeforeLabelsNoGroup() throws Exception {
+    checkLabelWithSkylark("Foo\n",
+        "ctx.add_text_before_labels('\\nFixes #1234')",
+        "Foo\n\nFixes #1234\n");
   }
 
   @Test
-  public void testsDeleteNonExistentLabel() {
-    TransformWork work = create("Foo\n\nSOME=TEST\n");
-    work.removeLabel("FOO");
-    assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\n");
+  public void testReplaceLabel() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+        "ctx.replace_label('SOME', 'REPLACED')",
+        "Foo\n\nSOME=REPLACED\n");
+  }
+
+  @Test
+  public void testReplaceNonExistentLabel() throws Exception {
+    checkLabelWithSkylark("Foo\n\nFOO=TEST\n",
+        "ctx.replace_label('SOME', 'REPLACED')",
+        "Foo\n\nFOO=TEST\n");
+  }
+
+  @Test
+  public void testReplaceNonExistentLabelNoGroup() throws Exception {
+    checkLabelWithSkylark("Foo\n",
+        "ctx.replace_label('SOME', 'REPLACED')",
+        "Foo\n");
+  }
+
+  @Test
+  public void testsDeleteNotFound() throws Exception{
+    checkLabelWithSkylark("Foo\n",
+        "ctx.remove_label('SOME', False)",
+        "Foo\n");
+  }
+
+  @Test
+  public void testsDeleteNotFound_whole() throws Exception {
+    checkLabelWithSkylark("Foo\n",
+        "ctx.remove_label('SOME', True)",
+        "Foo\n");
+  }
+
+  @Test
+  public void testsDeleteLabel() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+        "ctx.remove_label('SOME', False)",
+        "Foo\n");
+  }
+
+  @Test
+  public void testsDeleteLabel_whole() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+        "ctx.remove_label('SOME', True)",
+        "Foo\n");
+  }
+
+  @Test
+  public void testsDeleteOnlyOneLabel() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\nOTHER=aaa\n",
+        "ctx.remove_label('SOME', False)",
+        "Foo\n\nOTHER=aaa\n");
+  }
+
+  @Test
+  public void testsDeleteOnlyOneLabel_whole() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\nOTHER=aaa\n",
+        "ctx.remove_label('SOME', True)",
+        "Foo\n\nOTHER=aaa\n");
+  }
+
+  @Test
+  public void testsDeleteNonExistentLabel() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+        "ctx.remove_label('FOO', False)",
+        "Foo\n\nSOME=TEST\n");
+  }
+
+  @Test
+  public void testsDeleteNonExistentLabel_whole() throws Exception {
+    checkLabelWithSkylark("Foo\n\nSOME=TEST\n",
+        "ctx.remove_label('FOO', True)",
+        "Foo\n\nSOME=TEST\n");
   }
 
   @Test
@@ -145,7 +208,7 @@ public class TransformWorkTest {
 
           private Change<DummyRevision> toChange(DummyRevision dummyRevision) {
             return new Change<>(dummyRevision, ORIGINAL_AUTHOR, dummyRevision.getMessage(),
-                                ZonedDateTime.now(), dummyRevision.getLabels(),
+                ZonedDateTime.now(), dummyRevision.getLabels(),
                                 /*changeFiles=*/null);
           }
 
@@ -156,8 +219,8 @@ public class TransformWorkTest {
         }
     ).withResolvedReference(new DummyRevision("resolved").withLabels(
         ImmutableMap.of("RESOLVED", "resolved",
-                        "ONE", "SHOULD_NOT_HAPPEN",
-                        "SOME", "SHOULD_NOT_HAPPEN")));
+            "ONE", "SHOULD_NOT_HAPPEN",
+            "SOME", "SHOULD_NOT_HAPPEN")));
 
     assertThat(work.getLabel("SOME")).isEqualTo("TEST");
     assertThat(work.getLabel("ONE")).isEqualTo("one");
@@ -170,10 +233,10 @@ public class TransformWorkTest {
   @Test
   public void testReversable() {
     TransformWork work = create("Foo\n\nSOME=TEST\nOTHER=FOO\n");
-    work.addLabel("EXAMPLE", "VALUE");
-    work.replaceLabel("EXAMPLE", "OTHER VALUE");
+    work.addOrReplaceLabel("EXAMPLE", "VALUE", "=");
+    work.replaceLabel("EXAMPLE", "OTHER VALUE", "=", true);
     assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\nOTHER=FOO\nEXAMPLE=OTHER VALUE\n");
-    work.removeLabel("EXAMPLE");
+    work.removeLabel("EXAMPLE", /*wholeMessage=*/true);
     assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\nOTHER=FOO\n");
   }
 
@@ -345,13 +408,28 @@ public class TransformWorkTest {
         + ")\n").getMigration("default").run(workdir, /*sourceRef=*/null);
   }
 
-  private void checkAddLabel(String originalMsg, String expected) {
-    TransformWork work = create(originalMsg);
-    work.addLabel("TEST", "VALUE");
-    assertThat(work.getMessage()).isEqualTo(expected);
+  private void checkAddLabel(String originalMsg, String expected) throws Exception {
+    checkLabelWithSkylark(originalMsg,
+        "ctx.add_label('TEST','VALUE')",
+        expected);
+    checkLabelWithSkylark(originalMsg,
+        "ctx.add_or_replace_label('TEST','VALUE')",
+        expected);
   }
 
   private TransformWork create(String msg) {
     return TransformWorks.of(FileSystems.getDefault().getPath("/"), msg, console);
+  }
+
+  private void checkLabelWithSkylark(String originalMsg, final String transform,
+      String expectedOutputMsg)
+      throws Exception {
+    TransformWork work = create(originalMsg);
+    ExplicitReversal t = skylark.eval("t", ""
+        + "def user_transform(ctx):\n"
+        + "    " + transform + "\n"
+        + "t = core.transform([user_transform])");
+    t.transform(work);
+    assertThat(work.getMessage()).isEqualTo(expectedOutputMsg);
   }
 }

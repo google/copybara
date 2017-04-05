@@ -62,6 +62,7 @@ doc_generator(
 BASE_SRCS = [
     "CannotResolveRevisionException.java",
     "Change.java",
+    "ChangeMessage.java",
     "ChangeVisitable.java",
     "CheckoutPath.java",
     "CheckoutPathAttributes.java",

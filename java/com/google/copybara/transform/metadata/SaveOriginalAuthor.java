@@ -36,11 +36,7 @@ public class SaveOriginalAuthor implements Transformation {
   @Override
   public void transform(TransformWork work)
       throws IOException, ValidationException {
-    if (work.getLabelInMessage(label) != null) {
-      work.replaceLabel(label, work.getAuthor().toString());
-    } else {
-      work.addLabel(label, work.getAuthor().toString());
-    }
+    work.addOrReplaceLabel(label, work.getAuthor().toString(), "=");
   }
 
   @Override

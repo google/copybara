@@ -56,7 +56,7 @@ public class RestoreOriginalAuthor implements Transformation {
     }
     if (author != null) {
       work.setAuthor(author);
-      work.removeLabel(label);
+      work.removeLabel(label, /*wholeMessage=*/true);
     }
   }
 

@@ -915,7 +915,7 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
 
     String changes = localRepo.simpleCommand("log", "--no-color", "--format=%B---").getStdout();
-    assertThat(changes).startsWith("test summary\n"
+    assertThat(changes.replace("\n","\\n")).startsWith(("test summary\n"
         + "\n"
         + "DummyOrigin-RevId: origin_ref2\n"
         + "---\n"
@@ -924,8 +924,30 @@ public class GitDestinationTest {
         + "DummyOrigin-RevId: origin_ref1\n"
         + "---\n"
         + "change\n"
-        + "---\n");
+        + "---\n").replace("\n","\\n"));
     return localRepo;
+  }
+
+  @Test
+  public void testLabelInSameLabelGroupGroup() throws Exception {
+    fetch = "master";
+    push = "master";
+    Writer writer = destinationFirstCommit().newWriter(destinationFiles);
+    Files.write(workdir.resolve("test.txt"), "".getBytes());
+    DummyRevision rev = new DummyRevision("first_commit");
+    String msg = "This is a message\n"
+        + "\n"
+        + "That already has a label\n"
+        + "THE_LABEL: value\n";
+    writer.write(new TransformResult(workdir, rev, rev.getAuthor(), msg, rev), console);
+    String changes = repo().simpleCommand("log", "--no-color", "--format=%B---").getStdout();
+
+    assertThat(changes).isEqualTo("This is a message\n"
+        + "\n"
+        + "That already has a label\n"
+        + "THE_LABEL: value\n"
+        + "DummyOrigin-RevId: first_commit\n"
+        + "---\n");
   }
 
   @Test
