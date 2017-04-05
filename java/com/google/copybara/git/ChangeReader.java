@@ -68,7 +68,7 @@ class ChangeReader {
 
   private String runLog(Iterable<String> params) throws RepoException {
     List<String> fullParams =
-        new ArrayList<>(Arrays.asList("log", "--no-color", "--date=iso-strict"));
+        new ArrayList<>(Arrays.asList("log", "--pretty", "--no-color", "--date=iso-strict"));
     Iterables.addAll(fullParams, params);
     if (!roots.get(0).isEmpty()) {
       fullParams.add("--");
