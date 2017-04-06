@@ -292,7 +292,7 @@ label|`string`<br><p>The label to use for storing the author</p>
 
 Certain labels are present in the internal metadata but are not exposed in the message by default. This transformations find a label in the internal metadata and exposes it in the message. If the label is already present in the message it will update it to use the new name and separator.
 
-`transformation metadata.expose_label(name, new_name=label, separator="=", ignore_if_label_not_found=True)`
+`transformation metadata.expose_label(name, new_name=label, separator="=", ignore_label_not_found=True)`
 
 ### Parameters:
 
@@ -301,7 +301,7 @@ Parameter | Description
 name|`string`<br><p>The label to search</p>
 new_name|`string`<br><p>The name to use in the message</p>
 separator|`string`<br><p>The separator to use when adding the label to the message</p>
-ignore_if_label_not_found|`boolean`<br><p>If a label is not found, ignore the error and continue.</p>
+ignore_label_not_found|`boolean`<br><p>If a label is not found, ignore the error and continue.</p>
 
 
 ### Examples:
@@ -356,14 +356,14 @@ label|`string`<br><p>The label to use for restoring the author</p>
 Adds a header line to the commit message. Any variable present in the message in the form of ${LABEL_NAME} will be replaced by the corresponding label in the message. Note that this requires that the label is already in the message or in any of the changes being imported. The label in the message takes priority over the ones in the list of original messages of changes imported.
 
 
-`transformation metadata.add_header(text, ignore_if_label_not_found=False)`
+`transformation metadata.add_header(text, ignore_label_not_found=False)`
 
 ### Parameters:
 
 Parameter | Description
 --------- | -----------
 text|`string`<br><p>The header text to include in the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
-ignore_if_label_not_found|`boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
+ignore_label_not_found|`boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
 
 
 ### Examples:
@@ -400,7 +400,7 @@ Adds a header to messages that contain a label. Otherwise it skips the message m
 
 ```python
 metadata.add_header("COPYBARA CHANGE FOR ${GIT_URL}",
-    ignore_if_label_not_found = True,
+    ignore_label_not_found = True,
 )
 ```
 
