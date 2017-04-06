@@ -91,8 +91,8 @@ http_archive(
     # TODO(copybara-team): Revisit to try to depend on a tag instead
     # Currently we depend on a specific commit, otherwise the sha-256 would be changing all the
     # times.
-    url = "https://github.com/bazelbuild/bazel/archive/44c322b4e654930dfe8a7260843695289b9ecf39.zip",
-    strip_prefix = "bazel-44c322b4e654930dfe8a7260843695289b9ecf39",
+    url = "https://github.com/bazelbuild/bazel/archive/b13457b1434d64ab187fb511e73f01d1f2321c1e.zip",
+    strip_prefix = "bazel-b13457b1434d64ab187fb511e73f01d1f2321c1e",
 )
 
 # LICENSE: New BSD

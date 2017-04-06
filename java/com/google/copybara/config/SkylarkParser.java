@@ -363,7 +363,7 @@ public class SkylarkParser {
 
     @Override
     public PathFragment getPath() {
-      return new PathFragment(path);
+      return PathFragment.create(path);
     }
   }
 }
