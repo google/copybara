@@ -388,6 +388,7 @@ public class MetadataModuleTest {
     origin.addSimpleChange(0, "bar");
     try {
       wf.run(workdir, /*sourceRef=*/"HEAD");
+      fail("Should fail");
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("'bar' found in the change message");
     }
