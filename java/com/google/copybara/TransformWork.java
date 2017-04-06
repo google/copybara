@@ -243,7 +243,7 @@ public final class TransformWork {
   /**
    * Search for a label in the current message. We are less strict and look in the whole message.
    */
-  private Optional<LabelFinder> getLabelInMessage(String name) {
+  public Optional<LabelFinder> getLabelInMessage(String name) {
     return parseMessage(/*wholeMessage= */true).getLabels().stream()
         .filter(label -> label.isLabel(name)).findFirst();
   }

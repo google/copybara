@@ -17,6 +17,7 @@
 package com.google.copybara.transform.metadata;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.TransformWorks.EMPTY_CHANGES;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -24,19 +25,25 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.copybara.authoring.Author;
+import com.google.common.truth.ThrowableSubject;
 import com.google.copybara.Config;
 import com.google.copybara.RepoException;
+import com.google.copybara.TransformWork;
+import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowMode;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.testing.DummyOrigin;
+import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingModule;
+import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -61,6 +68,7 @@ public class MetadataModuleTest {
   private String authoring;
 
   private SkylarkParser skylark;
+  private SkylarkTestExecutor skylarkExecutor;
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -80,6 +88,8 @@ public class MetadataModuleTest {
     options.testingOptions.destination = destination;
     skylark = new SkylarkParser(
         ImmutableSet.of(TestingModule.class, MetadataModule.class));
+    skylarkExecutor = new SkylarkTestExecutor(options, MetadataModule.class);
+
     origin.addSimpleChange(0, "first commit\n\nExtended text")
         .setAuthor(new Author("Foo Bar", "foo@bar.com"))
         .addSimpleChange(1, "second commit\n\nExtended text")
@@ -181,6 +191,52 @@ public class MetadataModuleTest {
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
+  @Test
+  public void testExposeLabel() throws Exception {
+    checkExposeLabel("some message\n",
+        "metadata.expose_label('SOME')",
+        "some message\n\nSOME=value\n");
+
+    checkExposeLabel("some message\n",
+        "metadata.expose_label('NOT_FOUND')",
+        "some message\n");
+
+    checkExposeLabel("some message\n",
+        "metadata.expose_label('SOME', new_name = 'OTHER')",
+        "some message\n\nOTHER=value\n");
+
+    checkExposeLabel("some message\n",
+        "metadata.expose_label('SOME', separator = ': ')",
+        "some message\n\nSOME: value\n");
+
+    checkExposeLabel("some message\n\nSOME: oldvalue\n",
+        "metadata.expose_label('SOME', new_name = 'OTHER')",
+        "some message\n\nOTHER=oldvalue\n");
+
+    checkExposeLabel("some message\n\nSOME=oldvalue\n",
+        "metadata.expose_label('SOME', separator = ': ')",
+        "some message\n\nSOME: oldvalue\n");
+  }
+
+  @Test
+  public void testExposeLabel_no_ignore_if_not_found() throws Exception {
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("Cannot find label NOT_FOUND");
+    checkExposeLabel("some message\n",
+        "metadata.expose_label('NOT_FOUND', ignore_label_not_found = False)",
+        "DOES NOT MATTER");
+  }
+
+  private void checkExposeLabel(String msg, String transform, String expectedOutput)
+      throws ValidationException, IOException {
+    TransformWork tw = TransformWorks.of(workdir, msg, testingConsole)
+        .withChanges(EMPTY_CHANGES)
+        .withResolvedReference(new DummyRevision("123")
+            .withLabels(ImmutableMap.of("SOME", "value")));
+    Transformation t = skylarkExecutor.eval("t", "t = " + transform);
+    t.transform(tw);
+    assertThat(tw.getMessage()).isEqualTo(expectedOutput);
+  }
 
   @Test
   public void testsSaveAuthor() throws Exception {
@@ -283,7 +339,7 @@ public class MetadataModuleTest {
 
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]', "
-            + "ignore_if_label_not_found = True)");
+            + "ignore_label_not_found = True)");
 
     origin.addSimpleChange(0, "A change\n");
 

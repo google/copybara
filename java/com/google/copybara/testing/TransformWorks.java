@@ -15,6 +15,7 @@
  */
 package com.google.copybara.testing;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
@@ -29,6 +30,21 @@ import java.nio.file.Path;
  * Utility methods related to {@link TransformWork}.
  */
 public class TransformWorks {
+
+  /**
+   * A {@link Changes} object with no changes inside.
+   */
+  public static final Changes EMPTY_CHANGES = new Changes() {
+    @Override
+    public SkylarkList<? extends Change<?>> getCurrent() {
+      return SkylarkList.createImmutable(ImmutableList.of());
+    }
+
+    @Override
+    public SkylarkList<? extends Change<?>> getMigrated() {
+      return SkylarkList.createImmutable(ImmutableList.of());
+    }
+  };
 
   /**
    * Creates an instance with reasonable defaults for testing.

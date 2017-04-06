@@ -16,7 +16,10 @@
 
 package com.google.copybara.transform.metadata;
 
+import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
+
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.Transformation;
 import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
@@ -27,6 +30,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
@@ -148,6 +152,51 @@ public class MetadataModule {
   };
 
   @SuppressWarnings("unused")
+  @SkylarkSignature(name = "expose_label", returnType = Transformation.class,
+      doc = "Certain labels are present in the internal metadata but are not exposed in the message"
+          + " by default. This transformations find a label in the internal metadata and exposes it"
+          + " in the message. If the label is already present in the message it will update it to"
+          + " use the new name and separator.",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "name", type = String.class, doc = "The label to search"),
+          @Param(name = "new_name", type = String.class, doc = "The name to use in the message",
+              defaultValue = "label", noneable = true),
+          @Param(name = "separator", type = String.class, doc = "The separator to use when"
+              + " adding the label to the message",
+              defaultValue = "\"=\""),
+          @Param(name = "ignore_label_not_found", type = Boolean.class,
+              doc = "If a label is not found, ignore the error and continue.",
+              defaultValue = "True"),
+      }, objectType = MetadataModule.class, useLocation = true)
+  @Example(title = "Simple usage", before = "Expose a hidden label called 'REVIEW_URL':",
+      code = "metadata.expose_label('REVIEW_URL')",
+      after = "This would add it as `REVIEW_URL=the_value`.")
+  @Example(title = "New label name", before = "Expose a hidden label called 'REVIEW_URL' as"
+      + " GIT_REVIEW_URL:",
+      code = "metadata.expose_label('REVIEW_URL', 'GIT_REVIEW_URL')",
+      after = "This would add it as `GIT_REVIEW_URL=the_value`.")
+  @Example(title = "Custom separator", before = "Expose the label with a custom separator",
+      code = "metadata.expose_label('REVIEW_URL', separator = ': ')",
+      after = "This would add it as REVIEW_URL: the_value.")
+  static final BuiltinFunction EXPOSE_LABEL = new BuiltinFunction("expose_label",
+      ImmutableList.of(Runtime.NONE, "=", Boolean.TRUE)) {
+    public Transformation invoke(MetadataModule self, String label, Object newName,
+        String separator, Boolean ignoreIfLabelNotFound, Location location)
+        throws EvalException {
+      SkylarkUtil.check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
+          "'name': Invalid label name'%s'", label);
+
+      String newLabelName = convertFromNoneable(newName, label);
+
+      SkylarkUtil.check(location, LabelFinder.VALID_LABEL.matcher(newLabelName).matches(),
+          "'new_name': Invalid label name '%s'", newLabelName);
+
+      return new ExposeLabelInMessage(label, newLabelName, separator, ignoreIfLabelNotFound);
+    }
+  };
+
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "restore_author", returnType = Transformation.class,
       doc = "For a given change, restore the author present in the ORIGINAL_AUTHOR label as the"
           + " author of the change.",
@@ -177,7 +226,7 @@ public class MetadataModule {
               doc = "The header text to include in the message. For example "
                   + "'[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL}"
                   + " to the corresponding label."),
-          @Param(name = "ignore_if_label_not_found", type = Boolean.class,
+          @Param(name = "ignore_label_not_found", type = Boolean.class,
               doc = "If a label used in the template is not found, ignore the error and"
                   + " don't add the header. By default it will stop the migration and fail.",
               defaultValue = "False"),
@@ -202,7 +251,7 @@ public class MetadataModule {
       before = "Adds a header to messages that contain a label. Otherwise it skips the message"
           + " manipulation.",
       code = "metadata.add_header(\"COPYBARA CHANGE FOR ${GIT_URL}\",\n"
-          + "    ignore_if_label_not_found = True,\n"
+          + "    ignore_label_not_found = True,\n"
           + ")",
       after = "Messages like:\n\n"
           + "```\n"

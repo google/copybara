@@ -12,6 +12,7 @@
   - [metadata](#metadata)
     - [metadata.squash_notes](#metadata.squash_notes)
     - [metadata.save_author](#metadata.save_author)
+    - [metadata.expose_label](#metadata.expose_label)
     - [metadata.restore_author](#metadata.restore_author)
     - [metadata.add_header](#metadata.add_header)
     - [metadata.scrubber](#metadata.scrubber)
@@ -285,6 +286,55 @@ Parameter | Description
 --------- | -----------
 label|`string`<br><p>The label to use for storing the author</p>
 
+
+<a id="metadata.expose_label" aria-hidden="true"></a>
+## metadata.expose_label
+
+Certain labels are present in the internal metadata but are not exposed in the message by default. This transformations find a label in the internal metadata and exposes it in the message. If the label is already present in the message it will update it to use the new name and separator.
+
+`transformation metadata.expose_label(name, new_name=label, separator="=", ignore_if_label_not_found=True)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+name|`string`<br><p>The label to search</p>
+new_name|`string`<br><p>The name to use in the message</p>
+separator|`string`<br><p>The separator to use when adding the label to the message</p>
+ignore_if_label_not_found|`boolean`<br><p>If a label is not found, ignore the error and continue.</p>
+
+
+### Examples:
+
+#### Simple usage:
+
+Expose a hidden label called 'REVIEW_URL':
+
+```python
+metadata.expose_label('REVIEW_URL')
+```
+
+This would add it as `REVIEW_URL=the_value`.
+
+#### New label name:
+
+Expose a hidden label called 'REVIEW_URL' as GIT_REVIEW_URL:
+
+```python
+metadata.expose_label('REVIEW_URL', 'GIT_REVIEW_URL')
+```
+
+This would add it as `GIT_REVIEW_URL=the_value`.
+
+#### Custom separator:
+
+Expose the label with a custom separator
+
+```python
+metadata.expose_label('REVIEW_URL', separator = ': ')
+```
+
+This would add it as REVIEW_URL: the_value.
 
 <a id="metadata.restore_author" aria-hidden="true"></a>
 ## metadata.restore_author
