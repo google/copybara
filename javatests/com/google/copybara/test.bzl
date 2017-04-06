@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def all_tests(tests, deps, tags=[]):
+def all_tests(tests, deps, tags=[], shard_count=1):
   for file in tests:
     relative_target = file[:-5]
     suffix = relative_target.replace("/", ".")
@@ -31,4 +31,5 @@ def all_tests(tests, deps, tags=[]):
           "//third_party:junit",
       ],
       tags = tags,
+      shard_count = shard_count,
     )
