@@ -27,12 +27,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,6 +50,8 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitRepositoryTest {
 
+  private static final Author DEFAULT_AUTHOR = new Author("Autorbara", "author@example.com");
+  private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
 
@@ -57,8 +65,17 @@ public class GitRepositoryTest {
         .setOutputRootToTmpDir();
     workdir = Files.createTempDirectory("workdir");
     this.repository = GitRepository.initScratchRepo(
-        /*verbose=*/true, System.getenv(), options.general.getTmpDirectoryFactory())
+        /*verbose=*/true, getEnvironment(), options.general.getTmpDirectoryFactory())
         .withWorkTree(workdir);
+  }
+
+  private Map<String, String> getEnvironment() {
+    HashMap<String, String> values = new HashMap<>(System.getenv());
+    values.put("GIT_AUTHOR_NAME", DEFAULT_AUTHOR.getName());
+    values.put("GIT_AUTHOR_EMAIL", DEFAULT_AUTHOR.getEmail());
+    values.put("GIT_COMMITTER_NAME", COMMITER.getName());
+    values.put("GIT_COMMITTER_EMAIL", COMMITER.getEmail());
+    return values;
   }
 
   @Test
@@ -84,7 +101,7 @@ public class GitRepositoryTest {
   @Test
   public void testStatus() throws RepoException, IOException {
     GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
-        System.getenv(), /*verbose=*/true);
+        getEnvironment(), /*verbose=*/true);
     dest.initGitDir();
 
     Files.write(workdir.resolve("renamed"), "renamed".getBytes(UTF_8));
@@ -131,9 +148,61 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testLog() throws Exception {
+    checkLog(/*body=*/true, /*includeFiles=*/true);
+    checkLog(/*body=*/true, /*includeFiles=*/false);
+    checkLog(/*body=*/false, /*includeFiles=*/true);
+    checkLog(/*body=*/false, /*includeFiles=*/false);
+  }
+
+  private void checkLog(boolean body, boolean includeFiles) throws IOException, RepoException,
+      ValidationException {
+    workdir = Files.createTempDirectory("workdir");
+    this.repository = GitRepository.initScratchRepo(
+        /*verbose=*/true, getEnvironment(), options.general.getTmpDirectoryFactory())
+        .withWorkTree(workdir);
+    Files.write(workdir.resolve("foo.txt"), "foo fooo fooo".getBytes(UTF_8));
+    repository.add().files("foo.txt").run();
+    ZonedDateTime date = ZonedDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    repository.commit("Foo <foo@bara.com>", date.toInstant(), "message");
+
+    // Test rename to check that we use --name-only with --no-renames
+    Files.move(workdir.resolve("foo.txt"), workdir.resolve("bar.txt"));
+    Files.write(workdir.resolve("baz.txt"), "baz baz baz".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.commit("Bar <bar@bara.com>", date.toInstant(), "message\n\nand\nparagraph");
+    ImmutableList<GitLogEntry> entries = repository.log("master")
+        .includeBody(body)
+        .includeFiles(includeFiles)
+        .run();
+
+    assertThat(entries.size()).isEqualTo(2);
+
+    assertThat(entries.get(0).getBody()).isEqualTo(body ? "message\n\nand\nparagraph\n" : null);
+    assertThat(entries.get(1).getBody()).isEqualTo(body ? "message\n" : null);
+
+    assertThat(entries.get(0).getAuthor()).isEqualTo(new Author("Bar", "bar@bara.com"));
+    assertThat(entries.get(0).getCommitter()).isEqualTo(COMMITER);
+    assertThat(entries.get(0).getAuthorDate().withZoneSameLocal(date.getZone())).isEqualTo(date);
+    assertThat(entries.get(1).getAuthor()).isEqualTo(new Author("FOO", "foo@bara.com"));
+    assertThat(entries.get(1).getCommitter()).isEqualTo(COMMITER);
+    assertThat(entries.get(1).getAuthorDate().withZoneSameLocal(date.getZone())).isEqualTo(date);
+    assertThat(entries.get(0).getParents()).containsExactly(entries.get(1).getCommit());
+    assertThat(entries.get(1).getParents()).isEmpty();
+
+    if (includeFiles) {
+      assertThat(entries.get(0).getFiles()).containsExactly("foo.txt", "bar.txt", "baz.txt");
+      assertThat(entries.get(1).getFiles()).containsExactly("foo.txt");
+    } else {
+      assertThat(entries.get(0).getFiles()).isNull();
+      assertThat(entries.get(1).getFiles()).isNull();
+    }
+  }
+
+  @Test
   public void testFetch() throws Exception {
     GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
-        System.getenv(), /*verbose=*/true);
+        getEnvironment(), /*verbose=*/true);
     dest.initGitDir();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});

@@ -19,8 +19,13 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -64,7 +69,7 @@ public class ChangeMessage {
    * Create a new message object treating all the lines as possible labels instead of looking
    * just in the last paragraph for labels.
    */
-  static ChangeMessage parseAllAsLabels(String message) {
+  public static ChangeMessage parseAllAsLabels(String message) {
     Preconditions.checkNotNull(message);
     return new ChangeMessage("", DOUBLE_NEWLINE, linesAsLabels(message));
   }
@@ -81,6 +86,21 @@ public class ChangeMessage {
 
   public ImmutableList<LabelFinder> getLabels() {
     return ImmutableList.copyOf(labels);
+  }
+
+  /**
+   * Returns all the labels in the message. If a label appears multiple times, it respects the
+   * order of appearance.
+   */
+  public ImmutableListMultimap<String, String> labelsAsMultimap(){
+    // We overwrite duplicates
+    ImmutableListMultimap.Builder<String, String> result = ImmutableListMultimap.builder();
+    for (LabelFinder label : labels) {
+      if (label.isLabel()) {
+        result.put(label.getName(), label.getValue());
+      }
+    }
+    return result.build();
   }
 
   public ChangeMessage addLabel(String name, String separator, String value) {

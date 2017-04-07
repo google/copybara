@@ -18,27 +18,24 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
-import com.google.copybara.LabelFinder;
+import com.google.copybara.ChangeMessage;
 import com.google.copybara.RepoException;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -66,30 +63,15 @@ class ChangeReader {
     this.includeBranchCommitLogs = includeBranchCommitLogs;
   }
 
-  private String runLog(Iterable<String> params) throws RepoException {
-    List<String> fullParams =
-        new ArrayList<>(Arrays.asList("log", "--pretty", "--no-color", "--date=iso-strict"));
-    Iterables.addAll(fullParams, params);
-    if (!roots.get(0).isEmpty()) {
-      fullParams.add("--");
-      fullParams.addAll(roots);
-    }
-    return repository.simpleCommand(fullParams.toArray(new String[0])).getStdout();
-  }
-
   ImmutableList<GitChange> run(String refExpression) throws RepoException {
-    List<String> params = new ArrayList<>();
-
+    LogCmd logCmd = repository
+        .log(refExpression)
+        .withPaths(roots.get(0).isEmpty() ? ImmutableList.of() : roots);
     if (limit != -1) {
-      params.add("-" + limit);
+      logCmd = logCmd.withLimit(limit);
     }
 
-    params.add("--parents");
-    params.add("--first-parent");
-
-    params.add(refExpression);
-
-    return parseChanges(runLog(params));
+    return parseChanges(logCmd.run());
   }
 
   static final String BRANCH_COMMIT_LOG_HEADING = "-- Branch commit log --";
@@ -105,87 +87,61 @@ class ChangeReader {
       return "";
     }
 
-    return new StringBuilder()
-        .append("\n").append(BRANCH_COMMIT_LOG_HEADING).append("\n")
-        .append(runLog(ImmutableList.of(parents.get(0) + ".." + ref)));
+    ImmutableList<GitLogEntry> entries = repository.log(parents.get(0) + ".." + ref)
+        .withPaths(roots.isEmpty() ? ImmutableList.of() : roots)
+        .firstParent(false).run();
+
+    // Remove the merge commit. Since we already have that in the body.
+    entries = entries.subList(1, entries.size());
+
+    return "\n" + BRANCH_COMMIT_LOG_HEADING + "\n" +
+        Joiner.on("\n").join(entries.stream()
+            .map(e -> ""
+                + "commit " + e.getCommit() + "\n"
+                + "Author:  " + filterAuthor(e.getAuthor()) + "\n"
+                + "Date:    " + e.getAuthorDate() + "\n"
+                + "\n"
+                + "    " + e.getBody().replace("\n", "    \n"))
+            .collect(Collectors.toList()));
   }
 
-  private ImmutableList<GitChange> parseChanges(String log) throws RepoException {
-    // No changes. We cannot know until we run git log since fromRef can be null (HEAD)
-    if (log.isEmpty()) {
-      return ImmutableList.of();
+  private ImmutableList<GitChange> parseChanges(ImmutableList<GitLogEntry> logEntries)
+      throws RepoException {
+
+    ImmutableList.Builder<GitChange> result = ImmutableList.builder();
+    for (GitLogEntry e : logEntries) {
+      result.add(new GitChange(new Change<>(
+          e.getCommit(),
+          filterAuthor(e.getAuthor())
+          , e.getBody() + branchCommitLog(e.getCommit(), e.getParents()),
+          e.getAuthorDate(),
+          getLabels(e),
+          e.getFiles()),
+          e.getParents()));
     }
-
-    Iterator<String> rawLines = Splitter.on('\n').split(log).iterator();
-    ImmutableList.Builder<GitChange> builder = ImmutableList.builder();
-
-    while (rawLines.hasNext()) {
-      String rawCommitLine = rawLines.next();
-      Iterator<String> commitRevisions = Splitter.on(" ")
-          .split(removePrefix(log, rawCommitLine, "commit")).iterator();
-
-      GitRevision ref = repository.createReferenceFromCompleteSha1(commitRevisions.next());
-      ArrayList<GitRevision> parents = new ArrayList<>();
-      while (commitRevisions.hasNext()) {
-        parents.add(repository.createReferenceFromCompleteSha1(commitRevisions.next()));
-      }
-      String line = rawLines.next();
-      Author author = null;
-      ZonedDateTime dateTime = null;
-      while (!line.isEmpty()) {
-        if (line.startsWith("Author: ")) {
-          String authorStr = line.substring("Author: ".length()).trim();
-          Author parsedUser;
-          try {
-            parsedUser = AuthorParser.parse(authorStr);
-          } catch (InvalidAuthorException e) {
-            throw new RepoException("Invalid author found in Git history.", e);
-          }
-          if (authoring == null || authoring.useAuthor(parsedUser.getEmail())) {
-            author = parsedUser;
-          } else {
-            author = authoring.getDefaultAuthor();
-          }
-        } else if (line.startsWith("Date: ")) {
-          dateTime = ZonedDateTime.parse(line.substring("Date: ".length()).trim());
-        }
-        line = rawLines.next();
-      }
-      Preconditions.checkState(author != null || dateTime != null,
-          "Could not find author and/or date for commitRevisions %s in log\n:%s", rawCommitLine,
-          log);
-      StringBuilder message = new StringBuilder();
-      // Maintain labels in order just in case we print them back in the destination.
-      Map<String, String> labels = new LinkedHashMap<>();
-      while (rawLines.hasNext()) {
-        String s = rawLines.next();
-        if (!s.startsWith(GitOrigin.GIT_LOG_COMMENT_PREFIX)) {
-          break;
-        }
-        LabelFinder labelFinder = new LabelFinder(
-            s.substring(GitOrigin.GIT_LOG_COMMENT_PREFIX.length()));
-        if (labelFinder.isLabel()) {
-          String previous = labels.put(labelFinder.getName(), labelFinder.getValue());
-          if (previous != null && verbose) {
-            console.warn(String.format("Possible duplicate label '%s' happening multiple times"
-                    + " in commit. Keeping only the last value: '%s'\n  Discarded value: '%s'",
-                labelFinder.getName(), labelFinder.getValue(), previous));
-          }
-        }
-        message.append(s, GitOrigin.GIT_LOG_COMMENT_PREFIX.length(), s.length()).append("\n");
-      }
-      message.append(branchCommitLog(ref, parents));
-      Change<GitRevision> change = new Change<>(
-          ref, author, message.toString(), dateTime, ImmutableMap.copyOf(labels));
-      builder.add(new GitChange(change, parents));
-    }
-    // Return older commit first.
-    return builder.build().reverse();
+    return result.build().reverse();
   }
 
-  private String removePrefix(String log, String line, String prefix) {
-    Preconditions.checkState(line.startsWith(prefix), "Cannot find '%s' in:\n%s", prefix, log);
-    return line.substring(prefix.length()).trim();
+  private ImmutableMap<String, String> getLabels(GitLogEntry e) {
+    ImmutableMap.Builder<String, String> result = ImmutableBiMap.builder();
+    ImmutableListMultimap<String, String> labels =
+        ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap();
+    for (String name : labels.keySet()) {
+      ImmutableList<String> values = labels.get(name);
+      if (values.size() > 1) {
+        console.warn(String.format("Possible duplicate label '%s' happening multiple times"
+                + " in commit. Keeping only the last value: '%s'\n  All the values: '%s'",
+            name, Iterables.getLast(values), values));
+      }
+      result.put(name, Iterables.getLast(values));
+    }
+    return result.build();
+  }
+
+  private Author filterAuthor(Author author) {
+    return authoring == null || authoring.useAuthor(author.getEmail())
+        ? author
+        : authoring.getDefaultAuthor();
   }
 
   /**

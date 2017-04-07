@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -23,6 +24,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeSet;
@@ -35,15 +37,18 @@ import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.AuthorParser;
+import com.google.copybara.authoring.InvalidAuthorException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -51,6 +56,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -127,10 +133,10 @@ public class GitRepository {
 
   GitRepository(
       Path gitDir, @Nullable Path workTree, boolean verbose, Map<String, String> environment) {
-    this.gitDir = Preconditions.checkNotNull(gitDir);
+    this.gitDir = checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
-    this.environment = Preconditions.checkNotNull(environment);
+    this.environment = checkNotNull(environment);
   }
 
   public static GitRepository bareRepo(Path gitDir, Map<String, String> environment,
@@ -275,6 +281,11 @@ public class GitRepository {
     }
   }
 
+  @CheckReturnValue
+  public LogCmd log(String referenceExpr) {
+    return LogCmd.create(this, referenceExpr);
+  }
+
   /**
    * Runs a git ls-remote from the current directory for a repository url. Assumes the path to the
    * git binary is already set. You don't have to be in a git repository to run this command. Does
@@ -382,7 +393,7 @@ public class GitRepository {
     private AddCmd(boolean force, boolean all, Iterable<String> files) {
       this.force = force;
       this.all = all;
-      this.files = Preconditions.checkNotNull(files);
+      this.files = checkNotNull(files);
     }
 
     /** Force the add */
@@ -459,7 +470,7 @@ public class GitRepository {
 
   public void rebase(String newBaseline) throws RepoException {
     CommandOutputWithStatus output = gitAllowNonZeroExit(
-        ImmutableList.of("rebase", Preconditions.checkNotNull(newBaseline)));
+        ImmutableList.of("rebase", checkNotNull(newBaseline)));
 
     if (output.getTerminationStatus().success()) {
       return;
@@ -511,7 +522,7 @@ public class GitRepository {
   }
 
   private StatusCode toStatusCode(char c) {
-    return Preconditions.checkNotNull(CHAR_TO_STATUS_CODE.get(c),
+    return checkNotNull(CHAR_TO_STATUS_CODE.get(c),
         "Cannot find status code for '%s'", c);
   }
 
@@ -867,9 +878,9 @@ public class GitRepository {
     private final String path;
 
     private TreeElement(GitObjectType type, String ref, String path) {
-      this.type = Preconditions.checkNotNull(type);
-      this.ref = Preconditions.checkNotNull(ref);
-      this.path = Preconditions.checkNotNull(path);
+      this.type = checkNotNull(type);
+      this.ref = checkNotNull(ref);
+      this.path = checkNotNull(path);
     }
 
     GitObjectType getType() {
@@ -912,10 +923,10 @@ public class GitRepository {
     @VisibleForTesting
     StatusFile(String file, @Nullable String newFileName,
         StatusCode indexStatus, StatusCode workdirStatus) {
-      this.file = Preconditions.checkNotNull(file);
+      this.file = checkNotNull(file);
       this.newFileName = newFileName;
-      this.indexStatus = Preconditions.checkNotNull(indexStatus);
-      this.workdirStatus = Preconditions.checkNotNull(workdirStatus);
+      this.indexStatus = checkNotNull(indexStatus);
+      this.workdirStatus = checkNotNull(workdirStatus);
     }
 
     String getFile() {
@@ -983,6 +994,275 @@ public class GitRepository {
 
     StatusCode(char code) {
       this.code = code;
+    }
+  }
+
+  /**
+   * An object capable of performing a 'git log' operation on a repository and returning a list
+   * of {@link GitLogEntry}.
+   *
+   * <p>By default it returns the body, doesn't include the changed files and does --first-parent.
+   */
+  public static class LogCmd {
+
+    private static final String COMMIT_FIELD = "commit";
+    private static final String PARENTS_FIELD = "parents";
+    private static final String AUTHOR_FIELD = "author";
+    private static final String AUTHOR_DATE_FIELD = "author_date";
+    private static final String COMMITTER_FIELD = "committer";
+    private static final String COMMITTER_DATE = "committer_date";
+    private static final String BEGIN_BODY = "begin_body";
+    private static final String END_BODY = "end_body";
+    private static final String COMMIT_SEPARATOR = "\u0001copybara\u0001";
+    private static final Pattern UNINDENT = Pattern.compile("\n    ");
+    private static final String GROUP = "--\n";
+    private final int limit;
+    private final ImmutableCollection<String> paths;
+    private final String refExpr;
+
+    private final boolean includeStat;
+    private final boolean includeBody;
+    private boolean firstParent;
+
+    private final GitRepository repo;
+
+    @CheckReturnValue
+    LogCmd(GitRepository repo, String refExpr, int limit, ImmutableCollection<String> paths,
+        boolean firstParent, boolean includeStat, boolean includeBody) {
+      this.limit = limit;
+      this.paths = paths;
+      this.refExpr = refExpr;
+      this.firstParent = firstParent;
+      this.includeStat = includeStat;
+      this.includeBody = includeBody;
+      this.repo = repo;
+    }
+
+    static LogCmd create(GitRepository repository, String refExpr) {
+      return new LogCmd(checkNotNull(repository), checkNotNull(refExpr), 0,
+          ImmutableList.of(), /*firstParent*/true,/*includeStats=*/false, /*includeBody=*/true);
+    }
+
+    /**
+     * Limit the query to {@code limit} results. Should be > 0.
+     */
+    @CheckReturnValue
+    LogCmd withLimit(int limit) {
+      Preconditions.checkArgument(limit > 0);
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+    }
+
+    /**
+     * Only query for changes in {@code paths} paths.
+     */
+    @CheckReturnValue
+    public LogCmd withPaths(ImmutableCollection<String> paths) {
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+    }
+
+    /**
+     * Set if --first-parent should be used in 'git log'.
+     */
+    @CheckReturnValue
+    public LogCmd firstParent(boolean firstParent) {
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+    }
+
+    /**
+     * If files affected by the commit should be included in the response.
+     */
+    @CheckReturnValue
+    public LogCmd includeFiles(boolean includeStat) {
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+    }
+
+    /**
+     * If the body (commit message) should be included in the response.
+     */
+    @CheckReturnValue
+    public LogCmd includeBody(boolean includeBody) {
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+    }
+
+    /**
+     * Run 'git log' and returns zero or more {@link GitLogEntry}.
+     */
+    ImmutableList<GitLogEntry> run() throws RepoException {
+      List<String> cmd = Lists.newArrayList("log", "--no-color", createFormat(includeBody));
+
+      if (limit > 0) {
+        cmd.add("-" + limit);
+      }
+
+      if (includeStat) {
+        cmd.add("--name-only");
+        // Don't show changes as renames, otherwise --name-only shows only the new name.
+        cmd.add("--no-renames");
+      }
+
+      if (firstParent) {
+        cmd.add("--first-parent");
+      }
+
+      cmd.add(refExpr);
+
+      if (!paths.isEmpty()) {
+        cmd.add("--");
+        cmd.addAll(paths);
+      }
+
+      CommandOutput output = repo.simpleCommand(cmd.toArray(new String[cmd.size()]));
+      return parseLog(output.getStdout(), includeBody);
+    }
+
+    private ImmutableList<GitLogEntry> parseLog(String log, boolean includeBody)
+        throws RepoException {
+      // No changes. We cannot know until we run git log since fromRef can be null (HEAD)
+      if (log.isEmpty()) {
+        return ImmutableList.of();
+      }
+
+      ImmutableList.Builder<GitLogEntry> commits = ImmutableList.builder();
+      for (String msg : Splitter.on("\n" + COMMIT_SEPARATOR).
+          split(log.substring(COMMIT_SEPARATOR.length()))) {
+
+        List<String> groups = Splitter.on("\n" + GROUP).splitToList(msg);
+
+        Map<String, String> fields = Splitter.on("\n")
+            .withKeyValueSeparator("=").split(groups.get(0));
+
+        String body = null;
+        if (includeBody) {
+          body = UNINDENT.matcher(groups.get(1)).replaceAll("\n");
+          body = body.substring(BEGIN_BODY.length() + 1, body.length() - END_BODY.length() - 1);
+        }
+
+        ImmutableSet<String> files = includeStat
+            ? ImmutableSet.copyOf(Splitter.on("\n").omitEmptyStrings().split(groups.get(2)))
+            : null;
+
+        ImmutableList.Builder<GitRevision> parents = ImmutableList.builder();
+        for (String parent : Splitter.on(" ").omitEmptyStrings()
+            .split(getField(fields, PARENTS_FIELD))) {
+          parents.add(repo.createReferenceFromCompleteSha1(parent));
+        }
+
+        String commit = getField(fields, COMMIT_FIELD);
+        try {
+          commits.add(new GitLogEntry(
+              repo.createReferenceFromCompleteSha1(commit), parents.build(),
+              AuthorParser.parse(getField(fields, AUTHOR_FIELD)),
+              AuthorParser.parse(getField(fields, COMMITTER_FIELD)),
+              ZonedDateTime.parse(getField(fields, AUTHOR_DATE_FIELD)),
+              ZonedDateTime.parse(getField(fields, COMMITTER_DATE)),
+              body, files));
+        } catch (InvalidAuthorException e) {
+          throw new RepoException("Error in commit '" + commit + "'. Invalid author.", e);
+        }
+      }
+      return commits.build();
+    }
+
+    private String getField(Map<String, String> fields, String field) {
+      return Preconditions.checkNotNull(fields.get(field), "%s not present", field);
+    }
+
+    /**
+     * We use a custom format that allows us easy parsing and be tolerant to random text in the
+     * body (That is the reason why we indent the body).
+     *
+     * <p>We also use \u0001 as commit separator to prevent a file being confused as the separator.
+     */
+    private String createFormat(boolean includeBody) {
+      return ("--format=" + COMMIT_SEPARATOR
+          + COMMIT_FIELD + "=%H\n"
+          + PARENTS_FIELD + "=%P\n"
+          + AUTHOR_FIELD + "=%an <%ae>\n"
+          + AUTHOR_DATE_FIELD + "=%aI\n"
+          + COMMITTER_FIELD + "=%cn <%ce>\n"
+          + COMMITTER_DATE + "=%cI\n"
+          + GROUP
+          // Body is padded by 4 spaces.
+          + (includeBody ? BEGIN_BODY + "\n" + "%w(0,4,4)%B%w(0,0,0)\n" + END_BODY + "\n" : "\n")
+          + GROUP)
+          .replace("\n", "%n").replace("\u0001", "%x01");
+    }
+  }
+
+  /**
+   * An object that represent a commit as returned by 'git log'.
+   */
+  public static class GitLogEntry {
+
+    private final GitRevision commit;
+    private final ImmutableList<GitRevision> parents;
+    private final Author author;
+    private final Author committer;
+    private final ZonedDateTime authorDate;
+    private final ZonedDateTime commitDate;
+    @Nullable
+    private final String body;
+    @Nullable
+    private final ImmutableSet<String> files;
+
+    GitLogEntry(GitRevision commit, ImmutableList<GitRevision> parents,
+        Author author, Author committer, ZonedDateTime authorDate, ZonedDateTime commitDate,
+        @Nullable String body, @Nullable ImmutableSet<String> files) {
+      this.commit = commit;
+      this.parents = parents;
+      this.author = author;
+      this.committer = committer;
+      this.authorDate = authorDate;
+      this.commitDate = commitDate;
+      this.body = body;
+      this.files = files;
+    }
+
+    public GitRevision getCommit() {
+      return commit;
+    }
+
+    public List<GitRevision> getParents() {
+      return parents;
+    }
+
+    public Author getAuthor() {
+      return author;
+    }
+
+    public Author getCommitter() {
+      return committer;
+    }
+
+    public ZonedDateTime getAuthorDate() {
+      return authorDate;
+    }
+
+    public ZonedDateTime getCommitDate() {
+      return commitDate;
+    }
+
+    @Nullable
+    public String getBody() {
+      return body;
+    }
+
+    @Nullable
+    public ImmutableSet<String> getFiles() {
+      return files;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("commit", commit)
+          .add("parents", parents)
+          .add("author", author)
+          .add("committer", committer)
+          .add("authorDate", authorDate)
+          .add("commitDate", commitDate)
+          .add("body", body)
+          .toString();
     }
   }
 }

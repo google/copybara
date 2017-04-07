@@ -16,11 +16,14 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.ChangeMessage.parseMessage;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Change;
+import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination;
 import com.google.copybara.Destination.Writer;
@@ -30,6 +33,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
@@ -147,19 +151,20 @@ public class GitDestinationTest {
   }
 
   private void assertCommitCount(int expected, String ref) throws Exception {
-    String logResult = git("--git-dir", repoGitDir.toString(), "log", "--oneline", ref);
-    assertThat(logResult.split("\n")).hasLength(expected);
+    assertThat(repo().log(ref).run()).hasSize(expected);
   }
 
   private void assertCommitHasOrigin(String branch, String originRef) throws RepoException {
-    assertThat(git("--git-dir", repoGitDir.toString(), "log", "-n1", branch))
-        .contains("\n    \n    " + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
+    assertThat(parseMessage(lastCommit(branch).getBody())
+        .labelsAsMultimap()).containsEntry(DummyOrigin.LABEL_NAME, originRef);
   }
 
   private void assertCommitHasAuthor(String branch, Author author) throws RepoException {
-    assertThat(git("--git-dir", repoGitDir.toString(), "log", "-n1",
-        "--pretty=format:\"%an <%ae>\"", branch))
-        .isEqualTo("\"" + author + "\"");
+    assertThat(lastCommit(branch).getAuthor()).isEqualTo(author);
+  }
+
+  private GitLogEntry lastCommit(String ref) throws RepoException {
+    return getOnlyElement(repo().log(ref).withLimit(1).run());
   }
 
   private void process(Destination.Writer writer, DummyRevision originRef)
@@ -914,17 +919,19 @@ public class GitDestinationTest {
         .containsFile("test.txt", "another content")
         .containsNoMoreFiles();
 
-    String changes = localRepo.simpleCommand("log", "--no-color", "--format=%B---").getStdout();
-    assertThat(changes.replace("\n","\\n")).startsWith(("test summary\n"
-        + "\n"
-        + "DummyOrigin-RevId: origin_ref2\n"
-        + "---\n"
+    ImmutableList<GitLogEntry> entries = localRepo.log("HEAD").run();
+    assertThat(entries.get(0).getBody()).isEqualTo(""
         + "test summary\n"
         + "\n"
-        + "DummyOrigin-RevId: origin_ref1\n"
-        + "---\n"
-        + "change\n"
-        + "---\n").replace("\n","\\n"));
+        + "DummyOrigin-RevId: origin_ref2\n");
+
+    assertThat(entries.get(1).getBody()).isEqualTo(""
+        + "test summary\n"
+        + "\n"
+        + "DummyOrigin-RevId: origin_ref1\n");
+
+    assertThat(entries.get(2).getBody()).isEqualTo("change\n");
+
     return localRepo;
   }
 
@@ -940,14 +947,16 @@ public class GitDestinationTest {
         + "That already has a label\n"
         + "THE_LABEL: value\n";
     writer.write(new TransformResult(workdir, rev, rev.getAuthor(), msg, rev), console);
-    String changes = repo().simpleCommand("log", "--no-color", "--format=%B---").getStdout();
 
-    assertThat(changes).isEqualTo("This is a message\n"
+    String body = lastCommit("HEAD").getBody();
+    assertThat(body).isEqualTo("This is a message\n"
         + "\n"
         + "That already has a label\n"
         + "THE_LABEL: value\n"
-        + "DummyOrigin-RevId: first_commit\n"
-        + "---\n");
+        + "DummyOrigin-RevId: first_commit\n");
+    // Double check that we can access it as a label.
+    assertThat(ChangeMessage.parseMessage(body).labelsAsMultimap())
+        .containsEntry("DummyOrigin-RevId", "first_commit");
   }
 
   @Test

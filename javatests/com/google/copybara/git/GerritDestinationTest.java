@@ -20,10 +20,14 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.GerritDestination.GerritProcessPushOutput;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
@@ -40,6 +44,7 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -116,14 +121,16 @@ public class GerritDestinationTest {
   }
 
   private String lastCommitChangeIdLine() throws Exception {
-    String logOutput = git("log", "-n1", "refs/for/master");
-    assertThat(logOutput)
-        .contains("\n    " + DummyOrigin.LABEL_NAME
-            + ": " + "origin_ref\n");
-    String logLines[] = logOutput.split("\n");
-    String changeIdLine = logLines[logLines.length - 1];
-    assertThat(changeIdLine).matches("    Change-Id: I[0-9a-f]{40}$");
-    return changeIdLine;
+    GitLogEntry log = Iterables.getOnlyElement(repo().log("refs/for/master").withLimit(1).run());
+    assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + "origin_ref\n");
+    for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
+      if (label.isLabel("Change-Id")) {
+        assertThat(label.getValue()).matches("I[0-9a-f]{40}$");
+        return label.getLine();
+      }
+    }
+    Assert.fail("Cannot find Change-Id in:\n" + log.getBody());
+    throw new IllegalStateException();
   }
 
   private void process(DummyRevision originRef)
@@ -167,7 +174,7 @@ public class GerritDestinationTest {
     options.gerrit.gerritChangeId = changeId;
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine())
-        .isEqualTo("    Change-Id: " + changeId);
+        .isEqualTo("Change-Id: " + changeId);
 
     git("branch", "master", "refs/for/master");
 
@@ -178,7 +185,7 @@ public class GerritDestinationTest {
     options.gerrit.gerritChangeId = changeId;
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine())
-        .isEqualTo("    Change-Id: " + changeId);
+        .isEqualTo("Change-Id: " + changeId);
   }
 
   @Test
@@ -202,7 +209,7 @@ public class GerritDestinationTest {
           }
         };
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine()).isEqualTo("    Change-Id: " + changeId);
+    assertThat(lastCommitChangeIdLine()).isEqualTo("Change-Id: " + changeId);
   }
 
   @Test

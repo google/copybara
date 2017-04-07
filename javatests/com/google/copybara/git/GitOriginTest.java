@@ -368,8 +368,7 @@ public class GitOriginTest {
     assertThat(change.getLabels()).containsEntry("foo", "baz");
     console.assertThat()
         .onceInLog(MessageType.WARNING, "Possible duplicate label 'foo'"
-            + " happening multiple times in commit. Keeping only the last value: 'baz'\n"
-            + "  Discarded value: 'bar'");
+            + " happening multiple times in commit. Keeping only the last value: 'baz'(.|\n)*");
   }
 
   @Test

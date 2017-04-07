@@ -17,8 +17,11 @@
 package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -71,15 +74,12 @@ public final class GitRevision implements Revision {
 
   @Override
   public Instant readTimestamp() throws RepoException {
-    // -s suppresses diff output
-    // --format=%at indicates show the author timestamp as the number of seconds from UNIX epoch
-    String stdout = repository.simpleCommand("log", "-1", "-s", "--format=%at", sha1)
-        .getStdout();
-    try {
-      return Instant.ofEpochSecond(Long.parseLong(stdout.trim()));
-    } catch (NumberFormatException e) {
-      throw new RepoException("Output of git show not a valid long", e);
+    // TODO(malcon): We should be able to skip this for revisions coming from 'git log'.
+    ImmutableList<GitLogEntry> entry = repository.log(sha1).withLimit(1).run();
+    if (entry.isEmpty()) {
+      throw new RepoException(String.format("Cannot find '%s' in the git repository", sha1));
     }
+    return Iterables.getOnlyElement(entry).getAuthorDate().toInstant();
   }
 
   @Override

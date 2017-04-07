@@ -86,8 +86,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
           @Param(name = "include_branch_commit_logs", type = Boolean.class, defaultValue = "False",
               doc = "Whether to include raw logs of branch commits in the migrated change message."
-              + " This setting *only* affects merge commits. Because the logs are raw, this does"
-              + " not filter out commit authors.", positional = false),
+              + " This setting *only* affects merge commits.", positional = false),
       },
       objectType = GitModule.class)
   public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
