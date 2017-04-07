@@ -924,7 +924,7 @@ Parameter | Description
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-include_branch_commit_logs|`boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message. This setting *only* affects merge commits. Because the logs are raw, this does not filter out commit authors.</p>
+include_branch_commit_logs|`boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message. This setting *only* affects merge commits.</p>
 
 
 <a id="git.mirror" aria-hidden="true"></a>
