@@ -1026,9 +1026,13 @@ public class GitRepository {
 
     private final GitRepository repo;
 
+    @Nullable
+    private final String grepString;
+
     @CheckReturnValue
     LogCmd(GitRepository repo, String refExpr, int limit, ImmutableCollection<String> paths,
-        boolean firstParent, boolean includeStat, boolean includeBody) {
+        boolean firstParent, boolean includeStat, boolean includeBody,
+        @Nullable String grepString) {
       this.limit = limit;
       this.paths = paths;
       this.refExpr = refExpr;
@@ -1036,11 +1040,13 @@ public class GitRepository {
       this.includeStat = includeStat;
       this.includeBody = includeBody;
       this.repo = repo;
+      this.grepString = grepString;
     }
 
     static LogCmd create(GitRepository repository, String refExpr) {
       return new LogCmd(checkNotNull(repository), checkNotNull(refExpr), 0,
-          ImmutableList.of(), /*firstParent*/true,/*includeStats=*/false, /*includeBody=*/true);
+          ImmutableList.of(), /*firstParent*/true,/*includeStats=*/false, /*includeBody=*/true,
+          /*grepString=*/null);
     }
 
     /**
@@ -1049,7 +1055,8 @@ public class GitRepository {
     @CheckReturnValue
     LogCmd withLimit(int limit) {
       Preconditions.checkArgument(limit > 0);
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
+          grepString);
     }
 
     /**
@@ -1057,7 +1064,8 @@ public class GitRepository {
      */
     @CheckReturnValue
     public LogCmd withPaths(ImmutableCollection<String> paths) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
+          grepString);
     }
 
     /**
@@ -1065,7 +1073,8 @@ public class GitRepository {
      */
     @CheckReturnValue
     public LogCmd firstParent(boolean firstParent) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
+          grepString);
     }
 
     /**
@@ -1073,7 +1082,8 @@ public class GitRepository {
      */
     @CheckReturnValue
     public LogCmd includeFiles(boolean includeStat) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
+          grepString);
     }
 
     /**
@@ -1081,7 +1091,17 @@ public class GitRepository {
      */
     @CheckReturnValue
     public LogCmd includeBody(boolean includeBody) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody);
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
+          grepString);
+    }
+
+    /**
+     * Look only for messages thatMatches grep expression.
+     */
+    @CheckReturnValue
+    public LogCmd grep(@Nullable String grepString) {
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
+          grepString);
     }
 
     /**
@@ -1102,6 +1122,11 @@ public class GitRepository {
 
       if (firstParent) {
         cmd.add("--first-parent");
+      }
+
+      if (!Strings.isNullOrEmpty(grepString) ){
+        cmd.add("--grep");
+        cmd.add(grepString);
       }
 
       cmd.add(refExpr);

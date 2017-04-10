@@ -22,6 +22,7 @@ import static com.google.copybara.ChangeMessage.parseMessage;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.truth.Truth;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeVisitable.VisitResult;
@@ -478,38 +479,53 @@ public class GitDestinationTest {
 
   @Test
   public void previousImportReferenceIsBeforeACommitWithMultipleParents() throws Exception {
-    fetch = "master";
-    push = "master";
+    Truth.assertThat(checkPreviousImportReferenceMultipleParents()).isEqualTo("b2-origin");
+  }
 
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    process(
-        destinationFirstCommit().newWriter(destinationFiles),
-        new DummyRevision("first_commit"));
+  @Test
+  public void previousImportReferenceIsBeforeACommitWithMultipleParents_first_parent()
+      throws Exception {
+    options.gitDestination.lastRevFirstParent = true;
+    Truth.assertThat(checkPreviousImportReferenceMultipleParents()).isEqualTo("b1-origin");
+  }
+
+  private String checkPreviousImportReferenceMultipleParents()
+      throws IOException, RepoException, ValidationException {
+    fetch = "b1";
+    push = "b1";
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     GitRepository scratchRepo = repo().withWorkTree(scratchTree);
 
-    scratchRepo.simpleCommand("checkout", "-b", "b1");
-    Files.write(scratchTree.resolve("b1.file"), new byte[] {1});
-    scratchRepo.add().files("b1.file").run();
-    scratchRepo.simpleCommand("commit", "-m", "b1");
+    Files.write(scratchTree.resolve("master" + ".file"), ("master\n\n"
+        + DummyOrigin.LABEL_NAME + ": should_not_happen").getBytes(UTF_8));
+    scratchRepo.add().files("master" + ".file").run();
+    scratchRepo.simpleCommand("commit", "-m", "master\n\n"
+        + DummyOrigin.LABEL_NAME + ": should_not_happen");
 
-    scratchRepo.simpleCommand("checkout", "-b", "b2", "master");
-    Files.write(scratchTree.resolve("b2.file"), new byte[] {2});
-    scratchRepo.add().files("b2.file").run();
-    scratchRepo.simpleCommand("commit", "-m", "b2");
+    scratchRepo.simpleCommand("branch", "b1");
+    scratchRepo.simpleCommand("branch", "b2");
 
-    scratchRepo.simpleCommand("checkout", "master");
-    scratchRepo.simpleCommand("merge", "b1");
+    branchChange(scratchTree, scratchRepo, "b2", "b2-1\n\n"
+        + DummyOrigin.LABEL_NAME + ": b2-origin");
+    branchChange(scratchTree, scratchRepo, "b1", "b1-1\n\n"
+        + DummyOrigin.LABEL_NAME + ": b1-origin");
+    branchChange(scratchTree, scratchRepo, "b1", "b1-2");
+    branchChange(scratchTree, scratchRepo, "b1", "b2-2");
+
+    scratchRepo.simpleCommand("checkout", "b1");
     scratchRepo.simpleCommand("merge", "b2");
-
-    thrown.expect(RepoException.class);
-    thrown.expectMessage(
-        "Found commit with multiple parents (merge commit) when looking for "
-        + DummyOrigin.LABEL_NAME + ".");
-    destination()
+    return destination()
         .newWriter(destinationFiles)
         .getPreviousRef(DummyOrigin.LABEL_NAME);
+  }
+
+  private void branchChange(Path scratchTree, GitRepository scratchRepo, final String branch,
+      String msg) throws RepoException, IOException {
+    scratchRepo.simpleCommand("checkout", branch);
+    Files.write(scratchTree.resolve(branch + ".file"), msg.getBytes(UTF_8));
+    scratchRepo.add().files(branch + ".file").run();
+    scratchRepo.simpleCommand("commit", "-m", msg);
   }
 
   @Test

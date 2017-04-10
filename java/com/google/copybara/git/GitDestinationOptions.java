@@ -63,4 +63,8 @@ public final class GitDestinationOptions implements Option {
   @Parameter(names = "--git-destination-skip-push",
       description = "If set, the tool will not push to the remote destination")
   boolean skipPush = false;
+
+  @Parameter(names = "--git-destination-last-rev-first-parent",
+      description = "Use git --first-parent flag when looking for last-rev in previous commits")
+  boolean lastRevFirstParent = false;
 }

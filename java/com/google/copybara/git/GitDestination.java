@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -37,6 +38,7 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
@@ -46,6 +48,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,6 +60,7 @@ import javax.annotation.Nullable;
 public final class GitDestination implements Destination<GitRevision> {
 
   private static final ImmutableSet<String> SINGLE_ROOT_WITHOUT_FOLDER = ImmutableSet.of("");
+  private static final String ORIGIN_LABEL_SEPARATOR = ": ";
 
   static class MessageInfo {
     final String text;
@@ -79,8 +83,8 @@ public final class GitDestination implements Destination<GitRevision> {
 
       Revision rev = transformResult.getCurrentRevision();
       ChangeMessage msg = parseMessage(transformResult.getSummary())
-          .addOrReplaceLabel(rev.getLabelName(), ": ", rev.asString());
-      return new MessageInfo(msg.toString(),/*newPush*/ true);
+          .addOrReplaceLabel(rev.getLabelName(), ORIGIN_LABEL_SEPARATOR, rev.asString());
+      return new MessageInfo(msg.toString(), /*newPush*/true);
     }
   }
 
@@ -165,32 +169,42 @@ public final class GitDestination implements Destination<GitRevision> {
       }
       ImmutableSet<String> roots = destinationFiles.roots();
       GitRepository gitRepository = cloneBaseline();
-      String commit = gitRepository.revParse("FETCH_HEAD");
-      // Look at commits in reverse chronological order, starting from FETCH_HEAD.
-      while (true) {
-        ImmutableList<GitLogEntry> entries = gitRepository.log(commit)
-            .withLimit(1)
-            .withPaths(roots.equals(SINGLE_ROOT_WITHOUT_FOLDER) ? ImmutableList.of() : roots)
-            .run();
+      ImmutableCollection<String> paths = roots.equals(SINGLE_ROOT_WITHOUT_FOLDER)
+          ? ImmutableList.of()
+          : roots;
 
-        if (entries.isEmpty()) {
-          throw new RepoException(String.format("Cannot find change '%s' in %s", commit, repoUrl));
-        }
-        GitLogEntry change = Iterables.getOnlyElement(entries);
-        ImmutableList<String> previousRef = parseMessage(change.getBody())
-            .labelsAsMultimap().get(labelName);
+      String startRef = gitRepository.revParse("FETCH_HEAD");
+      LogCmd logCmd = gitRepository.log(startRef)
+          .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR)
+          .firstParent(destinationOptions.lastRevFirstParent)
+          .withPaths(paths);
 
-        if (!previousRef.isEmpty()) {
-          return Iterables.getLast(previousRef);
-        } else if (change.getParents().isEmpty()) {
-          return null;
-        } else if (change.getParents().size() > 1) {
-          throw new RepoException(
-              "Found commit with multiple parents (merge commit) when looking for "
-                  + labelName + ". Please invoke Copybara with the --last-rev flag.");
-        }
-        commit = Iterables.getOnlyElement(change.getParents()).asString();
+      // 99% of the times it will be the first match. But grep could return a false positive
+      // for a comment that contains labelName. But if entries is empty we know for sure
+      // that the label is not there.
+      ImmutableList<GitLogEntry> entries = logCmd.withLimit(1).run();
+      if (entries.isEmpty()) {
+        return null;
       }
+
+      String value = findLabelValue(labelName, entries);
+      if (value != null) {
+        return value;
+      }
+      // Lets try with the latest matches. If we have that many false positives we give up.
+      entries = logCmd.withLimit(50).run();
+      return findLabelValue(labelName, entries);
+    }
+
+    @Nullable
+    private String findLabelValue(String labelName, ImmutableList<GitLogEntry> entries) {
+      for (GitLogEntry entry : entries) {
+        List<String> prev = parseMessage(entry.getBody()).labelsAsMultimap().get(labelName);
+        if (!prev.isEmpty()) {
+          return Iterables.getLast(prev);
+        }
+      }
+      return null;
     }
 
     @Override
