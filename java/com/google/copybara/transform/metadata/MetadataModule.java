@@ -178,7 +178,7 @@ public class MetadataModule {
       after = "This would add it as `GIT_REVIEW_URL=the_value`.")
   @Example(title = "Custom separator", before = "Expose the label with a custom separator",
       code = "metadata.expose_label('REVIEW_URL', separator = ': ')",
-      after = "This would add it as REVIEW_URL: the_value.")
+      after = "This would add it as `REVIEW_URL: the_value`.")
   static final BuiltinFunction EXPOSE_LABEL = new BuiltinFunction("expose_label",
       ImmutableList.of(Runtime.NONE, "=", Boolean.TRUE)) {
     public Transformation invoke(MetadataModule self, String label, Object newName,

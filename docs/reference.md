@@ -334,7 +334,7 @@ Expose the label with a custom separator
 metadata.expose_label('REVIEW_URL', separator = ': ')
 ```
 
-This would add it as REVIEW_URL: the_value.
+This would add it as `REVIEW_URL: the_value`.
 
 <a id="metadata.restore_author" aria-hidden="true"></a>
 ## metadata.restore_author
@@ -1015,6 +1015,7 @@ Name | Type | Description
 --git-destination-push | *string* | If set, overrides the git destination push reference.
 --git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara ir run.
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
+--git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
 ## git.gerrit_destination
@@ -1045,6 +1046,7 @@ Name | Type | Description
 --git-destination-push | *string* | If set, overrides the git destination push reference.
 --git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara ir run.
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
+--git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 
 
 # patch
