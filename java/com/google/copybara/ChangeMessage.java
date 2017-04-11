@@ -16,16 +16,13 @@
 
 package com.google.copybara;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -36,13 +33,14 @@ public class ChangeMessage {
 
   private static final String DOUBLE_NEWLINE = "\n\n";
   private static final String DASH_DASH_SEPARATOR = "\n--\n";
+  private static final CharMatcher TRIM = CharMatcher.is('\n');
 
   private String text;
   private String groupSeparator;
   private List<LabelFinder> labels;
 
   private ChangeMessage(String text, String groupSeparator, List<LabelFinder> labels) {
-    this.text = text.trim();
+    this.text = TRIM.trimFrom(text);
     this.groupSeparator = Preconditions.checkNotNull(groupSeparator);
     this.labels = Preconditions.checkNotNull(labels);
   }
@@ -51,7 +49,7 @@ public class ChangeMessage {
    * Create a new message object looking for labels in just the last paragraph.
    */
   public static ChangeMessage parseMessage(String message) {
-    message = message.trim();
+    message = TRIM.trimFrom(message);
     int doubleNewLine = message.lastIndexOf(DOUBLE_NEWLINE);
     int dashDash = message.lastIndexOf(DASH_DASH_SEPARATOR);
     if (doubleNewLine == -1 && dashDash == -1) {
@@ -76,7 +74,8 @@ public class ChangeMessage {
 
   private static List<LabelFinder> linesAsLabels(String message) {
     Preconditions.checkNotNull(message);
-    return Splitter.on('\n').splitToList(message.trim()).stream().map(LabelFinder::new)
+    return Splitter.on('\n').splitToList(TRIM.trimTrailingFrom(message)).stream()
+        .map(LabelFinder::new)
         .collect(Collectors.toList());
   }
 
@@ -104,6 +103,10 @@ public class ChangeMessage {
   }
 
   public ChangeMessage addLabel(String name, String separator, String value) {
+    // Add an additional line if none of the previous elements are labels
+    if (!labels.isEmpty() && labels.stream().noneMatch(LabelFinder::isLabel)) {
+      labels.add(new LabelFinder(""));
+    }
     labels.add(new LabelFinder(validateLabelName(name) + Preconditions
         .checkNotNull(separator) + Preconditions.checkNotNull(value)));
     return this;
@@ -159,7 +162,7 @@ public class ChangeMessage {
    * Set the text part of the message, leaving the labels untouched.L
    */
   public void setText(String text) {
-    this.text = text.trim();
+    this.text = TRIM.trimFrom(text);
   }
 
   @Override
@@ -174,6 +177,6 @@ public class ChangeMessage {
     }
     // Lets normalize in case parseAllAsLabels was used and all the labels where
     // removed.
-    return sb.toString().trim() + '\n';
+    return TRIM.trimFrom(sb.toString()) + '\n';
   }
 }

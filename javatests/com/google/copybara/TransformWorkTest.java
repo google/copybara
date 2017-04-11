@@ -106,6 +106,46 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testAddLabelWhitespaceInMsg() throws Exception {
+    checkAddLabel("    foo", "    foo\n\nTEST=VALUE\n");
+  }
+
+  @Test
+  public void testAddLabelLastParagraphList() throws Exception {
+    checkLabelWithSkylark(""
+            + "Foo\n"
+            + "\n"
+            + "  - list\n"
+            + "  - other\n",
+        "ctx.add_label('TEST', 'VALUE')",
+        ""
+            + "Foo\n"
+            + "\n"
+            + "  - list\n"
+            + "  - other\n"
+            + "\n"
+            + "TEST=VALUE\n");
+  }
+
+  @Test
+  public void testAddLabelLastParagraphContainsLabel() throws Exception {
+    checkLabelWithSkylark(""
+            + "Foo\n"
+            + "\n"
+            + "  - list\n"
+            + "I_AM_A: Label\n"
+            + "  - other\n",
+        "ctx.add_label('TEST', 'VALUE')",
+        ""
+            + "Foo\n"
+            + "\n"
+            + "  - list\n"
+            + "I_AM_A: Label\n"
+            + "  - other\n"
+            + "TEST=VALUE\n");
+  }
+
+  @Test
   public void testAddTextBeforeLabelsNoGroup() throws Exception {
     checkLabelWithSkylark("Foo\n",
         "ctx.add_text_before_labels('\\nFixes #1234')",
