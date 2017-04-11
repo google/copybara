@@ -511,7 +511,7 @@ public class GitOriginTest {
     repo.add().files("test2.txt").run();
     git("commit", "-m", "second file", "--date=1400110011");
     GitRevision master = origin.resolve("master");
-    Instant timestamp = master.readTimestamp();
+    Instant timestamp = master.readTimestamp().toInstant();
     assertThat(timestamp).isNotNull();
     assertThat(timestamp.getEpochSecond()).isEqualTo(1400110011L);
   }
@@ -537,7 +537,7 @@ public class GitOriginTest {
   public void testGitOriginTag() throws Exception {
     git("tag", "-m", "This is a tag", "0.1");
 
-    Instant instant = origin.resolve("0.1").readTimestamp();
+    Instant instant = origin.resolve("0.1").readTimestamp().toInstant();
 
     assertThat(instant).isEqualTo(Instant.parse(commitTime));
   }

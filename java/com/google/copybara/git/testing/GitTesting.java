@@ -19,13 +19,15 @@ package com.google.copybara.git.testing;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
+import com.google.common.collect.Iterables;
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.testing.FileSubjects;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 
 /**
  * Utility methods for testing related to Git.
@@ -52,10 +54,11 @@ public class GitTesting {
   /**
    * Asserts that the author timestamp of a certain commit equals {@code timestamp}.
    */
-  public static void assertAuthorTimestamp(GitRepository repo, String commitRef, Instant timestamp)
+  public static void assertAuthorTimestamp(GitRepository repo, String commitRef,
+      ZonedDateTime timestamp)
       throws RepoException {
-    assertLineWithPrefixMatches(
-        repo, commitRef, "author ", String.format(".* %d [+]0000", timestamp.getEpochSecond()));
+    GitLogEntry commit = Iterables.getOnlyElement(repo.log(commitRef).withLimit(1).run());
+    assertThat(commit.getAuthorDate()).isEquivalentAccordingToCompareTo(timestamp);
   }
 
   /**

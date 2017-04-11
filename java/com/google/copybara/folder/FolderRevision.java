@@ -20,8 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import java.nio.file.Path;
-import java.time.Instant;
-import javax.annotation.Nullable;
+import java.time.ZonedDateTime;
 
 /**
  * A reference for folder origins.
@@ -29,13 +28,13 @@ import javax.annotation.Nullable;
 public class FolderRevision implements Revision {
 
   final Path path;
-  private final Instant timestamp;
+  private final ZonedDateTime timestamp;
   private final String labelName;
 
-  FolderRevision(Path path, Instant timestamp, String labelName) {
+  FolderRevision(Path path, ZonedDateTime timestamp, String labelName) {
     Preconditions.checkState(path.isAbsolute());
     this.path = path;
-    this.timestamp = timestamp;
+    this.timestamp = Preconditions.checkNotNull(timestamp);
     this.labelName = Preconditions.checkNotNull(labelName);
   }
 
@@ -44,9 +43,8 @@ public class FolderRevision implements Revision {
     return path.toString();
   }
 
-  @Nullable
   @Override
-  public Instant readTimestamp() throws RepoException {
+  public ZonedDateTime readTimestamp() throws RepoException {
     return timestamp;
   }
 

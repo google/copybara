@@ -46,17 +46,17 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -484,7 +484,7 @@ public class GitRepository {
     throw new RepoException(output.getStderr());
   }
 
-  void commit(String author, Instant timestamp, String message)
+  void commit(String author, ZonedDateTime timestamp, String message)
       throws RepoException, ValidationException {
     CommandOutput status = simpleCommand("diff", "--staged", "--stat");
     if (status.getStdout().trim().isEmpty()) {
@@ -492,7 +492,7 @@ public class GitRepository {
           + "Is the change already migrated?");
     }
     simpleCommand("commit", "--author", author,
-        "--date", timestamp.getEpochSecond() + " +0000", "-m", message);
+        "--date", timestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), "-m", message);
   }
 
   public List<StatusFile> status() throws RepoException {
@@ -1053,7 +1053,7 @@ public class GitRepository {
      * Limit the query to {@code limit} results. Should be > 0.
      */
     @CheckReturnValue
-    LogCmd withLimit(int limit) {
+    public LogCmd withLimit(int limit) {
       Preconditions.checkArgument(limit > 0);
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString);
@@ -1107,7 +1107,7 @@ public class GitRepository {
     /**
      * Run 'git log' and returns zero or more {@link GitLogEntry}.
      */
-    ImmutableList<GitLogEntry> run() throws RepoException {
+    public ImmutableList<GitLogEntry> run() throws RepoException {
       List<String> cmd = Lists.newArrayList("log", "--no-color", createFormat(includeBody));
 
       if (limit > 0) {

@@ -35,8 +35,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import javax.annotation.Nullable;
 
@@ -85,7 +83,7 @@ public class FolderOrigin implements Origin<FolderRevision> {
       throw new ValidationException(path + " is not readable/executable");
     }
 
-    return new FolderRevision(path, Instant.now(), LABEL_NAME);
+    return new FolderRevision(path, ZonedDateTime.now(), LABEL_NAME);
   }
 
   @Override
@@ -125,9 +123,7 @@ public class FolderOrigin implements Origin<FolderRevision> {
 
       @Override
       public Change<FolderRevision> change(FolderRevision ref) throws RepoException {
-        ZonedDateTime time = ZonedDateTime.ofInstant(
-            Preconditions.checkNotNull(ref.readTimestamp()), ZoneId.systemDefault());
-        return new Change<>(ref, author, message, time, ImmutableMap.of());
+        return new Change<>(ref, author, message, ref.readTimestamp(), ImmutableMap.of());
       }
 
       @Override

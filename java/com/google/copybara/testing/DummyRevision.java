@@ -38,8 +38,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +56,7 @@ public class DummyRevision implements Revision {
   private final String message;
   private final Author author;
   final Path changesBase;
-  private final Instant timestamp;
+  private final ZonedDateTime timestamp;
   @Nullable
   private final String contextReference;
   private final ImmutableMap<String, String> referenceLabels;
@@ -75,7 +73,7 @@ public class DummyRevision implements Revision {
 
   DummyRevision(
       String reference, String message, Author author, Path changesBase,
-      @Nullable Instant timestamp, @Nullable String contextReference,
+      @Nullable ZonedDateTime timestamp, @Nullable String contextReference,
       ImmutableMap<String, String> referenceLabels, boolean matchesGlob,
       @Nullable Path previousPath) {
     this.reference = Preconditions.checkNotNull(reference);
@@ -101,7 +99,7 @@ public class DummyRevision implements Revision {
   /**
    * Returns an instance equivalent to this one but with the timestamp set to the specified value.
    */
-  public DummyRevision withTimestamp(Instant newTimestamp) {
+  public DummyRevision withTimestamp(ZonedDateTime newTimestamp) {
     return new DummyRevision(
         this.reference, this.message, this.author, this.changesBase, newTimestamp,
         this.contextReference, this.referenceLabels, this.matchesGlob, this.previousPath);
@@ -129,7 +127,7 @@ public class DummyRevision implements Revision {
 
   @Nullable
   @Override
-  public Instant readTimestamp() throws RepoException {
+  public ZonedDateTime readTimestamp() throws RepoException {
     return timestamp;
   }
 
@@ -148,7 +146,7 @@ public class DummyRevision implements Revision {
         ? this.author
         : authoring.getDefaultAuthor();
     return new Change<>(this, safeAuthor, message,
-        ZonedDateTime.ofInstant(timestamp, ZoneId.systemDefault()), descriptionLabels,
+                        timestamp, descriptionLabels,
                         computeChangedFiles());
   }
 

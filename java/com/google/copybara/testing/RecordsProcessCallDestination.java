@@ -36,7 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -135,7 +135,7 @@ public class RecordsProcessCallDestination implements Destination {
       this.destinationFiles = destinationFiles;
     }
 
-    public Instant getTimestamp() {
+    public ZonedDateTime getTimestamp() {
       return transformResult.getTimestamp();
     }
 

@@ -48,6 +48,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
@@ -536,14 +538,18 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(
         destinationFirstCommit().newWriter(destinationFiles),
-        new DummyRevision("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
-    GitTesting.assertAuthorTimestamp(repo(), "master", Instant.ofEpochSecond(1414141414));
+        new DummyRevision("first_commit").withTimestamp(timeFromEpoch(1414141414)));
+    GitTesting.assertAuthorTimestamp(repo(), "master", timeFromEpoch(1414141414));
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     process(
         destination().newWriter(destinationFiles),
-        new DummyRevision("second_commit").withTimestamp(Instant.ofEpochSecond(1515151515)));
-    GitTesting.assertAuthorTimestamp(repo(), "master", Instant.ofEpochSecond(1515151515));
+        new DummyRevision("second_commit").withTimestamp(timeFromEpoch(1515151515)));
+    GitTesting.assertAuthorTimestamp(repo(), "master", timeFromEpoch(1515151515));
+  }
+
+  static ZonedDateTime timeFromEpoch(long time) {
+    return ZonedDateTime.ofInstant(Instant.ofEpochSecond(time), ZoneId.of("-07:00"));
   }
 
   @Test
@@ -573,14 +579,14 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(
         destinationFirstCommit().newWriter(destinationFiles),
-        new DummyRevision("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
+        new DummyRevision("first_commit").withTimestamp(timeFromEpoch(1414141414)));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Bara Kopi <.*> [-+ 0-9]+");
 
     options.gitDestination.committerName = "Piko Raba";
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     process(
         destination().newWriter(destinationFiles),
-        new DummyRevision("second_commit").withTimestamp(Instant.ofEpochSecond(1414141490)));
+        new DummyRevision("second_commit").withTimestamp(timeFromEpoch(1414141490)));
     GitTesting.assertCommitterLineMatches(repo(), "master", "Piko Raba <.*> [-+ 0-9+]+");
   }
 
@@ -594,7 +600,7 @@ public class GitDestinationTest {
 
     process(
         destinationFirstCommit().newWriter(destinationFiles),
-        new DummyRevision("first_commit").withTimestamp(Instant.ofEpochSecond(1414141414)));
+        new DummyRevision("first_commit").withTimestamp(timeFromEpoch(1414141414)));
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <bara[.]bara@gocha[.]gocha> [-+ 0-9]+");
 
@@ -602,7 +608,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some more content".getBytes());
     process(
         destination().newWriter(destinationFiles),
-        new DummyRevision("second_commit").withTimestamp(Instant.ofEpochSecond(1414141490)));
+        new DummyRevision("second_commit").withTimestamp(timeFromEpoch(1414141490)));
     GitTesting.assertCommitterLineMatches(
         repo(), "master", ".* <kupo[.]kupo@tan[.]kou> [-+ 0-9]+");
   }
@@ -644,7 +650,7 @@ public class GitDestinationTest {
 
     DummyRevision firstCommit = new DummyRevision("first_commit")
         .withAuthor(new Author("Foo Bar", "foo@bar.com"))
-        .withTimestamp(Instant.ofEpochSecond(1414141414));
+        .withTimestamp(timeFromEpoch(1414141414));
     process(
         destinationFirstCommit().newWriter(destinationFiles),
         firstCommit);

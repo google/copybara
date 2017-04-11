@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import javax.annotation.Nullable;
 
 /**
@@ -33,7 +34,7 @@ public interface Revision {
    * submitted to the source repository.
    */
   @Nullable
-  Instant readTimestamp() throws RepoException;
+  ZonedDateTime readTimestamp() throws RepoException;
 
   /**
    * String representation of the revision that can be parsed by {@link Origin#resolve(String)}.

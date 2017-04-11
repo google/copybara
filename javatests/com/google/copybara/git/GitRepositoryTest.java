@@ -35,6 +35,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -163,14 +164,18 @@ public class GitRepositoryTest {
         .withWorkTree(workdir);
     Files.write(workdir.resolve("foo.txt"), "foo fooo fooo".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
-    ZonedDateTime date = ZonedDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-    repository.commit("Foo <foo@bara.com>", date.toInstant(), "message");
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
+        .truncatedTo(ChronoUnit.SECONDS);
+    ZonedDateTime date2 = date.plus(1, ChronoUnit.SECONDS)
+        .withZoneSameInstant(ZoneId.of("-05:00"));
+
+    repository.commit("Foo <foo@bara.com>", date, "message");
 
     // Test rename to check that we use --name-only with --no-renames
     Files.move(workdir.resolve("foo.txt"), workdir.resolve("bar.txt"));
     Files.write(workdir.resolve("baz.txt"), "baz baz baz".getBytes(UTF_8));
     repository.add().all().run();
-    repository.commit("Bar <bar@bara.com>", date.toInstant(), "message\n\nand\nparagraph");
+    repository.commit("Bar <bar@bara.com>", date2, "message\n\nand\nparagraph");
     ImmutableList<GitLogEntry> entries = repository.log("master")
         .includeBody(body)
         .includeFiles(includeFiles)
@@ -183,10 +188,11 @@ public class GitRepositoryTest {
 
     assertThat(entries.get(0).getAuthor()).isEqualTo(new Author("Bar", "bar@bara.com"));
     assertThat(entries.get(0).getCommitter()).isEqualTo(COMMITER);
-    assertThat(entries.get(0).getAuthorDate().withZoneSameLocal(date.getZone())).isEqualTo(date);
+
+    assertThat(entries.get(0).getAuthorDate()).isEqualTo(date2);
     assertThat(entries.get(1).getAuthor()).isEqualTo(new Author("FOO", "foo@bara.com"));
     assertThat(entries.get(1).getCommitter()).isEqualTo(COMMITER);
-    assertThat(entries.get(1).getAuthorDate().withZoneSameLocal(date.getZone())).isEqualTo(date);
+    assertThat(entries.get(1).getAuthorDate()).isEqualTo(date);
     assertThat(entries.get(0).getParents()).containsExactly(entries.get(1).getCommit());
     assertThat(entries.get(1).getParents()).isEmpty();
 

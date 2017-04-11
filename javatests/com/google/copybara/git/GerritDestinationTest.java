@@ -44,6 +44,8 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -233,15 +235,22 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.setForce(true);
-    process(new DummyRevision("first_commit").withTimestamp(Instant.ofEpochSecond(355558888)));
-    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", Instant.ofEpochSecond(355558888));
+
+    ZonedDateTime time1 = ZonedDateTime.ofInstant(Instant.ofEpochSecond(355558888),
+                                                  ZoneId.of("-08:00"));
+    process(new DummyRevision("first_commit").withTimestamp(time1));
+    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", time1);
 
     git("branch", "master", "refs/for/master");
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     options.setForce(false);
-    process(new DummyRevision("first_commit").withTimestamp(Instant.ofEpochSecond(424242420)));
-    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", Instant.ofEpochSecond(424242420));
+    ZonedDateTime time2 = ZonedDateTime.ofInstant(Instant.ofEpochSecond(424242420),
+                                                  ZoneId.of("-08:00"));
+    process(new DummyRevision("first_commit").withTimestamp(
+        time2));
+    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master",
+                                     time2);
   }
 
   @Test

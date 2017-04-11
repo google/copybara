@@ -19,7 +19,7 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.copybara.authoring.Author;
 import java.nio.file.Path;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import javax.annotation.Nullable;
 
 /**
@@ -29,7 +29,7 @@ import javax.annotation.Nullable;
 public final class TransformResult {
   private final Path path;
   private final Author author;
-  private final Instant timestamp;
+  private final ZonedDateTime timestamp;
   private final String summary;
   @Nullable
   private final String baseline;
@@ -39,9 +39,9 @@ public final class TransformResult {
   @Nullable
   private final String workflowIdentity;
 
-  private static Instant readTimestampOrCurrentTime(Revision originRef) throws RepoException {
-    Instant refTimestamp = originRef.readTimestamp();
-    return (refTimestamp != null) ? refTimestamp : Instant.now();
+  private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
+    ZonedDateTime refTimestamp = originRef.readTimestamp();
+    return (refTimestamp != null) ? refTimestamp : ZonedDateTime.now();
   }
 
   public TransformResult(Path path, Revision currentRevision, Author author, String summary,
@@ -52,9 +52,9 @@ public final class TransformResult {
          requestedRevision, /*workflowIdentity=*/null);
   }
 
-  private TransformResult(Path path, Revision currentRevision, Author author, Instant timestamp,
-      String summary, @Nullable String baseline, boolean askForConfirmation,
-      Revision requestedRevision, @Nullable String workflowIdentity) {
+  private TransformResult(Path path, Revision currentRevision, Author author,
+      ZonedDateTime timestamp, String summary, @Nullable String baseline,
+      boolean askForConfirmation, Revision requestedRevision, @Nullable String workflowIdentity) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -128,9 +128,9 @@ public final class TransformResult {
   }
 
   /**
-   * The {@link Instant} when the code was submitted to the origin repository, since the UNIX epoch.
+   * The {@link ZonedDateTime} when the code was submitted to the origin repository.
    */
-  public Instant getTimestamp() {
+  public ZonedDateTime getTimestamp() {
     return timestamp;
   }
 

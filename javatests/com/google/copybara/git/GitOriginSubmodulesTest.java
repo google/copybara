@@ -33,7 +33,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.junit.Before;
@@ -216,6 +216,6 @@ public class GitOriginSubmodulesTest {
 
   private void commit(GitRepository repo, String message)
       throws RepoException, ValidationException {
-    repo.commit("foo <foobar@example.com>", Instant.now(), message);
+    repo.commit("foo <foobar@example.com>", ZonedDateTime.now(), message);
   }
 }

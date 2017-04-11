@@ -22,7 +22,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.git.GitRepository.GitLogEntry;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -73,13 +73,13 @@ public final class GitRevision implements Revision {
   }
 
   @Override
-  public Instant readTimestamp() throws RepoException {
+  public ZonedDateTime readTimestamp() throws RepoException {
     // TODO(malcon): We should be able to skip this for revisions coming from 'git log'.
     ImmutableList<GitLogEntry> entry = repository.log(sha1).withLimit(1).run();
     if (entry.isEmpty()) {
       throw new RepoException(String.format("Cannot find '%s' in the git repository", sha1));
     }
-    return Iterables.getOnlyElement(entry).getAuthorDate().toInstant();
+    return Iterables.getOnlyElement(entry).getAuthorDate();
   }
 
   @Override

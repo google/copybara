@@ -46,12 +46,12 @@ public class DummyOriginTest {
     DummyOrigin origin = new DummyOrigin()
         .addSimpleChange(/*timestamp*/ 4242);
 
-    Instant timestamp = origin.resolve(null).readTimestamp();
+    Instant timestamp = origin.resolve(null).readTimestamp().toInstant();
     assertThat(timestamp).isNotNull();
     assertThat(timestamp.getEpochSecond()).isEqualTo(4242);
 
     origin.addSimpleChange(/*timestamp*/ 42424242);
-    timestamp = origin.resolve(null).readTimestamp();
+    timestamp = origin.resolve(null).readTimestamp().toInstant();
     assertThat(timestamp).isNotNull();
     assertThat(timestamp.getEpochSecond()).isEqualTo(42424242);
   }
