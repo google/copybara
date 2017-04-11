@@ -372,6 +372,20 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testChangeLabelWithSameValue() throws Exception {
+    String commitMessage = ""
+        + "I am a commit!\n"
+        + "\n"
+        + "foo: bar\n"
+        + "\n"
+        + "baz: bar\n";
+    singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
+
+    assertThat(newReader().change(getLastCommitRef()).getLabels())
+        .containsExactly("foo", "bar", "baz", "bar");
+  }
+
+  @Test
   public void testNoChange() throws Exception {
     // This is needed to initialize the local repo
     origin.resolve(firstCommitRef);

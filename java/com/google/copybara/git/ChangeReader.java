@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -123,7 +122,7 @@ class ChangeReader {
   }
 
   private ImmutableMap<String, String> getLabels(GitLogEntry e) {
-    ImmutableMap.Builder<String, String> result = ImmutableBiMap.builder();
+    ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
     ImmutableListMultimap<String, String> labels =
         ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap();
     for (String name : labels.keySet()) {
