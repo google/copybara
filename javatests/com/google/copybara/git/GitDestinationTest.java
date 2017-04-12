@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.ChangeMessage.parseMessage;
+import static com.google.copybara.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -100,7 +101,7 @@ public class GitDestinationTest {
   }
 
   private GitRepository repoForPath(Path path) {
-    return new GitRepository(path, /*workTree=*/null, /*verbose=*/true, System.getenv());
+    return new GitRepository(path, /*workTree=*/null, /*verbose=*/true, getGitEnv());
   }
 
   private String git(String... argv) throws RepoException {
@@ -928,7 +929,7 @@ public class GitDestinationTest {
 
     //    Path localPath = Files.createTempDirectory("local_repo");
     GitRepository localRepo = GitRepository.initScratchRepo(/*verbose=*/true, localPath,
-        System.getenv());
+        getGitEnv());
 
     GitTesting.assertThatCheckout(localRepo, "master")
         .containsFile("test.txt", "some content")

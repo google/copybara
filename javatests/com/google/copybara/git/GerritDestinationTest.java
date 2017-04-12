@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -104,7 +105,7 @@ public class GerritDestinationTest {
   }
 
   private GitRepository repo() {
-    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true, System.getenv());
+    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true, getGitEnv());
   }
 
   private String git(String... argv) throws RepoException {

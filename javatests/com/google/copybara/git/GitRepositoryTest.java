@@ -21,6 +21,7 @@ import static com.google.copybara.git.GitRepository.StatusCode.DELETED;
 import static com.google.copybara.git.GitRepository.StatusCode.MODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNMODIFIED;
+import static com.google.copybara.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -66,17 +67,8 @@ public class GitRepositoryTest {
         .setOutputRootToTmpDir();
     workdir = Files.createTempDirectory("workdir");
     this.repository = GitRepository.initScratchRepo(
-        /*verbose=*/true, getEnvironment(), options.general.getTmpDirectoryFactory())
+        /*verbose=*/true, getGitEnv(), options.general.getTmpDirectoryFactory())
         .withWorkTree(workdir);
-  }
-
-  private Map<String, String> getEnvironment() {
-    HashMap<String, String> values = new HashMap<>(System.getenv());
-    values.put("GIT_AUTHOR_NAME", DEFAULT_AUTHOR.getName());
-    values.put("GIT_AUTHOR_EMAIL", DEFAULT_AUTHOR.getEmail());
-    values.put("GIT_COMMITTER_NAME", COMMITER.getName());
-    values.put("GIT_COMMITTER_EMAIL", COMMITER.getEmail());
-    return values;
   }
 
   @Test
@@ -102,7 +94,7 @@ public class GitRepositoryTest {
   @Test
   public void testStatus() throws RepoException, IOException {
     GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
-        getEnvironment(), /*verbose=*/true);
+        getGitEnv(), /*verbose=*/true);
     dest.initGitDir();
 
     Files.write(workdir.resolve("renamed"), "renamed".getBytes(UTF_8));
@@ -160,7 +152,7 @@ public class GitRepositoryTest {
       ValidationException {
     workdir = Files.createTempDirectory("workdir");
     this.repository = GitRepository.initScratchRepo(
-        /*verbose=*/true, getEnvironment(), options.general.getTmpDirectoryFactory())
+        /*verbose=*/true, getGitEnv(), options.general.getTmpDirectoryFactory())
         .withWorkTree(workdir);
     Files.write(workdir.resolve("foo.txt"), "foo fooo fooo".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
@@ -208,7 +200,7 @@ public class GitRepositoryTest {
   @Test
   public void testFetch() throws Exception {
     GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
-        getEnvironment(), /*verbose=*/true);
+        getGitEnv(), /*verbose=*/true);
     dest.initGitDir();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});

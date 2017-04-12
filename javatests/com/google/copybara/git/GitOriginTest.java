@@ -89,6 +89,7 @@ public class GitOriginTest {
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");
+    options.setEnvironment(GitTestUtil.getGitEnv());
     options.setHomeDir(userHomeForTest.toString());
 
     createTestRepo(Files.createTempDirectory("remote"));

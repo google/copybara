@@ -82,6 +82,15 @@ public class OptionsBuilder {
     return this;
   }
 
+  public OptionsBuilder setEnvironment(Map<String, String> environment) {
+    general = new GeneralOptions(
+        environment,
+        general.getFileSystem(), general.isVerbose(), general.console(),
+        general.getConfigRoot(), general.getOutputRoot(),
+        general.isDisableReversibleCheck(), general.isForced());
+    return this;
+  }
+
   public OptionsBuilder setOutputRootToTmpDir() throws IOException {
     general = new GeneralOptions(
         general.getEnvironment(),

@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitTestUtil.getGitEnv;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
@@ -75,7 +76,7 @@ public final class SubmodulesInDestinationTest {
     skylark = new SkylarkTestExecutor(options, GitModule.class);
 
     submodule = GitRepository.initScratchRepo(
-        /*verbose=*/true, System.getenv(), options.general.getTmpDirectoryFactory());
+        /*verbose=*/true, getGitEnv(), options.general.getTmpDirectoryFactory());
 
     Files.write(submodule.getWorkTree().resolve("foo"), new byte[] {1});
     submodule.add().files("foo").run();
@@ -83,7 +84,7 @@ public final class SubmodulesInDestinationTest {
   }
 
   private GitRepository repo() {
-    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true, System.getenv());
+    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true, getGitEnv());
   }
 
   private String git(String... argv) throws RepoException {

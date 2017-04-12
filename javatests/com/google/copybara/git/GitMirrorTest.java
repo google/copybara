@@ -53,6 +53,7 @@ public class GitMirrorTest {
     workdir = Files.createTempDirectory("workdir");
     console = new TestingConsole();
     options = new OptionsBuilder()
+        .setEnvironment(GitTestUtil.getGitEnv())
         .setOutputRootToTmpDir()
         .setWorkdirToRealTempDir()
         .setConsole(console);

@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitTestUtil.getGitEnv;
 
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.nio.file.FileSystems;
@@ -109,7 +110,7 @@ public class RefspecTest {
   }
 
   private Refspec refspec(String str) throws EvalException {
-    return Refspec.create(System.getenv(), FileSystems.getDefault().getPath("/"), str,
+    return Refspec.create(getGitEnv(), FileSystems.getDefault().getPath("/"), str,
         /*location=*/null);
   }
 }

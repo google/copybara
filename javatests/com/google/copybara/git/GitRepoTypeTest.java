@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitTestUtil.getGitEnv;
 
 import com.google.common.base.Strings;
 import com.google.copybara.RepoException;
@@ -48,7 +49,7 @@ public class GitRepoTypeTest {
     repoGitDir = Files.createTempDirectory("testRepo");
     fileRepoDir = Files.createTempDirectory("fileRepo");
     // We mock by default to avoid accidental network calls.
-    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, System.getenv()) {
+    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, getGitEnv()) {
       @Override
       public GitRevision fetchSingleRef(String url, String ref) throws RepoException {
         interceptedFetches.add(new String[]{url, ref});
@@ -62,12 +63,12 @@ public class GitRepoTypeTest {
   }
 
   private void disableFetchMocks() throws RepoException {
-    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, System.getenv());
+    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, getGitEnv());
     testRepo.initGitDir();
   }
 
   private void prepareFileRepo() throws RepoException, IOException {
-    fileRepo = GitRepository.initScratchRepo( /*verbose=*/true, fileRepoDir, System.getenv());
+    fileRepo = GitRepository.initScratchRepo( /*verbose=*/true, fileRepoDir, getGitEnv());
     Files.write(fileRepoDir.resolve("foo"), new byte[]{});
 
     fileRepo.add().files("foo").run();

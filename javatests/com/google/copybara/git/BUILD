@@ -17,6 +17,7 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])  # Apache 2.0
 
 DEPS = [
+    ":util",
     "//java/com/google/copybara:base",
     "//java/com/google/copybara:copybara_lib",
     "//java/com/google/copybara/authoring",
@@ -30,11 +31,17 @@ DEPS = [
     "//third_party:truth",
 ]
 
+java_library(
+    name = "util",
+    srcs = ["GitTestUtil.java"],
+    deps = ["//java/com/google/copybara/authoring"],
+)
+
 all_tests(
     tags = ["local"],
     tests = glob(
         ["**/*.java"],
-        exclude = ["GitDestinationTest.java"],
+        exclude = ["GitDestinationTest.java", "GitTestUtil.java"],
     ),
     deps = DEPS,
 )
