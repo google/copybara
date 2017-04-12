@@ -27,7 +27,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.config.ConfigLoader;
-import com.google.copybara.profiler.LogProfiler;
+import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
@@ -66,7 +66,7 @@ public class Main {
    * <p>Should not be mutated.
    */
   protected final ImmutableMap<String, String> environment;
-  private Profiler profiler;
+  protected Profiler profiler;
 
   public Main() {
     this(System.getenv());
@@ -277,9 +277,9 @@ public class Main {
    * options are parsed, but before a file is read or a run started.
    */
   protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander)
-      throws CommandLineException{
+      throws CommandLineException {
     profiler = options.get(GeneralOptions.class).profiler();
-    profiler.init(ImmutableList.of(new LogProfiler()));
+    profiler.init(ImmutableList.of(new LogProfilerListener()));
   }
 
   /**

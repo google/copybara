@@ -178,6 +178,7 @@ public class ProfilerTest {
     public void taskFinished(Task task) {
       events.add(new TaskWithType(EventType.END, task));
     }
+
   }
 
   private static class TaskWithType {

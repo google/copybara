@@ -22,7 +22,7 @@ import java.util.logging.Logger;
 /**
  * A simple callback for the profiler that logs the execution of the tasks when they finish.
  */
-public class LogProfiler implements Listener {
+public class LogProfilerListener implements Listener {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 

@@ -31,8 +31,9 @@ import javax.annotation.Nullable;
  */
 public final class Profiler {
 
-  private final ProfilerTask NULL_PROFILER_TASK = new ProfilerTask(/*task=*/null);
-  private static final String ROOT_NAME = "//copybara";
+  @VisibleForTesting
+  public static final String ROOT_NAME = "//copybara";
+  private final ProfilerTask nullProfilerTask;
 
   /**
    * A stack of tasks to be finished. When a new thread is spawned we create a copy
@@ -83,6 +84,7 @@ public final class Profiler {
 
   public Profiler(Ticker ticker) {
     this.ticker = ticker;
+    this.nullProfilerTask = new ProfilerTask(/*task=*/ null);
   }
 
   /**
@@ -136,7 +138,7 @@ public final class Profiler {
    */
   public ProfilerTask start(String description) {
     if (stopped || listeners.isEmpty()) {
-      return NULL_PROFILER_TASK;
+      return nullProfilerTask;
     }
     Deque<Task> tasks = taskQueue.get();
     Preconditions.checkState(!tasks.isEmpty());
