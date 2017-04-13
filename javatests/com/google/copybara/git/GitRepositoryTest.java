@@ -27,6 +27,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
@@ -40,7 +41,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Rule;
@@ -138,6 +138,32 @@ public class GitRepositoryTest {
         new StatusFile("modified3", /*newFileName=*/null, UNMODIFIED, MODIFIED)
     );
 
+  }
+
+  /**
+   * Regression that tests that we convert the commit message to use only '\n' as line separator.
+   * Many parts of the system use '\n' as separator.
+   *
+   * While this is contentious, Copybara already has an opinionated way of constructing messages
+   * (For example labels).
+   */
+  @Test
+  public void testLogCrlf() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+
+    Path message = Files.createTempFile("message", "");
+    Files.write(message, "message\r\nbar\r\n".getBytes(UTF_8));
+    System.err.println("message " + message);
+    repository.simpleCommand("commit", "-m", "fooo");
+    String tree = repository.simpleCommand("log", "--format=%T", "-1").getStdout().trim();
+    // Create a new commit using 'commit-tree' since 'commit' rewrites the message removing
+    // \r in unix environment. No matter if you disable core.autocrlf, core.eol, etc.
+    String change = repository.simpleCommand("commit-tree", tree, "-F", message.toString())
+        .getStdout().trim();
+
+    assertThat(Iterables.getLast(repository.log(change).run()).getBody())
+        .isEqualTo("message\nbar\n");
   }
 
   @Test

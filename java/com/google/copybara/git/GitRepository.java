@@ -46,9 +46,9 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -1160,6 +1160,8 @@ public class GitRepository {
         if (includeBody) {
           body = UNINDENT.matcher(groups.get(1)).replaceAll("\n");
           body = body.substring(BEGIN_BODY.length() + 1, body.length() - END_BODY.length() - 1);
+          // Copybara assumes \n as a separator in many places.
+          body = body.replace("\r\n", "\n");
         }
 
         ImmutableSet<String> files = includeStat
