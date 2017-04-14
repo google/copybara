@@ -20,17 +20,20 @@ def all_tests(tests, deps, tags=[], shard_count=1):
     pos = PACKAGE_NAME.rfind("javatests/") + len("javatests/")
     test_class = PACKAGE_NAME[pos:].replace('/', '.',) + '.' + suffix
     native.java_test(
-      name = file[:-5],
-      srcs = [file],
-      javacopts = ["-Xlint:unchecked", "-source", "1.8"],
-      test_class = test_class,
-      deps = deps + [
-          # These deps are automatically included with Bazel, but not with the
-          # internal BUILD system. So add them explicitly here.
-          "//third_party:guava",
-          "//third_party:jsr305",
-          "//third_party:junit",
-      ],
-      tags = tags,
+        name = file[:-5],
+        srcs = [file],
+        javacopts = [
+            "-Xlint:unchecked", "-source", "1.8",
+            "-Xep:FutureReturnValueIgnored:OFF",
+        ],
+        test_class = test_class,
+        deps = deps + [
+            # These deps are automatically included with Bazel, but not with the
+            # internal BUILD system. So add them explicitly here.
+            "//third_party:guava",
+            "//third_party:jsr305",
+            "//third_party:junit",
+        ],
+        tags = tags,
       shard_count = shard_count,
     )

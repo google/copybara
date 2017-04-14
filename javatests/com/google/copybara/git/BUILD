@@ -41,7 +41,10 @@ all_tests(
     tags = ["local"],
     tests = glob(
         ["**/*.java"],
-        exclude = ["GitDestinationTest.java", "GitTestUtil.java"],
+        exclude = [
+            "GitDestinationTest.java",
+            "GitTestUtil.java",
+        ],
     ),
     deps = DEPS,
 )
