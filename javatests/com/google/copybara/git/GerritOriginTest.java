@@ -1,0 +1,144 @@
+/*
+ * Copyright (C) 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.copybara.git;
+
+import static com.google.common.truth.Truth.assertThat;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
+import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.console.testing.TestingConsole;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+@RunWith(JUnit4.class)
+public class GerritOriginTest {
+
+  private static final String commitTime = "2037-02-16T13:00:00Z";
+  private GitOrigin origin;
+  private Path remote;
+  private OptionsBuilder options;
+  private GitRepository repo;
+
+  @Rule
+  public final ExpectedException thrown = ExpectedException.none();
+
+  private GitRevision firstRevision;
+  private GitRevision secondRevision;
+  private GitRevision thirdRevision;
+
+  @Before
+  public void setup() throws Exception {
+    options = new OptionsBuilder();
+    TestingConsole console = new TestingConsole();
+    options = new OptionsBuilder().setConsole(console);
+
+    Path reposDir = Files.createTempDirectory("repos_repo");
+    options.git.repoStorage = reposDir.toString();
+
+    SkylarkTestExecutor skylark = new SkylarkTestExecutor(options, GitModule.class);
+    // Pass custom HOME directory so that we run an hermetic test and we
+    // can add custom configuration to $HOME/.gitconfig.
+    Path userHomeForTest = Files.createTempDirectory("home");
+    options.setEnvironment(GitTestUtil.getGitEnv());
+    options.setHomeDir(userHomeForTest.toString());
+
+    createTestRepo(Files.createTempDirectory("remote"));
+
+    String url = "file://" + remote.toFile().getAbsolutePath();
+
+    origin = skylark.eval("result", String.format("result = "
+        + "git.gerrit_origin("
+        + "    url = '%s',"
+        + ")", url));
+
+    Files.write(remote.resolve("test.txt"), "some content".getBytes());
+    repo.add().files("test.txt").run();
+
+    git("commit", "-m", "first change", "--date", commitTime);
+    firstRevision = new GitRevision(repo, git("rev-parse", "HEAD").trim(), "12345",
+        ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
+    git("update-ref", "refs/changes/45/12345/1", firstRevision.asString());
+
+    git("commit", "-m", "second change", "--date", commitTime, "--amend");
+    secondRevision = new GitRevision(repo, git("rev-parse", "HEAD").trim(), "12345",
+        ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
+    git("update-ref", "refs/changes/45/12345/2", secondRevision.asString());
+
+    git("commit", "-m", "third change", "--date", commitTime, "--amend");
+    thirdRevision = new GitRevision(repo, git("rev-parse", "HEAD").trim(), "12345",
+        ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
+    git("update-ref", "refs/changes/45/12345/3", thirdRevision.asString());
+  }
+
+  @Test
+  public void testReferencesWithContext() throws RepoException, ValidationException {
+    validateSameGitRevision(origin.resolve("12345"), thirdRevision);
+    validateSameGitRevision(origin.resolve("http://foo.com/#/c/12345"), thirdRevision);
+    validateSameGitRevision(origin.resolve("http://foo.com/c/12345"), thirdRevision);
+    validateSameGitRevision(origin.resolve("http://foo.com/12345"), thirdRevision);
+    validateSameGitRevision(origin.resolve("https://foo.com/12345"), thirdRevision);
+    validateSameGitRevision(origin.resolve("http://foo.com/#/c/12345/2"), secondRevision);
+
+    validateSameGitRevision(origin.resolve("refs/changes/45/12345/1"), firstRevision);
+    validateSameGitRevision(origin.resolve("refs/changes/45/12345/2"), secondRevision);
+    validateSameGitRevision(origin.resolve("refs/changes/45/12345/3"), thirdRevision);
+
+    // Doesn't have any context as we passed a SHA-1
+    assertThat(origin.resolve(firstRevision.asString()).contextReference()).isNull();
+    // The context reference defaults to regular git one
+    assertThat(origin.resolve("master").contextReference()).isEqualTo("master");
+  }
+
+  @Test
+  public void testReferenceNotFound() throws RepoException, ValidationException {
+    thrown.expect(CannotResolveRevisionException.class);
+    thrown.expectMessage("Cannot find change number 54321");
+    origin.resolve("54321");
+  }
+
+  @Test
+  public void testReferencePatchSetNotFound() throws RepoException, ValidationException {
+    thrown.expect(CannotResolveRevisionException.class);
+    thrown.expectMessage("Cannot find patch set 42");
+    origin.resolve("http://foo.com/#/c/12345/42");
+  }
+
+  private void validateSameGitRevision(GitRevision resolved, GitRevision expected) {
+    assertThat(resolved.asString()).isEqualTo(expected.asString());
+    assertThat(resolved.contextReference()).isEqualTo(expected.contextReference());
+    assertThat(resolved.associatedLabels()).isEqualTo(expected.associatedLabels());
+  }
+
+  private void createTestRepo(Path folder) throws Exception {
+    remote = folder;
+    repo = GitRepository.initScratchRepo(/*verbose*/true, remote, options.general.getEnvironment());
+  }
+
+  private String git(String... params) throws RepoException {
+    return repo.git(remote, params).getStdout();
+  }
+}

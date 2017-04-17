@@ -226,7 +226,7 @@ public class GitRepository {
     if (isSha1Reference(ref)) {
       fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of());
       try {
-        return resolveReference(ref, /*contextRef=*/null);
+        return resolveReference(ref, /*contextRef=*/ref);
       } catch (RepoException ignore) {
         // Ignore, the fetch below will attempt using the SHA-1.
       }
@@ -298,14 +298,19 @@ public class GitRepository {
    */
   public static Map<String, String> lsRemote(
       String url, Collection<String> refs, Map<String, String> env)
-      throws RepoException, CommandException {
+      throws RepoException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
     List<String> args = Lists.newArrayList("ls-remote", validateUrl(url));
     args.addAll(refs);
 
-    CommandOutputWithStatus output =
-        executeGit(FileSystems.getDefault().getPath("."), args, env, false);
+    CommandOutputWithStatus output;
+    try {
+      output = executeGit(FileSystems.getDefault().getPath("."), args, env, false);
+    } catch (CommandException e) {
+      throw new RepoException(
+          String.format("Error running ls-remote for '%s' and refs '%s'", url, refs));
+    }
     if (output.getTerminationStatus().success()) {
       for (String line : Splitter.on('\n').split(output.getStdout())) {
         if (line.isEmpty()) {
@@ -322,7 +327,7 @@ public class GitRepository {
   }
 
   public static Map<String, String> lsRemote(String url, Collection<String> refs)
-      throws RepoException, CommandException {
+      throws RepoException {
     return lsRemote(url, refs, System.getenv());
   }
 
@@ -786,7 +791,7 @@ public class GitRepository {
       throw new CannotResolveRevisionException(
           "Cannot find '" + reference + "' object in the repository");
     }
-    return new GitRevision(this, revParse(reference), contextRef);
+    return new GitRevision(this, revParse(reference), contextRef, ImmutableMap.of());
   }
 
   /**

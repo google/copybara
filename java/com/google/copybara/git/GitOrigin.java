@@ -52,7 +52,7 @@ import javax.annotation.Nullable;
 /**
  * A class for manipulating Git repositories
  */
-public final class GitOrigin implements Origin<GitRevision> {
+public class GitOrigin implements Origin<GitRevision> {
 
   enum SubmoduleStrategy {
     /** Don't download any submodule. */
@@ -63,12 +63,12 @@ public final class GitOrigin implements Origin<GitRevision> {
     RECURSIVE
   }
   static final String GIT_LOG_COMMENT_PREFIX = "    ";
-  private final GitRepository repository;
+  final GitRepository repository;
 
   /**
    * Url of the repository
    */
-  private final String repoUrl;
+  protected final String repoUrl;
 
   /**
    * Default reference to track
@@ -76,6 +76,7 @@ public final class GitOrigin implements Origin<GitRevision> {
   @Nullable
   private final String configRef;
   private final Console console;
+  private final GeneralOptions generalOptions;
   private final GitRepoType repoType;
   private final GitOptions gitOptions;
   private final boolean verbose;
@@ -84,11 +85,12 @@ public final class GitOrigin implements Origin<GitRevision> {
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
 
-  private GitOrigin(Console console, GitRepository repository, String repoUrl,
+  GitOrigin(GeneralOptions generalOptions, GitRepository repository, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions, boolean verbose,
       @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs) {
-    this.console = checkNotNull(console);
+    this.generalOptions = generalOptions;
+    this.console = generalOptions.console();
     this.repository = checkNotNull(repository);
     // Remove a possible trailing '/' so that the url is normalized.
     this.repoUrl = repoUrl.endsWith("/") ? repoUrl.substring(0, repoUrl.length() - 1) : repoUrl;
@@ -256,7 +258,7 @@ public final class GitOrigin implements Origin<GitRevision> {
     } else {
       ref = reference;
     }
-    return repoType.resolveRef(repository, repoUrl, ref, console);
+    return repoType.resolveRef(repository, repoUrl, ref, generalOptions);
   }
 
   private ImmutableList<Change<GitRevision>> asChanges(ImmutableList<GitChange> gitChanges) {
@@ -284,15 +286,14 @@ public final class GitOrigin implements Origin<GitRevision> {
   /**
    * Builds a new {@link GitOrigin}.
    */
-  static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
-      Map<String, String> environment, SubmoduleStrategy submoduleStrategy,
+  static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type, SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs) {
 
     GitOptions gitConfig = options.get(GitOptions.class);
     boolean verbose = options.get(GeneralOptions.class).isVerbose();
-
+    Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
     return new GitOrigin(
-        options.get(GeneralOptions.class).console(),
+        options.get(GeneralOptions.class),
         GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
         url, ref, type, options.get(GitOptions.class), verbose, environment, submoduleStrategy,
         includeBranchCommitLogs);

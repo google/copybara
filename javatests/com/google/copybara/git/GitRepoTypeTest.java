@@ -20,7 +20,10 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitTestUtil.getGitEnv;
 
 import com.google.common.base.Strings;
+import com.google.copybara.GeneralOptions;
+import com.google.copybara.Options;
 import com.google.copybara.RepoException;
+import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -43,6 +46,7 @@ public class GitRepoTypeTest {
   private String fileUrl;
   private TestingConsole console;
   private final Deque<String[]> interceptedFetches = new ArrayDeque<>();
+  private GeneralOptions generalOptions;
 
   @Before
   public void setup() throws IOException, RepoException {
@@ -60,6 +64,7 @@ public class GitRepoTypeTest {
     testRepo.initGitDir();
     prepareFileRepo();
     console = new TestingConsole();
+    generalOptions = new OptionsBuilder().setConsole(console).build().get(GeneralOptions.class);
   }
 
   private void disableFetchMocks() throws RepoException {
@@ -86,7 +91,7 @@ public class GitRepoTypeTest {
   public void testResolveSha1() throws Exception {
     disableFetchMocks();
     String sha1 = fileRepo.git(fileRepoDir, "rev-parse", "HEAD").getStdout().trim();
-    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, console).asString())
+    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, generalOptions).asString())
         .isEqualTo(sha1);
     console.assertThat()
         .containsNoMoreMessages();
@@ -96,7 +101,7 @@ public class GitRepoTypeTest {
   public void testResolveRef() throws Exception {
     disableFetchMocks();
     String sha1 = fileRepo.git(fileRepoDir, "rev-parse", "HEAD").getStdout().trim();
-    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, "master", console).asString())
+    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, "master", generalOptions).asString())
         .isEqualTo(sha1);
     console.assertThat()
         .containsNoMoreMessages();
@@ -107,15 +112,15 @@ public class GitRepoTypeTest {
     disableFetchMocks();
     String firstCommitBranchSha1 = fileRepo.git(fileRepoDir, "rev-parse", "first_commit")
         .getStdout().trim();
-    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, fileUrl + " first_commit", console)
-        .asString()).isEqualTo(firstCommitBranchSha1);
+    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, fileUrl + " first_commit",
+        generalOptions).asString()).isEqualTo(firstCommitBranchSha1);
     assertUrlOverwritten();
   }
 
   @Test
   public void testGitResolveUrl() throws Exception {
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use", "https://github.com/google/example",
-        console).asString())
+        generalOptions).asString())
         .hasLength(40);
     assertFetch("https://github.com/google/example", "HEAD");
     assertUrlOverwritten();
@@ -124,7 +129,7 @@ public class GitRepoTypeTest {
   @Test
   public void testGitResolveUrlAndRef() throws Exception {
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use",
-        "https://github.com/google/example master", console).asString())
+        "https://github.com/google/example master", generalOptions).asString())
         .hasLength(40);
     assertFetch("https://github.com/google/example", "master");
     assertUrlOverwritten();
@@ -133,7 +138,7 @@ public class GitRepoTypeTest {
   @Test
   public void testGitResolvePullRequest() throws Exception {
     assertThat(GitRepoType.GITHUB.resolveRef(testRepo, "https://github.com/google/example",
-        "https://github.com/google/example/pull/1", console).asString())
+        "https://github.com/google/example/pull/1", generalOptions).asString())
         .hasLength(40);
     assertFetch("https://github.com/google/example", "refs/pull/1/head");
     console.assertThat()

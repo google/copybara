@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
@@ -38,6 +39,7 @@ public final class GitRevision implements Revision {
   private final String sha1;
   @Nullable
   private final String reference;
+  private ImmutableMap<String, String> associatedLabels;
 
   /**
    * Create a git revision from a complete (40 characters) git SHA-1 string.
@@ -46,7 +48,7 @@ public final class GitRevision implements Revision {
    * @param sha1 a 40 characters SHA-1
    */
   GitRevision(GitRepository repository, String sha1) {
-    this(repository, sha1, /*reference=*/null);
+    this(repository, sha1, /*reference=*/null, ImmutableMap.of());
   }
 
   /**
@@ -56,14 +58,17 @@ public final class GitRevision implements Revision {
    * @param sha1 a 40 characters SHA-1
    * @param reference a stable name that describes where this is coming from. Could be a git
    * reference like 'master'
+   * @param associatedLabels labels associated with this reference
    */
-  GitRevision(GitRepository repository, String sha1, @Nullable String reference) {
+  GitRevision(GitRepository repository, String sha1, @Nullable String reference,
+      ImmutableMap<String, String> associatedLabels) {
     Preconditions.checkArgument(COMPLETE_SHA1_PATTERN.matcher(sha1).matches(),
                                 "Reference '%s' is not a 40 characters SHA-1", sha1);
 
     this.repository = Preconditions.checkNotNull(repository);
     this.sha1 = sha1;
     this.reference = reference;
+    this.associatedLabels = associatedLabels;
   }
 
   @Nullable
@@ -112,5 +117,10 @@ public final class GitRevision implements Revision {
   @Override
   public int hashCode() {
     return Objects.hashCode(sha1);
+  }
+
+  @Override
+  public ImmutableMap<String, String> associatedLabels() {
+    return associatedLabels;
   }
 }

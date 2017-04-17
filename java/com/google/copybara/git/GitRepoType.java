@@ -16,12 +16,19 @@
 
 package com.google.copybara.git;
 
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -47,7 +54,8 @@ public enum GitRepoType {
      * </ul>
      */
     @Override
-    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
+    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
+        GeneralOptions generalOptions)
         throws RepoException, CannotResolveRevisionException {
       logger.log(Level.INFO, "Resolving " + repoUrl + " reference: " + ref);
       if (!GIT_URL.matcher(ref).matches() && !FILE_URL.matcher(ref).matches()) {
@@ -55,9 +63,9 @@ public enum GitRepoType {
         return repository.fetchSingleRef(repoUrl, ref);
       }
       String msg = "Git origin URL overwritten in the command line as " + ref;
-      console.warn(msg);
+      generalOptions.console().warn(msg);
       logger.warning(msg + ". Config value was: " + repoUrl);
-      console.progress("Fetching HEAD for " + ref);
+      generalOptions.console().progress("Fetching HEAD for " + ref);
       GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
       if (ghPullRequest != null) {
         return ghPullRequest;
@@ -79,24 +87,110 @@ public enum GitRepoType {
      * it to a valid git fetch of the equivalent ref.
      */
     @Override
-    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
-        throws RepoException, CannotResolveRevisionException {
+    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
+        GeneralOptions generalOptions) throws RepoException, CannotResolveRevisionException {
       if (ref.startsWith("https://github.com") && ref.startsWith(repoUrl)) {
         GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
         if (ghPullRequest != null) {
           return ghPullRequest;
         }
       }
-      return GIT.resolveRef(repository, repoUrl, ref, console);
+      return GIT.resolveRef(repository, repoUrl, ref, generalOptions);
     }
   },
   @DocField(description = "A Gerrit code review repository")
   GERRIT {
+
+    private final Pattern WHOLE_REF = Pattern.compile("refs/changes/[0-9]{2}/([0-9]+)/([0-9]+)");
+    private final Pattern URL = Pattern.compile("https?://.*?/([0-9]+)(?:/([0-9]+))?");
+
     @Override
-    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref, Console console)
+    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
+        GeneralOptions options) throws RepoException, CannotResolveRevisionException {
+      if (ref == null || ref.isEmpty()) {
+        return GIT.resolveRef(repository, repoUrl, ref, options);
+      }
+      Matcher refMatcher = WHOLE_REF.matcher(ref);
+      if (refMatcher.matches()) {
+        return fetchWithChangeNumberAsContext(
+            repository, repoUrl, Integer.parseInt(refMatcher.group(1)), ref);
+      }
+      // A change number like '23423'
+      if (CharMatcher.javaDigit().matchesAllOf(ref)) {
+        return resolveLatestPatchSet(repository, repoUrl, options, Integer.parseInt(ref));
+      }
+      Matcher urlMatcher = URL.matcher(ref);
+      if (!urlMatcher.matches()) {
+        return GIT.resolveRef(repository, repoUrl, ref, options);
+      }
+      if (!ref.startsWith(repoUrl)) {
+        // Assume it is our url. We can make this more strict later
+        options.console().warn(
+            String.format("Assuming repository '%s' for looking for review '%s'", repoUrl, ref));
+      }
+      int change = Integer.parseInt(urlMatcher.group(1));
+      Integer patchSet = urlMatcher.group(2) == null ? null : Integer.parseInt(urlMatcher.group(2));
+      if (patchSet == null) {
+        return resolveLatestPatchSet(repository, repoUrl, options, change);
+      }
+      Map<Integer, GitRevision> patchSets = getPatchSets(repository, repoUrl, change, options);
+      if (!patchSets.containsKey(patchSet)) {
+        throw new CannotResolveRevisionException(String.format(
+            "Cannot find patch set %d for change %d in %s. Available Patch sets: %s",
+            patchSet, change, repoUrl, patchSets.keySet()));
+      }
+      return fetchWithChangeNumberAsContext(repository, repoUrl, change,
+          patchSets.get(patchSet).contextReference());
+    }
+
+    private GitRevision resolveLatestPatchSet(GitRepository repository, String repoUrl,
+        GeneralOptions generalOptions, int changeNumber)
         throws RepoException, CannotResolveRevisionException {
-      // TODO(copybara-team): if ref is gerrit url, resolve it properly
-      return GIT.resolveRef(repository, repoUrl, ref, console);
+      GitRevision revisionWithContext = getPatchSets(repository, repoUrl, changeNumber,
+          // Last entry is the latest patchset, since it is ordered by patchsetId.
+          generalOptions).lastEntry().getValue();
+      return fetchWithChangeNumberAsContext(repository, repoUrl, changeNumber,
+          revisionWithContext.contextReference());
+    }
+
+    private GitRevision fetchWithChangeNumberAsContext(GitRepository repository, String repoUrl,
+        int change, String ref) throws RepoException,
+        CannotResolveRevisionException {
+      GitRevision gitRevision = repository.fetchSingleRef(repoUrl, ref);
+      String changeNumber = Integer.toString(change);
+      return new GitRevision(repository, gitRevision.asString(), changeNumber,
+          ImmutableMap.of(GERRIT_CHANGE_NUMBER_LABEL, changeNumber));
+    }
+
+    /**
+     * Get all the patchsets for a change ordered by the patchset number. Last is the most
+     * recent one.
+     */
+    private TreeMap<Integer, GitRevision> getPatchSets(GitRepository repository, String url,
+        int changeNumber, GeneralOptions generalOptions)
+        throws RepoException, CannotResolveRevisionException {
+      TreeMap<Integer, GitRevision> patchSets = new TreeMap<>();
+      String basePath = "refs/changes/" + (changeNumber % 100) + "/" + changeNumber;
+      Map<String, String> refsToSha1 = GitRepository.lsRemote(url,
+          ImmutableList.of(basePath + "/*"), generalOptions.getEnvironment());
+      if (refsToSha1.isEmpty()) {
+        throw new CannotResolveRevisionException(
+            String.format("Cannot find change number %d in '%s'", changeNumber, url));
+      }
+      for (Entry<String, String> e : refsToSha1.entrySet()) {
+        Preconditions.checkState(e.getKey().startsWith(basePath + "/"),
+            String.format("Unexpected response reference %s for %s", e.getKey(), basePath));
+        if (e.getKey().endsWith("/meta")) {
+          continue;
+        }
+        Matcher matcher = WHOLE_REF.matcher(e.getKey());
+        Preconditions.checkArgument(matcher.matches(),
+            "Unexpected format for response reference %s for %s", e.getKey(), basePath);
+        int patchSet = Integer.parseInt(matcher.group(2));
+        patchSets.put(patchSet, new GitRevision(repository, e.getValue(), e.getKey(),
+            ImmutableMap.of()));
+      }
+      return patchSets;
     }
   };
 
@@ -114,6 +208,8 @@ public enum GitRepoType {
     return null;
   }
 
+  public static final String GERRIT_CHANGE_NUMBER_LABEL = "GERRIT_CHANGE_NUMBER";
+
   private static final Logger logger = Logger.getLogger(GitRepoType.class.getCanonicalName());
 
   private static final Pattern GITHUB_PULL_REQUEST =
@@ -125,5 +221,5 @@ public enum GitRepoType {
   private static final Pattern FILE_URL = Pattern.compile("file://(.*)");
 
   abstract GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
-      Console console) throws RepoException, CannotResolveRevisionException;
+      GeneralOptions generalOptions) throws RepoException, CannotResolveRevisionException;
 }

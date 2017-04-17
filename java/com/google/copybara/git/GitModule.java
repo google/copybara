@@ -94,7 +94,6 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
         Boolean includeBranchCommitLogs) throws EvalException {
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
-          self.options.get(GeneralOptions.class).getEnvironment(),
           SkylarkUtil.stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
           includeBranchCommitLogs);
@@ -145,14 +144,13 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   };
 
   @SkylarkSignature(name = "gerrit_origin", returnType = GitOrigin.class,
-      doc = "Defines a Git origin of type Gerrit.",
+      doc = "Defines a Git origin for Gerrit reviews.",
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "url", type = String.class,
               doc = "Indicates the URL of the git repository"),
           @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
-              doc = "Represents the default reference that will be used for reading the revision "
-                  + "from the git repository. For example: 'master'"),
+              doc = "DEPRECATED. Use git.origin for submitted branches."),
           @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
       },
@@ -160,14 +158,21 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction GERRIT_ORIGIN = new BuiltinFunction("gerrit_origin") {
     public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
         Location location) throws EvalException {
-      // TODO(copybara-team): Validate that URL is a Gerrit one
-      // TODO(copybara-team): See if we want to support includeBranchCommitLogs for Gerrit repos.
-      return GitOrigin.newGitOrigin(
-          self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GERRIT,
-          self.options.get(GeneralOptions.class).getEnvironment(),
-          SkylarkUtil.stringToEnum(location, "submodules",
-              submodules, GitOrigin.SubmoduleStrategy.class),
+      String refField = Type.STRING.convertOptional(ref, "ref");
+      if (!Strings.isNullOrEmpty(refField)) {
+        self.options.get(GeneralOptions.class).console().warn(
+            "'ref' field detected in configuration. git.gerrit_origin"
+                + " is deprecating its usage for submitted changes. Use git.origin instead.");
+        return GitOrigin.newGitOrigin(
+            self.options, url, refField, GitRepoType.GERRIT,
+            SkylarkUtil.stringToEnum(location, "submodules",
+                submodules, GitOrigin.SubmoduleStrategy.class),
           /*includeBranchCommitLogs=*/false);
+      }
+
+      return GerritOrigin.newGerritOrigin(
+          self.options, url, GitRepoType.GERRIT, SkylarkUtil.stringToEnum(location, "submodules",
+              submodules, GitOrigin.SubmoduleStrategy.class));
     }
   };
 
@@ -194,7 +199,6 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
-          self.options.get(GeneralOptions.class).getEnvironment(),
           SkylarkUtil.stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
           /*includeBranchCommitLogs=*/false);
