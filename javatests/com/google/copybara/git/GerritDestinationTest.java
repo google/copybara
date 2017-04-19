@@ -206,6 +206,8 @@ public class GerritDestinationTest {
             return new GerritChangeFinder() {
               @Override
               public Response find(String repoUrl, String query, Console console) {
+                assertThat(query).contains("author:\"no-reply@dummy.com\"");
+                assertThat(query).contains("message:\"DummyOrigin-RevId: origin_ref\"");
                 return new Response(ImmutableList.of(new GerritChange(changeId)));
               }
             };

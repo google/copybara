@@ -108,7 +108,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       // Try to see if there is already a Gerrit change for the origin ref and with the same author.
       String query =
           String.format(
-              "owner:self status:open message:`%s: %s`",
+              "owner:self author:\"%s\" status:open message:\"%s: %s\"",
+              transformResult.getAuthor().getEmail(),
               transformResult.getCurrentRevision().getLabelName(),
               transformResult.getCurrentRevision().asString());
       Response response = gerritOptions.getChangeFinder().get().find(repoUrl, query, console);
