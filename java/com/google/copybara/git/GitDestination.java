@@ -74,7 +74,8 @@ public final class GitDestination implements Destination<GitRevision> {
 
   interface CommitGenerator {
     /** Generates a commit message based on the uncommitted index stored in the given repository. */
-    MessageInfo message(TransformResult transformResult, GitRepository repo) throws RepoException;
+    MessageInfo message(TransformResult transformResult, GitRepository repo)
+        throws RepoException, ValidationException;
   }
 
   static final class DefaultCommitGenerator implements CommitGenerator {

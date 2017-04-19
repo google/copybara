@@ -19,9 +19,12 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.hash.Hashing;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.LabelFinder;
@@ -47,7 +50,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -123,16 +125,16 @@ public class GerritDestinationTest {
         + ")");
   }
 
-  private String lastCommitChangeIdLine() throws Exception {
+  private String lastCommitChangeIdLine(String ref) throws Exception {
     GitLogEntry log = Iterables.getOnlyElement(repo().log("refs/for/master").withLimit(1).run());
-    assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + "origin_ref\n");
+    assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + ref + "\n");
     for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
       if (label.isLabel("Change-Id")) {
         assertThat(label.getValue()).matches("I[0-9a-f]{40}$");
         return label.getLine();
       }
     }
-    Assert.fail("Cannot find Change-Id in:\n" + log.getBody());
+    fail("Cannot find Change-Id in:\n" + log.getBody());
     throw new IllegalStateException();
   }
 
@@ -155,15 +157,15 @@ public class GerritDestinationTest {
     options.setForce(true);
     process(new DummyRevision("origin_ref"));
 
-    String firstChangeIdLine = lastCommitChangeIdLine();
+    String firstChangeIdLine = lastCommitChangeIdLine("origin_ref");
 
     Files.write(workdir.resolve("file2"), "some more content".getBytes());
     git("branch", "master", "refs/for/master");
     options.setForce(false);
-    process(new DummyRevision("origin_ref"));
+    process(new DummyRevision("origin_ref2"));
 
     assertThat(firstChangeIdLine)
-        .isNotEqualTo(lastCommitChangeIdLine());
+        .isNotEqualTo(lastCommitChangeIdLine("origin_ref2"));
   }
 
   @Test
@@ -176,7 +178,7 @@ public class GerritDestinationTest {
     options.setForce(true);
     options.gerrit.gerritChangeId = changeId;
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine())
+    assertThat(lastCommitChangeIdLine("origin_ref"))
         .isEqualTo("Change-Id: " + changeId);
 
     git("branch", "master", "refs/for/master");
@@ -187,7 +189,7 @@ public class GerritDestinationTest {
     options.setForce(false);
     options.gerrit.gerritChangeId = changeId;
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine())
+    assertThat(lastCommitChangeIdLine("origin_ref"))
         .isEqualTo("Change-Id: " + changeId);
   }
 
@@ -198,23 +200,94 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("file"), "some content".getBytes());
 
     options.setForce(true);
-    String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
+    String expectedChangeId = "I" + Hashing.sha1()
+        .newHasher()
+        .putString("origin_ref", Charsets.UTF_8)
+        .putInt(0)
+        .hash();
     options.gerrit =
         new GerritOptions() {
           @Override
           protected GerritChangeFinder newChangeFinder() {
             return new GerritChangeFinder() {
               @Override
-              public Response find(String repoUrl, String query, Console console) {
-                assertThat(query).contains("author:\"no-reply@dummy.com\"");
-                assertThat(query).contains("message:\"DummyOrigin-RevId: origin_ref\"");
-                return new Response(ImmutableList.of(new GerritChange(changeId)));
+              public GerritChange query(String repoUrl, String changeId, Console console) {
+                assertThat(changeId).isEqualTo(expectedChangeId);
+                return new GerritChange(changeId, "NEW", true);
               }
             };
           }
         };
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine()).isEqualTo("Change-Id: " + changeId);
+    assertThat(lastCommitChangeIdLine("origin_ref")).isEqualTo("Change-Id: " + expectedChangeId);
+  }
+
+  @Test
+  public void changeAlreadyMergedOnce() throws Exception {
+    fetch = "master";
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+    options.setForce(true);
+    String firstChangeId = "I" + Hashing.sha1()
+        .newHasher()
+        .putString("origin_ref", Charsets.UTF_8)
+        .putInt(0)
+        .hash();
+    String secondChangeId = "I" + Hashing.sha1()
+        .newHasher()
+        .putString("origin_ref", Charsets.UTF_8)
+        .putInt(1)
+        .hash();
+    options.gerrit =
+        new GerritOptions() {
+          @Override
+          protected GerritChangeFinder newChangeFinder() {
+            return new GerritChangeFinder() {
+              @Override
+              public GerritChange query(String repoUrl, String changeId, Console console) {
+                return changeId.equals(firstChangeId)
+                    ? new GerritChange(changeId, "MERGED", true)
+                    : new GerritChange(changeId, null, false);
+              }
+            };
+          }
+        };
+    process(new DummyRevision("origin_ref"));
+    assertThat(lastCommitChangeIdLine("origin_ref")).isEqualTo("Change-Id: " + secondChangeId);
+  }
+
+  @Test
+  public void changeAlreadyMergedTooOften() throws Exception {
+    fetch = "master";
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+    options.setForce(true);
+    String firstChangeId = "I" + Hashing.sha1()
+        .newHasher()
+        .putString("origin_ref", Charsets.UTF_8)
+        .putInt(0)
+        .hash();
+    String secondChangeId = "I" + Hashing.sha1()
+        .newHasher()
+        .putString("origin_ref", Charsets.UTF_8)
+        .putInt(1)
+        .hash();
+    options.gerrit =
+        new GerritOptions() {
+          @Override
+          protected GerritChangeFinder newChangeFinder() {
+            return new GerritChangeFinder() {
+              @Override
+              public GerritChange query(String repoUrl, String changeId, Console console) {
+                return new GerritChange(changeId, "MERGED", true);
+              }
+            };
+          }
+        };
+    try {
+      process(new DummyRevision("origin_ref"));
+      fail("Should have thrown RepoException");
+    } catch (RepoException expected) {
+      assertThat(expected.getMessage()).contains("Unable to find unmerged change for ");
+    }
   }
 
   @Test

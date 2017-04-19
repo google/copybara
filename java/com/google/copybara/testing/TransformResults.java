@@ -29,6 +29,7 @@ public class TransformResults {
   /** Creates an instance with reasonable defaults for testing. */
   public static TransformResult of(Path path, DummyRevision originRef) throws RepoException {
     return new TransformResult(path, originRef, originRef.getAuthor(), "test summary\n",
-                               originRef);
+                               originRef)
+        .withWorkflowIdentity(originRef.asString());
   }
 }

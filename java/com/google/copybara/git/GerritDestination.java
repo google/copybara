@@ -16,13 +16,11 @@
 
 package com.google.copybara.git;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.hash.Hashing;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
@@ -30,7 +28,8 @@ import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
-import com.google.copybara.git.GerritChangeFinder.Response;
+import com.google.copybara.ValidationException;
+import com.google.copybara.git.GerritChangeFinder.GerritChange;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.Glob;
@@ -77,7 +76,7 @@ public final class GerritDestination implements Destination<GitRevision> {
      */
     @Override
     public MessageInfo message(TransformResult result, GitRepository repo)
-        throws RepoException {
+        throws RepoException, ValidationException {
       MessageInfo changeIdAndNew = changeId(repo, result);
 
       Revision rev = result.getCurrentRevision();
@@ -101,34 +100,13 @@ public final class GerritDestination implements Destination<GitRevision> {
      * a lack of better alternative.
      */
     private MessageInfo changeId(GitRepository repo, TransformResult transformResult)
-        throws RepoException {
+        throws RepoException, ValidationException {
       if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
         return new MessageInfo(gerritOptions.gerritChangeId, /*newPush */ false);
       }
-      // Try to see if there is already a Gerrit change for the origin ref and with the same author.
-      String query =
-          String.format(
-              "owner:self author:\"%s\" status:open message:\"%s: %s\"",
-              transformResult.getAuthor().getEmail(),
-              transformResult.getCurrentRevision().getLabelName(),
-              transformResult.getCurrentRevision().asString());
-      Response response = gerritOptions.getChangeFinder().get().find(repoUrl, query, console);
-      if (!response.getParts().isEmpty()) {
-        // Just take the first one.
-        return new MessageInfo(response.getParts().get(0).getChangeId(), /*newPush */ false);
-      }
-      return new MessageInfo(
-          "I"
-              + Hashing.sha1()
-                  .newHasher()
-                  .putString(repo.simpleCommand("write-tree").getStdout(), Charsets.UTF_8)
-                  .putString(maybeParentHash(repo), Charsets.UTF_8)
-                  .putString(
-                      repo.simpleCommand("var", "GIT_AUTHOR_IDENT").getStdout(), Charsets.UTF_8)
-                  .putString(
-                      repo.simpleCommand("var", "GIT_COMMITTER_IDENT").getStdout(), Charsets.UTF_8)
-                  .hash(),
-          /*newPush */ true);
+      GerritChange response = gerritOptions.getChangeFinder().get()
+          .find(repoUrl, transformResult.getWorkflowIdentity(), console);
+      return new MessageInfo(response.getChangeId(), /*newPush */ !response.wasFound());
     }
   }
 

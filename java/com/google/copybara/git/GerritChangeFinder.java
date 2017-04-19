@@ -15,58 +15,113 @@
  */
 package com.google.copybara.git;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.google.common.hash.Hashing;
+import com.google.copybara.RepoException;
 import com.google.copybara.util.console.Console;
-import java.util.List;
+import javax.annotation.Nullable;
 
-/** Generic interface for querying Gerrit. */
-public interface GerritChangeFinder {
+/** Generic abstract class for querying Gerrit. */
+public abstract class GerritChangeFinder {
 
-  /** Each ResponsePart contains information about a single change. */
+  private static final int MAX_ATTEMPTS = 100;
+
+  /**
+   * Information about a single gerrit change.
+   */
   public static class GerritChange {
+    private final boolean found;
     private final String changeId;
+    @Nullable private final String status;
 
-    public GerritChange(String changeId) {
+    public GerritChange(String changeId, String status, boolean found) {
+      Preconditions.checkArgument(!found || status != null,
+          "Status can only be null if the change was not found.");
       this.changeId = Preconditions.checkNotNull(changeId);
+      this.status = status;
+      this.found = found;
     }
+
+    /**
+     * @return ChangeId of the retrieved change
+     */
     public String getChangeId() {
       return changeId;
     }
 
+    /**
+     * @return Status of the retrieved change, e.g. MERGED or NEW.
+     *     Can be null if the change was not found.
+     */
+    @Nullable public String getStatus() {
+      return status;
+    }
+
+    /**
+     * @return Whether an unmerged change was found.
+     */
+    public boolean wasFound() {
+      return found;
+    }
+
+
     @Override
     public String toString() {
-      return "changeId=" + changeId;
-    }
-  }
-
-  /** Response to a query. */
-  public static class Response {
-    private final List<GerritChange> changes;
-
-    public Response(ImmutableList<GerritChange> changes) {
-      this.changes = Preconditions.checkNotNull(changes);
-    }
-
-    public List<GerritChange> getParts() {
-      return changes;
+      return String.format("changeId='%s'\nstatus='%s'\nfound='%s'", changeId, status, found);
     }
   }
 
   /** Default no op implementation. */
   // TODO(copybara-team) - provide a proper implementation.
-  public static class Default implements GerritChangeFinder {
+  public static class Default extends GerritChangeFinder {
 
     @Override
-    public Response find(String url, String query, Console console) {
-      return new Response(ImmutableList.of());
+    protected GerritChange query(String url, String changeId, Console console) {
+      // Default implementation: rehash with the time to avoid collisions - will never find a change
+      return new GerritChange(
+          computeChangeId(changeId, (int) (System.currentTimeMillis() / 1000)), null, false);
     }
   }
 
+  protected String computeChangeId(String workflowId, int attempt) {
+    return "I"
+        + Hashing.sha1()
+        .newHasher()
+        .putString(workflowId, Charsets.UTF_8)
+        .putInt(attempt)
+        .hash();
+  }
+
   /**
-   * Queries a repo in Gerrit for changes. @see <a
-   * href="https://gerrit-review.googlesource.com/Documentation/user-search.html"/>for how to query
-   * Gerrit.
+   * Queries for a change with the given changeId
+   * @param repoUrl Gerrit repository URL
+   * @param changeId The changeId of the change to find
+   * @param console
+   * @return
    */
-  public Response find(String repoUrl, String query, Console console);
+  protected abstract GerritChange query(String repoUrl, String changeId, Console console)
+      throws RepoException;
+
+
+  /**
+   * Finds the first unmerged change for the given workflowId or the changeId to use for a new one,
+   * if none are found.
+   * @param repoUrl Gerrit repository URL
+   * @param workflowId The WorkflowId of the change to find
+   * @param console
+   * @return
+   */
+  public GerritChange find(String repoUrl, String workflowId, Console console)
+      throws RepoException {
+    int attempt = 0;
+    while (attempt <= MAX_ATTEMPTS) {
+      GerritChange change = query(repoUrl, computeChangeId(workflowId, attempt), console);
+      if (!change.wasFound() || change.getStatus().equals("NEW")) {
+        return change;
+      }
+      attempt++;
+    }
+    throw new RepoException(String.format("Unable to find unmerged change for '%s'.", workflowId));
+  }
 }
