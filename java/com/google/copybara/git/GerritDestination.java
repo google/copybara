@@ -33,6 +33,7 @@ import com.google.copybara.git.GerritChangeFinder.GerritChange;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -162,7 +163,8 @@ public final class GerritDestination implements Destination<GitRevision> {
             firstMigration,
             /*skipPush=*/ false,
             new CommitGenerator(gerritOptions, url, generalOptions.console()),
-            new GerritProcessPushOutput(generalOptions.console()),
+            new GerritProcessPushOutput(
+                generalOptions.console(), generalOptions.getStructuredOutput()),
             environment,
             generalOptions.console(),
             generalOptions.getTmpDirectoryFactory()));
@@ -173,9 +175,11 @@ public final class GerritDestination implements Destination<GitRevision> {
     private static final Pattern GERRIT_URL_LINE = Pattern.compile(
         ".*: *(http(s)?://[^ ]+)( .*)?");
     private final Console console;
+    private final StructuredOutput structuredOutput;
 
-    GerritProcessPushOutput(Console console) {
-      this.console = console;
+    GerritProcessPushOutput(Console console, StructuredOutput structuredOutput) {
+      this.console = Preconditions.checkNotNull(console);
+      this.structuredOutput = Preconditions.checkNotNull(structuredOutput);
     }
 
     @Override
@@ -191,7 +195,9 @@ public final class GerritDestination implements Destination<GitRevision> {
             String message = newReview
                 ? "New Gerrit review created at "
                 : "Updated existing Gerrit review at ";
-            console.info(message + matcher.group(1));
+            message = message + matcher.group(1);
+            console.info(message);
+            structuredOutput.summary.append(message);
           }
         }
       }

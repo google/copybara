@@ -39,6 +39,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -350,26 +351,33 @@ public class GerritDestinationTest {
   @Test
   public void testProcessPushOutput_new() {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
+    StructuredOutput struct = new StructuredOutput();
     GerritProcessPushOutput process =
         new GerritProcessPushOutput(
-            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false));
+            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
+            struct);
 
     process.process(GERRIT_RESPONSE, /*newReview*/ true);
 
     assertThat(out.toString())
         .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
+    assertThat(struct.summary.toString())
+        .contains("New Gerrit review created at https://some.url.google.com/1234");
   }
 
   @Test
   public void testProcessPushOutput_existing() {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
+    StructuredOutput struct = new StructuredOutput();
     GerritProcessPushOutput process = new GerritProcessPushOutput(
-        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false));
+        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false), struct);
 
     process.process(GERRIT_RESPONSE, /*newReview*/ false);
 
     assertThat(out.toString())
         .contains("INFO: Updated existing Gerrit review at https://some.url.google.com/1234");
+    assertThat(struct.summary.toString())
+        .contains("Updated existing Gerrit review at https://some.url.google.com/1234");
   }
 
   @Test
