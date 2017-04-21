@@ -131,9 +131,13 @@ public enum WorkflowMode {
                       runHelper.getWorkflowIdentity(change.getRevision()));
           migratedChanges++;
         } catch (EmptyChangeException e) {
-          runHelper.getConsole().warn(change.getRevision() + " resulted in an empty change in"
-              + " the destination: " + e.getMessage());
+          runHelper.getConsole().warnFmt("Migration of origin revision '%s' resulted in an empty"
+              + " change in the destination: %s", change.getRevision().asString(), e.getMessage());
           result = WriterResult.OK;
+        } catch (ValidationException | RepoException e) {
+          runHelper.getConsole().errorFmt("Migration of origin revision '%s' failed with error: %s",
+              change.getRevision().asString(), e.getMessage());
+          throw e;
         }
         migrated.addFirst(change);
 

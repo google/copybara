@@ -23,6 +23,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -279,6 +280,38 @@ public class WorkflowTest {
 
   @Test
   public void testIterativeModeProducesNoop() throws Exception {
+    assertThat(checkIterativeModeWithError(new EmptyChangeException("This was an empty change!")))
+        .hasMessage(
+            "Iterative workflow produced no changes in the destination for resolved ref: 3");
+    console().assertThat()
+        .onceInLog(MessageType.WARNING,
+            "Migration of origin revision '2' resulted in an empty change.*")
+        .onceInLog(MessageType.WARNING,
+            "Migration of origin revision '3' resulted in an empty change.*");
+
+  }
+
+  @Test
+  public void testIterativeValidationException() throws Exception {
+    assertThat(checkIterativeModeWithError(new ValidationException("Your change is wrong!")))
+        .hasMessage("Your change is wrong!");
+    console().assertThat()
+        .onceInLog(MessageType.ERROR,
+            "Migration of origin revision '2' failed with error: Your change is wrong.*");
+  }
+
+  @Test
+  public void testIterativeRepoException() throws Exception {
+    assertThat(checkIterativeModeWithError(new RepoException("Your change is wrong!")))
+        .hasMessage("Your change is wrong!");
+    console().assertThat()
+        .onceInLog(MessageType.ERROR,
+            "Migration of origin revision '2' failed with error: Your change is wrong.*");
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends Exception> T checkIterativeModeWithError(final T exception)
+      throws IOException, ValidationException {
     for (int timestamp = 0; timestamp < 10; timestamp++) {
       origin.addSimpleChange(timestamp);
     }
@@ -286,11 +319,14 @@ public class WorkflowTest {
     options.testingOptions.destination = new RecordsProcessCallDestination() {
       @Override
       public Writer newWriter(Glob destinationFiles) {
-        return new RecordsProcessCallDestination.WriterImpl(destinationFiles) {
+        return new WriterImpl(destinationFiles) {
           @Override
           public WriterResult write(TransformResult transformResult, Console console)
               throws ValidationException, RepoException, IOException {
-            throw new EmptyChangeException("This was an empty change!");
+            assert exception != null;
+            Throwables.propagateIfPossible(exception, ValidationException.class,
+                RepoException.class);
+            throw new RuntimeException(exception);
           }
         };
       }
@@ -300,10 +336,11 @@ public class WorkflowTest {
     try {
       workflow.run(workdir, /*sourceRef=*/"3");
       fail();
-    } catch (EmptyChangeException expected) {
-      assertThat(expected).hasMessage(
-          "Iterative workflow produced no changes in the destination for resolved ref: 3");
+    } catch (Exception expected) {
+      assertThat(expected).isInstanceOf(expected.getClass());
+      return (T) expected;
     }
+    return exception;
   }
 
   @Test
