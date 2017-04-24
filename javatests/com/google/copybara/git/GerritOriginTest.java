@@ -19,11 +19,13 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -125,6 +127,13 @@ public class GerritOriginTest {
     thrown.expect(CannotResolveRevisionException.class);
     thrown.expectMessage("Cannot find patch set 42");
     origin.resolve("http://foo.com/#/c/12345/42");
+  }
+
+  @Test
+  public void testDescribe() throws RepoException, ValidationException {
+    ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
+    assertThat(actual.get("type")).containsExactly("git.origin");
+    assertThat(actual.get("repoType")).containsExactly("GERRIT");
   }
 
   private void validateSameGitRevision(GitRevision resolved, GitRevision expected) {

@@ -93,7 +93,9 @@ public class GitOrigin implements Origin<GitRevision> {
     this.console = generalOptions.console();
     this.repository = checkNotNull(repository);
     // Remove a possible trailing '/' so that the url is normalized.
-    this.repoUrl = repoUrl.endsWith("/") ? repoUrl.substring(0, repoUrl.length() - 1) : repoUrl;
+    this.repoUrl = checkNotNull(repoUrl).endsWith("/")
+        ? repoUrl.substring(0, repoUrl.length() - 1)
+        : repoUrl;
     this.configRef = configRef;
     this.repoType = checkNotNull(repoType);
     this.gitOptions = gitOptions;
@@ -301,12 +303,15 @@ public class GitOrigin implements Origin<GitRevision> {
 
   @Override
   public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
-    return new ImmutableSetMultimap.Builder<String, String>()
-        .put("type", "git.origin")
-        .put("repoType", repoType.name())
-        .put("url", repoUrl)
-        .put("ref", configRef)
-        .put("submodules", submoduleStrategy.name())
-        .build();
+    ImmutableSetMultimap.Builder<String, String> builder =
+        new ImmutableSetMultimap.Builder<String, String>()
+            .put("type", "git.origin")
+            .put("repoType", repoType.name())
+            .put("url", repoUrl)
+            .put("submodules", submoduleStrategy.name());
+    if (configRef != null) {
+      builder.put("ref", configRef);
+    }
+    return builder.build();
   }
 }

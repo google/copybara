@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.CannotResolveRevisionException;
@@ -679,6 +680,13 @@ public class GitOriginTest {
     String message = Iterables.getOnlyElement(changes).getMessage();
     assertThat(message).doesNotContain(ChangeReader.BRANCH_COMMIT_LOG_HEADING);
     assertThat(message).contains("i hope this is included in the migrated message!");
+  }
+
+  @Test
+  public void testDescribe() throws RepoException, ValidationException {
+    ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
+    assertThat(actual.get("type")).containsExactly("git.origin");
+    assertThat(actual.get("repoType")).containsExactly("GIT");
   }
 
   private GitRevision getLastCommitRef() throws RepoException, ValidationException {
