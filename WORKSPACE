@@ -57,6 +57,21 @@ maven_jar(
 )
 
 # LICENSE: The Apache Software License, Version 2.0
+# Required by mockito
+maven_jar(
+    name = "objenesis",
+    artifact = "org.objenesis:objenesis:1.0",
+    sha1 = "9b473564e792c2bdf1449da1f0b1b5bff9805704",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "mockito",
+    artifact = "org.mockito:mockito-core:1.9.5",
+    sha1 = "c3264abeea62c4d2f367e21484fbb40c7e256393",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "jimfs",
     artifact = "com.google.jimfs:jimfs:1.0",

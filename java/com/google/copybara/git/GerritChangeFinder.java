@@ -15,11 +15,12 @@
  */
 package com.google.copybara.git;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.hash.Hashing;
 import com.google.copybara.RepoException;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.util.console.Console;
+import java.nio.charset.StandardCharsets;
 import javax.annotation.Nullable;
 
 /** Generic abstract class for querying Gerrit. */
@@ -65,7 +66,6 @@ public abstract class GerritChangeFinder {
       return found;
     }
 
-
     @Override
     public String toString() {
       return String.format("changeId='%s'\nstatus='%s'\nfound='%s'", changeId, status, found);
@@ -80,15 +80,17 @@ public abstract class GerritChangeFinder {
     protected GerritChange query(String url, String changeId, Console console) {
       // Default implementation: rehash with the time to avoid collisions - will never find a change
       return new GerritChange(
-          computeChangeId(changeId, (int) (System.currentTimeMillis() / 1000)), null, false);
+          computeChangeId(
+              changeId, "DummyCommitter", (int) (System.currentTimeMillis() / 1000)), null, false);
     }
   }
 
-  protected String computeChangeId(String workflowId, int attempt) {
+  protected String computeChangeId(String workflowId, String committerEmail, int attempt) {
     return "I"
         + Hashing.sha1()
         .newHasher()
-        .putString(workflowId, Charsets.UTF_8)
+        .putString(workflowId, StandardCharsets.UTF_8)
+        .putString(committerEmail, StandardCharsets.UTF_8)
         .putInt(attempt)
         .hash();
   }
@@ -98,7 +100,6 @@ public abstract class GerritChangeFinder {
    * @param repoUrl Gerrit repository URL
    * @param changeId The changeId of the change to find
    * @param console
-   * @return
    */
   protected abstract GerritChange query(String repoUrl, String changeId, Console console)
       throws RepoException;
@@ -109,19 +110,22 @@ public abstract class GerritChangeFinder {
    * if none are found.
    * @param repoUrl Gerrit repository URL
    * @param workflowId The WorkflowId of the change to find
+   * @param committer Committer for the change
    * @param console
-   * @return
    */
-  public GerritChange find(String repoUrl, String workflowId, Console console)
+  public GerritChange find(String repoUrl, String workflowId, Author committer, Console console)
       throws RepoException {
     int attempt = 0;
     while (attempt <= MAX_ATTEMPTS) {
-      GerritChange change = query(repoUrl, computeChangeId(workflowId, attempt), console);
+      GerritChange change =
+          query(repoUrl, computeChangeId(workflowId, committer.getEmail(), attempt), console);
       if (!change.wasFound() || change.getStatus().equals("NEW")) {
         return change;
       }
       attempt++;
     }
-    throw new RepoException(String.format("Unable to find unmerged change for '%s'.", workflowId));
+    throw new RepoException(
+        String.format("Unable to find unmerged change for '%s', committer '%s'.",
+            workflowId, committer));
   }
 }

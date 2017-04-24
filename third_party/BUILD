@@ -97,6 +97,17 @@ java_library(
 )
 
 java_library(
+    name = "mockito",
+    testonly = 1,
+    exports = [
+        "@mockito//jar",
+    ],
+    runtime_deps = [
+        "@objenesis//jar",
+    ],
+)
+
+java_library(
     name = "jsr305",
     exports = [
         "@jsr305//jar",

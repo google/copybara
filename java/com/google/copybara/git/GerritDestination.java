@@ -29,6 +29,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.git.GerritChangeFinder.GerritChange;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
@@ -53,11 +54,14 @@ public final class GerritDestination implements Destination<GitRevision> {
 
     private final GerritOptions gerritOptions;
     private final String repoUrl;
+    private final Author committer;
     private final Console console;
 
-    private CommitGenerator(GerritOptions gerritOptions, String repoUrl, Console console) {
+    private CommitGenerator(
+        GerritOptions gerritOptions, String repoUrl, Author committer, Console console) {
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
+      this.committer = Preconditions.checkNotNull(committer);
       this.console = Preconditions.checkNotNull(console);
     }
 
@@ -106,7 +110,7 @@ public final class GerritDestination implements Destination<GitRevision> {
         return new MessageInfo(gerritOptions.gerritChangeId, /*newPush */ false);
       }
       GerritChange response = gerritOptions.getChangeFinder().get()
-          .find(repoUrl, transformResult.getWorkflowIdentity(), console);
+          .find(repoUrl, transformResult.getWorkflowIdentity(), committer, console);
       return new MessageInfo(response.getChangeId(), /*newPush */ !response.wasFound());
     }
   }
@@ -162,9 +166,13 @@ public final class GerritDestination implements Destination<GitRevision> {
             generalOptions.isVerbose(),
             firstMigration,
             /*skipPush=*/ false,
-            new CommitGenerator(gerritOptions, url, generalOptions.console()),
+            new CommitGenerator(gerritOptions,
+                url,
+                options.get(GitDestinationOptions.class).getCommitter(),
+                generalOptions.console()),
             new GerritProcessPushOutput(
-                generalOptions.console(), generalOptions.getStructuredOutput()),
+                generalOptions.console(),
+                generalOptions.getStructuredOutput()),
             environment,
             generalOptions.console(),
             generalOptions.getTmpDirectoryFactory()));
@@ -222,6 +230,5 @@ public final class GerritDestination implements Destination<GitRevision> {
     return builder
         .put("type", "gerrit.destination")
         .build();
-
   }
 }

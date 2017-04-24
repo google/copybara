@@ -46,6 +46,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -203,7 +204,8 @@ public class GerritDestinationTest {
     options.setForce(true);
     String expectedChangeId = "I" + Hashing.sha1()
         .newHasher()
-        .putString("origin_ref", Charsets.UTF_8)
+        .putString("origin_ref", StandardCharsets.UTF_8)
+        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
         .putInt(0)
         .hash();
     options.gerrit =
@@ -230,12 +232,14 @@ public class GerritDestinationTest {
     options.setForce(true);
     String firstChangeId = "I" + Hashing.sha1()
         .newHasher()
-        .putString("origin_ref", Charsets.UTF_8)
+        .putString("origin_ref", StandardCharsets.UTF_8)
+        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
         .putInt(0)
         .hash();
     String secondChangeId = "I" + Hashing.sha1()
         .newHasher()
-        .putString("origin_ref", Charsets.UTF_8)
+        .putString("origin_ref", StandardCharsets.UTF_8)
+        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
         .putInt(1)
         .hash();
     options.gerrit =
@@ -263,12 +267,14 @@ public class GerritDestinationTest {
     options.setForce(true);
     String firstChangeId = "I" + Hashing.sha1()
         .newHasher()
-        .putString("origin_ref", Charsets.UTF_8)
+        .putString("origin_ref", StandardCharsets.UTF_8)
+        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
         .putInt(0)
         .hash();
     String secondChangeId = "I" + Hashing.sha1()
         .newHasher()
         .putString("origin_ref", Charsets.UTF_8)
+        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
         .putInt(1)
         .hash();
     options.gerrit =

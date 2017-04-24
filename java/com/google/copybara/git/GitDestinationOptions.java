@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.copybara.Option;
+import com.google.copybara.authoring.Author;
 import javax.annotation.Nullable;
 
 /**
@@ -39,6 +40,10 @@ public final class GitDestinationOptions implements Option {
       description = "If set, overrides the committer e-mail for the generated commits in git"
           + " destination.")
   String committerEmail = "";
+
+  Author getCommitter() {
+    return new Author(committerName, committerEmail);
+  }
 
   @Parameter(names = "--git-destination-url",
       description = "If set, overrides the git destination URL.")

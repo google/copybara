@@ -29,6 +29,7 @@ DEPS = [
     "//third_party:jcommander",
     "//third_party:skylark-lang",
     "//third_party:truth",
+    "//third_party:mockito",
 ]
 
 java_library(
