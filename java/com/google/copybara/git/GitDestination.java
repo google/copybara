@@ -149,17 +149,19 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles) {
-    return new WriterImpl(destinationFiles);
+  public Writer newWriter(Glob destinationFiles, boolean dryRun) {
+    return new WriterImpl(destinationFiles, dryRun);
   }
 
   private class WriterImpl implements Writer {
 
     @Nullable private GitRepository scratchClone;
     private final Glob destinationFiles;
+    private final boolean dryRun;
 
-    WriterImpl(Glob destinationFiles) {
+    WriterImpl(Glob destinationFiles, boolean dryRun) {
       this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
+      this.dryRun = dryRun;
     }
 
     @Nullable
@@ -212,7 +214,9 @@ public final class GitDestination implements Destination<GitRevision> {
     public WriterResult write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
       logger.log(Level.INFO, "Exporting from " + transformResult.getPath() + " to: " + this);
-
+      if (dryRun) {
+        throw new ValidationException("Dry-run still not supported for any git destination");
+      }
       String baseline = transformResult.getBaseline();
       if (scratchClone == null) {
         console.progress("Git Destination: Fetching " + repoUrl);

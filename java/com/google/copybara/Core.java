@@ -227,6 +227,11 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               doc = "Indicates that the tool should show the diff and require user's"
                   + " confirmation before making a change in the destination.",
               defaultValue = "False", positional = false),
+          @Param(name = "dry_run", type = Boolean.class,
+              doc = "Run the migration in dry-run mode. Some destination implementations might"
+                  + " have some side effects (like creating a code review), but never submit to a"
+                  + " main branch.",
+              defaultValue = "False", positional = false),
       },
       objectType = Core.class, useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -238,7 +243,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           "SQUASH",
           Runtime.NONE,
           false,
-          MutableList.EMPTY
+          Boolean.FALSE,
+          Boolean.FALSE
       )) {
 
     public NoneType invoke(Core self, String workflowName,
@@ -249,6 +255,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         String modeStr,
         Object reversibleCheckObj,
         Boolean askForConfirmation,
+        Boolean dryRunMode,
         Location location,
         Environment env)
         throws EvalException {
@@ -281,7 +288,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           reverseTransform,
           askForConfirmation,
           self.mainConfigFile,
-          self.allConfigFiles));
+          self.allConfigFiles,
+          self.workflowOptions.dryRunMode || dryRunMode));
       return Runtime.NONE;
     }
   };

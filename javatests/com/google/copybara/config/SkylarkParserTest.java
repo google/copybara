@@ -443,7 +443,7 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public Writer newWriter(Glob destinationFiles) {
+    public Writer newWriter(Glob destinationFiles, boolean dryRun) {
       throw new UnsupportedOperationException();
     }
 

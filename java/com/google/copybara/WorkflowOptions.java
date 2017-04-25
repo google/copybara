@@ -68,6 +68,12 @@ public class WorkflowOptions implements Option {
           + " flag disables that behavior and runs for all the changes.")
   public boolean iterativeAllChanges = false;
 
+  @Parameter(names = "--dry-run",
+      description = "Run the migration in dry-run mode. Some destination implementations might"
+          + " have some side effects (like creating a code review), but never submit to a main"
+          + " branch.")
+  public boolean dryRunMode = false;
+
 
   /**
    * Reports that some operation is a no-op. This will either throw an exception or report the

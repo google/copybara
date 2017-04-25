@@ -121,11 +121,14 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    * access to a {@link Console}.
    *
    * @param destinationFiles A path matcher which matches files in the destination that should be
-   *     deleted if they don't exist in the source.
+   * deleted if they don't exist in the source.
+   * @param dryRun if the writer should be created in dry-run mode. Dry-run modes might vary
+   * between implementations. Some implementations might chose to create a side effect as far as
+   * it is not in the main branch.
    * @throws ValidationException if the writer could not be created because of a user error. For
-   *     instance, the destination cannot be used with the given {@code destinationFiles}.
+   * instance, the destination cannot be used with the given {@code destinationFiles}.
    */
-  Writer newWriter(Glob destinationFiles) throws ValidationException;
+  Writer newWriter(Glob destinationFiles, boolean dryRun) throws ValidationException;
 
   /**
    * Given a reverse workflow with an {@code Origin} than is of the same type as this destination,

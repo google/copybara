@@ -62,9 +62,11 @@ public class RecordsProcessCallDestination implements Destination {
   public class WriterImpl implements Writer {
 
     final Glob destinationFiles;
+    private final boolean dryRun;
 
-    public WriterImpl(Glob destinationFiles) {
+    public WriterImpl(Glob destinationFiles, boolean dryRun) {
       this.destinationFiles = destinationFiles;
+      this.dryRun = dryRun;
     }
 
     @Nullable
@@ -85,7 +87,7 @@ public class RecordsProcessCallDestination implements Destination {
         throw new EmptyChangeException("Change did not produce a result");
       }
       processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
-          transformResult.getBaseline(), destinationFiles));
+          transformResult.getBaseline(), destinationFiles, dryRun));
       return programmedResults.isEmpty()
           ? WriterResult.OK
           : programmedResults.removeFirst();
@@ -111,8 +113,8 @@ public class RecordsProcessCallDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles) {
-    return new WriterImpl(destinationFiles);
+  public Writer newWriter(Glob destinationFiles, boolean dryRun) {
+    return new WriterImpl(destinationFiles, dryRun);
   }
 
   @Override
@@ -126,13 +128,15 @@ public class RecordsProcessCallDestination implements Destination {
     private final ImmutableMap<String, String> workdir;
     private final String baseline;
     private final Glob destinationFiles;
+    private final boolean dryRun;
 
     private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir,
-        String baseline, Glob destinationFiles) {
+        String baseline, Glob destinationFiles, boolean dryRun) {
       this.transformResult = Preconditions.checkNotNull(transformResult);
       this.workdir = Preconditions.checkNotNull(workdir);
       this.baseline = baseline;
       this.destinationFiles = destinationFiles;
+      this.dryRun = dryRun;
     }
 
     public ZonedDateTime getTimestamp() {
@@ -157,6 +161,10 @@ public class RecordsProcessCallDestination implements Destination {
 
     public int numFiles() {
       return workdir.size();
+    }
+
+    public boolean isDryRun() {
+      return dryRun;
     }
 
     public String getContent(String fileName) {

@@ -320,8 +320,8 @@ public class WorkflowTest {
     // Override destination with one that always throws EmptyChangeException.
     options.testingOptions.destination = new RecordsProcessCallDestination() {
       @Override
-      public Writer newWriter(Glob destinationFiles) {
-        return new WriterImpl(destinationFiles) {
+      public Writer newWriter(Glob destinationFiles, boolean dryRun) {
+        return new WriterImpl(destinationFiles, dryRun) {
           @Override
           public WriterResult write(TransformResult transformResult, Console console)
               throws ValidationException, RepoException, IOException {
@@ -601,10 +601,12 @@ public class WorkflowTest {
     options.setForce(true);
     workflow().run(workdir, HEAD);
 
-    assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
+    assertThat(destination.newWriter(Glob.ALL_FILES, /*dryRun=*/false)
+        .getPreviousRef(origin.getLabelName()))
         .isEqualTo("3");
     workflow().run(workdir, oldRef);
-    assertThat(destination.newWriter(Glob.ALL_FILES).getPreviousRef(origin.getLabelName()))
+    assertThat(destination.newWriter(Glob.ALL_FILES, /*dryRun=*/false)
+        .getPreviousRef(origin.getLabelName()))
         .isEqualTo("0");
   }
 

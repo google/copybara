@@ -73,6 +73,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean force;
   private final ConfigFile<?> mainConfigFile;
   private final Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
+  private final boolean dryRunMode;
 
   public Workflow(
       String name,
@@ -89,7 +90,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       @Nullable Transformation reverseTransformForCheck,
       boolean askForConfirmation,
       ConfigFile<?> mainConfigFile,
-      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles) {
+      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles,
+      boolean dryRunMode) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -108,6 +110,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.force = generalOptions.isForced();
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.allConfigFiles = allConfigFiles;
+    this.dryRunMode = dryRunMode;
   }
 
   @Override
@@ -193,7 +196,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)
       throws ValidationException, RepoException {
-    return new WorkflowRunHelper<>(this, workdir, resolvedRef);
+    return WorkflowRunHelper.createWorkflowRunHelper(this, workdir, resolvedRef, dryRunMode);
   }
 
   Set<String> configPaths() {
@@ -207,7 +210,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
           () -> origin.resolve(/*sourceRef=*/ null));
 
       String lastRef = generalOptions.repoTask("destination.previous_ref",
-          () -> destination.newWriter(destinationFiles)
+          // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
+          // Should be K since info doesn't write but only read.
+          () -> destination.newWriter(destinationFiles, /*dryrun=*/false)
               .getPreviousRef(origin.getLabelName()));
 
       O lastMigrated = generalOptions.repoTask("origin.last_migrated",
@@ -273,6 +278,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Override
   public String getModeString() {
     return mode.toString();
+  }
+
+  public boolean isDryRunMode() {
+    return dryRunMode;
   }
 
   /**

@@ -21,7 +21,9 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -51,19 +53,29 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private final Destination.Reader<D> destinationReader;
   private final Destination.Writer writer;
 
-  /**
-   * @param workdir working directory to use for the transformations
-   * @param resolvedRef revision to migrate
-   */
-  public WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef)
-      throws ValidationException, RepoException {
+  protected WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
+      Reader<O> originReader, @Nullable Destination.Reader<D> destinationReader,
+      Writer destinationWriter) throws ValidationException, RepoException {
     this.workflow = Preconditions.checkNotNull(workflow);
     this.workdir = Preconditions.checkNotNull(workdir);
     this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
-    this.originReader = workflow.getOrigin()
-        .newReader(workflow.getOriginFiles(), workflow.getAuthoring());
-    this.writer = workflow.getDestination().newWriter(workflow.getDestinationFiles());
-    this.destinationReader = workflow.getDestination().newReader(workflow.getDestinationFiles());
+    this.originReader = Preconditions.checkNotNull(originReader);
+    this.destinationReader = destinationReader;
+    this.writer = Preconditions.checkNotNull(destinationWriter);
+  }
+
+  /**
+   * @param workdir working directory to use for the transformations
+   * @param resolvedRef revision to migrate
+   * @param dryRun if the destination writer should be create in dry-run mode.
+   */
+  public static <O extends Revision, D extends Revision> WorkflowRunHelper<O, D>
+  createWorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef, boolean dryRun)
+      throws ValidationException, RepoException {
+    return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, workflow.getOrigin()
+        .newReader(workflow.getOriginFiles(), workflow.getAuthoring()),
+        workflow.getDestination().newReader(workflow.getDestinationFiles()),
+        workflow.getDestination().newWriter(workflow.getDestinationFiles(), dryRun));
   }
 
   protected WorkflowRunHelper<O, D> forChanges(Changes changes)
