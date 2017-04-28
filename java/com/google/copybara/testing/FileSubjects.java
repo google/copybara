@@ -107,6 +107,20 @@ public class FileSubjects {
     }
 
     /**
+     * Checks that a filename exists relative to the path, that the contents match and that the
+     * executable bit is set.
+     */
+    public PathSubject containsExecutableFile(String filename, String fileContents)
+        throws IOException {
+      containsFile(filename, fileContents);
+      Path filePath = checkFile(filename);
+      if (!Files.isExecutable(filePath)) {
+        fail("should be executable", filePath);
+      }
+      return this;
+    }
+
+    /**
      * Checks that a filename exists relative to the path and that it is a symlink pointing to
      * target.
      */

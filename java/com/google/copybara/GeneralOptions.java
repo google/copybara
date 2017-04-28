@@ -127,6 +127,13 @@ public final class GeneralOptions implements Option {
     return configRoot;
   }
 
+  /**
+   * Returns the output root directory, or null if not set.
+   *
+   * <p>This method is exposed mainly for tests and it's probably not what you're looking for. Try
+   * {@link #getTmpDirectoryFactory()} instead.
+   */
+  @VisibleForTesting
   @Nullable
   public Path getOutputRoot() {
     return outputRoot;
