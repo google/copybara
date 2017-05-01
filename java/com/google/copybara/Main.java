@@ -228,7 +228,7 @@ public class Main {
   /**
    * Returns a module supplier.
    */
-  protected ModuleSupplier newModuleSupplier() {
+  protected ModuleSupplier newModuleSupplier() throws ValidationException {
     return new ModuleSupplier();
   }
 
