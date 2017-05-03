@@ -62,7 +62,7 @@ public final class GitDestinationOptions implements Option {
   @Nullable
   @Parameter(names = "--git-destination-path",
       description = "If set, the tool will use this directory for the local repository."
-          + " Note that the directory will be deleted each time Copybara ir run.")
+          + " Note that the directory will be deleted each time Copybara is run.")
   String localRepoPath = null;
 
   @Parameter(names = "--git-destination-skip-push",

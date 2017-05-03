@@ -956,7 +956,7 @@ Name | Type | Description
 <a id="git.gerrit_origin" aria-hidden="true"></a>
 ## git.gerrit_origin
 
-Defines a Git origin of type Gerrit.
+Defines a Git origin for Gerrit reviews.
 
 `gitOrigin git.gerrit_origin(url, ref=None, submodules='NO')`
 
@@ -965,7 +965,7 @@ Defines a Git origin of type Gerrit.
 Parameter | Description
 --------- | -----------
 url|`string`<br><p>Indicates the URL of the git repository</p>
-ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+ref|`string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 
 
@@ -1013,7 +1013,7 @@ Name | Type | Description
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
 --git-destination-push | *string* | If set, overrides the git destination push reference.
---git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara ir run.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara is run.
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 
@@ -1044,7 +1044,7 @@ Name | Type | Description
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
 --git-destination-push | *string* | If set, overrides the git destination push reference.
---git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara ir run.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara is run.
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 
