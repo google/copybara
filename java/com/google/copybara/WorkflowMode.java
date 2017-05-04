@@ -170,6 +170,9 @@ public enum WorkflowMode {
         throws RepoException, IOException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
+      ValidationException.checkCondition(runHelper.destinationSupportsPreviousRef(),
+          String.format("'%s' is incompatible with destinations that don't support history"
+              + " (For example folder.destination)", CHANGE_REQUEST));
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
         runHelper.getOriginReader().visitChanges(runHelper.getResolvedRef(),

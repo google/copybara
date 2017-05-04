@@ -34,6 +34,7 @@ import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.folder.FolderModule;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -113,7 +114,8 @@ public class WorkflowTest {
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     options.setForce(true); // Force by default unless we are testing the flag.
-    skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class, MetadataModule.class));
+    skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class, MetadataModule.class,
+        FolderModule.class));
   }
 
   private TestingConsole console() {
@@ -1158,6 +1160,26 @@ public class WorkflowTest {
     Workflow workflow = skylarkWorkflow("default", SQUASH);
 
     workflow.run(workdir, HEAD);
+  }
+
+  @Test
+  public void changeRequestWithFolderDestinationError()
+      throws IOException, ValidationException, RepoException {
+    origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
+
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("'CHANGE_REQUEST' is incompatible with destinations that don't support"
+        + " history");
+
+    loadConfig("core.workflow(\n"
+        + "    name = 'foo',\n"
+        + "    origin = testing.origin(),\n"
+        + "    destination = folder.destination(),\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    mode = 'CHANGE_REQUEST',\n"
+        + ")\n")
+        .getMigration("foo")
+        .run(workdir, null);
   }
 
   private void prepareOriginExcludes(String content) throws IOException {
