@@ -321,7 +321,7 @@ public final class GitDestination implements Destination<GitRevision> {
                 .getStderr(),
             messageInfo.newPush);
       } else {
-        console.info("Local repository available at " + alternate.getWorkTree());
+        console.info("Local repository available at " + scratchClone.getWorkTree());
       }
       return WriterResult.OK;
     }
