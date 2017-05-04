@@ -216,8 +216,14 @@ public class GitOrigin implements Origin<GitRevision> {
             || current.getParents().isEmpty()) {
           break;
         }
-        current =
-            Iterables.getOnlyElement(queryChanges.run(current.getParents().get(0).asString()));
+        String parentRef = current.getParents().get(0).asString();
+        ImmutableList<GitChange> changes = queryChanges.run(parentRef);
+        if (changes.isEmpty()) {
+          throw new CannotResolveRevisionException(String.format(
+              "'%s' revision cannot be found in the origin. But it is referenced as parent of"
+                  + " revision '%s'", parentRef, current.getChange().getRevision().asString()));
+        }
+        current = Iterables.getOnlyElement(changes);
       }
     }
   }
