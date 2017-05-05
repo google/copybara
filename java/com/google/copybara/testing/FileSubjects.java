@@ -18,10 +18,11 @@ package com.google.copybara.testing;
 
 import static com.google.common.truth.Truth.assertAbout;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.Subject;
 import com.google.common.truth.SubjectFactory;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
@@ -102,6 +103,16 @@ public class FileSubjects {
       String realContents = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
       if (!realContents.equals(fileContents)) {
         failWithCustomSubject(filename + " file content equals", fileContents, realContents);
+      }
+      return this;
+    }
+
+    public PathSubject containsFileWithSha256(String filename, HashCode hash)
+        throws IOException {
+      Path filePath = checkFile(filename);
+      HashCode realHash = Hashing.sha256().hashBytes(Files.readAllBytes(filePath));
+      if (!realHash.equals(hash)) {
+        failWithCustomSubject(filename + " file contents hash", hash, realHash);
       }
       return this;
     }
