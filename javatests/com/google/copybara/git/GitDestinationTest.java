@@ -717,7 +717,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Files.write(workdir.resolve("excluded"), "some content".getBytes());
     process(firstCommitWriter(), ref);
-    String firstCommit = repo().revParse("HEAD");
+    String firstCommit = repo().parseRef("HEAD");
     Files.write(workdir.resolve("test.txt"), "new content".getBytes());
     process(newWriter(), ref);
 
@@ -746,7 +746,7 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(firstCommitWriter(), ref);
-    String firstCommit = repo().revParse("HEAD");
+    String firstCommit = repo().parseRef("HEAD");
     Files.write(workdir.resolve("test.txt"), "new content".getBytes());
     process(newWriter(), ref);
 
@@ -769,7 +769,7 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("test.txt"), text.getBytes());
     process(firstCommitWriter(), ref);
-    String firstCommit = repo().revParse("HEAD");
+    String firstCommit = repo().parseRef("HEAD");
     Files.write(workdir.resolve("test.txt"),
         text.replace("Line 200", "Line 200 Modified").getBytes());
     process(newWriter(), ref);
@@ -797,15 +797,14 @@ public class GitDestinationTest {
     WriterResult result =
         writer.write(TransformResults.of(workdir, new DummyRevision("ref1")), console);
     assertThat(result).isEqualTo(WriterResult.OK);
-    String firstCommitHash = repo().simpleCommand("rev-parse", "refs_for_master").getStdout();
+    String firstCommitHash = repo().parseRef("refs_for_master");
 
     Files.write(workdir.resolve("test99"), "99".getBytes(UTF_8));
     result = writer.write(TransformResults.of(workdir, new DummyRevision("ref2")), console);
     assertThat(result).isEqualTo(WriterResult.OK);
 
     // Make sure parent of second commit is the first commit.
-    assertThat(repo().simpleCommand("rev-parse", "refs_for_master~1").getStdout())
-        .isEqualTo(firstCommitHash);
+    assertThat(repo().parseRef("refs_for_master~1")).isEqualTo(firstCommitHash);
 
     // Make sure commits have correct file content.
     GitTesting.assertThatCheckout(repo(), "refs_for_master~1")

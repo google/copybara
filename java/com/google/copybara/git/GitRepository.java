@@ -24,6 +24,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -468,9 +469,11 @@ public class GitRepository {
   /**
    * Resolves a git reference to the SHA-1 reference
    */
-  public String revParse(String ref) throws RepoException {
-    // Runs rev-parse on the reference and remove the extra newline from the output.
-    return simpleCommand("rev-parse", ref).getStdout().trim();
+  public String parseRef(String ref) throws RepoException {
+    // Runs rev-list on the reference and remove the extra newline from the output.
+    String sha1 = simpleCommand("rev-list", "-1", ref).getStdout().trim();
+    Verify.verify(SHA1_PATTERN.matcher(sha1).matches(), "Should be resolved to a SHA-1: %s",sha1);
+    return sha1;
   }
 
   public void rebase(String newBaseline) throws RepoException {
@@ -791,7 +794,7 @@ public class GitRepository {
       throw new CannotResolveRevisionException(
           "Cannot find '" + reference + "' object in the repository");
     }
-    return new GitRevision(this, revParse(reference), contextRef, ImmutableMap.of());
+    return new GitRevision(this, parseRef(reference), contextRef, ImmutableMap.of());
   }
 
   /**

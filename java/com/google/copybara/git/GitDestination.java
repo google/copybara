@@ -176,7 +176,7 @@ public final class GitDestination implements Destination<GitRevision> {
           ? ImmutableList.of()
           : roots;
 
-      String startRef = gitRepository.revParse("FETCH_HEAD");
+      String startRef = gitRepository.parseRef("FETCH_HEAD");
       LogCmd logCmd = gitRepository.log(startRef)
           .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR)
           .firstParent(destinationOptions.lastRevFirstParent)

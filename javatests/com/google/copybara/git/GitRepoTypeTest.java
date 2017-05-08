@@ -21,7 +21,6 @@ import static com.google.copybara.git.GitTestUtil.getGitEnv;
 
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.Message.MessageType;
@@ -90,7 +89,7 @@ public class GitRepoTypeTest {
   @Test
   public void testResolveSha1() throws Exception {
     disableFetchMocks();
-    String sha1 = fileRepo.git(fileRepoDir, "rev-parse", "HEAD").getStdout().trim();
+    String sha1 = fileRepo.parseRef("HEAD");
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, generalOptions).asString())
         .isEqualTo(sha1);
     console.assertThat()
@@ -100,7 +99,7 @@ public class GitRepoTypeTest {
   @Test
   public void testResolveRef() throws Exception {
     disableFetchMocks();
-    String sha1 = fileRepo.git(fileRepoDir, "rev-parse", "HEAD").getStdout().trim();
+    String sha1 = fileRepo.parseRef("HEAD");
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, "master", generalOptions).asString())
         .isEqualTo(sha1);
     console.assertThat()
@@ -110,8 +109,7 @@ public class GitRepoTypeTest {
   @Test
   public void testResolveFileUrlAndRef() throws Exception {
     disableFetchMocks();
-    String firstCommitBranchSha1 = fileRepo.git(fileRepoDir, "rev-parse", "first_commit")
-        .getStdout().trim();
+    String firstCommitBranchSha1 = fileRepo.parseRef("first_commit");
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, fileUrl + " first_commit",
         generalOptions).asString()).isEqualTo(firstCommitBranchSha1);
     assertUrlOverwritten();

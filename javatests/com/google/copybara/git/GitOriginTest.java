@@ -106,7 +106,7 @@ public class GitOriginTest {
     repo.add().files("test.txt").run();
     git("commit", "-m", "first file", "--date", commitTime);
     // trim() removes new line
-    firstCommitRef = git("rev-parse", "HEAD").trim();
+    firstCommitRef = repo.parseRef("HEAD");
 
     originFiles = Glob.ALL_FILES;
   }
@@ -690,7 +690,7 @@ public class GitOriginTest {
   }
 
   private GitRevision getLastCommitRef() throws RepoException, ValidationException {
-    String head = git("rev-parse", "HEAD");
+    String head = repo.parseRef("HEAD");
     String lastCommit = head.substring(0, head.length() -1);
     return origin.resolve(lastCommit);
   }

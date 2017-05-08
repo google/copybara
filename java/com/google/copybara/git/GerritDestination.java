@@ -92,14 +92,6 @@ public final class GerritDestination implements Destination<GitRevision> {
       return new MessageInfo(msg.toString(), changeIdAndNew.newPush);
     }
 
-    private String maybeParentHash(GitRepository repo) {
-      try {
-        return repo.simpleCommand("rev-parse", "HEAD^0").getStdout();
-      } catch (RepoException e) {
-        return "";
-      }
-    }
-
     /**
      * Returns the change id and if the change is new or not. Reuse the {@link MessageInfo} type for
      * a lack of better alternative.

@@ -81,17 +81,17 @@ public class GerritOriginTest {
     repo.add().files("test.txt").run();
 
     git("commit", "-m", "first change", "--date", commitTime);
-    firstRevision = new GitRevision(repo, git("rev-parse", "HEAD").trim(), "12345",
+    firstRevision = new GitRevision(repo, repo.parseRef("HEAD"), "12345",
         ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
     git("update-ref", "refs/changes/45/12345/1", firstRevision.asString());
 
     git("commit", "-m", "second change", "--date", commitTime, "--amend");
-    secondRevision = new GitRevision(repo, git("rev-parse", "HEAD").trim(), "12345",
+    secondRevision = new GitRevision(repo, repo.parseRef("HEAD"), "12345",
         ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
     git("update-ref", "refs/changes/45/12345/2", secondRevision.asString());
 
     git("commit", "-m", "third change", "--date", commitTime, "--amend");
-    thirdRevision = new GitRevision(repo, git("rev-parse", "HEAD").trim(), "12345",
+    thirdRevision = new GitRevision(repo, repo.parseRef("HEAD"), "12345",
         ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
     git("update-ref", "refs/changes/45/12345/3", thirdRevision.asString());
   }
