@@ -878,6 +878,34 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testDryRun() throws Exception {
+    fetch = "master";
+    push = "master";
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-testLocalRepo");
+    Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree).add().force().files("foo").run();
+    repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
+
+    Writer writer = destination().newWriter(destinationFiles, /*dryRun=*/ true);
+    process(writer, new DummyRevision("origin_ref1"));
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo", "foo\n")
+        .containsNoMoreFiles();
+
+    // Run again without dry run
+    writer = destination().newWriter(destinationFiles, /*dryRun=*/ false);
+    process(writer, new DummyRevision("origin_ref1"));
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testLocalRepoSkipPushFlag() throws Exception {
     GitRepository localRepo = checkLocalRepo(true);
 

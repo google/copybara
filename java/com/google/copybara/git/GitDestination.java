@@ -171,7 +171,7 @@ public final class GitDestination implements Destination<GitRevision> {
         return null;
       }
       ImmutableSet<String> roots = destinationFiles.roots();
-      GitRepository gitRepository = cloneBaseline();
+      GitRepository gitRepository = cloneBaseline(/*fetchIfInitialized=*/);
       ImmutableCollection<String> paths = roots.equals(SINGLE_ROOT_WITHOUT_FOLDER)
           ? ImmutableList.of()
           : roots;
@@ -214,14 +214,18 @@ public final class GitDestination implements Destination<GitRevision> {
     public WriterResult write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
       logger.log(Level.INFO, "Exporting from " + transformResult.getPath() + " to: " + this);
-      if (dryRun) {
-        throw new ValidationException("Dry-run still not supported for any git destination");
-      }
       String baseline = transformResult.getBaseline();
+      boolean pushToRemote = !GitDestination.this.effectiveSkipPush && !dryRun;
       if (scratchClone == null) {
         console.progress("Git Destination: Fetching " + repoUrl);
 
         scratchClone = cloneBaseline();
+        // Should be a no-op, but an iterative migration could take several minutes between
+        // migrations so lets fetch the latest first.
+        if (pushToRemote) {
+          fetchFromRemote(scratchClone);
+        }
+
         if (force && baseline != null) {
           //TODO Here
           throw new RepoException(
@@ -247,7 +251,6 @@ public final class GitDestination implements Destination<GitRevision> {
           }
         }
 
-
         if (!Strings.isNullOrEmpty(destinationOptions.committerName)) {
           scratchClone.simpleCommand("config", "user.name", destinationOptions.committerName);
         }
@@ -262,7 +265,6 @@ public final class GitDestination implements Destination<GitRevision> {
       AddExcludedFilesToIndex excludedAdder =
           new AddExcludedFilesToIndex(scratchClone, destinationFiles);
       excludedAdder.findSubmodules(console);
-
 
       console.progress("Git Destination: Cloning destination");
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
@@ -313,7 +315,7 @@ public final class GitDestination implements Destination<GitRevision> {
               "User aborted execution: did not confirm diff changes.");
         }
       }
-      if (!effectiveSkipPush) {
+      if (pushToRemote) {
         console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
         // Git push writes to Stderr
         processPushOutput.process(
@@ -342,13 +344,7 @@ public final class GitDestination implements Destination<GitRevision> {
     Path path = Paths.get(destinationOptions.localRepoPath);
     // Skip creating initializing the repo twice, since we delete everything.
     if (localRepoInitialized) {
-      GitRepository repo = new GitRepository(path.resolve(".git"), path, verbose, environment);
-      // Should be a no-op, but an iterative migration could take several minutes between migrations
-      // so lets fetch the latest first.
-      if (!effectiveSkipPush) {
-        fetchFromRemote(repo);
-      }
-      return repo;
+      return new GitRepository(path.resolve(".git"), path, verbose, environment);
     }
 
     try {
