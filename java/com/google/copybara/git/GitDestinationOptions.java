@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.copybara.Option;
 import com.google.copybara.authoring.Author;
 import javax.annotation.Nullable;
@@ -31,15 +32,17 @@ public final class GitDestinationOptions implements Option {
   public static final String GIT_COMMITTER_NAME_FLAG = "--git-committer-name";
   public static final String GIT_COMMITTER_EMAIL_FLAG = "--git-committer-email";
 
+  @VisibleForTesting
   @Parameter(names = GIT_COMMITTER_NAME_FLAG,
       description = "If set, overrides the committer name for the generated commits in git"
           + " destination.")
-  String committerName = "";
+  public String committerName = "";
 
+  @VisibleForTesting
   @Parameter(names = GIT_COMMITTER_EMAIL_FLAG,
       description = "If set, overrides the committer e-mail for the generated commits in git"
           + " destination.")
-  String committerEmail = "";
+  public String committerEmail = "";
 
   Author getCommitter() {
     return new Author(committerName, committerEmail);

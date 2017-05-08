@@ -25,6 +25,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.base.OptionsAwareModule;
+import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.transform.ExplicitReversal;
@@ -46,6 +47,7 @@ import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
+import com.google.devtools.build.lib.syntax.SkylarkUtils;
 import com.google.devtools.build.lib.syntax.Type;
 import java.util.HashMap;
 import java.util.List;
@@ -169,6 +171,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         }
       };
 
+  private static final String CHECK_LAST_REV_STATE = "check_last_rev_state";
   @SkylarkSignature(name = "workflow", returnType = NoneType.class,
       doc = "Defines a migration pipeline which can be invoked via the Copybara command.",
       parameters = {
@@ -223,6 +226,11 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + " True for 'CHANGE_REQUEST' mode. False otherwise",
               defaultValue = "True for 'CHANGE_REQUEST' mode. False otherwise",
               noneable = true, positional = false),
+          @Param(name = CHECK_LAST_REV_STATE, type = Boolean.class,
+              doc = "If set to true, Copybara will validate that the destination didn't change"
+                  + " since last-rev import for destination_files. Note that this"
+                  + " flag doesn't work for CHANGE_REQUEST mode.",
+              defaultValue = "False", positional = false),
           @Param(name = "ask_for_confirmation", type = Boolean.class,
               doc = "Indicates that the tool should show the diff and require user's"
                   + " confirmation before making a change in the destination.",
@@ -242,7 +250,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           Glob.ALL_FILES,
           "SQUASH",
           Runtime.NONE,
-          false,
+          Boolean.FALSE,
           Boolean.FALSE,
           Boolean.FALSE
       )) {
@@ -254,6 +262,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         Glob destinationFiles,
         String modeStr,
         Object reversibleCheckObj,
+        Boolean checkLastRevStateField,
         Boolean askForConfirmation,
         Boolean dryRunMode,
         Location location,
@@ -273,6 +282,13 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         }
       }
 
+      boolean checkLastRevState = checkLastRevStateField || self.workflowOptions.checkLastRevState;
+
+      if (checkLastRevState) {
+        SkylarkUtil.check(location, mode != WorkflowMode.CHANGE_REQUEST,
+            "%s is not compatible with %s", CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
+      }
+
       self.addMigration(location, workflowName, new Workflow<>(
           workflowName,
           origin,
@@ -289,7 +305,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           askForConfirmation,
           self.mainConfigFile,
           self.allConfigFiles,
-          self.workflowOptions.dryRunMode || dryRunMode));
+          self.workflowOptions.dryRunMode || dryRunMode,
+          checkLastRevState));
       return Runtime.NONE;
     }
   };

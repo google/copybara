@@ -21,7 +21,6 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
@@ -30,6 +29,9 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.ProgressPrefixConsole;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -55,7 +57,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   protected WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
       Reader<O> originReader, @Nullable Destination.Reader<D> destinationReader,
-      Writer destinationWriter) throws ValidationException, RepoException {
+      Destination.Writer destinationWriter) throws ValidationException, RepoException {
     this.workflow = Preconditions.checkNotNull(workflow);
     this.workdir = Preconditions.checkNotNull(workdir);
     this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
@@ -81,6 +83,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   protected WorkflowRunHelper<O, D> forChanges(Changes changes)
       throws RepoException, ValidationException, IOException {
     return this;
+  }
+
+  protected WorkflowRunHelper<O, D> withDryRun()
+      throws RepoException, ValidationException, IOException {
+    return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, originReader, destinationReader,
+        workflow.getDestination().newWriter(workflow.getDestinationFiles(), /*dryRun=*/true));
   }
 
   protected Path getWorkdir() {
@@ -140,6 +148,41 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return workflow.getMigrationIdentity(reference);
   }
 
+  void maybeValidateRepoInLastRevState(@Nullable Metadata metadata) throws RepoException,
+      ValidationException, IOException {
+    if (!workflow.isCheckLastRevState() || isForce()) {
+      return;
+    }
+
+    workflow.getGeneralOptions().ioRepoTask("validate_last_rev", () -> {
+      O lastRev = workflow.getGeneralOptions().repoTask("get_last_rev",
+          this::maybeGetLastRev);
+
+      if (lastRev == null) {
+        // Not the job of this function to check for lastrev status.
+        return null;
+      }
+      Change<O> change = originReader.change(lastRev);
+      ComputedChanges changes = new ComputedChanges(ImmutableList.of(change), ImmutableList.of());
+      WorkflowRunHelper<O, D> helper = forChanges(changes).withDryRun();
+
+      try {
+        workflow.getGeneralOptions().ioRepoTask("migrate", () ->
+            helper.migrate(lastRev,
+                new ProgressPrefixConsole("Validating last migration: ", helper.getConsole()),
+                metadata == null ? new Metadata(change.getMessage(), change.getAuthor()) : metadata,
+                changes,
+                /*destinationBaseline=*/null,
+                getWorkflowIdentity(lastRev)));
+        throw new ValidationException("Migration of last-rev '" + lastRev.asString() + "' didn't"
+            + " result in an empty change. This means that the result change of that migration was"
+            + " modified ouside of Copybara or that new changes happened later in the destination"
+            + " without using Copybara. Use --force if you really want to do the migration.");
+      } catch (EmptyChangeException ignored) {
+      }
+      return null;
+    });
+  }
   /**
    * Performs a full migration, including checking out files from the origin, deleting excluded
    * files, transforming the code, and writing to the destination. This writes to the destination
@@ -349,5 +392,29 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
     workflow.configPaths();
     return true;
+  }
+
+  @SkylarkModule(name = "ComputedChanges", doc = "Computed changes implementation",
+      documented = false)
+  static class ComputedChanges extends Changes {
+
+    private final SkylarkList<? extends Change<?>> current;
+    private final SkylarkList<? extends Change<?>> migrated;
+
+    ComputedChanges(Iterable<? extends Change<?>> current,
+        Iterable<? extends Change<?>> migrated) {
+      this.current = SkylarkList.createImmutable(current);
+      this.migrated = SkylarkList.createImmutable(migrated);
+    }
+
+    @Override
+    public SkylarkList<? extends Change<?>> getCurrent() {
+      return current;
+    }
+
+    @Override
+    public SkylarkList<? extends Change<?>> getMigrated() {
+      return migrated;
+    }
   }
 }

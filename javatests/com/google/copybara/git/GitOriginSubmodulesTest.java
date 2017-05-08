@@ -16,7 +16,7 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;

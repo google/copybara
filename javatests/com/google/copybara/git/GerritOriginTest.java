@@ -25,6 +25,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;

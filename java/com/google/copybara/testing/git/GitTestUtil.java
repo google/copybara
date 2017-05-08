@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git;
+package com.google.copybara.testing.git;
 
 import com.google.copybara.authoring.Author;
 import java.util.HashMap;
@@ -31,7 +31,7 @@ public class GitTestUtil {
    * Returns an environment that contains the System environment and a set of variables
    * needed so that test don't crash in environments where the author is not set
    */
-  static Map<String, String> getGitEnv() {
+  public static Map<String, String> getGitEnv() {
     HashMap<String, String> values = new HashMap<>(System.getenv());
     values.put("GIT_AUTHOR_NAME", DEFAULT_AUTHOR.getName());
     values.put("GIT_AUTHOR_EMAIL", DEFAULT_AUTHOR.getEmail());

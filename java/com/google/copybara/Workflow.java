@@ -74,6 +74,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final ConfigFile<?> mainConfigFile;
   private final Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
   private final boolean dryRunMode;
+  private final boolean checkLastRevState;
 
   public Workflow(
       String name,
@@ -91,7 +92,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean askForConfirmation,
       ConfigFile<?> mainConfigFile,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles,
-      boolean dryRunMode) {
+      boolean dryRunMode, boolean checkLastRevState) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -110,6 +111,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.force = generalOptions.isForced();
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.allConfigFiles = allConfigFiles;
+    this.checkLastRevState = checkLastRevState;
     this.dryRunMode = dryRunMode;
   }
 
@@ -280,6 +282,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return mode.toString();
   }
 
+  public boolean isCheckLastRevState() {
+    return checkLastRevState;
+  }
+
   public boolean isDryRunMode() {
     return dryRunMode;
   }
@@ -324,5 +330,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> getAllConfigFiles() {
     return allConfigFiles;
+  }
+
+  public GeneralOptions getGeneralOptions() {
+    return generalOptions;
   }
 }

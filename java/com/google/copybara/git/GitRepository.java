@@ -492,7 +492,7 @@ public class GitRepository {
     throw new RepoException(output.getStderr());
   }
 
-  void commit(String author, ZonedDateTime timestamp, String message)
+  public void commit(String author, ZonedDateTime timestamp, String message)
       throws RepoException, ValidationException {
     CommandOutput status = simpleCommand("diff", "--staged", "--stat");
     if (status.getStdout().trim().isEmpty()) {

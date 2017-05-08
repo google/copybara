@@ -78,7 +78,7 @@ public final class SkylarkUtil {
    * Checks a condition or throw {@link EvalException}.
    */
   public static void check(Location location, boolean condition, String errorFmt,
-      String... params)
+      Object... params)
       throws EvalException {
     if (!condition) {
       throw new EvalException(location, String.format(errorFmt, (Object[]) params));

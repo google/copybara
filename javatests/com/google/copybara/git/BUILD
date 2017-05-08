@@ -17,12 +17,12 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])  # Apache 2.0
 
 DEPS = [
-    ":util",
     "//java/com/google/copybara:base",
     "//java/com/google/copybara:copybara_lib",
     "//java/com/google/copybara/authoring",
     "//java/com/google/copybara/git/testing",
     "//java/com/google/copybara/testing",
+    "//java/com/google/copybara/testing/git",
     "//java/com/google/copybara/util",
     "//java/com/google/copybara/util/console",
     "//java/com/google/copybara/util/console/testing",
@@ -31,12 +31,6 @@ DEPS = [
     "//third_party:truth",
     "//third_party:mockito",
 ]
-
-java_library(
-    name = "util",
-    srcs = ["GitTestUtil.java"],
-    deps = ["//java/com/google/copybara/authoring"],
-)
 
 all_tests(
     tags = ["local"],

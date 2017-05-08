@@ -18,8 +18,11 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.WorkflowMode.SQUASH;
+import static com.google.copybara.git.GitRepository.bareRepo;
+import static com.google.copybara.git.GitRepository.initScratchRepo;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -35,6 +38,8 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.folder.FolderModule;
+import com.google.copybara.git.GitModule;
+import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -42,6 +47,7 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -115,7 +121,7 @@ public class WorkflowTest {
     options.testingOptions.destination = destination;
     options.setForce(true); // Force by default unless we are testing the flag.
     skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class, MetadataModule.class,
-        FolderModule.class));
+        FolderModule.class, GitModule.class));
   }
 
   private TestingConsole console() {
@@ -1182,6 +1188,83 @@ public class WorkflowTest {
         + ")\n")
         .getMigration("foo")
         .run(workdir, null);
+  }
+
+  @Test
+  public void checkLastRevStatus_squash() throws Exception {
+    checkLastRevStatus(WorkflowMode.SQUASH);
+  }
+
+  @Test
+  public void checkLastRevStatus_iterative() throws Exception {
+    checkLastRevStatus(WorkflowMode.ITERATIVE);
+  }
+
+  @Test
+  public void checkLastRevStatus_change_request() throws Exception {
+    try {
+      checkLastRevStatus(WorkflowMode.CHANGE_REQUEST);
+      fail();
+    } catch (ValidationException e) {
+      console().assertThat().onceInLog(MessageType.ERROR,
+          ".*check_last_rev_state is not compatible with CHANGE_REQUEST.*");
+    }
+  }
+
+  private void checkLastRevStatus(WorkflowMode mode)
+      throws IOException, RepoException, ValidationException {
+    Path originPath = Files.createTempDirectory("origin");
+    Path destinationWorkdir = Files.createTempDirectory("destination_workdir");
+    GitRepository origin = initScratchRepo( /*verbose=*/true, originPath, getGitEnv());
+    GitRepository destinationBare = bareRepo(Files.createTempDirectory("destination"), getGitEnv(), /*verbose=*/
+        true);
+    destinationBare.initGitDir();
+    GitRepository destination = destinationBare.withWorkTree(destinationWorkdir);
+
+    String config = "core.workflow("
+        + "    name = '" + "default" + "',"
+        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "'),\n"
+        + "    destination = git.destination( url = 'file://" + destinationBare.getGitDir() + "'),"
+        + "    authoring = " + authoring + ","
+        + "    mode = '" + mode + "',"
+        + ")\n";
+
+    Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
+    origin.add().files("foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "not important");
+    String firstCommit = origin.parseRef("HEAD");
+
+    Files.write(originPath.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    origin.add().files("foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "change1");
+
+    options.setWorkdirToRealTempDir();
+    // Pass custom HOME directory so that we run an hermetic test and we
+    // can add custom configuration to $HOME/.gitconfig.
+    options.setEnvironment(GitTestUtil.getGitEnv());
+    options.setHomeDir(Files.createTempDirectory("home").toString());
+    options.gitDestination.committerName = "Foo";
+    options.gitDestination.committerEmail = "foo@foo.com";
+    options.workflowOptions.checkLastRevState = true;
+    options.setLastRevision(firstCommit);
+
+    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/"HEAD");
+
+    // Modify destination last commit
+    Files.write(destinationWorkdir.resolve("foo.txt"), "foo_changed".getBytes(UTF_8));
+    destination.add().files("foo.txt").run();
+    destination.simpleCommand("commit", "--amend", "-a", "-C", "HEAD");
+
+    Files.write(originPath.resolve("foo.txt"), "foo_origin_changed".getBytes(UTF_8));
+    origin.add().files("foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "change2");
+
+    options.setForce(false);
+    options.setLastRevision(null);
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("didn't result in an empty change. This means that the result change of"
+        + " that migration was modified ouside of Copybara");
+    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/"HEAD");
   }
 
   private void prepareOriginExcludes(String content) throws IOException {

@@ -68,6 +68,12 @@ public class WorkflowOptions implements Option {
           + " flag disables that behavior and runs for all the changes.")
   public boolean iterativeAllChanges = false;
 
+  @Parameter(names = "--check-last-rev-state",
+      description = "If enabled, Copybara will validate that the destination didn't change"
+          + " since last-rev import for destination_files. Note that this"
+          + " flag doesn't work for CHANGE_REQUEST mode.")
+  public boolean checkLastRevState = false;
+
   @Parameter(names = "--dry-run",
       description = "Run the migration in dry-run mode. Some destination implementations might"
           + " have some side effects (like creating a code review), but never submit to a main"
@@ -90,9 +96,10 @@ public class WorkflowOptions implements Option {
   public WorkflowOptions() {}
 
   @VisibleForTesting
-  public WorkflowOptions(String changeBaseline, String lastRevision) {
+  public WorkflowOptions(String changeBaseline, String lastRevision, boolean checkLastRevState) {
     this.changeBaseline = changeBaseline;
     this.lastRevision = lastRevision;
+    this.checkLastRevState = checkLastRevState;
   }
 
   public String getLastRevision() {

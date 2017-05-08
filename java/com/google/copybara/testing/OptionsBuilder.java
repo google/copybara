@@ -64,7 +64,8 @@ public class OptionsBuilder {
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowOptions workflowOptions =
-      new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null);
+      new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null,
+          /*checkLastRevState=*/false);
 
   public TestingOptions testingOptions = new TestingOptions();
 
@@ -76,7 +77,7 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         updateEnvironment(general.getEnvironment(), "PWD", cwd),
         FileSystems.getDefault(), /*verbose=*/true,
-        LogConsole.readWriteConsole(System.in, System.out, /*verbose*/ true),
+        general.console(),
         general.getConfigRoot(), general.getOutputRoot(),
         general.isDisableReversibleCheck(), general.isForced());
     return this;
@@ -140,12 +141,14 @@ public class OptionsBuilder {
   }
 
   public final OptionsBuilder setChangeBaseline(String changeBaseline) {
-    workflowOptions = new WorkflowOptions(changeBaseline, workflowOptions.getLastRevision());
+    workflowOptions = new WorkflowOptions(changeBaseline, workflowOptions.getLastRevision(),
+        workflowOptions.checkLastRevState);
     return this;
   }
 
   public final OptionsBuilder setLastRevision(String lastRevision) {
-    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision);
+    workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision,
+        workflowOptions.checkLastRevState);
     return this;
   }
 

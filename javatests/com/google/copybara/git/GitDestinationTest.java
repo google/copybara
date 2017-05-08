@@ -19,7 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.ChangeMessage.parseMessage;
-import static com.google.copybara.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
