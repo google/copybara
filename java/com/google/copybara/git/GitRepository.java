@@ -469,11 +469,25 @@ public class GitRepository {
   /**
    * Resolves a git reference to the SHA-1 reference
    */
-  public String parseRef(String ref) throws RepoException {
+  public String parseRef(String ref) throws RepoException, CannotResolveRevisionException {
     // Runs rev-list on the reference and remove the extra newline from the output.
-    String sha1 = simpleCommand("rev-list", "-1", ref).getStdout().trim();
+    CommandOutputWithStatus result = gitAllowNonZeroExit(
+        ImmutableList.of("rev-list", "-1", ref, "--"));
+    if (!result.getTerminationStatus().success()) {
+      throw new CannotResolveRevisionException("Cannot find reference '" + ref + "'");
+    }
+    String sha1 = result.getStdout().trim();
     Verify.verify(SHA1_PATTERN.matcher(sha1).matches(), "Should be resolved to a SHA-1: %s",sha1);
     return sha1;
+  }
+
+  public boolean refExists(String ref) throws RepoException {
+    try {
+      parseRef(ref);
+      return true;
+    } catch (CannotResolveRevisionException e) {
+      return false;
+    }
   }
 
   public void rebase(String newBaseline) throws RepoException {

@@ -786,6 +786,33 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void processWithBaselineNotFound() throws Exception {
+    fetch = "master";
+    push = "master";
+    DummyRevision ref = new DummyRevision("origin_ref");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    process(firstCommitWriter(), ref);
+
+    Files.write(workdir.resolve("test.txt"), "more content".getBytes());
+    thrown.expect(RepoException.class);
+    thrown.expectMessage("Cannot find baseline 'I_dont_exist' from fetch reference 'master'");
+    processWithBaseline(newWriter(), ref, "I_dont_exist");
+  }
+
+  @Test
+  public void processWithBaselineNotFoundMasterNotFound() throws Exception {
+    fetch = "test_test_test";
+    push = "master";
+
+    Files.write(workdir.resolve("test.txt"), "more content".getBytes());
+    thrown.expect(RepoException.class);
+    thrown.expectMessage(
+        "Cannot find baseline 'I_dont_exist' and fetch reference 'test_test_test'");
+    processWithBaseline(firstCommitWriter(), new DummyRevision("origin_ref"), "I_dont_exist");
+  }
+
+  @Test
   public void pushSequenceOfChangesToReviewBranch() throws Exception {
     fetch = "master";
     push = "refs_for_master";

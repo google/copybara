@@ -176,7 +176,13 @@ public final class GitDestination implements Destination<GitRevision> {
           ? ImmutableList.of()
           : roots;
 
-      String startRef = gitRepository.parseRef("FETCH_HEAD");
+      String startRef;
+      try {
+        startRef = gitRepository.parseRef("FETCH_HEAD");
+      } catch (CannotResolveRevisionException e) {
+        // Shouldn't happen
+        throw new RepoException("Cannot resolve FETCH_HEAD", e);
+      }
       LogCmd logCmd = gitRepository.log(startRef)
           .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR)
           .firstParent(destinationOptions.lastRevFirstParent)
@@ -220,17 +226,13 @@ public final class GitDestination implements Destination<GitRevision> {
         console.progress("Git Destination: Fetching " + repoUrl);
 
         scratchClone = cloneBaseline();
-        // Should be a no-op, but an iterative migration could take several minutes between
-        // migrations so lets fetch the latest first.
-        if (pushToRemote) {
-          fetchFromRemote(scratchClone);
-        }
 
-        if (force && baseline != null) {
-          //TODO Here
-          throw new RepoException(
-              "Cannot use " + GeneralOptions.FORCE + " and a previous baseline ("
-                  + baseline + "). Migrate some code to " + repoUrl + ":" + repoUrl + " first.");
+        if (baseline != null && !scratchClone.refExists(baseline)) {
+          throw new RepoException("Cannot find baseline '" + baseline
+              + (scratchClone.refExists("FETCH_HEAD")
+              ? "' from fetch reference '" + fetch + "'"
+              : "' and fetch reference '" + fetch + "'")
+              + " in " + repoUrl + ".");
         }
 
         console.progress("Git Destination: Checking out " + fetch);
@@ -258,6 +260,11 @@ public final class GitDestination implements Destination<GitRevision> {
           scratchClone.simpleCommand("config", "user.email", destinationOptions.committerEmail);
         }
         verifyUserInfoConfigured(scratchClone);
+      }
+      // Should be a no-op, but an iterative migration could take several minutes between
+      // migrations so lets fetch the latest first.
+      if (pushToRemote) {
+        fetchFromRemote(scratchClone);
       }
 
       // Get the submodules before we stage them for deletion with
