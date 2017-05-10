@@ -62,6 +62,8 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -1211,13 +1213,66 @@ public class WorkflowTest {
     }
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  public void givenLastRevFlagInfoCommandUsesIt()
+          throws IOException, RepoException, ValidationException {
+    Path originPath = Files.createTempDirectory("origin");
+    Path destinationPath = Files.createTempDirectory("destination");
+    GitRepository origin = initScratchRepo( /*verbose=*/true, originPath, getGitEnv());
+    GitRepository destination = initScratchRepo( /*verbose=*/true, destinationPath, getGitEnv());
+
+    String config = "core.workflow("
+            + "    name = '" + "default" + "',"
+            + "    origin = git.origin( url = 'file://"
+            + origin.getWorkTree() + "', ref = 'master' ),\n"
+            + "    destination = git.destination( url = 'file://"
+            + destination.getWorkTree() + "'),"
+            + "    authoring = " + authoring + ","
+            + "    mode = '" + WorkflowMode.ITERATIVE + "',"
+            + ")\n";
+
+    Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
+    origin.add().files("foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "not important");
+    String firstCommit = origin.parseRef("HEAD");
+
+    Files.write(destinationPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
+    destination.add().files("foo.txt").run();
+    destination.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "not important");
+
+    Files.write(originPath.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    origin.add().files("foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "change1");
+
+    options.setWorkdirToRealTempDir();
+    // Pass custom HOME directory so that we run an hermetic test and we
+    // can add custom configuration to $HOME/.gitconfig.
+    options.setEnvironment(GitTestUtil.getGitEnv());
+    options.setHomeDir(Files.createTempDirectory("home").toString());
+    options.gitDestination.committerName = "Foo";
+    options.gitDestination.committerEmail = "foo@foo.com";
+    options.workflowOptions.checkLastRevState = true;
+    options.setLastRevision(firstCommit);
+
+    final Info<Revision> info = (Info<Revision>) loadConfig(config).getMigration("default")
+      .getInfo();
+    final List<String> commitMessages =
+            StreamSupport.stream(info.migrationReferences().spliterator(), false)
+                    .flatMap(revisionMigrationReference ->
+                               revisionMigrationReference.getAvailableToMigrate().stream())
+                    .map(Change::getMessage)
+                    .collect(Collectors.toList());
+    assertThat(commitMessages).containsExactly("change1\n");
+  }
+
   private void checkLastRevStatus(WorkflowMode mode)
       throws IOException, RepoException, ValidationException {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationWorkdir = Files.createTempDirectory("destination_workdir");
     GitRepository origin = initScratchRepo( /*verbose=*/true, originPath, getGitEnv());
-    GitRepository destinationBare = bareRepo(Files.createTempDirectory("destination"), getGitEnv(), /*verbose=*/
-        true);
+    GitRepository destinationBare = bareRepo(Files.createTempDirectory("destination"), getGitEnv(),
+                                             /*verbose=*/true);
     destinationBare.initGitDir();
     GitRepository destination = destinationBare.withWorkTree(destinationWorkdir);
 

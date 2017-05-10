@@ -212,10 +212,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
           () -> origin.resolve(/*sourceRef=*/ null));
 
       String lastRef = generalOptions.repoTask("destination.previous_ref",
-          // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
-          // Should be K since info doesn't write but only read.
-          () -> destination.newWriter(destinationFiles, /*dryrun=*/false)
-              .getPreviousRef(origin.getLabelName()));
+          this::maybeGetLastRev);
 
       O lastMigrated = generalOptions.repoTask("origin.last_migrated",
           () -> (lastRef == null) ? null : origin.resolve(lastRef));
@@ -227,6 +224,20 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
           String.format("workflow_%s", name), lastMigrated, changes);
       return Info.create(ImmutableList.of(migrationRef));
     });
+  }
+
+  @Nullable
+  private String maybeGetLastRev() throws RepoException, ValidationException {
+    return getLastRevisionFlag() != null
+            ? getLastRevisionFlag()
+            : getPreviousRefFromOrigin();
+  }
+
+  private String getPreviousRefFromOrigin() throws RepoException, ValidationException {
+    // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
+    // Should be K since info doesn't write but only read.
+    return destination.newWriter(destinationFiles, /*dryrun=*/false)
+      .getPreviousRef(origin.getLabelName());
   }
 
   @Override
