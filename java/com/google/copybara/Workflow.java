@@ -227,9 +227,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
   @Nullable
   private String maybeGetLastRev() throws RepoException, ValidationException {
-    return (getLastRevisionFlag() != null) ?
-            getLastRevisionFlag() :
-            getPreviousRefFromOrigin();
+    return getLastRevisionFlag() != null
+            ? getLastRevisionFlag()
+            :  getPreviousRefFromOrigin();
   }
 
   private String getPreviousRefFromOrigin() throws RepoException, ValidationException {
