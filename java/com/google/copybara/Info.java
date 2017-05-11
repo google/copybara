@@ -37,7 +37,12 @@ public abstract class Info<O extends Revision> {
     return new AutoValue_Info<O>(ImmutableList.copyOf(migrationReferences));
   }
 
-  abstract Iterable<MigrationReference<O>> migrationReferences();
+  /**
+   * Returns information about a migration for one reference (like 'master')
+   *
+   * <p>Public so that it can be used programmatically.
+   */
+  public abstract Iterable<MigrationReference<O>> migrationReferences();
 
   @Override
   public String toString() {

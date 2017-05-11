@@ -39,9 +39,12 @@ public class WorkflowOptions implements Option {
           + " to detect the parent commit message.")
   String changeBaseline = "";
 
+  /**
+   * Public so that it can be used programmatically.
+   */
   @Parameter(names = LAST_REV_FLAG,
       description = "Last revision that was migrated to the destination")
-  String lastRevision;
+  public String lastRevision;
 
   @Parameter(names = ITERATIVE_LIMIT_CHANGES_FLAG,
       description = "Import just a number of changes instead of all the pending ones")
