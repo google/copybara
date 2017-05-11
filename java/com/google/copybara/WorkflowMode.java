@@ -183,9 +183,11 @@ public enum WorkflowMode {
               + " (For example folder.destination)", CHANGE_REQUEST));
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
-        runHelper.getOriginReader().visitChanges(runHelper.getResolvedRef(),
+        O resolvedRef = runHelper.getResolvedRef();
+        runHelper.getOriginReader().visitChanges(resolvedRef,
             change -> {
-              if (change.getLabels().containsKey(originLabelName)) {
+              if (!change.getRevision().asString().equals(resolvedRef.asString())
+                  && change.getLabels().containsKey(originLabelName)) {
                 requestParent.set(change.getLabels().get(originLabelName));
                 return ChangeVisitable.VisitResult.TERMINATE;
               }

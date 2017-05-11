@@ -872,7 +872,7 @@ public class WorkflowTest {
 
     whiteListAuthoring();
 
-    changeRequestWorkflow(null).run(workdir, "0");
+    changeRequestWorkflow(null).run(workdir, "1");
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
@@ -887,6 +887,16 @@ public class WorkflowTest {
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
     console().assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
+  }
+
+  @Test
+  public void changeRequest_findParentBaseline() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Last Change\n" + destination.getLabelNameWhenOrigin() + "=BADBAD");
+    Workflow workflow = changeRequestWorkflow(null);
+    workflow.run(workdir, "1");
+    assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
   }
 
   @Test
