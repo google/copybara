@@ -47,7 +47,7 @@ public interface Migration {
   void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException;
 
-  default Info getInfo() throws RepoException, ValidationException {
+  default Info<? extends Revision> getInfo() throws RepoException, ValidationException {
     return Info.EMPTY;
   }
 

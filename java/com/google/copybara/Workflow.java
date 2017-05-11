@@ -206,8 +206,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Override
-  public Info getInfo() throws RepoException, ValidationException {
-    return generalOptions.repoTask("info", (Callable<Info>) () -> {
+  public Info<? extends Revision> getInfo() throws RepoException, ValidationException {
+    return generalOptions.repoTask("info", (Callable<Info<? extends Revision>>) () -> {
       O lastResolved = generalOptions.repoTask("origin.last_resolved",
           () -> origin.resolve(/*sourceRef=*/ null));
 

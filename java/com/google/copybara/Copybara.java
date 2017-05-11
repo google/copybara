@@ -93,7 +93,7 @@ public class Copybara {
    */
   public Info<? extends Revision> getInfo(String migrationName, Config config)
       throws IOException, ValidationException, RepoException {
-    return (Info<? extends Revision>) config.getMigration(migrationName).getInfo();
+    return config.getMigration(migrationName).getInfo();
   }
 
   /**
