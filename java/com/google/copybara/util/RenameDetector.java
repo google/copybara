@@ -16,6 +16,8 @@
 
 package com.google.copybara.util;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteProcessor;
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
@@ -56,11 +58,10 @@ public final class RenameDetector<I> {
   private static final class HashingByteProcessor implements ByteProcessor<int[]> {
 
     int hash;
-    HashSet<Integer> hashes = new HashSet<Integer>();
+    HashSet<Integer> hashes = new HashSet<>();
 
     @Override
     public boolean processBytes(byte[] buf, int off, int len) {
-      int end = len + off;
       while (off != len) {
         hash *= 31;
         byte b = buf[off++];
@@ -126,13 +127,15 @@ public final class RenameDetector<I> {
    * greater than 0% (one or more shared lines) are returned.
    *
    * <p>When calling this method, the later file is checked against all the prior files added with
-   * {@link addPriorFile(Object,InputStream)}, scored based on the number of shared hashes, and
+   * {@link #addPriorFile(Object,InputStream)}, scored based on the number of shared hashes, and
    * files with a score greater than 0 are returned.
    */
   public List<Score<I>> scoresForLaterFile(InputStream input) throws IOException {
     List<Score<I>> results = new ArrayList<>();
     int[] laterHashes = hashes(input);
-
+    if (isEmpty(laterHashes)) {
+      return ImmutableList.of();
+    }
     for (PriorFile<I> priorFile : priorFiles) {
       // Determine the number of hashes that priorFile.hashes and laterHashes have in common.
       int matchCount = 0;
@@ -150,14 +153,18 @@ public final class RenameDetector<I> {
           }
         }
       }
-      if (matchCount != 0) {
+      if (matchCount != 0 && !isEmpty(priorFile.hashes)) {
         results.add(new Score<>(priorFile.key, matchCount * MAX_SCORE / priorFile.hashes.length));
       }
     }
 
-    Collections.sort(results, (a, b) -> Integer.compare(b.score, a.score));
+    results.sort((a, b) -> Integer.compare(b.score, a.score));
 
     return results;
+  }
+
+  private static boolean isEmpty(int[] hashes) {
+    return hashes.length == 0 || (hashes.length == 1 && hashes[0] == 0);
   }
 
   public static final class Score<I> {
@@ -176,6 +183,14 @@ public final class RenameDetector<I> {
 
     public int getScore() {
       return score;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("key", key)
+          .add("score", score)
+          .toString();
     }
   }
 }

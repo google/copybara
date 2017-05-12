@@ -23,6 +23,7 @@ import com.google.copybara.util.RenameDetector.Score;
 import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,6 +65,36 @@ public final class RenameDetectorTest {
     assertThat(result.get(0).getScore()).isGreaterThan(0);
 
     assertThat(detector.scoresForLaterFile(new Bytes("asdf"))).isEmpty();
+  }
+
+  @Test
+  public void emptyPriorFile() throws Exception {
+    RenameDetector<String> detector = new RenameDetector<>();
+    detector.addPriorFile("foo", new Bytes(""));
+    detector.addPriorFile("bar", new Bytes("xy\nxy\naa\n"));
+
+    List<Score<String>> result = detector.scoresForLaterFile(new Bytes("xy\nxy\nbb\n"));
+    Score<String> top = result.stream().max(Comparator.comparingInt(Score::getScore))
+        .get();
+    assertThat(top.getKey()).isEqualTo("bar");
+  }
+
+  @Test
+  public void emptyFiles() throws Exception {
+    RenameDetector<String> detector = new RenameDetector<>();
+    detector.addPriorFile("foo", new Bytes(""));
+
+    assertThat(detector.scoresForLaterFile(new Bytes(""))).isEmpty();
+  }
+
+  @Test
+  public void emptyLaterFile() throws Exception {
+    RenameDetector<String> detector = new RenameDetector<>();
+    detector.addPriorFile("foo", new Bytes("a"));
+    detector.addPriorFile("bar", new Bytes("b\nc\n"));
+
+    List<Score<String>> result = detector.scoresForLaterFile(new Bytes(""));
+    assertThat(result).isEmpty();
   }
 
   @Test
