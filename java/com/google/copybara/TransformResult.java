@@ -37,7 +37,9 @@ public final class TransformResult {
   private final Revision currentRevision;
   private final Revision requestedRevision;
   @Nullable
-  private final String workflowIdentity;
+  private final String changeIdentity;
+  @Nullable
+  private final String groupIdentity;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -48,13 +50,14 @@ public final class TransformResult {
       Revision requestedRevision)
       throws RepoException {
     this(path, currentRevision, author, readTimestampOrCurrentTime(currentRevision), summary,
-        /*baseline=*/ null, /*askForConfirmation=*/ false,
-         requestedRevision, /*workflowIdentity=*/null);
+        /*baseline=*/ null, /*askForConfirmation=*/ false, requestedRevision,
+         /*changeIdentity=*/null, /*groupIdentity=*/null);
   }
 
   private TransformResult(Path path, Revision currentRevision, Author author,
       ZonedDateTime timestamp, String summary, @Nullable String baseline,
-      boolean askForConfirmation, Revision requestedRevision, @Nullable String workflowIdentity) {
+      boolean askForConfirmation, Revision requestedRevision, @Nullable String changeIdentity,
+      @Nullable String groupIdentity) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -63,26 +66,30 @@ public final class TransformResult {
     this.baseline = baseline;
     this.askForConfirmation = askForConfirmation;
     this.requestedRevision = Preconditions.checkNotNull(requestedRevision);
-    this.workflowIdentity = workflowIdentity;
+    this.changeIdentity = changeIdentity;
+    this.groupIdentity = groupIdentity;
   }
 
   public TransformResult withBaseline(String newBaseline) {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        newBaseline, this.askForConfirmation, this.requestedRevision, this.workflowIdentity);
+        newBaseline, this.askForConfirmation, this.requestedRevision, this.changeIdentity,
+        this.groupIdentity);
   }
 
-  public TransformResult withWorkflowIdentity(String identity) {
+  public TransformResult withIdentity(String changeIdentity, @Nullable String groupIdentity) {
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        this.baseline, this.askForConfirmation, this.requestedRevision, identity);
+        this.baseline, this.askForConfirmation, this.requestedRevision, changeIdentity,
+        groupIdentity);
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        this.baseline, askForConfirmation, this.requestedRevision, this.workflowIdentity);
+        this.baseline, askForConfirmation, this.requestedRevision, this.changeIdentity,
+        this.groupIdentity);
   }
 
   /**
@@ -112,12 +119,20 @@ public final class TransformResult {
   }
 
   /**
-   * An stable identifier that represents an entity (code review for example) in the origin. For
-   * example a workflow location + Gerrit change number.
+   * An stable identifier that represents an entity (code review for example) in the origin for
+   * this particular change. For example a workflow location + Gerrit change number.
    */
   @Nullable
-  public String getWorkflowIdentity() {
-    return workflowIdentity;
+  public String getChangeIdentity() {
+    return changeIdentity;
+  }
+
+  /**
+   * An stable identifier that represents an entity for the group of changes being migrated.
+   */
+  @Nullable
+  public String getGroupIdentity() {
+    return groupIdentity;
   }
 
   /**

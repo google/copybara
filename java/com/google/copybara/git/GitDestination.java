@@ -166,7 +166,8 @@ public final class GitDestination implements Destination<GitRevision> {
 
     @Nullable
     @Override
-    public String getPreviousRef(String labelName) throws RepoException {
+    public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
+        throws RepoException {
       if (force) {
         return null;
       }
@@ -198,11 +199,15 @@ public final class GitDestination implements Destination<GitRevision> {
 
       String value = findLabelValue(labelName, entries);
       if (value != null) {
-        return value;
+        return new DestinationStatus(value, ImmutableList.of());
       }
       // Lets try with the latest matches. If we have that many false positives we give up.
       entries = logCmd.withLimit(50).run();
-      return findLabelValue(labelName, entries);
+      value = findLabelValue(labelName, entries);
+      if (value != null) {
+        return new DestinationStatus(value, ImmutableList.of());
+      }
+      return null;
     }
 
     @Nullable

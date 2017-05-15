@@ -41,7 +41,6 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
    *
    * @throws RepoException if any error happens during the resolve.
    */
-  //TODO(malcon): change String to Reference. But the change is massive for this change.
   R resolve(String reference) throws RepoException, ValidationException;
 
   /**
@@ -88,6 +87,15 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
      */
     Change<R> change(R ref) throws RepoException;
 
+    /**
+     * Given a revision, compute if possible an identity for the group of changes to be migrated.
+     * For example for Github this would be the pull request number, for Gerrit it could be a
+     * topic.
+     */
+    @Nullable
+    default String getGroupIdentity(R rev) throws RepoException{
+      return null;
+    }
   }
 
   /**

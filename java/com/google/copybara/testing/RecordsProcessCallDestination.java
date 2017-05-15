@@ -20,7 +20,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ListMultimap;
 import com.google.copybara.Destination;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
@@ -52,6 +55,7 @@ public class RecordsProcessCallDestination implements Destination {
   private final ArrayDeque<WriterResult> programmedResults;
 
   public final List<ProcessedChange> processed = new ArrayList<>();
+  public final ListMultimap<String, ProcessedChange> pending = ArrayListMultimap.create();
 
   public RecordsProcessCallDestination(WriterResult... results) {
     this.programmedResults = new ArrayDeque<>(Arrays.asList(results));
@@ -71,10 +75,30 @@ public class RecordsProcessCallDestination implements Destination {
 
     @Nullable
     @Override
-    public String getPreviousRef(String labelName) {
-      return processed.isEmpty()
-          ? null
-          : processed.get(processed.size() - 1).getOriginRef().asString();
+    public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
+        throws RepoException {
+      if (processed.isEmpty()) {
+        return null;
+      }
+      // Find latest change without group
+      String baseline = null;
+      for (int i = processed.size() - 1; i >= 0; i--) {
+        ProcessedChange processedChange = processed.get(i);
+        if (processedChange.groupIdentity == null) {
+          baseline = processedChange.getOriginRef().asString();
+          break;
+        }
+      }
+      Preconditions.checkNotNull(baseline);
+      if (groupId == null || !pending.containsKey(groupId)) {
+        return new DestinationStatus(baseline, ImmutableList.of());
+      }
+      return new DestinationStatus(
+          baseline,
+          pending.get(groupId)
+              .stream()
+              .map(processedChange -> processedChange.getOriginRef().asString())
+              .collect(ImmutableList.toImmutableList()));
     }
 
     @Override
@@ -86,8 +110,14 @@ public class RecordsProcessCallDestination implements Destination {
           .equals(copyWorkdir(transformResult.getPath()))) {
         throw new EmptyChangeException("Change did not produce a result");
       }
-      processed.add(new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
-          transformResult.getBaseline(), destinationFiles, dryRun));
+      ProcessedChange change =
+          new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
+                              transformResult.getBaseline(), destinationFiles,
+                              dryRun, transformResult.getGroupIdentity());
+      processed.add(change);
+      if (transformResult.getGroupIdentity() != null) {
+        pending.put(transformResult.getGroupIdentity(), change);
+      }
       return programmedResults.isEmpty()
           ? WriterResult.OK
           : programmedResults.removeFirst();
@@ -129,14 +159,16 @@ public class RecordsProcessCallDestination implements Destination {
     private final String baseline;
     private final Glob destinationFiles;
     private final boolean dryRun;
+    private final String groupIdentity;
 
     private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir,
-        String baseline, Glob destinationFiles, boolean dryRun) {
+        String baseline, Glob destinationFiles, boolean dryRun, String groupIdentity) {
       this.transformResult = Preconditions.checkNotNull(transformResult);
       this.workdir = Preconditions.checkNotNull(workdir);
       this.baseline = baseline;
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
+      this.groupIdentity = groupIdentity;
     }
 
     public ZonedDateTime getTimestamp() {

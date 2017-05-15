@@ -23,7 +23,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
+import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Info.MigrationReference;
+import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.profiler.Profiler;
@@ -211,14 +213,21 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       O lastResolved = generalOptions.repoTask("origin.last_resolved",
           () -> origin.resolve(/*sourceRef=*/ null));
 
-      String lastRef = generalOptions.repoTask("destination.previous_ref",
-          this::maybeGetLastRev);
+      Reader<O> oReader = origin.newReader(originFiles, authoring);
+      String groupIdentity = oReader.getGroupIdentity(lastResolved);
+      DestinationStatus destinationStatus = generalOptions.repoTask(
+          "destination.previous_ref",
+          () -> getDestinationStatus(groupIdentity));
 
-      O lastMigrated = generalOptions.repoTask("origin.last_migrated",
-          () -> (lastRef == null) ? null : origin.resolve(lastRef));
+      O lastMigrated = generalOptions.repoTask(
+          "origin.last_migrated",
+          () -> (destinationStatus == null)
+              ? null
+              : origin.resolve(destinationStatus.getBaseline()));
 
-      ImmutableList<Change<O>> changes = generalOptions.repoTask("origin.changes",
-          () -> origin.newReader(originFiles, authoring).changes(lastMigrated, lastResolved));
+      ImmutableList<Change<O>> changes = generalOptions.repoTask(
+          "origin.changes",
+          () -> oReader.changes(lastMigrated, lastResolved));
 
       MigrationReference<O> migrationRef = MigrationReference.create(
           String.format("workflow_%s", name), lastMigrated, changes);
@@ -227,17 +236,15 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Nullable
-  private String maybeGetLastRev() throws RepoException, ValidationException {
-    return getLastRevisionFlag() != null
-            ? getLastRevisionFlag()
-            : getPreviousRefFromOrigin();
-  }
-
-  private String getPreviousRefFromOrigin() throws RepoException, ValidationException {
+  private DestinationStatus getDestinationStatus(String groupIdentity)
+      throws RepoException, ValidationException {
+    if (getLastRevisionFlag() != null) {
+      return new DestinationStatus(getLastRevisionFlag(), ImmutableList.of());
+    }
     // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
     // Should be K since info doesn't write but only read.
     return destination.newWriter(destinationFiles, /*dryrun=*/false)
-      .getPreviousRef(origin.getLabelName());
+        .getDestinationStatus(origin.getLabelName(), computeGroupIdentity(groupIdentity));
   }
 
   @Override
@@ -314,14 +321,23 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     String ctxRef =
         contextRefDefined ? requestedRevision.contextReference() : requestedRevision.asString();
 
-    String identity = MoreObjects.toStringHelper("Migration")
+    return computeIdentity("ChangeIdentity", ctxRef);
+  }
+
+  @Nullable
+  String computeGroupIdentity(@Nullable String originGroupId) {
+    return originGroupId == null ? null : computeIdentity("OriginGroupIdentity", originGroupId);
+  }
+
+  private String computeIdentity(String type, String ref) {
+    String identity = MoreObjects.toStringHelper(type)
             .add("type", "workflow")
             .add("config_path", mainConfigFile.relativeToRoot())
             .add("workflow_name", this.name)
-            .add("context_ref", ctxRef)
+        .add("context_ref", ref)
             .toString();
     String hash = BaseEncoding.base16().encode(
-                Hashing.md5()
+        Hashing.md5()
                     .hashString(identity, StandardCharsets.UTF_8)
                     .asBytes());
 

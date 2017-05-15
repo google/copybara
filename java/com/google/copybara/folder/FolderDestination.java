@@ -71,13 +71,14 @@ public class FolderDestination implements Destination<Revision> {
 
     @Nullable
     @Override
-    public String getPreviousRef(String labelName) {
+    public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
+        throws RepoException {
       // Not supported
       return null;
     }
 
     @Override
-    public boolean supportsPreviousRef() {
+    public boolean supportsStatus() {
       return false;
     }
 

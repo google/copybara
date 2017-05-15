@@ -423,9 +423,10 @@ public class GitDestinationTest {
     // Recreate the writer since a destinationFirstCommit writer never looks
     // for a previous ref.
     assertThat(destination().newWriter(firstGlob, /*dryRun=*/false)
-                   .getPreviousRef(ref1.getLabelName())).isEqualTo(
-        ref1.asString());
-    assertThat(writer2.getPreviousRef(ref2.getLabelName())).isEqualTo(ref2.asString());
+                   .getDestinationStatus(ref1.getLabelName(), null).getBaseline())
+        .isEqualTo(ref1.asString());
+    assertThat(writer2.getDestinationStatus(ref2.getLabelName(), null).getBaseline())
+        .isEqualTo(ref2.asString());
   }
 
   @Test
@@ -438,19 +439,21 @@ public class GitDestinationTest {
     Files.write(file, "some content".getBytes());
     Destination.Writer writer =
         firstCommitWriter();
-    assertThat(writer.getPreviousRef(DummyOrigin.LABEL_NAME)).isNull();
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null)).isNull();
     process(writer, new DummyRevision("first_commit"));
     assertCommitHasOrigin("master", "first_commit");
 
     Files.write(file, "some other content".getBytes());
     writer = newWriter();
-    assertThat(writer.getPreviousRef(DummyOrigin.LABEL_NAME)).isEqualTo("first_commit");
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null).getBaseline())
+        .isEqualTo("first_commit");
     process(writer, new DummyRevision("second_commit"));
     assertCommitHasOrigin("master", "second_commit");
 
     Files.write(file, "just more text".getBytes());
     writer = newWriter();
-    assertThat(writer.getPreviousRef(DummyOrigin.LABEL_NAME)).isEqualTo("second_commit");
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null).getBaseline())
+        .isEqualTo("second_commit");
     process(writer, new DummyRevision("third_commit"));
     assertCommitHasOrigin("master", "third_commit");
   }
@@ -474,9 +477,7 @@ public class GitDestinationTest {
           .simpleCommand("commit", "-m", "excluded #" + i);
     }
 
-    assertThat(
-        newWriter()
-                .getPreviousRef(DummyOrigin.LABEL_NAME))
+    assertThat(newWriter().getDestinationStatus(DummyOrigin.LABEL_NAME, null).getBaseline())
         .isEqualTo("first_commit");
   }
 
@@ -518,8 +519,7 @@ public class GitDestinationTest {
 
     scratchRepo.simpleCommand("checkout", "b1");
     scratchRepo.simpleCommand("merge", "b2");
-    return newWriter()
-        .getPreviousRef(DummyOrigin.LABEL_NAME);
+    return newWriter().getDestinationStatus(DummyOrigin.LABEL_NAME, null).getBaseline();
   }
 
   private void branchChange(Path scratchTree, GitRepository scratchRepo, final String branch,

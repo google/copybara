@@ -42,9 +42,11 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
@@ -68,12 +70,18 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   public final List<DummyRevision> changes = new ArrayList<>();
 
+  private final Map<String, String> changeIdToGroup = new HashMap<>();
+
   /**
    * Sets the author to use for the following changes that get added.
    */
   public DummyOrigin setAuthor(Author author) {
     this.author = author;
     return this;
+  }
+
+  public void addRevisionToGroup(DummyRevision rev, String group) {
+    changeIdToGroup.put(rev.asString(), group);
   }
 
   public DummyOrigin addSimpleChange(int timestamp) throws IOException {
@@ -174,9 +182,10 @@ public class DummyOrigin implements Origin<DummyRevision> {
       int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
 
       ImmutableList.Builder<Change<DummyRevision>> result = ImmutableList.builder();
+      String group = changeIdToGroup.get(newRef.asString());
       while (current < changes.size()) {
         DummyRevision ref = changes.get(current);
-        if (ref.matchesGlob()) {
+        if (ref.matchesGlob() && Objects.equals(changeIdToGroup.get(ref.asString()), group)) {
           result.add(ref.toChange(authoring));
         }
         if (newRef == ref) {
@@ -221,6 +230,15 @@ public class DummyOrigin implements Origin<DummyRevision> {
                               + "  %s",
                           start.asString(), Joiner.on("\n  ").join(changes)));
       }
+    }
+
+    @Nullable
+    @Override
+    public String getGroupIdentity(DummyRevision rev) throws RepoException {
+      if (changeIdToGroup.containsKey(rev.asString())) {
+        return changeIdToGroup.get(rev.asString());
+      }
+      return null;
     }
   }
 

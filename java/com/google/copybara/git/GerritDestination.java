@@ -82,7 +82,7 @@ public final class GerritDestination implements Destination<GitRevision> {
     @Override
     public MessageInfo message(TransformResult result, GitRepository repo)
         throws RepoException, ValidationException {
-      MessageInfo changeIdAndNew = changeId(repo, result);
+      MessageInfo changeIdAndNew = changeId(result);
 
       Revision rev = result.getCurrentRevision();
       ChangeMessage msg = ChangeMessage.parseMessage(result.getSummary())
@@ -96,13 +96,13 @@ public final class GerritDestination implements Destination<GitRevision> {
      * Returns the change id and if the change is new or not. Reuse the {@link MessageInfo} type for
      * a lack of better alternative.
      */
-    private MessageInfo changeId(GitRepository repo, TransformResult transformResult)
+    private MessageInfo changeId(TransformResult transformResult)
         throws RepoException, ValidationException {
       if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
         return new MessageInfo(gerritOptions.gerritChangeId, /*newPush */ false);
       }
       GerritChange response = gerritOptions.getChangeFinder().get()
-          .find(repoUrl, transformResult.getWorkflowIdentity(), committer, console);
+          .find(repoUrl, transformResult.getChangeIdentity(), committer, console);
       return new MessageInfo(response.getChangeId(), /*newPush */ !response.wasFound());
     }
   }

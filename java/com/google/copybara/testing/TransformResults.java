@@ -30,6 +30,6 @@ public class TransformResults {
   public static TransformResult of(Path path, DummyRevision originRef) throws RepoException {
     return new TransformResult(path, originRef, originRef.getAuthor(), "test summary\n",
                                originRef)
-        .withWorkflowIdentity(originRef.asString());
+        .withIdentity(originRef.asString(), /*groupIdentity=*/null);
   }
 }

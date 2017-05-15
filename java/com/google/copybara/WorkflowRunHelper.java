@@ -21,6 +21,7 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
@@ -39,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 
@@ -54,6 +56,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   @Nullable
   private final Destination.Reader<D> destinationReader;
   private final Destination.Writer writer;
+
+  @Nullable
+  private Optional<String> groupIdentity = null;
 
   protected WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
       Reader<O> originReader, @Nullable Destination.Reader<D> destinationReader,
@@ -141,7 +146,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   }
 
   boolean destinationSupportsPreviousRef() {
-    return writer.supportsPreviousRef();
+    return writer.supportsStatus();
   }
 
   String getWorkflowIdentity(O reference) {
@@ -246,7 +251,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
     if (workflow.getReverseTransformForCheck() != null) {
       workflow.getConsole().progress("Checking that the transformations can be reverted");
-      Path reverse = null;
+      Path reverse;
       try (ProfilerTask ignored = profiler().start("reverse_copy")) {
         reverse = Files.createDirectories(workdir.resolve("reverse"));
         FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
@@ -287,7 +292,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
     transformResult = transformResult
         .withAskForConfirmation(workflow.isAskForConfirmation())
-        .withWorkflowIdentity(workflowIdentity);
+        .withIdentity(workflowIdentity, computeGroupIdentity());
 
     WriterResult result;
     try (ProfilerTask ignored = profiler().start("destination.write")) {
@@ -302,6 +307,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return getChanges(getLastRev(), resolvedRef);
   }
 
+  
   ImmutableList<Change<O>> getChanges(@Nullable O from, O to)
       throws RepoException, ValidationException {
     return originReader.changes(from, to);
@@ -342,8 +348,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
     }
 
-    String previousRef = writer.getPreviousRef(workflow.getOrigin().getLabelName());
-    return (previousRef == null) ? null : workflow.getOrigin().resolve(previousRef);
+    DestinationStatus status = writer.getDestinationStatus(workflow.getOrigin().getLabelName(),
+                                                           computeGroupIdentity());
+    return (status == null) ? null : workflow.getOrigin().resolve(status.getBaseline());
   }
 
   public Profiler profiler() {
@@ -392,6 +399,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
     workflow.configPaths();
     return true;
+  }
+
+  @Nullable
+  private String computeGroupIdentity() throws RepoException, ValidationException {
+    if (groupIdentity == null) {
+      groupIdentity = Optional.ofNullable(
+          workflow.computeGroupIdentity(originReader.getGroupIdentity(resolvedRef)));
+    }
+    return groupIdentity.orElse(null);
   }
 
   @SkylarkModule(name = "ComputedChanges", doc = "Computed changes implementation",

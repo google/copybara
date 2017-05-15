@@ -16,11 +16,15 @@
 
 package com.google.copybara;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 
@@ -78,25 +82,25 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
   interface Writer {
 
     /**
-     * Returns the latest origin ref that was pushed to this destination.
-     *
-     * <p>Returns null if the last origin ref cannot be identified or the destination doesn't
-     * support this feature. This requires that the {@code Destination} stores information about the
-     * origin ref.
+     * Returns the status of the import at the destination.
      *
      * <p>This method may have undefined behavior if called after {@link #write(TransformResult,
      * Console)}.
      *
      * @param labelName the label used in the destination for storing the last migrated ref
+     * @param groupId an optional identifier for the group of changes that will be migrated
+     * (For example if the all the changes are from a Github pull request).
      */
     @Nullable
-    String getPreviousRef(String labelName) throws RepoException;
+    DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
+        throws RepoException;
 
     /**
      * Returns true if this destination stores revisions in the repository so that
-     * {@code getPreviousRef} can be used for discovering previous imported revisions.
+     * {@link #getDestinationStatus(String, String)}  can be used for discovering the state of the
+     * destination.
      */
-    default boolean supportsPreviousRef() {
+    default boolean supportsStatus() {
       return true;
     }
 
@@ -140,4 +144,61 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    */
   String getLabelNameWhenOrigin();
 
+  /**
+   * This class represents the status of the destination. It includes the baseline revision
+   * and if it is a code review destination, the list of pending changes that have been already
+   * migrated. In order: First change is the oldest one.
+   */
+  final class DestinationStatus {
+
+    private final String baseline;
+    private final ImmutableList<String> pendingChanges;
+
+    public DestinationStatus(String baseline, ImmutableList<String> pendingChanges) {
+      this.baseline = Preconditions.checkNotNull(baseline);
+      this.pendingChanges = Preconditions.checkNotNull(pendingChanges);
+    }
+
+    /**
+     * String representation of the latest migrated revision in the baseline.
+     */
+    public String getBaseline() {
+      return Preconditions.checkNotNull(baseline, "Trying to get baseline for NO_STATUS");
+    }
+
+    /**
+     * String representation of the migrated revisions that are in pending state in the destination.
+     * First element is the oldest one. Last element the newest one.
+     */
+    public ImmutableList<String> getPendingChanges() {
+      return Preconditions.checkNotNull(pendingChanges,
+                                        "Trying to get pendingChanges for NO_STATUS");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      DestinationStatus that = (DestinationStatus) o;
+      return Objects.equals(baseline, that.baseline)
+          && Objects.equals(pendingChanges, that.pendingChanges);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(baseline, pendingChanges);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("baseline", baseline)
+          .add("pendingChanges", pendingChanges)
+          .toString();
+    }
+  }
 }
