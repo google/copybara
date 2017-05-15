@@ -55,12 +55,12 @@ public final class GitDestinationOptions implements Option {
   @Nullable
   @Parameter(names = "--git-destination-fetch",
       description = "If set, overrides the git destination fetch reference.")
-  String fetch = null;
+  public String fetch = null;
 
   @Nullable
   @Parameter(names = "--git-destination-push",
       description = "If set, overrides the git destination push reference.")
-  String push = null;
+  public String push = null;
 
   @Nullable
   @Parameter(names = "--git-destination-path",
