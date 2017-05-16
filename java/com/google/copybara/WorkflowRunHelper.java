@@ -85,7 +85,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         workflow.getDestination().newWriter(workflow.getDestinationFiles(), dryRun));
   }
 
-  protected WorkflowRunHelper<O, D> forChanges(Changes changes)
+  /**
+   * Get a run helper for the current changes.
+   *
+   * <p>The list contains the changes in order: First change is the oldest. Last change is the
+   * newest.
+   */
+  protected WorkflowRunHelper<O, D> forChanges(Iterable<? extends Change<?>> currentChanges)
       throws RepoException, ValidationException, IOException {
     return this;
   }
@@ -169,7 +175,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       Change<O> change = originReader.change(lastRev);
       ComputedChanges changes = new ComputedChanges(ImmutableList.of(change), ImmutableList.of());
-      WorkflowRunHelper<O, D> helper = forChanges(changes).withDryRun();
+      WorkflowRunHelper<O, D> helper = forChanges(changes.getCurrent()).withDryRun();
 
       try {
         workflow.getGeneralOptions().ioRepoTask("migrate", () ->
@@ -365,13 +371,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * origin_files. Then we also check for potential changes in the config for configs that
    * are stored in the origin.
    */
-  boolean skipChanges(Changes changes) {
+  boolean skipChanges(Iterable<? extends Change<?>> currentChanges) {
     if (workflowOptions().iterativeAllChanges) {
       return false;
     }
 
     Set<String> changesFiles = new HashSet<>();
-    for (Change<?> change : changes.getCurrent()) {
+    for (Change<?> change : currentChanges) {
       // We cannot know the files included in one of the changes. Try to migrate then.
       if (change.getChangeFiles() == null) {
         return false;
@@ -413,12 +419,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   @SkylarkModule(name = "ComputedChanges", doc = "Computed changes implementation",
       documented = false)
   static class ComputedChanges extends Changes {
+    static final Changes EMPTY = new ComputedChanges(ImmutableList.of(), ImmutableList.of());
 
     private final SkylarkList<? extends Change<?>> current;
     private final SkylarkList<? extends Change<?>> migrated;
 
-    ComputedChanges(Iterable<? extends Change<?>> current,
-        Iterable<? extends Change<?>> migrated) {
+    ComputedChanges(Iterable<? extends Change<?>> current, Iterable<? extends Change<?>> migrated) {
       this.current = SkylarkList.createImmutable(current);
       this.migrated = SkylarkList.createImmutable(migrated);
     }

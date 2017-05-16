@@ -20,13 +20,12 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.WorkflowRunHelper.ComputedChanges;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.ProgressPrefixConsole;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -48,23 +47,22 @@ public enum WorkflowMode {
     @Override
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
-      Changes changes = new LazyChangesForSquash<>(runHelper);
+      ImmutableList<Change<O>> detectedChanges = ImmutableList.of();
       O current = runHelper.getResolvedRef();
 
       if (isHistorySupported(runHelper)) {
         O lastRev = maybeGetLastRev(runHelper);
-        ImmutableList<Change<O>> detectedChanges = runHelper.getChanges(lastRev, current).reverse();
+        detectedChanges = runHelper.getChanges(lastRev, current);
 
         if (detectedChanges.isEmpty()) {
           manageNoChangesDetectedForSquash(runHelper, current, lastRev);
         } else {
           // Try to use the latest change that affected the origin_files roots instead of the
           // current revision, that could be an unrelated change.
-          current = detectedChanges.get(0).getRevision();
-          changes = new ComputedChanges(
-              runHelper.isSquashWithoutHistory() ? ImmutableList.of() : detectedChanges,
-              ImmutableList.of()
-          );
+          current = Iterables.getLast(detectedChanges).getRevision();
+          if (runHelper.isSquashWithoutHistory()) {
+            detectedChanges = ImmutableList.of();
+          }
         }
       }
 
@@ -75,13 +73,13 @@ public enum WorkflowMode {
 
       runHelper.maybeValidateRepoInLastRevState(metadata);
 
-      runHelper
-          .forChanges(changes)
+      runHelper.forChanges(detectedChanges)
           .migrate(
               current,
               runHelper.getConsole(),
               metadata,
-              changes,
+              // Squash notes an Skylark API expect last commit to be the first one.
+              new ComputedChanges(detectedChanges.reverse(), ImmutableList.of()),
               /*destinationBaseline=*/null,
               runHelper.getWorkflowIdentity(runHelper.getResolvedRef()));
     }
@@ -122,16 +120,16 @@ public enum WorkflowMode {
         WriterResult result;
 
         try (ProfilerTask ignored = runHelper.profiler().start(change.refAsString())) {
-          ComputedChanges computedChanges = new ComputedChanges(ImmutableList.of(change), migrated);
-          WorkflowRunHelper<O, D> currentHelper = runHelper.forChanges(computedChanges);
-          if (currentHelper.skipChanges(computedChanges)) {
+          ImmutableList<Change<O>> current = ImmutableList.of(change);
+          WorkflowRunHelper<O, D> currentHelper = runHelper.forChanges(current);
+          if (currentHelper.skipChanges(current)) {
             continue;
           }
           result = currentHelper.migrate(
                       change.getRevision(),
                       new ProgressPrefixConsole(prefix, runHelper.getConsole()),
                       new Metadata(change.getMessage(), change.getAuthor()),
-                      computedChanges,
+                      new ComputedChanges(current, migrated),
                       /*destinationBaseline=*/null,
                       // Use the current change since we might want to create different
                       // reviews in the destination. Will not work if we want to group
@@ -204,7 +202,7 @@ public enum WorkflowMode {
       Change<O> change = runHelper.getOriginReader().change(runHelper.getResolvedRef());
       ComputedChanges changes = new ComputedChanges(ImmutableList.of(change), ImmutableList.of());
       runHelper
-          .forChanges(changes)
+          .forChanges(changes.getCurrent())
           .migrate(
               runHelper.getResolvedRef(),
               runHelper.getConsole(),
@@ -278,42 +276,4 @@ public enum WorkflowMode {
 
   abstract <O extends Revision, D extends Revision> void run(
       WorkflowRunHelper<O, D> runHelper) throws RepoException, IOException, ValidationException;
-
-  /**
-   * An implementation of {@link Changes} that compute the list of changes lazily. Only when
-   * a transformer request it.
-   */
-  @SkylarkModule(name = "LazyChanges", doc = "Lazy changes implementation", documented = false)
-  private static class LazyChangesForSquash<R extends Revision, S extends Revision>
-      extends Changes {
-
-    private final WorkflowRunHelper<R, S> runHelper;
-    private SkylarkList<? extends Change<?>> cached;
-
-    private LazyChangesForSquash(WorkflowRunHelper<R, S> runHelper) {
-      this.runHelper = runHelper;
-      cached = null;
-    }
-
-    @Override
-    public synchronized SkylarkList<? extends Change<?>> getCurrent() {
-      if (cached == null) {
-        try {
-          // Reverse since changesSinceLastImport returns the first commit to import
-          // first.
-          cached = SkylarkList.createImmutable(runHelper.changesSinceLastImport().reverse());
-        } catch (ValidationException | RepoException e) {
-          logger.log(Level.WARNING, "Previous revision couldn't be resolved."
-              + " Cannot compute the set of changes in the migration");
-          cached = SkylarkList.createImmutable(ImmutableList.<Change<?>>of());
-        }
-      }
-      return cached;
-    }
-
-    @Override
-    public SkylarkList<? extends Change<?>> getMigrated() {
-      return SkylarkList.createImmutable(ImmutableList.<Change<?>>of());
-    }
-  }
 }
