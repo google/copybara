@@ -834,6 +834,48 @@ public class WorkflowTest {
   }
 
   @Test
+  public void skipNotesForExcludedFiles() throws Exception {
+    originFiles = "glob(['**'], exclude = ['foo'])";
+    transformations = ImmutableList.of("metadata.squash_notes()");
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path one = Files.createDirectories(fileSystem.getPath("one"));
+    Path two = Files.createDirectories(fileSystem.getPath("two"));
+    Path three = Files.createDirectories(fileSystem.getPath("three"));
+    Path four = Files.createDirectories(fileSystem.getPath("four"));
+
+    touchFile(one, "foo", "");
+    touchFile(one, "bar", "");
+    origin.addChange(1, one, "foo and bar", /*matchesGlob=*/true);
+
+    touchFile(two, "foo", "a");
+    touchFile(two, "bar", "");
+    origin.addChange(2, two, "only foo", /*matchesGlob=*/true);
+
+    touchFile(three, "foo", "a");
+    touchFile(three, "bar", "a");
+    origin.addChange(3, three, "only bar", /*matchesGlob=*/true);
+
+    DummyRevision bar = origin.resolve(HEAD);
+
+    touchFile(four, "foo", "b");
+    touchFile(four, "bar", "a");
+    origin.addChange(4, four, "foo again", /*matchesGlob=*/true);
+
+    skylarkWorkflow("default", SQUASH).run(workdir, HEAD);
+
+    // We skip changes that only touch foo.
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+        .isEqualTo("Copybara import of the project:\n"
+            + "\n"
+            + "  - 2 only bar by Copybara <no-reply@google.com>\n"
+            + "  - 0 foo and bar by Copybara <no-reply@google.com>\n");
+    // We use as reference for the destination label the last change that affects
+    // origin_files.
+    assertThat(Iterables.getLast(destination.processed).getOriginRef().asString())
+        .isEqualTo(bar.asString());
+  }
+
+  @Test
   public void originFilesNothingRemovedNoopNothingInLog() throws Exception {
     originFiles = "glob(['**'], exclude = ['I_dont_exist'])";
     transformations = ImmutableList.of();

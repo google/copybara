@@ -53,16 +53,8 @@ public enum WorkflowMode {
       if (isHistorySupported(runHelper)) {
         O lastRev = maybeGetLastRev(runHelper);
         detectedChanges = runHelper.getChanges(lastRev, current);
-
         if (detectedChanges.isEmpty()) {
           manageNoChangesDetectedForSquash(runHelper, current, lastRev);
-        } else {
-          // Try to use the latest change that affected the origin_files roots instead of the
-          // current revision, that could be an unrelated change.
-          current = Iterables.getLast(detectedChanges).getRevision();
-          if (runHelper.isSquashWithoutHistory()) {
-            detectedChanges = ImmutableList.of();
-          }
         }
       }
 
@@ -73,8 +65,25 @@ public enum WorkflowMode {
 
       runHelper.maybeValidateRepoInLastRevState(metadata);
 
-      runHelper.forChanges(detectedChanges)
-          .migrate(
+      WorkflowRunHelper<O, D> helperForChanges = runHelper.forChanges(detectedChanges);
+      // Remove changes that don't affect origin_files
+      detectedChanges = detectedChanges.stream()
+          // Don't replace helperForChanges with runHelper since origin_files could
+          // be potentially different in the helper for the current change.
+          .filter(change -> !helperForChanges.skipChanges(ImmutableList.of(change)))
+          .collect(ImmutableList.toImmutableList());
+
+      // Try to use the latest change that affected the origin_files roots instead of the
+      // current revision, that could be an unrelated change.
+      current = detectedChanges.isEmpty()
+          ?current
+          :Iterables.getLast(detectedChanges).getRevision();
+
+      if (runHelper.isSquashWithoutHistory()) {
+        detectedChanges = ImmutableList.of();
+      }
+
+      helperForChanges.migrate(
               current,
               runHelper.getConsole(),
               metadata,
