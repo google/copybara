@@ -87,7 +87,7 @@ public abstract class Info<O extends Revision> {
      * recent change available at this moment.
      */
     @Nullable
-    public O getLastAvailableToMigrate() {
+    O getLastAvailableToMigrate() {
       Optional<O> lastAvailable =
           getAvailableToMigrate()
               .stream()
