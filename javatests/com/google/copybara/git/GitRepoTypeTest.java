@@ -90,10 +90,25 @@ public class GitRepoTypeTest {
   public void testResolveSha1() throws Exception {
     disableFetchMocks();
     String sha1 = fileRepo.parseRef("HEAD");
-    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, generalOptions).asString())
-        .isEqualTo(sha1);
-    console.assertThat()
-        .containsNoMoreMessages();
+    GitRevision rev = GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, generalOptions);
+    assertThat(rev.asString()).isEqualTo(sha1);
+    assertThat(rev.getSha1()).isEqualTo(sha1);
+    assertThat(rev.getReviewReference()).isNull();
+
+    console.assertThat().containsNoMoreMessages();
+  }
+
+  @Test
+  public void testResolveSha1WithAdditionalReviewData() throws Exception {
+    disableFetchMocks();
+    String sha1 = fileRepo.parseRef("HEAD");
+    GitRevision rev = GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1 + " more stuff",
+                                                         generalOptions);
+    assertThat(rev.asString()).isEqualTo(sha1 + " more stuff");
+    assertThat(rev.getSha1()).isEqualTo(sha1);
+    assertThat(rev.getReviewReference()).isEqualTo("more stuff");
+
+    console.assertThat().containsNoMoreMessages();
   }
 
   @Test

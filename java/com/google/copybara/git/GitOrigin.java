@@ -62,7 +62,7 @@ public class GitOrigin implements Origin<GitRevision> {
     /** Download all the submodules recursively */
     RECURSIVE
   }
-  static final String GIT_LOG_COMMENT_PREFIX = "    ";
+
   final GitRepository repository;
 
   /**
@@ -144,7 +144,7 @@ public class GitOrigin implements Origin<GitRevision> {
         throws RepoException, CannotResolveRevisionException {
 
       GitRepository repo = repository.withWorkTree(workdir);
-      repo.simpleCommand("checkout", "-q", "-f", ref.asString());
+      repo.simpleCommand("checkout", "-q", "-f", ref.getSha1());
       if (submoduleStrategy == SubmoduleStrategy.NO) {
         return;
       }
@@ -184,8 +184,8 @@ public class GitOrigin implements Origin<GitRevision> {
         GitRevision toRef) throws RepoException {
 
       String refRange = fromRef == null
-          ? toRef.asString()
-          : fromRef.asString() + ".." + toRef.asString();
+          ? toRef.getSha1()
+          : fromRef.getSha1() + ".." + toRef.getSha1();
       ChangeReader changeReader = changeReaderBuilder().build();
       return asChanges(changeReader.run(refRange));
     }
@@ -196,7 +196,16 @@ public class GitOrigin implements Origin<GitRevision> {
       ChangeReader changeReader = changeReaderBuilder()
           .setLimit(1)
           .build();
-      return Iterables.getOnlyElement(asChanges(changeReader.run(ref.asString())));
+      Change<GitRevision> rev = Iterables.getOnlyElement(
+          asChanges(changeReader.run(ref.getSha1())));
+
+      // Keep the original revision since it might have context information like code review
+      // info. The difference with changes method is that here we know exactly what we've
+      // requested (One SHA-1 revision) while in the other we get a result for a range. That
+      // means that extensions of GitOrigin need to implement changes if they want to provide
+      // additional information.
+      return new Change<>(ref, rev.getAuthor(), rev.getMessage(), rev.getDateTime(),
+                          rev.getLabels(), rev.getChangeFiles());
     }
 
     @Override

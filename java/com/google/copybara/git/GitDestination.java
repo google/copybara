@@ -438,7 +438,7 @@ public final class GitDestination implements Destination<GitRevision> {
     public void visitChanges(GitRevision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
       GitRepository repository = cloneBaseline();
-      String revString = start == null ? "FETCH_HEAD" : start.asString();
+      String revString = start == null ? "FETCH_HEAD" : start.getSha1();
       ChangeReader changeReader =
           ChangeReader.Builder.forDestination(repository, console)
               .setVerbose(verbose)
@@ -459,7 +459,7 @@ public final class GitDestination implements Destination<GitRevision> {
           break;
         }
         current =
-            Iterables.getOnlyElement(changeReader.run(current.getParents().get(0).asString()));
+            Iterables.getOnlyElement(changeReader.run(current.getParents().get(0).getSha1()));
       }
     }
   }

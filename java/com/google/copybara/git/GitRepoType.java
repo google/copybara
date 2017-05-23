@@ -38,26 +38,35 @@ import javax.annotation.Nullable;
  * allowing to import Github PR/Gerrit changes using the web url as the reference.
  */
 public enum GitRepoType {
-
   @DocField(description = "A standard git repository. This is the default")
   GIT {
     /**
      * Standard git resolution tries to apply some heuristics for resolving the ref. Currently it
      * supports:
+     *
      * <ul>
-     * <li>SHA-1 references if they are reachable from heads. Example:
-     * 7d45b192cf1bf3a45990afeb840a382760111dee</li>
-     * <li>Valid git refs for {@code repoUrl}. Examples: master, refs/some/ref, etc.</li>
-     * <li>Fetching HEAD from a git url. Example http://somerepo.com/foo, file:///home/john/repo,
-     * etc. </li>
-     * <li>Fetching a reference from a git url. Example: "http://somerepo.com/foo branch"</li>
+     *   <li>SHA-1 references if they are reachable from heads. Example:
+     *       7d45b192cf1bf3a45990afeb840a382760111dee
+     *   <li>Valid git refs for {@code repoUrl}. Examples: master, refs/some/ref, etc.
+     *   <li>Fetching HEAD from a git url. Example http://somerepo.com/foo, file:///home/john/repo,
+     *       etc.
+     *   <li>Fetching a reference from a git url. Example: "http://somerepo.com/foo branch"
      * </ul>
      */
     @Override
-    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
-        GeneralOptions generalOptions)
+    GitRevision resolveRef(
+        GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
         throws RepoException, CannotResolveRevisionException {
       logger.log(Level.INFO, "Resolving " + repoUrl + " reference: " + ref);
+
+      Matcher sha1WithPatchSet = SHA_1_WITH_REVIEW_DATA.matcher(ref);
+      if (sha1WithPatchSet.matches()) {
+        GitRevision rev = repository.fetchSingleRef(repoUrl, sha1WithPatchSet.group(1));
+        return new GitRevision(repository, rev.getSha1(), sha1WithPatchSet.group(2),
+                               rev.contextReference(), rev.associatedLabels());
+      }
+
+
       if (!GIT_URL.matcher(ref).matches() && !FILE_URL.matcher(ref).matches()) {
         // If ref is not an url try a normal fetch of repoUrl and ref
         return repository.fetchSingleRef(repoUrl, ref);
@@ -82,13 +91,14 @@ public enum GitRepoType {
   @DocField(description = "A git repository hosted in Github")
   GITHUB {
     /**
-     * Github resolution supports all {@link GitRepoType#GIT} formats and additionally if the ref
-     * is a github url, is equals to {@code repoUrl} and is a pull request it tries to transform
-     * it to a valid git fetch of the equivalent ref.
+     * Github resolution supports all {@link GitRepoType#GIT} formats and additionally if the ref is
+     * a github url, is equals to {@code repoUrl} and is a pull request it tries to transform it to
+     * a valid git fetch of the equivalent ref.
      */
     @Override
-    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
-        GeneralOptions generalOptions) throws RepoException, CannotResolveRevisionException {
+    GitRevision resolveRef(
+        GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
+        throws RepoException, CannotResolveRevisionException {
       if (ref.startsWith("https://github.com") && ref.startsWith(repoUrl)) {
         GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
         if (ghPullRequest != null) {
@@ -105,28 +115,37 @@ public enum GitRepoType {
     private final Pattern URL = Pattern.compile("https?://.*?/([0-9]+)(?:/([0-9]+))?");
 
     @Override
-    GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
-        GeneralOptions options) throws RepoException, CannotResolveRevisionException {
+    GitRevision resolveRef(
+        GitRepository repository, String repoUrl, String ref, GeneralOptions options)
+        throws RepoException, CannotResolveRevisionException {
       if (ref == null || ref.isEmpty()) {
         return GIT.resolveRef(repository, repoUrl, ref, options);
       }
       Matcher refMatcher = WHOLE_REF.matcher(ref);
       if (refMatcher.matches()) {
         return fetchWithChangeNumberAsContext(
-            repository, repoUrl, Integer.parseInt(refMatcher.group(1)), ref);
+            repository,
+            repoUrl,
+            Integer.parseInt(refMatcher.group(1)),
+            Integer.parseInt(refMatcher.group(2)),
+            ref);
       }
       // A change number like '23423'
       if (CharMatcher.javaDigit().matchesAllOf(ref)) {
         return resolveLatestPatchSet(repository, repoUrl, options, Integer.parseInt(ref));
       }
+
       Matcher urlMatcher = URL.matcher(ref);
       if (!urlMatcher.matches()) {
         return GIT.resolveRef(repository, repoUrl, ref, options);
       }
       if (!ref.startsWith(repoUrl)) {
         // Assume it is our url. We can make this more strict later
-        options.console().warn(
-            String.format("Assuming repository '%s' for looking for review '%s'", repoUrl, ref));
+        options
+            .console()
+            .warn(
+                String.format(
+                    "Assuming repository '%s' for looking for review '%s'", repoUrl, ref));
       }
       int change = Integer.parseInt(urlMatcher.group(1));
       Integer patchSet = urlMatcher.group(2) == null ? null : Integer.parseInt(urlMatcher.group(2));
@@ -135,60 +154,80 @@ public enum GitRepoType {
       }
       Map<Integer, GitRevision> patchSets = getPatchSets(repository, repoUrl, change, options);
       if (!patchSets.containsKey(patchSet)) {
-        throw new CannotResolveRevisionException(String.format(
-            "Cannot find patch set %d for change %d in %s. Available Patch sets: %s",
-            patchSet, change, repoUrl, patchSets.keySet()));
+        throw new CannotResolveRevisionException(
+            String.format(
+                "Cannot find patch set %d for change %d in %s. Available Patch sets: %s",
+                patchSet, change, repoUrl, patchSets.keySet()));
       }
-      return fetchWithChangeNumberAsContext(repository, repoUrl, change,
-          patchSets.get(patchSet).contextReference());
+      return fetchWithChangeNumberAsContext(
+          repository, repoUrl, change, patchSet, patchSets.get(patchSet).contextReference());
     }
 
-    private GitRevision resolveLatestPatchSet(GitRepository repository, String repoUrl,
-        GeneralOptions generalOptions, int changeNumber)
+    private GitRevision resolveLatestPatchSet(
+        GitRepository repository, String repoUrl, GeneralOptions generalOptions, int changeNumber)
         throws RepoException, CannotResolveRevisionException {
-      GitRevision revisionWithContext = getPatchSets(repository, repoUrl, changeNumber,
+      Entry<Integer, GitRevision> lastPatchset =
           // Last entry is the latest patchset, since it is ordered by patchsetId.
-          generalOptions).lastEntry().getValue();
-      return fetchWithChangeNumberAsContext(repository, repoUrl, changeNumber,
-          revisionWithContext.contextReference());
+          getPatchSets(repository, repoUrl, changeNumber, generalOptions).lastEntry();
+      return fetchWithChangeNumberAsContext(
+          repository,
+          repoUrl,
+          changeNumber,
+          lastPatchset.getKey(),
+          lastPatchset.getValue().contextReference());
     }
 
-    private GitRevision fetchWithChangeNumberAsContext(GitRepository repository, String repoUrl,
-        int change, String ref) throws RepoException,
-        CannotResolveRevisionException {
+    private GitRevision fetchWithChangeNumberAsContext(
+        GitRepository repository, String repoUrl, int change, int patchSet, String ref)
+        throws RepoException, CannotResolveRevisionException {
       GitRevision gitRevision = repository.fetchSingleRef(repoUrl, ref);
       String changeNumber = Integer.toString(change);
-      return new GitRevision(repository, gitRevision.asString(), changeNumber,
+      return new GitRevision(
+          repository,
+          gitRevision.getSha1(),
+          gerritPatchSetAsReviewReference(patchSet),
+          changeNumber,
           ImmutableMap.of(GERRIT_CHANGE_NUMBER_LABEL, changeNumber));
     }
 
     /**
-     * Get all the patchsets for a change ordered by the patchset number. Last is the most
-     * recent one.
+     * Get all the patchsets for a change ordered by the patchset number. Last is the most recent
+     * one.
      */
-    private TreeMap<Integer, GitRevision> getPatchSets(GitRepository repository, String url,
-        int changeNumber, GeneralOptions generalOptions)
+    private TreeMap<Integer, GitRevision> getPatchSets(
+        GitRepository repository, String url, int changeNumber, GeneralOptions generalOptions)
         throws RepoException, CannotResolveRevisionException {
       TreeMap<Integer, GitRevision> patchSets = new TreeMap<>();
       String basePath = "refs/changes/" + (changeNumber % 100) + "/" + changeNumber;
-      Map<String, String> refsToSha1 = GitRepository.lsRemote(url,
-          ImmutableList.of(basePath + "/*"), generalOptions.getEnvironment());
+      Map<String, String> refsToSha1 =
+          GitRepository.lsRemote(
+              url, ImmutableList.of(basePath + "/*"), generalOptions.getEnvironment());
       if (refsToSha1.isEmpty()) {
         throw new CannotResolveRevisionException(
             String.format("Cannot find change number %d in '%s'", changeNumber, url));
       }
       for (Entry<String, String> e : refsToSha1.entrySet()) {
-        Preconditions.checkState(e.getKey().startsWith(basePath + "/"),
+        Preconditions.checkState(
+            e.getKey().startsWith(basePath + "/"),
             String.format("Unexpected response reference %s for %s", e.getKey(), basePath));
         if (e.getKey().endsWith("/meta")) {
           continue;
         }
         Matcher matcher = WHOLE_REF.matcher(e.getKey());
-        Preconditions.checkArgument(matcher.matches(),
-            "Unexpected format for response reference %s for %s", e.getKey(), basePath);
+        Preconditions.checkArgument(
+            matcher.matches(),
+            "Unexpected format for response reference %s for %s",
+            e.getKey(),
+            basePath);
         int patchSet = Integer.parseInt(matcher.group(2));
-        patchSets.put(patchSet, new GitRevision(repository, e.getValue(), e.getKey(),
-            ImmutableMap.of()));
+        patchSets.put(
+            patchSet,
+            new GitRevision(
+                repository,
+                e.getValue(),
+                gerritPatchSetAsReviewReference(patchSet),
+                e.getKey(),
+                ImmutableMap.of()));
       }
       return patchSets;
     }
@@ -199,7 +238,7 @@ public enum GitRepoType {
    * reference. Otherwise return null.
    */
   @Nullable
-  static protected GitRevision maybeFetchGithubPullRequest(GitRepository repository, String ref)
+  protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository, String ref)
       throws RepoException, CannotResolveRevisionException {
     Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
     if (matcher.matches()) {
@@ -220,6 +259,26 @@ public enum GitRepoType {
 
   private static final Pattern FILE_URL = Pattern.compile("file://(.*)");
 
-  abstract GitRevision resolveRef(GitRepository repository, String repoUrl, String ref,
-      GeneralOptions generalOptions) throws RepoException, CannotResolveRevisionException;
+  private static final String GERRIT_PATCH_SET_REF_PREFIX = "PatchSet ";
+
+  /** Example: "54d2a09b272f22a6d27e76b891f36213b98e0ddc random text" */
+  private static final Pattern SHA_1_WITH_REVIEW_DATA =
+      Pattern.compile("(" + GitRevision.COMPLETE_SHA1_PATTERN.pattern() + ") (.+)");
+
+  abstract GitRevision resolveRef(
+      GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
+      throws RepoException, CannotResolveRevisionException;
+
+  String gerritPatchSetAsReviewReference(int patchSet) {
+    return GERRIT_PATCH_SET_REF_PREFIX + patchSet;
+  }
+
+  @SuppressWarnings("unused")
+  @Nullable
+  Integer getGerritPatchSetFromReviewReference(@Nullable String reviewReference) {
+    if (reviewReference == null || !reviewReference.startsWith(GERRIT_PATCH_SET_REF_PREFIX)) {
+      return null;
+    }
+    return Integer.parseInt(reviewReference.substring(GERRIT_PATCH_SET_REF_PREFIX.length()));
+  }
 }

@@ -18,11 +18,18 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.Change;
+import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
@@ -41,13 +48,17 @@ import org.junit.runners.JUnit4;
 public class GerritOriginTest {
 
   private static final String commitTime = "2037-02-16T13:00:00Z";
+  private static final Authoring AUTHORING =
+      new Authoring(
+          new Author("foo bar", "baz@bar.com"),
+          AuthoringMappingMode.OVERWRITE,
+          ImmutableSet.<String>of());
   private GitOrigin origin;
   private Path remote;
   private OptionsBuilder options;
   private GitRepository repo;
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
+  @Rule public final ExpectedException thrown = ExpectedException.none();
 
   private GitRevision firstRevision;
   private GitRevision secondRevision;
@@ -73,28 +84,43 @@ public class GerritOriginTest {
 
     String url = "file://" + remote.toFile().getAbsolutePath();
 
-    origin = skylark.eval("result", String.format("result = "
-        + "git.gerrit_origin("
-        + "    url = '%s',"
-        + ")", url));
+    origin =
+        skylark.eval(
+            "result",
+            String.format("result = " + "git.gerrit_origin(" + "    url = '%s'," + ")", url));
 
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
     repo.add().files("test.txt").run();
 
     git("commit", "-m", "first change", "--date", commitTime);
-    firstRevision = new GitRevision(repo, repo.parseRef("HEAD"), "12345",
-        ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
-    git("update-ref", "refs/changes/45/12345/1", firstRevision.asString());
+    firstRevision =
+        new GitRevision(
+            repo,
+            repo.parseRef("HEAD"),
+            GitRepoType.GERRIT.gerritPatchSetAsReviewReference(1),
+            "12345",
+            ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
+    git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
 
     git("commit", "-m", "second change", "--date", commitTime, "--amend");
-    secondRevision = new GitRevision(repo, repo.parseRef("HEAD"), "12345",
-        ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
-    git("update-ref", "refs/changes/45/12345/2", secondRevision.asString());
+    secondRevision =
+        new GitRevision(
+            repo,
+            repo.parseRef("HEAD"),
+            GitRepoType.GERRIT.gerritPatchSetAsReviewReference(2),
+            "12345",
+            ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
+    git("update-ref", "refs/changes/45/12345/2", secondRevision.getSha1());
 
     git("commit", "-m", "third change", "--date", commitTime, "--amend");
-    thirdRevision = new GitRevision(repo, repo.parseRef("HEAD"), "12345",
-        ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
-    git("update-ref", "refs/changes/45/12345/3", thirdRevision.asString());
+    thirdRevision =
+        new GitRevision(
+            repo,
+            repo.parseRef("HEAD"),
+            GitRepoType.GERRIT.gerritPatchSetAsReviewReference(3),
+            "12345",
+            ImmutableMap.of(GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345"));
+    git("update-ref", "refs/changes/45/12345/3", thirdRevision.getSha1());
   }
 
   @Test
@@ -110,10 +136,36 @@ public class GerritOriginTest {
     validateSameGitRevision(origin.resolve("refs/changes/45/12345/2"), secondRevision);
     validateSameGitRevision(origin.resolve("refs/changes/45/12345/3"), thirdRevision);
 
+    // Test resolving from GitOrigin-RevId string:
+    GitRevision resolved = origin.resolve(thirdRevision.asString());
+    assertThat(resolved.getSha1()).isEqualTo(thirdRevision.getSha1());
+    assertThat(resolved.getReviewReference()).isEqualTo(thirdRevision.getReviewReference());
+
+    resolved = origin.resolve(thirdRevision.getSha1());
+    assertThat(resolved.getSha1()).isEqualTo(thirdRevision.getSha1());
+    assertThat(resolved.getReviewReference()).isNull();
+
     // Doesn't have any context as we passed a SHA-1
     assertThat(origin.resolve(firstRevision.asString()).contextReference()).isNull();
     // The context reference defaults to regular git one
     assertThat(origin.resolve("master").contextReference()).isEqualTo("master");
+  }
+
+  @Test
+  public void testChanges() throws RepoException, ValidationException {
+    Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, AUTHORING);
+    Change<GitRevision> res = reader.change(origin.resolve("http://foo.com/#/c/12345/2"));
+    assertThat(res.getRevision()).isEqualTo(secondRevision);
+    assertThat(res.getRevision().contextReference()).isEqualTo(secondRevision.contextReference());
+    assertThat(res.getRevision().getReviewReference())
+        .isEqualTo(secondRevision.getReviewReference());
+
+    ImmutableList<Change<GitRevision>> changes = reader.changes(
+            origin.resolve("http://foo.com/#/c/12345/1"),
+            origin.resolve("http://foo.com/#/c/12345/3"));
+
+    // Each ref is conceptually a rebase. Size is not really important for this test.
+    assertThat(changes).hasSize(1);
   }
 
   @Test
@@ -139,13 +191,16 @@ public class GerritOriginTest {
 
   private void validateSameGitRevision(GitRevision resolved, GitRevision expected) {
     assertThat(resolved.asString()).isEqualTo(expected.asString());
+    assertThat(resolved.getSha1()).isEqualTo(expected.getSha1());
+    assertThat(resolved.getReviewReference()).isEqualTo(expected.getReviewReference());
     assertThat(resolved.contextReference()).isEqualTo(expected.contextReference());
     assertThat(resolved.associatedLabels()).isEqualTo(expected.associatedLabels());
   }
 
   private void createTestRepo(Path folder) throws Exception {
     remote = folder;
-    repo = GitRepository.initScratchRepo(/*verbose*/true, remote, options.general.getEnvironment());
+    repo =
+        GitRepository.initScratchRepo(/*verbose*/ true, remote, options.general.getEnvironment());
   }
 
   private String git(String... params) throws RepoException {

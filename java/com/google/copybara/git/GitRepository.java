@@ -597,7 +597,7 @@ public class GitRepository {
 
   ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish) throws RepoException {
     ImmutableList.Builder<TreeElement> result = ImmutableList.builder();
-    String stdout = simpleCommand("ls-tree", reference.asString(), treeish).getStdout();
+    String stdout = simpleCommand("ls-tree", reference.getSha1(), "--", treeish).getStdout();
     for (String line : Splitter.on('\n').split(stdout)) {
       if (line.isEmpty()) {
         continue;
@@ -808,7 +808,10 @@ public class GitRepository {
       throw new CannotResolveRevisionException(
           "Cannot find '" + reference + "' object in the repository");
     }
-    return new GitRevision(this, parseRef(reference), contextRef, ImmutableMap.of());
+    return new GitRevision(this, parseRef(reference),
+                           /*reviewReference=*/null,
+                           contextRef,
+                           ImmutableMap.of());
   }
 
   /**
