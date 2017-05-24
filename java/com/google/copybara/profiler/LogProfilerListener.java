@@ -33,8 +33,9 @@ public class LogProfilerListener implements Listener {
 
   @Override
   public void taskFinished(Task task) {
-    logger.info("PROFILE: "
-        + TimeUnit.NANOSECONDS.toMillis(task.elapsedNanos()) + " "
-        + task.getDescription());
+    logger.info(
+        String.format(
+            "PROFILE: %6d %s",
+            TimeUnit.NANOSECONDS.toMillis(task.elapsedNanos()), task.getDescription()));
   }
 }
