@@ -28,18 +28,16 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
-/**
- * A Git repository reference
- */
+/** A Git repository reference */
 public final class GitRevision implements Revision {
 
   static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
 
   private final GitRepository repository;
   private final String sha1;
-  @Nullable
-  private final String reference;
+  @Nullable private final String reference;
   private ImmutableMap<String, String> associatedLabels;
+  @Nullable private final String reviewReference;
 
   /**
    * Create a git revision from a complete (40 characters) git SHA-1 string.
@@ -48,7 +46,7 @@ public final class GitRevision implements Revision {
    * @param sha1 a 40 characters SHA-1
    */
   GitRevision(GitRepository repository, String sha1) {
-    this(repository, sha1, /*reference=*/null, ImmutableMap.of());
+    this(repository, sha1, /*reviewReference=*/ null, /*reference=*/ null, ImmutableMap.of());
   }
 
   /**
@@ -56,14 +54,31 @@ public final class GitRevision implements Revision {
    *
    * @param repository git repository that should contain the {@code sha1}
    * @param sha1 a 40 characters SHA-1
+   * @param reviewReference an arbitrary string that allows to keep track of the revision of the
+   *     code review being migrated. SHA-1 is not enough because code reviews are mutable and can go
+   *     back and forth in to the same revision:
+   *     <ul>
+   *       <li>V1: sha1: abc
+   *       <li>V2: sha1: cdb
+   *       <li>V3: sha1: abc. Goes back to the original SHA-1. But we could have already migrated
+   *           V2.
+   *     </ul>
+   *
    * @param reference a stable name that describes where this is coming from. Could be a git
-   * reference like 'master'
+   *     reference like 'master'
    * @param associatedLabels labels associated with this reference
    */
-  GitRevision(GitRepository repository, String sha1, @Nullable String reference,
+  GitRevision(
+      GitRepository repository,
+      String sha1,
+      @Nullable String reviewReference,
+      @Nullable String reference,
       ImmutableMap<String, String> associatedLabels) {
-    Preconditions.checkArgument(COMPLETE_SHA1_PATTERN.matcher(sha1).matches(),
-                                "Reference '%s' is not a 40 characters SHA-1", sha1);
+    this.reviewReference = reviewReference;
+    Preconditions.checkArgument(
+        COMPLETE_SHA1_PATTERN.matcher(sha1).matches(),
+        "Reference '%s' is not a 40 characters SHA-1",
+        sha1);
 
     this.repository = Preconditions.checkNotNull(repository);
     this.sha1 = sha1;
@@ -89,7 +104,16 @@ public final class GitRevision implements Revision {
 
   @Override
   public String asString() {
+    return sha1 + (reviewReference == null ? "" : " " + reviewReference);
+  }
+
+  public String getSha1() {
     return sha1;
+  }
+
+  @Nullable
+  public String getReviewReference() {
+    return reviewReference;
   }
 
   @Override

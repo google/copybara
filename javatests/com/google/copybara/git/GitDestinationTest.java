@@ -956,7 +956,7 @@ public class GitDestinationTest {
 
     GitRevision master = repo().resolveReference("master", /*contextRef=*/null);
 
-    repo().simpleCommand("update-ref","refs/other/master", master.asString());
+    repo().simpleCommand("update-ref", "refs/other/master", master.getSha1());
 
     checkLocalRepo(true);
   }

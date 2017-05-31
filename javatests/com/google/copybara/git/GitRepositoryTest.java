@@ -32,7 +32,9 @@ import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.StatusFile;
+import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,7 +54,6 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitRepositoryTest {
 
-  private static final Author DEFAULT_AUTHOR = new Author("Autorbara", "author@example.com");
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -312,5 +313,20 @@ public class GitRepositoryTest {
         GitRepository.lsRemote("file://" + repository.getGitDir(), Collections.emptyList());
     assertThat(refsToShas.size()).isEqualTo(3);
     assertThat(refsToShas.get("refs/heads/b1")).isNotEqualTo(headSha);
+  }
+
+  @Test
+  public void testLsTreeWithReviewContext() throws Exception {
+
+    Files.write(Files.createDirectories(workdir.resolve("foo")).resolve("foo.txt"), new byte[] {});
+    repository.add().files("foo/foo.txt").run();
+    repository.simpleCommand("commit", "foo/foo.txt", "-m", "message");
+    GitRevision rev = new GitRevision(repository, repository.parseRef("HEAD"),
+                                       "this is review text", /*reference=*/null,
+                                       ImmutableMap.of());
+    ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/");
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getPath()).isEqualTo("foo/foo.txt");
+    assertThat(result.get(0).getType()).isEqualTo(GitObjectType.BLOB);
   }
 }

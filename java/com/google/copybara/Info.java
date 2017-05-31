@@ -87,7 +87,7 @@ public abstract class Info<O extends Revision> {
      * recent change available at this moment.
      */
     @Nullable
-    public O getLastAvailableToMigrate() {
+    O getLastAvailableToMigrate() {
       Optional<O> lastAvailable =
           getAvailableToMigrate()
               .stream()
@@ -99,7 +99,7 @@ public abstract class Info<O extends Revision> {
     /**
      * Returns a list of the next available {@link Change}s to migrate from the origin.
      */
-    abstract ImmutableList<Change<O>> getAvailableToMigrate();
+    public abstract ImmutableList<Change<O>> getAvailableToMigrate();
 
     @Override
     public String toString() {
