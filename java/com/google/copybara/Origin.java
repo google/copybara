@@ -85,7 +85,7 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
      * @param ref current revision to transform.
      * @throws RepoException if any error happens during the computation of the diff.
      */
-    Change<R> change(R ref) throws RepoException;
+    Change<R> change(R ref) throws RepoException, EmptyChangeException;
 
     /**
      * Given a revision, compute if possible an identity for the group of changes to be migrated.

@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
+import com.google.copybara.EmptyChangeException;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
@@ -353,6 +354,21 @@ public class GitOriginTest {
     assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
     assertThat(change.firstLineMessage()).isEqualTo("change2");
     assertThat(change.getRevision().asString()).isEqualTo(lastCommitRef.asString());
+  }
+
+  @Test
+  public void testChangeDoesNotAffectPaths() throws Exception {
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "change2", "excluded", "Excluded file");
+
+    originFiles = createGlob(ImmutableList.of("included/**"), ImmutableList.of("excluded"));
+    GitRevision lastCommitRef = getLastCommitRef();
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage(
+        String.format(
+            "'%s' revision cannot be found in the origin or it didn't affect the origin paths.",
+            lastCommitRef.asString()));
+    newReader().change(lastCommitRef);
   }
 
   @Test

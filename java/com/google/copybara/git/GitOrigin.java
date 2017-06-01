@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
+import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -191,13 +192,19 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     @Override
-    public Change<GitRevision> change(GitRevision ref) throws RepoException {
+    public Change<GitRevision> change(GitRevision ref) throws RepoException, EmptyChangeException {
       // The limit=1 flag guarantees that only one change is returned
       ChangeReader changeReader = changeReaderBuilder()
           .setLimit(1)
           .build();
-      Change<GitRevision> rev = Iterables.getOnlyElement(
-          asChanges(changeReader.run(ref.getSha1())));
+      ImmutableList<Change<GitRevision>> changes = asChanges(changeReader.run(ref.getSha1()));
+      if (changes.isEmpty()) {
+        throw new EmptyChangeException(
+            String.format(
+                "'%s' revision cannot be found in the origin or it didn't affect the origin paths.",
+                ref.asString()));
+      }
+      Change<GitRevision> rev = Iterables.getOnlyElement(changes);
 
       // Keep the original revision since it might have context information like code review
       // info. The difference with changes method is that here we know exactly what we've
