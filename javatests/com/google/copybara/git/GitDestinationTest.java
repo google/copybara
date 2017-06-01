@@ -658,6 +658,32 @@ public class GitDestinationTest {
     assertCommitHasAuthor("master", new Author("Foo Bar", "foo@bar.com"));
   }
 
+  /**
+   * This test reproduces an issue where the author timestamp has subseconds and, as a result,
+   * before the fix the change was committed with the (incorrect) date '2017-04-12T12:19:00-07:00',
+   * instead of '2017-06-01T12:19:00-04:00'.
+   */
+  @Test
+  public void authorDateWithSubsecondsCorrectlyPopulated() throws Exception {
+    fetch = "master";
+    push = "master";
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+
+    ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(
+        Instant.ofEpochMilli(1496333940012L), ZoneId.of("-04:00"));
+    DummyRevision firstCommit = new DummyRevision("first_commit")
+        .withAuthor(new Author("Foo Bar", "foo@bar.com"))
+        .withTimestamp(zonedDateTime);
+    process(
+        firstCommitWriter(),
+        firstCommit);
+
+    String authorDate = git("log", "-1", "--pretty=%aI");
+
+    assertThat(authorDate).isEqualTo("2017-06-01T12:19:00-04:00\n");
+  }
+
   @Test
   public void canExcludeDestinationPathFromWorkflow() throws Exception {
     fetch = "master";

@@ -506,6 +506,12 @@ public class GitRepository {
     throw new RepoException(output.getStderr());
   }
 
+  // DateTimeFormatter.ISO_OFFSET_DATE_TIME might include subseconds, but Git's ISO8601 format does
+  // not deal with subseconds (see https://git-scm.com/docs/git-commit#git-commit-ISO8601).
+  // We still want to stick to the default ISO format in Git, but don't add the subseconds.
+  private static final DateTimeFormatter ISO_OFFSET_DATE_TIME_NO_SUBSECONDS =
+      DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ssZ");
+
   public void commit(String author, ZonedDateTime timestamp, String message)
       throws RepoException, ValidationException {
     CommandOutput status = simpleCommand("diff", "--staged", "--stat");
@@ -514,7 +520,7 @@ public class GitRepository {
           + "Is the change already migrated?");
     }
     simpleCommand("commit", "--author", author,
-        "--date", timestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), "-m", message);
+        "--date", timestamp.format(ISO_OFFSET_DATE_TIME_NO_SUBSECONDS), "-m", message);
   }
 
   public List<StatusFile> status() throws RepoException {
