@@ -36,6 +36,14 @@ public class Consoles {
   }
 
   /**
+   * Logs text as separate lines using {@link Console#error(String)} (String)}. If {@code text} is
+   * an empty string, does nothing.
+   */
+  public static void errorLogLines(Console console, String prefix, String text) {
+    consoleLogLines(prefix, text, console::error);
+  }
+
+  /**
    * Logs text as separate lines using {@link Console#verbose(String)} (String)} if verbose
    * is enabled.
    */
