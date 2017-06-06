@@ -135,6 +135,35 @@ public final class ReplaceTest {
   }
 
   @Test
+  public void testWithGroupsAndIgnores() throws Exception {
+    Replace transformation = eval("core.replace(\n"
+        + "  before = '<foo${middle}bar>',\n"
+        + "  after = '<bar${middle}foo>',\n"
+        + "  regex_groups = {\n"
+        + "       'middle' : '.*',"
+        + "  },\n"
+        + "  ignore = [\n"
+        + "       '^#include.*',\n"
+        + "       '.*// IGNORE',\n"
+        + "  ],\n"
+        + ")");
+
+    Path file1 = checkoutDir.resolve("file1.txt");
+    writeFile(file1,
+        "#include <fooBAZbar>\n" +
+        "<fooBAZbar>\n" +
+        "fooQUXbar  // IGNORE");
+    transform(transformation);
+
+    assertThatPath(checkoutDir)
+        .containsFile("file1.txt",
+            "#include <fooBAZbar>\n" +
+            "<barBAZfoo>\n" +
+            "fooQUXbar  // IGNORE");
+  }
+
+
+  @Test
   public void testWithGlob() throws Exception {
     Replace transformation = eval("core.replace(\n"
         + "  before = 'foo',\n"

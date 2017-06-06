@@ -90,13 +90,15 @@ public final class TemplateTokens {
     return before;
   }
 
-  public Replacer replacer(TemplateTokens after, boolean firstOnly, boolean multiline) {
-    return new Replacer(after, null, firstOnly, multiline);
+  public Replacer replacer(
+      TemplateTokens after, boolean firstOnly, boolean multiline, List<Pattern> patternsToIgnore) {
+    return new Replacer(after, null, firstOnly, multiline, patternsToIgnore);
   }
 
   public Replacer callbackReplacer(
-      TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline) {
-    return new Replacer(after, callback, firstOnly, multiline);
+      TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline,
+      @Nullable List<Pattern> patternsToIgnore) {
+    return new Replacer(after, callback, firstOnly, multiline, patternsToIgnore);
   }
 
   public class Replacer {
@@ -108,11 +110,15 @@ public final class TemplateTokens {
     private final Multimap<String, Integer> repeatedGroups = ArrayListMultimap.create();
 
     @Nullable
+    private final List<Pattern> patternsToIgnore;
+
+    @Nullable
     private final AlterAfterTemplate callback;
 
 
     private Replacer(
-        TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline) {
+        TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline,
+        @Nullable List<Pattern> patternsToIgnore) {
       this.after = after;
       afterReplaceTemplate = this.after.after(TemplateTokens.this);
       // Precomputed the repeated groups as this should be used only on rare occasions and we
@@ -125,6 +131,7 @@ public final class TemplateTokens {
       this.firstOnly = firstOnly;
       this.multiline = multiline;
       this.callback = callback;
+      this.patternsToIgnore = patternsToIgnore;
     }
 
     public String replace(String content) {
@@ -140,6 +147,14 @@ public final class TemplateTokens {
     }
 
     private String replaceLine(String line) {
+      if (patternsToIgnore != null) {
+        for (Pattern patternToIgnore : patternsToIgnore) {
+          if (patternToIgnore.matches(line)) {
+            return line;
+          }
+        }
+      }
+
       Matcher matcher = before.matcher(line);
       StringBuffer sb = new StringBuffer();
       while (matcher.find()) {

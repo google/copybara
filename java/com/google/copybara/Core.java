@@ -47,7 +47,7 @@ import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
-import com.google.devtools.build.lib.syntax.SkylarkUtils;
+import com.google.devtools.build.lib.syntax.SkylarkList.Tuple;
 import com.google.devtools.build.lib.syntax.Type;
 import java.util.HashMap;
 import java.util.List;
@@ -404,6 +404,10 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + " instances are treated as different groups in regex construction and then a"
                   + " validation is done after that.",
               defaultValue = "False"),
+          @Param(name = "ignore", type = SkylarkList.class,
+              doc = "A set of regexes. Any text that matches any expression in this set, which"
+                  + " might otherwise be transformed, will be ignored.",
+              defaultValue = "[]"),
       },
       objectType = Core.class, useLocation = true)
   @Example(title = "Simple replacement",
@@ -462,10 +466,12 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           Glob.ALL_FILES,
           false,
           false,
-          false)) {
+          false,
+          Tuple.empty())) {
     public Replace invoke(Core self, String before, String after,
         SkylarkDict<String, String> regexes, Glob paths, Boolean firstOnly,
-        Boolean multiline, Boolean repeatedGroups, Location location) throws EvalException {
+        Boolean multiline, Boolean repeatedGroups, SkylarkList<String> ignore,
+        Location location) throws EvalException {
       return Replace.create(location,
           before,
           after,
@@ -474,6 +480,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           firstOnly,
           multiline,
           repeatedGroups,
+          Type.STRING_LIST.convert(ignore, "patterns_to_ignore"),
           self.workflowOptions);
     }
   };

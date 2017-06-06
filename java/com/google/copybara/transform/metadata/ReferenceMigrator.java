@@ -109,7 +109,7 @@ public class ReferenceMigrator implements Transformation {
           }
         }
         return template;
-      }, false, false);
+      }, false, false, null);
     String replaced = replacer.replace(work.getMessage());
     if (thrown.get() != null) {
       throw thrown.get();

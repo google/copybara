@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.NonReversibleValidationException;
@@ -74,12 +75,14 @@ public final class Replace implements Transformation {
   private final boolean multiline;
   private final boolean repeatedGroups;
   private final Glob fileMatcherBuilder;
+  private final ImmutableList<Pattern> patternsToIgnore;
   private final WorkflowOptions workflowOptions;
 
   private Replace(TemplateTokens before, TemplateTokens after,
       Map<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
       boolean repeatedGroups,
       Glob fileMatcherBuilder,
+      List<Pattern> patternsToIgnore,
       WorkflowOptions workflowOptions) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
@@ -88,6 +91,7 @@ public final class Replace implements Transformation {
     this.multiline = multiline;
     this.repeatedGroups = repeatedGroups;
     this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
+    this.patternsToIgnore = ImmutableList.copyOf(patternsToIgnore);
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
   }
 
@@ -100,6 +104,7 @@ public final class Replace implements Transformation {
         .add("firstOnly", firstOnly)
         .add("multiline", multiline)
         .add("path", fileMatcherBuilder)
+        .add("patternsToIgnore", patternsToIgnore)
         .toString();
   }
 
@@ -110,7 +115,7 @@ public final class Replace implements Transformation {
 
     Iterable<FileState> files = work.getTreeState().find(
         fileMatcherBuilder.relativeTo(checkoutDir));
-    Replacer replacer = before.replacer(after, firstOnly, multiline);
+    Replacer replacer = before.replacer(after, firstOnly, multiline, patternsToIgnore);
     List<FileState> changed = new ArrayList<>();
     for (FileState file : files) {
       String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
@@ -149,28 +154,40 @@ public final class Replace implements Transformation {
     }
     //TODO remove repeatedGroups boolean?
     return new Replace(after, before, regexGroups, firstOnly, multiline, repeatedGroups,
-        fileMatcherBuilder, workflowOptions);
+        fileMatcherBuilder, patternsToIgnore, workflowOptions);
   }
 
   public static Replace create(Location location, String before, String after,
       Map<String, String> regexGroups, Glob paths, boolean firstOnly, boolean multiline,
-      boolean repeatedGroups,
+      boolean repeatedGroups, List<String> patternsToIgnore,
       WorkflowOptions workflowOptions)
       throws EvalException {
-    Map<String, Pattern> parsed = new HashMap<>();
+    Map<String, Pattern> parsedGroups = new HashMap<>();
     for (Map.Entry<String, String> group : regexGroups.entrySet()) {
       try {
-        parsed.put(group.getKey(), Pattern.compile(group.getValue()));
+        parsedGroups.put(group.getKey(), Pattern.compile(group.getValue()));
       } catch (PatternSyntaxException e) {
         throw new EvalException(location, "'regex_groups' includes invalid regex for key "
             + group.getKey() + ": " + group.getValue(), e);
       }
     }
 
-    TemplateTokens beforeTokens = new TemplateTokens(location, before, parsed, repeatedGroups);
-    TemplateTokens afterTokens = new TemplateTokens(location, after, parsed, repeatedGroups);
+    TemplateTokens beforeTokens =
+        new TemplateTokens(location, before, parsedGroups, repeatedGroups);
+    TemplateTokens afterTokens =
+        new TemplateTokens(location, after, parsedGroups, repeatedGroups);
 
     beforeTokens.validateUnused();
+
+    List<Pattern> parsedIgnorePatterns = new ArrayList<>();
+    for (String toIgnore : patternsToIgnore) {
+      try {
+        parsedIgnorePatterns.add(Pattern.compile(toIgnore));
+      } catch (PatternSyntaxException e) {
+        throw new EvalException(
+            location, "'patterns_to_ignore' includes invalid regex: " + toIgnore, e);
+      }
+    }
 
     // Don't validate non-used interpolations in after since they are only relevant for reversable
     // transformations. And those are eagerly validated during config loading, because
@@ -178,7 +195,7 @@ public final class Replace implements Transformation {
     // with the check above.
 
     return new Replace(
-        beforeTokens, afterTokens, parsed, firstOnly, multiline, repeatedGroups, paths,
-        workflowOptions);
+        beforeTokens, afterTokens, parsedGroups, firstOnly, multiline, repeatedGroups, paths,
+        parsedIgnorePatterns, workflowOptions);
   }
 }
