@@ -651,7 +651,7 @@ transformations|`sequence of transformation`<br><p>The transformations to revers
 
 Defines a migration pipeline which can be invoked via the Copybara command.
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, ask_for_confirmation=False)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False)`
 
 ### Parameters:
 
@@ -666,7 +666,9 @@ origin_files|`glob`<br><p>A glob relative to the workdir that will be read from 
 destination_files|`glob`<br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
 mode|`string`<br><p>Workflow mode. Currently we support three modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import an origin tree state diffed by a common parent in destination. This could be a GH Pull Request, a Gerrit Change, etc.</li></ul></p>
 reversible_check|`boolean`<br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
+check_last_rev_state|`boolean`<br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
 ask_for_confirmation|`boolean`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
+dry_run|`boolean`<br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
 
 
 
@@ -681,6 +683,8 @@ Name | Type | Description
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
 --squash-skip-history | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
 --iterative-all-changes | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
+--check-last-rev-state | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
+--dry-run | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 
 <a id="core.move" aria-hidden="true"></a>
 ## core.move
@@ -736,7 +740,7 @@ In this example, `foo/bar` would be moved to `bar`.
 
 Replace a text with another text using optional regex groups. This tranformer can be automatically reversed.
 
-`replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False)`
+`replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False, ignore=[])`
 
 ### Parameters:
 
@@ -749,6 +753,7 @@ paths|`glob`<br><p>A glob expression relative to the workdir representing the fi
 first_only|`boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 multiline|`boolean`<br><p>Whether to replace text that spans more than one line.</p>
 repeated_groups|`boolean`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
+ignore|`sequence`<br><p>A set of regexes. Any text that matches any expression in this set, which might otherwise be transformed, will be ignored.</p>
 
 
 ### Examples:
