@@ -16,45 +16,78 @@
 
 package com.google.copybara.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * Simple struct to provide a sidechannel for return values.
  */
 public class StructuredOutput {
 
-  private final StringBuilder summary = new StringBuilder();
-  private final List<String> affectedRefs = new ArrayList<>();
+  private final List<SummaryLine> summaryLines = new ArrayList<>();
 
   /**
-   * Appends the message to the summary, adding a new line.
+   * Appends a summary line to this structured output.
    */
-  public void addSummaryLine(String msg) {
-    summary.append(msg);
-    summary.append('\n');
+  public void addSummaryLine(SummaryLine summaryLine) {
+    summaryLines.add(summaryLine);
   }
 
   /**
-   * Appends a reference affected by this execution, for whatever definition of "affected" that
-   * the destination might choose.
-   */
-  public void addAffectedRef(String ref) {
-    affectedRefs.add(ref);
-  }
-
-  /**
-   * Returns the list of affected references by this execution.
+   * Returns the list of summary lines for this execution.
    *
-   * <p>Note that it's up to the caller to interpret the meaning of these references.
+   * <p>Note that it's up to the caller to interpret the meaning of the references on each line.
    */
-  public List<String> getAffectedRefs() {
-    return ImmutableList.copyOf(affectedRefs);
+  public List<SummaryLine> getSummaryLines() {
+    return ImmutableList.copyOf(summaryLines);
   }
 
   @Override
   public String toString() {
+    StringBuilder summary = new StringBuilder();
+    for (SummaryLine summaryLine : summaryLines) {
+      summary.append(summaryLine);
+      summary.append('\n');
+    }
     return summary.toString();
+  }
+
+  /**
+   * Represents one summary item of the results produced by this migration.
+   */
+  @AutoValue
+  public static abstract class SummaryLine {
+
+    public static SummaryLine withTextOnly(String summary) {
+      return new AutoValue_StructuredOutput_SummaryLine(
+          checkNotNull(summary), /*originRef*/ null, /*destinationRef*/ null);
+    }
+
+    public static SummaryLine withDestinationRef(String summary, String destinationRef) {
+      return new AutoValue_StructuredOutput_SummaryLine(
+          checkNotNull(summary), /*originRef*/ null, checkNotNull(destinationRef));
+    }
+
+    /**
+     * Returns the human-readable description of this line.
+     */
+    public abstract String getSummary();
+
+    /**
+     * Returns the origin reference that was affected.
+     */
+    @Nullable
+    public abstract String getOriginRef();
+
+    /**
+     * Returns the destination reference that was affected.
+     */
+    @Nullable
+    public abstract String getDestinationRef();
   }
 }

@@ -35,6 +35,7 @@ import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
+import com.google.copybara.util.StructuredOutput.SummaryLine;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -197,8 +198,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 : "Updated existing Gerrit review at ";
             message = message + matcher.group(1);
             console.info(message);
-            structuredOutput.addSummaryLine(message);
-            // TODO(copybara-team): Add affected ref
+            // TODO(copybara-team): Add origin/destination refs
+            structuredOutput.addSummaryLine(SummaryLine.withTextOnly(message));
           }
         }
       }
