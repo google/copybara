@@ -16,10 +16,45 @@
 
 package com.google.copybara.util;
 
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Simple struct to provide a sidechannel for return values.
  */
 public class StructuredOutput {
 
-  public StringBuffer summary = new StringBuffer();
+  private final StringBuilder summary = new StringBuilder();
+  private final List<String> affectedRefs = new ArrayList<>();
+
+  /**
+   * Appends the message to the summary, adding a new line.
+   */
+  public void addSummaryLine(String msg) {
+    summary.append(msg);
+    summary.append('\n');
+  }
+
+  /**
+   * Appends a reference affected by this execution, for whatever definition of "affected" that
+   * the destination might choose.
+   */
+  public void addAffectedRef(String ref) {
+    affectedRefs.add(ref);
+  }
+
+  /**
+   * Returns the list of affected references by this execution.
+   *
+   * <p>Note that it's up to the caller to interpret the meaning of these references.
+   */
+  public List<String> getAffectedRefs() {
+    return ImmutableList.copyOf(affectedRefs);
+  }
+
+  @Override
+  public String toString() {
+    return summary.toString();
+  }
 }

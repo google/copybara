@@ -368,7 +368,7 @@ public class GerritDestinationTest {
 
     assertThat(out.toString())
         .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
-    assertThat(struct.summary.toString())
+    assertThat(struct.toString())
         .contains("New Gerrit review created at https://some.url.google.com/1234");
   }
 
@@ -383,7 +383,7 @@ public class GerritDestinationTest {
 
     assertThat(out.toString())
         .contains("INFO: Updated existing Gerrit review at https://some.url.google.com/1234");
-    assertThat(struct.summary.toString())
+    assertThat(struct.toString())
         .contains("Updated existing Gerrit review at https://some.url.google.com/1234");
   }
 

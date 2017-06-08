@@ -197,7 +197,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 : "Updated existing Gerrit review at ";
             message = message + matcher.group(1);
             console.info(message);
-            structuredOutput.summary.append(message);
+            structuredOutput.addSummaryLine(message);
+            // TODO(copybara-team): Add affected ref
           }
         }
       }
