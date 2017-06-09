@@ -372,7 +372,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * are stored in the origin.
    */
   boolean skipChanges(Iterable<? extends Change<?>> currentChanges) {
-    if (workflowOptions().iterativeAllChanges) {
+    if (workflowOptions().importNoopChanges) {
       return false;
     }
 
