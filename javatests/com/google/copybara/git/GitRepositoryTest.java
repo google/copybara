@@ -37,6 +37,7 @@ import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
@@ -55,6 +56,8 @@ import org.junit.runners.JUnit4;
 public class GitRepositoryTest {
 
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
+  private static final int SOME_LARGE_INPUT_SIZE = 256_000;
+
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
 
@@ -292,7 +295,6 @@ public class GitRepositoryTest {
 
   @Test
   public void testLsRemote() throws Exception {
-
     Files.write(workdir.resolve("foo.txt"), new byte[] {});
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
@@ -317,7 +319,6 @@ public class GitRepositoryTest {
 
   @Test
   public void testLsTreeWithReviewContext() throws Exception {
-
     Files.write(Files.createDirectories(workdir.resolve("foo")).resolve("foo.txt"), new byte[] {});
     repository.add().files("foo/foo.txt").run();
     repository.simpleCommand("commit", "foo/foo.txt", "-m", "message");
@@ -328,5 +329,28 @@ public class GitRepositoryTest {
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getPath()).isEqualTo("foo/foo.txt");
     assertThat(result.get(0).getType()).isEqualTo(GitObjectType.BLOB);
+  }
+
+  @Test
+  public void commitWithLargeDescription() throws IOException, RepoException, ValidationException {
+    String line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\n";
+    int repeats = SOME_LARGE_INPUT_SIZE / line.getBytes(StandardCharsets.UTF_8).length;
+    StringBuilder descBuilder = new StringBuilder();
+    for (int i=0; i<repeats; i++) {
+      descBuilder.append(line);
+    }
+    Files.write(workdir.resolve("foo.txt"), new byte[] {});
+    repository.add().files("foo.txt").run();
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
+        .truncatedTo(ChronoUnit.SECONDS);
+    String description = descBuilder.toString();
+    repository.commit("Foo <foo@bara.com>", date, description);
+
+    ImmutableList<GitLogEntry> entries = repository.log("master")
+        .includeBody(true)
+        .includeFiles(false)
+        .run();
+    assertThat(Iterables.getOnlyElement(entries).getBody())
+        .isEqualTo(description);
   }
 }

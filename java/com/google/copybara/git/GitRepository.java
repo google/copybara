@@ -47,12 +47,13 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.TempDirectoryFactory;
 import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,6 +65,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -511,6 +513,9 @@ public class GitRepository {
   // We still want to stick to the default ISO format in Git, but don't add the subseconds.
   private static final DateTimeFormatter ISO_OFFSET_DATE_TIME_NO_SUBSECONDS =
       DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ssZ");
+  // The effective bytes that can be used for command-line arguments is ~128k. Setting an arbitrary
+  // max for the description of 64k
+  private static final int ARBITRARY_MAX_ARG_SIZE = 64_000;
 
   public void commit(String author, ZonedDateTime timestamp, String message)
       throws RepoException, ValidationException {
@@ -519,8 +524,28 @@ public class GitRepository {
       throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
           + "Is the change already migrated?");
     }
-    simpleCommand("commit", "--author", author,
-        "--date", timestamp.format(ISO_OFFSET_DATE_TIME_NO_SUBSECONDS), "-m", message);
+
+    if (message.getBytes(StandardCharsets.UTF_8).length > ARBITRARY_MAX_ARG_SIZE) {
+      Path descriptionFile = getCwd().resolve(UUID.randomUUID().toString() + ".desc");
+      try {
+        Files.write(descriptionFile, message.getBytes(StandardCharsets.UTF_8));
+        simpleCommand("commit", "--author", author,
+            "--date", timestamp.format(ISO_OFFSET_DATE_TIME_NO_SUBSECONDS),
+            "-F", descriptionFile.toAbsolutePath().toString());
+      } catch (IOException e) {
+        throw new RepoException(
+            "Could not commit change: Failed to write file " + descriptionFile, e);
+      } finally{
+        try{
+          Files.deleteIfExists(descriptionFile);
+        } catch (IOException e) {
+          logger.warning("Could not delete description file: " + descriptionFile);
+        }
+      }
+    } else {
+      simpleCommand("commit", "--author", author,
+          "--date", timestamp.format(ISO_OFFSET_DATE_TIME_NO_SUBSECONDS), "-m", message);
+    }
   }
 
   public List<StatusFile> status() throws RepoException {
