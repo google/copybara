@@ -66,13 +66,6 @@ public final class GeneralOptions implements Option {
   }
 
   @VisibleForTesting
-  public GeneralOptions(
-      Map<String, String> environment, FileSystem fileSystem, boolean verbose, Console console) {
-    this(environment, fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
-        /*disableReversibleCheck=*/false, /*force=*/false);
-  }
-
-  @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
       Console console, @Nullable Path configRoot, @Nullable Path outputRoot,
       boolean disableReversibleCheck, boolean force)

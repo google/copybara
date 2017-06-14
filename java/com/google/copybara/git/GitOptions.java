@@ -39,6 +39,6 @@ public final class GitOptions implements Option {
   String originCheckoutHook = null;
 
   public GitOptions(String homeDir) {
-    this.repoStorage = homeDir + "/.copybara/repos";
+    this.repoStorage = homeDir + "/copybara/repos";
   }
 }
