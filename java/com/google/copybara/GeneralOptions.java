@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.StructuredOutput;
-import com.google.copybara.util.TempDirectoryFactory;
+import com.google.copybara.util.OutputDirFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -50,6 +50,7 @@ public final class GeneralOptions implements Option {
   private final boolean verbose;
   private final Console console;
   private final StructuredOutput structuredOutput = new StructuredOutput();
+  private final boolean reuseOutputDirs;
   private final boolean disableReversibleCheck;
   private final boolean force;
   @Nullable
@@ -62,13 +63,13 @@ public final class GeneralOptions implements Option {
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
     this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
-        /*disableReversibleCheck=*/false, /*force=*/false);
+        /*reuseOutputDirs*/ true, /*disableReversibleCheck=*/false, /*force=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
       Console console, @Nullable Path configRoot, @Nullable Path outputRoot,
-      boolean disableReversibleCheck, boolean force)
+      boolean reuseOutputDirs, boolean disableReversibleCheck, boolean force)
   {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
@@ -76,6 +77,7 @@ public final class GeneralOptions implements Option {
     this.verbose = verbose;
     this.configRoot = configRoot;
     this.outputRoot = outputRoot;
+    this.reuseOutputDirs = reuseOutputDirs;
     this.disableReversibleCheck = disableReversibleCheck;
     this.force = force;
   }
@@ -98,6 +100,10 @@ public final class GeneralOptions implements Option {
 
   public FileSystem getFileSystem() {
     return fileSystem;
+  }
+
+  public boolean isReuseOutputDirs() {
+    return reuseOutputDirs;
   }
 
   public boolean isDisableReversibleCheck() {
@@ -124,7 +130,7 @@ public final class GeneralOptions implements Option {
    * Returns the output root directory, or null if not set.
    *
    * <p>This method is exposed mainly for tests and it's probably not what you're looking for. Try
-   * {@link #getTmpDirectoryFactory()} instead.
+   * {@link #getOutputDirFactory()} instead.
    */
   @VisibleForTesting
   @Nullable
@@ -164,16 +170,17 @@ public final class GeneralOptions implements Option {
   }
 
   /**
-   * Returns a {@link TempDirectoryFactory} capable of creating temporary directories.
+   * Returns a {@link OutputDirFactory} capable of creating directories in a self contained
+   * location in the filesystem.
    *
-   * <p>By default, the temporary directories are created under {@code $HOME/copybara/out}, but
-   * it can be overridden with the flag --output-root.
+   * <p>By default, the directories are created under {@code $HOME/copybara/out}, but it can be
+   * overridden with the flag --output-root.
    */
-  public TempDirectoryFactory getTmpDirectoryFactory() {
+  public OutputDirFactory getOutputDirFactory() {
     Path rootPath = outputRoot != null
         ? outputRoot
         : fileSystem.getPath(environment.get("HOME")).resolve("copybara/out/");
-    return new TempDirectoryFactory(rootPath);
+    return new OutputDirFactory(rootPath, reuseOutputDirs);
   }
 
   @Parameters(separators = "=")
@@ -203,10 +210,22 @@ public final class GeneralOptions implements Option {
             + " the  workflow config and the normal behavior for CHANGE_REQUEST mode.")
     boolean disableReversibleCheck = false;
 
-    @Parameter(names = "--output-root",
-            description = "The root directory where to generate output files. "
-                + "If not set, ~/copybara/out is used by default.")
+    @Parameter(
+      names = "--output-root",
+      description =
+          "The root directory where to generate output files. If not set, ~/copybara/out is used "
+              + "by default. Use with care, Copybara might remove files inside this root if "
+              + "necessary.")
     String outputRoot = null;
+
+    @Parameter(
+        names = "--reuse-output-dirs",
+        description =
+            "Reuse the output directories. This includes the workdir, scratch clones of Git repos,"
+                + " etc. By default is set to true and directories will be cleaned prior to the "
+                + "execution and reused. If set to false, different directories will be used."
+                + " Keep in mind that this might consume a lot of disk.")
+    boolean reuseOutputDirs = true;
 
     /**
      * This method should be called after the options have been set but before are used by any class.
@@ -217,7 +236,7 @@ public final class GeneralOptions implements Option {
       Path configRoot = this.configRoot != null ? fileSystem.getPath(this.configRoot) : null;
       Path outputRoot = this.outputRoot != null ? fileSystem.getPath(this.outputRoot) : null;
       return new GeneralOptions(
-          environment, fileSystem, verbose, console, configRoot, outputRoot,
+          environment, fileSystem, verbose, console, configRoot, outputRoot, reuseOutputDirs,
           disableReversibleCheck, force);
     }
   }

@@ -150,10 +150,6 @@ public final class FileUtil {
     addPermissionsRecursively(path, permissionsToAdd, ALL_FILES);
   }
 
-  public static int deleteAllFilesRecursively(Path path) throws IOException {
-    return deleteFilesRecursively(path, ALL_FILES);
-  }
-
   /**
    * Deletes the files that match the PathMatcher.
    *

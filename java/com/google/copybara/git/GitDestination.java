@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.io.MoreFiles;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeRejectedException;
@@ -40,9 +41,8 @@ import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.DiffUtil;
-import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.TempDirectoryFactory;
+import com.google.copybara.util.OutputDirFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -105,13 +105,13 @@ public final class GitDestination implements Destination<GitRevision> {
   private final ProcessPushOutput processPushOutput;
   private final Map<String, String> environment;
   private final Console console;
-  private final TempDirectoryFactory tempDirectoryFactory;
+  private final OutputDirFactory outputDirFactory;
   private boolean localRepoInitialized = false;
 
   GitDestination(String repoUrl, String fetch, String push,
       GitDestinationOptions destinationOptions, boolean verbose, boolean force, boolean skipPush,
       CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-      Map<String, String> environment, Console console, TempDirectoryFactory tempDirectoryFactory) {
+      Map<String, String> environment, Console console, OutputDirFactory outputDirFactory) {
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.fetch = Preconditions.checkNotNull(fetch);
     this.push = Preconditions.checkNotNull(push);
@@ -124,7 +124,7 @@ public final class GitDestination implements Destination<GitRevision> {
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
     this.environment = environment;
     this.console = console;
-    this.tempDirectoryFactory = Preconditions.checkNotNull(tempDirectoryFactory);
+    this.outputDirFactory = Preconditions.checkNotNull(outputDirFactory);
   }
 
   /**
@@ -344,7 +344,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private GitRepository cloneBaseline() throws RepoException {
     if (destinationOptions.localRepoPath == null) {
       GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment,
-          tempDirectoryFactory);
+          outputDirFactory);
       fetchFromRemote(scratchClone);
       return scratchClone;
     } else {
@@ -361,10 +361,9 @@ public final class GitDestination implements Destination<GitRevision> {
 
     try {
       if (Files.exists(path)) {
-        FileUtil.deleteAllFilesRecursively(path);
-      } else {
-        Files.createDirectories(path);
+        MoreFiles.deleteRecursively(path);
       }
+      Files.createDirectories(path);
     } catch (IOException e) {
       throw new RepoException("Cannot delete existing local repository", e);
     }

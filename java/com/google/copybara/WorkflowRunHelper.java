@@ -21,6 +21,7 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.MoreFiles;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.Reader;
@@ -215,7 +216,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     Path checkoutDir = workdir.resolve("checkout");
     try (ProfilerTask ignored = profiler().start("prepare_workdir")) {
       processConsole.progress("Cleaning working directory");
-      FileUtil.deleteAllFilesRecursively(workdir);
+      if (Files.exists(workdir)) {
+        MoreFiles.deleteRecursively(workdir);
+      }
       Files.createDirectories(checkoutDir);
     }
     processConsole.progress("Checking out the change");

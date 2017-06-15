@@ -59,7 +59,7 @@ public class GitMirrorTest {
         .setWorkdirToRealTempDir()
         .setConsole(console);
     originRepo = GitRepository.initScratchRepo(/*verbose=*/true,
-        options.general.getEnvironment(), options.general.getTmpDirectoryFactory());
+        options.general.getEnvironment(), options.general.getOutputDirFactory());
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
 
     Path reposDir = Files.createTempDirectory("repos_repo");
@@ -227,8 +227,9 @@ public class GitMirrorTest {
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
         + ")";
-    GitRepository other = GitRepository.initScratchRepo(/*verbose=*/true,
-        options.general.getEnvironment(), options.general.getTmpDirectoryFactory());
+    Path otherRepoPath = Files.createTempDirectory("other_repo");
+    GitRepository other = GitRepository.initScratchRepo(
+        /*verbose=*/true, otherRepoPath, options.general.getEnvironment());
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes());
     other.add().files("test2.txt").run();
     other.git(other.getWorkTree(), "commit", "-m", "another file");

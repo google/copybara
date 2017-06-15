@@ -109,7 +109,7 @@ public class FolderDestination implements Destination<Revision> {
     String localFolderOption = folderDestinationOptions.localFolder;
     Path localFolder;
     if (Strings.isNullOrEmpty(localFolderOption)) {
-      localFolder = generalOptions.getTmpDirectoryFactory().newTempDirectory("folder-destination");
+      localFolder = generalOptions.getOutputDirFactory().newDirectory("folder-destination");
       String msg = String.format(
           "Using folder in default root (--folder-dir to override): %s",
           localFolder.toAbsolutePath());
