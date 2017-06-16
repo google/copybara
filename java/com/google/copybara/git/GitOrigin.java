@@ -80,6 +80,7 @@ public class GitOrigin implements Origin<GitRevision> {
   private final GeneralOptions generalOptions;
   private final GitRepoType repoType;
   private final GitOptions gitOptions;
+  private final GitOriginOptions gitOriginOptions;
   private final boolean verbose;
   @Nullable
   private final Map<String, String> environment;
@@ -87,7 +88,8 @@ public class GitOrigin implements Origin<GitRevision> {
   private final boolean includeBranchCommitLogs;
 
   GitOrigin(GeneralOptions generalOptions, GitRepository repository, String repoUrl,
-      @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions, boolean verbose,
+      @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
+      GitOriginOptions gitOriginOptions, boolean verbose,
       @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs) {
     this.generalOptions = generalOptions;
@@ -99,7 +101,8 @@ public class GitOrigin implements Origin<GitRevision> {
         : repoUrl;
     this.configRef = configRef;
     this.repoType = checkNotNull(repoType);
-    this.gitOptions = gitOptions;
+    this.gitOptions = checkNotNull(gitOptions);
+    this.gitOriginOptions = checkNotNull(gitOriginOptions);
     this.verbose = verbose;
     this.environment = environment;
     this.submoduleStrategy = submoduleStrategy;
@@ -135,7 +138,7 @@ public class GitOrigin implements Origin<GitRevision> {
     public void checkout(GitRevision ref, Path workdir)
         throws RepoException, CannotResolveRevisionException {
       checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref);
-      if (!Strings.isNullOrEmpty(gitOptions.originCheckoutHook)) {
+      if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
       }
     }
@@ -252,7 +255,7 @@ public class GitOrigin implements Origin<GitRevision> {
   private void runCheckoutOrigin(Path workdir) throws RepoException {
     try {
       CommandOutputWithStatus result = CommandUtil.executeCommand(
-          new Command(new String[]{gitOptions.originCheckoutHook},
+          new Command(new String[]{gitOriginOptions.originCheckoutHook},
               environment, workdir.toFile()), verbose);
       Consoles.logLines(console, "git.origin hook (Stdout): ", result.getStdout());
       Consoles.logLines(console, "git.origin hook (Stderr): ", result.getStderr());
@@ -260,10 +263,10 @@ public class GitOrigin implements Origin<GitRevision> {
       Consoles.logLines(console, "git.origin hook (Stdout): ", e.getOutput().getStdout());
       Consoles.logLines(console, "git.origin hook (Stderr): ", e.getOutput().getStderr());
       throw new RepoException(
-          "Error executing the git checkout hook: " + gitOptions.originCheckoutHook, e);
+          "Error executing the git checkout hook: " + gitOriginOptions.originCheckoutHook, e);
     } catch (CommandException e) {
       throw new RepoException(
-          "Error executing the git checkout hook: " + gitOptions.originCheckoutHook, e);
+          "Error executing the git checkout hook: " + gitOriginOptions.originCheckoutHook, e);
     }
   }
 
@@ -310,17 +313,16 @@ public class GitOrigin implements Origin<GitRevision> {
   /**
    * Builds a new {@link GitOrigin}.
    */
-  static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type, SubmoduleStrategy submoduleStrategy,
-      boolean includeBranchCommitLogs) {
-
+  static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
+      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
     GitOptions gitConfig = options.get(GitOptions.class);
     boolean verbose = options.get(GeneralOptions.class).isVerbose();
     Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
     return new GitOrigin(
         options.get(GeneralOptions.class),
         GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
-        url, ref, type, options.get(GitOptions.class), verbose, environment, submoduleStrategy,
-        includeBranchCommitLogs);
+        url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
+        verbose, environment, submoduleStrategy, includeBranchCommitLogs);
   }
 
   @Override

@@ -30,12 +30,12 @@ import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitDestinationOptions;
 import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 import java.io.IOException;
 import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,6 +61,7 @@ public class OptionsBuilder {
   public FolderOriginOptions folderOrigin = new FolderOriginOptions();
 
   public GitOptions git = new GitOptions(StandardSystemProperty.USER_HOME.value());
+  public GitOriginOptions gitOrigin = new GitOriginOptions();
   public GitDestinationOptions gitDestination = new GitDestinationOptions();
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
@@ -123,27 +124,12 @@ public class OptionsBuilder {
     return this;
   }
 
-  public final OptionsBuilder setRootCfgPath(Path path) {
-    general = new GeneralOptions(
-        general.getEnvironment(),
-        general.getFileSystem(), general.isVerbose(), general.console(),
-        path, general.getOutputRoot(),
-        general.isReuseOutputDirs(), general.isDisableReversibleCheck(), general.isForced());
-    return this;
-  }
-
   public final OptionsBuilder setForce(boolean force) {
     general = new GeneralOptions(
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
         general.getConfigRoot(), general.getOutputRoot(),
         general.isReuseOutputDirs(), general.isDisableReversibleCheck(), force);
-    return this;
-  }
-
-  public final OptionsBuilder setChangeBaseline(String changeBaseline) {
-    workflowOptions = new WorkflowOptions(changeBaseline, workflowOptions.getLastRevision(),
-        workflowOptions.checkLastRevState);
     return this;
   }
 
@@ -159,8 +145,8 @@ public class OptionsBuilder {
    */
   protected Iterable<Option> allOptions() {
     return ImmutableList
-        .of(general, localDestination, folderOrigin, git, gitDestination, gitMirrorOptions, gerrit,
-            workflowOptions, testingOptions);
+        .of(general, localDestination, folderOrigin, git, gitOrigin, gitDestination,
+            gitMirrorOptions, gerrit, workflowOptions, testingOptions);
   }
 
   public final Options build() {

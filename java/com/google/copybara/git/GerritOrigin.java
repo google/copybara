@@ -30,10 +30,10 @@ public class GerritOrigin extends GitOrigin{
 
   private GerritOrigin(GeneralOptions generalOptions,
       GitRepository repository, String repoUrl, @Nullable String configRef,
-      GitRepoType repoType, GitOptions gitOptions, boolean verbose,
-      @Nullable Map<String, String> environment,
+      GitRepoType repoType, GitOptions gitOptions, GitOriginOptions gitOriginOptions,
+      boolean verbose, @Nullable Map<String, String> environment,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
-    super(generalOptions, repository, repoUrl, configRef, repoType, gitOptions,
+    super(generalOptions, repository, repoUrl, configRef, repoType, gitOptions, gitOriginOptions,
         verbose, environment, submoduleStrategy, includeBranchCommitLogs);
   }
 
@@ -50,7 +50,8 @@ public class GerritOrigin extends GitOrigin{
     return new GerritOrigin(
         options.get(GeneralOptions.class),
         GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
-        url, /*ref=*/null, type, options.get(GitOptions.class), verbose, environment,
+        url, /*ref=*/null, type, options.get(GitOptions.class),
+        options.get(GitOriginOptions.class), verbose, environment,
         submoduleStrategy, /*includeBranchCommitLogs=*/false);
   }
 }

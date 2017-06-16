@@ -31,13 +31,6 @@ public final class GitOptions implements Option {
       description = "Location of the storage path for git repositories")
   String repoStorage;
 
-  // TODO(malcon): Move to GitOriginOptions. But fine for now since it's not documented.
-  @Parameter(names = "--git-origin-checkout-hook",
-      description = "A command to be executed when a checkout happens for a git origin."
-          + " DON'T USE IT. The only intention is to run tools that gather dependencies"
-          + " after the checkout.", hidden = true)
-  String originCheckoutHook = null;
-
   public GitOptions(String homeDir) {
     this.repoStorage = homeDir + "/copybara/repos";
   }

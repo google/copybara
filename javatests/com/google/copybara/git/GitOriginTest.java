@@ -261,7 +261,7 @@ public class GitOriginTest {
         .addAll(Files.getPosixFilePermissions(hook))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
 
-    options.git.originCheckoutHook = hook.toAbsolutePath().toString();
+    options.gitOrigin.originCheckoutHook = hook.toAbsolutePath().toString();
     origin = origin();
     newReader().checkout(origin.resolve("master"), checkoutDir);
     assertThatPath(checkoutDir).containsFile("hook.txt", "");
@@ -276,7 +276,7 @@ public class GitOriginTest {
         .addAll(Files.getPosixFilePermissions(hook))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
 
-    options.git.originCheckoutHook = hook.toAbsolutePath().toString();
+    options.gitOrigin.originCheckoutHook = hook.toAbsolutePath().toString();
     origin = origin();
     Reader<GitRevision> reader = newReader();
     thrown.expect(RepoException.class);
