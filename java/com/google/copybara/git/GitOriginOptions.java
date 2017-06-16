@@ -32,10 +32,9 @@ public class GitOriginOptions implements Option {
           + " after the checkout.", hidden = true)
   String originCheckoutHook = null;
 
-  // TODO(copybara-team): Remove hidden flag when implemented
   @Parameter(names = "--git-origin-rebase-ref",
       description = "When importing a change from a Git origin ref, it will be rebased to this ref,"
           + " if set. A common use case: importing a Github PR, rebase it to the main branch "
-          + "(usually 'master'). NOT IMPLEMENTED YET.", hidden = true)
+          + "(usually 'master'). Note that, if the repo uses submodules, they won't be rebased.")
   String originRebaseRef = null;
 }

@@ -104,10 +104,9 @@ public class GitOriginTest {
 
     origin = origin();
 
-    Files.write(remote.resolve("test.txt"), "some content".getBytes());
+    Files.write(remote.resolve("test.txt"), "some content".getBytes(UTF_8));
     repo.add().files("test.txt").run();
     git("commit", "-m", "first file", "--date", commitTime);
-    // trim() removes new line
     firstCommitRef = repo.parseRef("HEAD");
 
     originFiles = Glob.ALL_FILES;
@@ -214,7 +213,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testCheckout() throws Exception, ValidationException {
+  public void testCheckout() throws Exception {
     // Check that we get can checkout a branch
     newReader().checkout(origin.resolve("master"), checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
@@ -222,7 +221,7 @@ public class GitOriginTest {
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
     // Check that we track new commits that modify files
-    Files.write(remote.resolve("test.txt"), "new content".getBytes());
+    Files.write(remote.resolve("test.txt"), "new content".getBytes(UTF_8));
     repo.add().files("test.txt").run();
     git("commit", "-m", "second commit");
 
@@ -238,6 +237,94 @@ public class GitOriginTest {
     newReader().checkout(origin.resolve("master"), checkoutDir);
 
     assertThat(Files.exists(testFile)).isFalse();
+  }
+
+  @Test
+  public void testCheckoutBranchWithRebase() throws Exception {
+    // As part of the setup, a first commit created test.txt in master
+
+    // Create branch that will be the ref to use
+    createBranch("mybranch");
+    // Checkout master and modify file
+    repo.forceCheckout("master");
+    Files.write(remote.resolve("test.txt"), "new content in master".getBytes(UTF_8));
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "Second version of file");
+    // Checkout branch and commit other files
+    repo.forceCheckout("mybranch");
+    Files.write(remote.resolve("foo.txt"), "Foo bar".getBytes(UTF_8));
+    repo.add().files("foo.txt").run();
+    git("commit", "-m", "Branch commit");
+
+    options.gitOrigin.originRebaseRef = "master";
+    newReader().checkout(origin.resolve("mybranch"), checkoutDir);
+
+    assertThatPath(checkoutDir)
+        .containsFile("test.txt", "new content in master") // Rebased contents
+        .containsFile("foo.txt", "Foo bar")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCheckoutBranchWithInvalidRebaseRef() throws Exception {
+    // As part of the setup, a first commit created test.txt in master
+
+    // Create branch that will be the ref to use
+    createBranch("mybranch");
+    Files.write(remote.resolve("foo.txt"), "Foo bar".getBytes(UTF_8));
+    repo.add().files("foo.txt").run();
+    git("commit", "-m", "Branch commit");
+
+    options.gitOrigin.originRebaseRef = "foo-bar";
+    thrown.expect(CannotResolveRevisionException.class);
+    newReader().checkout(origin.resolve("mybranch"), checkoutDir);
+  }
+
+  @Test
+  public void testCheckoutBranchWithRebaseConflict() throws Exception {
+    // As part of the setup, a first commit created test.txt in master
+
+    // Create branch that will be the ref to use
+    createBranch("mybranch");
+    // Checkout master and modify file
+    repo.forceCheckout("master");
+    Files.write(remote.resolve("test.txt"), "new content in master".getBytes(UTF_8));
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "Second version of file");
+    // Checkout branch and make changes to the same file
+    repo.forceCheckout("mybranch");
+    Files.write(remote.resolve("test.txt"), "Content in my branch".getBytes(UTF_8));
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "Branch commit");
+
+    options.gitOrigin.originRebaseRef = "master";
+    thrown.expect(RebaseConflictException.class);
+    newReader().checkout(origin.resolve("mybranch"), checkoutDir);
+  }
+
+  @Test
+  public void testCheckoutBranchNoRebase() throws Exception {
+    // As part of the setup, a first commit created test.txt in master
+
+    // Create branch that will be the ref to use
+    createBranch("mybranch");
+    // Checkout master and modify file
+    repo.forceCheckout("master");
+    Files.write(remote.resolve("test.txt"), "new content in master".getBytes(UTF_8));
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "Second version of file");
+    // Checkout branch and commit other files
+    repo.forceCheckout("mybranch");
+    Files.write(remote.resolve("foo.txt"), "Foo bar".getBytes(UTF_8));
+    repo.add().files("foo.txt").run();
+    git("commit", "-m", "Branch commit");
+
+    newReader().checkout(origin.resolve("mybranch"), checkoutDir);
+
+    assertThatPath(checkoutDir)
+        .containsFile("test.txt", "some content") // Baseline contents
+        .containsFile("foo.txt", "Foo bar")
+        .containsNoMoreFiles();
   }
 
   @Test
@@ -285,8 +372,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testCheckoutWithLocalModifications()
-      throws Exception, ValidationException {
+  public void testCheckoutWithLocalModifications() throws Exception {
     GitRevision master = origin.resolve("master");
     Reader<GitRevision> reader = newReader();
     reader.checkout(master, checkoutDir);
@@ -464,7 +550,7 @@ public class GitOriginTest {
   public void testGitUrlOverwrite() throws Exception {
     createTestRepo(Files.createTempDirectory("cliremote"));
     git("init");
-    Files.write(remote.resolve("cli_remote.txt"), "some change".getBytes());
+    Files.write(remote.resolve("cli_remote.txt"), "some change".getBytes(UTF_8));
     repo.add().files("cli_remote.txt").run();
     git("commit", "-m", "a change from somewhere");
 
@@ -526,7 +612,7 @@ public class GitOriginTest {
 
   @Test
   public void canReadTimestamp() throws Exception {
-    Files.write(remote.resolve("test2.txt"), "some more content".getBytes());
+    Files.write(remote.resolve("test2.txt"), "some more content".getBytes(UTF_8));
     repo.add().files("test2.txt").run();
     git("commit", "-m", "second file", "--date=1400110011");
     GitRevision master = origin.resolve("master");
@@ -541,7 +627,7 @@ public class GitOriginTest {
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
 
-    Files.write(remote.resolve("test.txt"), "new content".getBytes());
+    Files.write(remote.resolve("test.txt"), "new content".getBytes(UTF_8));
     repo.add().files("test.txt").run();
     git("commit", "-m", "second commit");
     GitRevision secondRef = origin.resolve("HEAD");
@@ -563,7 +649,7 @@ public class GitOriginTest {
 
   @Test
   public void doNotCountCommitsOutsideOfOriginFileRoots() throws Exception {
-    Files.write(remote.resolve("excluded_file.txt"), "some content".getBytes());
+    Files.write(remote.resolve("excluded_file.txt"), "some content".getBytes(UTF_8));
     repo.add().files("excluded_file.txt").run();
     git("commit", "-m", "excluded_file", "--date", commitTime);
     // Note that one of the roots looks like a flag for "git log"
@@ -576,7 +662,7 @@ public class GitOriginTest {
 
     // Now add a file in an included root and make sure we get that change from the Reader.
     Files.createDirectories(remote.resolve("--parents"));
-    Files.write(remote.resolve("--parents/included_file.txt"), "some content".getBytes());
+    Files.write(remote.resolve("--parents/included_file.txt"), "some content".getBytes(UTF_8));
     repo.add().files("--parents/included_file.txt").run();
     git("commit", "-m", "included_file", "--date", commitTime);
     GitRevision firstIncludedRef =
@@ -585,7 +671,7 @@ public class GitOriginTest {
         .getRevision();
 
     // Add an excluded file, and make sure the commit is skipped.
-    Files.write(remote.resolve("excluded_file_2.txt"), "some content".getBytes());
+    Files.write(remote.resolve("excluded_file_2.txt"), "some content".getBytes(UTF_8));
     repo.add().files("excluded_file_2.txt").run();
     git("commit", "-m", "excluded_file_2", "--date", commitTime);
 
@@ -596,7 +682,7 @@ public class GitOriginTest {
 
     // Add another included file, and make sure we only get the 2 included changes, and the
     // intervening excluded one is absent.
-    Files.write(remote.resolve("--parents/included_file_2.txt"), "some content".getBytes());
+    Files.write(remote.resolve("--parents/included_file_2.txt"), "some content".getBytes(UTF_8));
     repo.add().files("--parents/included_file_2.txt").run();
     git("commit", "-m", "included_file_2", "--date", commitTime);
     changes = newReader().changes(firstRef, origin.resolve("HEAD"));
@@ -717,5 +803,9 @@ public class GitOriginTest {
     Files.write(remote.resolve(fileName), fileContent.getBytes(UTF_8));
     repo.add().files(fileName).run();
     git("commit", "-m", commitMessage, "--author=" + author);
+  }
+
+  private void createBranch(String branchName) throws RepoException {
+    repo.simpleCommand("checkout", "-b", branchName);
   }
 }

@@ -146,9 +146,10 @@ public class GitOrigin implements Origin<GitRevision> {
     private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
         SubmoduleStrategy submoduleStrategy, GitRevision ref)
         throws RepoException, CannotResolveRevisionException {
+      GitRepository repo = shouldRebase(currentRemoteUrl, gitOriginOptions.originRebaseRef)
+          ? checkoutAndRebase(repository, workdir, ref.getSha1(), gitOriginOptions.originRebaseRef)
+          : checkoutOnly(repository, workdir, ref);
 
-      GitRepository repo = repository.withWorkTree(workdir);
-      repo.simpleCommand("checkout", "-q", "-f", ref.getSha1());
       if (submoduleStrategy == SubmoduleStrategy.NO) {
         return;
       }
@@ -181,6 +182,43 @@ public class GitOrigin implements Origin<GitRevision> {
                 ? SubmoduleStrategy.RECURSIVE
                 : SubmoduleStrategy.NO, submoduleRef);
       }
+    }
+
+    /**
+     * Returns true iff it's the root repo, and the flag to rebase is set.
+     *
+     * <p>Submodule repos are not rebased.
+     */
+    private boolean shouldRebase(String currentRemoteUrl, String rebaseToRef) {
+      return currentRemoteUrl.equals(repoUrl) && rebaseToRef != null;
+    }
+
+    private GitRepository checkoutOnly(GitRepository repository, Path workdir, GitRevision ref)
+        throws RepoException {
+      GitRepository repo = repository.withWorkTree(workdir);
+      repo.forceCheckout(ref.getSha1());
+      return repo;
+    }
+
+    private GitRepository checkoutAndRebase(GitRepository repository,
+        Path workdir, String ref, String rebaseToRef)
+        throws RepoException, CannotResolveRevisionException {
+      GitRepository repo = repository.withWorkTree(workdir);
+      // Fetch both the current ref and the rebase ref to local refs
+      repository.fetch(
+          repoUrl, /*prune*/ false, /*fetch*/ true,
+          ImmutableList.of(ref + ":" + ref, rebaseToRef + ":" + rebaseToRef));
+
+      console.info(String.format("Rebasing %s to %s as part of the checkout.", ref, rebaseToRef));
+      repo.forceCheckout(ref);
+      repo.rebase(rebaseToRef);
+
+      if (submoduleStrategy != SubmoduleStrategy.NO) {
+        console.info(
+            String.format(
+                "Submodules are not rebased to %s. Only the root repo is.", rebaseToRef));
+      }
+      return repo;
     }
 
     @Override

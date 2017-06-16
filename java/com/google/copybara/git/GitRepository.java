@@ -508,6 +508,13 @@ public class GitRepository {
     throw new RepoException(output.getStderr());
   }
 
+  /**
+   * Checks out the given ref in the repo, quietly and throwing away local changes.
+   */
+  public CommandOutput forceCheckout(String ref) throws RepoException {
+    return simpleCommand("checkout", "-q", "-f", checkNotNull(ref));
+  }
+
   // DateTimeFormatter.ISO_OFFSET_DATE_TIME might include subseconds, but Git's ISO8601 format does
   // not deal with subseconds (see https://git-scm.com/docs/git-commit#git-commit-ISO8601).
   // We still want to stick to the default ISO format in Git, but don't add the subseconds.
