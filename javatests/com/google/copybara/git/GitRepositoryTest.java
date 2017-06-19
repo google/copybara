@@ -228,6 +228,18 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testLogContainingEquals() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    repository.add().files("foo.txt").run();
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
+        .truncatedTo(ChronoUnit.SECONDS);
+    repository.commit("= Foo = <bar@bara.com>", date, "adding foo");
+
+    ImmutableList<GitLogEntry> entries = repository.log("master").run();
+    assertThat(entries.get(0).getAuthor()).isEqualTo(new Author("= Foo =", "bar@bara.com"));
+  }
+
+  @Test
   public void testFetch() throws Exception {
     GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
         getGitEnv(), /*verbose=*/true);

@@ -1217,7 +1217,8 @@ public class GitRepository {
         List<String> groups = Splitter.on("\n" + GROUP).splitToList(msg);
 
         Map<String, String> fields = Splitter.on("\n")
-            .withKeyValueSeparator("=").split(groups.get(0));
+            .withKeyValueSeparator(Splitter.on("=").limit(2))
+            .split(groups.get(0));
 
         String body = null;
         if (includeBody) {
