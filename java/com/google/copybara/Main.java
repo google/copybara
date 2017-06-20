@@ -153,7 +153,7 @@ public class Main {
       ConfigLoader<Path> configLoader =
           newConfigLoader(moduleSupplier, generalOptions, mainArgs.getConfigPath());
 
-      Copybara copybara = newCopybaraTool();
+      Copybara copybara = newCopybaraTool(options, moduleSupplier, mainArgs.getConfigPath());
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
           return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
@@ -221,7 +221,9 @@ public class Main {
   /**
    * Returns a new instance of {@link Copybara}.
    */
-  protected Copybara newCopybaraTool() {
+  protected Copybara newCopybaraTool(
+      Options options, ModuleSupplier moduleSupplier, String configPath)
+      throws ValidationException {
     return new Copybara();
   }
 
