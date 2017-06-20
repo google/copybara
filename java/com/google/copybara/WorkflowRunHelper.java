@@ -191,6 +191,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             + " modified ouside of Copybara or that new changes happened later in the destination"
             + " without using Copybara. Use --force if you really want to do the migration.");
       } catch (EmptyChangeException ignored) {
+        // EmptyChangeException ignored
       }
       return null;
     });
@@ -221,6 +222,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       Files.createDirectories(checkoutDir);
     }
+    // Start new output entry and add origin refs
+    workflow.getGeneralOptions().getStructuredOutput().getCurrentSummaryLineBuilder()
+        .setOriginRefs(changes.getCurrent().stream()
+            .map(e -> e.refAsString()).collect(ImmutableList.toImmutableList()));
     processConsole.progress("Checking out the change");
     try (ProfilerTask ignored = profiler().start("origin.checkout")) {
       originReader.checkout(rev, checkoutDir);
@@ -308,6 +313,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       result = writer.write(transformResult, processConsole);
     }
     Verify.verifyNotNull(result, "Destination returned a null result.");
+    // Close output line
+    workflow.getGeneralOptions().getStructuredOutput().appendSummaryLine();
     return result;
   }
 

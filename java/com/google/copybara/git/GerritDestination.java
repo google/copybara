@@ -32,10 +32,9 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.git.GerritChangeFinder.GerritChange;
 import com.google.copybara.git.GitDestination.MessageInfo;
-import com.google.copybara.git.GitDestination.ProcessPushOutput;
+import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
-import com.google.copybara.util.StructuredOutput.SummaryLine;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -44,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import javax.annotation.Nullable;
-
 
 /**
  * Gerrit repository destination.
@@ -171,20 +169,20 @@ public final class GerritDestination implements Destination<GitRevision> {
             generalOptions.getOutputDirFactory()));
   }
 
-  static class GerritProcessPushOutput extends ProcessPushOutput {
+  static class GerritProcessPushOutput extends ProcessPushStructuredOutput {
 
     private static final Pattern GERRIT_URL_LINE = Pattern.compile(
         ".*: *(http(s)?://[^ ]+)( .*)?");
     private final Console console;
-    private final StructuredOutput structuredOutput;
 
     GerritProcessPushOutput(Console console, StructuredOutput structuredOutput) {
+      super(structuredOutput);
       this.console = Preconditions.checkNotNull(console);
-      this.structuredOutput = Preconditions.checkNotNull(structuredOutput);
     }
 
     @Override
-    void process(String output, boolean newReview) {
+    public void process(String output, boolean newReview, GitRepository localRepo) {
+      super.process(output, newReview, localRepo);
       List<String> lines = Splitter.on("\n").splitToList(output);
       for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
         String line = iterator.next();
@@ -198,8 +196,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 : "Updated existing Gerrit review at ";
             message = message + matcher.group(1);
             console.info(message);
-            // TODO(copybara-team): Add origin/destination refs
-            structuredOutput.addSummaryLine(SummaryLine.withTextOnly(message));
+            structuredOutput.getCurrentSummaryLineBuilder().setSummary(message);
+            return;
           }
         }
       }

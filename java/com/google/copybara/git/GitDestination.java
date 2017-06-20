@@ -16,11 +16,11 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.ChangeMessage.parseMessage;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -43,6 +43,7 @@ import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.OutputDirFactory;
+import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -112,19 +113,19 @@ public final class GitDestination implements Destination<GitRevision> {
       GitDestinationOptions destinationOptions, boolean verbose, boolean force, boolean skipPush,
       CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
       Map<String, String> environment, Console console, OutputDirFactory outputDirFactory) {
-    this.repoUrl = Preconditions.checkNotNull(repoUrl);
-    this.fetch = Preconditions.checkNotNull(fetch);
-    this.push = Preconditions.checkNotNull(push);
-    this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
+    this.repoUrl = checkNotNull(repoUrl);
+    this.fetch = checkNotNull(fetch);
+    this.push = checkNotNull(push);
+    this.destinationOptions = checkNotNull(destinationOptions);
     this.verbose = verbose;
     this.force = force;
     this.skipPush = skipPush;
     this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
-    this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
-    this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
+    this.commitGenerator = checkNotNull(commitGenerator);
+    this.processPushOutput = checkNotNull(processPushOutput);
     this.environment = environment;
     this.console = console;
-    this.outputDirFactory = Preconditions.checkNotNull(outputDirFactory);
+    this.outputDirFactory = checkNotNull(outputDirFactory);
   }
 
   /**
@@ -160,7 +161,7 @@ public final class GitDestination implements Destination<GitRevision> {
     private final boolean dryRun;
 
     WriterImpl(Glob destinationFiles, boolean dryRun) {
-      this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
+      this.destinationFiles = checkNotNull(destinationFiles);
       this.dryRun = dryRun;
     }
 
@@ -293,7 +294,6 @@ public final class GitDestination implements Destination<GitRevision> {
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
           messageInfo.text);
-
       if (baseline != null) {
         // Our current implementation (That we should change) leaves unstaged files in the
         // work-tree. This is fine for commit/push but not for rebase, since rebase could fail
@@ -333,7 +333,7 @@ public final class GitDestination implements Destination<GitRevision> {
         processPushOutput.process(
             alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push)
                 .getStderr(),
-            messageInfo.newPush);
+            messageInfo.newPush, alternate);
       } else {
         console.info("Local repository available at " + scratchClone.getWorkTree());
       }
@@ -416,13 +416,34 @@ public final class GitDestination implements Destination<GitRevision> {
   /**
    * Process the server response from the push command
    */
-  static class ProcessPushOutput {
+  interface ProcessPushOutput {
 
     /**
      * @param output - the message for the commit
      * @param newPush - true if is the first time we are pushing to the origin ref
+     * @param alternateRepo - The alternate repo used for staging commits, if any
      */
-    void process(String output, boolean newPush) {}
+    void process(String output, boolean newPush, GitRepository alternateRepo);
+  }
+
+  static class ProcessPushStructuredOutput implements ProcessPushOutput {
+    protected final StructuredOutput structuredOutput;
+
+    ProcessPushStructuredOutput(StructuredOutput output) {
+      this.structuredOutput = checkNotNull(output);
+    }
+
+    @Override
+    public void process(String output, boolean newPush, GitRepository alternateRepo) {
+      try {
+        String sha1 = alternateRepo.parseRef("HEAD");
+        structuredOutput.getCurrentSummaryLineBuilder()
+            .setDestinationRef(sha1)
+            .setSummary(String.format("Created revision %s", sha1));
+      } catch (RepoException | CannotResolveRevisionException e) {
+        logger.warning(String.format("Failed setting summary: %s", e));
+      }
+    }
   }
 
   @Override

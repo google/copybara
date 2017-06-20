@@ -16,8 +16,6 @@
 
 package com.google.copybara.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -28,14 +26,29 @@ import javax.annotation.Nullable;
  * Simple struct to provide a sidechannel for return values.
  */
 public class StructuredOutput {
+  @Nullable private SummaryLine.Builder currentLine = null;
 
   private final List<SummaryLine> summaryLines = new ArrayList<>();
 
   /**
-   * Appends a summary line to this structured output.
+   * Appends the current builder to the summary, resetting the builder.
    */
-  public void addSummaryLine(SummaryLine summaryLine) {
-    summaryLines.add(summaryLine);
+  public void appendSummaryLine() {
+    if (currentLine == null) {
+      return;
+    }
+    summaryLines.add(currentLine.build());
+    currentLine = null;
+  }
+
+  /**
+   * Returns a reference to the builder for the latest entry to amend.
+   */
+  public SummaryLine.Builder getCurrentSummaryLineBuilder() {
+    if (currentLine == null) {
+      currentLine = new AutoValue_StructuredOutput_SummaryLine.Builder();
+    }
+    return currentLine;
   }
 
   /**
@@ -61,33 +74,36 @@ public class StructuredOutput {
    * Represents one summary item of the results produced by this migration.
    */
   @AutoValue
-  public static abstract class SummaryLine {
-
-    public static SummaryLine withTextOnly(String summary) {
-      return new AutoValue_StructuredOutput_SummaryLine(
-          checkNotNull(summary), /*originRef*/ null, /*destinationRef*/ null);
-    }
-
-    public static SummaryLine withDestinationRef(String summary, String destinationRef) {
-      return new AutoValue_StructuredOutput_SummaryLine(
-          checkNotNull(summary), /*originRef*/ null, checkNotNull(destinationRef));
-    }
+  public abstract static class SummaryLine {
 
     /**
      * Returns the human-readable description of this line.
      */
+    @Nullable
     public abstract String getSummary();
 
     /**
-     * Returns the origin reference that was affected.
+     * Returns the origin references that were affected.
      */
     @Nullable
-    public abstract String getOriginRef();
+    public abstract ImmutableList<String> getOriginRefs();
 
     /**
      * Returns the destination reference that was affected.
      */
     @Nullable
     public abstract String getDestinationRef();
+
+    /**
+     * Builder to allow having one mutable instance during the workflow.
+     */
+    @AutoValue.Builder
+    public abstract static class Builder {
+      public abstract Builder setSummary(String summary);
+      public abstract Builder setDestinationRef(String destinationRef);
+      public abstract Builder setOriginRefs(ImmutableList<String> originRefs);
+
+      abstract SummaryLine build();
+    }
   }
 }

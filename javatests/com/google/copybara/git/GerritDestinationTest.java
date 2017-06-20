@@ -364,7 +364,8 @@ public class GerritDestinationTest {
             LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
             struct);
 
-    process.process(GERRIT_RESPONSE, /*newReview*/ true);
+    process.process(GERRIT_RESPONSE, /*newReview*/ true, repo());
+    struct.appendSummaryLine();
 
     assertThat(out.toString())
         .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
@@ -379,7 +380,8 @@ public class GerritDestinationTest {
     GerritProcessPushOutput process = new GerritProcessPushOutput(
         LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false), struct);
 
-    process.process(GERRIT_RESPONSE, /*newReview*/ false);
+    process.process(GERRIT_RESPONSE, /*newReview*/ false, repo());
+    struct.appendSummaryLine();
 
     assertThat(out.toString())
         .contains("INFO: Updated existing Gerrit review at https://some.url.google.com/1234");

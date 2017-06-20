@@ -31,7 +31,7 @@ import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
-import com.google.copybara.git.GitDestination.ProcessPushOutput;
+import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -68,7 +68,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           + "<ul>"
           + "<li>**Branch name:** For example `master`</li>"
           + "<li>**An arbitrary reference:** `refs/changes/20/50820/1`</li>"
-          + "<li>**A SHA-1:** Note that currently it has to be reachable from the default refspec</li>"
+          + "<li>**A SHA-1:** Note that it has to be reachable from the default refspec</li>"
           + "<li>**A Git repository URL and reference:** `http://github.com/foo master`</li>"
           + "<li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li>"
           + "</ul><br>"
@@ -249,7 +249,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           generalOptions.isForced(),
           skipPush,
           new DefaultCommitGenerator(),
-          new ProcessPushOutput(),
+          new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()),
           generalOptions.getEnvironment(),
           generalOptions.console(),
           generalOptions.getOutputDirFactory());
