@@ -70,7 +70,7 @@ public enum WorkflowMode {
       detectedChanges = detectedChanges.stream()
           // Don't replace helperForChanges with runHelper since origin_files could
           // be potentially different in the helper for the current change.
-          .filter(change -> !helperForChanges.skipChanges(ImmutableList.of(change)))
+          .filter(change -> !helperForChanges.skipChanges(change))
           .collect(ImmutableList.toImmutableList());
 
       // Try to use the latest change that affected the origin_files roots instead of the
@@ -131,7 +131,7 @@ public enum WorkflowMode {
         try (ProfilerTask ignored = runHelper.profiler().start(change.refAsString())) {
           ImmutableList<Change<O>> current = ImmutableList.of(change);
           WorkflowRunHelper<O, D> currentHelper = runHelper.forChanges(current);
-          if (currentHelper.skipChanges(current)) {
+          if (currentHelper.skipChanges(change)) {
             continue;
           }
           result = currentHelper.migrate(

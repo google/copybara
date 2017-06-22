@@ -381,22 +381,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * origin_files. Then we also check for potential changes in the config for configs that
    * are stored in the origin.
    */
-  boolean skipChanges(Iterable<? extends Change<?>> currentChanges) {
+  boolean skipChanges(Change<?> currentChange) {
     if (workflowOptions().importNoopChanges) {
       return false;
     }
-
-    Set<String> changesFiles = new HashSet<>();
-    for (Change<?> change : currentChanges) {
-      // We cannot know the files included in one of the changes. Try to migrate then.
-      if (change.getChangeFiles() == null) {
-        return false;
-      }
-      changesFiles.addAll(change.getChangeFiles());
+    // We cannot know the files included. Try to migrate then.
+    if (currentChange.getChangeFiles() == null) {
+      return false;
     }
-    PathMatcher pathMatcher = workflow.getOriginFiles().relativeTo(Paths.get("/"));
-    for (String changesFile : changesFiles) {
-      if (pathMatcher.matches(Paths.get("/" + changesFile))) {
+     PathMatcher pathMatcher = workflow.getOriginFiles().relativeTo(Paths.get("/"));
+    for (String changedFile : currentChange.getChangeFiles()) {
+      if (pathMatcher.matches(Paths.get("/" + changedFile))) {
         return false;
       }
     }
@@ -406,14 +401,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     // The config root can be a subfolder of the files as seen by the origin. For example:
     // admin/copy.bara.sky could be present in the origin as root/admin/copy.bara.sky.
     // This might give us some false positives but they would be noop migrations.
-    for (String changesFile : changesFiles) {
+    for (String changesFile : currentChange.getChangeFiles()) {
       for (String configPath : workflow.configPaths()) {
         if (changesFile.endsWith(configPath)) {
           return false;
         }
       }
     }
-    workflow.configPaths();
+    getConsole().infoFmt("Skipped change %s as it would create an empty result.",
+        currentChange.toString());
     return true;
   }
 
