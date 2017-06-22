@@ -224,7 +224,8 @@ public final class GeneralOptions implements Option {
             "Reuse the output directories. This includes the workdir, scratch clones of Git repos,"
                 + " etc. By default is set to true and directories will be cleaned prior to the "
                 + "execution and reused. If set to false, different directories will be used."
-                + " Keep in mind that this might consume a lot of disk.")
+                + " Keep in mind that this might consume a lot of disk.",
+        arity = 1)
     boolean reuseOutputDirs = true;
 
     /**
