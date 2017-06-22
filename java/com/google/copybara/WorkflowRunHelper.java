@@ -40,9 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -381,7 +379,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * origin_files. Then we also check for potential changes in the config for configs that
    * are stored in the origin.
    */
-  boolean skipChanges(Change<?> currentChange) {
+  boolean skipChange(Change<?> currentChange) {
     if (workflowOptions().importNoopChanges) {
       return false;
     }
