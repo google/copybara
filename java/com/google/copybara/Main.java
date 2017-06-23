@@ -39,7 +39,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,6 +47,7 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 
 /**
  * Main class that invokes {@link Copybara} from command-line.
@@ -150,10 +150,11 @@ public class Main {
 
       initEnvironment(options, mainArgs, jcommander);
 
-      ConfigLoader<Path> configLoader =
-          newConfigLoader(moduleSupplier, generalOptions, mainArgs.getConfigPath());
+      ConfigLoader<?> configLoader =
+          newConfigLoader(
+              moduleSupplier, options, mainArgs.getConfigPath(), mainArgs.getSourceRef());
 
-      Copybara copybara = newCopybaraTool(options, moduleSupplier, mainArgs.getConfigPath());
+      Copybara copybara = newCopybaraTool(moduleSupplier, options, mainArgs.getConfigPath());
       switch (mainArgs.getSubcommand()) {
         case VALIDATE:
           return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
@@ -222,7 +223,7 @@ public class Main {
    * Returns a new instance of {@link Copybara}.
    */
   protected Copybara newCopybaraTool(
-      Options options, ModuleSupplier moduleSupplier, String configPath)
+      ModuleSupplier moduleSupplier, Options options, String configPath)
       throws ValidationException {
     return new Copybara();
   }
@@ -234,10 +235,12 @@ public class Main {
     return new ModuleSupplier();
   }
 
-  protected ConfigLoader<Path> newConfigLoader(
-      ModuleSupplier moduleSupplier, GeneralOptions generalOptions, String configLocation) {
-    return new LocalConfigLoader(moduleSupplier, generalOptions,
-        generalOptions.getFileSystem().getPath(configLocation));
+  protected ConfigLoader<?> newConfigLoader(
+      ModuleSupplier moduleSupplier, Options options, String configLocation,
+      @Nullable String sourceRef) throws ValidationException {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    return new LocalConfigLoader(
+        moduleSupplier, generalOptions, generalOptions.getFileSystem().getPath(configLocation));
   }
 
   private Console getConsole(String[] args) {
