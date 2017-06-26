@@ -226,7 +226,7 @@ public final class GeneralOptions implements Option {
                 + "execution and reused. If set to false, different directories will be used."
                 + " Keep in mind that this might consume a lot of disk.",
         arity = 1)
-    boolean reuseOutputDirs = true;
+    boolean reuseOutputDirs = false;
 
     /**
      * This method should be called after the options have been set but before are used by any class.
