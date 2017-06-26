@@ -198,7 +198,7 @@ public enum GitRepoType {
         GitRepository repository, String url, int changeNumber, GeneralOptions generalOptions)
         throws RepoException, CannotResolveRevisionException {
       TreeMap<Integer, GitRevision> patchSets = new TreeMap<>();
-      String basePath = "refs/changes/" + (changeNumber % 100) + "/" + changeNumber;
+      String basePath = String.format("refs/changes/%02d/%d", changeNumber % 100, changeNumber);
       Map<String, String> refsToSha1 =
           GitRepository.lsRemote(
               url, ImmutableList.of(basePath + "/*"), generalOptions.getEnvironment());

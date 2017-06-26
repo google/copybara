@@ -84,6 +84,12 @@ public class GitRepoTypeTest {
     fileRepo.add().files("bar").run();
     fileRepo.git(fileRepoDir, "commit", "-m", "second commit");
     fileUrl = "file://" + fileRepoDir.toAbsolutePath();
+
+    Files.write(fileRepoDir.resolve("foobar"), new byte[]{});
+
+    // Dirty hack to simulate Gerrit
+    fileRepo.git(fileRepoDir,  "symbolic-ref", "refs/changes/04/1204/1", "HEAD");
+
   }
 
   @Test
@@ -156,6 +162,18 @@ public class GitRepoTypeTest {
     assertFetch("https://github.com/google/example", "refs/pull/1/head");
     console.assertThat()
         .containsNoMoreMessages();
+  }
+
+  @Test
+  public void testResolveGerritPatch() throws Exception {
+    disableFetchMocks();
+    String sha1 = fileRepo.parseRef("HEAD");
+    GitRevision rev = GitRepoType.GERRIT.resolveRef(testRepo, fileUrl, "1204", generalOptions);
+    assertThat(rev.asString()).isEqualTo(sha1 + " PatchSet 1");
+    assertThat(rev.getSha1()).isEqualTo(sha1);
+    assertThat(rev.getReviewReference()).isEqualTo("PatchSet 1");
+
+    console.assertThat().containsNoMoreMessages();
   }
 
   private void assertUrlOverwritten() {
