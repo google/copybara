@@ -216,7 +216,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     try (ProfilerTask ignored = profiler().start("prepare_workdir")) {
       processConsole.progress("Cleaning working directory");
       if (Files.exists(workdir)) {
-        MoreFiles.deleteRecursively(workdir);
+        FileUtil.deleteRecursively(workdir);
       }
       Files.createDirectories(checkoutDir);
     }

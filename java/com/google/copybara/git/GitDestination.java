@@ -41,6 +41,7 @@ import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.OutputDirFactory;
 import com.google.copybara.util.StructuredOutput;
@@ -361,7 +362,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
     try {
       if (Files.exists(path)) {
-        MoreFiles.deleteRecursively(path);
+        FileUtil.deleteRecursively(path);
       }
       Files.createDirectories(path);
     } catch (IOException e) {

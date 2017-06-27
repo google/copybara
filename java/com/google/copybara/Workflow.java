@@ -31,6 +31,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -181,7 +182,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       console.progress("Cleaning working directory");
       generalOptions.ioRepoTask("clean_workdir",
           () -> {
-            MoreFiles.deleteRecursively(workdir);
+            FileUtil.deleteRecursively(workdir);
             return null;
           });
 

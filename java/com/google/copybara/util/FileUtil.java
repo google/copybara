@@ -23,7 +23,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
+import com.google.common.io.InsecureRecursiveDeleteException;
+import com.google.common.io.MoreFiles;
+import com.google.common.io.RecursiveDeleteOption;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -174,6 +176,22 @@ public final class FileUtil {
       }
     });
     return counter.get();
+  }
+
+  /**
+   * Delete all the contents of a path recursively.
+   *
+   * <p>First we try to delete securely. In case the FileSystem doesn't support it,
+   * delete it insecurely.
+   */
+  public static void deleteRecursively(Path path) throws IOException {
+    try {
+      MoreFiles.deleteRecursively(path);
+    } catch (InsecureRecursiveDeleteException ignore) {
+      logger.warning(String.format("Secure delete not supported. Deleting '%s' insecurely.",
+          path));
+      MoreFiles.deleteRecursively(path, RecursiveDeleteOption.ALLOW_INSECURE);
+    }
   }
 
   /**

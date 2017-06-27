@@ -16,10 +16,10 @@
 package com.google.copybara.util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Logger;
 
 /**
  * A supplier of output directories under a given root.
@@ -30,6 +30,7 @@ import java.nio.file.Path;
  * <p>Can be configured to reuse output dirs, or create always new directories for the same name.
  */
 public class OutputDirFactory {
+
   private final Path rootPath;
   private final boolean reuseOutputDirs;
 
@@ -52,7 +53,7 @@ public class OutputDirFactory {
       }
       Path outputDir = rootPath.resolve(name);
       if (Files.exists(outputDir)) {
-        MoreFiles.deleteRecursively(outputDir);
+        FileUtil.deleteRecursively(outputDir);
       }
       return Files.createDirectory(outputDir);
     } catch (IOException e) {
