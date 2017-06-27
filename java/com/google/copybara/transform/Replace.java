@@ -118,6 +118,9 @@ public final class Replace implements Transformation {
     Replacer replacer = before.replacer(after, firstOnly, multiline, patternsToIgnore);
     List<FileState> changed = new ArrayList<>();
     for (FileState file : files) {
+      if (Files.isSymbolicLink(file.getPath())) {
+        continue;
+      }
       String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
       String transformed = replacer.replace(originalFileContent);
       if (!originalFileContent.equals(transformed)) {

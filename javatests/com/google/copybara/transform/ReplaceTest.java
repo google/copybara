@@ -46,6 +46,7 @@ import org.junit.runners.JUnit4;
 public final class ReplaceTest {
 
   private OptionsBuilder options;
+  private FileSystem fs;
   private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
@@ -55,7 +56,7 @@ public final class ReplaceTest {
 
   @Before
   public void setup() throws IOException {
-    FileSystem fs = Jimfs.newFileSystem();
+    fs = Jimfs.newFileSystem();
     checkoutDir = fs.getPath("/");
     Files.createDirectories(checkoutDir);
     console = new TestingConsole();
@@ -740,6 +741,29 @@ public final class ReplaceTest {
         .containsFile("file", ""
             + "foo x y foo\n"
             + "foo\n");
+  }
+
+  @Test
+  public void doNotProcessSymlinks() throws Exception {
+    options.workflowOptions.ignoreNoop = true;
+    Replace replace = eval(""
+        + "core.replace("
+        + "  before = 'a',"
+        + "  after = 'b',"
+        + "  paths = glob(['*'], exclude = ['i-exist']),"
+        + ")");
+    // Invalid symlinks should not cause an exception.
+    Files.createSymbolicLink(checkoutDir.resolve("invalid_symlink"), fs.getPath("i-dont-exist"));
+
+    // Valid symlinks, even to something that contains matching, text should be skipped.
+    Files.createSymbolicLink(checkoutDir.resolve("valid_symlink"), fs.getPath("i-exist"));
+    writeFile(checkoutDir.resolve("i-exist"), "abc");
+
+    transform(replace);
+    assertThat(Files.isSymbolicLink(checkoutDir.resolve("valid_symlink")))
+        .isTrue();
+    assertThatPath(checkoutDir)
+        .containsFile("i-exist", "abc");
   }
 
   private Replace eval(String replace) throws ValidationException {
