@@ -66,7 +66,7 @@ public class Mirror implements Migration {
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
     GitRepository repo = GitRepository.bareRepoInCache(origin, generalOptions.getEnvironment(),
-        generalOptions.isVerbose(), gitOptions.repoStorage);
+        generalOptions.isVerbose(), gitOptions.getRepoStorage());
     repo.initGitDir();
     List<String> fetchRefspecs = refspec.stream()
         .map(r -> r.getOrigin() + ":" + r.getOrigin())

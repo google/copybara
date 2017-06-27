@@ -18,7 +18,6 @@ package com.google.copybara;
 
 import static com.google.common.base.StandardSystemProperty.USER_HOME;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.folder.FolderDestinationOptions;
@@ -32,6 +31,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
+import javax.annotation.Nullable;
 
 /**
  * A supplier of modules and {@link Option}s for Copybara.
@@ -44,6 +44,9 @@ public class ModuleSupplier {
       MetadataModule.class,
       PatchModule.class);
 
+  // TODO(copybara-team): We shouldn't require it when we pass --output-dir. This
+  // is a temporary fix for now until we refactor all the output dirs logic
+  @Nullable
   private final String homeDir;
 
   /**
@@ -56,8 +59,8 @@ public class ModuleSupplier {
   /**
    * Creates a new instance with the given {@code homeDir}.
    */
-  public ModuleSupplier(String homeDir) {
-    this.homeDir = Preconditions.checkNotNull(homeDir);
+  public ModuleSupplier(@Nullable String homeDir) {
+    this.homeDir = homeDir;
   }
 
   /**

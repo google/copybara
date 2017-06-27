@@ -49,7 +49,7 @@ public class GerritOrigin extends GitOrigin{
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
-        GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
+        GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.getRepoStorage()),
         url, /*ref=*/null, type, options.get(GitOptions.class),
         options.get(GitOriginOptions.class), verbose, environment,
         submoduleStrategy, /*includeBranchCommitLogs=*/false);

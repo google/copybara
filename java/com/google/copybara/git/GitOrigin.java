@@ -164,7 +164,7 @@ public class GitOrigin implements Origin<GitRevision> {
         Preconditions.checkArgument(element.getPath().equals(submodule.getPath()));
 
         GitRepository subRepo = GitRepository.bareRepoInCache(
-            submodule.getUrl(), environment, verbose, gitOptions.repoStorage);
+            submodule.getUrl(), environment, verbose, gitOptions.getRepoStorage());
         subRepo.initGitDir();
         subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
         GitRevision submoduleRef = subRepo.resolveReference(element.getRef(), submodule.getName());
@@ -358,7 +358,7 @@ public class GitOrigin implements Origin<GitRevision> {
     Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
     return new GitOrigin(
         options.get(GeneralOptions.class),
-        GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.repoStorage),
+        GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.getRepoStorage()),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
         verbose, environment, submoduleStrategy, includeBranchCommitLogs);
   }

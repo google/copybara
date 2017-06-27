@@ -16,9 +16,12 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.copybara.Option;
+import javax.annotation.Nullable;
 
 /**
  * Common arguments for {@link GitDestination}, {@link GitOrigin}, and other Git components.
@@ -33,7 +36,18 @@ public final class GitOptions implements Option {
       description = "Location of the storage path for git repositories")
   String repoStorage;
 
-  public GitOptions(String homeDir) {
-    this.repoStorage = homeDir + "/copybara/repos";
+  public GitOptions(@Nullable String homeDir) {
+    this.repoStorage = homeDir == null
+        ? null
+        : homeDir + "/copybara/repos";
+  }
+
+  public String getRepoStorage() {
+    // Hack: I don't want to throw checked exception as it requires refactoring some code and
+    // this will go away really soon
+    checkNotNull(repoStorage,
+        "Repo storage is null. Most likely your $HOME environment var is not set. "
+            + "You can try to set: %s", GIT_REPO_STORAGE);
+    return repoStorage;
   }
 }
