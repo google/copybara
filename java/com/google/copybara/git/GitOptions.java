@@ -26,8 +26,10 @@ import com.google.copybara.Option;
 @Parameters(separators = "=")
 public final class GitOptions implements Option {
 
+  public static final String GIT_REPO_STORAGE = "--git-repo-storage";
+
   // Not used by git.destination but it will be at some point to make fetches more efficient.
-  @Parameter(names = "--git-repo-storage",
+  @Parameter(names = GIT_REPO_STORAGE,
       description = "Location of the storage path for git repositories")
   String repoStorage;
 

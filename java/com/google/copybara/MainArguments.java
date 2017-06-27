@@ -43,6 +43,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 public final class MainArguments {
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
+  public static final String WORKDIR = "--work-dir";
+
   static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
   @Parameter(description =
@@ -73,7 +75,7 @@ public final class MainArguments {
   @Parameter(names = "--version", description = "Shows the version of the binary")
   boolean version;
 
-  @Parameter(names = "--work-dir", description = "Directory where all the transformations"
+  @Parameter(names = WORKDIR, description = "Directory where all the transformations"
       + " will be performed. By default a temporary directory.")
   String baseWorkdir;
 

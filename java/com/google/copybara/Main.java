@@ -109,7 +109,7 @@ public class Main {
   }
 
   /** Helper to find out about verbose output before JCommander has been initialized .*/
-  private static boolean isVerbose(String[] args) {
+  protected static boolean isVerbose(String[] args) {
     return Arrays.stream(args).anyMatch(Predicate.isEqual("-v"));
   }
 
@@ -244,7 +244,7 @@ public class Main {
         moduleSupplier, generalOptions, generalOptions.getFileSystem().getPath(configLocation));
   }
 
-  private Console getConsole(String[] args) {
+  protected Console getConsole(String[] args) {
     boolean verbose = isVerbose(args);
     // If System.console() is not present, we are forced to use LogConsole
     if (System.console() == null) {
@@ -283,7 +283,7 @@ public class Main {
    * options are parsed, but before a file is read or a run started.
    */
   protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander)
-      throws CommandLineException {
+      throws ValidationException {
     profiler = options.get(GeneralOptions.class).profiler();
     profiler.init(ImmutableList.of(new LogProfilerListener()));
   }
