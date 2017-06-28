@@ -15,11 +15,11 @@
  */
 package com.google.copybara.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Logger;
 
 /**
  * A supplier of output directories under a given root.
@@ -29,36 +29,28 @@ import java.util.logging.Logger;
  *
  * <p>Can be configured to reuse output dirs, or create always new directories for the same name.
  */
-public class OutputDirFactory {
+public class DirFactory {
+  @VisibleForTesting
+  public static final String OUTPUT = "output";
 
   private final Path rootPath;
-  private final boolean reuseOutputDirs;
 
-  public OutputDirFactory(Path rootPath, boolean reuseOutputDirs) {
+  public DirFactory(Path rootPath) {
     this.rootPath = Preconditions.checkNotNull(rootPath);
-    this.reuseOutputDirs = reuseOutputDirs;
   }
 
-  /**
-   * Provides an output directory with the given name. If the directory already exists, files will
-   * be removed.
-   *
-   * <p>Creates the intermediate directories lazily, if necessary.
-   */
-  public Path newDirectory(String name) throws IOException {
-    try {
-      Files.createDirectories(rootPath);
-      if (!reuseOutputDirs) {
-        return Files.createTempDirectory(rootPath, name);
-      }
-      Path outputDir = rootPath.resolve(name);
-      if (Files.exists(outputDir)) {
-        FileUtil.deleteRecursively(outputDir);
-      }
-      return Files.createDirectory(outputDir);
-    } catch (IOException e) {
-      throw new IOException(String.format("Could not create output directory in %s", rootPath), e);
+  /** Creates a temp directory in the root path. */
+  public Path newTempOutputDirectory(String name) throws IOException {
+    Path outputPath = rootPath.resolve(OUTPUT);
+    // Create the output if it doesn't exist.
+    Files.createDirectories(outputPath);
+    return Files.createTempDirectory(outputPath, name);
+  }
+
+  public void cleanupOutputDir() throws IOException {
+    Path outputPath = rootPath.resolve(OUTPUT);
+    if (Files.exists(outputPath)) {
+        FileUtil.deleteRecursively(outputPath);
     }
   }
-
 }

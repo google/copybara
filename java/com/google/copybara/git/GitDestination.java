@@ -22,12 +22,10 @@ import static com.google.copybara.ChangeMessage.parseMessage;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.io.MoreFiles;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeRejectedException;
@@ -41,9 +39,9 @@ import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.OutputDirFactory;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -61,7 +59,6 @@ import javax.annotation.Nullable;
  */
 public final class GitDestination implements Destination<GitRevision> {
 
-  private static final ImmutableSet<String> SINGLE_ROOT_WITHOUT_FOLDER = ImmutableSet.of("");
   private static final String ORIGIN_LABEL_SEPARATOR = ": ";
 
   static class MessageInfo {
@@ -107,13 +104,13 @@ public final class GitDestination implements Destination<GitRevision> {
   private final ProcessPushOutput processPushOutput;
   private final Map<String, String> environment;
   private final Console console;
-  private final OutputDirFactory outputDirFactory;
+  private final DirFactory dirFactory;
   private boolean localRepoInitialized = false;
 
   GitDestination(String repoUrl, String fetch, String push,
       GitDestinationOptions destinationOptions, boolean verbose, boolean force, boolean skipPush,
       CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-      Map<String, String> environment, Console console, OutputDirFactory outputDirFactory) {
+      Map<String, String> environment, Console console, DirFactory dirFactory) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
@@ -126,7 +123,7 @@ public final class GitDestination implements Destination<GitRevision> {
     this.processPushOutput = checkNotNull(processPushOutput);
     this.environment = environment;
     this.console = console;
-    this.outputDirFactory = checkNotNull(outputDirFactory);
+    this.dirFactory = checkNotNull(dirFactory);
   }
 
   /**
@@ -343,7 +340,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private GitRepository cloneBaseline() throws RepoException {
     if (destinationOptions.localRepoPath == null) {
       GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment,
-          outputDirFactory);
+          dirFactory);
       fetchFromRemote(scratchClone);
       return scratchClone;
     } else {

@@ -45,12 +45,12 @@ import com.google.copybara.authoring.InvalidAuthorException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
+import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.FileUtil;
-import com.google.copybara.util.OutputDirFactory;
 import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -164,11 +164,11 @@ public class GitRepository {
    * <p>The new repo is not bare. The output directory might be reused.
    */
   public static GitRepository initScratchRepo(
-      boolean verbose, Map<String, String> environment, OutputDirFactory outputDirFactory)
+      boolean verbose, Map<String, String> environment, DirFactory dirFactory)
       throws RepoException {
     Path scratchWorkTree;
     try {
-      scratchWorkTree = outputDirFactory.newDirectory("copybara-makeScratchClone");
+      scratchWorkTree = dirFactory.newTempOutputDirectory("copybara-makeScratchClone");
       logger.log(Level.INFO,
           String.format("Created temporary folder for scratch repo: %s",
               scratchWorkTree.toAbsolutePath()));

@@ -27,7 +27,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class OutputDirFactoryTest {
+public class DirFactoryTest {
 
   private Path rootPath;
 
@@ -38,32 +38,25 @@ public class OutputDirFactoryTest {
 
   @Test
   public void tempDirsDontCollide() throws Exception {
-    OutputDirFactory outputDirFactory = new OutputDirFactory(rootPath, /*reuseOutputDirs*/ false);
-    Path fooDir = outputDirFactory.newDirectory("foo");
+    DirFactory dirFactory = new DirFactory(rootPath);
+    Path fooDir = dirFactory.newTempOutputDirectory("foo");
     Files.write(fooDir.resolve("file"), "First version".getBytes(StandardCharsets.UTF_8));
-    Path fooDir2 = outputDirFactory.newDirectory("foo");
+    Path fooDir2 = dirFactory.newTempOutputDirectory("foo");
     Files.write(fooDir2.resolve("file"), "Second version".getBytes(StandardCharsets.UTF_8));
     assertThat(fooDir.toAbsolutePath().equals(fooDir2.toAbsolutePath())).isFalse();
-    assertThatPath(fooDir)
-        .containsFile("file", "First version")
-        .containsNoMoreFiles();
-    assertThatPath(fooDir2)
-        .containsFile("file", "Second version")
-        .containsNoMoreFiles();
+    assertThatPath(fooDir).containsFile("file", "First version").containsNoMoreFiles();
+    assertThatPath(fooDir2).containsFile("file", "Second version").containsNoMoreFiles();
   }
 
   @Test
-  public void outputDirsAreReused() throws Exception {
-    OutputDirFactory outputDirFactory = new OutputDirFactory(rootPath, /*reuseOutputDirs*/ true);
-    Path fooDir = outputDirFactory.newDirectory("foo");
-    Files.write(fooDir.resolve("file1"), "First version".getBytes(StandardCharsets.UTF_8));
-    Files.write(fooDir.resolve("file2"), "First version".getBytes(StandardCharsets.UTF_8));
-    Path fooDir2 = outputDirFactory.newDirectory("foo");
-    Files.write(fooDir.resolve("file1"), "Second version".getBytes(StandardCharsets.UTF_8));
+  public void testCleanupOutputDir() throws Exception {
+    DirFactory dirFactory = new DirFactory(rootPath);
 
-    assertThat(fooDir.toAbsolutePath().equals(fooDir2.toAbsolutePath())).isTrue();
-    assertThatPath(fooDir2)
-        .containsFile("file1", "Second version")
-        .containsNoMoreFiles();
+    Path barDir = dirFactory.newTempOutputDirectory( "bar");
+    Files.write(barDir.resolve("file1"), "First version".getBytes(StandardCharsets.UTF_8));
+
+    dirFactory.cleanupOutputDir();
+    Path outputDirPath = rootPath.resolve(DirFactory.OUTPUT);
+    assertThatPath(rootPath).containsNoFiles(outputDirPath.toString());
   }
 }

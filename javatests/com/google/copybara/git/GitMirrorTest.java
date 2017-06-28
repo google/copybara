@@ -59,7 +59,7 @@ public class GitMirrorTest {
         .setWorkdirToRealTempDir()
         .setConsole(console);
     originRepo = GitRepository.initScratchRepo(/*verbose=*/true,
-        options.general.getEnvironment(), options.general.getOutputDirFactory());
+        options.general.getEnvironment(), options.general.getDirFactory());
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
 
     Path reposDir = Files.createTempDirectory("repos_repo");

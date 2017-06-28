@@ -76,7 +76,7 @@ public final class SubmodulesInDestinationTest {
     skylark = new SkylarkTestExecutor(options, GitModule.class);
 
     submodule = GitRepository.initScratchRepo(
-        /*verbose=*/true, getGitEnv(), options.general.getOutputDirFactory());
+        /*verbose=*/true, getGitEnv(), options.general.getDirFactory());
 
     Files.write(submodule.getWorkTree().resolve("foo"), new byte[] {1});
     submodule.add().files("foo").run();

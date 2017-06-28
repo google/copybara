@@ -781,7 +781,7 @@ core.workflow(
 EOF
 
   copybara destination/copy.bara.sky --folder-dir destination
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/clean_workdir"
+  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/clean_outputdir"
   expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/origin.resolve_source_ref"
   expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash/prepare_workdir"
   expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash/origin.checkout"

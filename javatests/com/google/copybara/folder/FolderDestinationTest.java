@@ -28,6 +28,7 @@ import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -122,7 +123,7 @@ public class FolderDestinationTest {
     write();
 
     Path outputPath = Iterables.getOnlyElement(
-        Files.newDirectoryStream(defaultRootPath.resolve("copybara/out")));
+        Files.newDirectoryStream(defaultRootPath.resolve("copybara/out/" + DirFactory.OUTPUT)));
 
     assertThatPath(outputPath)
         .containsFiles("test.txt", "dir/file.txt")

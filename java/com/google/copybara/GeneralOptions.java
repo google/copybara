@@ -25,8 +25,8 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.StructuredOutput;
-import com.google.copybara.util.OutputDirFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -52,7 +52,7 @@ public final class GeneralOptions implements Option {
   private final boolean verbose;
   private final Console console;
   private final StructuredOutput structuredOutput = new StructuredOutput();
-  private final boolean reuseOutputDirs;
+  private final boolean noCleanup;
   private final boolean disableReversibleCheck;
   private final boolean force;
   @Nullable
@@ -65,13 +65,13 @@ public final class GeneralOptions implements Option {
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
     this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
-        /*reuseOutputDirs*/ true, /*disableReversibleCheck=*/false, /*force=*/false);
+        /*noCleanup*/ true, /*disableReversibleCheck=*/false, /*force=*/false);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
       Console console, @Nullable Path configRoot, @Nullable Path outputRoot,
-      boolean reuseOutputDirs, boolean disableReversibleCheck, boolean force)
+      boolean noCleanup, boolean disableReversibleCheck, boolean force)
   {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
@@ -79,7 +79,7 @@ public final class GeneralOptions implements Option {
     this.verbose = verbose;
     this.configRoot = configRoot;
     this.outputRoot = outputRoot;
-    this.reuseOutputDirs = reuseOutputDirs;
+    this.noCleanup = noCleanup;
     this.disableReversibleCheck = disableReversibleCheck;
     this.force = force;
   }
@@ -104,8 +104,8 @@ public final class GeneralOptions implements Option {
     return fileSystem;
   }
 
-  public boolean isReuseOutputDirs() {
-    return reuseOutputDirs;
+  public boolean isNoCleanup() {
+    return noCleanup;
   }
 
   public boolean isDisableReversibleCheck() {
@@ -132,7 +132,7 @@ public final class GeneralOptions implements Option {
    * Returns the output root directory, or null if not set.
    *
    * <p>This method is exposed mainly for tests and it's probably not what you're looking for. Try
-   * {@link #getOutputDirFactory()} instead.
+   * {@link #getDirFactory()} instead.
    */
   @VisibleForTesting
   @Nullable
@@ -172,17 +172,17 @@ public final class GeneralOptions implements Option {
   }
 
   /**
-   * Returns a {@link OutputDirFactory} capable of creating directories in a self contained
+   * Returns a {@link DirFactory} capable of creating directories in a self contained
    * location in the filesystem.
    *
    * <p>By default, the directories are created under {@code $HOME/copybara/out}, but it can be
    * overridden with the flag --output-root.
    */
-  public OutputDirFactory getOutputDirFactory() {
+  public DirFactory getDirFactory() {
     Path rootPath = outputRoot != null
         ? outputRoot
         : fileSystem.getPath(environment.get("HOME")).resolve("copybara/out/");
-    return new OutputDirFactory(rootPath, reuseOutputDirs);
+    return new DirFactory(rootPath);
   }
 
   @Parameters(separators = "=")
@@ -221,14 +221,14 @@ public final class GeneralOptions implements Option {
     String outputRoot = null;
 
     @Parameter(
-        names = "--reuse-output-dirs",
+        names = "--nocleanup",
         description =
-            "Reuse the output directories. This includes the workdir, scratch clones of Git repos,"
-                + " etc. By default is set to true and directories will be cleaned prior to the "
-                + "execution and reused. If set to false, different directories will be used."
-                + " Keep in mind that this might consume a lot of disk.",
-        arity = 1)
-    boolean reuseOutputDirs = false;
+            "Cleanup the output directories. This includes the workdir, scratch clones of Git"
+                + " repos, etc. By default is set to false and directories will be cleaned prior to"
+                + " the execution. If set to true, the previous run output will not be cleaned up."
+                + " Keep in mind that running in this mode will lead to an ever increasing disk"
+                + " usage.")
+    boolean noCleanup = false;
 
     /**
      * This method should be called after the options have been set but before are used by any class.
@@ -239,7 +239,7 @@ public final class GeneralOptions implements Option {
       Path configRoot = this.configRoot != null ? fileSystem.getPath(this.configRoot) : null;
       Path outputRoot = this.outputRoot != null ? fileSystem.getPath(this.outputRoot) : null;
       return new GeneralOptions(
-          environment, fileSystem, verbose, console, configRoot, outputRoot, reuseOutputDirs,
+          environment, fileSystem, verbose, console, configRoot, outputRoot, noCleanup,
           disableReversibleCheck, force);
     }
   }

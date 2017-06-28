@@ -28,6 +28,7 @@ import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination;
+import com.google.copybara.Destination.Reader;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.EmptyChangeException;
@@ -1127,5 +1128,25 @@ public class GitDestinationTest {
 
   private Writer firstCommitWriter() throws ValidationException {
     return destinationFirstCommit().newWriter(destinationFiles, /*dryRun=*/ false);
+  }
+
+  @Test
+  public void testMapReferences() throws Exception {
+    Files.write(workdir.resolve("test.txt"), "one".getBytes());
+    process(firstCommitWriter(), new DummyRevision("1"));
+
+    Files.write(workdir.resolve("test.txt"), "two".getBytes());
+    GitDestination destination = destination();
+    Writer writer = destination.newWriter(destinationFiles, /*dryRun=*/ false);
+    process(writer, new DummyRevision("2"));
+
+    Files.write(workdir.resolve("test.txt"), "three".getBytes());
+    process(writer, new DummyRevision("3"));
+
+    Reader<GitRevision> reader = destination.newReader(destinationFiles);
+    reader.visitChanges(/*start=*/ null, ignore -> VisitResult.CONTINUE);
+
+    Files.write(workdir.resolve("test.txt"), "four".getBytes());
+    process(writer, new DummyRevision("4"));
   }
 }

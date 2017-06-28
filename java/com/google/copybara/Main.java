@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
@@ -283,11 +284,29 @@ public class Main {
    * options are parsed, but before a file is read or a run started.
    */
   protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander)
-      throws ValidationException {
-    profiler = options.get(GeneralOptions.class).profiler();
+      throws ValidationException, IOException, RepoException {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    profiler = generalOptions.profiler();
     profiler.init(ImmutableList.of(new LogProfilerListener()));
+    cleanupOutputDir(generalOptions);
   }
 
+  protected void cleanupOutputDir(GeneralOptions generalOptions)
+      throws RepoException, IOException, ValidationException {
+    try (ProfilerTask ignore = generalOptions.profiler().start("clean_outputdir")) {
+      generalOptions.console().progress("Cleaning output directory");
+      generalOptions
+          .ioRepoTask(
+              "clean_outputdir",
+              () -> {
+                if (generalOptions.isNoCleanup()) {
+                  return null;
+                }
+                generalOptions.getDirFactory().cleanupOutputDir();
+                return null;
+              });
+    }
+  }
   /**
    * Performs cleanup tasks after executing Copybara.
    */

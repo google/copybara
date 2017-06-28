@@ -252,7 +252,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()),
           generalOptions.getEnvironment(),
           generalOptions.console(),
-          generalOptions.getOutputDirFactory());
+          generalOptions.getDirFactory());
     }
   };
 

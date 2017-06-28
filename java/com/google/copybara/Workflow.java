@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
-import com.google.common.io.MoreFiles;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.Origin.Reader;
@@ -31,7 +30,6 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -179,13 +177,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
     try (ProfilerTask ignore = profiler().start("run/" + name)) {
-      console.progress("Cleaning working directory");
-      generalOptions.ioRepoTask("clean_workdir",
-          () -> {
-            FileUtil.deleteRecursively(workdir);
-            return null;
-          });
-
       console.progress("Getting last revision: "
           + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
       O resolvedRef = generalOptions.repoTask("origin.resolve_source_ref",

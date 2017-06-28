@@ -71,7 +71,7 @@ public class GitRepositoryTest {
         .setOutputRootToTmpDir();
     workdir = Files.createTempDirectory("workdir");
     this.repository = GitRepository.initScratchRepo(
-        /*verbose=*/true, getGitEnv(), options.general.getOutputDirFactory())
+        /*verbose=*/true, getGitEnv(), options.general.getDirFactory())
         .withWorkTree(workdir);
   }
 
@@ -179,7 +179,7 @@ public class GitRepositoryTest {
       ValidationException {
     workdir = Files.createTempDirectory("workdir");
     this.repository = GitRepository.initScratchRepo(
-        /*verbose=*/true, getGitEnv(), options.general.getOutputDirFactory())
+        /*verbose=*/true, getGitEnv(), options.general.getDirFactory())
         .withWorkTree(workdir);
     Files.write(workdir.resolve("foo.txt"), "foo fooo fooo".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
