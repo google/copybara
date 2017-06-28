@@ -30,9 +30,9 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
@@ -121,6 +121,14 @@ public abstract class Glob implements Concatable {
    * origin you are using for more information.
    */
   public abstract ImmutableSet<String> roots();
+
+  /**
+   * If roots is empty or contains a single elemnent that is not a subdirectory. See
+   * {@link #roots()} for detail.
+   */
+  public static boolean isEmptyRoot(Iterable<String> roots) {
+    return Iterables.isEmpty(roots) || Objects.equals(roots.iterator().next(), "");
+  }
 
   @Nullable
   @Override

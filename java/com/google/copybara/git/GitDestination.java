@@ -173,11 +173,7 @@ public final class GitDestination implements Destination<GitRevision> {
       if (force) {
         return null;
       }
-      ImmutableSet<String> roots = destinationFiles.roots();
       GitRepository gitRepository = cloneBaseline(/*fetchIfInitialized=*/);
-      ImmutableCollection<String> paths = roots.equals(SINGLE_ROOT_WITHOUT_FOLDER)
-          ? ImmutableList.of()
-          : roots;
 
       String startRef;
       try {
@@ -186,10 +182,12 @@ public final class GitDestination implements Destination<GitRevision> {
         // Shouldn't happen
         throw new RepoException("Cannot resolve FETCH_HEAD", e);
       }
+
+      ImmutableSet<String> roots = destinationFiles.roots();
       LogCmd logCmd = gitRepository.log(startRef)
           .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR)
           .firstParent(destinationOptions.lastRevFirstParent)
-          .withPaths(paths);
+          .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots);
 
       // 99% of the times it will be the first match. But grep could return a false positive
       // for a comment that contains labelName. But if entries is empty we know for sure

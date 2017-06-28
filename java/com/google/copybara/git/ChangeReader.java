@@ -65,7 +65,7 @@ class ChangeReader {
   ImmutableList<GitChange> run(String refExpression) throws RepoException {
     LogCmd logCmd = repository
         .log(refExpression)
-        .withPaths(roots.get(0).isEmpty() ? ImmutableList.of() : roots);
+        .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots);
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
     }
@@ -87,7 +87,7 @@ class ChangeReader {
     }
 
     ImmutableList<GitLogEntry> entries = repository.log(parents.get(0) + ".." + ref)
-        .withPaths(roots.isEmpty() ? ImmutableList.of() : roots)
+        .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots)
         .firstParent(false).run();
 
     // Remove the merge commit. Since we already have that in the body.

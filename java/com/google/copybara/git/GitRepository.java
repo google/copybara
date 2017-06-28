@@ -47,9 +47,9 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.OutputDirFactory;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -1127,6 +1127,7 @@ public class GitRepository {
      */
     @CheckReturnValue
     public LogCmd withPaths(ImmutableCollection<String> paths) {
+      Preconditions.checkArgument(paths.stream().noneMatch(s -> s.trim().equals("")));
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString);
     }
