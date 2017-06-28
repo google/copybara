@@ -80,7 +80,7 @@ public class Main {
     System.exit(new Main(System.getenv()).run(args).getCode());
   }
 
-  protected ExitCode run(String[] args) {
+  protected final ExitCode run(String[] args) {
     // We need a console before parsing the args because it could fail with wrong
     // arguments and we need to show the error.
     Console console = getConsole(args);
@@ -136,10 +136,11 @@ public class Main {
       logger.log(Level.INFO, "Copybara version: " + version);
       jcommander.parse(args);
       if (mainArgs.help) {
-        System.out.print(usage(jcommander, version));
+        console.info(usage(jcommander, version));
         return ExitCode.SUCCESS;
-      } else if (mainArgs.version) {
-        System.out.println(getBinaryInfo());
+      }
+      if (mainArgs.version) {
+        console.info(getBinaryInfo());
         return ExitCode.SUCCESS;
       }
       mainArgs.parseUnnamedArgs();
@@ -178,7 +179,7 @@ public class Main {
       }
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(console, e);
-      System.err.println("Try 'copybara --help'.");
+      console.error("Try 'copybara --help'.");
       return ExitCode.COMMAND_LINE_ERROR;
     } catch (RepoException e) {
       logger.log(Level.SEVERE, "Repository exception", e);
@@ -326,13 +327,7 @@ public class Main {
       error.append("  CAUSED BY: ").append(cause.getMessage()).append("\n");
       cause = cause.getCause();
     }
-    if (console != null) {
-      console.error(error.toString());
-    } else {
-      // When options are incorrect we don't have a console.
-      // We should fix this. But not for now.
-      System.err.println("ERROR: " + error.toString());
-    }
+    console.error(error.toString());
   }
 
   private void handleUnexpectedError(Console console, String msg, Throwable e) {

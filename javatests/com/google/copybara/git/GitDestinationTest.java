@@ -271,7 +271,6 @@ public class GitDestinationTest {
     String change = git("--git-dir", repoGitDir.toString(), "show", "HEAD");
     // Validate that we really have pushed the commit.
     assertThat(change).contains("test summary");
-    System.out.println(change);
     console.assertThat()
         .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching file:.*")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Checking out master")

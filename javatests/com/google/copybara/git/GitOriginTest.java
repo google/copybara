@@ -512,7 +512,6 @@ public class GitOriginTest {
     newReader().visitChanges(lastCommitRef,
         input -> {
           visited.add(input);
-          System.out.println(input.firstLineMessage().equals("three"));
           return input.firstLineMessage().equals("three")
               ? VisitResult.CONTINUE
               : VisitResult.TERMINATE;

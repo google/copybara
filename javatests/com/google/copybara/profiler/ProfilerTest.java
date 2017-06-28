@@ -125,10 +125,6 @@ public class ProfilerTest {
 
     profiler.stop();
 
-    for (TaskWithType event : recordingCallback.events) {
-      System.out.println(event);
-    }
-
     assertThat(recordingCallback.events).containsExactly(
         new TaskWithType(EventType.START, new Task("//copybara", 0, -1)),
         new TaskWithType(EventType.START, new Task("//copybara/task1", 1, -1)),

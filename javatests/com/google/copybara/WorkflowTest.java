@@ -1115,7 +1115,6 @@ public class WorkflowTest {
         + "    msg+='PREV: %s (%s) by %s\\n' %  (c.message, c.ref, c.author.name)\n"
         + "  ctx.set_message(ctx.message + '\\nPREVIOUS CHANGES:\\n' + msg)\n");
     ProcessedChange secondCommit = destination.processed.get(0);
-    System.out.println(secondCommit.getChangesSummary());
     assertThat(secondCommit.getChangesSummary())
         .isEqualTo(""
             + "CHANGE: second commit (1) by Foo Bar\n"
@@ -1125,7 +1124,6 @@ public class WorkflowTest {
             + "PREVIOUS CHANGES:\n");
     assertThat(secondCommit.getAuthor().toString()).isEqualTo("Someone <someone@somewhere.com>");
     ProcessedChange thirdCommit = destination.processed.get(1);
-    System.out.println(thirdCommit.getChangesSummary());
     assertThat(thirdCommit.getChangesSummary())
         .isEqualTo(""
             + "CHANGE: third commit (2) by Foo Baz\n"

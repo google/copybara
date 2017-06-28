@@ -130,9 +130,6 @@ public class GitRepositoryTest {
 
     Files.write(workdir.resolve("modified2"), "modifiedyyy".getBytes(UTF_8));
 
-    for (StatusFile statusFile : repository.status()) {
-      System.out.println(statusFile);
-    }
     assertThat(repository.status()).containsExactly(
         new StatusFile("renamed", "renamed2", RENAMED, UNMODIFIED),
         new StatusFile("deleted", /*newFileName=*/null, UNMODIFIED, DELETED),
