@@ -128,7 +128,7 @@ public final class MainArguments {
     Path workdirPath;
 
     workdirPath = baseWorkdir == null
-        ? generalOptions.getDirFactory().newTempOutputDirectory("workdir")
+        ? generalOptions.getDirFactory().newTempDir("workdir")
         : fs.getPath(baseWorkdir).normalize();
     logger.log(Level.INFO, String.format("Using workdir: %s", workdirPath.toAbsolutePath()));
 

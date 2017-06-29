@@ -70,9 +70,8 @@ public class GitRepositoryTest {
     options = new OptionsBuilder()
         .setOutputRootToTmpDir();
     workdir = Files.createTempDirectory("workdir");
-    this.repository = GitRepository.initScratchRepo(
-        /*verbose=*/true, getGitEnv(), options.general.getDirFactory())
-        .withWorkTree(workdir);
+    this.repository = GitRepository.initScratchRepoForTest(
+        getGitEnv(), options.general.getDirFactory()).withWorkTree(workdir);
   }
 
   @Test
@@ -178,8 +177,8 @@ public class GitRepositoryTest {
   private void checkLog(boolean body, boolean includeFiles) throws IOException, RepoException,
       ValidationException {
     workdir = Files.createTempDirectory("workdir");
-    this.repository = GitRepository.initScratchRepo(
-        /*verbose=*/true, getGitEnv(), options.general.getDirFactory())
+    this.repository = GitRepository.initScratchRepoForTest(
+        getGitEnv(), options.general.getDirFactory())
         .withWorkTree(workdir);
     Files.write(workdir.resolve("foo.txt"), "foo fooo fooo".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
@@ -281,7 +280,7 @@ public class GitRepositoryTest {
 
   @Test
   public void testGitBinaryResolution() throws Exception {
-    assertThat(GitRepository.resolveGitBinary(ImmutableMap.<String, String>of()))
+    assertThat(GitRepository.resolveGitBinary(ImmutableMap.of()))
         .isEqualTo("git");
     assertThat(GitRepository.resolveGitBinary(ImmutableMap.of("GIT_EXEC_PATH", "/some/path")))
         .isEqualTo("/some/path/git");

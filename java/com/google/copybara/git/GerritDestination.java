@@ -164,9 +164,7 @@ public final class GerritDestination implements Destination<GitRevision> {
             new GerritProcessPushOutput(
                 generalOptions.console(),
                 generalOptions.getStructuredOutput()),
-            environment,
-            generalOptions.console(),
-            generalOptions.getDirFactory()));
+            generalOptions.console()));
   }
 
   static class GerritProcessPushOutput extends ProcessPushStructuredOutput {

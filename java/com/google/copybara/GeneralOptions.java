@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
@@ -172,17 +174,19 @@ public final class GeneralOptions implements Option {
   }
 
   /**
-   * Returns a {@link DirFactory} capable of creating directories in a self contained
-   * location in the filesystem.
+   * Returns a {@link DirFactory} capable of creating directories in a self contained location in
+   * the filesystem.
    *
-   * <p>By default, the directories are created under {@code $HOME/copybara/out}, but it can be
+   * <p>By default, the directories are created under {@code $HOME/copybara}, but it can be
    * overridden with the flag --output-root.
    */
   public DirFactory getDirFactory() {
-    Path rootPath = outputRoot != null
-        ? outputRoot
-        : fileSystem.getPath(environment.get("HOME")).resolve("copybara/out/");
-    return new DirFactory(rootPath);
+    if (outputRoot != null) {
+      return new DirFactory(outputRoot);
+    } else {
+      String home = checkNotNull(environment.get("HOME"), "$HOME environment var is not set");
+      return new DirFactory(fileSystem.getPath(home).resolve("copybara"));
+    }
   }
 
   @Parameters(separators = "=")

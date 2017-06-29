@@ -29,11 +29,11 @@ import javax.annotation.Nullable;
 public class GerritOrigin extends GitOrigin{
 
   private GerritOrigin(GeneralOptions generalOptions,
-      GitRepository repository, String repoUrl, @Nullable String configRef,
+      String repoUrl, @Nullable String configRef,
       GitRepoType repoType, GitOptions gitOptions, GitOriginOptions gitOriginOptions,
       boolean verbose, @Nullable Map<String, String> environment,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
-    super(generalOptions, repository, repoUrl, configRef, repoType, gitOptions, gitOriginOptions,
+    super(generalOptions, repoUrl, configRef, repoType, gitOptions, gitOriginOptions,
         verbose, environment, submoduleStrategy, includeBranchCommitLogs);
   }
 
@@ -43,13 +43,11 @@ public class GerritOrigin extends GitOrigin{
   static GerritOrigin newGerritOrigin(Options options, String url, GitRepoType type,
       SubmoduleStrategy submoduleStrategy) {
 
-    GitOptions gitConfig = options.get(GitOptions.class);
     boolean verbose = options.get(GeneralOptions.class).isVerbose();
     Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
-        GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.getRepoStorage()),
         url, /*ref=*/null, type, options.get(GitOptions.class),
         options.get(GitOriginOptions.class), verbose, environment,
         submoduleStrategy, /*includeBranchCommitLogs=*/false);

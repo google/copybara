@@ -250,9 +250,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           skipPush,
           new DefaultCommitGenerator(),
           new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()),
-          generalOptions.getEnvironment(),
-          generalOptions.console(),
-          generalOptions.getDirFactory());
+          generalOptions.console());
     }
   };
 
@@ -263,15 +261,6 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       }
     }
     return null;
-  }
-
-  private static String fetch(String fetch, GitDestinationOptions destinationOptions,
-      String cliFetch) {
-    return Strings.isNullOrEmpty(cliFetch) ? fetch : destinationOptions.fetch;
-  }
-
-  private static String push(String push, GitDestinationOptions destinationOptions) {
-    return firstNotNull(push, destinationOptions.push);
   }
 
   @SkylarkSignature(name = "gerrit_destination", returnType = GerritDestination.class,

@@ -21,6 +21,7 @@ import static com.google.copybara.ChangeMessage.parseMessage;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -39,17 +40,11 @@ import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.DiffUtil;
-import com.google.copybara.util.DirFactory;
-import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -102,15 +97,20 @@ public final class GitDestination implements Destination<GitRevision> {
   private final boolean effectiveSkipPush;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
-  private final Map<String, String> environment;
   private final Console console;
-  private final DirFactory dirFactory;
-  private boolean localRepoInitialized = false;
+  private GitRepository localRepo = null;
 
-  GitDestination(String repoUrl, String fetch, String push,
-      GitDestinationOptions destinationOptions, boolean verbose, boolean force, boolean skipPush,
-      CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-      Map<String, String> environment, Console console, DirFactory dirFactory) {
+  GitDestination(
+      String repoUrl,
+      String fetch,
+      String push,
+      GitDestinationOptions destinationOptions,
+      boolean verbose,
+      boolean force,
+      boolean skipPush,
+      CommitGenerator commitGenerator,
+      ProcessPushOutput processPushOutput,
+      Console console) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
@@ -121,9 +121,7 @@ public final class GitDestination implements Destination<GitRevision> {
     this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
     this.commitGenerator = checkNotNull(commitGenerator);
     this.processPushOutput = checkNotNull(processPushOutput);
-    this.environment = environment;
     this.console = console;
-    this.dirFactory = checkNotNull(dirFactory);
   }
 
   /**
@@ -152,6 +150,13 @@ public final class GitDestination implements Destination<GitRevision> {
     return new WriterImpl(destinationFiles, dryRun);
   }
 
+  public GitRepository getLocalRepo() throws RepoException {
+    if (localRepo == null) {
+      localRepo = destinationOptions.localGitRepo();
+    }
+    return Preconditions.checkNotNull(localRepo);
+  }
+
   private class WriterImpl implements Writer {
 
     @Nullable private GitRepository scratchClone;
@@ -170,7 +175,8 @@ public final class GitDestination implements Destination<GitRevision> {
       if (force) {
         return null;
       }
-      GitRepository gitRepository = cloneBaseline(/*fetchIfInitialized=*/);
+      GitRepository gitRepository = getLocalRepo();
+      fetchFromRemote(gitRepository);
 
       String startRef;
       try {
@@ -227,7 +233,10 @@ public final class GitDestination implements Destination<GitRevision> {
       if (scratchClone == null) {
         console.progress("Git Destination: Fetching " + repoUrl);
 
-        scratchClone = cloneBaseline();
+        scratchClone = getLocalRepo();
+        fetchFromRemote(scratchClone);
+
+        configLocalRepo(scratchClone);
 
         if (baseline != null && !scratchClone.refExists(baseline)) {
           throw new RepoException("Cannot find baseline '" + baseline
@@ -336,41 +345,11 @@ public final class GitDestination implements Destination<GitRevision> {
       return WriterResult.OK;
     }
   }
+  private void configLocalRepo(GitRepository localRepo) throws RepoException {
 
-  private GitRepository cloneBaseline() throws RepoException {
-    if (destinationOptions.localRepoPath == null) {
-      GitRepository scratchClone = GitRepository.initScratchRepo(verbose, environment,
-          dirFactory);
-      fetchFromRemote(scratchClone);
-      return scratchClone;
-    } else {
-      return configLocalRepo();
-    }
-  }
-
-  private GitRepository configLocalRepo() throws RepoException {
-    Path path = Paths.get(destinationOptions.localRepoPath);
-    // Skip creating initializing the repo twice, since we delete everything.
-    if (localRepoInitialized) {
-      return new GitRepository(path.resolve(".git"), path, verbose, environment);
-    }
-
-    try {
-      if (Files.exists(path)) {
-        FileUtil.deleteRecursively(path);
-      }
-      Files.createDirectories(path);
-    } catch (IOException e) {
-      throw new RepoException("Cannot delete existing local repository", e);
-    }
-    GitRepository scratchClone = GitRepository.initScratchRepo(verbose, path, environment);
     // Configure the local repo to allow pushing to the ref manually outside of Copybara
-    scratchClone.simpleCommand("remote", "add", "origin", repoUrl);
-    scratchClone.simpleCommand("config", "--local", "remote.origin.push", "HEAD:" + push);
-    fetchFromRemote(scratchClone);
-
-    localRepoInitialized = true;
-    return scratchClone;
+    localRepo.simpleCommand("remote", "add", "origin", repoUrl);
+    localRepo.simpleCommand("config", "--local", "remote.origin.push", "HEAD:" + push);
   }
 
   private void fetchFromRemote(GitRepository scratchClone) throws RepoException {
@@ -453,7 +432,8 @@ public final class GitDestination implements Destination<GitRevision> {
     @Override
     public void visitChanges(GitRevision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
-      GitRepository repository = cloneBaseline();
+      GitRepository repository = getLocalRepo();
+      fetchFromRemote(repository);
       String revString = start == null ? "FETCH_HEAD" : start.getSha1();
       ChangeReader changeReader =
           ChangeReader.Builder.forDestination(repository, console)

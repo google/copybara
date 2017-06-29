@@ -152,9 +152,8 @@ public class GitRepository {
    * Create a bare repo in the cache of repos so that it can be reused between migrations.
    */
   static GitRepository bareRepoInCache(String url, Map<String, String> environment,
-      boolean verbose, String repoStorage) {
-    Path gitRepoStorage = FileSystems.getDefault().getPath(repoStorage);
-    Path gitDir = gitRepoStorage.resolve(PERCENT_ESCAPER.escape(url));
+      boolean verbose, Path repoStorage) {
+    Path gitDir = repoStorage.resolve(PERCENT_ESCAPER.escape(url));
     return bareRepo(gitDir, environment, verbose);
   }
 
@@ -162,13 +161,15 @@ public class GitRepository {
    * Initializes a new repository in an output directory using the given environment vars.
    *
    * <p>The new repo is not bare. The output directory might be reused.
+   * @deprecated
    */
-  public static GitRepository initScratchRepo(
-      boolean verbose, Map<String, String> environment, DirFactory dirFactory)
-      throws RepoException {
+  @Deprecated
+  @VisibleForTesting
+  public static GitRepository initScratchRepoForTest(Map<String, String> environment,
+      DirFactory dirFactory) throws RepoException {
     Path scratchWorkTree;
     try {
-      scratchWorkTree = dirFactory.newTempOutputDirectory("copybara-makeScratchClone");
+      scratchWorkTree = dirFactory.newTempDir("copybara-makeScratchClone");
       logger.log(Level.INFO,
           String.format("Created temporary folder for scratch repo: %s",
               scratchWorkTree.toAbsolutePath()));
@@ -176,7 +177,7 @@ public class GitRepository {
       throw new RepoException("Could not make temporary directory for scratch repo", e);
     }
 
-    return initScratchRepo(verbose, scratchWorkTree, environment);
+    return initScratchRepo(/*verbose=*/true, scratchWorkTree, environment);
   }
 
   /**
@@ -304,7 +305,7 @@ public class GitRepository {
       String url, Collection<String> refs, Map<String, String> env)
       throws RepoException {
 
-    ImmutableMap.Builder<String, String> result = ImmutableMap.<String, String>builder();
+    ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
     List<String> args = Lists.newArrayList("ls-remote", validateUrl(url));
     args.addAll(refs);
 
@@ -458,7 +459,7 @@ public class GitRepository {
    * Get a field from a configuration {@code file} relative to {@link #getWorkTree()}.
    */
   @Nullable
-  private String getConfigField(String file, String field) throws RepoException {
+  String getConfigField(String file, String field) throws RepoException {
     CommandOutputWithStatus out = gitAllowNonZeroExit(
         ImmutableList.of("config", "-f", file, "--get", field));
     if (out.getTerminationStatus().success()) {

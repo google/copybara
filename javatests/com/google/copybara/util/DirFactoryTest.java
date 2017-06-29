@@ -39,9 +39,9 @@ public class DirFactoryTest {
   @Test
   public void tempDirsDontCollide() throws Exception {
     DirFactory dirFactory = new DirFactory(rootPath);
-    Path fooDir = dirFactory.newTempOutputDirectory("foo");
+    Path fooDir = dirFactory.newTempDir("foo");
     Files.write(fooDir.resolve("file"), "First version".getBytes(StandardCharsets.UTF_8));
-    Path fooDir2 = dirFactory.newTempOutputDirectory("foo");
+    Path fooDir2 = dirFactory.newTempDir("foo");
     Files.write(fooDir2.resolve("file"), "Second version".getBytes(StandardCharsets.UTF_8));
     assertThat(fooDir.toAbsolutePath().equals(fooDir2.toAbsolutePath())).isFalse();
     assertThatPath(fooDir).containsFile("file", "First version").containsNoMoreFiles();
@@ -52,11 +52,11 @@ public class DirFactoryTest {
   public void testCleanupOutputDir() throws Exception {
     DirFactory dirFactory = new DirFactory(rootPath);
 
-    Path barDir = dirFactory.newTempOutputDirectory( "bar");
+    Path barDir = dirFactory.newTempDir("bar");
     Files.write(barDir.resolve("file1"), "First version".getBytes(StandardCharsets.UTF_8));
 
-    dirFactory.cleanupOutputDir();
-    Path outputDirPath = rootPath.resolve(DirFactory.OUTPUT);
+    dirFactory.cleanupTempDirs();
+    Path outputDirPath = rootPath.resolve(DirFactory.TMP);
     assertThatPath(rootPath).containsNoFiles(outputDirPath.toString());
   }
 }

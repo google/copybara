@@ -31,6 +31,7 @@ import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.ExitCode;
+import com.google.copybara.util.SettableSupplier;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
@@ -125,7 +126,8 @@ public class Main {
 
       final MainArguments mainArgs = new MainArguments(args);
       GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-      List<Option> allOptions = new ArrayList<>(moduleSupplier.newOptions());
+      SettableSupplier<GeneralOptions> generalOptionsSupplier = new SettableSupplier<>();
+      List<Option> allOptions = new ArrayList<>(moduleSupplier.newOptions(generalOptionsSupplier));
       JCommander jcommander = new JCommander(ImmutableList.builder()
           .addAll(allOptions)
           .add(mainArgs)
@@ -147,6 +149,7 @@ public class Main {
       mainArgs.parseUnnamedArgs();
 
       GeneralOptions generalOptions = generalOptionsArgs.init(environment, fs, console);
+      generalOptionsSupplier.set(generalOptions);
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
@@ -302,7 +305,7 @@ public class Main {
                 if (generalOptions.isNoCleanup()) {
                   return null;
                 }
-                generalOptions.getDirFactory().cleanupOutputDir();
+                generalOptions.getDirFactory().cleanupTempDirs();
                 return null;
               });
     }

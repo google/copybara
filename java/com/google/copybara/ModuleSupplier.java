@@ -16,8 +16,6 @@
 
 package com.google.copybara;
 
-import static com.google.common.base.StandardSystemProperty.USER_HOME;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.folder.FolderDestinationOptions;
@@ -31,7 +29,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
-import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 /**
  * A supplier of modules and {@link Option}s for Copybara.
@@ -43,26 +41,7 @@ public class ModuleSupplier {
       GitModule.class,
       MetadataModule.class,
       PatchModule.class);
-
-  // TODO(copybara-team): We shouldn't require it when we pass --output-dir. This
-  // is a temporary fix for now until we refactor all the output dirs logic
-  @Nullable
-  private final String homeDir;
-
-  /**
-   * Creates a new instance using the {@code USER_HOME} as the home dir.
-   */
-  public ModuleSupplier() {
-    this(USER_HOME.value());
-  }
-
-  /**
-   * Creates a new instance with the given {@code homeDir}.
-   */
-  public ModuleSupplier(@Nullable String homeDir) {
-    this.homeDir = homeDir;
-  }
-
+  
   /**
    * Returns the {@code set} of modules available.
    */
@@ -70,16 +49,14 @@ public class ModuleSupplier {
     return BASIC_MODULES;
   }
 
-  /**
-   * Returns a new list of {@link Option}s.
-   */
-  public ImmutableList<Option> newOptions() {
+  /** Returns a new list of {@link Option}s. */
+  public ImmutableList<Option> newOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
     return ImmutableList.of(
         new FolderDestinationOptions(),
         new FolderOriginOptions(),
-        new GitOptions(homeDir),
+        new GitOptions(generalOptionsSupplier),
         new GitOriginOptions(),
-        new GitDestinationOptions(),
+        new GitDestinationOptions(generalOptionsSupplier),
         new GitMirrorOptions(),
         newGerritOptions(),
         new WorkflowOptions());

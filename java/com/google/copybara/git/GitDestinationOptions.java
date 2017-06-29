@@ -19,8 +19,19 @@ package com.google.copybara.git;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
+import com.google.copybara.RepoException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.util.FileUtil;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.function.Supplier;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -28,9 +39,11 @@ import javax.annotation.Nullable;
  */
 @Parameters(separators = "=")
 public final class GitDestinationOptions implements Option {
+  private final Logger logger = Logger.getLogger(GitDestinationOptions.class.getName());
 
   public static final String GIT_COMMITTER_NAME_FLAG = "--git-committer-name";
   public static final String GIT_COMMITTER_EMAIL_FLAG = "--git-committer-email";
+  private final Supplier<GeneralOptions> generalOptions;
 
   @VisibleForTesting
   @Parameter(names = GIT_COMMITTER_NAME_FLAG,
@@ -43,6 +56,10 @@ public final class GitDestinationOptions implements Option {
       description = "If set, overrides the committer e-mail for the generated commits in git"
           + " destination.")
   public String committerEmail = "";
+
+  public GitDestinationOptions(Supplier<GeneralOptions> generalOptions) {
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
+  }
 
   Author getCommitter() {
     return new Author(committerName, committerEmail);
@@ -75,4 +92,33 @@ public final class GitDestinationOptions implements Option {
   @Parameter(names = "--git-destination-last-rev-first-parent",
       description = "Use git --first-parent flag when looking for last-rev in previous commits")
   boolean lastRevFirstParent = false;
+
+
+  public GitRepository localGitRepo() throws RepoException {
+    generalOptions.get().getDirFactory();
+    Path path;
+    try {
+      if (Strings.isNullOrEmpty(localRepoPath)) {
+        path = createTempDirectory();
+      } else {
+        path = Paths.get(localRepoPath);
+        if (Files.exists(path)) {
+          FileUtil.deleteRecursively(path);
+        }
+        Files.createDirectories(path);
+      }
+    } catch (IOException e) {
+      throw new RepoException("Cannot create local repository", e);
+    }
+    return GitRepository.initScratchRepo(
+            generalOptions.get().isVerbose(), path, generalOptions.get().getEnvironment());
+  }
+
+  private Path createTempDirectory() throws IOException {
+    Path dir = generalOptions.get().getDirFactory()
+        .newTempDir("copybara-makeScratchClone");
+    logger.info(
+        String.format("Created temporary folder for scratch repo: %s", dir.toAbsolutePath()));
+    return dir;
+  }
 }

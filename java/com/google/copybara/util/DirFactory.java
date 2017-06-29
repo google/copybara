@@ -30,8 +30,8 @@ import java.nio.file.Path;
  * <p>Can be configured to reuse output dirs, or create always new directories for the same name.
  */
 public class DirFactory {
-  @VisibleForTesting
-  public static final String OUTPUT = "output";
+  @VisibleForTesting public static final String TMP = "temp";
+  private static final String CACHE = "cache";
 
   private final Path rootPath;
 
@@ -39,16 +39,21 @@ public class DirFactory {
     this.rootPath = Preconditions.checkNotNull(rootPath);
   }
 
+  /** Get the cache directory for {@code name} */
+  public Path getCacheDir(String name) throws IOException {
+    return Files.createDirectories(rootPath.resolve(CACHE).resolve(name));
+  }
+
   /** Creates a temp directory in the root path. */
-  public Path newTempOutputDirectory(String name) throws IOException {
-    Path outputPath = rootPath.resolve(OUTPUT);
+  public Path newTempDir(String name) throws IOException {
+    Path outputPath = rootPath.resolve(TMP);
     // Create the output if it doesn't exist.
     Files.createDirectories(outputPath);
     return Files.createTempDirectory(outputPath, name);
   }
 
-  public void cleanupOutputDir() throws IOException {
-    Path outputPath = rootPath.resolve(OUTPUT);
+  public void cleanupTempDirs() throws IOException {
+    Path outputPath = rootPath.resolve(TMP);
     if (Files.exists(outputPath)) {
         FileUtil.deleteRecursively(outputPath);
     }

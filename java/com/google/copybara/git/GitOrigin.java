@@ -64,8 +64,6 @@ public class GitOrigin implements Origin<GitRevision> {
     RECURSIVE
   }
 
-  final GitRepository repository;
-
   /**
    * Url of the repository
    */
@@ -87,14 +85,13 @@ public class GitOrigin implements Origin<GitRevision> {
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
 
-  GitOrigin(GeneralOptions generalOptions, GitRepository repository, String repoUrl,
+  GitOrigin(GeneralOptions generalOptions, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
       GitOriginOptions gitOriginOptions, boolean verbose,
       @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
-    this.repository = checkNotNull(repository);
     // Remove a possible trailing '/' so that the url is normalized.
     this.repoUrl = checkNotNull(repoUrl).endsWith("/")
         ? repoUrl.substring(0, repoUrl.length() - 1)
@@ -109,8 +106,13 @@ public class GitOrigin implements Origin<GitRevision> {
     this.includeBranchCommitLogs = includeBranchCommitLogs;
   }
 
-  public GitRepository getRepository() {
-    return repository;
+  public GitRepository getRepository() throws RepoException {
+    try {
+      return GitRepository.bareRepoInCache(
+          repoUrl, environment, verbose, gitOptions.getRepoStorage());
+    } catch (IOException e) {
+      throw new RepoException("Cannot create bare repo in cache", e);
+    }
   }
 
   private class ReaderImpl implements Reader<GitRevision> {
@@ -123,8 +125,8 @@ public class GitOrigin implements Origin<GitRevision> {
       this.authoring = checkNotNull(authoring, "authoring");
     }
 
-    private ChangeReader.Builder changeReaderBuilder() {
-      return ChangeReader.Builder.forOrigin(authoring, repository, console, originFiles)
+    private ChangeReader.Builder changeReaderBuilder() throws RepoException {
+      return ChangeReader.Builder.forOrigin(authoring, getRepository(), console, originFiles)
           .setVerbose(verbose)
           .setIncludeBranchCommitLogs(includeBranchCommitLogs);
     }
@@ -137,7 +139,7 @@ public class GitOrigin implements Origin<GitRevision> {
     @Override
     public void checkout(GitRevision ref, Path workdir)
         throws RepoException, CannotResolveRevisionException {
-      checkoutRepo(repository, repoUrl, workdir, submoduleStrategy, ref);
+      checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref);
       if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
       }
@@ -163,8 +165,14 @@ public class GitOrigin implements Origin<GitRevision> {
         TreeElement element = Iterables.getOnlyElement(elements);
         Preconditions.checkArgument(element.getPath().equals(submodule.getPath()));
 
-        GitRepository subRepo = GitRepository.bareRepoInCache(
-            submodule.getUrl(), environment, verbose, gitOptions.getRepoStorage());
+        GitRepository subRepo;
+        try {
+          subRepo = GitRepository.bareRepoInCache(
+              submodule.getUrl(), environment, verbose, gitOptions.getRepoStorage());
+        } catch (IOException e) {
+          throw new RepoException(
+              "Cannot create a cached repo for submodule " + submodule.getName(), e);
+        }
         subRepo.initGitDir();
         subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
         GitRevision submoduleRef = subRepo.resolveReference(element.getRef(), submodule.getName());
@@ -312,7 +320,7 @@ public class GitOrigin implements Origin<GitRevision> {
   public GitRevision resolve(@Nullable String reference)
       throws RepoException, ValidationException {
     console.progress("Git Origin: Initializing local repo");
-    repository.initGitDir();
+    getRepository().initGitDir();
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
       if (configRef == null) {
@@ -323,7 +331,7 @@ public class GitOrigin implements Origin<GitRevision> {
     } else {
       ref = reference;
     }
-    return repoType.resolveRef(repository, repoUrl, ref, generalOptions);
+    return repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions);
   }
 
   private ImmutableList<Change<GitRevision>> asChanges(ImmutableList<GitChange> gitChanges) {
@@ -353,12 +361,10 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
-    GitOptions gitConfig = options.get(GitOptions.class);
     boolean verbose = options.get(GeneralOptions.class).isVerbose();
     Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
     return new GitOrigin(
         options.get(GeneralOptions.class),
-        GitRepository.bareRepoInCache(url, environment, verbose, gitConfig.getRepoStorage()),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
         verbose, environment, submoduleStrategy, includeBranchCommitLogs);
   }

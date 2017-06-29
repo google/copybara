@@ -58,7 +58,7 @@ public class GitMirrorTest {
         .setOutputRootToTmpDir()
         .setWorkdirToRealTempDir()
         .setConsole(console);
-    originRepo = GitRepository.initScratchRepo(/*verbose=*/true,
+    originRepo = GitRepository.initScratchRepoForTest(/*verbose=*/
         options.general.getEnvironment(), options.general.getDirFactory());
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
 

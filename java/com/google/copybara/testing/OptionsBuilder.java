@@ -60,9 +60,9 @@ public class OptionsBuilder {
   public FolderDestinationOptions localDestination = new FolderDestinationOptions();
   public FolderOriginOptions folderOrigin = new FolderOriginOptions();
 
-  public GitOptions git = new GitOptions(StandardSystemProperty.USER_HOME.value());
+  public GitOptions git = new GitOptions(() -> general);
   public GitOriginOptions gitOrigin = new GitOriginOptions();
-  public GitDestinationOptions gitDestination = new GitDestinationOptions();
+  public GitDestinationOptions gitDestination = new GitDestinationOptions(() -> general);
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowOptions workflowOptions =
@@ -120,7 +120,6 @@ public class OptionsBuilder {
         general.getFileSystem(), general.isVerbose(), general.console(),
         general.getConfigRoot(), general.getOutputRoot(),
         general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced());
-    git = new GitOptions(homeDir);
     return this;
   }
 
