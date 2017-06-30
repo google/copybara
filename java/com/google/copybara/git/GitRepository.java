@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -280,7 +281,7 @@ public class GitRepository {
         || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
       throw new CannotResolveRevisionException("Cannot find references: " + refspecs);
     } else {
-      throw throwUnknownGitError(output);
+      throw throwUnknownGitError(output, args);
     }
   }
 
@@ -759,16 +760,20 @@ public class GitRepository {
         }
       }
 
-      throw throwUnknownGitError(output);
+      throw throwUnknownGitError(output, params);
     } catch (CommandException e) {
       throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }
   }
 
-  private RepoException throwUnknownGitError(CommandOutputWithStatus output) throws RepoException {
+  private RepoException throwUnknownGitError(
+      CommandOutputWithStatus output, Iterable<String> params) throws RepoException {
     throw new RepoException(
-        "Error executing 'git'(exit code " + output.getTerminationStatus().getExitCode() + ")"
-            + ". Stderr: \n" + output.getStderr());
+        String.format(
+            "Error executing 'git %s'(exit code %d). Stderr: %s\n",
+            Joiner.on(' ').join(params),
+            output.getTerminationStatus().getExitCode(),
+            output.getStderr()));
   }
 
   /**
@@ -786,7 +791,7 @@ public class GitRepository {
       if (NON_CRASH_ERROR_EXIT_CODES.contains(exitCode)) {
         return output;
       }
-      throw throwUnknownGitError(output);
+      throw throwUnknownGitError(output, params);
     } catch (CommandException e) {
       throw new RepoException("Error executing 'git': " + e.getMessage(), e);
     }
@@ -856,15 +861,15 @@ public class GitRepository {
    * Checks if a SHA-1 object exist in the the repository
    */
   private boolean checkSha1Exists(String reference) throws RepoException {
-    CommandOutputWithStatus output = gitAllowNonZeroExit(
-        ImmutableList.of("cat-file", "-e", reference));
+    ImmutableList<String> params = ImmutableList.of("cat-file", "-e", reference);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(params);
     if (output.getTerminationStatus().success()) {
       return true;
     }
     if (output.getStderr().isEmpty()) {
       return false;
     }
-    throw throwUnknownGitError(output);
+    throw throwUnknownGitError(output, params);
   }
 
   /**
