@@ -466,6 +466,17 @@ public final class ReplaceTest {
   }
 
   @Test
+  public void replaceErrorEscapesNewLine() throws Exception {
+    Replace replace = eval("core.replace(\n"
+        + "  before = \"hello\\n\\r\\tbye!\",\n"
+        + "  after = 'lulz',\n"
+        + ")");
+    thrown.expect(VoidOperationException.class);
+    thrown.expectMessage("hello\\n\\r\\tbye!");
+    transform(replace);
+  }
+
+  @Test
   public void noopReplaceAsWarning() throws Exception {
     options.workflowOptions.ignoreNoop = true;
     Replace replace = eval("core.replace(\n"

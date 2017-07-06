@@ -227,7 +227,10 @@ public final class TemplateTokens {
 
   @Override
   public String toString() {
-    return getTemplate();
+    return getTemplate()
+        .replace("\n","\\n")
+        .replace("\r","\\r")
+        .replace("\t","\\t");
   }
 
   public ImmutableList<String> getGroupNames()  {
