@@ -172,9 +172,6 @@ public final class GitDestination implements Destination<GitRevision> {
     @Override
     public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
         throws RepoException {
-      if (force) {
-        return null;
-      }
       GitRepository gitRepository = getLocalRepo();
       fetchFromRemote(gitRepository);
 
@@ -182,6 +179,9 @@ public final class GitDestination implements Destination<GitRevision> {
       try {
         startRef = gitRepository.parseRef("FETCH_HEAD");
       } catch (CannotResolveRevisionException e) {
+        if (force) {
+          return null;
+        }
         // Shouldn't happen
         throw new RepoException("Cannot resolve FETCH_HEAD", e);
       }

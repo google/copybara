@@ -68,6 +68,7 @@ public class GitDestinationTest {
   private String fetch;
   private String push;
   private boolean skipPush;
+  private boolean force;
 
   private Path repoGitDir;
   private OptionsBuilder options;
@@ -95,6 +96,7 @@ public class GitDestinationTest {
 
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options, GitModule.class);
+    force = false;
   }
 
   private GitRepository repo() {
@@ -135,7 +137,7 @@ public class GitDestinationTest {
   }
 
   private GitDestination destination() throws ValidationException {
-    options.setForce(false);
+    options.setForce(force);
     return evalDestination();
   }
 
@@ -431,13 +433,24 @@ public class GitDestinationTest {
 
   @Test
   public void previousImportReference() throws Exception {
+    checkPreviousImportReference();
+  }
+
+  @Test
+  public void previousImportReference_with_force() throws Exception {
+    force = true;
+    checkPreviousImportReference();
+  }
+
+  private void checkPreviousImportReference()
+      throws IOException, ValidationException, RepoException {
     fetch = "master";
     push = "master";
 
     Path file = workdir.resolve("test.txt");
 
     Files.write(file, "some content".getBytes());
-    Destination.Writer writer =
+    Writer writer =
         firstCommitWriter();
     assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null)).isNull();
     process(writer, new DummyRevision("first_commit"));
