@@ -55,6 +55,11 @@ import javax.annotation.Nullable;
  */
 public class GitOrigin implements Origin<GitRevision> {
 
+  /**
+   * A temporary ref used locally, for Git commands that need one (like rebase).
+   */
+  private static final String COPYBARA_TMP_REF = "refs/heads/copybara_dont_use_internal";
+
   enum SubmoduleStrategy {
     /** Don't download any submodule. */
     NO,
@@ -139,18 +144,29 @@ public class GitOrigin implements Origin<GitRevision> {
     @Override
     public void checkout(GitRevision ref, Path workdir)
         throws RepoException, CannotResolveRevisionException {
-      checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref);
+      checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref,
+          gitOriginOptions.originRebaseRef);
       if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
       }
     }
 
+    /**
+     * Checks out the repository, and rebases to a ref if necessary.
+     *
+     * <p>If {@code rebaseToRef != null}, then the repo will be rebased to the given ref.
+     *
+     * <p>In the case of submodules, {@code rebaseToRef} is always null, because rebasing on the
+     * submodule repo doesn't apply.
+     */
     private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
-        SubmoduleStrategy submoduleStrategy, GitRevision ref)
+        SubmoduleStrategy submoduleStrategy, GitRevision ref, @Nullable String rebaseToRef)
         throws RepoException, CannotResolveRevisionException {
-      GitRepository repo = shouldRebase(currentRemoteUrl, gitOriginOptions.originRebaseRef)
-          ? checkoutAndRebase(repository, workdir, ref.getSha1(), gitOriginOptions.originRebaseRef)
-          : checkoutOnly(repository, workdir, ref);
+      GitRepository repo = checkout(repository, workdir, ref);
+      if (rebaseToRef != null) {
+        console.info(String.format("Rebasing %s to %s", ref, rebaseToRef));
+        rebase(repo, gitOriginOptions.originRebaseRef);
+      }
 
       if (submoduleStrategy == SubmoduleStrategy.NO) {
         return;
@@ -188,45 +204,22 @@ public class GitOrigin implements Origin<GitRevision> {
         checkoutRepo(subRepo, submodule.getUrl(), subdir,
             submoduleStrategy == SubmoduleStrategy.RECURSIVE
                 ? SubmoduleStrategy.RECURSIVE
-                : SubmoduleStrategy.NO, submoduleRef);
+                : SubmoduleStrategy.NO, submoduleRef, /*rebaseToRef*/ null);
       }
     }
 
-    /**
-     * Returns true iff it's the root repo, and the flag to rebase is set.
-     *
-     * <p>Submodule repos are not rebased.
-     */
-    private boolean shouldRebase(String currentRemoteUrl, String rebaseToRef) {
-      return currentRemoteUrl.equals(repoUrl) && rebaseToRef != null;
-    }
-
-    private GitRepository checkoutOnly(GitRepository repository, Path workdir, GitRevision ref)
+    private GitRepository checkout(GitRepository repository, Path workdir, GitRevision ref)
         throws RepoException {
       GitRepository repo = repository.withWorkTree(workdir);
       repo.forceCheckout(ref.getSha1());
       return repo;
     }
 
-    private GitRepository checkoutAndRebase(GitRepository repository,
-        Path workdir, String ref, String rebaseToRef)
+    private void rebase(GitRepository repo, String rebaseToRef)
         throws RepoException, CannotResolveRevisionException {
-      GitRepository repo = repository.withWorkTree(workdir);
-      // Fetch both the current ref and the rebase ref to local refs
-      repository.fetch(
-          repoUrl, /*prune*/ false, /*fetch*/ true,
-          ImmutableList.of(ref + ":" + ref, rebaseToRef + ":" + rebaseToRef));
-
-      console.info(String.format("Rebasing %s to %s as part of the checkout.", ref, rebaseToRef));
-      repo.forceCheckout(ref);
-      repo.rebase(rebaseToRef);
-
-      if (submoduleStrategy != SubmoduleStrategy.NO) {
-        console.info(
-            String.format(
-                "Submodules are not rebased to %s. Only the root repo is.", rebaseToRef));
-      }
-      return repo;
+      GitRevision rebaseRev = repo.fetchSingleRef(repoUrl, rebaseToRef);
+      repo.simpleCommand("update-ref", COPYBARA_TMP_REF, rebaseRev.getSha1());
+      repo.rebase(COPYBARA_TMP_REF);
     }
 
     @Override
