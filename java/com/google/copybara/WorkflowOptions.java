@@ -29,10 +29,6 @@ import java.util.Objects;
 public class WorkflowOptions implements Option {
 
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
-  public static final String LAST_REV_FLAG = "--last-rev";
-  public static final String IGNORE_NOOP_FLAG = "--ignore-noop";
-  public static final String ITERATIVE_LIMIT_CHANGES_FLAG = "--iterative-limit-changes";
-  public static final String IMPORT_NOOP_CHANGES_FLAG = "--import-noop-changes";
 
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
       description = "Commit revision to be used as parent when importing a commit using"
@@ -43,15 +39,15 @@ public class WorkflowOptions implements Option {
   /**
    * Public so that it can be used programmatically.
    */
-  @Parameter(names = LAST_REV_FLAG,
+  @Parameter(names = "--last-rev",
       description = "Last revision that was migrated to the destination")
   public String lastRevision;
 
-  @Parameter(names = ITERATIVE_LIMIT_CHANGES_FLAG,
+  @Parameter(names = "--iterative-limit-changes",
       description = "Import just a number of changes instead of all the pending ones")
   int iterativeLimitChanges = Integer.MAX_VALUE;
 
-  @Parameter(names = IGNORE_NOOP_FLAG,
+  @Parameter(names = "--ignore-noop",
       description = "Only warn about operations/transforms that didn't have any effect."
           + " For example: A transform that didn't modify any file, non-existent origin"
           + " directories, etc.")
@@ -66,7 +62,7 @@ public class WorkflowOptions implements Option {
   )
   public boolean squashSkipHistory = false;
 
-  @Parameter(names = {"--iterative-all-changes", IMPORT_NOOP_CHANGES_FLAG},
+  @Parameter(names = {"--iterative-all-changes", "--import-noop-changes"},
       description = "By default Copybara will only try to migrate changes that could affect the"
           + " destination. Ignoring changes that only affect excluded files in origin_files. This"
           + " flag disables that behavior and runs for all the changes.")

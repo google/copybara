@@ -41,18 +41,16 @@ import javax.annotation.Nullable;
 public final class GitDestinationOptions implements Option {
   private final Logger logger = Logger.getLogger(GitDestinationOptions.class.getName());
 
-  public static final String GIT_COMMITTER_NAME_FLAG = "--git-committer-name";
-  public static final String GIT_COMMITTER_EMAIL_FLAG = "--git-committer-email";
   private final Supplier<GeneralOptions> generalOptions;
 
   @VisibleForTesting
-  @Parameter(names = GIT_COMMITTER_NAME_FLAG,
+  @Parameter(names = "--git-committer-name",
       description = "If set, overrides the committer name for the generated commits in git"
           + " destination.")
   public String committerName = "";
 
   @VisibleForTesting
-  @Parameter(names = GIT_COMMITTER_EMAIL_FLAG,
+  @Parameter(names = "--git-committer-email",
       description = "If set, overrides the committer e-mail for the generated commits in git"
           + " destination.")
   public String committerEmail = "";

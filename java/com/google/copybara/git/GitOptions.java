@@ -32,11 +32,10 @@ import java.util.function.Supplier;
 @Parameters(separators = "=")
 public final class GitOptions implements Option {
 
-  public static final String GIT_REPO_STORAGE = "--git-repo-storage";
   private final Supplier<GeneralOptions> generalOptionsSupplier;
 
   // Not used by git.destination but it will be at some point to make fetches more efficient.
-  @Parameter(names = GIT_REPO_STORAGE,
+  @Parameter(names = "--git-repo-storage",
       description = "Location of the storage path for git repositories. DEPRECATED",
       // TODO(malcon): Deprecate this flag
       hidden = true)
