@@ -52,6 +52,60 @@ branches in the destination. After the first import, it should be always invoked
 copybara copy.bara.sky
 ```
 
+## GitHub SSH basic import
+
+This example will import private source code to an external GitHub repository, and uses SSH.
+
+PROTIP: You will need to have an ssh key setup without a password to accomplish this, Copybara doesn't
+currently support ssh with a password.
+
+Create a ``copy.bara.sky`` config file like:
+
+```python
+# Update these references to your orginzations repos
+sourceUrl = "git@github.com:organization/internal-repo.git"
+destinationUrl = "git@github.com:organization/external-repo.git"
+
+core.workflow(
+    name = "default",
+    origin = git.origin(
+        url = sourceUrl,
+        ref = "master",
+    ),
+    destination = git.destination(
+        url = destinationUrl,
+        fetch = "master",
+        push = "master",
+    ),
+    # Change path to the folder you want to publish publicly
+    origin_files = glob(["path/to/folder/you/want/exported/**"]),
+
+    authoring = authoring.pass_thru("Default email <default@default.com>"),
+
+    # Change the path here to the folder you want to publish publicly
+    transformations = [
+	    core.move("path/to/folder/you/want/exported", ""),
+	],
+)
+```
+
+Invoke the tool like:
+
+```bash
+copybara copy.bara.sky --force
+```
+
+``--force`` should only be needed for empty destination repositories or non-existent
+branches in the destination. After the first import, it should be always invoked as:
+
+```
+copybara copy.bara.sky
+```
+
+After running through this example, you should see all the source from
+the folder you selected in the external-repo at the root. This can be helpful if you
+are only trying to move a subdirectory in your git repo out for public use.
+
 ## Transformations
 
 Let's say that we realized that we need to do some code transformations to the imported code.
