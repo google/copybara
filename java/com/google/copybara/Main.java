@@ -182,12 +182,11 @@ public class Main {
           return ExitCode.COMMAND_LINE_ERROR;
       }
     } catch (CommandLineException | ParameterException e) {
-      printCauseChain(console, e);
+      printCauseChain(Level.WARNING, console, e);
       console.error("Try 'copybara --help'.");
       return ExitCode.COMMAND_LINE_ERROR;
     } catch (RepoException e) {
-      logger.log(Level.SEVERE, "Repository exception", e);
-      printCauseChain(console, e);
+      printCauseChain(Level.SEVERE, console, e);
       return ExitCode.REPOSITORY_ERROR;
     } catch (EmptyChangeException e) {
       // This is not necessarily an error. Maybe the tool was run previously and there are no new
@@ -195,7 +194,7 @@ public class Main {
       console.warn(e.getMessage());
       return ExitCode.NO_OP;
     } catch (ValidationException e) {
-      printCauseChain(console, e);
+      printCauseChain(Level.WARNING, console, e);
       return ExitCode.CONFIGURATION_ERROR;
     } catch (IOException e) {
       handleUnexpectedError(console, e.getMessage(), e);
@@ -342,7 +341,7 @@ public class Main {
     }
   }
 
-  private void printCauseChain(Console console, Throwable e) {
+  private void printCauseChain(Level level, Console console, Throwable e) {
     StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
     Throwable cause = e.getCause();
     while (cause != null) {
@@ -350,6 +349,7 @@ public class Main {
       cause = cause.getCause();
     }
     console.error(error.toString());
+    logger.log(level, e.getMessage(), e);
   }
 
   private void handleUnexpectedError(Console console, String msg, Throwable e) {
