@@ -42,10 +42,10 @@ core.workflow(
 Invoke the tool like:
 
 ```bash
-copybara copy.bara.sky --git-first-commit
+copybara copy.bara.sky --force
 ```
 
-``--git-first-commit`` should only be needed for empty destination repositories or non-existent
+``--force`` should only be needed for empty destination repositories or non-existent
 branches in the destination. After the first import, it should be always invoked as:
 
 ```
