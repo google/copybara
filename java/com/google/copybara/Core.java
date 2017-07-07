@@ -323,7 +323,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "move",
-      returnType = CopyOrMove.class,
+      returnType = Transformation.class,
       doc = "Moves files between directories and renames files",
       parameters = {
         @Param(name = "self", type = Core.class, doc = "this object"),
@@ -363,7 +363,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction MOVE = new BuiltinFunction("move",
       ImmutableList.of(Glob.ALL_FILES, false)) {
     @SuppressWarnings("unused")
-    public CopyOrMove invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
+    public Transformation invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
         Location location) throws EvalException {
       return CopyOrMove.createMove(before, after, self.workflowOptions, paths, overwrite, location);
     }
@@ -372,7 +372,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "copy",
-      returnType = CopyOrMove.class,
+      returnType = Transformation.class,
       doc = "Copy files between directories and renames files",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object"),
@@ -411,7 +411,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction COPY = new BuiltinFunction("copy",
       ImmutableList.of(Glob.ALL_FILES, false)) {
     @SuppressWarnings("unused")
-    public CopyOrMove invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
+    public Transformation invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
         Location location) throws EvalException {
       return CopyOrMove.createCopy(before, after, self.workflowOptions, paths, overwrite, location);
     }

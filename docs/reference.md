@@ -23,6 +23,8 @@
     - [core.reverse](#core.reverse)
     - [core.workflow](#core.workflow)
     - [core.move](#core.move)
+    - [core.copy](#core.copy)
+    - [core.remove](#core.remove)
     - [core.replace](#core.replace)
     - [core.verify_match](#core.verify_match)
     - [core.transform](#core.transform)
@@ -691,7 +693,7 @@ Name | Type | Description
 
 Moves files between directories and renames files
 
-`move core.move(before, after, paths=glob(["**"]), overwrite=False)`
+`copyOrMove core.move(before, after, paths=glob(["**"]), overwrite=False)`
 
 ### Parameters:
 
@@ -734,6 +736,85 @@ core.move("foo", "")
 ```
 
 In this example, `foo/bar` would be moved to `bar`.
+
+<a id="core.copy" aria-hidden="true"></a>
+## core.copy
+
+Copy files between directories and renames files
+
+`copyOrMove core.copy(before, after, paths=glob(["**"]), overwrite=False)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+before|`string`<br><p>The name of the file or directory to copy. If this is the empty string and 'after' is a directory, then all files in the workdir will be copied to the sub directory specified by 'after', maintaining the directory tree.</p>
+after|`string`<br><p>The name of the file or directory destination. If this is the empty string and 'before' is a directory, then all files in 'before' will be copied to the repo root, maintaining the directory tree inside 'before'.</p>
+paths|`glob`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
+overwrite|`boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+
+
+### Examples:
+
+#### Copy a directory:
+
+Move all the files in a directory to another directory:
+
+```python
+core.copy("foo/bar_internal", "bar")
+```
+
+In this example, `foo/bar_internal/one` will be copied to `bar/one`.
+
+#### Copy with reversal:
+
+Copy all static files to a 'static' folder and use remove for reverting the change
+
+```python
+core.transform(
+    [core.copy("foo", "foo/static", paths = glob(["**.css","**.html", ]))],
+    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]
+)
+```
+
+<a id="core.remove" aria-hidden="true"></a>
+## core.remove
+
+Remove files from the workdir. **This transformation is only mean to be used inside core.transform for reversing core.copy like transforms**. For regular file filtering use origin_files exclude mechanism.
+
+`remove core.remove(paths)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+paths|`glob`<br><p>The files to be deleted</p>
+
+
+### Examples:
+
+#### Reverse a file copy:
+
+Move all the files in a directory to another directory:
+
+```python
+core.transform(
+    [core.copy("foo", "foo/public")],
+    reversal = [core.remove(glob(["foo/public/**"]))])
+```
+
+In this example, `foo/bar_internal/one` will be moved to `bar/one`.
+
+#### Copy with reversal:
+
+Copy all static files to a 'static' folder and use remove for reverting the change
+
+```python
+core.transform(
+    [core.copy("foo", "foo/static", paths = glob(["**.css","**.html", ]))],
+    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]
+)
+```
 
 <a id="core.replace" aria-hidden="true"></a>
 ## core.replace
@@ -906,14 +987,6 @@ Name | Type | Description
 # git
 
 Set of functions to define Git origins and destinations.
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ----------- | -----------
---git-repo-storage | *string* | Location of the storage path for git repositories
 
 <a id="git.origin" aria-hidden="true"></a>
 ## git.origin
