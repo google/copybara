@@ -58,7 +58,9 @@ public final class ExplicitReversal implements Transformation {
   public void transform(TransformWork work)
       throws IOException, ValidationException {
     try {
-      forward.transform(work);
+      TransformWork newWork = work.insideExplicitTransform();
+      forward.transform(newWork);
+      work.updateFrom(newWork);
     } catch (VoidOperationException e) {
       if (ignoreNoop) {
         checkNotNull(console).warn("Ignored noop because of 'ignore_noop' field: "

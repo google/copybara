@@ -19,9 +19,11 @@ package com.google.copybara.transform;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
 import com.google.copybara.NonReversibleValidationException;
+import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -41,7 +43,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class MoveTest {
+public class CopyOrMoveTest {
 
   private OptionsBuilder options;
   private Path checkoutDir;
@@ -59,19 +61,19 @@ public class MoveTest {
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class, Move.class);
+    skylark = new SkylarkTestExecutor(options, Core.class, CopyOrMove.class);
   }
 
-  private void transform(Move mover) throws IOException, ValidationException {
-    mover.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+  private void transform(Transformation t) throws IOException, ValidationException {
+    t.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
   @Test
   public void testMoveAndItsReverse() throws Exception {
-    Move mover = skylark.eval("m", ""
+    CopyOrMove mover = skylark.eval("m", ""
         + "m = core.move(before = 'one.before', after = 'folder/one.after'\n"
         + ")");
-    Files.write(checkoutDir.resolve("one.before"), new byte[]{});
+    touch("one.before");
     transform(mover);
 
     assertThatPath(checkoutDir)
@@ -86,17 +88,67 @@ public class MoveTest {
   }
 
   @Test
+  public void testCopyAndItsReverse() throws Exception {
+    CopyOrMove copier = skylark.eval("m", ""
+        + "m = core.copy(before = 'one.before', after = 'folder/one.after'\n"
+        + ")");
+    touch("one.before");
+    transform(copier);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("one.before")
+        .containsFiles("folder/one.after")
+        .containsNoMoreFiles();
+
+    transform(copier.reverse());
+
+    assertThatPath(checkoutDir)
+        .containsFiles("one.before")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCopyAndItsReverse_folder() throws Exception {
+    CopyOrMove copier = skylark.eval("m", ""
+        + "m = core.copy(before = 'one', after = 'public'\n"
+        + ")");
+    touch("one/file1");
+    touch("one/file2");
+    transform(copier);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("one/file1")
+        .containsFiles("one/file2")
+        .containsFiles("public/file1")
+        .containsFiles("public/file2")
+        .containsNoMoreFiles();
+
+    transform(copier.reverse());
+
+    assertThatPath(checkoutDir)
+        .containsFiles("one/file1")
+        .containsFiles("one/file2")
+        .containsNoMoreFiles();
+  }
+
+  private void touch(String strPath) throws IOException {
+    Path path = checkoutDir.resolve(strPath);
+    Files.createDirectories(path.getParent());
+    Files.write(path, new byte[]{});
+  }
+
+  @Test
   public void testMoveAndItsReverseWithPaths() throws Exception {
-    Move mover = skylark.eval("m", "m = "
+    CopyOrMove mover = skylark.eval("m", "m = "
         + "core.move("
         + "    before = 'foo',"
         + "    after = 'folder/bar',"
         + "    paths = glob(['**.java'])"
         + ")");
-    Files.createDirectories(checkoutDir.resolve("foo/other"));
-    Files.write(checkoutDir.resolve("foo/a.java"), new byte[]{});
-    Files.write(checkoutDir.resolve("foo/other/b.java"), new byte[]{});
-    Files.write(checkoutDir.resolve("foo/c.txt"), new byte[]{});
+
+    touch("foo/a.java");
+    touch("foo/other/b.java");
+    touch("foo/c.txt");
     transform(mover);
 
     assertThatPath(checkoutDir)
@@ -115,8 +167,33 @@ public class MoveTest {
   }
 
   @Test
+  public void testCopyAndItsReverseWithPaths() throws Exception {
+    CopyOrMove copier = skylark.eval("m", "m = "
+        + "core.copy("
+        + "    before = 'foo',"
+        + "    after = 'folder/bar',"
+        + "    paths = glob(['**.java'])"
+        + ")");
+    touch("foo/a.java");
+    touch("foo/other/b.java");
+    touch("foo/c.txt");
+    transform(copier);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo/c.txt")
+        .containsFiles("foo/a.java")
+        .containsFiles("foo/other/b.java")
+        .containsFiles("folder/bar/a.java")
+        .containsFiles("folder/bar/other/b.java")
+        .containsNoMoreFiles();
+
+    thrown.expect(NonReversibleValidationException.class);
+    transform(copier.reverse());
+  }
+
+  @Test
   public void testMoveOverwrite() throws Exception {
-    Move mover = skylark.eval("m", "m = "
+    CopyOrMove mover = skylark.eval("m", "m = "
         + "core.move("
         + "    before = 'foo',"
         + "    after = 'bar',"
@@ -135,8 +212,29 @@ public class MoveTest {
   }
 
   @Test
+  public void testCopyOverwrite() throws Exception {
+    CopyOrMove copier = skylark.eval("m", "m = "
+        + "core.copy("
+        + "    before = 'foo',"
+        + "    after = 'bar',"
+        + "    overwrite = True,"
+        + ")");
+    Files.write(checkoutDir.resolve("foo"), "foo".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("bar"), "bar".getBytes(UTF_8));
+    transform(copier);
+
+    assertThatPath(checkoutDir)
+        .containsFile("foo", "foo")
+        .containsFile("bar", "foo")
+        .containsNoMoreFiles();
+
+    thrown.expect(NonReversibleValidationException.class);
+    copier.reverse();
+  }
+
+  @Test
   public void testMoveNoOverwrite() throws Exception {
-    Move mover = skylark.eval("m", "m = core.move('foo', 'bar')");
+    CopyOrMove mover = skylark.eval("m", "m = core.move('foo', 'bar')");
 
     Files.write(checkoutDir.resolve("foo"), "foo".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("bar"), "bar".getBytes(UTF_8));
@@ -147,8 +245,20 @@ public class MoveTest {
   }
 
   @Test
-  public void testDoesntExist() throws Exception {
-    Move mover = skylark.eval("m", ""
+  public void testCopyNoOverwrite() throws Exception {
+    CopyOrMove copier = skylark.eval("m", "m = core.copy('foo', 'bar')");
+
+    Files.write(checkoutDir.resolve("foo"), "foo".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("bar"), "bar".getBytes(UTF_8));
+
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("because it already exists");
+    transform(copier);
+  }
+
+  @Test
+  public void testDoesntExistMover() throws Exception {
+    CopyOrMove mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
@@ -156,10 +266,19 @@ public class MoveTest {
   }
 
   @Test
+  public void testDoesntExistCopier() throws Exception {
+    CopyOrMove copier = skylark.eval("m", ""
+        + "m = core.copy(before = 'blablabla', after = 'other')\n");
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
+    transform(copier);
+  }
+
+  @Test
   public void testDoesntExistAsWarning() throws Exception {
     options.workflowOptions.ignoreNoop = true;
 
-    Move mover = skylark.eval("m", ""
+    CopyOrMove mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");
 
     transform(mover);
@@ -170,30 +289,40 @@ public class MoveTest {
 
   @Test
   public void testAbsoluteBefore() throws Exception {
-    skylark.evalFails(
-        "core.move(before = '/blablabla', after = 'other')\n",
-        "path must be relative.*/blablabla");
+    for (String t : ImmutableList.of("move", "copy")) {
+      options.setConsole(new TestingConsole());
+      skylark.evalFails(
+          "core." + t + "(before = '/blablabla', after = 'other')\n",
+          "path must be relative.*/blablabla");
+    }
   }
 
   @Test
   public void testAbsoluteAfter() throws Exception {
-    skylark.evalFails(
-        "core.move(after = '/blablabla', before = 'other')\n",
-        "path must be relative.*/blablabla");
+    for (String t : ImmutableList.of("move", "copy")) {
+      options.setConsole(new TestingConsole());
+      skylark.evalFails(
+          "core." + t + "(after = '/blablabla', before = 'other')\n",
+          "path must be relative.*/blablabla");
+    }
   }
 
   @Test
   public void testDotDot() throws Exception {
-    skylark.evalFails(
-        "core.move(after = '../blablabla', before = 'other')\n",
-        "path has unexpected [.] or [.][.] components.*[.][.]/blablabla");
+    for (String t : ImmutableList.of("move", "copy")) {
+      options.setConsole(new TestingConsole());
+      skylark.evalFails(
+          "core." + t + "(after = '../blablabla', before = 'other')\n",
+          "path has unexpected [.] or [.][.] components.*[.][.]/blablabla");
+    }
+
   }
 
   @Test
   public void testDestinationExist() throws Exception {
-    Files.write(checkoutDir.resolve("one"), new byte[]{});
-    Files.write(checkoutDir.resolve("two"), new byte[]{});
-    Move mover = skylark.eval("m", "m = core.move(before = 'one', after = 'two')\n");
+    touch("one");
+    touch("two");
+    CopyOrMove mover = skylark.eval("m", "m = core.move(before = 'one', after = 'two')\n");
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot move file to '/test-checkoutDir/two' because it already exists");
     transform(mover);
@@ -201,9 +330,8 @@ public class MoveTest {
 
   @Test
   public void testDestinationExistDirectory() throws Exception {
-    Files.createDirectories(checkoutDir.resolve("folder"));
-    Files.write(checkoutDir.resolve("one"), new byte[]{});
-    Move mover = skylark.eval("m", "m = core.move(before = 'one', after = 'folder/two')\n");
+    touch("one");
+    CopyOrMove mover = skylark.eval("m", "m = core.move(before = 'one', after = 'folder/two')\n");
     transform(mover);
 
     assertThatPath(checkoutDir)
@@ -213,17 +341,37 @@ public class MoveTest {
 
   @Test
   public void testMoveToCheckoutDirRoot() throws Exception {
-    Move mover = skylark.eval("m",
+    CopyOrMove mover = skylark.eval("m",
         "m = core.move(before = 'third_party/java', after = '')\n");
-    Files.createDirectories(checkoutDir.resolve("third_party/java/org"));
-    Files.write(checkoutDir.resolve("third_party/java/one.java"), new byte[]{});
-    Files.write(checkoutDir.resolve("third_party/java/org/two.java"), new byte[]{});
+
+    touch("third_party/java/one.java");
+    touch("third_party/java/org/two.java");
 
     transform(mover);
 
     assertThatPath(checkoutDir)
         .containsFiles("one.java", "org/two.java")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCopyToCheckoutDirRoot() throws Exception {
+    CopyOrMove copier = skylark.eval("m",
+        "m = core.copy(before = 'third_party/java', after = '')\n");
+    touch("third_party/java/one.java");
+    touch("third_party/java/org/two.java");
+
+    transform(copier);
+
+    assertThatPath(checkoutDir).containsFiles(
+        "third_party/java/one.java",
+        "third_party/java/org/two.java",
+        "one.java",
+        "org/two.java")
+        .containsNoMoreFiles();
+
+    thrown.expect(NonReversibleValidationException.class);
+    transform(copier.reverse());
   }
 
   /**
@@ -240,12 +388,10 @@ public class MoveTest {
    */
   @Test
   public void testMoveDir() throws Exception {
-    Move mover = skylark.eval("m",
+    CopyOrMove mover = skylark.eval("m",
         "m = core.move(before = 'third_party/java', after = 'foo')\n");
-    Files.createDirectories(checkoutDir.resolve("third_party/java/org"));
-    Files.createDirectories(checkoutDir.resolve("foo"));
-    Files.write(checkoutDir.resolve("third_party/java/one.java"), new byte[]{});
-    Files.write(checkoutDir.resolve("third_party/java/org/two.java"), new byte[]{});
+    touch("third_party/java/one.java");
+    touch("third_party/java/org/two.java");
 
     transform(mover);
 
@@ -256,9 +402,9 @@ public class MoveTest {
 
   @Test
   public void testMoveFromCheckoutDirRootToSubdir() throws Exception {
-    Move mover = skylark.eval("m",
+    CopyOrMove mover = skylark.eval("m",
         "m = core.move(before = '', after = 'third_party/java')\n");
-    Files.write(checkoutDir.resolve("file.java"), new byte[]{});
+    touch("file.java");
     transform(mover);
 
     assertThatPath(checkoutDir)
@@ -268,11 +414,10 @@ public class MoveTest {
 
   @Test
   public void testCannotMoveFromRootToAlreadyExistingDir() throws Exception {
-    Move mover = skylark.eval("m",
+    CopyOrMove mover = skylark.eval("m",
         "m = core.move(before = '', after = 'third_party/java')\n");
-    Files.createDirectories(checkoutDir.resolve("third_party/java"));
-    Files.write(checkoutDir.resolve("third_party/java/bar.java"), new byte[]{});
-    Files.write(checkoutDir.resolve("third_party/java/foo.java"), new byte[]{});
+    touch("third_party/java/bar.java");
+    touch("third_party/java/foo.java");
 
     thrown.expect(ValidationException.class);
     thrown.expectMessage(
@@ -283,7 +428,7 @@ public class MoveTest {
   @Test
   public void errorForMissingBefore() throws Exception {
     try {
-      skylark.<Move>eval("m", "m = core.move(after = 'third_party/java')\n");
+      skylark.<CopyOrMove>eval("m", "m = core.move(after = 'third_party/java')\n");
       Assert.fail();
     } catch (ValidationException expected) {}
 
@@ -294,7 +439,7 @@ public class MoveTest {
   @Test
   public void errorForMissingAfter() throws Exception {
     try {
-      skylark.<Move>eval("m", "m = core.move(before = 'third_party/java')\n");
+      skylark.<CopyOrMove>eval("m", "m = core.move(before = 'third_party/java')\n");
       Assert.fail();
     } catch (ValidationException expected) {}
 

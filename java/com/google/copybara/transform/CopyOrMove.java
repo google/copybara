@@ -18,6 +18,7 @@ package com.google.copybara.transform;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -32,12 +33,13 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import javax.annotation.Nullable;
 
 /**
- * Transformation the moves (renames) a single file or directory.
+ * Transformation that moves (renames) or copies a single file or directory.
  */
-public class Move implements Transformation {
+public class CopyOrMove implements Transformation {
 
   private final String before;
   private final String after;
@@ -46,28 +48,43 @@ public class Move implements Transformation {
   @Nullable
   private final Location location;
   private final WorkflowOptions workflowOptions;
+  private final boolean isCopy;
 
-  private Move(String before, String after, Glob paths, boolean overwrite,
-      @Nullable Location location, WorkflowOptions workflowOptions) {
+  private CopyOrMove(String before, String after, Glob paths, boolean overwrite,
+      @Nullable Location location, WorkflowOptions workflowOptions, boolean isCopy) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
     this.paths = paths;
     this.overwrite = overwrite;
     this.location = location;
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
+    this.isCopy = isCopy;
   }
 
-  public static Move fromConfig(
-      String before, String after, WorkflowOptions workflowOptions, Glob paths,
-      boolean overwrite, Location location)
-      throws EvalException {
-    return new Move(
+  public static CopyOrMove createMove(
+      String before, String after, WorkflowOptions workflowOptions, Glob paths, boolean overwrite,
+      Location location) throws EvalException {
+    return new CopyOrMove(
         validatePath(location, before),
         validatePath(location, after),
         paths,
         overwrite,
         location,
-        workflowOptions);
+        workflowOptions,
+        /*isCopy=*/false);
+  }
+
+  public static CopyOrMove createCopy(
+      String before, String after, WorkflowOptions workflowOptions, Glob paths, boolean overwrite,
+      Location location) throws EvalException {
+    return new CopyOrMove(
+        validatePath(location, before),
+        validatePath(location, after),
+        paths,
+        overwrite,
+        location,
+        workflowOptions,
+        /*isCopy=*/true);
   }
 
   @Override
@@ -81,14 +98,14 @@ public class Move implements Transformation {
   @Override
   public void transform(TransformWork work) throws IOException, ValidationException {
       work.getConsole().progress("Moving " + this.before);
-      Path before = work.getCheckoutDir().resolve(this.before);
+    Path before = work.getCheckoutDir().resolve(this.before).normalize();
       if (!Files.exists(before)) {
         workflowOptions.reportNoop(
             work.getConsole(),
             String.format("Error moving '%s'. It doesn't exist in the workdir", this.before));
         return;
       }
-      Path after = work.getCheckoutDir().resolve(this.after);
+    Path after = work.getCheckoutDir().resolve(this.after).normalize();
       if (Files.isDirectory(after, LinkOption.NOFOLLOW_LINKS)
           && after.startsWith(before)) {
         // When moving from a parent dir to a sub-directory, make sure after doesn't already have
@@ -104,8 +121,8 @@ public class Move implements Transformation {
                   + paths);
         }
         Files.walkFileTree(before,
-            new MovingVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null,
-                overwrite));
+            new CopyMoveVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null,
+                overwrite, isCopy));
       } catch (FileAlreadyExistsException e) {
         throw new ValidationException(
             String.format("Cannot move file to '%s' because it already exists", e.getFile()));
@@ -113,12 +130,30 @@ public class Move implements Transformation {
   }
 
   @Override
-  public Move reverse() throws NonReversibleValidationException {
+  public Transformation reverse() throws NonReversibleValidationException {
     if (overwrite) {
-      throw new NonReversibleValidationException(location, "core.move() with overwrite set is not"
+      throw new NonReversibleValidationException(location, "core."
+          + (isCopy ? "copy" : "move")
+          + "() with overwrite set is not"
           + " automatically reversible. Use core.transform to define an explicit reverse");
     }
-    return new Move(after, before, paths, /*overwrite=*/false, location, workflowOptions);
+    if (isCopy) {
+      Path afterPath = Paths.get(after);
+      if (paths != Glob.ALL_FILES) {
+        throw new NonReversibleValidationException(location, "core.copy not automatically"
+            + " reversible when using 'paths'");
+      } else if ("".equals(after) || Paths.get(before).normalize().startsWith(afterPath)) {
+        throw new NonReversibleValidationException(location, "core.copy not automatically"
+            + " reversible when copying to a parent directory");
+      }
+      return new ExplicitReversal(new Remove(
+          // After might be a directory or a file. Delete both
+          Glob.createGlob(ImmutableList.of(after, afterPath + "/**")),
+          workflowOptions, location),
+          this);
+    }
+    return new CopyOrMove(after, before, paths, /*overwrite=*/false, location, workflowOptions,
+        /*isCopy=*/false);
   }
 
   private void createParentDirs(Path after) throws IOException, ValidationException {
@@ -134,7 +169,7 @@ public class Move implements Transformation {
 
   @Override
   public String describe() {
-    return "Moving " + before;
+    return (isCopy ? "Copying " : "Moving ") + before;
   }
 
   private static String validatePath(Location location, String strPath) throws EvalException {
@@ -144,4 +179,5 @@ public class Move implements Transformation {
       throw new EvalException(location, "'" + strPath + "' is not a valid path", e);
     }
   }
+
 }

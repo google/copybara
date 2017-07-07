@@ -28,8 +28,9 @@ import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.transform.CopyOrMove;
 import com.google.copybara.transform.ExplicitReversal;
-import com.google.copybara.transform.Move;
+import com.google.copybara.transform.Remove;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.VerifyMatch;
@@ -322,7 +323,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "move",
-      returnType = Move.class,
+      returnType = CopyOrMove.class,
       doc = "Moves files between directories and renames files",
       parameters = {
         @Param(name = "self", type = Core.class, doc = "this object"),
@@ -362,9 +363,89 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction MOVE = new BuiltinFunction("move",
       ImmutableList.of(Glob.ALL_FILES, false)) {
     @SuppressWarnings("unused")
-    public Move invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
+    public CopyOrMove invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
         Location location) throws EvalException {
-      return Move.fromConfig(before, after, self.workflowOptions, paths, overwrite, location);
+      return CopyOrMove.createMove(before, after, self.workflowOptions, paths, overwrite, location);
+    }
+  };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+      name = "copy",
+      returnType = CopyOrMove.class,
+      doc = "Copy files between directories and renames files",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "before", type = String.class, doc = ""
+              + "The name of the file or directory to copy. If this is the empty"
+              + " string and 'after' is a directory, then all files in the workdir will be copied to"
+              + " the sub directory specified by 'after', maintaining the directory tree."),
+          @Param(name = "after", type = String.class, doc = ""
+              + "The name of the file or directory destination. If this is the empty"
+              + " string and 'before' is a directory, then all files in 'before' will be copied to"
+              + " the repo root, maintaining the directory tree inside 'before'."),
+          @Param(name = "paths", type = Glob.class,
+              doc = "A glob expression relative to 'before' if it represents a directory."
+                  + " Only files matching the expression will be copied. For example,"
+                  + " glob([\"**.java\"]), matches all java files recursively inside"
+                  + " 'before' folder. Defaults to match all the files recursively.",
+              defaultValue = "glob([\"**\"])"),
+          @Param(name = "overwrite",
+              doc = "Overwrite destination files if they already exist. Note that this makes the"
+                  + " transformation non-reversible, since there is no way to know if the file"
+                  + " was overwritten or not in the reverse workflow.",
+              type = Boolean.class, defaultValue = "False")
+      },
+      objectType = Core.class, useLocation = true)
+  @Example(title = "Copy a directory",
+      before = "Move all the files in a directory to another directory:",
+      code = "core.copy(\"foo/bar_internal\", \"bar\")",
+      after = "In this example, `foo/bar_internal/one` will be copied to `bar/one`.")
+  @Example(title = "Copy with reversal",
+      before = "Copy all static files to a 'static' folder and use remove for reverting the change",
+      code = ""
+          + "core.transform(\n"
+          + "    [core.copy(\"foo\", \"foo/static\", paths = glob([\"**.css\",\"**.html\", ]))],\n"
+          + "    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]\n"
+          + ")")
+  public static final BuiltinFunction COPY = new BuiltinFunction("copy",
+      ImmutableList.of(Glob.ALL_FILES, false)) {
+    @SuppressWarnings("unused")
+    public CopyOrMove invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
+        Location location) throws EvalException {
+      return CopyOrMove.createCopy(before, after, self.workflowOptions, paths, overwrite, location);
+    }
+  };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+      name = "remove",
+      returnType = Remove.class,
+      doc = "Remove files from the workdir. **This transformation is only mean to be used inside"
+          + " core.transform for reversing core.copy like transforms**. For regular file filtering"
+          + " use origin_files exclude mechanism.",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "paths", type = Glob.class, doc = "The files to be deleted"),
+      },
+      objectType = Core.class, useLocation = true)
+  @Example(title = "Reverse a file copy",
+      before = "Move all the files in a directory to another directory:",
+      code = "core.transform(\n"
+          + "    [core.copy(\"foo\", \"foo/public\")],\n"
+          + "    reversal = [core.remove(glob([\"foo/public/**\"]))])",
+      after = "In this example, `foo/bar_internal/one` will be moved to `bar/one`.")
+  @Example(title = "Copy with reversal",
+      before = "Copy all static files to a 'static' folder and use remove for reverting the change",
+      code = ""
+          + "core.transform(\n"
+          + "    [core.copy(\"foo\", \"foo/static\", paths = glob([\"**.css\",\"**.html\", ]))],\n"
+          + "    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]\n"
+          + ")")
+  public static final BuiltinFunction REMOVE = new BuiltinFunction("remove") {
+    @SuppressWarnings("unused")
+    public Remove invoke(Core self, Glob paths, Location location) throws EvalException {
+      return new Remove(paths, self.workflowOptions, location);
     }
   };
 

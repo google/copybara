@@ -75,9 +75,8 @@ public class Sequence implements Transformation {
       runOneTransform(localWork, transformation);
       localWork = localWork.withUpdatedTreeState();
     }
-    // Update parent work with potentially modified author and message.
-    work.setAuthor(localWork.getAuthor());
-    work.setMessage(localWork.getMessage());
+    // Update parent work with potentially modified metadata.
+    work.updateFrom(localWork);
   }
 
   private void runOneTransform(TransformWork work, Transformation transform)

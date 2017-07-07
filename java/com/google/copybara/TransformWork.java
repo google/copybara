@@ -60,14 +60,16 @@ public final class TransformWork {
   private final MigrationInfo migrationInfo;
   private final Revision resolvedReference;
   private final TreeState treeState;
+  private final boolean insideExplicitTransform;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference) {
     this(checkoutDir, metadata, changes, console, migrationInfo, resolvedReference,
-         new FileSystemTreeState(checkoutDir));
+        new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/ false);
   }
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
-      MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState) {
+      MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState,
+      boolean insideExplicitTransform) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
@@ -75,6 +77,7 @@ public final class TransformWork {
     this.migrationInfo = migrationInfo;
     this.resolvedReference = Preconditions.checkNotNull(resolvedReference);
     this.treeState = treeState;
+    this.insideExplicitTransform = insideExplicitTransform;
   }
 
   /**
@@ -274,6 +277,10 @@ public final class TransformWork {
     return resolvedReference;
   }
 
+  public boolean isInsideExplicitTransform() {
+    return insideExplicitTransform;
+  }
+
   /**
    * Create a clone of the transform work but use a different console.
    */
@@ -288,26 +295,32 @@ public final class TransformWork {
    */
   public TransformWork withUpdatedTreeState() {
     return new TransformWork(checkoutDir, metadata, changes, console,
-                             migrationInfo, resolvedReference, treeState.newTreeState());
+        migrationInfo, resolvedReference, treeState.newTreeState(),
+        insideExplicitTransform);
   }
 
   @VisibleForTesting
   public TransformWork withChanges(Changes changes) {
     Preconditions.checkNotNull(changes);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-                             resolvedReference, treeState);
+        resolvedReference, treeState, insideExplicitTransform);
   }
 
   @VisibleForTesting
   public TransformWork withResolvedReference(Revision resolvedReference) {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-                             resolvedReference, treeState);
+        resolvedReference, treeState, insideExplicitTransform);
+  }
+
+  public TransformWork insideExplicitTransform() {
+    Preconditions.checkNotNull(resolvedReference);
+    return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
+        resolvedReference, treeState, /*insideExplicitTransform=*/true);
   }
 
   /**
-   * Update mutable state from another worker data. Should be used with an instance created with
-   * {@link #withConsole(Console)}
+   * Update mutable state from another worker data.
    */
   public void updateFrom(TransformWork skylarkWork) {
     metadata = skylarkWork.metadata;

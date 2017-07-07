@@ -29,19 +29,21 @@ import java.nio.file.attribute.BasicFileAttributes;
 import javax.annotation.Nullable;
 
 /**
- * A visitor which moves files recursively from the path it is visiting.
+ * A visitor which copy or moves files recursively from the path it is visiting.
  */
-final class MovingVisitor extends SimpleFileVisitor<Path> {
+final class CopyMoveVisitor extends SimpleFileVisitor<Path> {
   private final Path before;
   private final Path after;
   @Nullable
   private final PathMatcher pathMatcher;
+  private final boolean isCopy;
   private final CopyOption[] moveMode;
 
-  MovingVisitor(Path before, Path after, @Nullable PathMatcher pathMatcher, boolean overwrite) {
+  CopyMoveVisitor(Path before, Path after, @Nullable PathMatcher pathMatcher, boolean overwrite, boolean isCopy) {
     this.before = before;
     this.after = after;
     this.pathMatcher = pathMatcher;
+    this.isCopy = isCopy;
     if (overwrite) {
       moveMode = new CopyOption[]{LinkOption.NOFOLLOW_LINKS, StandardCopyOption.REPLACE_EXISTING};
     } else {
@@ -62,7 +64,11 @@ final class MovingVisitor extends SimpleFileVisitor<Path> {
       Path relative = before.relativize(source);
       Path dest = after.resolve(relative);
       Files.createDirectories(dest.getParent());
-      Files.move(source, dest, moveMode);
+      if (isCopy) {
+        Files.copy(source, dest, moveMode);
+      } else {
+        Files.move(source, dest, moveMode);
+      }
     }
     return FileVisitResult.CONTINUE;
   }
