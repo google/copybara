@@ -21,6 +21,8 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
@@ -39,7 +41,7 @@ import java.util.logging.Logger;
 @SkylarkModule(name = "Path",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents a path in the checkout directory")
-public class CheckoutPath implements Comparable<CheckoutPath>{
+public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
 
   private static final Logger logger = Logger.getLogger(CheckoutPath.class.getName());
 
@@ -156,5 +158,10 @@ public class CheckoutPath implements Comparable<CheckoutPath>{
   @Override
   public int compareTo(CheckoutPath o) {
     return this.path.compareTo(o.path);
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(path.toString());
   }
 }
