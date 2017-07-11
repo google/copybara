@@ -100,14 +100,28 @@ maven_jar(
     sha1 = "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
 )
 
+bazel_version="937350211dcd55a4714ec32ebbf33fffcc42cdf2"
+
 # LICENSE: The Apache Software License, Version 2.0
 http_archive(
     name = "io_bazel",
-    # TODO(copybara-team): Revisit to try to depend on a tag instead
-    # Currently we depend on a specific commit, otherwise the sha-256 would be changing all the
-    # times.
-    url = "https://github.com/bazelbuild/bazel/archive/b13457b1434d64ab187fb511e73f01d1f2321c1e.zip",
-    strip_prefix = "bazel-b13457b1434d64ab187fb511e73f01d1f2321c1e",
+    url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+    strip_prefix = "bazel-" + bazel_version,
+)
+
+http_archive(
+    name = "com_google_protobuf",
+    url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+    strip_prefix = "bazel-" + bazel_version + "/third_party/protobuf/3.2.0",
+)
+
+new_http_archive(
+    name = "com_google_protobuf_java",
+    url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+    strip_prefix = "bazel-"+ bazel_version + "/third_party/protobuf/3.2.0",
+    # We cannot use this because of https://github.com/bazelbuild/bazel/issues/3364 :
+    # build_file = "@com_google_protobuf_java//:com_google_protobuf_java.BUILD"
+    build_file = "@com_google_protobuf//:com_google_protobuf_java.BUILD"
 )
 
 # LICENSE: New BSD
