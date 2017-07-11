@@ -18,6 +18,7 @@ package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
@@ -54,14 +55,15 @@ public class FolderDestination implements Destination<Revision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
+  public Writer<Revision> newWriter(Glob destinationFiles, boolean dryRun,
+      @Nullable Writer<Revision> oldWriter) {
     if (dryRun) {
       generalOptions.console().warn("--dry-run does not have any effect for folder.destination");
     }
     return new WriterImpl(destinationFiles);
   }
 
-  private class WriterImpl implements Writer {
+  private class WriterImpl implements Writer<Revision> {
 
     final Glob destinationFiles;
 
@@ -73,12 +75,17 @@ public class FolderDestination implements Destination<Revision> {
     @Override
     public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
         throws RepoException {
-      // Not supported
-      return null;
+      throw new IllegalStateException("History not supported");
     }
 
     @Override
-    public boolean supportsStatus() {
+    public void visitChanges(Revision start, ChangesVisitor visitor)
+        throws RepoException, CannotResolveRevisionException {
+      throw new IllegalStateException("History not supported");
+    }
+
+    @Override
+    public boolean supportsHistory() {
       return false;
     }
 

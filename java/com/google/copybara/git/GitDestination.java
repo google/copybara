@@ -128,7 +128,7 @@ public final class GitDestination implements Destination<GitRevision> {
    * Throws an exception if the user.email or user.name Git configuration settings are not set. This
    * helps ensure that the committer field of generated commits is correct.
    */
-  private void verifyUserInfoConfigured(GitRepository repo) throws RepoException {
+  private static void verifyUserInfoConfigured(GitRepository repo) throws RepoException {
     String output = repo.simpleCommand("config", "-l").getStdout();
     boolean nameConfigured = false;
     boolean emailConfigured = false;
@@ -146,7 +146,8 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
+  public Writer<GitRevision> newWriter(Glob destinationFiles, boolean dryRun,
+      @Nullable Writer<GitRevision> oldWriter) {
     return new WriterImpl(destinationFiles, dryRun);
   }
 
@@ -157,7 +158,7 @@ public final class GitDestination implements Destination<GitRevision> {
     return Preconditions.checkNotNull(localRepo);
   }
 
-  private class WriterImpl implements Writer {
+  private class WriterImpl implements Writer<GitRevision> {
 
     @Nullable private GitRepository scratchClone;
     private final Glob destinationFiles;
@@ -166,6 +167,36 @@ public final class GitDestination implements Destination<GitRevision> {
     WriterImpl(Glob destinationFiles, boolean dryRun) {
       this.destinationFiles = checkNotNull(destinationFiles);
       this.dryRun = dryRun;
+    }
+
+    @Override
+    public void visitChanges(GitRevision start, ChangesVisitor visitor)
+        throws RepoException, CannotResolveRevisionException {
+      GitRepository repository = getLocalRepo();
+      fetchFromRemote(repository);
+      String revString = start == null ? "FETCH_HEAD" : start.getSha1();
+      ChangeReader changeReader =
+          ChangeReader.Builder.forDestination(repository, console)
+              .setVerbose(verbose)
+              .setLimit(1)
+              .build();
+
+      ImmutableList<GitChange> result = changeReader.run(revString);
+      if (result.isEmpty()) {
+        if (start == null) {
+          console.error("Unable to find HEAD - is the destination repository bare?");
+        }
+        throw new CannotResolveRevisionException("Cannot find reference " + revString);
+      }
+      GitChange current = Iterables.getOnlyElement(result);
+      while (current != null) {
+        if (visitor.visit(current.getChange()) == VisitResult.TERMINATE
+            || current.getParents().isEmpty()) {
+          break;
+        }
+        current =
+            Iterables.getOnlyElement(changeReader.run(current.getParents().get(0).getSha1()));
+      }
     }
 
     @Nullable
@@ -211,6 +242,11 @@ public final class GitDestination implements Destination<GitRevision> {
         return new DestinationStatus(value, ImmutableList.of());
       }
       return null;
+    }
+
+    @Override
+    public boolean supportsHistory() {
+      return true;
     }
 
     @Nullable
@@ -417,45 +453,6 @@ public final class GitDestination implements Destination<GitRevision> {
             .setSummary(String.format("Created revision %s", sha1));
       } catch (RepoException | CannotResolveRevisionException e) {
         logger.warning(String.format("Failed setting summary: %s", e));
-      }
-    }
-  }
-
-  @Override
-  public Reader<GitRevision> newReader(Glob destinationFiles) {
-    // TODO(hsudhof): limit the reader to changes affecting destinationFiles.
-    return new GitReader();
-  }
-
-  class GitReader implements Reader<GitRevision> {
-
-    @Override
-    public void visitChanges(GitRevision start, ChangesVisitor visitor)
-        throws RepoException, CannotResolveRevisionException {
-      GitRepository repository = getLocalRepo();
-      fetchFromRemote(repository);
-      String revString = start == null ? "FETCH_HEAD" : start.getSha1();
-      ChangeReader changeReader =
-          ChangeReader.Builder.forDestination(repository, console)
-              .setVerbose(verbose)
-              .setLimit(1)
-              .build();
-
-      ImmutableList<GitChange> result = changeReader.run(revString);
-      if (result.isEmpty()) {
-        if (start == null) {
-          console.error("Unable to find HEAD - is the destination repository bare?");
-        }
-        throw new CannotResolveRevisionException("Cannot find reference " + revString);
-      }
-      GitChange current = Iterables.getOnlyElement(result);
-      while (current != null) {
-        if (visitor.visit(current.getChange()) == VisitResult.TERMINATE
-            || current.getParents().isEmpty()) {
-          break;
-        }
-        current =
-            Iterables.getOnlyElement(changeReader.run(current.getParents().get(0).getSha1()));
       }
     }
   }

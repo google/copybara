@@ -28,7 +28,6 @@ import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination;
-import com.google.copybara.Destination.Reader;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.EmptyChangeException;
@@ -174,21 +173,20 @@ public class GitDestinationTest {
     return getOnlyElement(repo().log(ref).withLimit(1).run());
   }
 
-  private void process(Destination.Writer writer, DummyRevision originRef)
+  private void process(Writer<GitRevision> writer, DummyRevision originRef)
       throws ValidationException, RepoException, IOException {
     processWithBaseline(writer, originRef, /*baseline=*/ null);
   }
 
-  private void processWithBaseline(Destination.Writer writer, DummyRevision originRef,
+  private void processWithBaseline(Writer<GitRevision> writer, DummyRevision originRef,
       String baseline)
       throws RepoException, ValidationException, IOException {
     processWithBaselineAndConfirmation(writer, originRef, baseline,
         /*askForConfirmation*/false);
   }
 
-  private void processWithBaselineAndConfirmation(Destination.Writer writer,
-      DummyRevision originRef,
-      String baseline, boolean askForConfirmation)
+  private void processWithBaselineAndConfirmation(Writer<GitRevision> writer,
+      DummyRevision originRef, String baseline, boolean askForConfirmation)
       throws ValidationException, RepoException, IOException {
     TransformResult result = TransformResults.of(workdir, originRef);
     if (baseline != null) {
@@ -412,15 +410,15 @@ public class GitDestinationTest {
     DummyRevision ref1 = new DummyRevision("first");
 
     Glob firstGlob = Glob.createGlob(ImmutableList.of("foo/**", "bar/**"));
-    Writer writer1 = destinationFirstCommit().newWriter(firstGlob, /*dryRun=*/false,
+    Writer<GitRevision> writer1 = destinationFirstCommit().newWriter(firstGlob, /*dryRun=*/false,
                                                         /*oldWriter=*/null);
     process(writer1, ref1);
 
     Files.write(workdir.resolve("baz/one"), "content2".getBytes(UTF_8));
     DummyRevision ref2 = new DummyRevision("second");
 
-    Writer writer2 = destination().newWriter(Glob.createGlob(ImmutableList.of("baz/**")),
-        /*dryRun=*/false, writer1);
+    Writer<GitRevision> writer2 = destination().newWriter(
+        Glob.createGlob(ImmutableList.of("baz/**")),/*dryRun=*/false, writer1);
     process(writer2, ref2);
 
     // Recreate the writer since a destinationFirstCommit writer never looks
@@ -451,7 +449,7 @@ public class GitDestinationTest {
     Path file = workdir.resolve("test.txt");
 
     Files.write(file, "some content".getBytes());
-    Writer writer =
+    Writer<GitRevision>writer =
         firstCommitWriter();
     assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null)).isNull();
     process(writer, new DummyRevision("first_commit"));
@@ -857,8 +855,7 @@ public class GitDestinationTest {
     fetch = "master";
     push = "refs_for_master";
 
-    Destination.Writer writer =
-        firstCommitWriter();
+    Writer<GitRevision> writer = firstCommitWriter();
 
     Files.write(workdir.resolve("test42"), "42".getBytes(UTF_8));
     WriterResult result =
@@ -955,7 +952,7 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).add().force().files("foo").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
 
-    Writer writer = destination().newWriter(destinationFiles, /*dryRun=*/ true,
+    Writer<GitRevision> writer = destination().newWriter(destinationFiles, /*dryRun=*/ true,
                                             /*oldWriter=*/null);
     process(writer, new DummyRevision("origin_ref1"));
 
@@ -1018,7 +1015,7 @@ public class GitDestinationTest {
     Path localPath = Files.createTempDirectory("local_repo");
 
     options.gitDestination.localRepoPath = localPath.toString();
-    Writer writer = newWriter();
+    Writer<GitRevision> writer = newWriter();
     process(writer, new DummyRevision("origin_ref1"));
 
     //    Path localPath = Files.createTempDirectory("local_repo");
@@ -1056,7 +1053,7 @@ public class GitDestinationTest {
   public void testLabelInSameLabelGroupGroup() throws Exception {
     fetch = "master";
     push = "master";
-    Writer writer = firstCommitWriter();
+    Writer<GitRevision> writer = firstCommitWriter();
     Files.write(workdir.resolve("test.txt"), "".getBytes());
     DummyRevision rev = new DummyRevision("first_commit");
     String msg = "This is a message\n"
@@ -1125,7 +1122,7 @@ public class GitDestinationTest {
     process(newWriter(), ref2);
 
     final List<Change<?>> visited = new ArrayList<>();
-    destination().newReader(destinationFiles).visitChanges(null,
+    newWriter().visitChanges(null,
         input -> {
           visited.add(input);
           return input.getLabels().get(DummyOrigin.LABEL_NAME).equals("origin_ref1")
@@ -1137,11 +1134,11 @@ public class GitDestinationTest {
     assertThat(visited.get(1).getLabels().get(DummyOrigin.LABEL_NAME)).isEqualTo("origin_ref1");
   }
 
-  private Writer newWriter() throws ValidationException {
+  private Writer<GitRevision> newWriter() throws ValidationException {
     return destination().newWriter(destinationFiles, /*dryRun=*/ false, /*oldWriter=*/null);
   }
 
-  private Writer firstCommitWriter() throws ValidationException {
+  private Writer<GitRevision> firstCommitWriter() throws ValidationException {
     return destinationFirstCommit().newWriter(destinationFiles, /*dryRun=*/ false,
                                               /*oldWriter=*/null);
   }
@@ -1149,7 +1146,7 @@ public class GitDestinationTest {
   @Test
   public void testMapReferences() throws Exception {
     Files.write(workdir.resolve("test.txt"), "one".getBytes());
-    Writer writer = firstCommitWriter();
+    Writer<GitRevision> writer = firstCommitWriter();
     process(writer, new DummyRevision("1"));
 
     Files.write(workdir.resolve("test.txt"), "two".getBytes());
@@ -1160,8 +1157,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "three".getBytes());
     process(writer, new DummyRevision("3"));
 
-    Reader<GitRevision> reader = destination.newReader(destinationFiles);
-    reader.visitChanges(/*start=*/ null, ignore -> VisitResult.CONTINUE);
+    writer.visitChanges(/*start=*/ null, ignore -> VisitResult.CONTINUE);
 
     Files.write(workdir.resolve("test.txt"), "four".getBytes());
     process(writer, new DummyRevision("4"));

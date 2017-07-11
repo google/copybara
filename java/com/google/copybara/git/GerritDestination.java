@@ -112,10 +112,6 @@ public final class GerritDestination implements Destination<GitRevision> {
     this.gitDestination = Preconditions.checkNotNull(gitDestination);
   }
 
-  public GitDestination getGitDestination() {
-    return gitDestination;
-  }
-
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
@@ -124,10 +120,8 @@ public final class GerritDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
-    // TODO(matvore): Return a writer that doesn't support getPreviousRef()?
-    // That method doesn't make sense for Gerrit since we do not plan to use previous ref for pull
-    // requests.
+  public Writer<GitRevision> newWriter(Glob destinationFiles, boolean dryRun,
+      @Nullable Writer<GitRevision> oldWriter) {
     return gitDestination.newWriter(destinationFiles, dryRun, oldWriter);
   }
 
@@ -200,11 +194,6 @@ public final class GerritDestination implements Destination<GitRevision> {
         }
       }
     }
-  }
-
-  @Override
-  public Reader<GitRevision> newReader(Glob destinationFiles) {
-    return gitDestination.newReader(destinationFiles);
   }
 
   @Override

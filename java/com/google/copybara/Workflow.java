@@ -197,7 +197,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       throws ValidationException, RepoException {
     return new WorkflowRunHelper<>(this, workdir, resolvedRef, getOrigin()
         .newReader(getOriginFiles(), getAuthoring()),
-                                   getDestination().newReader(getDestinationFiles()),
                                    getDestination().newWriter(getDestinationFiles(), dryRunMode,
                                                               /*oldWriter=*/ null));
   }

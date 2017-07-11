@@ -24,7 +24,6 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable;
 import com.google.copybara.Changes;
-import com.google.copybara.Destination.Reader;
 import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
 import com.google.copybara.RepoException;
@@ -50,9 +49,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-/**
- * Unittests for the @link{ReferenceMigrator} and {@link MetadataModule#UPDATE_REFS}.
- */
+
 @RunWith(JUnit4.class)
 public class RevisionMigratorTest {
 
@@ -304,7 +301,7 @@ public class RevisionMigratorTest {
         " uses the reserved token");
   }
 
-  class MockReader implements Reader<DummyRevision> {
+  class MockReader implements ChangeVisitable<DummyRevision> {
     @Override
     public void visitChanges(DummyRevision start, ChangesVisitor visitor)
         throws RepoException {

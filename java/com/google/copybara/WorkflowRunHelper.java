@@ -51,21 +51,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private final Path workdir;
   private final O resolvedRef;
   private final Origin.Reader<O> originReader;
-  @Nullable
-  private final Destination.Reader<D> destinationReader;
-  protected final Destination.Writer writer;
+  protected final Destination.Writer<D> writer;
 
   @Nullable
   private Optional<String> groupIdentity = null;
 
   protected WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
-      Reader<O> originReader, @Nullable Destination.Reader<D> destinationReader,
-      Destination.Writer destinationWriter) throws ValidationException, RepoException {
+      Reader<O> originReader, Destination.Writer<D> destinationWriter)
+      throws ValidationException, RepoException {
     this.workflow = Preconditions.checkNotNull(workflow);
     this.workdir = Preconditions.checkNotNull(workdir);
     this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
     this.originReader = Preconditions.checkNotNull(originReader);
-    this.destinationReader = destinationReader;
     this.writer = Preconditions.checkNotNull(destinationWriter);
   }
 
@@ -82,7 +79,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   protected WorkflowRunHelper<O, D> withDryRun()
       throws RepoException, ValidationException, IOException {
-    return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, originReader, destinationReader,
+    return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, originReader,
         workflow.getDestination().newWriter(workflow.getDestinationFiles(), /*dryRun=*/true,
                                             /*oldWriter=*/null));
   }
@@ -132,12 +129,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return originReader;
   }
 
-  Destination.Reader<D> getDestinationReader() {
-    return destinationReader;
+  ChangeVisitable<D> getDestinationVisitor() {
+    return writer;
   }
 
   boolean destinationSupportsPreviousRef() {
-    return writer.supportsStatus();
+    return writer.supportsHistory();
   }
 
   String getWorkflowIdentity(O reference) {
@@ -241,7 +238,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             metadata,
             changes,
             workflow.getConsole(),
-            new MigrationInfo(workflow.getOrigin().getLabelName(), getDestinationReader()),
+            new MigrationInfo(workflow.getOrigin().getLabelName(), getDestinationVisitor()),
             resolvedRef);
     try (ProfilerTask ignored = profiler().start("transforms")) {
       workflow.getTransformation().transform(transformWork);

@@ -37,7 +37,7 @@ public interface ChangeVisitable <R extends Revision> {
    * visitChanges} methods to visit changes in Origin or
    * Destination history.
    */
-  public interface ChangesVisitor  {
+  interface ChangesVisitor  {
 
     /**
      * Invoked for each change found. The implementation can chose to cancel the visitation by

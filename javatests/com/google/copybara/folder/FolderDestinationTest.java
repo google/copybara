@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination;
 import com.google.copybara.RepoException;
+import com.google.copybara.Revision;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -65,7 +66,7 @@ public class FolderDestinationTest {
   }
 
   private void write() throws ValidationException, RepoException, IOException {
-    skylark.<Destination>eval("dest", "dest = folder.destination()")
+    skylark.<Destination<Revision>>eval("dest", "dest = folder.destination()")
         .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedPathsForDeletion),
             /*dryRun=*/ false, /*oldWriter=*/null)
         .write(

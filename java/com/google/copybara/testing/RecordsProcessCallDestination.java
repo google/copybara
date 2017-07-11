@@ -24,6 +24,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ListMultimap;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Destination;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
@@ -50,7 +51,7 @@ import javax.annotation.Nullable;
  * A destination for testing which doesn't write the workdir anywhere and simply records when
  * {@link Destination.Writer#write(TransformResult, Console)} is called and with what arguments.
  */
-public class RecordsProcessCallDestination implements Destination {
+public class RecordsProcessCallDestination implements Destination<Revision> {
 
   private final ArrayDeque<WriterResult> programmedResults;
 
@@ -63,7 +64,7 @@ public class RecordsProcessCallDestination implements Destination {
 
   public boolean failOnEmptyChange = false;
 
-  public class WriterImpl implements Writer {
+  public class WriterImpl implements Writer<Revision> {
 
     final Glob destinationFiles;
     private final boolean dryRun;
@@ -111,6 +112,11 @@ public class RecordsProcessCallDestination implements Destination {
     }
 
     @Override
+    public boolean supportsHistory() {
+      return true;
+    }
+
+    @Override
     public WriterResult write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
       if (failOnEmptyChange
@@ -130,6 +136,13 @@ public class RecordsProcessCallDestination implements Destination {
       return programmedResults.isEmpty()
           ? WriterResult.OK
           : programmedResults.removeFirst();
+    }
+
+    @Override
+    public void visitChanges(Revision start, ChangesVisitor visitor)
+        throws RepoException, CannotResolveRevisionException {
+      // Not needed for now. The implementation should be similar to getDestinationStatus.
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -152,7 +165,8 @@ public class RecordsProcessCallDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
+  public Writer<Revision> newWriter(Glob destinationFiles, boolean dryRun,
+      @Nullable Writer<Revision> oldWriter) {
     return new WriterImpl(destinationFiles, dryRun, (WriterImpl) oldWriter);
   }
 

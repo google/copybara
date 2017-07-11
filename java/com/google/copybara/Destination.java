@@ -53,24 +53,6 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
   }
 
   /**
-   * An object which is capable of introspecting the destination repository. This can also enumerate
-   * changes in the history.
-   **/
-  interface Reader<R extends Revision> extends ChangeVisitable<R> { }
-
-  /**
-   * Creates a new reader of this destination.
-   *
-   * @param destinationFiles indicates which files in the destination repository need to be read.
-   * @throws ValidationException if the reader could not be created because of a user error.
-   */
-  @Nullable
-  default Reader<R> newReader(Glob destinationFiles)
-      throws ValidationException, RepoException {
-   return null;
-  };
-
-  /**
    * An object which is capable of writing multiple revisions to the destination. This object is
    * allowed to maintain state between the writing of revisions if applicable (for instance, to
    * create multiple changes which are dependent on one another that require review before
@@ -79,7 +61,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    * <p>A single instance of this class is used to import either a single change, or a sequence of
    * changes where each change is the following change's parent.
    */
-  interface Writer {
+  interface Writer<R extends Revision> extends ChangeVisitable<R>{
 
     /**
      * Returns the status of the import at the destination.
@@ -98,11 +80,9 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
     /**
      * Returns true if this destination stores revisions in the repository so that
      * {@link #getDestinationStatus(String, String)}  can be used for discovering the state of the
-     * destination.
+     * destination and we can use the methods in {@link ChangeVisitable}.
      */
-    default boolean supportsStatus() {
-      return true;
-    }
+    boolean supportsHistory();
 
     /**
      * Writes the fully-transformed repository stored at {@code workdir} to this destination.
@@ -135,7 +115,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    * @throws ValidationException if the writer could not be created because of a user error. For
    * instance, the destination cannot be used with the given {@code destinationFiles}.
    */
-  Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter)
+  Writer<R> newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer<R> oldWriter)
       throws ValidationException;
 
   /**
