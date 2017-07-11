@@ -195,7 +195,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)
       throws ValidationException, RepoException {
-    return WorkflowRunHelper.createWorkflowRunHelper(this, workdir, resolvedRef, dryRunMode);
+    return new WorkflowRunHelper<>(this, workdir, resolvedRef, getOrigin()
+        .newReader(getOriginFiles(), getAuthoring()),
+                                   getDestination().newReader(getDestinationFiles()),
+                                   getDestination().newWriter(getDestinationFiles(), dryRunMode,
+                                                              /*oldWriter=*/ null));
   }
 
   Set<String> configPaths() {
@@ -238,7 +242,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     }
     // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
     // Should be K since info doesn't write but only read.
-    return destination.newWriter(destinationFiles, /*dryrun=*/false)
+    return destination.newWriter(destinationFiles, /*dryrun=*/false, /*oldWriter=*/null)
         .getDestinationStatus(origin.getLabelName(), computeGroupIdentity(groupIdentity));
   }
 

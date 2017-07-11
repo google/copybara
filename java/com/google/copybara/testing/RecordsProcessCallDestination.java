@@ -67,10 +67,19 @@ public class RecordsProcessCallDestination implements Destination {
 
     final Glob destinationFiles;
     private final boolean dryRun;
+    private final int state;
+
 
     public WriterImpl(Glob destinationFiles, boolean dryRun) {
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
+      this.state = 0;
+    }
+
+    public WriterImpl(Glob destinationFiles, boolean dryRun, @Nullable WriterImpl old) {
+      this.destinationFiles = destinationFiles;
+      this.dryRun = dryRun;
+      this.state = old != null && old.dryRun == dryRun ? old.state + 1 : 0;
     }
 
     @Nullable
@@ -113,7 +122,7 @@ public class RecordsProcessCallDestination implements Destination {
       ProcessedChange change =
           new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
                               transformResult.getBaseline(), destinationFiles,
-                              dryRun, transformResult.getGroupIdentity());
+                              dryRun, transformResult.getGroupIdentity(), state);
       processed.add(change);
       if (transformResult.getGroupIdentity() != null) {
         pending.put(transformResult.getGroupIdentity(), change);
@@ -143,8 +152,8 @@ public class RecordsProcessCallDestination implements Destination {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, boolean dryRun) {
-    return new WriterImpl(destinationFiles, dryRun);
+  public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
+    return new WriterImpl(destinationFiles, dryRun, (WriterImpl) oldWriter);
   }
 
   @Override
@@ -160,15 +169,17 @@ public class RecordsProcessCallDestination implements Destination {
     private final Glob destinationFiles;
     private final boolean dryRun;
     private final String groupIdentity;
+    private final int state;
 
     private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir,
-        String baseline, Glob destinationFiles, boolean dryRun, String groupIdentity) {
+        String baseline, Glob destinationFiles, boolean dryRun, String groupIdentity, int state) {
       this.transformResult = Preconditions.checkNotNull(transformResult);
       this.workdir = Preconditions.checkNotNull(workdir);
       this.baseline = baseline;
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
       this.groupIdentity = groupIdentity;
+      this.state = state;
     }
 
     public ZonedDateTime getTimestamp() {
@@ -231,6 +242,13 @@ public class RecordsProcessCallDestination implements Destination {
           .add("changesSummary", getChangesSummary())
           .add("workdir", workdir)
           .toString();
+    }
+
+    /**
+     * This is used to simulate multiple writers creation that can maintain state between them.
+     */
+    public int getState() {
+      return state;
     }
   }
 }

@@ -129,10 +129,14 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    * @param dryRun if the writer should be created in dry-run mode. Dry-run modes might vary
    * between implementations. Some implementations might chose to create a side effect as far as
    * it is not in the main branch.
+   * @param oldWriter workflows might create several writers for the same invocation so that
+   * they can run with different config per change migrated. This allows the writer to maintain
+   * state for the whole workflow execution scope.
    * @throws ValidationException if the writer could not be created because of a user error. For
    * instance, the destination cannot be used with the given {@code destinationFiles}.
    */
-  Writer newWriter(Glob destinationFiles, boolean dryRun) throws ValidationException;
+  Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter)
+      throws ValidationException;
 
   /**
    * Given a reverse workflow with an {@code Origin} than is of the same type as this destination,

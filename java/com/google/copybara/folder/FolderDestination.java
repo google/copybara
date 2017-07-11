@@ -54,7 +54,7 @@ public class FolderDestination implements Destination<Revision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, boolean dryRun) {
+  public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
     if (dryRun) {
       generalOptions.console().warn("--dry-run does not have any effect for folder.destination");
     }

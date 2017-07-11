@@ -21,7 +21,6 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.MoreFiles;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.Reader;
@@ -54,7 +53,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private final Origin.Reader<O> originReader;
   @Nullable
   private final Destination.Reader<D> destinationReader;
-  private final Destination.Writer writer;
+  protected final Destination.Writer writer;
 
   @Nullable
   private Optional<String> groupIdentity = null;
@@ -71,20 +70,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   }
 
   /**
-   * @param workdir working directory to use for the transformations
-   * @param resolvedRef revision to migrate
-   * @param dryRun if the destination writer should be create in dry-run mode.
-   */
-  public static <O extends Revision, D extends Revision> WorkflowRunHelper<O, D>
-  createWorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef, boolean dryRun)
-      throws ValidationException, RepoException {
-    return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, workflow.getOrigin()
-        .newReader(workflow.getOriginFiles(), workflow.getAuthoring()),
-        workflow.getDestination().newReader(workflow.getDestinationFiles()),
-        workflow.getDestination().newWriter(workflow.getDestinationFiles(), dryRun));
-  }
-
-  /**
    * Get a run helper for the current changes.
    *
    * <p>The list contains the changes in order: First change is the oldest. Last change is the
@@ -98,7 +83,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   protected WorkflowRunHelper<O, D> withDryRun()
       throws RepoException, ValidationException, IOException {
     return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, originReader, destinationReader,
-        workflow.getDestination().newWriter(workflow.getDestinationFiles(), /*dryRun=*/true));
+        workflow.getDestination().newWriter(workflow.getDestinationFiles(), /*dryRun=*/true,
+                                            /*oldWriter=*/null));
   }
 
   protected Path getWorkdir() {

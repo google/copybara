@@ -146,7 +146,7 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, boolean dryRun) {
+  public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
     return new WriterImpl(destinationFiles, dryRun);
   }
 

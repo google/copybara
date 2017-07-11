@@ -335,7 +335,7 @@ public class SkylarkParserTest {
       public String invoke(MockLabelsAwareModule self) {
         try {
           return new String(self.configFile.resolve("foo").content(), UTF_8);
-        } catch (CannotResolveLabel|IOException inconceivable) {
+        } catch (CannotResolveLabel | IOException inconceivable) {
           throw new AssertionError(inconceivable);
         }
       }
@@ -443,7 +443,7 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public Writer newWriter(Glob destinationFiles, boolean dryRun) {
+    public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
       throw new UnsupportedOperationException();
     }
 
@@ -484,11 +484,11 @@ public class SkylarkParserTest {
 
     @Override
     public String toString() {
-      return "MockTransform{" +
-          "field1='" + field1 + '\'' +
-          ", field2='" + field2 + '\'' +
-          ", list=" + list +
-          '}';
+      return "MockTransform{"
+          + "field1='" + field1 + '\''
+          + ", field2='" + field2 + '\''
+          + ", list=" + list
+          + '}';
     }
   }
 }

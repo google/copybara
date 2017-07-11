@@ -124,11 +124,11 @@ public final class GerritDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer newWriter(Glob destinationFiles, boolean dryRun) {
+  public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable Writer oldWriter) {
     // TODO(matvore): Return a writer that doesn't support getPreviousRef()?
     // That method doesn't make sense for Gerrit since we do not plan to use previous ref for pull
     // requests.
-    return gitDestination.newWriter(destinationFiles, dryRun);
+    return gitDestination.newWriter(destinationFiles, dryRun, oldWriter);
   }
 
   @Override

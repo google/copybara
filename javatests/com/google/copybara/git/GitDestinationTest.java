@@ -412,19 +412,20 @@ public class GitDestinationTest {
     DummyRevision ref1 = new DummyRevision("first");
 
     Glob firstGlob = Glob.createGlob(ImmutableList.of("foo/**", "bar/**"));
-    Writer writer1 = destinationFirstCommit().newWriter(firstGlob, /*dryRun=*/false);
+    Writer writer1 = destinationFirstCommit().newWriter(firstGlob, /*dryRun=*/false,
+                                                        /*oldWriter=*/null);
     process(writer1, ref1);
 
     Files.write(workdir.resolve("baz/one"), "content2".getBytes(UTF_8));
     DummyRevision ref2 = new DummyRevision("second");
 
     Writer writer2 = destination().newWriter(Glob.createGlob(ImmutableList.of("baz/**")),
-        /*dryRun=*/false);
+        /*dryRun=*/false, writer1);
     process(writer2, ref2);
 
     // Recreate the writer since a destinationFirstCommit writer never looks
     // for a previous ref.
-    assertThat(destination().newWriter(firstGlob, /*dryRun=*/false)
+    assertThat(destination().newWriter(firstGlob, /*dryRun=*/false, writer2)
                    .getDestinationStatus(ref1.getLabelName(), null).getBaseline())
         .isEqualTo(ref1.asString());
     assertThat(writer2.getDestinationStatus(ref2.getLabelName(), null).getBaseline())
@@ -954,7 +955,8 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).add().force().files("foo").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
 
-    Writer writer = destination().newWriter(destinationFiles, /*dryRun=*/ true);
+    Writer writer = destination().newWriter(destinationFiles, /*dryRun=*/ true,
+                                            /*oldWriter=*/null);
     process(writer, new DummyRevision("origin_ref1"));
 
     GitTesting.assertThatCheckout(repo(), "master")
@@ -962,7 +964,7 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
 
     // Run again without dry run
-    writer = destination().newWriter(destinationFiles, /*dryRun=*/ false);
+    writer = destination().newWriter(destinationFiles, /*dryRun=*/ false, writer);
     process(writer, new DummyRevision("origin_ref1"));
 
     GitTesting.assertThatCheckout(repo(), "master")
@@ -1136,21 +1138,23 @@ public class GitDestinationTest {
   }
 
   private Writer newWriter() throws ValidationException {
-    return destination().newWriter(destinationFiles, /*dryRun=*/ false);
+    return destination().newWriter(destinationFiles, /*dryRun=*/ false, /*oldWriter=*/null);
   }
 
   private Writer firstCommitWriter() throws ValidationException {
-    return destinationFirstCommit().newWriter(destinationFiles, /*dryRun=*/ false);
+    return destinationFirstCommit().newWriter(destinationFiles, /*dryRun=*/ false,
+                                              /*oldWriter=*/null);
   }
 
   @Test
   public void testMapReferences() throws Exception {
     Files.write(workdir.resolve("test.txt"), "one".getBytes());
-    process(firstCommitWriter(), new DummyRevision("1"));
+    Writer writer = firstCommitWriter();
+    process(writer, new DummyRevision("1"));
 
     Files.write(workdir.resolve("test.txt"), "two".getBytes());
     GitDestination destination = destination();
-    Writer writer = destination.newWriter(destinationFiles, /*dryRun=*/ false);
+    writer = destination.newWriter(destinationFiles, /*dryRun=*/ false, writer);
     process(writer, new DummyRevision("2"));
 
     Files.write(workdir.resolve("test.txt"), "three".getBytes());

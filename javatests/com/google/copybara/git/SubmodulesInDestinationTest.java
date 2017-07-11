@@ -111,7 +111,8 @@ public final class SubmodulesInDestinationTest {
     scratchRepo.simpleCommand("commit", "-m", "commit submodule");
 
     Files.write(workdir.resolve("test42"), new byte[] {42});
-    Destination.Writer writer = destination().newWriter(destinationFiles, /*dryRun=*/false);
+    Destination.Writer writer = destination().newWriter(destinationFiles, /*dryRun=*/false,
+                                                        /*oldWriter=*/ null);
     WriterResult result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
         console);
@@ -164,7 +165,8 @@ public final class SubmodulesInDestinationTest {
     Files.write(workdir.resolve("foo/c"), new byte[] {1});
 
     Destination.Writer writer =
-        destination().newWriter(destinationFiles, /*dryRun=*/false);
+        destination().newWriter(destinationFiles, /*dryRun=*/false,
+                                /*oldWriter=*/ null);
     WriterResult result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
         console);
