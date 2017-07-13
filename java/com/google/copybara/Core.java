@@ -53,6 +53,7 @@ import com.google.devtools.build.lib.syntax.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -365,6 +366,11 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     @SuppressWarnings("unused")
     public Transformation invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
         Location location) throws EvalException {
+
+      SkylarkUtil.check(location, !Objects.equals(before, after),
+          "Moving from the same folder to the same folder is a noop. Remove the"
+              + " transformation.");
+
       return CopyOrMove.createMove(before, after, self.workflowOptions, paths, overwrite, location);
     }
   };
@@ -413,6 +419,9 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     @SuppressWarnings("unused")
     public Transformation invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
         Location location) throws EvalException {
+      SkylarkUtil.check(location, !Objects.equals(before, after),
+          "Copying from the same folder to the same folder is a noop. Remove the"
+              + " transformation.");
       return CopyOrMove.createCopy(before, after, self.workflowOptions, paths, overwrite, location);
     }
   };

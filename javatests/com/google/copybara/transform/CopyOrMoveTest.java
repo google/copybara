@@ -108,6 +108,14 @@ public class CopyOrMoveTest {
   }
 
   @Test
+  public void testEmptyMoveOrCopy() throws Exception {
+    skylark.evalFails("core.move('foo', 'foo')",
+        "Moving from the same folder to the same folder is a noop");
+    skylark.evalFails("core.copy('foo', 'foo')",
+        "Copying from the same folder to the same folder is a noop");
+  }
+
+  @Test
   public void testCopyAndItsReverse_folder() throws Exception {
     CopyOrMove copier = skylark.eval("m", ""
         + "m = core.copy(before = 'one', after = 'public'\n"
