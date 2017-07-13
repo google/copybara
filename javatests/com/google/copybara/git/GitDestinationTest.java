@@ -27,7 +27,6 @@ import com.google.common.truth.Truth;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeVisitable.VisitResult;
-import com.google.copybara.Destination;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.EmptyChangeException;
@@ -43,6 +42,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -273,11 +273,9 @@ public class GitDestinationTest {
     // Validate that we really have pushed the commit.
     assertThat(change).contains("test summary");
     console.assertThat()
-        .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching file:.*")
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching: file:.* master")
+        .matchesNext(MessageType.WARNING, "Git Destination: 'master' doesn't exist in 'file://.*")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Checking out master")
-        .matchesNext(MessageType.WARNING, "Git Destination: Cannot checkout 'FETCH_HEAD'."
-            + " Ignoring baseline.")
-        .matchesNext(MessageType.PROGRESS, "Git Destination: Cloning destination")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Adding all files")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Excluding files")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Creating a local commit")
@@ -333,7 +331,7 @@ public class GitDestinationTest {
     push = "testPushToRef";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
-    thrown.expect(RepoException.class);
+    thrown.expect(ValidationException.class);
     thrown.expectMessage("'testPullFromRef' doesn't exist");
     process(
         newWriter(),
@@ -766,8 +764,7 @@ public class GitDestinationTest {
     Files.delete(workdir.resolve("excluded"));
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Files.write(workdir.resolve("other.txt"), "other file".getBytes());
-    processWithBaseline(
-        newWriter(), ref, firstCommit);
+    processWithBaseline(newWriter(), ref, firstCommit);
 
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "new content")

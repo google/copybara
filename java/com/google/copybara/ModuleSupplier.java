@@ -51,12 +51,13 @@ public class ModuleSupplier {
 
   /** Returns a new list of {@link Option}s. */
   public ImmutableList<Option> newOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
+    GitOptions gitOptions = new GitOptions(generalOptionsSupplier);
     return ImmutableList.of(
         new FolderDestinationOptions(),
         new FolderOriginOptions(),
-        new GitOptions(generalOptionsSupplier),
+        gitOptions,
         new GitOriginOptions(),
-        new GitDestinationOptions(generalOptionsSupplier),
+        new GitDestinationOptions(generalOptionsSupplier, gitOptions),
         new GitMirrorOptions(),
         newGerritOptions(),
         new WorkflowOptions());

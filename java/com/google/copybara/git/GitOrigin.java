@@ -112,12 +112,7 @@ public class GitOrigin implements Origin<GitRevision> {
   }
 
   public GitRepository getRepository() throws RepoException {
-    try {
-      return GitRepository.bareRepoInCache(
-          repoUrl, environment, verbose, gitOptions.getRepoStorage());
-    } catch (IOException e) {
-      throw new RepoException("Cannot create bare repo in cache", e);
-    }
+    return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
 
   private class ReaderImpl implements Reader<GitRevision> {
@@ -181,15 +176,7 @@ public class GitOrigin implements Origin<GitRevision> {
         TreeElement element = Iterables.getOnlyElement(elements);
         Preconditions.checkArgument(element.getPath().equals(submodule.getPath()));
 
-        GitRepository subRepo;
-        try {
-          subRepo = GitRepository.bareRepoInCache(
-              submodule.getUrl(), environment, verbose, gitOptions.getRepoStorage());
-        } catch (IOException e) {
-          throw new RepoException(
-              "Cannot create a cached repo for submodule " + submodule.getName(), e);
-        }
-        subRepo.initGitDir();
+        GitRepository subRepo = gitOptions.cachedBareRepoForUrl(submodule.getUrl());
         subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
         GitRevision submoduleRef = subRepo.resolveReference(element.getRef(), submodule.getName());
 
@@ -313,7 +300,6 @@ public class GitOrigin implements Origin<GitRevision> {
   public GitRevision resolve(@Nullable String reference)
       throws RepoException, ValidationException {
     console.progress("Git Origin: Initializing local repo");
-    getRepository().initGitDir();
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
       if (configRef == null) {

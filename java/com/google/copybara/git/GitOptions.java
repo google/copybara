@@ -21,6 +21,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
+import com.google.copybara.RepoException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,5 +51,19 @@ public final class GitOptions implements Option {
       return generalOptionsSupplier.get().getDirFactory().getCacheDir("git_repos");
     }
     return Paths.get(repoStorage);
+  }
+
+  public GitRepository cachedBareRepoForUrl(String url) throws RepoException {
+    Preconditions.checkNotNull(url);
+    GeneralOptions generalOptions = generalOptionsSupplier.get();
+    GitRepository repo;
+    try {
+      repo = GitRepository.bareRepoInCache(url, generalOptions.getEnvironment(),
+          generalOptions.isVerbose(), getRepoStorage());
+    } catch (IOException e) {
+      throw new RepoException("Cannot create a cached repo for " + url, e);
+    }
+    repo.initGitDir();
+    return repo;
   }
 }

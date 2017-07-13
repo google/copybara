@@ -62,7 +62,7 @@ public class OptionsBuilder {
 
   public GitOptions git = new GitOptions(() -> general);
   public GitOriginOptions gitOrigin = new GitOriginOptions();
-  public GitDestinationOptions gitDestination = new GitDestinationOptions(() -> general);
+  public GitDestinationOptions gitDestination = new GitDestinationOptions(() -> general, git);
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowOptions workflowOptions =

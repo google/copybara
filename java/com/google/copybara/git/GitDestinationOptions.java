@@ -25,7 +25,6 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.RepoException;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.util.FileUtil;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +41,7 @@ public final class GitDestinationOptions implements Option {
   private final Logger logger = Logger.getLogger(GitDestinationOptions.class.getName());
 
   private final Supplier<GeneralOptions> generalOptions;
+  private final GitOptions gitOptions;
 
   @VisibleForTesting
   @Parameter(names = "--git-committer-name",
@@ -55,8 +55,10 @@ public final class GitDestinationOptions implements Option {
           + " destination.")
   public String committerEmail = "";
 
-  public GitDestinationOptions(Supplier<GeneralOptions> generalOptions) {
+  public GitDestinationOptions(Supplier<GeneralOptions> generalOptions,
+      GitOptions gitOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
+    this.gitOptions = Preconditions.checkNotNull(gitOptions);
   }
 
   Author getCommitter() {
@@ -80,7 +82,8 @@ public final class GitDestinationOptions implements Option {
   @Nullable
   @Parameter(names = "--git-destination-path",
       description = "If set, the tool will use this directory for the local repository."
-          + " Note that the directory will be deleted each time Copybara is run.")
+          + " Note that if the directory exists it needs to be a git repository. Copybara will"
+          + " revert any staged/unstaged changes.")
   String localRepoPath = null;
 
   @Parameter(names = "--git-destination-skip-push",
@@ -92,31 +95,36 @@ public final class GitDestinationOptions implements Option {
   boolean lastRevFirstParent = false;
 
 
-  public GitRepository localGitRepo() throws RepoException {
-    generalOptions.get().getDirFactory();
-    Path path;
+  /**
+   * Returns a non-bare repo. Either because it uses a custom worktree or because it is a user
+   * non-bare repo.
+   *
+   * <p> The git database (git-dir) might be potentially shared between multiple workflows. This
+   * means that the users should force fetch and probably create its own local unique references.
+   */
+  GitRepository localGitRepo(String url) throws RepoException {
     try {
       if (Strings.isNullOrEmpty(localRepoPath)) {
-        path = createTempDirectory();
-      } else {
-        path = Paths.get(localRepoPath);
-        if (Files.exists(path)) {
-          FileUtil.deleteRecursively(path);
-        }
-        Files.createDirectories(path);
+        return gitOptions.cachedBareRepoForUrl(url)
+            .withWorkTree(generalOptions.get().getDirFactory().newTempDir("git_dest"));
       }
+      Path path = Paths.get(localRepoPath);
+
+      if (!Files.exists(path)
+          || Files.isDirectory(path) && isGitRepoOrEmptyDir(path)) {
+        Files.createDirectories(path);
+        return GitRepository.initScratchRepo(
+            generalOptions.get().isVerbose(), path, generalOptions.get().getEnvironment());
+
+      }
+      throw new RepoException(path + " is not empty and is not a git repository");
     } catch (IOException e) {
       throw new RepoException("Cannot create local repository", e);
     }
-    return GitRepository.initScratchRepo(
-            generalOptions.get().isVerbose(), path, generalOptions.get().getEnvironment());
   }
 
-  private Path createTempDirectory() throws IOException {
-    Path dir = generalOptions.get().getDirFactory()
-        .newTempDir("copybara-makeScratchClone");
-    logger.info(
-        String.format("Created temporary folder for scratch repo: %s", dir.toAbsolutePath()));
-    return dir;
+  private static boolean isGitRepoOrEmptyDir(Path path) throws IOException {
+    return Files.exists(path.resolve(".git")) || !Files.list(path).findAny().isPresent();
   }
+
 }

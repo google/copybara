@@ -18,10 +18,10 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.ChangeMessage.parseMessage;
+import static com.google.copybara.git.LazyGitRepository.memoized;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -45,6 +45,7 @@ import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -98,7 +99,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
   private final Console console;
-  private GitRepository localRepo = null;
+  private final LazyGitRepository localRepo;
 
   GitDestination(
       String repoUrl,
@@ -122,6 +123,7 @@ public final class GitDestination implements Destination<GitRevision> {
     this.commitGenerator = checkNotNull(commitGenerator);
     this.processPushOutput = checkNotNull(processPushOutput);
     this.console = console;
+    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl));
   }
 
   /**
@@ -148,35 +150,92 @@ public final class GitDestination implements Destination<GitRevision> {
   @Override
   public Writer<GitRevision> newWriter(Glob destinationFiles, boolean dryRun,
       @Nullable Writer<GitRevision> oldWriter) {
-    return new WriterImpl(destinationFiles, dryRun);
-  }
+    WriterImpl gitOldWriter = (WriterImpl) oldWriter;
 
-  public GitRepository getLocalRepo() throws RepoException {
-    if (localRepo == null) {
-      localRepo = destinationOptions.localGitRepo();
+    boolean effectiveSkipPush = GitDestination.this.effectiveSkipPush || dryRun;
+
+    WriterState state;
+    if (oldWriter != null && gitOldWriter.skipPush == effectiveSkipPush) {
+      state = ((WriterImpl) oldWriter).state;
+    } else {
+      state = new WriterState(localRepo,
+          destinationOptions.localRepoPath != null
+              ? push // This is nicer for the user
+              : "copybara/push-" + UUID.randomUUID() + (dryRun ? "-dryrun" : ""));
     }
-    return Preconditions.checkNotNull(localRepo);
+
+    return new WriterImpl(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
+        destinationOptions, verbose, force, console, commitGenerator, processPushOutput,
+        state);
   }
 
-  private class WriterImpl implements Writer<GitRevision> {
+  /**
+   * State to be maintained between writer instances.
+   */
+  private static class WriterState {
 
-    @Nullable private GitRepository scratchClone;
+    private boolean alreadyFetched;
+    private boolean firstWrite = true;
+    private LazyGitRepository localRepo;
+    private String localBranch;
+
+    private WriterState(LazyGitRepository localRepo, String localBranch) {
+      this.localRepo = localRepo;
+      this.localBranch = localBranch;
+    }
+  }
+
+  static class WriterImpl implements Writer<GitRevision> {
+
     private final Glob destinationFiles;
-    private final boolean dryRun;
+    private final boolean skipPush;
+    private final String repoUrl;
+    private final String remoteFetch;
+    private final String remotePush;
+    private final GitDestinationOptions destinationOptions;
+    private final boolean verbose;
+    private final boolean force;
+    // Only use this console when you don't receive one as a parameter.
+    private final Console baseConsole;
+    private final CommitGenerator commitGenerator;
+    private final ProcessPushOutput processPushOutput;
+    private final WriterState state;
 
-    WriterImpl(Glob destinationFiles, boolean dryRun) {
+    WriterImpl(Glob destinationFiles, boolean skipPush, String repoUrl, String remoteFetch,
+        String remotePush, GitDestinationOptions destinationOptions, boolean verbose, boolean force,
+        Console baseConsole, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
+        WriterState state) {
       this.destinationFiles = checkNotNull(destinationFiles);
-      this.dryRun = dryRun;
+      this.skipPush = skipPush;
+      this.repoUrl = checkNotNull(repoUrl);
+      this.remoteFetch = checkNotNull(remoteFetch);
+      this.remotePush = checkNotNull(remotePush);
+      this.destinationOptions = checkNotNull(destinationOptions);
+      this.verbose = verbose;
+      this.force = force;
+      this.baseConsole = checkNotNull(baseConsole);
+      this.commitGenerator = checkNotNull(commitGenerator);
+      this.processPushOutput = checkNotNull(processPushOutput);
+      this.state = checkNotNull(state);
     }
 
     @Override
-    public void visitChanges(GitRevision start, ChangesVisitor visitor)
+    public void visitChanges(@Nullable GitRevision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
-      GitRepository repository = getLocalRepo();
-      fetchFromRemote(repository);
-      String revString = start == null ? "FETCH_HEAD" : start.getSha1();
+      GitRepository repository = state.localRepo.get(baseConsole);
+      try {
+        fetchIfNeeded(repository, baseConsole);
+      } catch (ValidationException e) {
+        throw new CannotResolveRevisionException(
+            "Cannot visit changes because fetch failed. Does the destination branch exist?", e);
+      }
+      GitRevision startRef = getLocalBranchRevision(repository);
+      if (startRef == null) {
+        return;
+      }
+      String revString = start == null ? startRef.getSha1() : start.getSha1();
       ChangeReader changeReader =
-          ChangeReader.Builder.forDestination(repository, console)
+          ChangeReader.Builder.forDestination(repository, baseConsole)
               .setVerbose(verbose)
               .setLimit(1)
               .build();
@@ -184,7 +243,7 @@ public final class GitDestination implements Destination<GitRevision> {
       ImmutableList<GitChange> result = changeReader.run(revString);
       if (result.isEmpty()) {
         if (start == null) {
-          console.error("Unable to find HEAD - is the destination repository bare?");
+          baseConsole.error("Unable to find HEAD - is the destination repository bare?");
         }
         throw new CannotResolveRevisionException("Cannot find reference " + revString);
       }
@@ -199,26 +258,37 @@ public final class GitDestination implements Destination<GitRevision> {
       }
     }
 
+    /**
+     * Do a fetch iff we haven't done one already. Prevents doing unnecessary fetches.
+     */
+    private void fetchIfNeeded(GitRepository repo, Console console)
+        throws RepoException, ValidationException {
+      if (!state.alreadyFetched) {
+        GitRevision revision = fetchFromRemote(console, repo, repoUrl, remoteFetch);
+        if (revision != null) {
+          repo.simpleCommand("branch", state.localBranch, revision.getSha1());
+        }
+        state.alreadyFetched = true;
+      }
+    }
+
     @Nullable
     @Override
     public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
         throws RepoException {
-      GitRepository gitRepository = getLocalRepo();
-      fetchFromRemote(gitRepository);
-
-      String startRef;
+      GitRepository gitRepository = state.localRepo.get(baseConsole);
       try {
-        startRef = gitRepository.parseRef("FETCH_HEAD");
-      } catch (CannotResolveRevisionException e) {
-        if (force) {
-          return null;
-        }
-        // Shouldn't happen
-        throw new RepoException("Cannot resolve FETCH_HEAD", e);
+        fetchIfNeeded(gitRepository, baseConsole);
+      } catch (ValidationException e) {
+        return null;
+      }
+      GitRevision startRef = getLocalBranchRevision(gitRepository);
+      if (startRef == null) {
+        return null;
       }
 
       ImmutableSet<String> roots = destinationFiles.roots();
-      LogCmd logCmd = gitRepository.log(startRef)
+      LogCmd logCmd = gitRepository.log(startRef.getSha1())
           .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR)
           .firstParent(destinationOptions.lastRevFirstParent)
           .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots);
@@ -244,6 +314,19 @@ public final class GitDestination implements Destination<GitRevision> {
       return null;
     }
 
+    @Nullable
+    private GitRevision getLocalBranchRevision(GitRepository gitRepository) throws RepoException {
+      try {
+        return gitRepository.resolveReference(state.localBranch, state.localBranch);
+      } catch (CannotResolveRevisionException e) {
+        if (force) {
+          return null;
+        }
+        throw new RepoException(String.format("Could not find %s in %s and '%s' was not used",
+            remoteFetch, repoUrl, GeneralOptions.FORCE));
+      }
+    }
+
     @Override
     public boolean supportsHistory() {
       return true;
@@ -265,63 +348,47 @@ public final class GitDestination implements Destination<GitRevision> {
         throws ValidationException, RepoException, IOException {
       logger.log(Level.INFO, "Exporting from " + transformResult.getPath() + " to: " + this);
       String baseline = transformResult.getBaseline();
-      boolean pushToRemote = !GitDestination.this.effectiveSkipPush && !dryRun;
-      if (scratchClone == null) {
-        console.progress("Git Destination: Fetching " + repoUrl);
 
-        scratchClone = getLocalRepo();
-        fetchFromRemote(scratchClone);
+      GitRepository scratchClone = state.localRepo.get(console);
 
-        configLocalRepo(scratchClone);
+      fetchIfNeeded(scratchClone, console);
 
-        if (baseline != null && !scratchClone.refExists(baseline)) {
-          throw new RepoException("Cannot find baseline '" + baseline
-              + (scratchClone.refExists("FETCH_HEAD")
-              ? "' from fetch reference '" + fetch + "'"
-              : "' and fetch reference '" + fetch + "'")
-              + " in " + repoUrl + ".");
+      console.progress("Git Destination: Checking out " + remoteFetch);
+
+      GitRevision localBranchRevision = getLocalBranchRevision(scratchClone);
+      updateLocalBranchToBaseline(scratchClone, baseline);
+
+      if (state.firstWrite) {
+        String reference = baseline != null ? baseline : state.localBranch;
+        configForPush(state.localRepo.get(console), repoUrl, remotePush);
+        if (!force && localBranchRevision == null) {
+          throw new RepoException(String.format(
+              "Cannot checkout '%s' from '%s'. Use '%s' if the destination is a new git repo or"
+                  + " you don't care about the destination current status", reference,
+              repoUrl,
+              GeneralOptions.FORCE));
         }
-
-        console.progress("Git Destination: Checking out " + fetch);
-        // If baseline is not null we sync first to the baseline and apply the changes on top of
-        // that. Then we will rebase the new change to FETCH_HEAD.
-        String reference = baseline != null ? baseline : "FETCH_HEAD";
-        try {
-          scratchClone.simpleCommand("checkout", "-q", reference);
-        } catch (RepoException e) {
-          if (force) {
-            console.warn(String.format(
-                "Git Destination: Cannot checkout '%s'. Ignoring baseline.", reference));
-          } else {
-            throw new RepoException(String.format(
-                "Cannot checkout '%s' from '%s'. Use '%s' if the destination is a new git repo or"
-                    + " you don't care about the destination current status", reference, repoUrl,
-                GeneralOptions.FORCE), e);
-          }
+        if (localBranchRevision != null) {
+          scratchClone.simpleCommand("checkout", "-f", "-q", reference);
+        } else {
+          // Configure the commit to go to local branch instead of master.
+          scratchClone.simpleCommand("symbolic-ref", "HEAD", "refs/heads/" + state.localBranch);
         }
-
-        if (!Strings.isNullOrEmpty(destinationOptions.committerName)) {
-          scratchClone.simpleCommand("config", "user.name", destinationOptions.committerName);
-        }
-        if (!Strings.isNullOrEmpty(destinationOptions.committerEmail)) {
-          scratchClone.simpleCommand("config", "user.email", destinationOptions.committerEmail);
-        }
-        verifyUserInfoConfigured(scratchClone);
-      }
-      // Should be a no-op, but an iterative migration could take several minutes between
-      // migrations so lets fetch the latest first.
-      if (pushToRemote) {
-        fetchFromRemote(scratchClone);
+        state.firstWrite = false;
+      } else if (!skipPush) {
+        // Should be a no-op, but an iterative migration could take several minutes between
+        // migrations so lets fetch the latest first.
+        fetchFromRemote(console, scratchClone, repoUrl, remoteFetch);
       }
 
       // Get the submodules before we stage them for deletion with
-      // alternate.simpleCommand(add --all)
+      // repo.simpleCommand(add --all)
       AddExcludedFilesToIndex excludedAdder =
           new AddExcludedFilesToIndex(scratchClone, destinationFiles);
       excludedAdder.findSubmodules(console);
 
-      console.progress("Git Destination: Cloning destination");
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
+
       console.progress("Git Destination: Adding all files");
       alternate.add().force().all().run();
 
@@ -335,70 +402,103 @@ public final class GitDestination implements Destination<GitRevision> {
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
           messageInfo.text);
+
       if (baseline != null) {
         // Our current implementation (That we should change) leaves unstaged files in the
         // work-tree. This is fine for commit/push but not for rebase, since rebase could fail
         // and needs to create a conflict resolution work-tree.
         alternate.simpleCommand("reset", "--hard");
-        alternate.rebase("FETCH_HEAD");
+        alternate.rebase(localBranchRevision.getSha1());
       }
 
       if (destinationOptions.localRepoPath != null) {
+
         // If the user provided a directory for the local repo we don't want to leave changes
         // in the checkout dir. Remove tracked changes:
         scratchClone.simpleCommand("reset", "--hard");
         // ...and untracked ones:
         scratchClone.simpleCommand("clean", "-f");
-
-        // Update current HEAD to point to a named reference so that it shows nice in the created
-        // repo. This is purely cosmetic since we push using remote.origin.push.
-        String localRef = push.startsWith("refs/") ? push : "refs/heads/" + push;
-        scratchClone.simpleCommand("update-ref", localRef, "HEAD");
-        scratchClone.simpleCommand("checkout", localRef);
+        scratchClone.simpleCommand("checkout", state.localBranch);
       }
 
       if (transformResult.isAskForConfirmation()) {
         // The git repo contains the staged changes at this point. Git diff writes to Stdout
         console.info(DiffUtil.colorize(
-            console, alternate.simpleCommand("show", "HEAD").getStdout()));
+            console, scratchClone.simpleCommand("show", "HEAD").getStdout()));
         if (!console.promptConfirmation(
-            String.format("Proceed with push to %s %s?", repoUrl, push))) {
+            String.format("Proceed with push to %s %s?", repoUrl, remotePush))) {
           console.warn("Migration aborted by user.");
           throw new ChangeRejectedException(
               "User aborted execution: did not confirm diff changes.");
         }
       }
-      if (pushToRemote) {
-        console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
+      if (!skipPush) {
+        console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, remotePush));
         // Git push writes to Stderr
         processPushOutput.process(
-            alternate.simpleCommand("push", repoUrl, "HEAD:" + GitDestination.this.push)
+            scratchClone.simpleCommand("push", repoUrl, "HEAD:" + remotePush)
                 .getStderr(),
             messageInfo.newPush, alternate);
-      } else {
-        console.info("Local repository available at " + scratchClone.getWorkTree());
       }
       return WriterResult.OK;
     }
-  }
-  private void configLocalRepo(GitRepository localRepo) throws RepoException {
 
-    // Configure the local repo to allow pushing to the ref manually outside of Copybara
-    localRepo.simpleCommand("remote", "add", "origin", repoUrl);
-    localRepo.simpleCommand("config", "--local", "remote.origin.push", "HEAD:" + push);
-  }
-
-  private void fetchFromRemote(GitRepository scratchClone) throws RepoException {
-    try {
-      scratchClone.fetchSingleRef(repoUrl, fetch);
-    } catch (CannotResolveRevisionException e) {
-      if (!force) {
-        throw new RepoException("'" + fetch + "' doesn't exist in '" + repoUrl
-            + "'. Use " + GeneralOptions.FORCE + " flag if you want to push anyway");
+    private void updateLocalBranchToBaseline(GitRepository repo, String baseline)
+        throws RepoException {
+      if (baseline != null && !repo.refExists(baseline)) {
+        throw new RepoException("Cannot find baseline '" + baseline
+            + (getLocalBranchRevision(repo) != null
+            ? "' from fetch reference '" + remoteFetch + "'"
+            : "' and fetch reference '" + remoteFetch + "' itself")
+            + " in " + repoUrl + ".");
+      } else if (baseline != null) {
+        // Update the local branch to use the baseline
+        repo.simpleCommand("update-ref", state.localBranch, baseline);
       }
     }
-  }
 
+    @Nullable
+    private GitRevision fetchFromRemote(Console console, GitRepository repo, String repoUrl,
+        String fetch) throws RepoException, ValidationException {
+      try {
+        console.progress("Git Destination: Fetching: " + repoUrl + " " + fetch);
+        return repo.fetchSingleRef(repoUrl, fetch);
+      } catch (CannotResolveRevisionException e) {
+        String warning = String.format("Git Destination: '%s' doesn't exist in '%s'",
+            fetch, repoUrl);
+        if (!force) {
+          throw new ValidationException(
+              String.format("%s. Use %s flag if you want to push anyway", warning,
+                  GeneralOptions.FORCE));
+        }
+        console.warn(warning);
+      }
+      return null;
+    }
+
+    private GitRepository configForPush(GitRepository repo, String repoUrl, String push)
+        throws RepoException {
+
+      if (destinationOptions.localRepoPath != null) {
+        // Configure the local repo to allow pushing to the ref manually outside of Copybara
+        repo.simpleCommand("config", "remote.copybara_remote.url", repoUrl);
+        repo.simpleCommand("config", "remote.copybara_remote.push",
+            state.localBranch + ":" + push);
+        repo.simpleCommand("config", "branch." + state.localBranch
+            + ".remote", "copybara_remote");
+      }
+      if (!Strings.isNullOrEmpty(destinationOptions.committerName)) {
+        repo.simpleCommand("config", "user.name", destinationOptions.committerName);
+      }
+      if (!Strings.isNullOrEmpty(destinationOptions.committerEmail)) {
+        repo.simpleCommand("config", "user.email", destinationOptions.committerEmail);
+      }
+      verifyUserInfoConfigured(repo);
+
+      return repo;
+    }
+
+  }
   @VisibleForTesting
   String getFetch() {
     return fetch;

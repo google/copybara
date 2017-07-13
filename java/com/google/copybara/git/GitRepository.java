@@ -48,9 +48,9 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -455,13 +455,27 @@ public class GitRepository {
     return new AddCmd(/*force*/false, /*all*/false, /*files*/ImmutableSet.of());
   }
 
+  // TODO(malcon): Refactor. See bellow.
+  String getConfigField(String field) throws RepoException {
+    return getConfigField(field, /*configFile=*/null);
+  }
+
   /**
-   * Get a field from a configuration {@code file} relative to {@link #getWorkTree()}.
+   * Get a field from a configuration {@code configFile} relative to {@link #getWorkTree()}.
+   *
+   * <p>If {@code configFile} is null it uses configuration (local or global).
+   * TODO(malcon): Refactor this to work similar to LogCmd.
    */
   @Nullable
-  String getConfigField(String file, String field) throws RepoException {
-    CommandOutputWithStatus out = gitAllowNonZeroExit(
-        ImmutableList.of("config", "-f", file, "--get", field));
+  String getConfigField(String field, @Nullable String configFile) throws RepoException {
+    ImmutableList.Builder<String> params = ImmutableList.builder();
+    params.add("config");
+    if (configFile != null) {
+      params.add("-f", configFile);
+    }
+    params.add("--get");
+    params.add(field);
+    CommandOutputWithStatus out = gitAllowNonZeroExit(params.build());
     if (out.getTerminationStatus().success()) {
       return out.getStdout().trim();
     } else if (out.getTerminationStatus().getExitCode() == 1 && out.getStderr().isEmpty()) {
@@ -670,7 +684,7 @@ public class GitRepository {
   }
 
   private String getSubmoduleField(String submoduleName, final String field) throws RepoException {
-    return getConfigField(".gitmodules", "submodule." + submoduleName + "." + field);
+    return getConfigField("submodule." + submoduleName + "." + field, ".gitmodules");
   }
 
 
