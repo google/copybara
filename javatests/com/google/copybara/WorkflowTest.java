@@ -1155,6 +1155,18 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testDateTimeOffset() throws Exception {
+    runWorkflowForMessageTransform(WorkflowMode.ITERATIVE, ""
+        + "def third(ctx):\n"
+        + "  msg = ''\n"
+        + "  for c in ctx.changes.current:\n"
+        + "    msg += c.date_time_iso_offset + '\\n'\n"
+        + "  ctx.set_message(msg)\n");
+    ProcessedChange change = destination.processed.get(1);
+    assertThat(change.getChangesSummary()).isEqualTo("2033-05-18T03:33:20Z\n");
+  }
+
+  @Test
   public void testMessageTransformerForChangeRequest() throws Exception {
     options.workflowOptions.changeBaseline = "1";
     runWorkflowForMessageTransform(WorkflowMode.CHANGE_REQUEST, /*thirdTransform=*/null);
@@ -1173,7 +1185,7 @@ public class WorkflowTest {
         .setAuthor(new Author("Foo Bar", "foo@bar.com"))
         .addSimpleChange(1, "second commit")
         .setAuthor(new Author("Foo Baz", "foo@baz.com"))
-        .addSimpleChange(2, "third commit");
+        .addSimpleChange(2000000000, "third commit");
 
     options.workflowOptions.lastRevision = "0";
     passThruAuthoring();

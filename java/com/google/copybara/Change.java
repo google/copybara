@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -26,6 +28,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -100,6 +103,13 @@ public final class Change<R extends Revision> {
 
   public ZonedDateTime getDateTime() {
     return dateTime;
+  }
+
+  @SkylarkCallable(name = "date_time_iso_offset",
+      doc = "Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'",
+      structField = true)
+  public String dateTimeFmt() {
+    return ISO_OFFSET_DATE_TIME.format(getDateTime());
   }
 
   public ImmutableMap<String, String> getLabels() {
