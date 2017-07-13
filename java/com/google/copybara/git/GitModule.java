@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.TransformWork;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.base.OptionsAwareModule;
@@ -144,7 +145,12 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   };
 
   @SkylarkSignature(name = "gerrit_origin", returnType = GitOrigin.class,
-      doc = "Defines a Git origin for Gerrit reviews.",
+      doc = "Defines a Git origin for Gerrit reviews.\n"
+          + "\n"
+          + "Implicit labels that can be used/exposed:\n"
+          + "\n"
+          + "  - " + GitRepoType.GERRIT_CHANGE_NUMBER_LABEL + ": The change number for the gerrit"
+          + " review.",
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "url", type = String.class,

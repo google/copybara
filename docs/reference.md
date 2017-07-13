@@ -653,6 +653,10 @@ transformations|`sequence of transformation`<br><p>The transformations to revers
 
 Defines a migration pipeline which can be invoked via the Copybara command.
 
+Implicit labels that can be used/exposed:
+
+  - COPYBARA_CONTEXT_REFERENCE: Requested reference. For example if copybara is invoked as `copybara copy.bara.sky workflow master`, the value would be `master`.
+
 `core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False)`
 
 ### Parameters:
@@ -693,7 +697,7 @@ Name | Type | Description
 
 Moves files between directories and renames files
 
-`copyOrMove core.move(before, after, paths=glob(["**"]), overwrite=False)`
+`transformation core.move(before, after, paths=glob(["**"]), overwrite=False)`
 
 ### Parameters:
 
@@ -742,7 +746,7 @@ In this example, `foo/bar` would be moved to `bar`.
 
 Copy files between directories and renames files
 
-`copyOrMove core.copy(before, after, paths=glob(["**"]), overwrite=False)`
+`transformation core.copy(before, after, paths=glob(["**"]), overwrite=False)`
 
 ### Parameters:
 
@@ -1036,6 +1040,10 @@ Name | Type | Description
 
 Defines a Git origin for Gerrit reviews.
 
+Implicit labels that can be used/exposed:
+
+  - GERRIT_CHANGE_NUMBER: The change number for the gerrit review.
+
 `gitOrigin git.gerrit_origin(url, ref=None, submodules='NO')`
 
 ### Parameters:
@@ -1091,7 +1099,7 @@ Name | Type | Description
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
 --git-destination-push | *string* | If set, overrides the git destination push reference.
---git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara is run.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 
@@ -1122,7 +1130,7 @@ Name | Type | Description
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
 --git-destination-push | *string* | If set, overrides the git destination push reference.
---git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that the directory will be deleted each time Copybara is run.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 

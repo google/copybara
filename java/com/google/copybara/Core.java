@@ -175,7 +175,13 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
 
   private static final String CHECK_LAST_REV_STATE = "check_last_rev_state";
   @SkylarkSignature(name = "workflow", returnType = NoneType.class,
-      doc = "Defines a migration pipeline which can be invoked via the Copybara command.",
+      doc = "Defines a migration pipeline which can be invoked via the Copybara command.\n"
+          + "\n"
+          + "Implicit labels that can be used/exposed:\n"
+          + "\n"
+          + "  - " + TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL + ": Requested reference. For"
+          + " example if copybara is invoked as `copybara copy.bara.sky workflow master`, the value"
+          + " would be `master`.",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object", positional = false),
           @Param(name = "name", type = String.class,

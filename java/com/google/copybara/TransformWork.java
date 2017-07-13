@@ -53,6 +53,8 @@ import javax.annotation.Nullable;
         + "transformations</code> functions used in <code>core.workflow</code>")
 public final class TransformWork {
 
+  static final String COPYBARA_CONTEXT_REFERENCE_LABEL = "COPYBARA_CONTEXT_REFERENCE";
+
   private final Path checkoutDir;
   private Metadata metadata;
   private final Changes changes;
@@ -221,6 +223,9 @@ public final class TransformWork {
       , allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
+    if (label.equals(COPYBARA_CONTEXT_REFERENCE_LABEL)) {
+      return resolvedReference.contextReference();
+    }
     Optional<LabelFinder> msgLabel = getLabelInMessage(label);
     if (msgLabel.isPresent()) {
       return msgLabel.get().getValue();
