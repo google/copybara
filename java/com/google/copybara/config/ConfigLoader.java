@@ -16,6 +16,7 @@
 
 package com.google.copybara.config;
 
+import com.google.common.base.Preconditions;
 import com.google.copybara.Config;
 import com.google.copybara.ModuleSupplier;
 import com.google.copybara.Options;
@@ -23,32 +24,30 @@ import com.google.copybara.ValidationException;
 import java.io.IOException;
 
 /**
- * Loads the configuration from a given source.
+ * Loads the configuration from a given config file.
  */
-public abstract class ConfigLoader<T> {
+public class ConfigLoader<T> {
 
   private final SkylarkParser skylarkParser;
+  private final ConfigFile<T> configFile;
 
-  public ConfigLoader(ModuleSupplier moduleSupplier) {
+  public ConfigLoader(ModuleSupplier moduleSupplier, ConfigFile<T> configFile) {
     this.skylarkParser = new SkylarkParser(moduleSupplier.getModules());
+    this.configFile = Preconditions.checkNotNull(configFile);
   }
 
   /**
    * Returns a string representation of the location of this configuration.
    */
-  public abstract String location();
-
-  /**
-   * Loads the configuration using this loader.
-   * @param options
-   */
-  public Config loadConfig(Options options) throws ValidationException, IOException {
-    ConfigFile<T> configFile = getConfigFile();
-    return skylarkParser.loadConfig(configFile, options);
+  public final String location() {
+    return configFile.path();
   }
 
   /**
-   * Returns the {@link ConfigFile} for this loader.
+   * Loads the configuration using this loader.
+   * @param options Parsed command line options
    */
-  protected abstract ConfigFile<T> getConfigFile() throws ValidationException, IOException;
+  public final Config loadConfig(Options options) throws ValidationException, IOException {
+    return skylarkParser.loadConfig(configFile, options);
+  }
 }

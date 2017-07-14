@@ -241,10 +241,12 @@ public class Main {
 
   protected ConfigLoader<?> newConfigLoader(
       ModuleSupplier moduleSupplier, Options options, String configLocation,
-      @Nullable String sourceRef) throws ValidationException {
+      @Nullable String sourceRef) throws ValidationException, IOException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    return new LocalConfigLoader(
-        moduleSupplier, generalOptions, generalOptions.getFileSystem().getPath(configLocation));
+    LocalConfigResolver configResolver =
+        new LocalConfigResolver(
+            generalOptions, generalOptions.getFileSystem().getPath(configLocation));
+    return new ConfigLoader<>(moduleSupplier, configResolver.resolve());
   }
 
   protected Console getConsole(String[] args) {

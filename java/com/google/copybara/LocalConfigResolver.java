@@ -20,36 +20,27 @@ import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.config.ConfigFile;
-import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.config.PathBasedConfigFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
 
 /**
- * A {@link ConfigLoader} for the local filesystem.
+ * Finds a configuration in the local filesystem.
  *
  * <p>If the root path is not provided, tries to find it with heuristics.
  */
-public class LocalConfigLoader extends ConfigLoader<Path> {
+public class LocalConfigResolver {
 
   private final GeneralOptions generalOptions;
   private final Path configPath;
 
-  public LocalConfigLoader(
-      ModuleSupplier moduleSupplier, GeneralOptions generalOptions, Path configPath) {
-    super(moduleSupplier);
+  public LocalConfigResolver(GeneralOptions generalOptions, Path configPath) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.configPath = Preconditions.checkNotNull(configPath);
   }
 
-  @Override
-  public String location() {
-    return configPath.toString();
-  }
-
-  @Override
-  protected ConfigFile<Path> getConfigFile() throws ValidationException {
+  public ConfigFile<Path> resolve() throws ValidationException {
     String fileName = configPath.getFileName().toString();
     ValidationException.checkCondition(
         fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
