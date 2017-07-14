@@ -152,6 +152,36 @@ public class MetadataModule {
   };
 
   @SuppressWarnings("unused")
+  @SkylarkSignature(name = "use_last_change", returnType = Transformation.class,
+      doc = "Use metadata (message or/and author) from the last change being migrated."
+          + " Useful when using 'SQUASH' mode but user only cares about the last change.",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "author", type = Boolean.class,
+              doc = "Replace author with the last change author (Could still be the default"
+                  + " author if not whitelisted or using `authoring.overwrite`.",
+              defaultValue = "True", positional = false),
+          @Param(name = "message", type = Boolean.class,
+              doc = "Replace message with last change message.",
+              defaultValue = "True", positional = false),
+          @Param(name = "default_message", type = String.class,
+              doc = "Replace message with last change message.",
+              noneable = true, defaultValue = "None", positional = false),
+      }, objectType = MetadataModule.class, useLocation = true)
+  static final BuiltinFunction USE_LAST_CHANGE = new BuiltinFunction("use_last_change") {
+    public Transformation invoke(MetadataModule self, Boolean useAuthor, Boolean useMsg,
+        Object defaultMsg, Location location) throws EvalException {
+      SkylarkUtil.check(location, useAuthor || useMsg, "author or message should"
+          + " be enabled");
+      String defaultMessage = convertFromNoneable(defaultMsg, null);
+
+      SkylarkUtil.check(location, defaultMessage == null || useMsg,
+          "default_message can only be used if message = True ");
+      return new UseLastChange(useAuthor, useMsg, defaultMessage);
+    }
+  };
+
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "expose_label", returnType = Transformation.class,
       doc = "Certain labels are present in the internal metadata but are not exposed in the message"
           + " by default. This transformations find a label in the internal metadata and exposes it"
