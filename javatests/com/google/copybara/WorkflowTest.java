@@ -17,7 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.TransformWork.*;
+import static com.google.copybara.TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.WorkflowMode.SQUASH;
 import static com.google.copybara.git.GitRepository.bareRepo;
@@ -63,6 +63,9 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -1163,7 +1166,17 @@ public class WorkflowTest {
         + "    msg += c.date_time_iso_offset + '\\n'\n"
         + "  ctx.set_message(msg)\n");
     ProcessedChange change = destination.processed.get(1);
-    assertThat(change.getChangesSummary()).isEqualTo("2033-05-18T03:33:20Z\n");
+
+    TemporalAccessor actual = DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(
+        change.getChangesSummary().trim());
+
+    // Refers to the same time
+    assertThat(actual.getLong(ChronoField.INSTANT_SECONDS))
+        .isEqualTo(change.getTimestamp().getLong(ChronoField.INSTANT_SECONDS));
+
+    // With the same time-zone
+    assertThat(actual.getLong(ChronoField.OFFSET_SECONDS))
+        .isEqualTo(change.getTimestamp().getLong(ChronoField.OFFSET_SECONDS));
   }
 
   @Test
