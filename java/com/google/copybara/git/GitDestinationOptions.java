@@ -94,6 +94,11 @@ public final class GitDestinationOptions implements Option {
       description = "Use git --first-parent flag when looking for last-rev in previous commits")
   boolean lastRevFirstParent = false;
 
+  @Parameter(names = "--git-destination-non-fast-forward",
+      description = "Allow non-fast-forward pushes to the destination. We only allow this when"
+          + " used with different push != fetch references.")
+  boolean nonFastForwardPush = false;
+
 
   /**
    * Returns a non-bare repo. Either because it uses a custom worktree or because it is a user

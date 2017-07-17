@@ -12,6 +12,8 @@
   - [metadata](#metadata)
     - [metadata.squash_notes](#metadata.squash_notes)
     - [metadata.save_author](#metadata.save_author)
+    - [metadata.map_author](#metadata.map_author)
+    - [metadata.use_last_change](#metadata.use_last_change)
     - [metadata.expose_label](#metadata.expose_label)
     - [metadata.restore_author](#metadata.restore_author)
     - [metadata.add_header](#metadata.add_header)
@@ -287,6 +289,53 @@ For a given change, store a copy of the author as a label with the name ORIGINAL
 Parameter | Description
 --------- | -----------
 label|`string`<br><p>The label to use for storing the author</p>
+
+
+<a id="metadata.map_author" aria-hidden="true"></a>
+## metadata.map_author
+
+Map the author name and mail to another author. The mapping can be done by both name and mail or only using any of the two.
+
+`transformation metadata.map_author(authors, reversible=False, fail_if_not_found=False, reverse_fail_if_not_found=False)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+authors|`dict`<br><p>The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or 'Your Name <some@mail>'. The mapping applies heuristics to know which field to use in the mapping. The value has to be always in the form of 'Your Name <some@mail>'</p>
+reversible|`boolean`<br><p>If the transform is automatically reversible. Workflows using the reverse of this transform will be able to automatically map values to keys.</p>
+fail_if_not_found|`boolean`<br><p>Fail if a mapping cannot be found. Helps discovering early authors that should be in the map</p>
+reverse_fail_if_not_found|`boolean`<br><p>Same as fail_if_not_found but when the transform is used in a inverse workflow.</p>
+
+
+### Example:
+
+#### Map some names, emails and complete authors:
+
+Here we show how to map authors using different options:
+
+```python
+metadata.map_author({
+    'john' : 'Some Person <some@example.com>',
+    'madeupexample@google.com' : 'Other Person <someone@example.com>',
+    'John Example <john.example@example.com>' : 'Another Person <some@email.com>',
+})
+```
+
+<a id="metadata.use_last_change" aria-hidden="true"></a>
+## metadata.use_last_change
+
+Use metadata (message or/and author) from the last change being migrated. Useful when using 'SQUASH' mode but user only cares about the last change.
+
+`transformation metadata.use_last_change(author=True, message=True, default_message=None)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+author|`boolean`<br><p>Replace author with the last change author (Could still be the default author if not whitelisted or using `authoring.overwrite`.</p>
+message|`boolean`<br><p>Replace message with last change message.</p>
+default_message|`string`<br><p>Replace message with last change message.</p>
 
 
 <a id="metadata.expose_label" aria-hidden="true"></a>
@@ -1102,6 +1151,7 @@ Name | Type | Description
 --git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+--git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
 ## git.gerrit_destination
@@ -1133,6 +1183,7 @@ Name | Type | Description
 --git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+--git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 
 
 # patch

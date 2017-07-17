@@ -39,12 +39,14 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
+import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -166,7 +168,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
     return new WriterImpl(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
         destinationOptions, verbose, force, console, commitGenerator, processPushOutput,
-        state);
+        state, destinationOptions.nonFastForwardPush);
   }
 
   /**
@@ -200,11 +202,13 @@ public final class GitDestination implements Destination<GitRevision> {
     private final CommitGenerator commitGenerator;
     private final ProcessPushOutput processPushOutput;
     private final WriterState state;
+    // We could get it from destinationOptions but this is in preparation of a GH PR destination.
+    private final boolean nonFastForwardPush;
 
     WriterImpl(Glob destinationFiles, boolean skipPush, String repoUrl, String remoteFetch,
         String remotePush, GitDestinationOptions destinationOptions, boolean verbose, boolean force,
         Console baseConsole, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-        WriterState state) {
+        WriterState state, boolean nonFastForwardPush) {
       this.destinationFiles = checkNotNull(destinationFiles);
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
@@ -217,6 +221,7 @@ public final class GitDestination implements Destination<GitRevision> {
       this.commitGenerator = checkNotNull(commitGenerator);
       this.processPushOutput = checkNotNull(processPushOutput);
       this.state = checkNotNull(state);
+      this.nonFastForwardPush = nonFastForwardPush;
     }
 
     @Override
@@ -434,11 +439,19 @@ public final class GitDestination implements Destination<GitRevision> {
       }
       if (!skipPush) {
         console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, remotePush));
-        // Git push writes to Stderr
-        processPushOutput.process(
-            scratchClone.simpleCommand("push", repoUrl, "HEAD:" + remotePush)
-                .getStderr(),
-            messageInfo.newPush, alternate);
+        ValidationException.checkCondition(!nonFastForwardPush
+            || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
+            + " allowed when fetch != push");
+        CommandOutput output;
+        if (nonFastForwardPush) {
+
+          // TODO(malcon): Use --force-with-lease instead. (We also need to fetch).
+          output = scratchClone.simpleCommand("push", "-f", repoUrl, "HEAD:" + remotePush);
+        } else {
+          // Git push writes to Stderr
+          output = scratchClone.simpleCommand("push", repoUrl, "HEAD:" + remotePush);
+        }
+        processPushOutput.process(output.getStderr(), messageInfo.newPush, alternate);
       }
       return WriterResult.OK;
     }
