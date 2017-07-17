@@ -26,7 +26,9 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.ConfigLoader;
+import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -41,6 +43,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -243,10 +246,44 @@ public class Main {
       ModuleSupplier moduleSupplier, Options options, String configLocation,
       @Nullable String sourceRef) throws ValidationException, IOException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    LocalConfigResolver configResolver =
-        new LocalConfigResolver(
-            generalOptions, generalOptions.getFileSystem().getPath(configLocation));
-    return new ConfigLoader<>(moduleSupplier, configResolver.resolve());
+    return new ConfigLoader<>(moduleSupplier, resolveConfig(generalOptions, configLocation));
+  }
+
+  protected ConfigFile<Path> resolveConfig(GeneralOptions generalOptions, String configLocation)
+      throws ValidationException {
+    Path configPath = generalOptions.getFileSystem().getPath(configLocation);
+    String fileName = configPath.getFileName().toString();
+    ValidationException.checkCondition(
+        fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
+        String.format("Copybara config file filename should be '%s' but it is '%s'.",
+            COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName()));
+
+    // Treat the top level element specially since it is passed thru the command line.
+    if (!Files.exists(configPath)) {
+      throw new CommandLineException("Configuration file not found: " + configPath);
+    }
+    Path root = generalOptions.getConfigRoot() != null
+        ? generalOptions.getConfigRoot()
+        : findConfigRootHeuristic(configPath.toAbsolutePath());
+    return new PathBasedConfigFile(configPath.toAbsolutePath(), root).withContentLogging();
+  }
+
+  /**
+   * Find the root path for resolving configuration file paths and resources. This method
+   * assumes that the .git containing directory is the root path.
+   *
+   * <p>This could be extended to other kind of source control systems.
+   */
+  @Nullable
+  protected Path findConfigRootHeuristic(Path configPath) {
+    Path parent = configPath.getParent();
+    while (parent != null) {
+      if (Files.isDirectory(parent.resolve(".git"))) {
+        return parent;
+      }
+      parent = parent.getParent();
+    }
+    return null;
   }
 
   protected Console getConsole(String[] args) {
