@@ -39,7 +39,7 @@ public class ConfigLoader<T> {
   /**
    * Returns a string representation of the location of this configuration.
    */
-  public final String location() {
+  public String location() {
     return configFile.path();
   }
 
@@ -47,7 +47,7 @@ public class ConfigLoader<T> {
    * Loads the configuration using this loader.
    * @param options Parsed command line options
    */
-  public final Config loadConfig(Options options) throws ValidationException, IOException {
+  public Config loadConfig(Options options) throws ValidationException, IOException {
     return skylarkParser.loadConfig(configFile, options);
   }
 }
