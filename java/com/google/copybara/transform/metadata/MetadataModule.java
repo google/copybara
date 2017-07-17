@@ -150,6 +150,53 @@ public class MetadataModule {
       return new SaveOriginalAuthor(label);
     }
   };
+  
+  static final String MAP_AUTHOR_EXAMPLE_SIMPLE = ""
+      + "metadata.map_author({\n"
+      + "    'john' : 'Some Person <some@example.com>',\n"
+      + "    'madeupexample@google.com' : 'Other Person <someone@example.com>',\n"
+      + "    'John Example <john.example@example.com>' : 'Another Person <some@email.com>',\n"
+      + "})";
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "map_author", returnType = Transformation.class,
+      doc = "Map the author name and mail to another author. The mapping can be done by both name"
+          + " and mail or only using any of the two.",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "authors", type = SkylarkDict.class,
+              doc = "The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or"
+                  + " 'Your Name <some@mail>'. The mapping applies heuristics to know which field"
+                  + " to use in the mapping. The value has to be always in the form of"
+                  + " 'Your Name <some@mail>'",
+              positional = false),
+          @Param(name = "reversible", type = Boolean.class,
+              doc = "If the transform is automatically reversible. Workflows using the reverse of"
+                  + " this transform will be able to automatically map values to keys.",
+              defaultValue = "False", positional = false),
+          @Param(name = "fail_if_not_found", type = Boolean.class,
+              doc = "Fail if a mapping cannot be found. Helps discovering early authors that should"
+                  + " be in the map",
+              defaultValue = "False", positional = false),
+          @Param(name = "reverse_fail_if_not_found", type = Boolean.class,
+              doc = "Same as fail_if_not_found but when the transform is used in a inverse"
+                  + " workflow.",
+              defaultValue = "False", positional = false),
+      }, objectType = MetadataModule.class, useLocation = true)
+  @Example(title =  "Map some names, emails and complete authors",
+  before = "Here we show how to map authors using different options:",
+  code = MAP_AUTHOR_EXAMPLE_SIMPLE)
+  static final BuiltinFunction MAP_AUTHOR = new BuiltinFunction("map_author") {
+    public Transformation invoke(MetadataModule self, SkylarkDict<String, String> authors,
+        Boolean reversible, Boolean failIfNotFound, Boolean reverseFailIfNotFound,
+        Location location) throws EvalException {
+      SkylarkUtil.check(location, reversible || !reverseFailIfNotFound,
+          "'reverse_fail_if_not_found' can only be true if 'reversible' is true");
+
+      return MapAuthor.create(location, Type.STRING_DICT.convert(authors, "authors"),
+          reversible, failIfNotFound, reverseFailIfNotFound);
+    }
+  };
 
   @SuppressWarnings("unused")
   @SkylarkSignature(name = "use_last_change", returnType = Transformation.class,

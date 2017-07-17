@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Config;
+import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -483,6 +484,121 @@ public class MetadataModuleTest {
             + "\nand this\nis a secret\n",
         "metadata.scrubber('(^|\\n)CONFIDENTIAL:(.|\\n)*')",
         "this is public\nvery public");
+  }
+
+  @Test
+  public void testMapAuthor() throws Exception {
+    options.setLastRevision(origin.resolve("HEAD").asString());
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, MetadataModule.MAP_AUTHOR_EXAMPLE_SIMPLE);
+
+    origin.setAuthor(new Author("john", "john@example.com"))
+        .addSimpleChange(0, "change 0");
+    origin.setAuthor(new Author("Example Example", "madeupexample@google.com"))
+        .addSimpleChange(1, "change 1");
+    origin.setAuthor(new Author("John Example", "john.example@example.com"))
+        .addSimpleChange(2, "change 2");
+    origin.setAuthor(new Author("Other Example", "john.example@example.com"))
+        .addSimpleChange(3, "change 3");
+    origin.setAuthor(new Author("John Example", "other.example@example.com"))
+        .addSimpleChange(4, "change 4");
+
+    destination.processed.clear();
+    wf.run(workdir, /*sourceRef=*/null);
+    assertThat(destination.processed.get(0).getAuthor().toString())
+        .isEqualTo("Some Person <some@example.com>");
+    assertThat(destination.processed.get(1).getAuthor().toString())
+        .isEqualTo("Other Person <someone@example.com>");
+    assertThat(destination.processed.get(2).getAuthor().toString())
+        .isEqualTo("Another Person <some@email.com>");
+    assertThat(destination.processed.get(3).getAuthor().toString())
+        .isEqualTo("Other Example <john.example@example.com>"); // No match
+    assertThat(destination.processed.get(4).getAuthor().toString())
+        .isEqualTo("John Example <other.example@example.com>"); // No match
+  }
+
+  @Test
+  public void testMapAuthor_failIfNotFound() throws Exception {
+    options.setLastRevision(origin.resolve("HEAD").asString());
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, ""
+        + "metadata.map_author({\n"
+        + "    'a' : 'x <x@example.com>',\n"
+        + "    'b@example.com' : 'y <y@example.com>',\n"
+        + "    'c <c@example.com>' : 'z <z@example.com>',\n"
+        + "}, fail_if_not_found = True)");
+
+    origin.setAuthor(new Author("a", "a@example.com"))
+        .addSimpleChange(0, "change 0");
+    origin.setAuthor(new Author("b", "b@example.com"))
+        .addSimpleChange(1, "change 1");
+    origin.setAuthor(new Author("c", "c@example.com"))
+        .addSimpleChange(2, "change 2");
+    origin.setAuthor(new Author("Not found", "d@example.com"))
+        .addSimpleChange(3, "change 3");
+
+    destination.processed.clear();
+
+    try {
+      wf.run(workdir, /*sourceRef=*/null);
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessage("Cannot find a mapping for author 'Not found <d@example.com>'");
+    }
+
+    assertThat(destination.processed.get(0).getAuthor().toString())
+        .isEqualTo("x <x@example.com>");
+    assertThat(destination.processed.get(1).getAuthor().toString())
+        .isEqualTo("y <y@example.com>");
+    assertThat(destination.processed.get(2).getAuthor().toString())
+        .isEqualTo("z <z@example.com>");
+  }
+
+  @Test
+  public void testMapAuthor_reversible() throws Exception {
+    Transformation m = skylarkExecutor.eval("m", "m = "
+        + "metadata.map_author({\n"
+        + "    'a <a@example.com>' : 'b <b@example.com>',\n"
+        + "},"
+        + "reversible = True)");
+
+    TransformWork work = TransformWorks.of(workdir, "test", testingConsole);
+    work.setAuthor(new Author("a", "a@example.com"));
+    m.transform(work);
+
+    assertThat(work.getAuthor().toString()).isEqualTo("b <b@example.com>");
+
+    m.reverse().transform(work);
+
+    assertThat(work.getAuthor().toString()).isEqualTo("a <a@example.com>");
+  }
+
+  @Test
+  public void testMapAuthor_nonReversible() throws Exception {
+    Transformation m = skylarkExecutor.eval("m", "m = "
+        + "metadata.map_author({\n"
+        + "    'a' : 'b <b@example.com>',\n"
+        + "},"
+        + "reversible = True)");
+    thrown.expect(NonReversibleValidationException.class);
+    m.reverse();
+  }
+
+  @Test
+  public void testMapAuthor_reverseFaiIfNotFound() throws Exception {
+    Transformation m = skylarkExecutor.eval("m", "m = "
+        + "metadata.map_author({\n"
+        + "    'a <a@example.com>' : 'b <b@example.com>',\n"
+        + "},"
+        + "reversible = True, reverse_fail_if_not_found = True)");
+
+    TransformWork work = TransformWorks.of(workdir, "test", testingConsole);
+    work.setAuthor(new Author("x", "x@example.com"));
+
+    // normal workflow works:
+    m.transform(work);
+
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("Cannot find a mapping for author 'x <x@example.com>'");
+    m.reverse().transform(work);
   }
 
   private void checkScrubber(String commitMsg, String scrubber, String expectedMsg)
