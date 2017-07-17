@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
+import com.google.common.hash.Hashing;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.EmptyChangeException;
@@ -163,8 +164,11 @@ public class GitRepository {
     // This is to avoid "Filename too long" errors, mainly in tests. We cannot change the repo
     // storage path (we use JAVA_IO_TMPDIR), which is the right thing to do for tests to be
     // hermetic.
-    if (escapedUrl.length() > REPO_FOLDER_NAME_LIMIT) {
-      escapedUrl = escapedUrl.substring(escapedUrl.length() - REPO_FOLDER_NAME_LIMIT);
+    if (escapedUrl.length() > REPO_FOLDER_NAME_LIMIT + 40) {
+      escapedUrl = escapedUrl.substring(0, REPO_FOLDER_NAME_LIMIT - 1)
+          + "_"
+          + Hashing.sha1().hashString(
+              escapedUrl.substring(REPO_FOLDER_NAME_LIMIT), StandardCharsets.UTF_8);
     }
     Path gitDir = repoStorage.resolve(escapedUrl);
     return bareRepo(gitDir, environment, verbose);
