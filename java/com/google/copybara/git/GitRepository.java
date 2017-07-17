@@ -121,6 +121,12 @@ public class GitRepository {
           Range.closed(1, 10)).add(Range.singleton(128)).build();
 
   /**
+   * We cannot control the repo storage location, but we can limit the number of characters of the
+   * repo folder name.
+   */
+  private static final int REPO_FOLDER_NAME_LIMIT = 100;
+
+  /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
    * flag.
    */
@@ -153,7 +159,14 @@ public class GitRepository {
    */
   static GitRepository bareRepoInCache(String url, Map<String, String> environment,
       boolean verbose, Path repoStorage) {
-    Path gitDir = repoStorage.resolve(PERCENT_ESCAPER.escape(url));
+    String escapedUrl = PERCENT_ESCAPER.escape(url);
+    // This is to avoid "Filename too long" errors, mainly in tests. We cannot change the repo
+    // storage path (we use JAVA_IO_TMPDIR), which is the right thing to do for tests to be
+    // hermetic.
+    if (escapedUrl.length() > REPO_FOLDER_NAME_LIMIT) {
+      escapedUrl = escapedUrl.substring(escapedUrl.length() - REPO_FOLDER_NAME_LIMIT);
+    }
+    Path gitDir = repoStorage.resolve(escapedUrl);
     return bareRepo(gitDir, environment, verbose);
   }
 
