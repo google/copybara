@@ -16,6 +16,7 @@
 
 package com.google.copybara.config;
 
+import com.google.common.base.MoreObjects;
 import com.google.copybara.util.FileUtil;
 import java.io.IOException;
 
@@ -100,5 +101,12 @@ public abstract class ConfigFile<T> {
     } catch (IllegalArgumentException e) {
       throw new CannotResolveLabel(String.format("Invalid label '%s': %s", label, e.getMessage()));
     }
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("path", path())
+        .toString();
   }
 }

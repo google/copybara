@@ -246,11 +246,14 @@ public class Main {
       ModuleSupplier moduleSupplier, Options options, String configLocation,
       @Nullable String sourceRef) throws ValidationException, IOException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    return new ConfigLoader<>(moduleSupplier, resolveConfig(generalOptions, configLocation));
+    return new ConfigLoader<>(moduleSupplier, resolveLocalConfig(generalOptions, configLocation));
   }
 
-  protected ConfigFile<Path> resolveConfig(GeneralOptions generalOptions, String configLocation)
-      throws ValidationException {
+  /**
+   * Returns a {@link ConfigFile} resolving the {@code configLocation} in the local filesystem.
+   */
+  protected ConfigFile<Path> resolveLocalConfig(
+      GeneralOptions generalOptions, String configLocation) throws ValidationException {
     Path configPath = generalOptions.getFileSystem().getPath(configLocation);
     String fileName = configPath.getFileName().toString();
     ValidationException.checkCondition(

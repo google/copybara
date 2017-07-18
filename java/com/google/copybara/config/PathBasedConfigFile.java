@@ -18,6 +18,7 @@ package com.google.copybara.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import java.io.IOException;
@@ -95,5 +96,13 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
       logger.info(String.format("Content of '%s':\n%s", path, new String(bytes, UTF_8)));
     }
     return bytes;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("path", path)
+        .add("rootPath", rootPath)
+        .toString();
   }
 }

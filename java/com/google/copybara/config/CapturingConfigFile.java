@@ -16,6 +16,7 @@
 
 package com.google.copybara.config;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -90,5 +91,13 @@ class CapturingConfigFile<T> extends ConfigFile<T> {
   @Override
   public int hashCode() {
     return this.path().hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("children", children)
+        .add("wrapped", wrapped)
+        .toString();
   }
 }
