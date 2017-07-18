@@ -30,7 +30,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -38,7 +37,6 @@ import javax.annotation.Nullable;
  */
 @Parameters(separators = "=")
 public final class GitDestinationOptions implements Option {
-  private final Logger logger = Logger.getLogger(GitDestinationOptions.class.getName());
 
   private final Supplier<GeneralOptions> generalOptions;
   private final GitOptions gitOptions;
@@ -115,8 +113,7 @@ public final class GitDestinationOptions implements Option {
       }
       Path path = Paths.get(localRepoPath);
 
-      if (!Files.exists(path)
-          || Files.isDirectory(path) && isGitRepoOrEmptyDir(path)) {
+      if (!Files.exists(path) || (Files.isDirectory(path) && isGitRepoOrEmptyDir(path))) {
         Files.createDirectories(path);
         return GitRepository.initScratchRepo(
             generalOptions.get().isVerbose(), path, generalOptions.get().getEnvironment());
