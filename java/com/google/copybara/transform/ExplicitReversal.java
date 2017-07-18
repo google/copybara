@@ -71,6 +71,20 @@ public final class ExplicitReversal implements Transformation {
     }
   }
 
+  /**
+   * Returns the forward transformation, for introspection and config validation.
+   */
+  public Transformation getForward() {
+    return forward;
+  }
+
+  /**
+   * Returns the reverse transformation, for introspection and config validation.
+   */
+  public Transformation getReverse() {
+    return reverse;
+  }
+
   @Override
   public Transformation reverse() {
     return new ExplicitReversal(reverse, forward, ignoreNoop, console);
