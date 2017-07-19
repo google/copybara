@@ -19,7 +19,6 @@ package com.google.copybara.config;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
-import java.util.stream.Collectors;
 
 /** A Config file implementation that uses a map for storing the internal data structure.
  *
@@ -76,7 +75,7 @@ public class MapConfigFile extends ConfigFile<String> {
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("current", current)
-        .add("configFiles", configFiles.keySet().stream().collect(Collectors.joining(", ")))
+        .add("configFiles", configFiles.keySet())
         .toString();
   }
 }
