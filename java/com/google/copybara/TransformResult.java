@@ -78,6 +78,14 @@ public final class TransformResult {
         this.groupIdentity);
   }
 
+  public TransformResult withSummary(String summary) {
+    Preconditions.checkNotNull(summary);
+    return new TransformResult(
+        this.path, this.currentRevision, this.author, this.timestamp, summary,
+        this.baseline, this.askForConfirmation, this.requestedRevision, this.changeIdentity,
+        this.groupIdentity);
+  }
+
   public TransformResult withIdentity(String changeIdentity, @Nullable String groupIdentity) {
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
