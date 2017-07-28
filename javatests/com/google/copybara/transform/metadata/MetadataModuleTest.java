@@ -378,6 +378,28 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testAddHeader_noNewLine() throws Exception {
+    options.setLastRevision(origin.resolve("HEAD").asString());
+
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.add_header('[HEADER with ${LABEL}]: ', new_line = False)");
+
+    origin.addSimpleChange(0, ""
+        + "A change\n"
+        + "\n"
+        + "LABEL=some label\n");
+
+    wf.run(workdir, /*sourceRef=*/null);
+
+    ProcessedChange change = Iterables.getLast(destination.processed);
+
+    assertThat(change.getChangesSummary()).isEqualTo(""
+        + "[HEADER with some label]: A change\n"
+        + "\n"
+        + "LABEL=some label\n");
+  }
+
+  @Test
   public void testAddHeaderLabelNotFound() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,

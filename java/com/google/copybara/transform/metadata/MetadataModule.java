@@ -307,6 +307,10 @@ public class MetadataModule {
               doc = "If a label used in the template is not found, ignore the error and"
                   + " don't add the header. By default it will stop the migration and fail.",
               defaultValue = "False"),
+          @Param(name = "new_line", type = Boolean.class,
+              doc = "If a new line should be added between the header and the original message."
+                  + " This allows to create messages like `HEADER: ORIGINAL_MESSAGE`",
+              defaultValue = "True"),
       }, objectType = MetadataModule.class)
   @Example(title = "Add a header always",
       before = "Adds a header to any message",
@@ -345,10 +349,27 @@ public class MetadataModule {
           + "GIT_URL=http://foo.com/1234"
           + "```\n\n"
           + "But any change without that label will not be transformed.")
+  @Example(title = "Add a header without new line",
+      before = "Adds a header without adding a new line before the original message:",
+      code = "metadata.add_header(\"COPYBARA CHANGE: \", new_line = False)",
+      after = "Messages like:\n\n"
+          + "```\n"
+          + "A change\n\n"
+          + "Example description for\n"
+          + "documentation\n"
+          + "```\n"
+          + "Will be transformed into:\n"
+          + "```\n"
+          + "COPYBARA CHANGE: "
+          + "A change\n\n"
+          + "Example description for\n"
+          + "documentation\n"
+          + "```\n")
   static final BuiltinFunction ADD_HEADER = new BuiltinFunction("add_header") {
-    public Transformation invoke(MetadataModule self, String header, Boolean ignoreIfLabelNotFound)
+    public Transformation invoke(MetadataModule self, String header, Boolean ignoreIfLabelNotFound,
+        Boolean newLine)
         throws EvalException {
-      return new AddHeader(header, ignoreIfLabelNotFound);
+      return new AddHeader(header, ignoreIfLabelNotFound, newLine);
     }
   };
 
