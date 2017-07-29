@@ -20,6 +20,7 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.WorkflowRunHelper.ComputedChanges;
@@ -191,15 +192,16 @@ public enum WorkflowMode {
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
         O resolvedRef = runHelper.getResolvedRef();
-        runHelper.getOriginReader().visitChanges(resolvedRef,
-            change -> {
-              if (!change.getRevision().asString().equals(resolvedRef.asString())
-                  && change.getLabels().containsKey(originLabelName)) {
-                requestParent.set(change.getLabels().get(originLabelName));
-                return ChangeVisitable.VisitResult.TERMINATE;
-              }
-              return ChangeVisitable.VisitResult.CONTINUE;
-            });
+        runHelper.getOriginReader().visitChangesWithAnyLabel(
+                resolvedRef,
+                ImmutableSet.of(originLabelName),
+                (change, matchedLabels) -> {
+                  if (!change.getRevision().asString().equals(resolvedRef.asString())) {
+                    requestParent.set(matchedLabels.values().iterator().next());
+                    return ChangeVisitable.VisitResult.TERMINATE;
+                  }
+                  return ChangeVisitable.VisitResult.CONTINUE;
+                });
       }
 
       if (Strings.isNullOrEmpty(requestParent.get())) {

@@ -16,6 +16,11 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import java.util.Map;
+
 /**
  * An interface stating that the implementing class accepts child visitors to explore repository
  * state beyond the changes being migrated.
@@ -33,6 +38,21 @@ public interface ChangeVisitable <R extends Revision> {
       throws RepoException, CannotResolveRevisionException;
 
   /**
+   * Visit only changes that contain any of the labels in {@code labels}.
+   */
+  default void visitChangesWithAnyLabel(
+      R start, ImmutableCollection<String> labels, ChangesLabelVisitor visitor)
+      throws RepoException, CannotResolveRevisionException {
+    visitChanges(start, input -> {
+      Map<String, String> copy = Maps.newHashMap(input.getLabels());
+      copy.keySet().retainAll(labels);
+      if (copy.isEmpty()) {
+        return VisitResult.CONTINUE;
+      }
+      return visitor.visit(input, ImmutableMap.copyOf(copy));
+    });
+  }
+  /**
    * A visitor of changes. An implementation of this interface is provided to {@see
    * visitChanges} methods to visit changes in Origin or
    * Destination history.
@@ -44,6 +64,20 @@ public interface ChangeVisitable <R extends Revision> {
      * returning {@link VisitResult#TERMINATE}.
      */
     VisitResult visit(Change<? extends Revision> input);
+  }
+
+  /**
+   * A visitor of changes that only receives changes that match any of the passed labels.
+   */
+  interface ChangesLabelVisitor  {
+
+    /**
+     * Invoked for each change found that matches the labels.
+     *
+     * <p>Note that the {@code matchedLabels} can be disjoint with the labels in {@code input},
+     * since labels might be stored with a different string format.
+     */
+    VisitResult visit(Change<? extends Revision> input, ImmutableMap<String, String> matchedLabels);
   }
 
   /**
