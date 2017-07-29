@@ -18,6 +18,7 @@ package com.google.copybara.profiler;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 
 /**
@@ -27,6 +28,7 @@ public final class Task {
 
   private static final int NOT_FINISHED = -1;
   private final String description;
+  private final ImmutableMap<String, String> fields;
   private final long startNanos;
   private final long finishNanos;
 
@@ -34,15 +36,24 @@ public final class Task {
     this(description, startNanos, NOT_FINISHED);
   }
 
+  Task(String description, ImmutableMap<String, String> fields, long startNanos) {
+    this(description, fields, startNanos, NOT_FINISHED);
+  }
+
   Task(String description, long startNanos, long finishNanos) {
+    this(description, ImmutableMap.of(), startNanos, finishNanos);
+  }
+
+  Task(String description, ImmutableMap<String, String> fields, long startNanos, long finishNanos) {
     this.description = Preconditions.checkNotNull(description);
+    this.fields = Preconditions.checkNotNull(fields);
     this.startNanos = startNanos;
     this.finishNanos = finishNanos;
   }
 
   Task finish(long finishNanos) {
     Preconditions.checkArgument(finishNanos != -1, "Already finished!");
-    return new Task(description, startNanos, finishNanos);
+    return new Task(description, fields, startNanos, finishNanos);
   }
 
   /**
@@ -53,6 +64,16 @@ public final class Task {
    */
   public String getDescription() {
     return description;
+  }
+
+  /**
+   * Context fields of the task.
+   *
+   * <p>They are not part of the profiler path, but they give more context information on this task
+   * and it's type. Might be used to implement more extensive monitoring.
+   */
+  public ImmutableMap<String, String> getFields() {
+    return fields;
   }
 
   /**

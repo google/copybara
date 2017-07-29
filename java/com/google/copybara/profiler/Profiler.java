@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -33,6 +34,8 @@ public final class Profiler {
 
   @VisibleForTesting
   public static final String ROOT_NAME = "//copybara";
+  public static final String TYPE = "type";
+
   private final ProfilerTask nullProfilerTask;
 
   /**
@@ -117,6 +120,10 @@ public final class Profiler {
     stopped = true;
   }
 
+  public ImmutableMap<String, String> taskType(Class<?> aClass) {
+    return ImmutableMap.of(TYPE, aClass.getName());
+  }
+
   /**
    * Create a new profiler task that can be closed using try-with-resources.
    *
@@ -137,13 +144,21 @@ public final class Profiler {
    * try-with-resources pattern
    */
   public ProfilerTask start(String description) {
+    return start(description, ImmutableMap.of());
+  }
+
+  /**
+   * Overloaded method for {@link #start(String)}, that allows adding {@code fields} to the context
+   * of this task.
+   */
+  public ProfilerTask start(String description, ImmutableMap<String, String> fields) {
     if (stopped || listeners.isEmpty()) {
       return nullProfilerTask;
     }
     Deque<Task> tasks = taskQueue.get();
     Preconditions.checkState(!tasks.isEmpty());
     Task parent = tasks.element();
-    Task child = new Task(parent.getDescription() + "/" + description, ticker.read());
+    Task child = new Task(parent.getDescription() + "/" + description, fields, ticker.read());
     tasks.push(child);
     for (Listener listener : listeners) {
       listener.taskStarted(child);
