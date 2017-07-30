@@ -52,6 +52,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -407,23 +408,22 @@ public class GitDestinationTest {
     DummyRevision ref1 = new DummyRevision("first");
 
     Glob firstGlob = Glob.createGlob(ImmutableList.of("foo/**", "bar/**"));
-    Writer<GitRevision> writer1 = destinationFirstCommit().newWriter(firstGlob, /*dryRun=*/false,
-                                                        /*oldWriter=*/null);
+    Writer<GitRevision> writer1 = firstCommitWriter();
     process(writer1, ref1);
 
     Files.write(workdir.resolve("baz/one"), "content2".getBytes(UTF_8));
     DummyRevision ref2 = new DummyRevision("second");
 
     Writer<GitRevision> writer2 = destination().newWriter(
-        Glob.createGlob(ImmutableList.of("baz/**")),/*dryRun=*/false, writer1);
+        Glob.createGlob(ImmutableList.of("baz/**")),/*dryRun=*/false, /*groupId=*/null, writer1);
     process(writer2, ref2);
 
     // Recreate the writer since a destinationFirstCommit writer never looks
     // for a previous ref.
-    assertThat(destination().newWriter(firstGlob, /*dryRun=*/false, writer2)
-                   .getDestinationStatus(ref1.getLabelName(), null).getBaseline())
+    assertThat(destination().newWriter(firstGlob, /*dryRun=*/false, /*groupId=*/null, writer2)
+        .getDestinationStatus(ref1.getLabelName()).getBaseline())
         .isEqualTo(ref1.asString());
-    assertThat(writer2.getDestinationStatus(ref2.getLabelName(), null).getBaseline())
+    assertThat(writer2.getDestinationStatus(ref2.getLabelName()).getBaseline())
         .isEqualTo(ref2.asString());
   }
 
@@ -449,7 +449,7 @@ public class GitDestinationTest {
     Files.write(file, "some content".getBytes());
     Writer<GitRevision> writer = newWriter();
 
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null)).isNull();
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME)).isNull();
     process(writer, new DummyRevision("first_commit"));
     assertCommitHasOrigin("feature", "first_commit");
 
@@ -465,7 +465,7 @@ public class GitDestinationTest {
     Files.write(file, "some content".getBytes());
     writer = newWriter();
 
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null)).isNull();
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME)).isNull();
     process(writer, new DummyRevision("first_commit_2"));
     assertCommitHasOrigin("feature", "first_commit_2");
 
@@ -493,20 +493,20 @@ public class GitDestinationTest {
     Files.write(file, "some content".getBytes());
     Writer<GitRevision>writer =
         firstCommitWriter();
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null)).isNull();
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME)).isNull();
     process(writer, new DummyRevision("first_commit"));
     assertCommitHasOrigin("master", "first_commit");
 
     Files.write(file, "some other content".getBytes());
     writer = newWriter();
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null).getBaseline())
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo("first_commit");
     process(writer, new DummyRevision("second_commit"));
     assertCommitHasOrigin("master", "second_commit");
 
     Files.write(file, "just more text".getBytes());
     writer = newWriter();
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME, null).getBaseline())
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo("second_commit");
     process(writer, new DummyRevision("third_commit"));
     assertCommitHasOrigin("master", "third_commit");
@@ -531,7 +531,7 @@ public class GitDestinationTest {
           .simpleCommand("commit", "-m", "excluded #" + i);
     }
 
-    assertThat(newWriter().getDestinationStatus(DummyOrigin.LABEL_NAME, null).getBaseline())
+    assertThat(newWriter().getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo("first_commit");
   }
 
@@ -573,7 +573,7 @@ public class GitDestinationTest {
 
     scratchRepo.simpleCommand("checkout", "b1");
     scratchRepo.simpleCommand("merge", "b2");
-    return newWriter().getDestinationStatus(DummyOrigin.LABEL_NAME, null).getBaseline();
+    return newWriter().getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline();
   }
 
   private void branchChange(Path scratchTree, GitRepository scratchRepo, final String branch,
@@ -994,7 +994,7 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
 
     Writer<GitRevision> writer = destination().newWriter(destinationFiles, /*dryRun=*/ true,
-                                            /*oldWriter=*/null);
+                                            /*groupId=*/null, /*oldWriter=*/null);
     process(writer, new DummyRevision("origin_ref1"));
 
     GitTesting.assertThatCheckout(repo(), "master")
@@ -1002,7 +1002,7 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
 
     // Run again without dry run
-    writer = destination().newWriter(destinationFiles, /*dryRun=*/ false, writer);
+    writer = newWriter(writer);
     process(writer, new DummyRevision("origin_ref1"));
 
     GitTesting.assertThatCheckout(repo(), "master")
@@ -1176,12 +1176,18 @@ public class GitDestinationTest {
   }
 
   private Writer<GitRevision> newWriter() throws ValidationException {
-    return destination().newWriter(destinationFiles, /*dryRun=*/ false, /*oldWriter=*/null);
+    return newWriter(/*oldWriter=*/null);
+  }
+
+  private Writer<GitRevision> newWriter(@Nullable Writer<GitRevision> oldWriter)
+      throws ValidationException {
+    return destination().newWriter(destinationFiles, /*dryRun=*/ false, /*groupId=*/null,
+        oldWriter);
   }
 
   private Writer<GitRevision> firstCommitWriter() throws ValidationException {
     return destinationFirstCommit().newWriter(destinationFiles, /*dryRun=*/ false,
-                                              /*oldWriter=*/null);
+                                              /*groupId=*/null, /*oldWriter=*/null);
   }
 
   @Test
@@ -1191,8 +1197,7 @@ public class GitDestinationTest {
     process(writer, new DummyRevision("1"));
 
     Files.write(workdir.resolve("test.txt"), "two".getBytes());
-    GitDestination destination = destination();
-    writer = destination.newWriter(destinationFiles, /*dryRun=*/ false, writer);
+    writer = newWriter(writer);
     process(writer, new DummyRevision("2"));
 
     Files.write(workdir.resolve("test.txt"), "three".getBytes());

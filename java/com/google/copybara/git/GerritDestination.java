@@ -121,8 +121,8 @@ public final class GerritDestination implements Destination<GitRevision> {
 
   @Override
   public Writer<GitRevision> newWriter(Glob destinationFiles, boolean dryRun,
-      @Nullable Writer<GitRevision> oldWriter) {
-    return gitDestination.newWriter(destinationFiles, dryRun, oldWriter);
+      @Nullable String groupId, @Nullable Writer<GitRevision> oldWriter) {
+    return gitDestination.newWriter(destinationFiles, dryRun, groupId, oldWriter);
   }
 
   @Override

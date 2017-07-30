@@ -68,6 +68,8 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
     final Glob destinationFiles;
     private final boolean dryRun;
+    @Nullable
+    private final String groupId;
     private final int state;
 
 
@@ -75,18 +77,20 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
       this.state = 0;
+      this.groupId = null;
     }
 
-    public WriterImpl(Glob destinationFiles, boolean dryRun, @Nullable WriterImpl old) {
+    public WriterImpl(Glob destinationFiles, boolean dryRun, @Nullable String groupId,
+        @Nullable WriterImpl old) {
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
+      this.groupId = groupId;
       this.state = old != null && old.dryRun == dryRun ? old.state + 1 : 0;
     }
 
     @Nullable
     @Override
-    public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
-        throws RepoException {
+    public DestinationStatus getDestinationStatus(String labelName) throws RepoException {
       if (processed.isEmpty()) {
         return null;
       }
@@ -128,10 +132,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       ProcessedChange change =
           new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
                               transformResult.getBaseline(), destinationFiles,
-                              dryRun, transformResult.getGroupIdentity(), state);
+                              dryRun, groupId, state);
       processed.add(change);
-      if (transformResult.getGroupIdentity() != null) {
-        pending.put(transformResult.getGroupIdentity(), change);
+      if (groupId != null) {
+        pending.put(groupId, change);
       }
       return programmedResults.isEmpty()
           ? WriterResult.OK
@@ -166,8 +170,8 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
   @Override
   public Writer<Revision> newWriter(Glob destinationFiles, boolean dryRun,
-      @Nullable Writer<Revision> oldWriter) {
-    return new WriterImpl(destinationFiles, dryRun, (WriterImpl) oldWriter);
+      @Nullable String groupId, @Nullable Writer<Revision> oldWriter) {
+    return new WriterImpl(destinationFiles, dryRun, groupId, (WriterImpl) oldWriter);
   }
 
   @Override

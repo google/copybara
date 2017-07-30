@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.copybara.Destination.DestinationStatus;
+import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
@@ -195,10 +196,14 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)
       throws ValidationException, RepoException {
-    return new WorkflowRunHelper<>(this, workdir, resolvedRef, getOrigin()
-        .newReader(getOriginFiles(), getAuthoring()),
-                                   getDestination().newWriter(getDestinationFiles(), dryRunMode,
-                                                              /*oldWriter=*/ null));
+
+    Reader<O> reader = getOrigin()
+        .newReader(getOriginFiles(), getAuthoring());
+    String groupId = computeGroupIdentity(reader.getGroupIdentity(resolvedRef));
+    Writer<D> writer = getDestination().newWriter(getDestinationFiles(), dryRunMode, groupId,
+        /*oldWriter=*/ null);
+    return new WorkflowRunHelper<>(this, workdir, resolvedRef, reader, writer,
+        groupId);
   }
 
   Set<String> configPaths() {
@@ -241,8 +246,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     }
     // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
     // Should be K since info doesn't write but only read.
-    return destination.newWriter(destinationFiles, /*dryrun=*/false, /*oldWriter=*/null)
-        .getDestinationStatus(origin.getLabelName(), computeGroupIdentity(groupIdentity));
+    return destination.newWriter(destinationFiles, /*dryrun=*/false,
+        computeGroupIdentity(groupIdentity), /*oldWriter=*/null)
+        .getDestinationStatus(origin.getLabelName());
   }
 
   @Override
@@ -322,8 +328,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return computeIdentity("ChangeIdentity", ctxRef);
   }
 
+  /**
+   * Visible for extension
+   */
   @Nullable
-  String computeGroupIdentity(@Nullable String originGroupId) {
+  protected String computeGroupIdentity(@Nullable String originGroupId) {
     return originGroupId == null ? null : computeIdentity("OriginGroupIdentity", originGroupId);
   }
 

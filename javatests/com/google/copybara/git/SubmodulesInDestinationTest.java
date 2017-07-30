@@ -112,7 +112,7 @@ public final class SubmodulesInDestinationTest {
 
     Files.write(workdir.resolve("test42"), new byte[] {42});
     Destination.Writer writer = destination().newWriter(destinationFiles, /*dryRun=*/false,
-                                                        /*oldWriter=*/ null);
+                                                        /*groupId=*/null, /*oldWriter=*/ null);
     WriterResult result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
         console);
@@ -166,7 +166,7 @@ public final class SubmodulesInDestinationTest {
 
     Destination.Writer writer =
         destination().newWriter(destinationFiles, /*dryRun=*/false,
-                                /*oldWriter=*/ null);
+                                /*groupId=*/null, /*oldWriter=*/ null);
     WriterResult result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
         console);

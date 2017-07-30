@@ -38,8 +38,6 @@ public final class TransformResult {
   private final Revision requestedRevision;
   @Nullable
   private final String changeIdentity;
-  @Nullable
-  private final String groupIdentity;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -51,13 +49,12 @@ public final class TransformResult {
       throws RepoException {
     this(path, currentRevision, author, readTimestampOrCurrentTime(currentRevision), summary,
         /*baseline=*/ null, /*askForConfirmation=*/ false, requestedRevision,
-         /*changeIdentity=*/null, /*groupIdentity=*/null);
+         /*changeIdentity=*/null /*groupIdentity=*/);
   }
 
   private TransformResult(Path path, Revision currentRevision, Author author,
       ZonedDateTime timestamp, String summary, @Nullable String baseline,
-      boolean askForConfirmation, Revision requestedRevision, @Nullable String changeIdentity,
-      @Nullable String groupIdentity) {
+      boolean askForConfirmation, Revision requestedRevision, @Nullable String changeIdentity) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -67,37 +64,39 @@ public final class TransformResult {
     this.askForConfirmation = askForConfirmation;
     this.requestedRevision = Preconditions.checkNotNull(requestedRevision);
     this.changeIdentity = changeIdentity;
-    this.groupIdentity = groupIdentity;
   }
 
   public TransformResult withBaseline(String newBaseline) {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        newBaseline, this.askForConfirmation, this.requestedRevision, this.changeIdentity,
-        this.groupIdentity);
+        newBaseline, this.askForConfirmation, this.requestedRevision, this.changeIdentity);
   }
 
+  /**
+   * Used internally
+   */
+  @SuppressWarnings("unused")
   public TransformResult withSummary(String summary) {
     Preconditions.checkNotNull(summary);
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, summary,
-        this.baseline, this.askForConfirmation, this.requestedRevision, this.changeIdentity,
-        this.groupIdentity);
+        this.baseline, this.askForConfirmation, this.requestedRevision, this.changeIdentity
+    );
   }
 
-  public TransformResult withIdentity(String changeIdentity, @Nullable String groupIdentity) {
+  public TransformResult withIdentity(String changeIdentity) {
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        this.baseline, this.askForConfirmation, this.requestedRevision, changeIdentity,
-        groupIdentity);
+        this.baseline, this.askForConfirmation, this.requestedRevision, changeIdentity
+    );
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
     return new TransformResult(
         this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        this.baseline, askForConfirmation, this.requestedRevision, this.changeIdentity,
-        this.groupIdentity);
+        this.baseline, askForConfirmation, this.requestedRevision, this.changeIdentity
+    );
   }
 
   /**
@@ -133,14 +132,6 @@ public final class TransformResult {
   @Nullable
   public String getChangeIdentity() {
     return changeIdentity;
-  }
-
-  /**
-   * An stable identifier that represents an entity for the group of changes being migrated.
-   */
-  @Nullable
-  public String getGroupIdentity() {
-    return groupIdentity;
   }
 
   /**

@@ -151,7 +151,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
   @Override
   public Writer<GitRevision> newWriter(Glob destinationFiles, boolean dryRun,
-      @Nullable Writer<GitRevision> oldWriter) {
+      @Nullable String groupId, @Nullable Writer<GitRevision> oldWriter) {
     WriterImpl gitOldWriter = (WriterImpl) oldWriter;
 
     boolean effectiveSkipPush = GitDestination.this.effectiveSkipPush || dryRun;
@@ -279,7 +279,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
     @Nullable
     @Override
-    public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
+    public DestinationStatus getDestinationStatus(String labelName)
         throws RepoException {
       GitRepository gitRepository = state.localRepo.get(baseConsole);
       try {

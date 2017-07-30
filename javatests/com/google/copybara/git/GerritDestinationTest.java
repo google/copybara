@@ -144,7 +144,7 @@ public class GerritDestinationTest {
       throws ValidationException, RepoException, IOException {
     WriterResult result = destination()
         .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
-            /*dryRun=*/false, /*oldWriter=*/null)
+            /*dryRun=*/false, /*groupId=*/null,/*oldWriter=*/null)
         .write(
             TransformResults.of(workdir, originRef),
             console);

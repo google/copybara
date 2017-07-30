@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.DestinationStatus;
+import com.google.copybara.Destination.Writer;
 import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
@@ -52,18 +53,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private final O resolvedRef;
   private final Origin.Reader<O> originReader;
   protected final Destination.Writer<D> writer;
-
   @Nullable
-  private Optional<String> groupIdentity = null;
+  private final String groupId;
 
   protected WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
-      Reader<O> originReader, Destination.Writer<D> destinationWriter)
+      Reader<O> originReader, Writer<D> destinationWriter, @Nullable String groupId)
       throws ValidationException, RepoException {
     this.workflow = Preconditions.checkNotNull(workflow);
     this.workdir = Preconditions.checkNotNull(workdir);
     this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
     this.originReader = Preconditions.checkNotNull(originReader);
     this.writer = Preconditions.checkNotNull(destinationWriter);
+    this.groupId = groupId;
   }
 
   /**
@@ -81,7 +82,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       throws RepoException, ValidationException, IOException {
     return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, originReader,
         workflow.getDestination().newWriter(workflow.getDestinationFiles(), /*dryRun=*/true,
-                                            /*oldWriter=*/null));
+            groupId, /*oldWriter=*/null), groupId);
   }
 
   protected Path getWorkdir() {
@@ -187,13 +188,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * @param metadata metadata of the change to be migrated
    * @param changes changes included in this migration
    * @param destinationBaseline it not null, use this baseline in the destination
-   * @param workflowIdentity if not null, an identifier that destination can use to reuse an
+   * @param changeIdentity if not null, an identifier that destination can use to reuse an
    * existing destination entity (code review for example).
    * @return The result of this migration
    */
   WriterResult migrate(O rev, Console processConsole,
       Metadata metadata, Changes changes, @Nullable String destinationBaseline,
-      @Nullable String workflowIdentity)
+      @Nullable String changeIdentity)
       throws IOException, RepoException, ValidationException {
     Path checkoutDir = workdir.resolve("checkout");
     try (ProfilerTask ignored = profiler().start("prepare_workdir")) {
@@ -288,7 +289,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
     transformResult = transformResult
         .withAskForConfirmation(workflow.isAskForConfirmation())
-        .withIdentity(workflowIdentity, computeGroupIdentity());
+        .withIdentity(changeIdentity);
 
     WriterResult result;
     try (ProfilerTask ignored = profiler().start(
@@ -310,6 +311,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   ImmutableList<Change<O>> getChanges(@Nullable O from, O to)
       throws RepoException, ValidationException {
     return originReader.changes(from, to);
+  }
+
+  @Nullable
+  public String getGroupId() {
+    return groupId;
   }
 
   /**
@@ -347,8 +353,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
     }
 
-    DestinationStatus status = writer.getDestinationStatus(workflow.getOrigin().getLabelName(),
-                                                           computeGroupIdentity());
+    DestinationStatus status = writer.getDestinationStatus(workflow.getOrigin().getLabelName());
     return (status == null) ? null : workflow.getOrigin().resolve(status.getBaseline());
   }
 
@@ -394,15 +399,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     getConsole().infoFmt("Skipped change %s as it would create an empty result.",
         currentChange.toString());
     return true;
-  }
-
-  @Nullable
-  private String computeGroupIdentity() throws RepoException, ValidationException {
-    if (groupIdentity == null) {
-      groupIdentity = Optional.ofNullable(
-          workflow.computeGroupIdentity(originReader.getGroupIdentity(resolvedRef)));
-    }
-    return groupIdentity.orElse(null);
   }
 
   @SkylarkModule(name = "ComputedChanges", doc = "Computed changes implementation",

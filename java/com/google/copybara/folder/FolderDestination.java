@@ -56,7 +56,7 @@ public class FolderDestination implements Destination<Revision> {
 
   @Override
   public Writer<Revision> newWriter(Glob destinationFiles, boolean dryRun,
-      @Nullable Writer<Revision> oldWriter) {
+      @Nullable String groupId, @Nullable Writer<Revision> oldWriter) {
     if (dryRun) {
       generalOptions.console().warn("--dry-run does not have any effect for folder.destination");
     }
@@ -73,7 +73,7 @@ public class FolderDestination implements Destination<Revision> {
 
     @Nullable
     @Override
-    public DestinationStatus getDestinationStatus(String labelName, @Nullable String groupId)
+    public DestinationStatus getDestinationStatus(String labelName)
         throws RepoException {
       throw new IllegalStateException("History not supported");
     }
