@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.Migration;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
@@ -234,7 +235,10 @@ public class GitMirrorTest {
     other.add().files("test2.txt").run();
     other.git(other.getWorkTree(), "commit", "-m", "another file");
     other.git(other.getWorkTree(), "branch", "other");
-    other.git(other.getWorkTree(), "push", "file://" + destRepo.getGitDir(), "+refs/*:refs/*");
+    other.push()
+        .withRefspecs("file://" + destRepo.getGitDir(),
+            ImmutableList.of(other.createRefSpec("+refs/*:refs/*")))
+        .run();
     return loadMigration(cfg, "default");
   }
 }

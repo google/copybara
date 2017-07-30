@@ -280,12 +280,7 @@ public class GitRepository {
       args.add("-f");
     }
     for (String ref : refspecs) {
-      try {
-        // Validate refspec
-        Refspec.create(environment, gitDir, ref,/*location=*/null);
-      } catch (EvalException e) {
-        throw new RepoException("Invalid refspec passed to fetch: " + e);
-      }
+      createRefSpec(ref);
       args.add(ref);
     }
 
@@ -303,9 +298,26 @@ public class GitRepository {
     }
   }
 
+  /**
+   * Create a refspec from a string
+   */
+  Refspec createRefSpec(String ref) throws RepoException {
+    try {
+      // Validate refspec
+      return Refspec.create(environment, gitDir, ref,/*location=*/null);
+    } catch (EvalException e) {
+      throw new RepoException("Invalid refspec: " + e);
+    }
+  }
+
   @CheckReturnValue
   public LogCmd log(String referenceExpr) {
     return LogCmd.create(this, referenceExpr);
+  }
+
+  @CheckReturnValue
+  public PushCmd push() {
+    return new PushCmd(this, /*url=*/null, ImmutableList.of(), /*prune=*/false);
   }
 
   /**
@@ -405,6 +417,26 @@ public class GitRepository {
 
   public Path getGitDir() {
     return gitDir;
+  }
+
+  /**
+   * Can be overwriten to add custom behavior.
+   */
+  protected String runPush(PushCmd pushCmd) throws RepoException {
+    List<String> cmd = Lists.newArrayList("push");
+
+    if (pushCmd.prune) {
+      cmd.add("--prune");
+    }
+
+    if (pushCmd.url != null) {
+      cmd.add(pushCmd.url);
+      for (Refspec refspec : pushCmd.refspecs) {
+        cmd.add(refspec.toString());
+      }
+    }
+
+    return simpleCommand(cmd.toArray(new String[cmd.size()])).getStderr();
   }
 
   /**
@@ -1095,6 +1127,45 @@ public class GitRepository {
     StatusCode(char code) {
       this.code = code;
     }
+  }
+
+  public static class PushCmd {
+
+    private final GitRepository repo;
+    @Nullable
+    private final String url;
+    private final ImmutableList<Refspec> refspecs;
+    private final boolean prune;
+
+    @CheckReturnValue
+    public PushCmd(GitRepository repo, @Nullable String url, ImmutableList<Refspec> refspecs,
+        boolean prune) {
+      this.repo = Preconditions.checkNotNull(repo);
+      this.url = url;
+      this.refspecs = Preconditions.checkNotNull(refspecs);
+      Preconditions.checkArgument(refspecs.isEmpty() || url != null, "refspec can only be"
+          + " used when a url is passed");
+      this.prune = prune;
+    }
+
+    @CheckReturnValue
+    PushCmd withRefspecs(String url, Iterable<Refspec> refspecs) {
+      return new PushCmd(repo, Preconditions.checkNotNull(url), ImmutableList.copyOf(refspecs),
+          prune);
+    }
+
+    @CheckReturnValue
+    PushCmd prune(boolean prune) {
+      return new PushCmd(repo, url, this.refspecs, prune);
+    }
+
+    /**
+     * Runs the push command and returns the response from the server.
+     */
+    String run() throws RepoException {
+      return repo.runPush(this);
+    }
+
   }
 
   /**

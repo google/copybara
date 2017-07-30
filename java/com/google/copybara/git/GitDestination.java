@@ -39,7 +39,6 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
-import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
@@ -442,16 +441,12 @@ public final class GitDestination implements Destination<GitRevision> {
         ValidationException.checkCondition(!nonFastForwardPush
             || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
             + " allowed when fetch != push");
-        CommandOutput output;
-        if (nonFastForwardPush) {
 
-          // TODO(malcon): Use --force-with-lease instead. (We also need to fetch).
-          output = scratchClone.simpleCommand("push", "-f", repoUrl, "HEAD:" + remotePush);
-        } else {
-          // Git push writes to Stderr
-          output = scratchClone.simpleCommand("push", repoUrl, "HEAD:" + remotePush);
-        }
-        processPushOutput.process(output.getStderr(), messageInfo.newPush, alternate);
+        String serverResponse = scratchClone.push()
+            .withRefspecs(repoUrl, ImmutableList.of(scratchClone.createRefSpec(
+                (nonFastForwardPush ? "+" : "") + "HEAD:" + remotePush)))
+            .run();
+        processPushOutput.process(serverResponse, messageInfo.newPush, alternate);
       }
       return WriterResult.OK;
     }

@@ -16,10 +16,8 @@
 
 package com.google.copybara.git;
 
-import com.beust.jcommander.internal.Lists;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Migration;
 import com.google.copybara.RepoException;
@@ -74,23 +72,11 @@ public class Mirror implements Migration {
 
     repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
 
-    List<String> pushRefspecs = refspec.stream()
-        .map(r ->
-            // Add '+' if we can force the push + origin/local repo refspec location + ':'
-            // + remote refspec location.
-            // For example in 'refs/foo:refs/bar' refspec with force push we would use
-            // '+refs/foo:refs/bar'
-            (r.isAllowNoFastForward() || forcePush ? "+" : "")
-                + r.getOrigin() + ":" + r.getDestination())
-        .collect(Collectors.toList());
-
     generalOptions.console().progress("Pushing to " + destination);
-    List<String> cmd = Lists.newArrayList("push", destination);
-    if (prune) {
-      cmd.add("--prune");
-    }
-    cmd.addAll(pushRefspecs);
-    repo.simpleCommand(Iterables.toArray(cmd, String.class));
+    List<Refspec> pushRefspecs = forcePush
+        ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
+        : refspec;
+    repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
   }
 
   @Override

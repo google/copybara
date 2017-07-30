@@ -23,6 +23,7 @@ import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNMODIFIED;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -360,5 +361,97 @@ public class GitRepositoryTest {
         .run();
     assertThat(Iterables.getOnlyElement(entries).getBody())
         .isEqualTo(description);
+  }
+
+  @Test
+  public void testPush() throws IOException, RepoException {
+    GitRepository remote = GitRepository.bareRepo(Files.createTempDirectory("remote"),
+        getGitEnv(), /*verbose=*/true);
+    remote.initGitDir();
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "-m", "message");
+
+    String remoteUrl = "file:///" + remote.getGitDir();
+
+    // Push the first version. Need to force because destination is empty
+    repository.push()
+        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("+master:master")))
+        .run();
+
+    assertThat(Iterables.transform(remote.log("master").run(), GitLogEntry::getBody))
+        .containsExactly("message\n");
+
+    Files.write(workdir.resolve("foo.txt"), "a".getBytes(UTF_8));
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "-m", "message2");
+
+    // Try a simple push that is fast-forward
+    repository.push()
+        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("master:master")))
+        .run();
+
+    assertThat(Iterables.transform(remote.log("master").run(), GitLogEntry::getBody))
+        .containsExactly("message2\n", "message\n");
+
+    repository.simpleCommand("reset", "--hard", "HEAD~1");
+
+    Files.write(workdir.resolve("foo.txt"), "a".getBytes(UTF_8));
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "-m", "message3");
+
+    // We replaced the last commit. Should fail because we don't force
+    try {
+      repository.push()
+          .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("master:master")))
+          .run();
+      fail("Should fail because non-fastforward");
+    } catch (RepoException e) {
+      assertThat(e.getMessage()).contains("[rejected]");
+    }
+
+    // Now it works because we force the push
+    repository.push()
+        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("+master:master")))
+        .run();
+
+    assertThat(Iterables.transform(remote.log("master").run(), GitLogEntry::getBody))
+        .containsExactly("message3\n", "message\n");
+  }
+
+  @Test
+  public void testPushPrune() throws IOException, RepoException {
+    GitRepository remote = GitRepository.bareRepo(Files.createTempDirectory("remote"),
+        getGitEnv(), /*verbose=*/true);
+    remote.initGitDir();
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "-m", "message");
+    repository.simpleCommand("branch", "other");
+
+    String remoteUrl = "file:///" + remote.getGitDir();
+
+    repository.push()
+        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("+*:*")))
+        .run();
+
+    assertThat(remote.refExists("master")).isTrue();
+    assertThat(remote.refExists("other")).isTrue();
+
+    repository.simpleCommand("branch", "-d", "other");
+
+    repository.push()
+        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("*:*")))
+        .run();
+
+    assertThat(remote.refExists("master")).isTrue();
+    assertThat(remote.refExists("other")).isTrue();
+
+    repository.push().prune(true)
+        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("*:*")))
+        .run();
+
+    assertThat(remote.refExists("master")).isTrue();
+    assertThat(remote.refExists("other")).isFalse();
   }
 }

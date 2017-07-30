@@ -974,7 +974,7 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
 
     // A simple push without origin is able to update the correct destination reference
-    localRepo.simpleCommand("push");
+    localRepo.push().run();
 
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "another content")
@@ -1019,7 +1019,7 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
 
     // A simple push without origin is able to update the correct destination reference
-    localRepo.simpleCommand("push");
+    localRepo.push().run();
 
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "another content")

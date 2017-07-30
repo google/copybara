@@ -80,6 +80,10 @@ public class Refspec {
     }
   }
 
+  public Refspec withAllowNoFastForward() {
+    return new Refspec(origin, destination, /*allowNoFastForward*/true);
+  }
+
   public static Refspec create(Map<String, String> env, Path cwd, String refspecParam,
       Location location) throws EvalException {
     if (refspecParam.isEmpty()) {
