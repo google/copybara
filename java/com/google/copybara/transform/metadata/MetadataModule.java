@@ -320,14 +320,14 @@ public class MetadataModule {
           + "A change\n\n"
           + "Example description for\n"
           + "documentation\n"
-          + "```\n"
-          + "Will be transformed into:\n"
+          + "```\n\n"
+          + "Will be transformed into:\n\n"
           + "```\n"
           + "COPYBARA CHANGE\n"
           + "A change\n\n"
           + "Example description for\n"
           + "documentation\n"
-          + "```\n")
+          + "```\n\n")
   @Example(title = "Add a header that uses a label",
       before = "Adds a header to messages that contain a label. Otherwise it skips the message"
           + " manipulation.",
@@ -357,14 +357,14 @@ public class MetadataModule {
           + "A change\n\n"
           + "Example description for\n"
           + "documentation\n"
-          + "```\n"
-          + "Will be transformed into:\n"
+          + "```\n\n"
+          + "Will be transformed into:\n\n"
           + "```\n"
           + "COPYBARA CHANGE: "
           + "A change\n\n"
           + "Example description for\n"
           + "documentation\n"
-          + "```\n")
+          + "```\n\n")
   static final BuiltinFunction ADD_HEADER = new BuiltinFunction("add_header") {
     public Transformation invoke(MetadataModule self, String header, Boolean ignoreIfLabelNotFound,
         Boolean newLine)

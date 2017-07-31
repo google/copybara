@@ -407,7 +407,7 @@ label|`string`<br><p>The label to use for restoring the author</p>
 Adds a header line to the commit message. Any variable present in the message in the form of ${LABEL_NAME} will be replaced by the corresponding label in the message. Note that this requires that the label is already in the message or in any of the changes being imported. The label in the message takes priority over the ones in the list of original messages of changes imported.
 
 
-`transformation metadata.add_header(text, ignore_label_not_found=False)`
+`transformation metadata.add_header(text, ignore_label_not_found=False, new_line=True)`
 
 ### Parameters:
 
@@ -415,6 +415,7 @@ Parameter | Description
 --------- | -----------
 text|`string`<br><p>The header text to include in the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
 ignore_label_not_found|`boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
+new_line|`boolean`<br><p>If a new line should be added between the header and the original message. This allows to create messages like `HEADER: ORIGINAL_MESSAGE`</p>
 
 
 ### Examples:
@@ -435,7 +436,9 @@ A change
 Example description for
 documentation
 ```
+
 Will be transformed into:
+
 ```
 COPYBARA CHANGE
 A change
@@ -443,6 +446,7 @@ A change
 Example description for
 documentation
 ```
+
 
 
 #### Add a header that uses a label:
@@ -475,6 +479,34 @@ documentation
 GIT_URL=http://foo.com/1234```
 
 But any change without that label will not be transformed.
+
+#### Add a header without new line:
+
+Adds a header without adding a new line before the original message:
+
+```python
+metadata.add_header("COPYBARA CHANGE: ", new_line = False)
+```
+
+Messages like:
+
+```
+A change
+
+Example description for
+documentation
+```
+
+Will be transformed into:
+
+```
+COPYBARA CHANGE: A change
+
+Example description for
+documentation
+```
+
+
 
 <a id="metadata.scrubber" aria-hidden="true"></a>
 ## metadata.scrubber
