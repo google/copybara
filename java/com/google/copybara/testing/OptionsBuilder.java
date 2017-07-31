@@ -31,6 +31,7 @@ import com.google.copybara.git.GitDestinationOptions;
 import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
+import com.google.copybara.git.GithubDestinationOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
@@ -63,6 +64,7 @@ public class OptionsBuilder {
   public GitOptions git = new GitOptions(() -> general);
   public GitOriginOptions gitOrigin = new GitOriginOptions();
   public GitDestinationOptions gitDestination = new GitDestinationOptions(() -> general, git);
+  public GithubDestinationOptions githubDestination = new GithubDestinationOptions();
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
   public WorkflowOptions workflowOptions =
@@ -145,7 +147,7 @@ public class OptionsBuilder {
   protected Iterable<Option> allOptions() {
     return ImmutableList
         .of(general, localDestination, folderOrigin, git, gitOrigin, gitDestination,
-            gitMirrorOptions, gerrit, workflowOptions, testingOptions);
+            gitMirrorOptions, gerrit, githubDestination, workflowOptions, testingOptions);
   }
 
   public final Options build() {

@@ -27,6 +27,7 @@ import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
+import com.google.copybara.git.GithubDestinationOptions;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
 import java.util.function.Supplier;
@@ -52,12 +53,15 @@ public class ModuleSupplier {
   /** Returns a new list of {@link Option}s. */
   public ImmutableList<Option> newOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
     GitOptions gitOptions = new GitOptions(generalOptionsSupplier);
+    GitDestinationOptions gitDestinationOptions =
+        new GitDestinationOptions(generalOptionsSupplier, gitOptions);
     return ImmutableList.of(
         new FolderDestinationOptions(),
         new FolderOriginOptions(),
         gitOptions,
         new GitOriginOptions(),
-        new GitDestinationOptions(generalOptionsSupplier, gitOptions),
+        gitDestinationOptions,
+        new GithubDestinationOptions(),
         new GitMirrorOptions(),
         newGerritOptions(),
         new WorkflowOptions());

@@ -31,7 +31,7 @@ import java.util.function.Supplier;
  * Common arguments for {@link GitDestination}, {@link GitOrigin}, and other Git components.
  */
 @Parameters(separators = "=")
-public final class GitOptions implements Option {
+public class GitOptions implements Option {
 
   private final Supplier<GeneralOptions> generalOptionsSupplier;
 
@@ -46,24 +46,33 @@ public final class GitOptions implements Option {
     this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
   }
 
-  Path getRepoStorage() throws IOException {
+  private Path getRepoStorage() throws IOException {
     if (repoStorage == null) {
       return generalOptionsSupplier.get().getDirFactory().getCacheDir("git_repos");
     }
     return Paths.get(repoStorage);
   }
 
-  public GitRepository cachedBareRepoForUrl(String url) throws RepoException {
+  public final GitRepository cachedBareRepoForUrl(String url) throws RepoException {
     Preconditions.checkNotNull(url);
     GeneralOptions generalOptions = generalOptionsSupplier.get();
     GitRepository repo;
     try {
-      repo = GitRepository.bareRepoInCache(url, generalOptions.getEnvironment(),
-          generalOptions.isVerbose(), getRepoStorage());
+      repo = createBareRepo(generalOptions,
+          GitRepository.createGitDirInCache(url, getRepoStorage()));
     } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);
     }
     repo.initGitDir();
     return repo;
+  }
+
+  /**
+   * Can be overwritten to create custom GitRepository objects.
+   */
+  protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
+      throws IOException {
+    return GitRepository.bareRepo(path, generalOptions.getEnvironment(),
+        generalOptions.isVerbose());
   }
 }

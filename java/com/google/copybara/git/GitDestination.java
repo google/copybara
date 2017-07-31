@@ -173,14 +173,14 @@ public final class GitDestination implements Destination<GitRevision> {
   /**
    * State to be maintained between writer instances.
    */
-  private static class WriterState {
+  static class WriterState {
 
     private boolean alreadyFetched;
     private boolean firstWrite = true;
     private LazyGitRepository localRepo;
     private String localBranch;
 
-    private WriterState(LazyGitRepository localRepo, String localBranch) {
+    WriterState(LazyGitRepository localRepo, String localBranch) {
       this.localRepo = localRepo;
       this.localBranch = localBranch;
     }
@@ -189,7 +189,7 @@ public final class GitDestination implements Destination<GitRevision> {
   static class WriterImpl implements Writer<GitRevision> {
 
     private final Glob destinationFiles;
-    private final boolean skipPush;
+    final boolean skipPush;
     private final String repoUrl;
     private final String remoteFetch;
     private final String remotePush;
@@ -200,7 +200,7 @@ public final class GitDestination implements Destination<GitRevision> {
     private final Console baseConsole;
     private final CommitGenerator commitGenerator;
     private final ProcessPushOutput processPushOutput;
-    private final WriterState state;
+    final WriterState state;
     // We could get it from destinationOptions but this is in preparation of a GH PR destination.
     private final boolean nonFastForwardPush;
 

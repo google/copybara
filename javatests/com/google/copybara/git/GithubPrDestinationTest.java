@@ -1,0 +1,343 @@
+/*
+ * Copyright (C) 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.copybara.git;
+
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.Destination.DestinationStatus;
+import com.google.copybara.Destination.Writer;
+import com.google.copybara.GeneralOptions;
+import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
+import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.testing.DummyRevision;
+import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.TransformResults;
+import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Message.MessageType;
+import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Map.Entry;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+@RunWith(JUnit4.class)
+public class GithubPrDestinationTest {
+
+  private Path repoGitDir;
+  private OptionsBuilder options;
+  private TestingConsole console;
+  private SkylarkTestExecutor skylark;
+
+  @Rule
+  public final ExpectedException thrown = ExpectedException.none();
+  private Path workdir;
+  private Path localHub;
+
+  @Before
+  public void setup() throws Exception {
+    repoGitDir = Files.createTempDirectory("GithubPrDestinationTest-repoGitDir");
+    workdir = Files.createTempDirectory("workdir");
+    localHub = Files.createTempDirectory("localHub");
+
+    git("init", "--bare", repoGitDir.toString());
+    console = new TestingConsole();
+    options = new OptionsBuilder()
+        .setConsole(console)
+        .setOutputRootToTmpDir();
+    options.git = new TestGitOptions(localHub);
+
+    options.gitDestination = new GitDestinationOptions(() -> options.general, options.git);
+    options.gitDestination.committerEmail = "commiter@email";
+    options.gitDestination.committerName = "Bara Kopi";
+    skylark = new SkylarkTestExecutor(options, GitModule.class);
+  }
+
+  @Test
+  public void testWrite() throws ValidationException, IOException, RepoException {
+    checkWrite("feature");
+  }
+
+  @Test
+  public void testWrite_destinationPrBranchFlag()
+      throws ValidationException, IOException, RepoException {
+    options.githubDestination.destinationPrBranch = "feature";
+    checkWrite(/*groupId=*/null);
+  }
+
+  @Test
+  public void testWrite_noGroupId()
+      throws ValidationException, IOException, RepoException {
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("git.github_pr_destination is incompatible with the current origin");
+    checkWrite(/*groupId=*/null);
+  }
+
+  private void checkWrite(String groupId)
+      throws ValidationException, RepoException, IOException {
+    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo'"
+        + ")");
+
+    Writer<GitRevision> writer = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, groupId,
+        /*oldWriter=*/null);
+
+    GitRepository remote = localHubRepo("foo");
+    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+
+    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
+    Files.write(this.workdir.resolve("test.txt"), "other content".getBytes());
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("two")), console);
+
+    // Use a new writer that shares the old state
+    writer = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, groupId,
+        /*oldWriter=*/writer);
+
+    Files.write(this.workdir.resolve("test.txt"), "and content".getBytes());
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("three")), console);
+
+    // TODO(malcon): Create the PR using Github API
+    console.assertThat().timesInLog(3, MessageType.INFO,
+        "Please create a PR manually following this link:"
+            + " https://github.com/foo/compare/feature...master .*");
+
+    assertThat(remote.refExists("feature")).isTrue();
+    assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::getBody))
+        .containsExactly("first change\n",
+            "test summary\n"
+                + "\n"
+                + "DummyOrigin-RevId: one\n",
+            "test summary\n"
+                + "\n"
+                + "DummyOrigin-RevId: two\n",
+            "test summary\n"
+                + "\n"
+                + "DummyOrigin-RevId: three\n");
+
+    // If we don't keep writer state (same as a new migration). We do a rebase of
+    // all the changes.
+    writer = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, groupId,
+        /*oldWriter=*/null);
+
+    Files.write(this.workdir.resolve("test.txt"), "and content".getBytes());
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("four")), console);
+
+    assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::getBody))
+        .containsExactly("first change\n",
+            "test summary\n"
+                + "\n"
+                + "DummyOrigin-RevId: four\n");
+  }
+
+  @Test
+  public void testFindProject() throws ValidationException, IOException, RepoException {
+    checkFindProject("https://github.com/foo", "foo");
+    checkFindProject("https://github.com/foo/bar", "foo/bar");
+    checkFindProject("https://github.com/foo.git", "foo");
+    checkFindProject("https://github.com/foo/", "foo");
+    checkFindProject("git+https://github.com/foo", "foo");
+    checkFindProject("git@github.com/foo", "foo");
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("Cannot find project name from url https://github.com");
+    checkFindProject("https://github.com", "foo");
+  }
+
+  private void checkFindProject(String url, final String project) throws ValidationException {
+    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = '" + url + "',"
+        + "    destination_ref = 'other',"
+        + ")");
+
+    assertThat(d.getProjectName()).isEqualTo(project);
+  }
+
+  @Test
+  public void testWriteNoMaster() throws ValidationException, IOException, RepoException {
+    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo',"
+        + "    destination_ref = 'other',"
+        + ")");
+
+    Writer<GitRevision> writer = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, "feature",
+        /*oldWriter=*/null);
+
+    GitRepository remote = localHubRepo("foo");
+    addFiles(remote, "master", "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+
+    addFiles(remote, "other", "second change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "test").build());
+
+    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
+
+    assertThat(remote.refExists("feature")).isTrue();
+    assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::getBody))
+        .containsExactly("first change\n", "second change\n",
+            "test summary\n"
+                + "\n"
+                + "DummyOrigin-RevId: one\n");
+  }
+
+  @Test
+  public void testDestinationStatus() throws ValidationException, IOException, RepoException {
+    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo'"
+        + ")");
+
+    Writer<GitRevision> writer = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, "feature",
+        /*oldWriter=*/null);
+
+    GitRepository remote = localHubRepo("foo");
+    addFiles(remote, "master", "first change\n\nDummyOrigin-RevId: baseline",
+        ImmutableMap.<String, String>builder()
+            .put("foo.txt", "").build());
+
+    DestinationStatus status = writer.getDestinationStatus("DummyOrigin-RevId");
+
+    assertThat(status.getBaseline()).isEqualTo("baseline");
+    assertThat(status.getPendingChanges()).isEmpty();
+
+    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
+
+    // New writer since after changes it keeps state internally for ITERATIVE mode
+    status = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, "feature",/*oldWriter=*/null)
+        .getDestinationStatus("DummyOrigin-RevId");
+
+    assertThat(status.getBaseline()).isEqualTo("baseline");
+    // Not supported for now as we rewrite the whole branch history.
+    assertThat(status.getPendingChanges()).isEmpty();
+  }
+
+  private void addFiles(GitRepository remote, String branch, String msg, Map<String, String> files)
+      throws IOException, RepoException {
+    Path temp = Files.createTempDirectory("temp");
+    GitRepository tmpRepo = remote.withWorkTree(temp);
+    if (branch != null) {
+      if (tmpRepo.refExists(branch)) {
+        tmpRepo.simpleCommand("checkout", branch);
+      } else if (!branch.equals("master")) {
+        tmpRepo.simpleCommand("branch", branch);
+        tmpRepo.simpleCommand("checkout", branch);
+      }
+    }
+
+    for (Entry<String, String> entry : files.entrySet()) {
+      Path file = temp.resolve(entry.getKey());
+      Files.createDirectories(file.getParent());
+      Files.write(file, entry.getValue().getBytes(UTF_8));
+    }
+
+    tmpRepo.add().all().run();
+    tmpRepo.simpleCommand("commit", "-m", msg);
+  }
+
+  private GitRepository localHubRepo(String name) throws RepoException {
+    GitRepository repo = GitRepository.bareRepo(localHub.resolve(name),
+        options.general.getEnvironment(),
+        options.general.isVerbose());
+    repo.initGitDir();
+    return repo;
+  }
+
+  private String git(String... argv) throws RepoException {
+    return repo()
+        .git(repoGitDir, argv)
+        .getStdout();
+  }
+
+  private GitRepository repo() {
+    return repoForPath(repoGitDir);
+  }
+
+  private GitRepository repoForPath(Path path) {
+    return new GitRepository(path, /*workTree=*/null, /*verbose=*/true, getGitEnv());
+  }
+
+  private class TestGitOptions extends GitOptions {
+
+    private final Path localHub;
+
+    TestGitOptions(Path localHub) {
+      super(() -> GithubPrDestinationTest.this.options.general);
+      this.localHub = Preconditions.checkNotNull(localHub);
+    }
+
+    @Override
+    protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
+        throws IOException {
+      return new RewriteUrlGitRepository(path, null, generalOptions, localHub);
+    }
+  }
+
+  private static class RewriteUrlGitRepository extends GitRepository {
+
+    private final GeneralOptions generalOptions;
+    private final Path localHub;
+
+    RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
+        Path localHub) {
+      super(gitDir, workTree, generalOptions.isVerbose(), generalOptions.getEnvironment());
+      this.generalOptions = generalOptions;
+      this.localHub = localHub;
+    }
+
+    @Override
+    FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
+        throws RepoException, CannotResolveRevisionException {
+      return super.fetch(mapUrl(url), prune, force, refspecs);
+    }
+
+    @Override
+    protected String runPush(PushCmd pushCmd) throws RepoException {
+      if (pushCmd.getUrl() != null) {
+        pushCmd = pushCmd.withRefspecs(mapUrl(pushCmd.getUrl()),
+            pushCmd.getRefspecs());
+      }
+      return super.runPush(pushCmd);
+    }
+
+    @Override
+    public GitRepository withWorkTree(Path newWorkTree) {
+      return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, localHub);
+    }
+
+    private String mapUrl(String url) {
+      Path repo = localHub.resolve(url.replaceAll(".*github.com/", ""));
+      assertWithMessage(repo.toString()).that(Files.isDirectory(repo)).isTrue();
+      return "file:///" + repo.toString();
+    }
+  }
+}

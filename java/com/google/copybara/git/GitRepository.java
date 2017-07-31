@@ -155,11 +155,7 @@ public class GitRepository {
     return new GitRepository(gitDir,/*workTree=*/null, verbose, environment);
   }
 
-  /**
-   * Create a bare repo in the cache of repos so that it can be reused between migrations.
-   */
-  static GitRepository bareRepoInCache(String url, Map<String, String> environment,
-      boolean verbose, Path repoStorage) {
+  static Path createGitDirInCache(String url, Path repoStorage) {
     String escapedUrl = PERCENT_ESCAPER.escape(url);
     // This is to avoid "Filename too long" errors, mainly in tests. We cannot change the repo
     // storage path (we use JAVA_IO_TMPDIR), which is the right thing to do for tests to be
@@ -170,8 +166,7 @@ public class GitRepository {
           + Hashing.sha1().hashString(
               escapedUrl.substring(REPO_FOLDER_NAME_LIMIT), StandardCharsets.UTF_8);
     }
-    Path gitDir = repoStorage.resolve(escapedUrl);
-    return bareRepo(gitDir, environment, verbose);
+    return repoStorage.resolve(escapedUrl);
   }
 
   /**
@@ -1136,6 +1131,15 @@ public class GitRepository {
     private final String url;
     private final ImmutableList<Refspec> refspecs;
     private final boolean prune;
+
+    @Nullable
+    public String getUrl() {
+      return url;
+    }
+
+    public ImmutableList<Refspec> getRefspecs() {
+      return refspecs;
+    }
 
     @CheckReturnValue
     public PushCmd(GitRepository repo, @Nullable String url, ImmutableList<Refspec> refspecs,

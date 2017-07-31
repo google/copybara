@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.TransformWork;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.base.OptionsAwareModule;
@@ -45,6 +44,7 @@ import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -259,6 +259,54 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           generalOptions.console());
     }
   };
+
+  @SkylarkSignature(name = "github_pr_destination", returnType = GithubPrDestination.class,
+      doc = "Creates changes in a new branch in the destination, that can be then used for"
+          + " creating a pull request. In the future the PR will be created automatically.",
+      parameters = {
+          @Param(name = "self", type = GitModule.class, doc = "this object"),
+          @Param(name = "url", type = String.class,
+              doc = "Url of the GitHub project. For example"
+                  + " \"https://github.com/google/copybara'\""),
+          @Param(name = "destination_ref", type = String.class,
+              doc = "Destination reference for the change. By default 'master'",
+              defaultValue = "master"),
+          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False",
+              doc = "If set, copybara will not actually push the result to the destination. This is"
+                  + " meant for testing workflows and dry runs."),
+      },
+      objectType = GitModule.class, useLocation = true,
+      // Still not ready for public usage:
+      documented = false)
+  @UsesFlags({GitDestinationOptions.class, GithubDestinationOptions.class})
+  public static final BuiltinFunction GH_PR_DESTINATION = new BuiltinFunction(
+      "github_pr_destination",
+      ImmutableList.of("master", false)) {
+    public GithubPrDestination invoke(GitModule self, String url, String destinationRef,
+        Boolean skipPush, Location location) throws EvalException {
+      GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
+      // We don't restrict to github.com domain so that we can support GH Enterprise
+      // in the future.
+      checkRemoteUrl(url, location);
+      return new GithubPrDestination(
+          url,
+          destinationRef,
+          generalOptions,
+          self.options.get(GitDestinationOptions.class),
+          self.options.get(GithubDestinationOptions.class),
+          skipPush,
+          new DefaultCommitGenerator(),
+          new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()));
+    }
+  };
+
+  private static void checkRemoteUrl(String url, Location location) throws EvalException {
+    try {
+      URI.create(url);
+    } catch (IllegalArgumentException e) {
+      throw new EvalException(location, url + " is not a valid git url");
+    }
+  }
 
   private static String firstNotNull(String... values) {
     for (String value : values) {
