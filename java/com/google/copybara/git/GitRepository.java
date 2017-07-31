@@ -436,7 +436,7 @@ public class GitRepository {
       }
     }
 
-    return simpleCommand(cmd.toArray(new String[cmd.size()])).getStderr();
+    return simpleCommand(cmd.toArray(new String[0])).getStderr();
   }
 
   /**
