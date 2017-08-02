@@ -253,7 +253,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @UsesFlags({WorkflowOptions.class})
   public static final BuiltinFunction WORKFLOW = new BuiltinFunction("workflow",
       ImmutableList.of(
-          MutableList.EMPTY,
+          MutableList.empty(),
           Glob.ALL_FILES,
           Glob.ALL_FILES,
           "SQUASH",

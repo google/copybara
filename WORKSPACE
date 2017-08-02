@@ -100,7 +100,7 @@ maven_jar(
     sha1 = "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
 )
 
-bazel_version="937350211dcd55a4714ec32ebbf33fffcc42cdf2"
+bazel_version="a2d101a755a99d4e44a259e98179993a81300912"
 
 # LICENSE: The Apache Software License, Version 2.0
 http_archive(
