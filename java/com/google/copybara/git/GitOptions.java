@@ -43,21 +43,23 @@ public class GitOptions implements Option {
       hidden = true)
   String repoStorage;
 
+  @Nullable
+  public String getCredentialHelperStorePath() {
+    return credentialHelperStorePath;
+  }
+
   @Parameter(names = "--git-credential-helper-store-file",
       description = "Credentials store file to be used. See "
           + "https://git-scm.com/docs/git-credential-store")
   String credentialHelperStorePath;
 
-  public GitOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
-    this(generalOptionsSupplier, /*credentialHelperStorePath=*/null);
-  }
+  @Parameter(names = "--nogit-credential-helper-store",
+      description = "Disable using credentials store. See "
+          + "https://git-scm.com/docs/git-credential-store")
+  boolean noCredentialHelperStore = false;
 
-  /** Used internally to customize the path for credential store. */
-  @SuppressWarnings("unused")
-  public GitOptions(Supplier<GeneralOptions> generalOptionsSupplier,
-      @Nullable String defaultCredentialHelperStorePath) {
+  public GitOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
     this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
-    this.credentialHelperStorePath = defaultCredentialHelperStorePath;
   }
 
   private Path getRepoStorage() throws IOException {
@@ -71,7 +73,7 @@ public class GitOptions implements Option {
     Preconditions.checkNotNull(url);
     try {
       return createBareRepo(generalOptionsSupplier.get(),
-          GitRepository.createGitDirInCache(url, getRepoStorage()));
+                            GitRepository.createGitDirInCache(url, getRepoStorage()));
     } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);
     }
@@ -85,12 +87,18 @@ public class GitOptions implements Option {
   protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
       throws RepoException {
     GitRepository repo = GitRepository.newBareRepo(path, generalOptions.getEnvironment(),
-        generalOptions.isVerbose());
+                                                   generalOptions.isVerbose());
     return initRepo(repo);
   }
 
   protected GitRepository initRepo(GitRepository repo) throws RepoException {
-    String path = credentialHelperStorePath == null ? "" : " --file=" + credentialHelperStorePath;
-    return repo.init().withCredentialHelper("store" + path);
+    repo.init();
+    if (noCredentialHelperStore) {
+      return repo;
+    }
+    String storePath = getCredentialHelperStorePath();
+    String path = storePath == null ? "" : " --file=" + storePath;
+    repo.withCredentialHelper("store" + path);
+    return repo;
   }
 }
