@@ -115,8 +115,9 @@ public final class GitDestinationOptions implements Option {
 
       if (!Files.exists(path) || (Files.isDirectory(path) && isGitRepoOrEmptyDir(path))) {
         Files.createDirectories(path);
-        return GitRepository.initScratchRepo(
-            generalOptions.get().isVerbose(), path, generalOptions.get().getEnvironment());
+        return gitOptions.initRepo(
+            GitRepository.newRepo(generalOptions.get().isVerbose(), path,
+                generalOptions.get().getEnvironment()));
 
       }
       throw new RepoException(path + " is not empty and is not a git repository");

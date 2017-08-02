@@ -55,24 +55,28 @@ public class GitOptions implements Option {
 
   public final GitRepository cachedBareRepoForUrl(String url) throws RepoException {
     Preconditions.checkNotNull(url);
-    GeneralOptions generalOptions = generalOptionsSupplier.get();
-    GitRepository repo;
     try {
-      repo = createBareRepo(generalOptions,
+      return createBareRepo(generalOptionsSupplier.get(),
           GitRepository.createGitDirInCache(url, getRepoStorage()));
     } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);
     }
-    repo.initGitDir();
-    return repo;
   }
 
   /**
-   * Can be overwritten to create custom GitRepository objects.
+   * Create a new initialized repository in the location.
+   *
+   * <p>Can be overwritten to create custom GitRepository objects.
    */
   protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
-      throws IOException {
-    return GitRepository.bareRepo(path, generalOptions.getEnvironment(),
+      throws RepoException {
+    GitRepository repo = GitRepository.newBareRepo(path, generalOptions.getEnvironment(),
         generalOptions.isVerbose());
+    return initRepo(repo);
+  }
+
+  protected GitRepository initRepo(GitRepository repo) throws RepoException {
+    // TODO(malcon): Insert here the credential helpers
+    return repo.init();
   }
 }

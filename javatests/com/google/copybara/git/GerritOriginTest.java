@@ -200,7 +200,8 @@ public class GerritOriginTest {
   private void createTestRepo(Path folder) throws Exception {
     remote = folder;
     repo =
-        GitRepository.initScratchRepo(/*verbose*/ true, remote, options.general.getEnvironment());
+        GitRepository.newRepo(true, remote, options.general.getEnvironment()).init(
+        );
   }
 
   private String git(String... params) throws RepoException {

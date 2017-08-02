@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -49,9 +50,10 @@ public class GitCredentialTest {
   public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("test_repo");
     credentialsFile = Files.createTempFile("credentials", "test");
-    GitRepository repo = GitRepository.bareRepo(repoGitDir, getGitEnv(),/*verbose=*/true);
-    repo.initGitDir();
-    repo.simpleCommand("config", "--local", "credential.helper", "store --file=" + credentialsFile);
+    newBareRepo(repoGitDir, getGitEnv(),/*verbose=*/true)
+        .init()
+        .withCredentialHelper("store --file=" + credentialsFile);
+
     credential = new GitCredential("git", Duration.ofSeconds(5), GitTestUtil.getGitEnv());
   }
 

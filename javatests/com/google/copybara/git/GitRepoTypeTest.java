@@ -60,19 +60,20 @@ public class GitRepoTypeTest {
       }
     };
 
-    testRepo.initGitDir();
+    testRepo.init();
     prepareFileRepo();
     console = new TestingConsole();
     generalOptions = new OptionsBuilder().setConsole(console).build().get(GeneralOptions.class);
   }
 
   private void disableFetchMocks() throws RepoException {
-    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, getGitEnv());
-    testRepo.initGitDir();
+    testRepo = GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true);
+    testRepo.init();
   }
 
   private void prepareFileRepo() throws RepoException, IOException {
-    fileRepo = GitRepository.initScratchRepo( /*verbose=*/true, fileRepoDir, getGitEnv());
+    fileRepo = GitRepository.newRepo(true, fileRepoDir, getGitEnv()).init(
+    );
     Files.write(fileRepoDir.resolve("foo"), new byte[]{});
 
     fileRepo.add().files("foo").run();

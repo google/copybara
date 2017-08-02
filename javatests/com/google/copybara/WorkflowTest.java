@@ -20,8 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.WorkflowMode.SQUASH;
-import static com.google.copybara.git.GitRepository.bareRepo;
-import static com.google.copybara.git.GitRepository.initScratchRepo;
+import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
@@ -1407,8 +1406,10 @@ public class WorkflowTest {
           throws IOException, RepoException, ValidationException {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = initScratchRepo( /*verbose=*/true, originPath, getGitEnv());
-    GitRepository destination = initScratchRepo( /*verbose=*/true, destinationPath, getGitEnv());
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init(
+    );
+    GitRepository destination = GitRepository.newRepo(true, destinationPath, getGitEnv()).init(
+    );
 
     String config = "core.workflow("
             + "    name = '" + "default" + "',"
@@ -1458,10 +1459,11 @@ public class WorkflowTest {
       throws IOException, RepoException, ValidationException {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationWorkdir = Files.createTempDirectory("destination_workdir");
-    GitRepository origin = initScratchRepo( /*verbose=*/true, originPath, getGitEnv());
-    GitRepository destinationBare = bareRepo(Files.createTempDirectory("destination"), getGitEnv(),
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init(
+    );
+    GitRepository destinationBare = newBareRepo(Files.createTempDirectory("destination"), getGitEnv(),
                                              /*verbose=*/true);
-    destinationBare.initGitDir();
+    destinationBare.init();
     GitRepository destination = destinationBare.withWorkTree(destinationWorkdir);
 
     String config = "core.workflow("

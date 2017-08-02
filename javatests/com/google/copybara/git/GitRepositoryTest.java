@@ -71,14 +71,16 @@ public class GitRepositoryTest {
     options = new OptionsBuilder()
         .setOutputRootToTmpDir();
     workdir = Files.createTempDirectory("workdir");
-    this.repository = GitRepository.initScratchRepoForTest(
-        getGitEnv(), options.general.getDirFactory()).withWorkTree(workdir);
+    repository = GitRepository
+        .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true)
+        .withWorkTree(workdir);
+    repository.init();
   }
 
   @Test
   public void testShowRef() throws RepoException, IOException {
     GitRepository repo = repository.withWorkTree(workdir);
-    repo.initGitDir();
+    repo.init();
     ImmutableMap<String, GitRevision> before = repo.showRef();
 
     assertThat(before).isEmpty();
@@ -97,9 +99,9 @@ public class GitRepositoryTest {
 
   @Test
   public void testStatus() throws RepoException, IOException {
-    GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
+    GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
         getGitEnv(), /*verbose=*/true);
-    dest.initGitDir();
+    dest.init();
 
     Files.write(workdir.resolve("renamed"), "renamed".getBytes(UTF_8));
     Files.write(workdir.resolve("deleted"), "deleted".getBytes(UTF_8));
@@ -178,9 +180,11 @@ public class GitRepositoryTest {
   private void checkLog(boolean body, boolean includeFiles) throws IOException, RepoException,
       ValidationException {
     workdir = Files.createTempDirectory("workdir");
-    this.repository = GitRepository.initScratchRepoForTest(
-        getGitEnv(), options.general.getDirFactory())
-        .withWorkTree(workdir);
+    this.repository = GitRepository.newBareRepo(Files.createTempDirectory("gitdir"),
+        getGitEnv(), /*verbose=*/true)
+        .withWorkTree(workdir)
+        .init();
+
     Files.write(workdir.resolve("foo.txt"), "foo fooo fooo".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
     ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
@@ -238,9 +242,9 @@ public class GitRepositoryTest {
 
   @Test
   public void testFetch() throws Exception {
-    GitRepository dest = GitRepository.bareRepo(Files.createTempDirectory("destDir"),
+    GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
         getGitEnv(), /*verbose=*/true);
-    dest.initGitDir();
+    dest.init();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
@@ -365,9 +369,9 @@ public class GitRepositoryTest {
 
   @Test
   public void testPush() throws IOException, RepoException {
-    GitRepository remote = GitRepository.bareRepo(Files.createTempDirectory("remote"),
-        getGitEnv(), /*verbose=*/true);
-    remote.initGitDir();
+    GitRepository remote = GitRepository
+        .newBareRepo(Files.createTempDirectory("remote"), getGitEnv(), /*verbose=*/true)
+        .init();
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "-m", "message");
@@ -421,9 +425,9 @@ public class GitRepositoryTest {
 
   @Test
   public void testPushPrune() throws IOException, RepoException {
-    GitRepository remote = GitRepository.bareRepo(Files.createTempDirectory("remote"),
+    GitRepository remote = GitRepository.newBareRepo(Files.createTempDirectory("remote"),
         getGitEnv(), /*verbose=*/true);
-    remote.initGitDir();
+    remote.init();
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "-m", "message");

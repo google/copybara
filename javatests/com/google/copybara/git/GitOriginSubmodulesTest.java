@@ -120,8 +120,8 @@ public class GitOriginSubmodulesTest {
   private GitRepository createRepoWithFoo(Path base, String name)
       throws IOException, RepoException, ValidationException {
     Files.createDirectories(base.resolve(name));
-    GitRepository r1 = GitRepository.initScratchRepo(/*verbose=*/false, base.resolve(name),
-        getGitEnv());
+    GitRepository r1 = GitRepository.newRepo(false, base.resolve(name), getGitEnv()).init(
+    );
     commitAdd(r1, ImmutableMap.of("foo", "1"));
     return r1;
   }

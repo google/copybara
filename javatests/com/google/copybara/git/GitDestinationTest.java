@@ -103,7 +103,7 @@ public class GitDestinationTest {
   }
 
   private GitRepository repoForPath(Path path) {
-    return new GitRepository(path, /*workTree=*/null, /*verbose=*/true, getGitEnv());
+    return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true);
   }
 
   private String git(String... argv) throws RepoException {
@@ -1060,8 +1060,8 @@ public class GitDestinationTest {
     process(writer, new DummyRevision("origin_ref1"));
 
     //    Path localPath = Files.createTempDirectory("local_repo");
-    GitRepository localRepo = GitRepository.initScratchRepo(/*verbose=*/true, localPath,
-        getGitEnv());
+    GitRepository localRepo = GitRepository.newRepo(true, localPath, getGitEnv()).init(
+    );
 
     GitTesting.assertThatCheckout(localRepo, "master")
         .containsFile("test.txt", "some content")

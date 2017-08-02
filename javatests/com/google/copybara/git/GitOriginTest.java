@@ -114,7 +114,8 @@ public class GitOriginTest {
 
   private void createTestRepo(Path folder) throws Exception {
     remote = folder;
-    repo = GitRepository.initScratchRepo(/*verbose*/true, remote, options.general.getEnvironment());
+    repo = GitRepository.newRepo(true, remote, options.general.getEnvironment()).init(
+    );
   }
 
   private Reader<GitRevision> newReader() {

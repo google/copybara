@@ -93,7 +93,7 @@ public class GerritDestinationTest {
   public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
-    git("init", "--bare", repoGitDir.toString());
+    repo().init();
 
     console = new TestingConsole();
     options = new OptionsBuilder()
@@ -109,7 +109,7 @@ public class GerritDestinationTest {
   }
 
   private GitRepository repo() {
-    return new GitRepository(repoGitDir, /*workTree=*/null, /*verbose=*/true, getGitEnv());
+    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true);
   }
 
   private String git(String... argv) throws RepoException {

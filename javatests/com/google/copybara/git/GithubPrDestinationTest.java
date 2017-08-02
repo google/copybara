@@ -265,10 +265,10 @@ public class GithubPrDestinationTest {
   }
 
   private GitRepository localHubRepo(String name) throws RepoException {
-    GitRepository repo = GitRepository.bareRepo(localHub.resolve(name),
+    GitRepository repo = GitRepository.newBareRepo(localHub.resolve(name),
         options.general.getEnvironment(),
         options.general.isVerbose());
-    repo.initGitDir();
+    repo.init();
     return repo;
   }
 
@@ -283,7 +283,7 @@ public class GithubPrDestinationTest {
   }
 
   private GitRepository repoForPath(Path path) {
-    return new GitRepository(path, /*workTree=*/null, /*verbose=*/true, getGitEnv());
+    return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true);
   }
 
   private class TestGitOptions extends GitOptions {
@@ -297,8 +297,9 @@ public class GithubPrDestinationTest {
 
     @Override
     protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
-        throws IOException {
-      return new RewriteUrlGitRepository(path, null, generalOptions, localHub);
+        throws RepoException {
+      return new RewriteUrlGitRepository(path, null, generalOptions, localHub)
+          .init();
     }
   }
 

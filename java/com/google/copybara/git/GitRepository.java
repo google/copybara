@@ -46,7 +46,6 @@ import com.google.copybara.authoring.InvalidAuthorException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
-import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.shell.Command;
@@ -69,7 +68,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.annotation.CheckReturnValue;
@@ -142,17 +140,12 @@ public class GitRepository {
       Arrays.stream(StatusCode.values())
           .collect(Collectors.toMap(StatusCode::getCode, Function.identity()));
 
-  GitRepository(
-      Path gitDir, @Nullable Path workTree, boolean verbose, Map<String, String> environment) {
+  protected GitRepository(Path gitDir, @Nullable Path workTree, boolean verbose, Map<String,
+      String> environment) {
     this.gitDir = checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
     this.environment = checkNotNull(environment);
-  }
-
-  public static GitRepository bareRepo(Path gitDir, Map<String, String> environment,
-      boolean verbose) {
-    return new GitRepository(gitDir,/*workTree=*/null, verbose, environment);
   }
 
   static Path createGitDirInCache(String url, Path repoStorage) {
@@ -170,38 +163,19 @@ public class GitRepository {
   }
 
   /**
-   * Initializes a new repository in an output directory using the given environment vars.
-   *
-   * <p>The new repo is not bare. The output directory might be reused.
-   * @deprecated
+   * Creates a new repository in the given directory. The new repo is not bare.
    */
-  @Deprecated
-  @VisibleForTesting
-  public static GitRepository initScratchRepoForTest(Map<String, String> environment,
-      DirFactory dirFactory) throws RepoException {
-    Path scratchWorkTree;
-    try {
-      scratchWorkTree = dirFactory.newTempDir("copybara-makeScratchClone");
-      logger.log(Level.INFO,
-          String.format("Created temporary folder for scratch repo: %s",
-              scratchWorkTree.toAbsolutePath()));
-    } catch (IOException e) {
-      throw new RepoException("Could not make temporary directory for scratch repo", e);
-    }
-
-    return initScratchRepo(/*verbose=*/true, scratchWorkTree, environment);
+  public static GitRepository newRepo(boolean verbose, Path path,
+      Map<String, String> environment) {
+    return new GitRepository(path.resolve(".git"), path, verbose, environment);
   }
 
   /**
-   * Initializes a new repository in the given directory. The new repo is not bare.
+   * Create a new bare repository
    */
-  @VisibleForTesting
-  public static GitRepository initScratchRepo(
-      boolean verbose, Path path, Map<String, String> environment) throws RepoException {
-    GitRepository repository =
-        new GitRepository(path.resolve(".git"), path, verbose, environment);
-    repository.git(path, ImmutableList.of("init", "."));
-    return repository;
+  public static GitRepository newBareRepo(Path gitDir, Map<String, String> environment,
+      boolean verbose) {
+    return new GitRepository(gitDir,/*workTree=*/null, verbose, environment);
   }
 
   /**
@@ -749,20 +723,30 @@ public class GitRepository {
     return allArgv;
   }
 
-  /**
-   * Initializes the {@code .git} directory of this repository as a new repository with zero
-   * commits.
-   */
-  public void initGitDir() throws RepoException {
+  public GitRepository init() throws RepoException {
     try {
       Files.createDirectories(gitDir);
+      if (workTree != null) {
+        Files.createDirectories(workTree);
+      }
     } catch (IOException e) {
-      throw new RepoException("Cannot create git directory '" + gitDir + "': " + e.getMessage(), e);
+      throw new RepoException("Cannot create directories: " + e.getMessage(), e);
     }
-
-    git(gitDir, ImmutableList.of("init", "--bare"));
+    if (workTree != null && workTree.resolve(".git").equals(gitDir)) {
+      git(workTree, ImmutableList.of("init", "."));
+    } else {
+      git(gitDir, ImmutableList.of("init", "--bare"));
+    }
+    return this;
   }
 
+  public GitRepository withCredentialHelper(String credentialHelper)
+      throws RepoException {
+    git(gitDir, ImmutableList.of("config", "--local", "credential.helper",
+        Preconditions.checkNotNull(credentialHelper)));
+    return this;
+  }
+  
   /**
    * Runs a {@code git} command with the {@code --git-dir} and (if non-bare) {@code --work-tree}
    * args set, and returns the {@link CommandOutput} if the command execution was successful.

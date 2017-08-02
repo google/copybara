@@ -17,6 +17,8 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitRepository.*;
+import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -59,21 +61,23 @@ public class GitMirrorTest {
         .setOutputRootToTmpDir()
         .setWorkdirToRealTempDir()
         .setConsole(console);
-    originRepo = GitRepository.initScratchRepoForTest(/*verbose=*/
-        options.general.getEnvironment(), options.general.getDirFactory());
+    originRepo = newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(),
+        /*verbose=*/true)
+        .withWorkTree(Files.createTempDirectory("worktree"));
+    originRepo.init();
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
 
     Path reposDir = Files.createTempDirectory("repos_repo");
     options.git.repoStorage = reposDir.toString();
 
-    destRepo.initGitDir();
+    destRepo.init();
 
     skylark = new SkylarkTestExecutor(options, GitModule.class);
 
     Files.write(originRepo.getWorkTree().resolve("test.txt"), "some content".getBytes());
     originRepo.add().files("test.txt").run();
-    originRepo.git(originRepo.getWorkTree(), "commit", "-m", "first file");
-    originRepo.git(originRepo.getWorkTree(), "branch", "other");
+    originRepo.simpleCommand("commit", "-m", "first file");
+    originRepo.simpleCommand("branch", "other");
   }
 
   @Test
@@ -99,8 +103,7 @@ public class GitMirrorTest {
    */
   @Test
   public void testMirrorDeletedOrigin() throws Exception {
-    GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1"));
-    destRepo1.initGitDir();
+    GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1")).init();
 
     String cfgContent = ""
         + "git.mirror("
@@ -129,7 +132,7 @@ public class GitMirrorTest {
   @Test
   public void testMirrorNoPrune() throws Exception {
     GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1"));
-    destRepo1.initGitDir();
+    destRepo1.init();
 
     String cfg = ""
         + "git.mirror("
@@ -152,7 +155,7 @@ public class GitMirrorTest {
   @Test
   public void testMirrorPrune() throws Exception {
     GitRepository destRepo1 = bareRepo(Files.createTempDirectory("dest1"));
-    destRepo1.initGitDir();
+    destRepo1.init();
 
     String cfg = ""
         + "git.mirror("
@@ -172,7 +175,7 @@ public class GitMirrorTest {
   }
 
   private GitRepository bareRepo(Path path) throws IOException {
-    return GitRepository.bareRepo(path, options.general.getEnvironment(),
+    return newBareRepo(path, options.general.getEnvironment(),
         options.general.isVerbose());
   }
 
@@ -229,8 +232,8 @@ public class GitMirrorTest {
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
         + ")";
     Path otherRepoPath = Files.createTempDirectory("other_repo");
-    GitRepository other = GitRepository.initScratchRepo(
-        /*verbose=*/true, otherRepoPath, options.general.getEnvironment());
+    GitRepository other = newRepo(true, otherRepoPath,
+        options.general.getEnvironment()).init();
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes());
     other.add().files("test2.txt").run();
     other.git(other.getWorkTree(), "commit", "-m", "another file");
