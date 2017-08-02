@@ -37,6 +37,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
@@ -790,6 +791,20 @@ public class GitOriginTest {
     ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
     assertThat(actual.get("type")).containsExactly("git.origin");
     assertThat(actual.get("repoType")).containsExactly("GIT");
+  }
+
+  @Test
+  public void testCredentials() throws Exception {
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, "https://user:SECRET@somehost.com".getBytes(UTF_8));
+    options.git.credentialHelperStorePath = credentialsFile.toString();
+
+    GitRepository repository = origin().getRepository();
+    UserPassword result = repository
+        .credentialFill("https://somehost.com/foo/bar");
+
+    assertThat(result.getUsername()).isEqualTo("user");
+    assertThat(result.getPassword_BeCareful()).isEqualTo("SECRET");
   }
 
   private GitRevision getLastCommitRef() throws RepoException, ValidationException {

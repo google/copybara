@@ -298,8 +298,7 @@ public class GithubPrDestinationTest {
     @Override
     protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
         throws RepoException {
-      return new RewriteUrlGitRepository(path, null, generalOptions, localHub)
-          .init();
+      return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, localHub));
     }
   }
 

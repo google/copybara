@@ -43,6 +43,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
@@ -58,6 +59,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -746,7 +748,12 @@ public class GitRepository {
         Preconditions.checkNotNull(credentialHelper)));
     return this;
   }
-  
+
+  public UserPassword credentialFill(String url) throws RepoException, ValidationException {
+         return new GitCredential(resolveGitBinary(environment),
+             Duration.ofSeconds(60),
+             environment).fill(gitDir, url);
+  }
   /**
    * Runs a {@code git} command with the {@code --git-dir} and (if non-bare) {@code --work-tree}
    * args set, and returns the {@link CommandOutput} if the command execution was successful.

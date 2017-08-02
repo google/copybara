@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.GeneralOptions;
@@ -63,7 +64,7 @@ public class Mirror implements Migration {
   @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
-    GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
+    GitRepository repo = getLocalRepo();
     List<String> fetchRefspecs = refspec.stream()
         .map(r -> r.getOrigin() + ":" + r.getOrigin())
         .collect(Collectors.toList());
@@ -77,6 +78,11 @@ public class Mirror implements Migration {
         ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
         : refspec;
     repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+  }
+
+  @VisibleForTesting
+  GitRepository getLocalRepo() throws RepoException {
+    return gitOptions.cachedBareRepoForUrl(origin);
   }
 
   @Override

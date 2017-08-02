@@ -34,6 +34,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
@@ -1173,6 +1174,33 @@ public class GitDestinationTest {
     assertThat(visited).hasSize(2);
     assertThat(visited.get(0).getLabels().get(DummyOrigin.LABEL_NAME)).isEqualTo("origin_ref2");
     assertThat(visited.get(1).getLabels().get(DummyOrigin.LABEL_NAME)).isEqualTo("origin_ref1");
+  }
+
+  @Test
+  public void testCredentials() throws Exception {
+    checkCredentials();
+  }
+
+  @Test
+  public void testCredentials_localRepo() throws Exception {
+    Path path = Files.createTempDirectory("local");
+    options.gitDestination.localRepoPath = path.toString();
+    GitRepository repository = checkCredentials();
+    assertThat(repository.getGitDir().toString()).isEqualTo(path.resolve(".git").toString());
+  }
+
+  private GitRepository checkCredentials() throws IOException, RepoException, ValidationException {
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, "https://user:SECRET@somehost.com".getBytes(UTF_8));
+    options.git.credentialHelperStorePath = credentialsFile.toString();
+
+    GitRepository repository = destinationFirstCommit().getLocalRepo().get(console);
+    UserPassword result = repository
+        .credentialFill("https://somehost.com/foo/bar");
+
+    assertThat(result.getUsername()).isEqualTo("user");
+    assertThat(result.getPassword_BeCareful()).isEqualTo("SECRET");
+    return repository;
   }
 
   private Writer<GitRevision> newWriter() throws ValidationException {

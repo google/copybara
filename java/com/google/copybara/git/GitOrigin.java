@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -111,6 +112,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.includeBranchCommitLogs = includeBranchCommitLogs;
   }
 
+  @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }

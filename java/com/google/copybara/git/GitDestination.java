@@ -565,6 +565,11 @@ public final class GitDestination implements Destination<GitRevision> {
     }
   }
 
+  @VisibleForTesting
+  LazyGitRepository getLocalRepo() {
+    return localRepo;
+  }
+
   @Override
   public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =

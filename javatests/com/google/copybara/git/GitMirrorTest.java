@@ -19,12 +19,14 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.*;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Migration;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
@@ -199,6 +201,29 @@ public class GitMirrorTest {
     assertThat(destMaster).isEqualTo(origMaster);
     checkRefDoesntExist("refs/heads/master");
     checkRefDoesntExist("refs/heads/other");
+  }
+
+  @Test
+  public void testMirrorCredentials() throws Exception {
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, "https://user:SECRET@somehost.com".getBytes(UTF_8));
+    options.git.credentialHelperStorePath = credentialsFile.toString();
+
+    String cfg = ""
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + ")\n"
+        + "";
+
+    GitRepository repository = ((Mirror) loadMigration(cfg, "default")).getLocalRepo();
+
+    UserPassword result = repository
+        .credentialFill("https://somehost.com/foo/bar");
+
+    assertThat(result.getUsername()).isEqualTo("user");
+    assertThat(result.getPassword_BeCareful()).isEqualTo("SECRET");
   }
 
   private void checkRefDoesntExist(String ref) throws RepoException {

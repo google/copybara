@@ -42,6 +42,11 @@ public class GitOptions implements Option {
       hidden = true)
   String repoStorage;
 
+  @Parameter(names = "--git-credential-helper-store-file",
+      description = "Credentials store file to be used. See "
+          + "https://git-scm.com/docs/git-credential-store")
+  String credentialHelperStorePath;
+
   public GitOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
     this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
   }
@@ -76,7 +81,7 @@ public class GitOptions implements Option {
   }
 
   protected GitRepository initRepo(GitRepository repo) throws RepoException {
-    // TODO(malcon): Insert here the credential helpers
-    return repo.init();
+    String path = credentialHelperStorePath == null ? "" : " --file=" + credentialHelperStorePath;
+    return repo.init().withCredentialHelper("store" + path);
   }
 }
