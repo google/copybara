@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 /**
  * Common arguments for {@link GitDestination}, {@link GitOrigin}, and other Git components.
@@ -48,7 +49,15 @@ public class GitOptions implements Option {
   String credentialHelperStorePath;
 
   public GitOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
+    this(generalOptionsSupplier, /*credentialHelperStorePath=*/null);
+  }
+
+  /** Used internally to customize the path for credential store. */
+  @SuppressWarnings("unused")
+  public GitOptions(Supplier<GeneralOptions> generalOptionsSupplier,
+      @Nullable String defaultCredentialHelperStorePath) {
     this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
+    this.credentialHelperStorePath = defaultCredentialHelperStorePath;
   }
 
   private Path getRepoStorage() throws IOException {
