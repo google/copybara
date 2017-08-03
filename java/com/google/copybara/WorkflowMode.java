@@ -210,6 +210,8 @@ public enum WorkflowMode {
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
+      logger.info(String.format("Found baseline for label %s: %s", originLabelName,
+          requestParent.get()));
       Change<O> change = runHelper.getOriginReader().change(runHelper.getResolvedRef());
       ComputedChanges changes = new ComputedChanges(ImmutableList.of(change), ImmutableList.of());
       runHelper
