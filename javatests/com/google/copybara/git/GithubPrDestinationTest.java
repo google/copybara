@@ -266,7 +266,7 @@ public class GithubPrDestinationTest {
 
   private GitRepository localHubRepo(String name) throws RepoException {
     GitRepository repo = GitRepository.newBareRepo(localHub.resolve(name),
-        options.general.getEnvironment(),
+        getGitEnv(),
         options.general.isVerbose());
     repo.init();
     return repo;
