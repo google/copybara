@@ -97,6 +97,27 @@ public class ProfilerTest {
   }
 
   @Test
+  public void testThreadCreatedInRootListener() {
+    profiler = new Profiler(ticker);
+    profiler.init(ImmutableList.of(new Listener() {
+      @Override
+      public void taskStarted(Task task) {
+
+      }
+
+      @Override
+      public void taskFinished(Task task) {
+        if (task.isFinished() && task.getDescription().equals("//copybara")) {
+          // This thread inherits from the profiler thread.
+          new Thread();
+        }
+      }
+    }));
+    profiler.simpleTask("task1", ticker.read(), ticker.read());
+    profiler.stop();
+  }
+
+  @Test
   public void multiThreadTest() {
     ExecutorService executorService = Executors.newFixedThreadPool(2);
     try (ProfilerTask p1 = profiler.start("task1")) {

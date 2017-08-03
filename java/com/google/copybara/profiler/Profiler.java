@@ -53,7 +53,9 @@ public final class Profiler {
      */
     @Override
     protected Deque<Task> childValue(Deque<Task> parentValue) {
-      if (stopped) {
+      // Parent can be empty if the listener creates a thread when it receives the finish
+      // event for the root task ("//copybara").
+      if (stopped || parentValue.isEmpty()) {
         return null;
       }
       return createQueue(parentValue.element());
