@@ -30,6 +30,7 @@ DEPS = [
     "//third_party:skylark-lang",
     "//third_party:truth",
     "//third_party:mockito",
+    "//third_party:guava_testlib",
 ]
 
 all_tests(

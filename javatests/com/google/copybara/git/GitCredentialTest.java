@@ -21,6 +21,8 @@ import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.Iterables;
+import com.google.common.testing.TestLogHandler;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
@@ -29,6 +31,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,11 +65,20 @@ public class GitCredentialTest {
   public void testSuccess() throws IOException, RepoException, ValidationException {
     Files.write(credentialsFile, "https://user:SECRET@somehost.com".getBytes(UTF_8));
 
-    UserPassword result = credential.fill(repoGitDir, "https://somehost.com/foo/bar");
+    final TestLogHandler handler = new TestLogHandler();
+    Logger.getGlobal().getParent().addHandler(handler);
+    UserPassword result;
+    try {
+      result = credential.fill(repoGitDir, "https://somehost.com/foo/bar");
+    } finally {
+      Logger.getGlobal().getParent().removeHandler(handler);
+    }
 
     assertThat(result.getUsername()).isEqualTo("user");
     assertThat(result.getPassword_BeCareful()).isEqualTo("SECRET");
     assertThat(result.toString()).doesNotContain("SECRET");
+    assertThat(Iterables.transform(handler.getStoredLogRecords(), LogRecord::getMessage))
+        .doesNotContain("SECRET");
   }
 
   @Test
