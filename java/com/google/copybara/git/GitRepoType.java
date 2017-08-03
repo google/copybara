@@ -75,7 +75,7 @@ public enum GitRepoType {
       generalOptions.console().warn(msg);
       logger.warning(msg + ". Config value was: " + repoUrl);
       generalOptions.console().progress("Fetching HEAD for " + ref);
-      GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
+      GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, repoUrl, ref);
       if (ghPullRequest != null) {
         return ghPullRequest;
       }
@@ -99,8 +99,9 @@ public enum GitRepoType {
     GitRevision resolveRef(
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
         throws RepoException, CannotResolveRevisionException {
-      if (ref.startsWith("https://github.com") && ref.startsWith(repoUrl)) {
-        GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, ref);
+      if ((ref.startsWith("https://github.com") && ref.startsWith(repoUrl))
+          || GITHUB_PULL_REQUEST_REF.matches(ref)) {
+        GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, repoUrl, ref);
         if (ghPullRequest != null) {
           return ghPullRequest;
         }
@@ -112,7 +113,7 @@ public enum GitRepoType {
   GERRIT {
 
     private final Pattern WHOLE_REF = Pattern.compile("refs/changes/[0-9]{2}/([0-9]+)/([0-9]+)");
-    private final Pattern URL = Pattern.compile("https?://.*?/([0-9]+)(?:/([0-9]+))?");
+    private final Pattern URL = Pattern.compile("https?://.*?/([0-9]+)(?:/([0-9]+))?/?");
 
     @Override
     GitRevision resolveRef(
@@ -238,21 +239,47 @@ public enum GitRepoType {
    * reference. Otherwise return null.
    */
   @Nullable
-  protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository, String ref)
+  protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository,
+      String repoUrl, String ref)
       throws RepoException, CannotResolveRevisionException {
     Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
     if (matcher.matches()) {
-      return repository.fetchSingleRef(matcher.group(1), "refs" + matcher.group(2) + "/head");
+      // TODO(malcon): Support merge ref too once we have github pr origin.
+      String stableRef = "refs/pull/" + matcher.group(2) + "/head";
+      GitRevision gitRevision = repository.fetchSingleRef(matcher.group(1), stableRef);
+      return new GitRevision(
+          repository,
+          gitRevision.getSha1(),
+          // TODO(malcon): Decide the format to use here:
+          /*reviewReference=*/null,
+          stableRef,
+          ImmutableMap.of(GITHUB_PR_NUMBER_LABEL, matcher.group(2)));
+
+    }
+    matcher = GITHUB_PULL_REQUEST_REF.matcher(ref);
+    if (matcher.matches()) {
+      GitRevision gitRevision = repository.fetchSingleRef(repoUrl, ref);
+      return new GitRevision(
+          repository,
+          gitRevision.getSha1(),
+          // TODO(malcon): Decide the format to use here:
+          /*reviewReference=*/null,
+          ref,
+          ImmutableMap.of(GITHUB_PR_NUMBER_LABEL, matcher.group(1)));
     }
     return null;
   }
 
   public static final String GERRIT_CHANGE_NUMBER_LABEL = "GERRIT_CHANGE_NUMBER";
+  public static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
 
   private static final Logger logger = Logger.getLogger(GitRepoType.class.getCanonicalName());
 
   private static final Pattern GITHUB_PULL_REQUEST =
-      Pattern.compile("(?P<url>https://github[.]com/.+)(?P<pull>/pull/[0-9]+)");
+      Pattern.compile("(?P<url>https://github[.]com/.+)/pull/([0-9]+)");
+
+  private static final Pattern GITHUB_PULL_REQUEST_REF =
+      Pattern.compile("refs/pull/([0-9]+)/(head|merge)");
 
   private static final Pattern GIT_URL =
       Pattern.compile("(\\w+://)(.+@)*([\\w.]+)(:[\\d]+){0,1}/*(.*)");

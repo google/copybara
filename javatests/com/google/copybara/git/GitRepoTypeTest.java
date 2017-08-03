@@ -157,12 +157,36 @@ public class GitRepoTypeTest {
 
   @Test
   public void testGitResolvePullRequest() throws Exception {
-    assertThat(GitRepoType.GITHUB.resolveRef(testRepo, "https://github.com/google/example",
-        "https://github.com/google/example/pull/1", generalOptions).asString())
-        .hasLength(40);
-    assertFetch("https://github.com/google/example", "refs/pull/1/head");
-    console.assertThat()
-        .containsNoMoreMessages();
+    GitRevision rev = GitRepoType.GITHUB.resolveRef(testRepo,
+        "https://github.com/google/example",
+        "https://github.com/google/example/pull/123", generalOptions);
+    assertThat(rev.asString()).hasLength(40);
+    assertThat(rev.contextReference()).isEqualTo("refs/pull/123/head");
+    assertThat(rev.associatedLabels()).containsEntry(GitRepoType.GITHUB_PR_NUMBER_LABEL,
+        "123");
+    assertFetch("https://github.com/google/example", "refs/pull/123/head");
+  }
+
+  @Test
+  public void testGitResolvePullRequest_rawRef() throws Exception {
+    GitRevision rev = GitRepoType.GITHUB.resolveRef(testRepo,
+        "https://github.com/google/example", "refs/pull/123/head", generalOptions);
+    assertThat(rev.asString()).hasLength(40);
+    assertThat(rev.contextReference()).isEqualTo("refs/pull/123/head");
+    assertThat(rev.associatedLabels()).containsEntry(GitRepoType.GITHUB_PR_NUMBER_LABEL,
+        "123");
+    assertFetch("https://github.com/google/example", "refs/pull/123/head");
+  }
+
+  @Test
+  public void testGitResolvePullRequest_rawRefMerge() throws Exception {
+    GitRevision rev = GitRepoType.GITHUB.resolveRef(testRepo,
+        "https://github.com/google/example", "refs/pull/123/merge", generalOptions);
+    assertThat(rev.asString()).hasLength(40);
+    assertThat(rev.contextReference()).isEqualTo("refs/pull/123/merge");
+    assertThat(rev.associatedLabels()).containsEntry(GitRepoType.GITHUB_PR_NUMBER_LABEL,
+        "123");
+    assertFetch("https://github.com/google/example", "refs/pull/123/merge");
   }
 
   @Test

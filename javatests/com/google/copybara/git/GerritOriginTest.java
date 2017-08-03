@@ -131,6 +131,7 @@ public class GerritOriginTest {
     validateSameGitRevision(origin.resolve("http://foo.com/12345"), thirdRevision);
     validateSameGitRevision(origin.resolve("https://foo.com/12345"), thirdRevision);
     validateSameGitRevision(origin.resolve("http://foo.com/#/c/12345/2"), secondRevision);
+    validateSameGitRevision(origin.resolve("https://foo.com/#/c/12345/"), thirdRevision);
 
     validateSameGitRevision(origin.resolve("refs/changes/45/12345/1"), firstRevision);
     validateSameGitRevision(origin.resolve("refs/changes/45/12345/2"), secondRevision);

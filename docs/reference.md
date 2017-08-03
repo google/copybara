@@ -1073,6 +1073,14 @@ Name | Type | Description
 
 Set of functions to define Git origins and destinations.
 
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-credential-helper-store-file | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
+
 <a id="git.origin" aria-hidden="true"></a>
 ## git.origin
 
@@ -1140,6 +1148,10 @@ submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.
 ## git.github_origin
 
 Defines a Git origin of type Github.
+
+Implicit labels that can be used/exposed:
+
+  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.
 
 `gitOrigin git.github_origin(url, ref=None, submodules='NO')`
 

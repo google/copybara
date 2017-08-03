@@ -183,7 +183,14 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   };
 
   @SkylarkSignature(name = "github_origin", returnType = GitOrigin.class,
-      doc = "Defines a Git origin of type Github.",
+      doc = "Defines a Git origin of type Github.\n"
+          + "\n"
+          + "Implicit labels that can be used/exposed:\n"
+          + "\n"
+          + "  - " + GitRepoType.GITHUB_PR_NUMBER_LABEL + ": The pull request number if the"
+          + " reference passed was in the form of `https://github.com/project/pull/123`, "
+          + " `refs/pull/123/head` or `refs/pull/123/master`.",
+
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "url", type = String.class,
