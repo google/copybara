@@ -490,6 +490,25 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testScrubberMissingGroups() throws Exception {
+    try {
+      checkScrubber("Automated g4 rollback of changelist",
+          "metadata.scrubber(\n"
+              + "    '^Automated g4 rollback of changelist*$',\n"
+              + "    replacement =\n"
+              + "        'BEGIN_PUBLIC\\nAutomated rollback of changelist $1\\nEND_PUBLIC',\n"
+              + ")",
+          "not important");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e.getMessage())
+          .contains(
+              "Could not find matching group. Are you missing a group in your regex "
+                  + "'^Automated g4 rollback of changelist*$'?");
+    }
+  }
+
+  @Test
   public void testScrubberForTags() throws Exception {
     checkScrubber(
         "this\nis\nvery confidential<public>but this is public\nvery public\n</public>"

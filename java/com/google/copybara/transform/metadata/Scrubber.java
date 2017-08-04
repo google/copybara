@@ -42,7 +42,15 @@ public class Scrubber implements Transformation {
   @Override
   public void transform(TransformWork work)
       throws IOException, ValidationException {
-    work.setMessage(pattern.matcher(work.getMessage()).replaceAll(replacement));
+    try {
+      work.setMessage(pattern.matcher(work.getMessage()).replaceAll(replacement));
+    } catch (IndexOutOfBoundsException e) {
+      throw new ValidationException(
+          String.format(
+              "Could not find matching group. Are you missing a group in your regex '%s'?",
+              pattern.toString()),
+          e);
+    }
   }
 
   @Override
