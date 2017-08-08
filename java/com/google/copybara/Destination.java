@@ -73,8 +73,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
      */
     @Nullable
     DestinationStatus getDestinationStatus(String labelName)
-        throws RepoException;
-
+        throws RepoException, ValidationException;
     /**
      * Returns true if this destination stores revisions in the repository so that
      * {@link #getDestinationStatus(String)}  can be used for discovering the state of the
@@ -126,7 +125,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    * revision id. Destinations return the origin label so that a baseline label can be found when
    * using {@link WorkflowMode#CHANGE_REQUEST}.
    */
-  String getLabelNameWhenOrigin();
+  String getLabelNameWhenOrigin() throws ValidationException;
 
   /**
    * This class represents the status of the destination. It includes the baseline revision

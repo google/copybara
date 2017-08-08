@@ -35,14 +35,14 @@ public interface ChangeVisitable <R extends Revision> {
    * <p>It is up to the Origin how and what changes it provides to the function.
    */
   void visitChanges(R start, ChangesVisitor visitor)
-      throws RepoException, CannotResolveRevisionException;
+      throws RepoException, ValidationException;
 
   /**
    * Visit only changes that contain any of the labels in {@code labels}.
    */
   default void visitChangesWithAnyLabel(
       R start, ImmutableCollection<String> labels, ChangesLabelVisitor visitor)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
     visitChanges(start, input -> {
       Map<String, String> copy = Maps.newHashMap(input.getLabels());
       copy.keySet().retainAll(labels);
@@ -52,6 +52,7 @@ public interface ChangeVisitable <R extends Revision> {
       return visitor.visit(input, ImmutableMap.copyOf(copy));
     });
   }
+  
   /**
    * A visitor of changes. An implementation of this interface is provided to {@see
    * visitChanges} methods to visit changes in Origin or

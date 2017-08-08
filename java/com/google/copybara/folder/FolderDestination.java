@@ -18,7 +18,6 @@ package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
@@ -45,6 +44,11 @@ public class FolderDestination implements Destination<Revision> {
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   private static final String FOLDER_DESTINATION_NAME = "folder.destination";
+  private static final String HISTORY_NOT_SUPPORTED =
+      String.format(
+          "History not supported in %s. Consider passing a ref as an argument, or using "
+              + "--last-rev.", FOLDER_DESTINATION_NAME);
+
   private final GeneralOptions generalOptions;
   private final FolderDestinationOptions folderDestinationOptions;
 
@@ -74,14 +78,14 @@ public class FolderDestination implements Destination<Revision> {
     @Nullable
     @Override
     public DestinationStatus getDestinationStatus(String labelName)
-        throws RepoException {
-      throw new IllegalStateException("History not supported");
+        throws RepoException, ValidationException {
+      throw new ValidationException(HISTORY_NOT_SUPPORTED);
     }
 
     @Override
     public void visitChanges(Revision start, ChangesVisitor visitor)
-        throws RepoException, CannotResolveRevisionException {
-      throw new IllegalStateException("History not supported");
+        throws RepoException, ValidationException {
+      throw new ValidationException(HISTORY_NOT_SUPPORTED);
     }
 
     @Override
@@ -133,7 +137,7 @@ public class FolderDestination implements Destination<Revision> {
   }
 
   @Override
-  public String getLabelNameWhenOrigin() {
-    throw new UnsupportedOperationException(FOLDER_DESTINATION_NAME + " does not support labels");
+  public String getLabelNameWhenOrigin() throws ValidationException {
+    throw new ValidationException(FOLDER_DESTINATION_NAME + " does not support labels");
   }
 }
