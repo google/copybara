@@ -123,7 +123,11 @@ public final class Profiler {
   }
 
   public ImmutableMap<String, String> taskType(Class<?> aClass) {
-    return ImmutableMap.of(TYPE, aClass.getName());
+    int packageIndex = aClass.getName().lastIndexOf(".");
+    if (packageIndex == -1) {
+      return ImmutableMap.of(TYPE, aClass.getName());
+    }
+    return ImmutableMap.of(TYPE, aClass.getName().substring(packageIndex + 1));
   }
 
   /**

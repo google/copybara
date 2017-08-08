@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.FakeTicker;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -180,6 +181,14 @@ public class ProfilerTest {
     // when we do tasQueue.get() here:
     assertThat(profiler.taskQueue.get()).containsExactly(
         new Task("//detached_thread", time + 1, -1));
+  }
+
+  @Test
+  public void testTaskType() throws Exception {
+    assertThat(profiler.taskType(ProfilerTest.TaskWithType.class))
+        .isEqualTo(ImmutableMap.of("type", "ProfilerTest$TaskWithType"));
+    assertThat(profiler.taskType(ProfilerTest.class))
+        .isEqualTo(ImmutableMap.of("type", "ProfilerTest"));
   }
 
   private static class RecordingListener implements Listener {
