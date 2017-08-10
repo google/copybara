@@ -105,8 +105,7 @@ public class FolderDestination implements Destination<Revision> {
         throw new RepoException("Cannot create '" + localFolder + "' because '" + e.getFile()
             + "' already exists and is not a directory");
       }
-      console.progress("FolderDestination: deleting previous data from " + localFolder);
-
+      console.progress("FolderDestination: deleting all files from " + localFolder);
       FileUtil.deleteFilesRecursively(localFolder, destinationFiles.relativeTo(localFolder));
 
       console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);

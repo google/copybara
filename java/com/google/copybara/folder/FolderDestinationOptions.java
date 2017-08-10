@@ -28,7 +28,9 @@ import com.google.copybara.Option;
 public final class FolderDestinationOptions implements Option {
 
   @Parameter(names = "--folder-dir",
-      description = "Local directory to put the output of the transformation")
+      description = "Local directory to write the output of the migration to. If the directory "
+          + "exists, all files will be deleted. By default Copybara will generate a temporary "
+          + "directory, so you shouldn't need this.")
   @VisibleForTesting
   public String localFolder = null;
 }
