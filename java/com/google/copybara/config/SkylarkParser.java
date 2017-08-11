@@ -314,12 +314,14 @@ public class SkylarkParser {
     @Override
     public void handle(Event event) {
       switch (event.getKind()) {
-
         case ERROR:
           console.error(messageWithLocation(event));
           break;
         case WARNING:
           console.warn(messageWithLocation(event));
+          break;
+        case DEBUG:
+          console.verbose(messageWithLocation(event));
           break;
         case INFO:
           console.info(messageWithLocation(event));

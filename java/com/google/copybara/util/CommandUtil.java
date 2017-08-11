@@ -20,11 +20,10 @@ import com.google.common.base.Stopwatch;
 import com.google.devtools.build.lib.shell.BadExitStatusException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.shell.CommandResult;
+import com.google.devtools.build.lib.shell.FutureCommandResult;
 import com.google.devtools.build.lib.shell.ShellUtils;
-import com.google.devtools.build.lib.shell.SimpleKillableObserver;
 import com.google.devtools.build.lib.shell.TerminationStatus;
-
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -68,18 +67,17 @@ public final class CommandUtil {
     ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
     ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();
 
-    CommandResult cmdResult;
+    FutureCommandResult cmdResult;
 
     TerminationStatus exitStatus = null;
     try {
-      cmdResult = cmd.execute(input, new SimpleKillableObserver(),
-          // If verbose we stream to the user console too
+      cmdResult = cmd.executeAsync(new ByteArrayInputStream(input),
           verbose ? new DemultiplexOutputStream(System.err, stdoutCollector) : stdoutCollector,
           verbose ? new DemultiplexOutputStream(System.err, stderrCollector) : stderrCollector,
-          true);
-      exitStatus = cmdResult.getTerminationStatus();
+          /*killSubprocessOnInterrupt*/ true);
+      exitStatus = cmdResult.get().getTerminationStatus();
       return new CommandOutputWithStatus(
-          cmdResult.getTerminationStatus(),
+          exitStatus,
           stdoutCollector.toByteArray(),
           stderrCollector.toByteArray());
     } catch (BadExitStatusException e) {

@@ -29,8 +29,7 @@ import com.google.copybara.ValidationException;
 import com.google.devtools.build.lib.shell.BadExitStatusException;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.shell.CommandResult;
-import com.google.devtools.build.lib.shell.TimeoutKillableObserver;
+import com.google.devtools.build.lib.shell.FutureCommandResult;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
@@ -84,8 +83,9 @@ public final class GitCredential {
       throw new ValidationException("Cannot find the protocol for " + url);
     }
     String host = uri.getHost();
-    Command cmd = new Command(new String[]{gitBinary, "credential", "fill"}, env,
-        cwd.toFile());
+
+    Command cmd = new Command(
+        new String[]{gitBinary, "credential", "fill"}, env, cwd.toFile(), timeout);
     String request = String.format("protocol=%s\nhost=%s\n", protocol, host);
     if (!Strings.isNullOrEmpty(uri.getPath())) {
       request += String.format("path=%s\n", uri.getPath());
@@ -97,11 +97,10 @@ public final class GitCredential {
     try {
       // DON'T REPLACE THIS WITH CommandUtil.executeCommand. WE DON'T WANT TO ACCIDENTALLY LOG THE
       // PASSWORD!
-      CommandResult result = cmd.execute(
+      FutureCommandResult commandResult = cmd.executeAsync(
           new ByteArrayInputStream(request.getBytes(UTF_8)),
-          new TimeoutKillableObserver(timeout.toMillis()), out,
-          err);
-      if (!result.getTerminationStatus().success()) {
+          out, err, /*killSubprocessOnInterrupt*/ true);
+      if (!commandResult.get().getTerminationStatus().success()) {
         throw new RepoException("Error getting credentials:\n"
             + new String(err.toByteArray(), UTF_8));
       }
