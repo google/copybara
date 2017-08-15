@@ -769,7 +769,7 @@ Name | Type | Description
 --iterative-limit-changes | *int* | Import just a number of changes instead of all the pending ones
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
 --squash-skip-history | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
---iterative-all-changes, --import-noop-changes | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
+--import-noop-changes | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
 --check-last-rev-state | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 --dry-run | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 
@@ -1033,7 +1033,7 @@ Module for dealing with local filesytem folders
 <a id="folder.destination" aria-hidden="true"></a>
 ## folder.destination
 
-A folder destination is a destination that puts the output in a folder
+A folder destination is a destination that puts the output in a folder. It can be used both for testing or real production migrations.Given that folder destination does not support a lot of the features of real VCS, there are some limitations on how to use it:<ul><li>It requires passing a ref as an argument, as there is no way of calculating previous migrated changes. Alternatively, --last-rev can be used, which could migrate N changes.<li>Most likely, the workflow should use 'SQUASH' mode, as history is not supported.<li>If 'ITERATIVE' mode is used, a new temp directory will be created for each change migrated.</ul>
 
 `destination folder.destination()`
 
@@ -1043,7 +1043,7 @@ A folder destination is a destination that puts the output in a folder
 
 Name | Type | Description
 ---- | ----------- | -----------
---folder-dir | *string* | Local directory to put the output of the transformation
+--folder-dir | *string* | Local directory to write the output of the migration to. If the directory exists, all files will be deleted. By default Copybara will generate a temporary directory, so you shouldn't need this.
 
 <a id="folder.origin" aria-hidden="true"></a>
 ## folder.origin
@@ -1080,6 +1080,7 @@ Set of functions to define Git origins and destinations.
 Name | Type | Description
 ---- | ----------- | -----------
 --git-credential-helper-store-file | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
+--nogit-credential-helper-store | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
 
 <a id="git.origin" aria-hidden="true"></a>
 ## git.origin
