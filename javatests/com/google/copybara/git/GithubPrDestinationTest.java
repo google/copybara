@@ -130,7 +130,7 @@ public class GithubPrDestinationTest {
     // TODO(malcon): Create the PR using Github API
     console.assertThat().timesInLog(3, MessageType.INFO,
         "Please create a PR manually following this link:"
-            + " https://github.com/foo/compare/feature...master .*");
+            + " https://github.com/foo/compare/master...feature .*");
 
     assertThat(remote.refExists("feature")).isTrue();
     assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::getBody))

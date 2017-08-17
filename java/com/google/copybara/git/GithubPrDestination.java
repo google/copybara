@@ -110,7 +110,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
         WriterResult result = super.write(transformResult, console);
         console.infoFmt("Please create a PR manually following this link: %s/compare/%s...%s"
                 + " (Only needed once)",
-            asHttpsUrl(), pushBranchName, destinationRef);
+            asHttpsUrl(), destinationRef, pushBranchName);
         return result;
       }
     };
