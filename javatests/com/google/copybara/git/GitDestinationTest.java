@@ -1172,8 +1172,10 @@ public class GitDestinationTest {
               : VisitResult.CONTINUE;
         });
     assertThat(visited).hasSize(2);
-    assertThat(visited.get(0).getLabels().get(DummyOrigin.LABEL_NAME)).isEqualTo("origin_ref2");
-    assertThat(visited.get(1).getLabels().get(DummyOrigin.LABEL_NAME)).isEqualTo("origin_ref1");
+    assertThat(visited.get(0).getLabels().get(DummyOrigin.LABEL_NAME)).containsExactly(
+        "origin_ref2");
+    assertThat(visited.get(1).getLabels().get(DummyOrigin.LABEL_NAME)).containsExactly(
+        "origin_ref1");
   }
 
   @Test

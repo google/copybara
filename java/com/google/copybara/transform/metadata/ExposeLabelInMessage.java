@@ -17,6 +17,8 @@
 package com.google.copybara.transform.metadata;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
@@ -48,11 +50,12 @@ public class ExposeLabelInMessage implements Transformation {
 
   @Override
   public void transform(TransformWork work) throws IOException, ValidationException {
-    Optional<LabelFinder> labelInMessage = work.getLabelInMessage(label);
+    ImmutableList<LabelFinder> labelInMessage = work.getLabelInMessage(label);
     String value;
-    if (labelInMessage.isPresent()) {
-      value = labelInMessage.get().getValue();
-      if (!label.equals(newLabelName) || !separator.equals(labelInMessage.get().getSeparator())) {
+    if (!labelInMessage.isEmpty()) {
+      LabelFinder last = Iterables.getLast(labelInMessage);
+      value = last.getValue();
+      if (!label.equals(newLabelName) || !separator.equals(last.getSeparator())) {
         // Remove the old label since we want it with different name/separator.
         work.removeLabel(label,/*wholeMessage=*/true);
       }

@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import java.util.Map;
 
@@ -44,7 +45,10 @@ public interface ChangeVisitable <R extends Revision> {
       R start, ImmutableCollection<String> labels, ChangesLabelVisitor visitor)
       throws RepoException, ValidationException {
     visitChanges(start, input -> {
-      Map<String, String> copy = Maps.newHashMap(input.getLabels());
+      // We could return all the label values, but this is really only used for
+      // RevId like ones and last is good enough for now.
+      Map<String, String> copy = Maps.newHashMap(Maps.transformValues(input.getLabels().asMap(),
+          Iterables::getLast));
       copy.keySet().retainAll(labels);
       if (copy.isEmpty()) {
         return VisitResult.CONTINUE;

@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform.metadata;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.Iterables;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.NonReversibleValidationException;
@@ -43,10 +45,10 @@ public class RestoreOriginalAuthor implements Transformation {
     // If multiple commits are included (for example on a squash for skipping a bad change),
     // last author wins.
     for (Change<?> change : work.getChanges().getCurrent()) {
-      String labelValue = change.getLabels().get(label);
-      if (labelValue != null) {
+      ImmutableCollection<String> labelValue = change.getLabels().get(label);
+      if (!labelValue.isEmpty()) {
         try {
-          author = Author.parse(/*location=*/null, labelValue);
+          author = Author.parse(/*location=*/null, Iterables.getLast(labelValue));
         } catch (EvalException e) {
           // Don't fail the migration because the label is wrong since it is very
           // difficult for a user to recover from this.

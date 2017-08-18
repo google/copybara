@@ -18,6 +18,9 @@ package com.google.copybara;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.treestate.FileSystemTreeState;
 import com.google.copybara.treestate.TreeState;
@@ -35,7 +38,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -223,37 +227,62 @@ public final class TransformWork {
       , allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
+    Collection<String> labelValues = findLabelValues(label, /*all=*/false);
+    return labelValues.isEmpty() ? null : Iterables.getLast(labelValues);
+  }
+
+  @SkylarkCallable(name = "find_all_labels", doc = ""
+      + "Tries to find all the values for a label. First it looks at the generated message (IOW"
+      + " labels that might have been added by previous steps), then looks in all the commit"
+      + " messages being imported and finally in the resolved reference passed in the CLI."
+      , allowReturnNones = true)
+  @Nullable
+  public SkylarkList<String> getAllLabels(String label) {
+    return findLabelValues(label, /*all=*/true);
+  }
+
+  private SkylarkList<String> findLabelValues(String label, boolean all) {
     if (label.equals(COPYBARA_CONTEXT_REFERENCE_LABEL)) {
-      return resolvedReference.contextReference();
+      String ctxRef = resolvedReference.contextReference();
+      return SkylarkList.createImmutable(ctxRef == null
+          ? ImmutableList.of()
+          : ImmutableList.of(ctxRef));
     }
-    Optional<LabelFinder> msgLabel = getLabelInMessage(label);
-    if (msgLabel.isPresent()) {
-      return msgLabel.get().getValue();
+    ArrayList<String> result = new ArrayList<>();
+    ImmutableList<LabelFinder> msgLabel = getLabelInMessage(label);
+    if (!msgLabel.isEmpty()) {
+      result.addAll(Lists.transform(msgLabel, LabelFinder::getValue));
+      if (!all) {
+        return SkylarkList.createImmutable(result);
+      }
     }
     // Try to find the label in the current changes migrated. We prioritize current
     // changes over resolvedReference. Since in iterative mode this would be more
     // specific to the current migration.
     for (Change<?> change : changes.getCurrent()) {
-      String val = change.getLabels().get(label);
+      SkylarkList<String> val = change.getLabelsAllForSkylark().get(label);
       if (val != null) {
-        return val;
+        result.addAll(val);
+        if (!all) {
+          return SkylarkList.createImmutable(result);
+        }
       }
     }
 
     // Try to find the label in the resolved reference
     String resolvedRefLabel = resolvedReference.associatedLabels().get(label);
     if (resolvedRefLabel != null) {
-      return resolvedRefLabel;
+      result.add(resolvedRefLabel);
     }
-    return null;
+    return SkylarkList.createImmutable(result);
   }
 
   /**
    * Search for a label in the current message. We are less strict and look in the whole message.
    */
-  public Optional<LabelFinder> getLabelInMessage(String name) {
+  public ImmutableList<LabelFinder> getLabelInMessage(String name) {
     return parseMessage(/*wholeMessage= */true).getLabels().stream()
-        .filter(label -> label.isLabel(name)).findFirst();
+        .filter(label -> label.isLabel(name)).collect(ImmutableList.toImmutableList());
   }
 
   @SkylarkCallable(name = "set_author", doc = "Update the author to be used in the change")

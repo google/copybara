@@ -21,14 +21,18 @@ import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
 import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -45,7 +49,7 @@ public final class Change<R extends Revision> {
   private final Author author;
   private final String message;
   private final ZonedDateTime dateTime;
-  private final ImmutableMap<String, String> labels;
+  private final ImmutableMultimap<String, String> labels;
   @Nullable
   private final ImmutableSet<String> changeFiles;
 
@@ -56,6 +60,12 @@ public final class Change<R extends Revision> {
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
       ImmutableMap<String, String> labels, @Nullable Set<String> changeFiles) {
+    this(revision, author, message, dateTime, ImmutableMultimap.copyOf(Multimaps.forMap(labels)),
+        changeFiles);
+  }
+
+  public Change(R revision, Author author, String message, ZonedDateTime dateTime,
+      ImmutableMultimap<String, String> labels, @Nullable Set<String> changeFiles) {
     this.revision = Preconditions.checkNotNull(revision);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
@@ -87,10 +97,22 @@ public final class Change<R extends Revision> {
   }
 
   @SkylarkCallable(name = "labels", doc = "A dictionary with the labels detected for the change."
-      + " Note that this is an heuristic and it could include things that are not labels.",
+      + " If the label is present multiple times it returns the last value. Note that this is an"
+      + " heuristic and it could include things that are not labels.",
       structField = true)
   public SkylarkDict<String, String> getLabelsForSkylark() {
-    return SkylarkDict.copyOf(/*environment=*/null, labels);
+    return SkylarkDict.copyOf(/*environment=*/null,
+        ImmutableMap.copyOf(Maps.transformValues(labels.asMap(), Iterables::getLast)));
+  }
+
+  @SkylarkCallable(name = "labels_all_values", doc = "A dictionary with the labels detected for the"
+      + " change. Note that the value is a collection of the values for each time the label was"
+      + " found. Use 'labels' instead if you are only interested in the last value. Note that this"
+      + " is an heuristic and it could include things that are not labels.",
+      structField = true)
+  public SkylarkDict<String, SkylarkList<String>> getLabelsAllForSkylark() {
+    return SkylarkDict.copyOf(/*environment=*/null,
+        Maps.transformValues(labels.asMap(), SkylarkList::createImmutable));
   }
 
   /**
@@ -112,7 +134,7 @@ public final class Change<R extends Revision> {
     return ISO_OFFSET_DATE_TIME.format(getDateTime());
   }
 
-  public ImmutableMap<String, String> getLabels() {
+  public ImmutableMultimap<String, String> getLabels() {
     return labels;
   }
 

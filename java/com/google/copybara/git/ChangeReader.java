@@ -21,9 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.RepoException;
@@ -114,27 +112,11 @@ class ChangeReader {
           filterAuthor(e.getAuthor())
           , e.getBody() + branchCommitLog(e.getCommit(), e.getParents()),
           e.getAuthorDate(),
-          getLabels(e),
+          ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap(),
           e.getFiles()),
           e.getParents()));
     }
     return result.build().reverse();
-  }
-
-  private ImmutableMap<String, String> getLabels(GitLogEntry e) {
-    ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
-    ImmutableListMultimap<String, String> labels =
-        ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap();
-    for (String name : labels.keySet()) {
-      ImmutableList<String> values = labels.get(name);
-      if (values.size() > 1) {
-        console.warn(String.format("Possible duplicate label '%s' happening multiple times"
-                + " in commit. Keeping only the last value: '%s'\n  All the values: '%s'",
-            name, Iterables.getLast(values), values));
-      }
-      result.put(name, Iterables.getLast(values));
-    }
-    return result.build();
   }
 
   private Author filterAuthor(Author author) {

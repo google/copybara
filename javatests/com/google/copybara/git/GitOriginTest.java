@@ -470,12 +470,9 @@ public class GitOriginTest {
     singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
 
     Change<GitRevision> change = newReader().change(getLastCommitRef());
-    // We keep the last label. The probability that the last one is a label and the first one
-    // is just description is very high.
+    assertThat(change.getLabels()).containsEntry("foo", "bar");
     assertThat(change.getLabels()).containsEntry("foo", "baz");
-    console.assertThat()
-        .onceInLog(MessageType.WARNING, "Possible duplicate label 'foo'"
-            + " happening multiple times in commit. Keeping only the last value: 'baz'(.|\n)*");
+    assertThat(Iterables.getLast(change.getLabels().get("foo"))).isEqualTo("baz");
   }
 
   @Test
@@ -489,7 +486,7 @@ public class GitOriginTest {
     singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
 
     assertThat(newReader().change(getLastCommitRef()).getLabels())
-        .containsExactly("foo", "bar", "baz", "bar");
+        .containsExactlyEntriesIn(ImmutableMultimap.of("foo", "bar", "baz", "bar"));
   }
 
   @Test
