@@ -85,6 +85,34 @@ maven_jar(
     sha1 = "f7be08ec23c21485b9b5a1cf1654c2ec8c58168d",
 )
 
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "google_http_client",
+    artifact = "com.google.http-client:google-http-client:jar:1.22.0",
+    sha1 = "d441fc58329c4a4c067acec04ac361627f66ecc8",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "google_http_client_test",
+    artifact = "com.google.http-client:google-http-client-test:jar:1.22.0",
+    sha1 = "a0450f3724614982e70e53979a37141c916b6536",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "google_http_client_gson",
+    artifact = "com.google.http-client:google-http-client-gson:jar:1.22.0",
+    sha1 = "826b874fa410a8135b7094c469951bf0dadb0c10",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "gson",
+    artifact = "com.google.code.gson:gson:jar:2.8.1",
+    sha1 = "02a8e0aa38a2e21cb39e2f5a7d6704cbdc941da0",
+)
+
 new_http_archive(
     name = "cram",
     build_file = "BUILD.cram",

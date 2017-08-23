@@ -97,6 +97,23 @@ java_library(
 )
 
 java_library(
+    name = "google_http_client",
+    exports = [
+        "@google_http_client//jar",
+        "@google_http_client_gson//jar",
+        "@gson//jar",
+    ],
+)
+
+java_library(
+    name = "google_http_client_test",
+    testonly = 1,
+    exports = [
+        "@google_http_client_test//jar",
+    ],
+)
+
+java_library(
     name = "mockito",
     testonly = 1,
     exports = [

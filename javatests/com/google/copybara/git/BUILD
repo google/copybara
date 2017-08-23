@@ -21,11 +21,14 @@ DEPS = [
     "//java/com/google/copybara:copybara_lib",
     "//java/com/google/copybara/authoring",
     "//java/com/google/copybara/git/testing",
+    "//java/com/google/copybara/profiler",
     "//java/com/google/copybara/testing",
     "//java/com/google/copybara/testing/git",
     "//java/com/google/copybara/util",
     "//java/com/google/copybara/util/console",
     "//java/com/google/copybara/util/console/testing",
+    "//third_party:google_http_client",
+    "//third_party:google_http_client_test",
     "//third_party:jcommander",
     "//third_party:skylark-lang",
     "//third_party:truth",
@@ -43,6 +46,7 @@ all_tests(
         ],
     ),
     deps = DEPS,
+    data = glob(["**/*_testdata.*"]),
 )
 
 all_tests(

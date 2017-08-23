@@ -1,0 +1,58 @@
+{
+  "url": "https://api.github.com/repos/example-org/my-project/issues/12345",
+  "repository_url": "https://api.github.com/repos/example-org/my-project",
+  "labels_url": "https://api.github.com/repos/example-org/my-project/issues/12345/labels{/name}",
+  "comments_url": "https://api.github.com/repos/example-org/my-project/issues/12345/comments",
+  "events_url": "https://api.github.com/repos/example-org/my-project/issues/12345/events",
+  "html_url": "https://github.com/example-org/my-project/pull/12345",
+  "id": 252162957,
+  "number": 12345,
+  "title": "[TEST] example pull request one",
+  "user": {
+    "login": "googletestuser",
+    "id": 123456,
+    "avatar_url": "https://avatars3.githubusercontent.com/u/123456?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/googletestuser",
+    "html_url": "https://github.com/googletestuser",
+    "followers_url": "https://api.github.com/users/googletestuser/followers",
+    "following_url": "https://api.github.com/users/googletestuser/following{/other_user}",
+    "gists_url": "https://api.github.com/users/googletestuser/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/googletestuser/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/googletestuser/subscriptions",
+    "organizations_url": "https://api.github.com/users/googletestuser/orgs",
+    "repos_url": "https://api.github.com/users/googletestuser/repos",
+    "events_url": "https://api.github.com/users/googletestuser/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/googletestuser/received_events",
+    "type": "User",
+    "site_admin": false
+  },
+  "labels": [
+    {
+      "id": 300136587,
+      "url": "https://api.github.com/repos/example-org/my-project/labels/cla:%20yes",
+      "name": "cla: yes",
+      "color": "009800",
+      "default": false
+    }
+  ],
+  "state": "open",
+  "locked": false,
+  "assignee": null,
+  "assignees": [
+
+  ],
+  "milestone": null,
+  "comments": 2,
+  "created_at": "2017-08-23T08:33:32Z",
+  "updated_at": "2017-08-23T08:33:34Z",
+  "closed_at": null,
+  "pull_request": {
+    "url": "https://api.github.com/repos/example-org/my-project/pulls/12345",
+    "html_url": "https://github.com/example-org/my-project/pull/12345",
+    "diff_url": "https://github.com/example-org/my-project/pull/12345.diff",
+    "patch_url": "https://github.com/example-org/my-project/pull/12345.patch"
+  },
+  "body": "Example body.\r\n",
+  "closed_by": null
+}
