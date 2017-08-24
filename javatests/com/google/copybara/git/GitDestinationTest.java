@@ -1167,7 +1167,7 @@ public class GitDestinationTest {
     newWriter().visitChanges(null,
         input -> {
           visited.add(input);
-          return input.getLabels().get(DummyOrigin.LABEL_NAME).equals("origin_ref1")
+          return input.getLabels().get(DummyOrigin.LABEL_NAME).contains("origin_ref1")
               ? VisitResult.TERMINATE
               : VisitResult.CONTINUE;
         });
