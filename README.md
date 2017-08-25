@@ -76,3 +76,4 @@ We are still working on the documentation. Here are some resources:
 
   * If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your ~/.bazelrc: *test --test_output=streamed*.
 
+test
