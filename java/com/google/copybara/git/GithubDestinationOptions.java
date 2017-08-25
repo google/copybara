@@ -20,7 +20,7 @@ import com.beust.jcommander.Parameter;
 import com.google.copybara.Option;
 
 /**
- * Options related to github
+ * Options related to GitHub destination
  *
  * <p>Intentionally empty so that we have the necessary infrastructure when
  * we add github options.
@@ -33,5 +33,9 @@ public final class GithubDestinationOptions implements Option {
       description = "If set, uses this branch for creating the pull request instead of using a"
           + " generated one")
   public String destinationPrBranch = null;
+
+  @Parameter(names = "--github-destination-pr-create",
+      description = "If the pull request should be created", arity = 1)
+  public boolean createPullRequest = true;
 
 }

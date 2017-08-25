@@ -79,6 +79,11 @@ public class ChangeMessage {
         .collect(Collectors.toList());
   }
 
+  public String firstLine() {
+    int idx = text.indexOf('\n');
+    return idx == -1 ? text : text.substring(0, idx);
+  }
+
   public String getText() {
     return text;
   }

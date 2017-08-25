@@ -22,12 +22,16 @@ import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
 import com.google.copybara.git.GerritOptions;
+import com.google.copybara.git.GitDestination;
 import com.google.copybara.git.GitDestinationOptions;
 import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.git.GithubDestinationOptions;
+import com.google.copybara.git.GithubOptions;
+import com.google.copybara.git.github_api.GitHubApiTransportImpl;
+import com.google.copybara.git.github_api.GithubApi;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
 import java.util.function.Supplier;
@@ -61,6 +65,7 @@ public class ModuleSupplier {
         gitOptions,
         new GitOriginOptions(),
         gitDestinationOptions,
+        new GithubOptions(generalOptionsSupplier, gitOptions),
         new GithubDestinationOptions(),
         new GitMirrorOptions(),
         newGerritOptions(),

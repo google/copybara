@@ -44,7 +44,7 @@ public class GithubApi {
    */
   public ImmutableList<PullRequest> getPullRequests(String projectId)
       throws RepoException, ValidationException {
-    try (ProfilerTask ignore = profiler.start("github_api/pulls")) {
+    try (ProfilerTask ignore = profiler.start("github_api_list_pulls")) {
       List<PullRequest> result =
           transport.get(String.format("repos/%s/pulls", projectId),
               new TypeToken<List<PullRequest>>() {
@@ -61,11 +61,23 @@ public class GithubApi {
    */
   public PullRequest getPullRequest(String projectId, long number)
       throws RepoException, ValidationException {
-    try (ProfilerTask ignore = profiler.start("github_api/pulls/NUMBER")) {
+    try (ProfilerTask ignore = profiler.start("github_api_get_pull")) {
       return transport.get(
           String.format("repos/%s/pulls/%d", projectId, number), PullRequest.class);
     }
   }
+
+  /**
+   * Create a pull request
+   */
+  public PullRequest createPullRequest(String projectId, CreatePullRequest request)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_create_pull")) {
+      return transport.post(
+          String.format("repos/%s/pulls", projectId), request, PullRequest.class);
+    }
+  }
+
   /**
    * Get a specific issue for a project.
    *
@@ -75,7 +87,7 @@ public class GithubApi {
    */
   public Issue getIssue(String projectId, long number)
       throws RepoException, ValidationException {
-    try (ProfilerTask ignore = profiler.start("github_api/issues/NUMBER")) {
+    try (ProfilerTask ignore = profiler.start("github_api_get_issue")) {
       return transport.get(String.format("repos/%s/issues/%d", projectId, number), Issue.class);
     }
   }

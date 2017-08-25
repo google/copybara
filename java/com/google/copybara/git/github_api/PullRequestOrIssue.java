@@ -74,6 +74,10 @@ public class PullRequestOrIssue {
     return getToStringHelper().toString();
   }
 
+  public boolean isOpen() {
+    return "open".equals(state);
+  }
+
   protected ToStringHelper getToStringHelper() {
     return MoreObjects.toStringHelper(this)
         .add("number", number)

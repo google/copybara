@@ -22,6 +22,7 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
@@ -41,7 +42,7 @@ import java.time.Duration;
  */
 public class GitHubApiTransportImpl implements GitHubApiTransport {
 
-  static final JsonFactory JSON_FACTORY = new GsonFactory();
+  private static final JsonFactory JSON_FACTORY = new GsonFactory();
   private static final String API_URL = "https://api.github.com";
   private static final String GITHUB_WEB_URL = "https://github.com";
 
@@ -61,6 +62,23 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     GenericUrl url = new GenericUrl(URI.create(API_URL + "/" + path));
     try {
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
+      HttpResponse response = httpRequest.execute();
+      return (T) response.parseAs(responseType);
+    } catch (IOException e) {
+      throw new RepoException("Error running GitHub API operation " + path, e);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T post(String path, Object request, Type responseType)
+      throws RepoException, ValidationException {
+    HttpRequestFactory requestFactory = getHttpRequestFactory();
+
+    GenericUrl url = new GenericUrl(URI.create(API_URL + "/" + path));
+    try {
+      HttpRequest httpRequest = requestFactory.buildPostRequest(url,
+          new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
       return (T) response.parseAs(responseType);
     } catch (IOException e) {

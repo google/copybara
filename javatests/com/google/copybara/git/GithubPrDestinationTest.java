@@ -20,7 +20,10 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -33,6 +36,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.Glob;
@@ -41,6 +45,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.junit.Before;
@@ -53,6 +58,14 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GithubPrDestinationTest {
 
+  private static final GithubMockHttpTransport NO_GITHUB_API_CALLS = new GithubMockHttpTransport() {
+    @Override
+    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+        throws IOException {
+      fail();
+      throw new IllegalStateException();
+    }
+  };
   private Path repoGitDir;
   private OptionsBuilder options;
   private TestingConsole console;
@@ -62,6 +75,7 @@ public class GithubPrDestinationTest {
   public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private Path localHub;
+  private GithubMockHttpTransport githubMockHttpTransport;
 
   @Before
   public void setup() throws Exception {
@@ -75,6 +89,16 @@ public class GithubPrDestinationTest {
         .setConsole(console)
         .setOutputRootToTmpDir();
     options.git = new TestGitOptions(localHub);
+
+    options.github = new GithubOptions(() -> options.general, options.git) {
+      @Override
+      protected HttpTransport getHttpTransport() {
+        return githubMockHttpTransport;
+      }
+    };
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
+    options.git.credentialHelperStorePath = credentialsFile.toString();
 
     options.gitDestination = new GitDestinationOptions(() -> options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
@@ -104,6 +128,29 @@ public class GithubPrDestinationTest {
 
   private void checkWrite(String groupId)
       throws ValidationException, RepoException, IOException {
+    githubMockHttpTransport = new GithubMockHttpTransport() {
+
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+          throws IOException {
+        boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+        if ("GET".equals(method) && isPulls) {
+          return "[]".getBytes(UTF_8);
+        } else if ("POST".equals(method) && isPulls) {
+          assertThat(request.getContentAsString())
+              .isEqualTo("{\"base\":\"master\",\"body\":\"test summary\",\"head\":\"feature\",\"title\":\"test summary\"}");
+          return ("{\n"
+              + "  \"id\": 1,\n"
+              + "  \"number\": 12345,\n"
+              + "  \"state\": \"open\",\n"
+              + "  \"title\": \"test summary\",\n"
+              + "  \"body\": \"test summary\""
+              + "}").getBytes();
+        }
+        fail(method + " " + url);
+        throw new IllegalStateException();
+      }
+    };
     GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
@@ -127,10 +174,8 @@ public class GithubPrDestinationTest {
     Files.write(this.workdir.resolve("test.txt"), "and content".getBytes());
     writer.write(TransformResults.of(this.workdir, new DummyRevision("three")), console);
 
-    // TODO(malcon): Create the PR using Github API
-    console.assertThat().timesInLog(3, MessageType.INFO,
-        "Please create a PR manually following this link:"
-            + " https://github.com/foo/compare/master...feature .*");
+    console.assertThat().timesInLog(1, MessageType.INFO,
+        "Pull Request https://github.com/foo/pull/12345 created using branch 'feature'.");
 
     assertThat(remote.refExists("feature")).isTrue();
     assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::getBody))
@@ -184,6 +229,29 @@ public class GithubPrDestinationTest {
 
   @Test
   public void testWriteNoMaster() throws ValidationException, IOException, RepoException {
+    githubMockHttpTransport = new GithubMockHttpTransport() {
+
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+          throws IOException {
+        boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+        if ("GET".equals(method) && isPulls) {
+          return "[]".getBytes(UTF_8);
+        } else if ("POST".equals(method) && isPulls) {
+          assertThat(request.getContentAsString())
+              .isEqualTo("{\"base\":\"other\",\"body\":\"test summary\",\"head\":\"feature\",\"title\":\"test summary\"}");
+          return ("{\n"
+              + "  \"id\": 1,\n"
+              + "  \"number\": 12345,\n"
+              + "  \"state\": \"open\",\n"
+              + "  \"title\": \"test summary\",\n"
+              + "  \"body\": \"test summary\""
+              + "}").getBytes();
+        }
+        fail(method + " " + url);
+        throw new IllegalStateException();
+      }
+    };
     GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo',"
         + "    destination_ref = 'other',"
@@ -212,6 +280,8 @@ public class GithubPrDestinationTest {
 
   @Test
   public void testDestinationStatus() throws ValidationException, IOException, RepoException {
+    options.githubDestination.createPullRequest = false;
+    githubMockHttpTransport = NO_GITHUB_API_CALLS;
     GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");

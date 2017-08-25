@@ -36,6 +36,8 @@ java_library(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
+        "//third_party:google_http_client",
+        "//third_party:google_http_client_test",
         "//third_party:guava",
         "//third_party:jimfs",
         "//third_party:jsr305",

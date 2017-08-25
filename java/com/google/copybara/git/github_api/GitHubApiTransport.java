@@ -28,4 +28,9 @@ public interface GitHubApiTransport {
    * Do a http GET call
    */
   <T> T get(String path, Type responseType) throws RepoException, ValidationException;
+  /**
+   * Do a http POST call
+   */
+  <T> T post(String path, Object request, Type responseType)
+      throws RepoException, ValidationException;
 }

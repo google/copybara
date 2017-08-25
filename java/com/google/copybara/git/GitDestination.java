@@ -165,7 +165,7 @@ public final class GitDestination implements Destination<GitRevision> {
               : "copybara/push-" + UUID.randomUUID() + (dryRun ? "-dryrun" : ""));
     }
 
-    return new WriterImpl(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
+    return new WriterImpl<>(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
         destinationOptions, verbose, force, console, commitGenerator, processPushOutput,
         state, destinationOptions.nonFastForwardPush);
   }
@@ -175,10 +175,10 @@ public final class GitDestination implements Destination<GitRevision> {
    */
   static class WriterState {
 
-    private boolean alreadyFetched;
-    private boolean firstWrite = true;
-    private LazyGitRepository localRepo;
-    private String localBranch;
+    boolean alreadyFetched;
+    boolean firstWrite = true;
+    LazyGitRepository localRepo;
+    String localBranch;
 
     WriterState(LazyGitRepository localRepo, String localBranch) {
       this.localRepo = localRepo;
@@ -186,7 +186,7 @@ public final class GitDestination implements Destination<GitRevision> {
     }
   }
 
-  static class WriterImpl implements Writer<GitRevision> {
+  static class WriterImpl<S extends WriterState> implements Writer<GitRevision> {
 
     private final Glob destinationFiles;
     final boolean skipPush;
@@ -200,14 +200,14 @@ public final class GitDestination implements Destination<GitRevision> {
     private final Console baseConsole;
     private final CommitGenerator commitGenerator;
     private final ProcessPushOutput processPushOutput;
-    final WriterState state;
+    final S state;
     // We could get it from destinationOptions but this is in preparation of a GH PR destination.
     private final boolean nonFastForwardPush;
 
     WriterImpl(Glob destinationFiles, boolean skipPush, String repoUrl, String remoteFetch,
         String remotePush, GitDestinationOptions destinationOptions, boolean verbose, boolean force,
         Console baseConsole, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-        WriterState state, boolean nonFastForwardPush) {
+        S state, boolean nonFastForwardPush) {
       this.destinationFiles = checkNotNull(destinationFiles);
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);

@@ -299,6 +299,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           url,
           destinationRef,
           generalOptions,
+          self.options.get(GithubOptions.class),
           self.options.get(GitDestinationOptions.class),
           self.options.get(GithubDestinationOptions.class),
           skipPush,

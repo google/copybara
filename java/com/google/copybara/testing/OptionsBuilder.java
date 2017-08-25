@@ -16,6 +16,13 @@
 
 package com.google.copybara.testing;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.LowLevelHttpRequest;
+import com.google.api.client.http.LowLevelHttpResponse;
+import com.google.api.client.json.Json;
+import com.google.api.client.testing.http.MockHttpTransport;
+import com.google.api.client.testing.http.MockLowLevelHttpRequest;
+import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,6 +39,7 @@ import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.git.GithubDestinationOptions;
+import com.google.copybara.git.GithubOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
@@ -64,6 +72,14 @@ public class OptionsBuilder {
   public GitOptions git = new GitOptions(() -> general);
   public GitOriginOptions gitOrigin = new GitOriginOptions();
   public GitDestinationOptions gitDestination = new GitDestinationOptions(() -> general, git);
+
+  public GithubOptions github = new GithubOptions(() -> general, git) {
+    @Override
+    protected HttpTransport getHttpTransport() {
+      throw new UnsupportedOperationException(
+          "You probably have overwritten GitOptions, so you need to create this variable too");
+    }
+  };
   public GithubDestinationOptions githubDestination = new GithubDestinationOptions();
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions();
@@ -147,7 +163,7 @@ public class OptionsBuilder {
   protected Iterable<Option> allOptions() {
     return ImmutableList
         .of(general, localDestination, folderOrigin, git, gitOrigin, gitDestination,
-            gitMirrorOptions, gerrit, githubDestination, workflowOptions, testingOptions);
+            gitMirrorOptions, gerrit, github, githubDestination, workflowOptions, testingOptions);
   }
 
   public final Options build() {
@@ -159,5 +175,28 @@ public class OptionsBuilder {
     HashMap<String, String> updatedEnvironment = new HashMap<>(environment);
     updatedEnvironment.put(key, value);
     return ImmutableMap.copyOf(updatedEnvironment);
+  }
+
+  public abstract static class GithubMockHttpTransport extends MockHttpTransport {
+
+    @Override
+    public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
+      MockLowLevelHttpRequest request = new MockLowLevelHttpRequest() {
+        @Override
+        public LowLevelHttpResponse execute() throws IOException {
+          MockLowLevelHttpResponse response = (MockLowLevelHttpResponse) super.execute();
+          response.setContent(getContent(method, url, this));
+          return super.execute();
+        }
+      };
+      MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
+      response.setContentType(Json.MEDIA_TYPE);
+      request.setResponse(response);
+
+      return request;
+    }
+
+    protected abstract byte[] getContent(String method, String url,
+        MockLowLevelHttpRequest request) throws IOException;
   }
 }
