@@ -312,9 +312,14 @@ public class GitRepository {
     CommandOutputWithStatus output;
     try {
       output = executeGit(FileSystems.getDefault().getPath("."), args, env, false);
+    } catch (BadExitStatusWithOutputException e) {
+      throw new RepoException(
+          String.format("Error running ls-remote for '%s' and refs '%s': Exit code %s, Output:\n%s",
+              url, refs, e.getOutput().getTerminationStatus().getExitCode(),
+              e.getOutput().getStderr()), e);
     } catch (CommandException e) {
       throw new RepoException(
-          String.format("Error running ls-remote for '%s' and refs '%s'", url, refs));
+          String.format("Error running ls-remote for '%s' and refs '%s'", url, refs), e);
     }
     if (output.getTerminationStatus().success()) {
       for (String line : Splitter.on('\n').split(output.getStdout())) {
