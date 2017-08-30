@@ -19,6 +19,9 @@ package com.google.copybara.git;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.RepoException;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.util.Glob;
 import java.util.Map;
 import javax.annotation.Nullable;
 
@@ -26,7 +29,7 @@ import javax.annotation.Nullable;
  * A {@link Origin} that can read Gerrit reviews
  * TODO(malcon): Implement Reader/getChanges to detect already migrated patchets
  */
-public class GerritOrigin extends GitOrigin{
+public class GerritOrigin extends GitOrigin {
 
   private GerritOrigin(GeneralOptions generalOptions,
       String repoUrl, @Nullable String configRef,
@@ -51,5 +54,20 @@ public class GerritOrigin extends GitOrigin{
         url, /*ref=*/null, type, options.get(GitOptions.class),
         options.get(GitOriginOptions.class), verbose, environment,
         submoduleStrategy, /*includeBranchCommitLogs=*/false);
+  }
+
+  @Override
+  public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
+    return new GitOrigin.ReaderImpl(originFiles, authoring) {
+      /**
+       * Group identity is the individual change identity for now. If we want to group a list of
+       * commits we would add Gerrit topic support and an option to git.gerrit_origin to enable it.
+       */
+      @Nullable
+      @Override
+      public String getGroupIdentity(GitRevision rev) throws RepoException {
+        return rev.contextReference();
+      }
+    };
   }
 }

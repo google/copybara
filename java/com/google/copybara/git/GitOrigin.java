@@ -117,7 +117,7 @@ public class GitOrigin implements Origin<GitRevision> {
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
 
-  private class ReaderImpl implements Reader<GitRevision> {
+  class ReaderImpl implements Reader<GitRevision> {
 
     final Glob originFiles;
     final Authoring authoring;
