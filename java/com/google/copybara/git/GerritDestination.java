@@ -16,6 +16,8 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.git.GitModule.NO_GIT_DESTINATION_INTEGRATES;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -40,7 +42,6 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import javax.annotation.Nullable;
 
@@ -130,9 +131,8 @@ public final class GerritDestination implements Destination<GitRevision> {
     return GitRepository.GIT_ORIGIN_REV_ID;
   }
 
-  static GerritDestination newGerritDestination(
-      Options options, String url, String fetch, String pushToRefsFor,
-      boolean firstMigration, Map<String, String> environment) {
+  static GerritDestination newGerritDestination(Options options, String url, String fetch,
+      String pushToRefsFor) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     if (pushToRefsFor.isEmpty()) {
       pushToRefsFor = fetch;
@@ -142,23 +142,23 @@ public final class GerritDestination implements Destination<GitRevision> {
         Strings.isNullOrEmpty(gerritOptions.gerritTopic)
             ? String.format("refs/for/%s", pushToRefsFor)
             : String.format("refs/for/%s%%topic=%s", pushToRefsFor, gerritOptions.gerritTopic);
+    GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     return new GerritDestination(
         new GitDestination(
             url,
             fetch,
-            push.toString(),
-            options.get(GitDestinationOptions.class),
-            generalOptions.isVerbose(),
-            firstMigration,
+            push,
+            destinationOptions,
+            generalOptions,
             /*skipPush=*/ false,
             new CommitGenerator(gerritOptions,
                 url,
-                options.get(GitDestinationOptions.class).getCommitter(),
+                destinationOptions.getCommitter(),
                 generalOptions.console()),
             new GerritProcessPushOutput(
                 generalOptions.console(),
                 generalOptions.getStructuredOutput()),
-            generalOptions.console()));
+            NO_GIT_DESTINATION_INTEGRATES));
   }
 
   static class GerritProcessPushOutput extends ProcessPushStructuredOutput {
@@ -199,7 +199,7 @@ public final class GerritDestination implements Destination<GitRevision> {
   @Override
   public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
-        new ImmutableSetMultimap.Builder<String, String>();
+        new ImmutableSetMultimap.Builder<>();
     for (Entry<String, String> entry : gitDestination.describe(originFiles).entries()) {
       if (entry.getKey().equals("type")) {
         continue;

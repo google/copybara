@@ -29,9 +29,11 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.config.base.SkylarkUtil;
+import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
+import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -57,6 +59,10 @@ import java.util.List;
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(GitOptions.class)
 public class GitModule implements OptionsAwareModule, LabelsAwareModule {
+
+  static final String DEFAULT_INTEGRATE_LABEL = "ORIGINAL_REVIEW_URL";
+  static final SkylarkList<GitIntegrateChanges> NO_GIT_DESTINATION_INTEGRATES =
+      SkylarkList.createImmutable(ImmutableList.of());
 
   private Options options;
   private ConfigFile<?> mainConfigFile;
@@ -98,6 +104,60 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           SkylarkUtil.stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
           includeBranchCommitLogs);
+    }
+  };
+
+  @SkylarkSignature(name = "integrate", returnType = GitIntegrateChanges.class,
+      doc = "Integrate changes from a url present in the migrated change label.",
+      // TODO(malcon): fake-merges Flip this
+      documented = false,
+      parameters = {
+          @Param(name = "self", type = GitModule.class, doc = "this object"),
+          @Param(name = "label", type = String.class,
+              doc = "The migration label that will contain the url to the change to integrate.",
+              defaultValue = "\"" + DEFAULT_INTEGRATE_LABEL + "\""),
+          @Param(name = "strategy", type = String.class,
+              defaultValue = "\"FAKE_MERGE_AND_INCLUDE_FILES\"",
+              doc = "How to integrate the change:<br>"
+                  + "<ul>"
+                  + " <li><b>'FAKE_MERGE'</b>: Add the url revision/reference as parent of the"
+                  + " migration change but ignore all the files from the url. The commit message"
+                  + " will be a standard merge one but will include the corresponding RevId label"
+                  + "</li>"
+                  + " <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any"
+                  + " change to files that doesn't match destination_files will be included as part"
+                  + " of the merge commit. So it will be a semi fake merge: Fake for"
+                  + " destination_files but merge for non destination files.</li>"
+                  + " <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it"
+                  + " it doesn't create a merge but only include changes not matching"
+                  + " destination_files</li>"
+                  + "</ul>"),
+          @Param(name = "ignore_errors", type = Boolean.class,
+              doc = "If we should ignore integrate errors and continue the migration without the"
+                  + " integrate", defaultValue = "True"),
+
+      },
+      objectType = GitModule.class)
+  @Example(title = "Integrate changes from a review url",
+      before = "Assuming we have a git.destination defined like this:",
+      code = "git.destination(\n"
+          + "        url = \"https://example.com/some_git_repo\",\n"
+          + "        integrates = [git.integrate()],\n"
+          + "        \n"
+          + ")",
+      after =
+          "It will look for `" + DEFAULT_INTEGRATE_LABEL
+              + "` label during the worklow migration. If the label"
+              + " is found, it will fetch the git url and add that change as an additional parent"
+              + " to the migration commit (merge). It will fake-merge any change from the url that"
+              + " matches destination_files but it will include changes not matching it.")
+  public static final BuiltinFunction INTEGRATE = new BuiltinFunction("integrate") {
+    public GitIntegrateChanges invoke(GitModule self, String label, String strategy,
+        Boolean ignoreErrors) throws EvalException {
+      return new GitIntegrateChanges(
+          label,
+          SkylarkUtil.stringToEnum(location, "strategy", strategy, Strategy.class),
+          ignoreErrors);
     }
   };
 
@@ -237,13 +297,19 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           @Param(name = "skip_push", type = Boolean.class, defaultValue = "False",
               doc = "If set, copybara will not actually push the result to the destination. This is"
                   + " meant for testing workflows and dry runs."),
+          @Param(name = "integrates", type = SkylarkList.class,
+              generic1 = GitIntegrateChanges.class, defaultValue = "[]",
+              // TODO(malcon): fake-merges Flip this
+              doc = "(NOT IMPLEMENTED) Integrate changes from a url present in the migrated change"
+                  + " label.", positional = false),
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination",
-      ImmutableList.of("master", Runtime.NONE, false)) {
+      ImmutableList.of("master", Runtime.NONE, false, NO_GIT_DESTINATION_INTEGRATES)) {
     public GitDestination invoke(GitModule self, String url, String push, Object fetch,
-        Boolean skipPush, Location location) throws EvalException {
+        Boolean skipPush, SkylarkList<GitIntegrateChanges> integrates, Location location)
+        throws EvalException {
       GitDestinationOptions destinationOptions = self.options.get(GitDestinationOptions.class);
       String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
           "push", location);
@@ -258,14 +324,14 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               "fetch", location),
           resolvedPush,
           destinationOptions,
-          generalOptions.isVerbose(),
-          generalOptions.isForced(),
+          generalOptions,
           skipPush,
           new DefaultCommitGenerator(),
           new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()),
-          generalOptions.console());
+          SkylarkList.castList(integrates, GitIntegrateChanges.class, "integrates"));
     }
   };
+
 
   @SkylarkSignature(name = "github_pr_destination", returnType = GithubPrDestination.class,
       doc = "Creates changes in a new branch in the destination, that can be then used for"
@@ -304,7 +370,8 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           self.options.get(GithubDestinationOptions.class),
           skipPush,
           new DefaultCommitGenerator(),
-          new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()));
+          new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()),
+          NO_GIT_DESTINATION_INTEGRATES);
     }
   };
 
@@ -354,9 +421,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           self.options,
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
-          pushToRefsFor,
-          self.options.get(GeneralOptions.class).isForced(),
-          self.options.get(GeneralOptions.class).getEnvironment());
+          pushToRefsFor);
     }
   };
 

@@ -1170,7 +1170,7 @@ submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.
 
 Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`gitDestination git.destination(url, push=master, fetch=push reference, skip_push=False)`
+`gitDestination git.destination(url, push=master, fetch=push reference, skip_push=False, integrates=[])`
 
 ### Parameters:
 
@@ -1180,6 +1180,7 @@ url|`string`<br><p>Indicates the URL to push to as well as the URL from which to
 push|`string`<br><p>Reference to use for pushing the change, for example 'master'</p>
 fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
 skip_push|`boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+integrates|`sequence of git_integrate`<br><p>(NOT IMPLEMENTED) Integrate changes from a url present in the migrated change label.</p>
 
 
 
@@ -1197,6 +1198,7 @@ Name | Type | Description
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 --git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+--git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
 ## git.gerrit_destination
@@ -1229,6 +1231,7 @@ Name | Type | Description
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 --git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+--git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 
 
 # patch

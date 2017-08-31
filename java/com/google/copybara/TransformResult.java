@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.authoring.Author;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
@@ -182,5 +183,12 @@ public final class TransformResult {
    */
   public boolean isAskForConfirmation() {
     return askForConfirmation;
+  }
+
+  /**
+   * Get all the labels from the message.
+   */
+  public ImmutableList<LabelFinder> findAllLabels() {
+    return ChangeMessage.parseMessage(summary).getLabels();
   }
 }

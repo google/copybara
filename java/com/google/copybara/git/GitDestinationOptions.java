@@ -97,6 +97,10 @@ public final class GitDestinationOptions implements Option {
           + " used with different push != fetch references.")
   boolean nonFastForwardPush = false;
 
+  @Parameter(names = "--git-destination-ignore-integration-errors",
+      description = "If an integration error occurs, ignore it and continue without the integrate")
+  boolean ignoreIntegrationErrors = false;
+
 
   /**
    * Returns a non-bare repo. Either because it uses a custom worktree or because it is a user

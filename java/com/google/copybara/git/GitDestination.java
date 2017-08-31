@@ -22,6 +22,7 @@ import static com.google.copybara.git.LazyGitRepository.memoized;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -91,15 +92,15 @@ public final class GitDestination implements Destination<GitRevision> {
   private final String fetch;
   private final String push;
   private final GitDestinationOptions destinationOptions;
-  private final boolean verbose;
-  private final boolean force;
+  private final GeneralOptions generalOptions;
   // Whether the skip_push flag is set in copy.bara.sky
   private final boolean skipPush;
+
+  private final Iterable<GitIntegrateChanges> integrates;
   // Whether skip_push is set, either by command line or copy.bara.sky
   private final boolean effectiveSkipPush;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
-  private final Console console;
   private final LazyGitRepository localRepo;
 
   GitDestination(
@@ -107,23 +108,21 @@ public final class GitDestination implements Destination<GitRevision> {
       String fetch,
       String push,
       GitDestinationOptions destinationOptions,
-      boolean verbose,
-      boolean force,
+      GeneralOptions generalOptions,
       boolean skipPush,
       CommitGenerator commitGenerator,
       ProcessPushOutput processPushOutput,
-      Console console) {
+      Iterable<GitIntegrateChanges> integrates) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
     this.destinationOptions = checkNotNull(destinationOptions);
-    this.verbose = verbose;
-    this.force = force;
+    this.generalOptions = generalOptions;
     this.skipPush = skipPush;
+    this.integrates = Preconditions.checkNotNull(integrates);
     this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
     this.commitGenerator = checkNotNull(commitGenerator);
     this.processPushOutput = checkNotNull(processPushOutput);
-    this.console = console;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl));
   }
 
@@ -166,8 +165,8 @@ public final class GitDestination implements Destination<GitRevision> {
     }
 
     return new WriterImpl<>(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
-        destinationOptions, verbose, force, console, commitGenerator, processPushOutput,
-        state, destinationOptions.nonFastForwardPush);
+        destinationOptions, generalOptions, commitGenerator, processPushOutput,
+        state, destinationOptions.nonFastForwardPush, integrates);
   }
 
   /**
@@ -194,33 +193,35 @@ public final class GitDestination implements Destination<GitRevision> {
     private final String remoteFetch;
     private final String remotePush;
     private final GitDestinationOptions destinationOptions;
-    private final boolean verbose;
     private final boolean force;
     // Only use this console when you don't receive one as a parameter.
     private final Console baseConsole;
+    private final GeneralOptions generalOptions;
     private final CommitGenerator commitGenerator;
     private final ProcessPushOutput processPushOutput;
     final S state;
     // We could get it from destinationOptions but this is in preparation of a GH PR destination.
     private final boolean nonFastForwardPush;
+    private final Iterable<GitIntegrateChanges> integrates;
 
     WriterImpl(Glob destinationFiles, boolean skipPush, String repoUrl, String remoteFetch,
-        String remotePush, GitDestinationOptions destinationOptions, boolean verbose, boolean force,
-        Console baseConsole, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-        S state, boolean nonFastForwardPush) {
+        String remotePush, GitDestinationOptions destinationOptions, GeneralOptions generalOptions,
+        CommitGenerator commitGenerator, ProcessPushOutput processPushOutput, S state,
+        boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates) {
       this.destinationFiles = checkNotNull(destinationFiles);
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
       this.remotePush = checkNotNull(remotePush);
       this.destinationOptions = checkNotNull(destinationOptions);
-      this.verbose = verbose;
-      this.force = force;
-      this.baseConsole = checkNotNull(baseConsole);
+      this.force = generalOptions.isForced();
+      this.baseConsole = checkNotNull(generalOptions.console());
+      this.generalOptions = generalOptions;
       this.commitGenerator = checkNotNull(commitGenerator);
       this.processPushOutput = checkNotNull(processPushOutput);
       this.state = checkNotNull(state);
       this.nonFastForwardPush = nonFastForwardPush;
+      this.integrates = Preconditions.checkNotNull(integrates);
     }
 
     @Override
@@ -240,7 +241,7 @@ public final class GitDestination implements Destination<GitRevision> {
       String revString = start == null ? startRef.getSha1() : start.getSha1();
       ChangeReader changeReader =
           ChangeReader.Builder.forDestination(repository, baseConsole)
-              .setVerbose(verbose)
+              .setVerbose(generalOptions.isVerbose())
               .setLimit(1)
               .build();
 
@@ -406,6 +407,10 @@ public final class GitDestination implements Destination<GitRevision> {
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
           messageInfo.text);
+
+      for (GitIntegrateChanges integrate : integrates) {
+        integrate.integrate(alternate, generalOptions, destinationOptions, transformResult);
+      }
 
       if (baseline != null) {
         // Our current implementation (That we should change) leaves unstaged files in the

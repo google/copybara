@@ -56,13 +56,15 @@ public class GithubPrDestination implements Destination<GitRevision> {
   private final GithubDestinationOptions githubDestinationOptions;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
+  private final Iterable<GitIntegrateChanges> integrates;
   private final boolean effectiveSkipPush;
   private final LazyGitRepository localRepo;
 
   public GithubPrDestination(String url, String destinationRef, GeneralOptions generalOptions,
       GithubOptions githubOptions,
       GitDestinationOptions destinationOptions, GithubDestinationOptions githubDestinationOptions,
-      boolean skipPush, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput) {
+      boolean skipPush, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
+      Iterable<GitIntegrateChanges> integrates) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -71,6 +73,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
     this.githubDestinationOptions = Preconditions.checkNotNull(githubDestinationOptions);
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
+    this.integrates = Preconditions.checkNotNull(integrates);
     this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
   }
@@ -108,9 +111,8 @@ public class GithubPrDestination implements Destination<GitRevision> {
 
     return new WriterImpl<GithubWriterState>(destinationFiles, effectiveSkipPush, url,
         destinationRef, pushBranchName,
-        destinationOptions, generalOptions.isVerbose(), generalOptions.isForced(),
-        generalOptions.console(), commitGenerator, processPushOutput,
-        state, /*nonFastForwardPush=*/true) {
+        destinationOptions, generalOptions, commitGenerator, processPushOutput,
+        state, /*nonFastForwardPush=*/true, integrates) {
       @Override
       public WriterResult write(TransformResult transformResult, Console console)
           throws ValidationException, RepoException, IOException {
