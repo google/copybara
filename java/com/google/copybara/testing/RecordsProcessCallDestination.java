@@ -20,10 +20,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Destination;
 import com.google.copybara.EmptyChangeException;
@@ -56,7 +55,6 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
   private final ArrayDeque<WriterResult> programmedResults;
 
   public final List<ProcessedChange> processed = new ArrayList<>();
-  public final ListMultimap<String, ProcessedChange> pending = ArrayListMultimap.create();
 
   public RecordsProcessCallDestination(WriterResult... results) {
     this.programmedResults = new ArrayDeque<>(Arrays.asList(results));
@@ -91,28 +89,23 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     @Nullable
     @Override
     public DestinationStatus getDestinationStatus(String labelName) throws RepoException {
-      if (processed.isEmpty()) {
+      ProcessedChange lastSubmitted = Lists.reverse(processed).stream()
+          .filter(c -> !c.pending)
+          .findFirst().orElse(null);
+
+      if (lastSubmitted == null) {
         return null;
       }
-      // Find latest change without group
-      String baseline = null;
-      for (int i = processed.size() - 1; i >= 0; i--) {
-        ProcessedChange processedChange = processed.get(i);
-        if (processedChange.groupIdentity == null) {
-          baseline = processedChange.getOriginRef().asString();
-          break;
-        }
+
+      if (groupId == null) {
+        return new DestinationStatus(lastSubmitted.getOriginRef().asString(), ImmutableList.of());
       }
-      Preconditions.checkNotNull(baseline);
-      if (groupId == null || !pending.containsKey(groupId)) {
-        return new DestinationStatus(baseline, ImmutableList.of());
-      }
-      return new DestinationStatus(
-          baseline,
-          pending.get(groupId)
-              .stream()
-              .map(processedChange -> processedChange.getOriginRef().asString())
-              .collect(ImmutableList.toImmutableList()));
+
+      ImmutableList<String> pending = processed.stream()
+          .filter(c -> c.pending && groupId.equals(c.groupIdentity))
+          .map(c -> c.getOriginRef().asString())
+          .collect(ImmutableList.toImmutableList());
+      return new DestinationStatus(lastSubmitted.getOriginRef().asString(), pending);
     }
 
     @Override
@@ -134,9 +127,6 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
                               transformResult.getBaseline(), destinationFiles,
                               dryRun, groupId, state);
       processed.add(change);
-      if (groupId != null) {
-        pending.put(groupId, change);
-      }
       return programmedResults.isEmpty()
           ? WriterResult.OK
           : programmedResults.removeFirst();
@@ -188,6 +178,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     private final boolean dryRun;
     private final String groupIdentity;
     private final int state;
+    public boolean pending;
 
     private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir,
         String baseline, Glob destinationFiles, boolean dryRun, String groupIdentity, int state) {
@@ -226,6 +217,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
     public boolean isDryRun() {
       return dryRun;
+    }
+
+    public String getGroupIdentity() {
+      return groupIdentity;
     }
 
     public String getContent(String fileName) {

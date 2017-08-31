@@ -525,6 +525,10 @@ public class WorkflowTest {
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("1", "2", "3"));
 
+    // Mark last two changes as pending.
+    destination.processed.get(1).pending = true;
+    destination.processed.get(2).pending = true;
+
     iterativeWorkflow(/*previousRef=*/null).run(workdir, /*sourceRef=*/"5");
 
     // We migrate everything from pending1
@@ -533,7 +537,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void changeRequesthWithGroup() throws Exception {
+  public void changeRequestWithGroup() throws Exception {
     transformations = ImmutableList.of("metadata.squash_notes()");
     origin.singleFileChange(0, "base1", "file.txt", "a");
     origin.singleFileChange(1, "base2\n\n" + destination.getLabelNameWhenOrigin() + ": 1\n",
@@ -544,15 +548,18 @@ public class WorkflowTest {
     origin.singleFileChange(3, "base3\n\n" + destination.getLabelNameWhenOrigin() + ": 3\n",
                             "file.txt", "d");
 
-    assertThat(destination.pending.asMap()).hasSize(1);
-    assertThat(Iterables.getLast(destination.pending.values()).getBaseline()).isEqualTo("1");
+    assertThat(destination.processed).hasSize(1);
+    assertThat(destination.processed.get(0).getBaseline()).isEqualTo("1");
+    assertThat(destination.processed.get(0).getGroupIdentity()).isNotNull();
 
     origin.singleFileChange(4, "pending2", "file.txt", "c");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
     skylarkWorkflow("default", CHANGE_REQUEST).run(workdir, /*sourceRef=*/"4");
 
-    assertThat(destination.pending.asMap()).hasSize(1);
-    assertThat(Iterables.getLast(destination.pending.values()).getBaseline()).isEqualTo("3");
+    assertThat(destination.processed).hasSize(2);
+    assertThat(destination.processed.get(1).getBaseline()).isEqualTo("3");
+    assertThat(destination.processed.get(1).getGroupIdentity()).isEqualTo(
+        destination.processed.get(1).getGroupIdentity());
   }
 
   @Test
@@ -573,8 +580,7 @@ public class WorkflowTest {
     options.workflowOptions.lastRevision = null;
     skylarkWorkflow("default", SQUASH).run(workdir, /*sourceRef=*/"3");
 
-    assertThat(destination.pending.asMap()).hasSize(1);
-    assertThat(Iterables.getLast(destination.pending.values()).getChangesSummary()).isEqualTo(
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary()).isEqualTo(
         "Copybara import of the project:\n"
             + "\n"
             + "  - 3 pending2 by Copybara <no-reply@google.com>\n"
@@ -582,10 +588,12 @@ public class WorkflowTest {
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("1", "3"));
 
+    // Mark last change as pending.
+    Iterables.getLast(destination.processed).pending = true;
+
     skylarkWorkflow("default", SQUASH).run(workdir, /*sourceRef=*/"5");
 
-    assertThat(destination.pending.asMap()).hasSize(1);
-    assertThat(Iterables.getLast(destination.pending.values()).getChangesSummary()).isEqualTo(
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary()).isEqualTo(
         "Copybara import of the project:\n"
             + "\n"
             + "  - 5 pending3 by Copybara <no-reply@google.com>\n"
