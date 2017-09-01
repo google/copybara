@@ -211,6 +211,25 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testMessageTransformerForSquashExtendedNoDescription() throws Exception {
+    runWorkflow(WorkflowMode.SQUASH, ""
+        + "metadata.squash_notes("
+        + "  prefix = 'Importing foo project:\\n',"
+        + "  show_description = False,"
+        + "  compact = False\n"
+        + ")");
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary())
+        .isEqualTo(""
+            + "Importing foo project:\n"
+            + "--\n"
+            + "2 by Foo Baz <foo@baz.com>\n"
+            + "--\n"
+            + "1 by Foo Bar <foo@bar.com>\n");
+    assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
   public void testUseLastChange() throws Exception {
     runWorkflow(WorkflowMode.SQUASH, "metadata.use_last_change()");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
