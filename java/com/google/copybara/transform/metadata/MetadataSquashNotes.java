@@ -99,8 +99,8 @@ public class MetadataSquashNotes implements Transformation {
         if (showDescription) {
           sb.append(":\n\n");
           sb.append(c.getMessage());
-          sb.append("\n");
         }
+        sb.append("\n");
       }
       counter++;
     }
