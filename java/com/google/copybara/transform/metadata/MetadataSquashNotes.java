@@ -36,17 +36,19 @@ public class MetadataSquashNotes implements Transformation {
   private final String prefix;
   private final int max;
   private final boolean compact;
-  private final boolean showRef;
   private final boolean showAuthor;
+  private final boolean showDescription;
+  private final boolean showRef;
   private final boolean oldestFirst;
 
   public MetadataSquashNotes(String prefix, int max, boolean compact, boolean showRef,
-      boolean showAuthor, boolean oldestFirst) {
+      boolean showAuthor, boolean showDescription, boolean oldestFirst) {
     this.prefix = prefix;
     this.max = max;
     this.compact = compact;
     this.showRef = showRef;
     this.showAuthor = showAuthor;
+    this.showDescription = showDescription;
     this.oldestFirst = oldestFirst;
   }
 
@@ -92,9 +94,11 @@ public class MetadataSquashNotes implements Transformation {
           sb.append(" by ");
           sb.append(c.getAuthor());
         }
-        sb.append(":\n\n");
-        sb.append(c.getMessage());
-        sb.append("\n");
+        if (showDescription) {
+          sb.append(":\n\n");
+          sb.append(c.getMessage());
+          sb.append("\n");
+        }
       }
       counter++;
     }
