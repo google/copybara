@@ -192,7 +192,7 @@ Core transformations for the change metadata
 
 Generate a message that includes a constant prefix text and a list of changes included in the squash change.
 
-`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, oldest_first=False)`
+`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, show_description=True, oldest_first=False)`
 
 ### Parameters:
 
@@ -203,6 +203,7 @@ max|`integer`<br><p>Max number of commits to include in the message. For the res
 compact|`boolean`<br><p>If compact is set, each change will be shown in just one line</p>
 show_ref|`boolean`<br><p>If each change reference should be present in the notes</p>
 show_author|`boolean`<br><p>If each change author should be present in the notes</p>
+show_description|`boolean`<br><p>If each change description should be present in the notes</p>
 oldest_first|`boolean`<br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
 
 
@@ -244,6 +245,26 @@ Changes for Project Foo:
 
   - a4321bcde first commit description
   - 1234abcde second commit description
+```
+
+
+#### Removing description:
+
+
+
+```python
+metadata.squash_notes("Changes for Project Foo:\n",
+    show_description = False,
+)
+```
+
+This transform will generate changes like:
+
+```
+Changes for Project Foo:
+
+  - a4321bcde
+  - 1234abcde
 ```
 
 
