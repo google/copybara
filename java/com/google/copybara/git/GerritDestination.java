@@ -22,10 +22,11 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
@@ -49,6 +50,8 @@ import javax.annotation.Nullable;
  * Gerrit repository destination.
  */
 public final class GerritDestination implements Destination<GitRevision> {
+
+  public static final String CHANGE_ID_LABEL = "Change-Id";
 
   private static final class CommitGenerator implements GitDestination.CommitGenerator {
 
@@ -82,28 +85,25 @@ public final class GerritDestination implements Destination<GitRevision> {
     @Override
     public MessageInfo message(TransformResult result, GitRepository repo)
         throws RepoException, ValidationException {
-      MessageInfo changeIdAndNew = changeId(result);
+
+      boolean newPush;
+      String gerritChangeId;
+      if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
+        newPush = false;
+        gerritChangeId = gerritOptions.gerritChangeId;
+      } else {
+        GerritChange response = gerritOptions.getChangeFinder().get()
+            .find(repoUrl, result.getChangeIdentity(), committer, console);
+        newPush = !response.wasFound();
+        gerritChangeId = response.getChangeId();
+      }
 
       Revision rev = result.getCurrentRevision();
-      ChangeMessage msg = ChangeMessage.parseMessage(result.getSummary())
-          .addOrReplaceLabel(rev.getLabelName(), ": ", rev.asString())
-          .addOrReplaceLabel("Change-Id", ": ", changeIdAndNew.text);
 
-      return new MessageInfo(msg.toString(), changeIdAndNew.newPush);
-    }
-
-    /**
-     * Returns the change id and if the change is new or not. Reuse the {@link MessageInfo} type for
-     * a lack of better alternative.
-     */
-    private MessageInfo changeId(TransformResult transformResult)
-        throws RepoException, ValidationException {
-      if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
-        return new MessageInfo(gerritOptions.gerritChangeId, /*newPush */ false);
-      }
-      GerritChange response = gerritOptions.getChangeFinder().get()
-          .find(repoUrl, transformResult.getChangeIdentity(), committer, console);
-      return new MessageInfo(response.getChangeId(), /*newPush */ !response.wasFound());
+      return new MessageInfo(ImmutableList.of(
+          new LabelFinder(rev.getLabelName() + ": " + rev.asString()),
+          new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId)),
+          newPush);
     }
   }
 

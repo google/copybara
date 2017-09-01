@@ -33,6 +33,7 @@ import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
@@ -60,11 +61,11 @@ public final class GitDestination implements Destination<GitRevision> {
   private static final String ORIGIN_LABEL_SEPARATOR = ": ";
 
   static class MessageInfo {
-    final String text;
     final boolean newPush;
+    final ImmutableList<LabelFinder> labelsToAdd;
 
-    MessageInfo(String text, boolean newPush) {
-      this.text = text;
+    MessageInfo(ImmutableList<LabelFinder> labelsToAdd, boolean newPush) {
+      this.labelsToAdd = checkNotNull(labelsToAdd);
       this.newPush = newPush;
     }
   }
@@ -78,11 +79,10 @@ public final class GitDestination implements Destination<GitRevision> {
   static final class DefaultCommitGenerator implements CommitGenerator {
     @Override
     public MessageInfo message(TransformResult transformResult, GitRepository repo) {
-
       Revision rev = transformResult.getCurrentRevision();
-      ChangeMessage msg = parseMessage(transformResult.getSummary())
-          .addOrReplaceLabel(rev.getLabelName(), ORIGIN_LABEL_SEPARATOR, rev.asString());
-      return new MessageInfo(msg.toString(), /*newPush*/true);
+      return new MessageInfo(ImmutableList.of(
+          new LabelFinder(rev.getLabelName() + ORIGIN_LABEL_SEPARATOR + rev.asString())),
+          /*newPush*/true);
     }
   }
 
@@ -403,13 +403,21 @@ public final class GitDestination implements Destination<GitRevision> {
 
       console.progress("Git Destination: Creating a local commit");
       MessageInfo messageInfo = commitGenerator.message(transformResult, alternate);
+
+      ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
+      for (LabelFinder label : messageInfo.labelsToAdd) {
+        msg.addLabel(label.getName(), label.getSeparator(), label.getValue());
+      }
+
+      String commitMessage = msg.toString();
       alternate.commit(
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
-          messageInfo.text);
+          commitMessage);
 
       for (GitIntegrateChanges integrate : integrates) {
-        integrate.integrate(alternate, generalOptions, destinationOptions, transformResult);
+        integrate.integrate(alternate, generalOptions, destinationOptions, messageInfo,
+            transformResult);
       }
 
       if (baseline != null) {

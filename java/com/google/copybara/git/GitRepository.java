@@ -927,6 +927,18 @@ public class GitRepository {
     throw throwUnknownGitError(output, params);
   }
 
+  GitRevision commitTree(String message, String tree, List<GitRevision> parents)
+      throws RepoException {
+    ImmutableList.Builder<String> args = ImmutableList.<String>builder().add("commit-tree", tree);
+    for (GitRevision parent : parents) {
+      args.add("-p", parent.getSha1());
+    }
+    args.add("-m", message);
+
+    return new GitRevision(this,
+        git(getCwd(), addGitDirAndWorkTreeParams(args.build())).getStdout().trim());
+  }
+
   /**
    * Creates a reference from a complete SHA-1 string without any validation that it exists.
    */

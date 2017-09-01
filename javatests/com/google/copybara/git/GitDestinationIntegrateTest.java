@@ -20,11 +20,15 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
+import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -62,6 +66,7 @@ public class GitDestinationIntegrateTest {
     workdir = Files.createTempDirectory("workdir");
 
     git("init", "--bare", repoGitDir.toString());
+
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console)
@@ -77,20 +82,12 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testNoIntegration() throws ValidationException, IOException, RepoException {
-    GitDestination destination = skylark.eval("g", "g ="
-        + "git.destination(\n"
+    migrateOriginChange(destination("git.destination(\n"
         + "    url = '" + url + "',\n"
-        + ")");
-    Writer<GitRevision> writer = destination.newWriter(destinationFiles,
-        /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null);
-
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    TransformResult result = TransformResults.of(workdir, new DummyRevision("test"))
-        .withSummary("Test change\n"
-            + "\n"
-            + GitModule.DEFAULT_INTEGRATE_LABEL + "=http://should_not_be_used\n");
-
-    writer.write(result, console);
+        + "    integrates = [],\n"
+        + ")"), "Test change\n"
+        + "\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "=http://should_not_be_used\n", "some content");
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
@@ -99,6 +96,64 @@ public class GitDestinationIntegrateTest {
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testDefaultIntegration() throws ValidationException, IOException, RepoException {
+    Path repoPath = Files.createTempDirectory("test");
+    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv())
+        .init();
+    Files.write(repoPath.resolve("ignore_me"), new byte[0]);
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Feature1 change");
+    GitRevision feature1 = repo.resolveReference("HEAD", null);
+    repo.simpleCommand("branch", "feature1");
+    Files.write(repoPath.resolve("ignore_me2"), new byte[0]);
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Feature2 change");
+    GitRevision feature2 = repo.resolveReference("HEAD", null);
+    repo.simpleCommand("branch", "feature2");
+
+    GitDestination destination = destination("git.destination(\n"
+        + "    url = '" + url + "',\n"
+        + ")");
+    migrateOriginChange(destination, "Base change\n", "not important");
+    GitLogEntry previous = getLastMigratedChange("master");
+
+    migrateOriginChange(destination, "Test change\n"
+        + "\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
+        + " feature1\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
+        + " feature2\n", "some content");
+
+    // Make sure commit adds new text
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master^1");
+    assertThat(showResult).contains("some content");
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+
+    GitLogEntry feature1Merge = getLastMigratedChange("master^1");
+    assertThat(feature1Merge.getBody()).isEqualTo("Merge of " + feature1.getSha1() + "\n"
+        + "\n"
+        + DummyOrigin.LABEL_NAME + ": test\n");
+
+    assertThat(Lists.transform(feature1Merge.getParents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), feature1.getSha1()));
+
+    GitLogEntry feature2Merge = getLastMigratedChange("master");
+    assertThat(feature2Merge.getBody()).isEqualTo("Merge of " + feature2.getSha1() + "\n"
+        + "\n"
+        + DummyOrigin.LABEL_NAME + ": test\n");
+
+    assertThat(Lists.transform(feature2Merge.getParents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(feature1Merge.getCommit().getSha1(), feature2.getSha1()));
+  }
+
+  private GitLogEntry getLastMigratedChange(String ref) throws RepoException {
+    return Iterables.getOnlyElement(repo().log(ref).withLimit(1).run());
   }
 
   @Test
@@ -122,21 +177,30 @@ public class GitDestinationIntegrateTest {
 
   private void runBadLabel(boolean ignoreErrors)
       throws ValidationException, IOException, RepoException {
-    GitDestination destination = skylark.eval("g", "g ="
-        + "git.destination(\n"
+    GitDestination destination = destination("git.destination(\n"
         + "    url = '" + url + "',\n"
         + "    integrates = [git.integrate( "
         + "        ignore_errors = " + (ignoreErrors ? "True" : "False")
         + "    ),],\n"
         + ")");
+    migrateOriginChange(destination, "Test change\n"
+        + "\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file:///non_existent_repository\n", "some content");
+  }
+
+  private GitDestination destination(String skylark) throws ValidationException {
+    return this.skylark.eval("g", "g =" + skylark);
+  }
+
+  private void migrateOriginChange(GitDestination destination, String summary, String content)
+      throws IOException, RepoException, ValidationException {
     Writer<GitRevision> writer = destination.newWriter(destinationFiles,
         /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null);
 
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("test.txt"), content.getBytes());
     TransformResult result = TransformResults.of(workdir, new DummyRevision("test"))
-        .withSummary("Test change\n"
-            + "\n"
-            + GitModule.DEFAULT_INTEGRATE_LABEL + "=file:///non_existent_repository\n");
+        .withSummary(summary);
+
     writer.write(result, console);
   }
 

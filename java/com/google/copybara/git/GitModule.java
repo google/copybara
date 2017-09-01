@@ -60,9 +60,13 @@ import java.util.List;
 @UsesFlags(GitOptions.class)
 public class GitModule implements OptionsAwareModule, LabelsAwareModule {
 
-  static final String DEFAULT_INTEGRATE_LABEL = "ORIGINAL_REVIEW_URL";
+  static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
   static final SkylarkList<GitIntegrateChanges> NO_GIT_DESTINATION_INTEGRATES =
-      SkylarkList.createImmutable(ImmutableList.of());
+      SkylarkList.createImmutable(ImmutableList.of(
+          new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
+              // TODO(malcon): fake-merges Change this to FAKE_MERGE_AND_INCLUDE_FILES once working.
+              Strategy.FAKE_MERGE,
+              /*ignoreErrors=*/true)));
 
   private Options options;
   private ConfigFile<?> mainConfigFile;

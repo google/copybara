@@ -131,12 +131,12 @@ public class GerritDestinationTest {
     GitLogEntry log = Iterables.getOnlyElement(repo().log("refs/for/master").withLimit(1).run());
     assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + ref + "\n");
     for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
-      if (label.isLabel("Change-Id")) {
+      if (label.isLabel(GerritDestination.CHANGE_ID_LABEL)) {
         assertThat(label.getValue()).matches("I[0-9a-f]{40}$");
         return label.getLine();
       }
     }
-    fail("Cannot find Change-Id in:\n" + log.getBody());
+    fail("Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.getBody());
     throw new IllegalStateException();
   }
 
@@ -182,7 +182,7 @@ public class GerritDestinationTest {
     options.gerrit.gerritChangeId = changeId;
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref"))
-        .isEqualTo("Change-Id: " + changeId);
+        .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + changeId);
 
     git("branch", "master", "refs/for/master");
 
@@ -193,7 +193,7 @@ public class GerritDestinationTest {
     options.gerrit.gerritChangeId = changeId;
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref"))
-        .isEqualTo("Change-Id: " + changeId);
+        .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + changeId);
   }
 
   @Test
@@ -223,7 +223,8 @@ public class GerritDestinationTest {
           }
         };
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref")).isEqualTo("Change-Id: " + expectedChangeId);
+    assertThat(lastCommitChangeIdLine("origin_ref"))
+        .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + expectedChangeId);
   }
 
   @Test
@@ -258,7 +259,8 @@ public class GerritDestinationTest {
           }
         };
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref")).isEqualTo("Change-Id: " + secondChangeId);
+    assertThat(lastCommitChangeIdLine("origin_ref"))
+        .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + secondChangeId);
   }
 
   @Test
