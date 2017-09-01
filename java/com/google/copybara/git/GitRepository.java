@@ -1178,6 +1178,7 @@ public class GitRepository {
 
     private static final String COMMIT_FIELD = "commit";
     private static final String PARENTS_FIELD = "parents";
+    private static final String TREE_FIELD = "tree";
     private static final String AUTHOR_FIELD = "author";
     private static final String AUTHOR_DATE_FIELD = "author_date";
     private static final String COMMITTER_FIELD = "committer";
@@ -1347,10 +1348,12 @@ public class GitRepository {
           parents.add(repo.createReferenceFromCompleteSha1(parent));
         }
 
+        String tree  = getField(fields, TREE_FIELD);
         String commit = getField(fields, COMMIT_FIELD);
         try {
           commits.add(new GitLogEntry(
               repo.createReferenceFromCompleteSha1(commit), parents.build(),
+              tree,
               AuthorParser.parse(getField(fields, AUTHOR_FIELD)),
               AuthorParser.parse(getField(fields, COMMITTER_FIELD)),
               ZonedDateTime.parse(getField(fields, AUTHOR_DATE_FIELD)),
@@ -1377,6 +1380,7 @@ public class GitRepository {
       return ("--format=" + COMMIT_SEPARATOR
           + COMMIT_FIELD + "=%H\n"
           + PARENTS_FIELD + "=%P\n"
+          + TREE_FIELD + "=%T\n"
           + AUTHOR_FIELD + "=%an <%ae>\n"
           + AUTHOR_DATE_FIELD + "=%aI\n"
           + COMMITTER_FIELD + "=%cn <%ce>\n"
@@ -1396,6 +1400,7 @@ public class GitRepository {
 
     private final GitRevision commit;
     private final ImmutableList<GitRevision> parents;
+    private final String tree;
     private final Author author;
     private final Author committer;
     private final ZonedDateTime authorDate;
@@ -1406,10 +1411,12 @@ public class GitRepository {
     private final ImmutableSet<String> files;
 
     GitLogEntry(GitRevision commit, ImmutableList<GitRevision> parents,
-        Author author, Author committer, ZonedDateTime authorDate, ZonedDateTime commitDate,
+        String tree, Author author, Author committer, ZonedDateTime authorDate,
+        ZonedDateTime commitDate,
         @Nullable String body, @Nullable ImmutableSet<String> files) {
       this.commit = commit;
       this.parents = parents;
+      this.tree = tree;
       this.author = author;
       this.committer = committer;
       this.authorDate = authorDate;
@@ -1440,6 +1447,10 @@ public class GitRepository {
 
     public ZonedDateTime getCommitDate() {
       return commitDate;
+    }
+
+    public String getTree() {
+      return tree;
     }
 
     @Nullable

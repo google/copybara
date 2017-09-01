@@ -219,6 +219,10 @@ public class GitRepositoryTest {
     assertThat(entries.get(0).getParents()).containsExactly(entries.get(1).getCommit());
     assertThat(entries.get(1).getParents()).isEmpty();
 
+    assertThat(
+        repository.simpleCommand("cat-file", "-t", entries.get(0).getTree()).getStdout().trim())
+        .isEqualTo("tree");
+
     if (includeFiles) {
       assertThat(entries.get(0).getFiles()).containsExactly("foo.txt", "bar.txt", "baz.txt");
       assertThat(entries.get(1).getFiles()).containsExactly("foo.txt");
