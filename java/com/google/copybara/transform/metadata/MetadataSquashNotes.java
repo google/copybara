@@ -75,9 +75,11 @@ public class MetadataSquashNotes implements Transformation {
         sb.append("  - ");
         if (showRef) {
           sb.append(c.refAsString());
-          sb.append(" ");
         }
-        sb.append(cutIfLong(c.firstLineMessage()));
+        if (showDescription) {
+          sb.append(" ");
+          sb.append(cutIfLong(c.firstLineMessage()));
+        }
         if (showAuthor) {
           sb.append(" by ");
           sb.append(c.getAuthor());

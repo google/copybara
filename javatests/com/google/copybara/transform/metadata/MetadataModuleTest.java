@@ -171,8 +171,8 @@ public class MetadataModuleTest {
   public void testMessageTransformerForNoDescription() throws Exception {
     runWorkflow(WorkflowMode.SQUASH, ""
         + "metadata.squash_notes("
+        + "  prefix = 'Importing foo project:\\n\\n',"
         + "  show_description = False,"
-        + "  prefix = 'Importing foo project:\\n\\n'"
         + ")");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary())
