@@ -95,9 +95,13 @@ public class GitIntegrateChanges {
       try (ProfilerTask ignore = generalOptions.profiler().start("integrate",
           ImmutableMap.of("URL", label.getValue()))) {
         generalOptions.console().progress("Integrating change from " + label.getValue());
-        GitRevision gitRevision = GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null,
-            label.getValue(), generalOptions);
-        IntegrateLabel integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
+        IntegrateLabel integrateLabel = GithubPRIntegrateLabel.parse(label.getValue(), repository,
+            generalOptions);
+        if (integrateLabel == null) {
+          GitRevision gitRevision = GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null,
+              label.getValue(), generalOptions);
+          integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
+        }
 
         strategy.integrate(repository, integrateLabel, label.getValue(), messageInfo,
             generalOptions.console());

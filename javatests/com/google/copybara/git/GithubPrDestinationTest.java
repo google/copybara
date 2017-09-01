@@ -24,13 +24,10 @@ import static org.junit.Assert.fail;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
-import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
@@ -39,13 +36,14 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.junit.Before;
@@ -58,14 +56,6 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GithubPrDestinationTest {
 
-  private static final GithubMockHttpTransport NO_GITHUB_API_CALLS = new GithubMockHttpTransport() {
-    @Override
-    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-        throws IOException {
-      fail();
-      throw new IllegalStateException();
-    }
-  };
   private Path repoGitDir;
   private OptionsBuilder options;
   private TestingConsole console;
@@ -88,7 +78,7 @@ public class GithubPrDestinationTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-    options.git = new TestGitOptions(localHub);
+    options.git = new TestGitOptions(localHub, () -> GithubPrDestinationTest.this.options.general);
 
     options.github = new GithubOptions(() -> options.general, options.git) {
       @Override
@@ -281,7 +271,7 @@ public class GithubPrDestinationTest {
   @Test
   public void testDestinationStatus() throws ValidationException, IOException, RepoException {
     options.githubDestination.createPullRequest = false;
-    githubMockHttpTransport = NO_GITHUB_API_CALLS;
+    githubMockHttpTransport = GitTestUtil.NO_GITHUB_API_CALLS;
     GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
@@ -356,58 +346,4 @@ public class GithubPrDestinationTest {
     return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true);
   }
 
-  private class TestGitOptions extends GitOptions {
-
-    private final Path localHub;
-
-    TestGitOptions(Path localHub) {
-      super(() -> GithubPrDestinationTest.this.options.general);
-      this.localHub = Preconditions.checkNotNull(localHub);
-    }
-
-    @Override
-    protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
-        throws RepoException {
-      return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, localHub));
-    }
-  }
-
-  private static class RewriteUrlGitRepository extends GitRepository {
-
-    private final GeneralOptions generalOptions;
-    private final Path localHub;
-
-    RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
-        Path localHub) {
-      super(gitDir, workTree, generalOptions.isVerbose(), generalOptions.getEnvironment());
-      this.generalOptions = generalOptions;
-      this.localHub = localHub;
-    }
-
-    @Override
-    FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
-        throws RepoException, CannotResolveRevisionException {
-      return super.fetch(mapUrl(url), prune, force, refspecs);
-    }
-
-    @Override
-    protected String runPush(PushCmd pushCmd) throws RepoException {
-      if (pushCmd.getUrl() != null) {
-        pushCmd = pushCmd.withRefspecs(mapUrl(pushCmd.getUrl()),
-            pushCmd.getRefspecs());
-      }
-      return super.runPush(pushCmd);
-    }
-
-    @Override
-    public GitRepository withWorkTree(Path newWorkTree) {
-      return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, localHub);
-    }
-
-    private String mapUrl(String url) {
-      Path repo = localHub.resolve(url.replaceAll(".*github.com/", ""));
-      assertWithMessage(repo.toString()).that(Files.isDirectory(repo)).isTrue();
-      return "file:///" + repo.toString();
-    }
-  }
 }

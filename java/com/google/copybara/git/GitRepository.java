@@ -239,7 +239,7 @@ public class GitRepository {
    * @return the set of fetched references and what action was done ( rejected, new reference,
    * updated, etc.)
    */
-  FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
+  protected FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
       throws RepoException, CannotResolveRevisionException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
@@ -1161,7 +1161,7 @@ public class GitRepository {
     }
 
     @CheckReturnValue
-    PushCmd withRefspecs(String url, Iterable<Refspec> refspecs) {
+    public PushCmd withRefspecs(String url, Iterable<Refspec> refspecs) {
       return new PushCmd(repo, Preconditions.checkNotNull(url), ImmutableList.copyOf(refspecs),
           prune);
     }

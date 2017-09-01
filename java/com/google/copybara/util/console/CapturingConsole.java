@@ -120,6 +120,10 @@ public class CapturingConsole implements Console {
     return ImmutableList.copyOf(messages);
   }
 
+  public void clearMessages() {
+    messages.clear();
+  }
+
   private synchronized void addMessage(MessageType type, String message) {
     if (captureTypes.contains(type)) {
       messages.add(new Message(type, message));

@@ -18,6 +18,17 @@ package(default_visibility = ["//visibility:public"])
 
 java_library(
     name = "git",
+    testonly = 1,
     srcs = ["GitTestUtil.java"],
-    deps = ["//java/com/google/copybara/authoring"],
+    deps = [
+        "//java/com/google/copybara:base",
+        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/testing",
+        "//third_party:google_http_client",
+        "//third_party:google_http_client_test",
+        "//third_party:guava",
+        "//third_party:junit",
+        "//third_party:truth",
+    ],
 )

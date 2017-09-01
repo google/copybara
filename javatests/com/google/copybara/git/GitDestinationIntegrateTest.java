@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 
+import com.google.api.client.http.HttpTransport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -33,11 +34,15 @@ import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,14 +61,18 @@ public class GitDestinationIntegrateTest {
   private Glob destinationFiles;
   private SkylarkTestExecutor skylark;
 
+
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
+  private Path localHub;
 
   @Before
   public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
+
+    localHub = Files.createTempDirectory("localHub");
 
     git("init", "--bare", repoGitDir.toString());
 
@@ -71,8 +80,19 @@ public class GitDestinationIntegrateTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
+    options.git = new TestGitOptions(localHub, () -> options.general);
+
+    options.github = new GithubOptions(() -> options.general, options.git) {
+      @Override
+      protected HttpTransport getHttpTransport() {
+        return GitTestUtil.NO_GITHUB_API_CALLS;
+      }
+    };
+
+    options.gitDestination = new GitDestinationOptions(() -> options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
+
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
     options.setForce(true);
 
@@ -152,6 +172,80 @@ public class GitDestinationIntegrateTest {
         .isEqualTo(Lists.newArrayList(feature1Merge.getCommit().getSha1(), feature2.getSha1()));
   }
 
+  @Test
+  public void testGitHubFakeMerge() throws ValidationException, IOException, RepoException {
+    Path workTree = Files.createTempDirectory("test");
+    GitRepository repo = localHubRepo("example/test_repo").withWorkTree(workTree);
+
+    Files.write(workTree.resolve("ignore_me"), new byte[0]);
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Feature1 change");
+    GitRevision firstChange = repo.resolveReference("HEAD", null);
+    Files.write(workTree.resolve("ignore_me2"), new byte[0]);
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Feature2 change");
+    GitRevision secondChange = repo.resolveReference("HEAD", null);
+
+    repo.simpleCommand("update-ref", "refs/pull/20/head", secondChange.getSha1());
+
+    GitDestination destination = destination("git.destination(\n"
+        + "    url = '" + url + "',\n"
+        + ")");
+    migrateOriginChange(destination, "Base change\n", "not important");
+    GitLogEntry previous = getLastMigratedChange("master");
+
+    console.clearMessages();
+
+    String label = new GithubPRIntegrateLabel(
+        "example/test_repo", 20, "some_user:branch", secondChange.getSha1()).toString();
+
+    assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
+        + " from some_user:branch " + secondChange.getSha1());
+
+    migrateOriginChange(destination, "Test change\n"
+        + "\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "="
+        + label
+        + "\n", "some content");
+
+    // Make sure commit adds new text
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    assertThat(showResult).contains("some content");
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+
+    GitLogEntry merge = getLastMigratedChange("master");
+    assertThat(merge.getBody()).isEqualTo("Merge pull request #20 from some_user:branch\n"
+        + "\n"
+        + "DummyOrigin-RevId: test\n");
+
+    assertThat(Lists.transform(merge.getParents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), secondChange.getSha1()));
+
+    assertThat(console.getMessages().stream()
+        .filter(e -> e.getType() == MessageType.WARNING)
+        .collect(Collectors.toList())).isEmpty();
+
+    label = new GithubPRIntegrateLabel(
+        "example/test_repo", 20, "some_user:branch", firstChange.getSha1()).toString();
+    assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
+        + " from some_user:branch " + firstChange.getSha1());
+
+    repo().withWorkTree(workTree).simpleCommand("reset", "--hard", "HEAD~1");
+    migrateOriginChange(destination, "Test change\n"
+        + "\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "="
+        + label
+        + "\n", "some content");
+
+    assertThat(console.getMessages().stream()
+        .filter(e -> e.getType() == MessageType.WARNING)
+        .findAny().get().getText())
+        .contains("has more changes after " + firstChange.getSha1());
+  }
+
   private GitLogEntry getLastMigratedChange(String ref) throws RepoException {
     return Iterables.getOnlyElement(repo().log(ref).withLimit(1).run());
   }
@@ -210,6 +304,14 @@ public class GitDestinationIntegrateTest {
 
   private GitRepository repoForPath(Path path) {
     return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true);
+  }
+
+  private GitRepository localHubRepo(String name) throws RepoException {
+    GitRepository repo = GitRepository.newBareRepo(localHub.resolve(name),
+        getGitEnv(),
+        options.general.isVerbose());
+    repo.init();
+    return repo;
   }
 
   private String git(String... argv) throws RepoException {

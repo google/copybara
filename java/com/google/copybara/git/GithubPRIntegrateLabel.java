@@ -1,0 +1,102 @@
+/*
+ * Copyright (C) 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.copybara.git;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.GeneralOptions;
+import com.google.copybara.LabelFinder;
+import com.google.copybara.RepoException;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
+import javax.annotation.Nullable;
+
+/**
+ * Integrate label for GitHub PR
+ *
+ * <p>Format like: "https://github.com/google/copybara/pull/12345 from mikelalcon:master SHA-1"
+ *
+ * <p>Where SHA-1 is optional: If present it means to integrate the specific SHA-1. Otherwise the
+ * head of the PR is used.
+ */
+class GithubPRIntegrateLabel implements IntegrateLabel {
+
+  private static final Pattern pattern = Pattern.compile(
+      "https://github.com/([a-zA-Z0-9_/-]+)/pull/([0-9]+)"
+          + " from ((?:[a-zA-Z0-9_/-]+)(?::(?:[a-zA-Z0-9_/-]+))?)"
+          + "(?: ([0-9a-f]{7,40}))?");
+  private static GitRepository repository;
+  private static GeneralOptions generalOptions;
+
+  private final String projectId;
+  private final long prNumber;
+  private final String originBranch;
+  @Nullable
+  private final String sha1;
+
+  GithubPRIntegrateLabel(String projectId, long prNumber, String originBranch,
+      @Nullable String sha1) {
+    this.projectId = Preconditions.checkNotNull(projectId);
+    this.prNumber = prNumber;
+    this.originBranch = Preconditions.checkNotNull(originBranch);
+    this.sha1 = sha1;
+  }
+
+  @Nullable
+  static GithubPRIntegrateLabel parse(String str, GitRepository repository,
+      GeneralOptions generalOptions) {
+    GithubPRIntegrateLabel.repository = Preconditions.checkNotNull(repository);
+    GithubPRIntegrateLabel.generalOptions = generalOptions;
+    Matcher matcher = pattern.matcher(str);
+    return matcher.matches()
+           ? new GithubPRIntegrateLabel(matcher.group(1),
+                                        Long.parseLong(matcher.group(2)),
+                                        matcher.group(3),
+                                        matcher.group(4))
+           : null;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("https://github.com/%s/pull/%d from %s%s", projectId, prNumber,
+        originBranch, sha1 != null ? " " + sha1 : "");
+  }
+
+  @Override
+  public String mergeMessage(ImmutableList<LabelFinder> labelsToAdd) {
+    return IntegrateLabel.withLabels(String.format("Merge pull request #%d from %s",
+        prNumber, originBranch), labelsToAdd);
+  }
+
+  @Override
+  public GitRevision getRevision() throws RepoException, CannotResolveRevisionException {
+    String pr = "https://github.com/" + projectId + "/pull/" + prNumber;
+    GitRevision gitRevision = GitRepoType.GITHUB.resolveRef(repository,
+        "https://github.com/" + projectId, pr, generalOptions);
+    if (sha1 == null) {
+      return gitRevision;
+    }
+    if (sha1.equals(gitRevision.getSha1())) {
+      return gitRevision;
+    }
+    generalOptions.console().warnFmt(String.format(
+        "Pull Request %s has more changes after %s (PR HEAD is %s)."
+            + " Not all changes might be migrated", pr, sha1, gitRevision.getSha1()));
+    return repository.resolveReference(sha1, gitRevision.contextReference());
+  }
+}
