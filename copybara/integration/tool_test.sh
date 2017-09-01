@@ -838,7 +838,7 @@ function test_command_too_few_args() {
 
 function test_command_too_many_args() {
   copybara_with_exit_code $COMMAND_LINE_ERROR migrate config workflow_name origin/master unexpected
-  expect_log "Expected at most four arguments."
+  expect_log "Expected at most four arguments: \[migrate, config, workflow_name, origin/master, unexpected\]. Note that flag values that contain whitespaces must be between quotes: --some-flag \"Some Value\""
   expect_log "Try 'copybara --help'"
 }
 

@@ -148,10 +148,12 @@ public final class MainArguments {
   }
 
   void parseUnnamedArgs() throws CommandLineException {
-    if (unnamed.size() < 1) {
+    if (unnamed.isEmpty()) {
       throw new CommandLineException("Expected at least a configuration file.");
     } else if (unnamed.size() > 4) {
-      throw new CommandLineException("Expected at most four arguments.");
+      throw new CommandLineException(
+          String.format("Expected at most four arguments: %s. Note that flag values that contain "
+              + "whitespaces must be between quotes: --some-flag \"Some Value\"", unnamed));
     }
 
     Subcommand subcommand = Subcommand.MIGRATE;
