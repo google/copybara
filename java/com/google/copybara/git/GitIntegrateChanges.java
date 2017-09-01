@@ -56,12 +56,12 @@ public class GitIntegrateChanges {
   }
 
   /**
-   * Perform an integrate of changes for matching labels.
+   * Perform an integrate of changes for matching labels in the existing {@code repository} HEAD.
    *
    * @throws CannotIntegrateException if a change cannot be integrated due to a user error
    * @throws RepoException if a git related error happens during the integrate
    */
-  void integrate(GitRepository repository, GeneralOptions generalOptions,
+  void run(GitRepository repository, GeneralOptions generalOptions,
       GitDestinationOptions gitDestinationOptions, MessageInfo messageInfo, TransformResult result)
       throws CannotIntegrateException, RepoException {
     try {
@@ -94,6 +94,7 @@ public class GitIntegrateChanges {
       }
       try (ProfilerTask ignore = generalOptions.profiler().start("integrate",
           ImmutableMap.of("URL", label.getValue()))) {
+        generalOptions.console().progress("Integrating change from " + label.getValue());
         GitRevision gitRevision = GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null,
             label.getValue(), generalOptions);
         IntegrateLabel integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);

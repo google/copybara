@@ -416,7 +416,7 @@ public final class GitDestination implements Destination<GitRevision> {
           commitMessage);
 
       for (GitIntegrateChanges integrate : integrates) {
-        integrate.integrate(alternate, generalOptions, destinationOptions, messageInfo,
+        integrate.run(alternate, generalOptions, destinationOptions, messageInfo,
             transformResult);
       }
 
