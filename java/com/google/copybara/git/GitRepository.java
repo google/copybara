@@ -336,9 +336,11 @@ public class GitRepository {
     return result.build();
   }
 
-  public static Map<String, String> lsRemote(String url, Collection<String> refs)
-      throws RepoException {
-    return lsRemote(url, refs, System.getenv());
+  /**
+   * Same as {@link #lsRemote(String, Collection, Map)} but using this repository environment
+   */
+  public Map<String, String> lsRemote(String url, Collection<String> refs) throws RepoException {
+    return lsRemote(url, refs, environment);
   }
 
   // TODO(team): Use JGit URIish.java

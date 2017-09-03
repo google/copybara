@@ -32,6 +32,7 @@ import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -66,30 +67,30 @@ public class GitTestUtil {
 
   public static class TestGitOptions extends GitOptions {
 
-    private final Path localHub;
+    private final Path httpsRepos;
 
-    public TestGitOptions(Path localHub, Supplier<GeneralOptions> generalOptionsSupplier) {
+    public TestGitOptions(Path httpsRepos, Supplier<GeneralOptions> generalOptionsSupplier) {
       super(generalOptionsSupplier);
-      this.localHub = Preconditions.checkNotNull(localHub);
+      this.httpsRepos = Preconditions.checkNotNull(httpsRepos);
     }
 
     @Override
     protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
         throws RepoException {
-      return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, localHub));
+      return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, httpsRepos));
     }
   }
 
   private static class RewriteUrlGitRepository extends GitRepository {
 
     private final GeneralOptions generalOptions;
-    private final Path localHub;
+    private final Path httpsRepos;
 
     RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
-        Path localHub) {
+        Path httpsRepos) {
       super(gitDir, workTree, generalOptions.isVerbose(), generalOptions.getEnvironment());
       this.generalOptions = generalOptions;
-      this.localHub = localHub;
+      this.httpsRepos = httpsRepos;
     }
 
     @Override
@@ -108,15 +109,20 @@ public class GitTestUtil {
     }
 
     @Override
+    public Map<String, String> lsRemote(String url, Collection<String> refs) throws RepoException {
+      return super.lsRemote(mapUrl(url), refs);
+    }
+
+    @Override
     public GitRepository withWorkTree(Path newWorkTree) {
-      return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, localHub);
+      return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, httpsRepos);
     }
 
     private String mapUrl(String url) {
-      if (url.startsWith("file://")) {
+      if (!url.startsWith("https://")) {
         return url;
       }
-      Path repo = localHub.resolve(url.replaceAll(".*github.com/", ""));
+      Path repo = httpsRepos.resolve(url.replaceAll("https://", ""));
       assertWithMessage(repo.toString()).that(Files.isDirectory(repo)).isTrue();
       return "file:///" + repo.toString();
     }

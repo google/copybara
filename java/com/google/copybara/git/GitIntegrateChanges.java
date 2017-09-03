@@ -98,9 +98,13 @@ public class GitIntegrateChanges {
         IntegrateLabel integrateLabel = GithubPRIntegrateLabel.parse(label.getValue(), repository,
             generalOptions);
         if (integrateLabel == null) {
-          GitRevision gitRevision = GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null,
-              label.getValue(), generalOptions);
-          integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
+          integrateLabel = GerritIntegrateLabel.parse(label.getValue(), repository,
+              generalOptions);
+          if (integrateLabel == null) {
+            GitRevision gitRevision = GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null,
+                label.getValue(), generalOptions);
+            integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
+          }
         }
 
         strategy.integrate(repository, integrateLabel, label.getValue(), messageInfo,

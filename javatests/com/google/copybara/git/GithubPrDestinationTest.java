@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -325,7 +324,7 @@ public class GithubPrDestinationTest {
   }
 
   private GitRepository localHubRepo(String name) throws RepoException {
-    GitRepository repo = GitRepository.newBareRepo(localHub.resolve(name),
+    GitRepository repo = GitRepository.newBareRepo(localHub.resolve("github.com/" + name),
         getGitEnv(),
         options.general.isVerbose());
     repo.init();
