@@ -36,12 +36,13 @@ import javax.annotation.Nullable;
  */
 class GithubPRIntegrateLabel implements IntegrateLabel {
 
-  private static final Pattern pattern = Pattern.compile(
+  private static final Pattern LABEL_PATTERN = Pattern.compile(
       "https://github.com/([a-zA-Z0-9_/-]+)/pull/([0-9]+)"
           + " from ((?:[a-zA-Z0-9_/-]+)(?::(?:[a-zA-Z0-9_/-]+))?)"
           + "(?: ([0-9a-f]{7,40}))?");
-  private static GitRepository repository;
-  private static GeneralOptions generalOptions;
+
+  private final GitRepository repository;
+  private final GeneralOptions generalOptions;
 
   private final String projectId;
   private final long prNumber;
@@ -49,8 +50,10 @@ class GithubPRIntegrateLabel implements IntegrateLabel {
   @Nullable
   private final String sha1;
 
-  GithubPRIntegrateLabel(String projectId, long prNumber, String originBranch,
-      @Nullable String sha1) {
+  GithubPRIntegrateLabel(GitRepository repository, GeneralOptions generalOptions, String projectId,
+      long prNumber, String originBranch, @Nullable String sha1) {
+    this.repository = Preconditions.checkNotNull(repository);
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.projectId = Preconditions.checkNotNull(projectId);
     this.prNumber = prNumber;
     this.originBranch = Preconditions.checkNotNull(originBranch);
@@ -60,11 +63,10 @@ class GithubPRIntegrateLabel implements IntegrateLabel {
   @Nullable
   static GithubPRIntegrateLabel parse(String str, GitRepository repository,
       GeneralOptions generalOptions) {
-    GithubPRIntegrateLabel.repository = Preconditions.checkNotNull(repository);
-    GithubPRIntegrateLabel.generalOptions = generalOptions;
-    Matcher matcher = pattern.matcher(str);
+    Matcher matcher = LABEL_PATTERN.matcher(str);
     return matcher.matches()
-           ? new GithubPRIntegrateLabel(matcher.group(1),
+           ? new GithubPRIntegrateLabel(repository, generalOptions,
+                                        matcher.group(1),
                                         Long.parseLong(matcher.group(2)),
                                         matcher.group(3),
                                         matcher.group(4))

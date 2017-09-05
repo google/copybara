@@ -179,7 +179,7 @@ public class GitDestinationIntegrateTest {
     GitDestination destination = destinationWithDefaultIntegrates();
     GitLogEntry previous = createBaseDestinationChange(destination);
 
-    String label = new GithubPRIntegrateLabel(
+    String label = new GithubPRIntegrateLabel(repo,options.general,
         "example/test_repo", 20, "some_user:branch", secondChange.getSha1()).toString();
 
     assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
@@ -211,7 +211,7 @@ public class GitDestinationIntegrateTest {
         .filter(e -> e.getType() == MessageType.WARNING)
         .collect(Collectors.toList())).isEmpty();
 
-    label = new GithubPRIntegrateLabel(
+    label = new GithubPRIntegrateLabel(repo,options.general,
         "example/test_repo", 20, "some_user:branch", firstChange.getSha1()).toString();
     assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
         + " from some_user:branch " + firstChange.getSha1());
