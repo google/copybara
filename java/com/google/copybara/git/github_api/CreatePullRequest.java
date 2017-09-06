@@ -29,18 +29,18 @@ public class CreatePullRequest extends GenericJson {
   @Key
   private String title;
   @Key
-  private final String body;
+  private String body;
 
   /**
    * Branch to use for the pull request, can be a reference to another
    * github repository if somerepo:branch format is used.
    */
   @Key
-  private final String head;
+  private String head;
 
   /** Base of the pull request, usually something like 'master' */
   @Key
-  private final String base;
+  private String base;
 
   public String getTitle() {
     return title;

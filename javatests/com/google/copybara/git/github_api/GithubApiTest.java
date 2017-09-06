@@ -16,49 +16,37 @@
 
 package com.google.copybara.git.github_api;
 
-
-import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.api.client.http.LowLevelHttpRequest;
-import com.google.api.client.json.Json;
+import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
-import com.google.common.base.Ticker;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
 import com.google.copybara.git.GitRepository;
-import com.google.copybara.git.github_api.Issue.Label;
-import com.google.copybara.profiler.LogProfilerListener;
-import com.google.copybara.profiler.Profiler;
+import com.google.copybara.git.github_api.testing.AbstractGithubApiTest;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Before;
-import org.junit.Test;
+import java.util.function.Predicate;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GithubApiTest {
-
+public class GithubApiTest extends AbstractGithubApiTest {
 
   private MockHttpTransport httpTransport;
-  private GithubApi api;
+
   private Map<String, byte[]> requestToResponse;
+  private Map<String, Predicate<String>> requestValidators;
 
-  @Before
-  public void setup() throws Exception {
-
+  @Override
+  public GitHubApiTransport getTransport() throws Exception {
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
@@ -67,94 +55,43 @@ public class GithubApiTest {
         .withCredentialHelper("store --file=" + credentialsFile);
 
     requestToResponse = new HashMap<>();
+    requestValidators = new HashMap<>();
     httpTransport = new MockHttpTransport() {
       @Override
       public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
-        MockLowLevelHttpRequest request = new MockLowLevelHttpRequest();
-        MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
-        response.setContentType(Json.MEDIA_TYPE);
-        byte[] content = requestToResponse.get(method + " " + url);
+        String requestString = method + " " + url;
+        MockLowLevelHttpRequest request = new MockLowLevelHttpRequest() {
+          @Override
+          public LowLevelHttpResponse execute() throws IOException {
+            assertWithMessage("Request content did not match expected values.")
+                .that(requestValidators.get(method + " " + url).test(getContentAsString()))
+                .isTrue();
+            return super.execute();
+          }
+        };
+        byte[] content = requestToResponse.get(requestString);
         assertWithMessage("'" + method + " " + url + "'").that(content).isNotNull();
+        MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
         response.setContent(content);
         request.setResponse(response);
         return request;
       }
     };
-    GitHubApiTransportImpl transport = new GitHubApiTransportImpl(repo, httpTransport,
-        "some_storage_file");
-    Profiler profiler = new Profiler(Ticker.systemTicker());
-    profiler.init(ImmutableList.of(new LogProfilerListener()));
-    api = new GithubApi(transport, profiler);
+    return new GitHubApiTransportImpl(repo, httpTransport, "some_storage_file");
   }
 
-  @Test
-  public void testGetPulls() throws RepoException, ValidationException, IOException {
-    requestToResponse.put("GET https://api.github.com/repos/example/project/pulls",
-        getResource("pulls_testdata.json"));
-    ImmutableList<PullRequest> pullRequests = api.getPullRequests("example/project");
-
-    assertThat(pullRequests).hasSize(2);
-    assertThat(pullRequests.get(0).getNumber()).isEqualTo(12345);
-    assertThat(pullRequests.get(1).getNumber()).isEqualTo(12346);
-
-    assertThat(pullRequests.get(0).getState()).isEqualTo("open");
-    assertThat(pullRequests.get(1).getState()).isEqualTo("closed");
-
-    assertThat(pullRequests.get(0).getTitle()).isEqualTo("[TEST] example pull request one");
-    assertThat(pullRequests.get(1).getTitle()).isEqualTo("Another title");
-
-    assertThat(pullRequests.get(0).getBody()).isEqualTo("Example body.\r\n");
-    assertThat(pullRequests.get(1).getBody()).isEqualTo("Some text\r\n"
-        + "And even more text\r\n");
-
-    assertThat(pullRequests.get(0).getHead().getLabel())
-        .isEqualTo("googletestuser:example-branch");
-    assertThat(pullRequests.get(0).getHead().getRef()).isEqualTo("example-branch");
-    assertThat(pullRequests.get(0).getHead().getSha()).isEqualTo(
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
-
-    assertThat(pullRequests.get(1).getHead().getLabel())
-        .isEqualTo("anothergoogletestuser:another-branch");
-    assertThat(pullRequests.get(1).getHead().getRef()).isEqualTo("another-branch");
-    assertThat(pullRequests.get(1).getHead().getSha()).isEqualTo(
-        "dddddddddddddddddddddddddddddddddddddddd");
+  @Override
+  public void trainMockGet(String apiPath, byte[] response) throws Exception {
+    String path = String.format("GET https://api.github.com%s", apiPath);
+    requestToResponse.put(path, response);
+    requestValidators.put(path, (r) -> true);
   }
 
-  @Test
-  public void testGetPull() throws RepoException, ValidationException, IOException {
-    requestToResponse.put("GET https://api.github.com/repos/example/project/pulls/12345",
-        getResource("pulls_12345_testdata.json"));
-    PullRequest pullRequest = api.getPullRequest("example/project", 12345);
-
-    assertThat(pullRequest.getNumber()).isEqualTo(12345);
-    assertThat(pullRequest.getState()).isEqualTo("open");
-    assertThat(pullRequest.getTitle()).isEqualTo("[TEST] example pull request one");
-    assertThat(pullRequest.getBody()).isEqualTo("Example body.\r\n");
-    assertThat(pullRequest.getHead().getLabel())
-        .isEqualTo("googletestuser:example-branch");
-    assertThat(pullRequest.getHead().getRef()).isEqualTo("example-branch");
-    assertThat(pullRequest.getHead().getSha()).isEqualTo(
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
-  }
-
-  @Test
-  public void testGetIssue() throws RepoException, ValidationException, IOException {
-    requestToResponse.put("GET https://api.github.com/repos/example/project/issues/12345",
-        getResource("issues_12345_testdata.json"));
-    Issue issue = api.getIssue("example/project", 12345);
-
-    assertThat(issue.getNumber()).isEqualTo(12345);
-    assertThat(issue.getState()).isEqualTo("open");
-    assertThat(issue.getTitle()).isEqualTo("[TEST] example pull request one");
-    assertThat(issue.getBody()).isEqualTo("Example body.\r\n");
-    assertThat(Lists.transform(issue.getLabels(), Label::getName))
-        .containsExactly("cla: yes");
-  }
-
-  private byte[] getResource(String testfile) throws IOException {
-    return Files.readAllBytes(
-        Paths.get(System.getenv("TEST_SRCDIR"),
-            "copybara/javatests/com/google/copybara/git/github_api")
-            .resolve(testfile));
+  @Override
+  public void trainMockPost(String apiPath, Predicate<String> requestValidator, byte[] response)
+      throws Exception {
+    String path = String.format("POST https://api.github.com%s", apiPath);
+    requestToResponse.put(path, response);
+    requestValidators.put(path, requestValidator);
   }
 }

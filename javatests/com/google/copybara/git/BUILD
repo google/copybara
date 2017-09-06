@@ -24,6 +24,7 @@ DEPS = [
     "//java/com/google/copybara/profiler",
     "//java/com/google/copybara/testing",
     "//java/com/google/copybara/testing/git",
+    "//java/com/google/copybara/git/github_api/testing:abstract_gitapi_test",
     "//java/com/google/copybara/util",
     "//java/com/google/copybara/util/console",
     "//java/com/google/copybara/util/console/testing",
@@ -37,7 +38,6 @@ DEPS = [
 ]
 
 all_tests(
-    data = glob(["**/*_testdata.*"]),
     tags = ["local"],
     tests = glob(
         ["**/*.java"],
