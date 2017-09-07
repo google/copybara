@@ -172,7 +172,7 @@ public class GithubPrOriginTest {
     addFiles(remote, "first change", ImmutableMap.<String, String>builder()
         .put(prNumber + ".txt", "").build());
     String sha1 = remote.parseRef("HEAD");
-    remote.simpleCommand("update-ref", "refs/pull/" + prNumber + "/head", sha1);
+    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(prNumber), sha1);
 
     githubMockHttpTransport = new GithubMockHttpTransport() {
 
@@ -223,7 +223,7 @@ public class GithubPrOriginTest {
 
     GitRevision rev = origin.resolve(reference);
     assertThat(rev.asString()).hasLength(40);
-    assertThat(rev.contextReference()).isEqualTo("refs/pull/" + prNumber + "/head");
+    assertThat(rev.contextReference()).isEqualTo(GithubUtil.asHeadRef(prNumber));
     assertThat(rev.associatedLabels()).containsEntry(GithubPROrigin.GITHUB_PR_NUMBER_LABEL,
         Integer.toString(prNumber));
     assertThat(rev.associatedLabels()).containsEntry(GitModule.DEFAULT_INTEGRATE_LABEL,

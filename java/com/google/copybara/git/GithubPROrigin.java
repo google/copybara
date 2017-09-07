@@ -125,7 +125,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
           String.format("Cannot migrate http://github.com/%s/%d because it is missing the following"
               + " labels: %s", project, prNumber, required));
     }
-    String stableRef = "refs/pull/" + prNumber + "/head";
+    String stableRef = GithubUtil.asHeadRef(prNumber);
     GitRevision gitRevision = getRepository()
         .fetchSingleRef(asGithubUrl(project), stableRef);
 

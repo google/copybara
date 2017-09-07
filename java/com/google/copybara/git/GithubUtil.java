@@ -23,7 +23,6 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.net.URI;
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 /**
  * General utilities for manipulating GitHub urls and data
@@ -87,6 +86,20 @@ public class GithubUtil {
     return matcher.matches()
            ? Optional.of(new GithubPrUrl(matcher.group(1), Integer.parseInt(matcher.group(2))))
            : Optional.empty();
+  }
+
+  /**
+   * Given a prNumber return a git reference like 'refs/pull/12345/head'
+   */
+  static String asHeadRef(int prNumber) {
+    return "refs/pull/" + prNumber + "/head";
+  }
+
+  /**
+   * Given a prNumber return a git reference like 'refs/pull/12345/merge'
+   */
+  static String asMergeRef(int prNumber) {
+    return "refs/pull/" + prNumber + "/merge";
   }
 
   /**

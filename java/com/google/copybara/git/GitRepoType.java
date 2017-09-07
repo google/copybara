@@ -204,7 +204,7 @@ public enum GitRepoType {
     Optional<GithubPrUrl> githubPrUrl = GithubUtil.maybeParseGithubPrUrl(ref);
     if (githubPrUrl.isPresent()) {
       // TODO(malcon): Support merge ref too once we have github pr origin.
-      String stableRef = "refs/pull/" + githubPrUrl.get().getPrNumber() + "/head";
+      String stableRef = GithubUtil.asHeadRef(githubPrUrl.get().getPrNumber());
       GitRevision gitRevision = repository.fetchSingleRef(
           "https://github.com/" + githubPrUrl.get().getProject(), stableRef);
       return new GitRevision(
