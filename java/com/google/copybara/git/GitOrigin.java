@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.util.console.Consoles.logLines;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -117,20 +118,42 @@ public class GitOrigin implements Origin<GitRevision> {
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
 
-  class ReaderImpl implements Reader<GitRevision> {
+  static class ReaderImpl implements Reader<GitRevision> {
 
+    private final String repoUrl;
     final Glob originFiles;
     final Authoring authoring;
+    private final GitOptions gitOptions;
+    private final GitOriginOptions gitOriginOptions;
+    private final GeneralOptions generalOptions;
+    private final boolean includeBranchCommitLogs;
+    private final SubmoduleStrategy submoduleStrategy;
 
-    ReaderImpl(Glob originFiles, Authoring authoring) {
+    ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
+        GitOptions gitOptions,
+        GitOriginOptions gitOriginOptions,
+        GeneralOptions generalOptions,
+        boolean includeBranchCommitLogs,
+        SubmoduleStrategy submoduleStrategy) {
+      this.repoUrl = checkNotNull(repoUrl);
       this.originFiles = checkNotNull(originFiles, "originFiles");
       this.authoring = checkNotNull(authoring, "authoring");
+      this.gitOptions = checkNotNull(gitOptions);
+      this.gitOriginOptions = gitOriginOptions;
+      this.generalOptions = checkNotNull(generalOptions);
+      this.includeBranchCommitLogs = includeBranchCommitLogs;
+      this.submoduleStrategy = checkNotNull(submoduleStrategy);
     }
 
     private ChangeReader.Builder changeReaderBuilder() throws RepoException {
-      return ChangeReader.Builder.forOrigin(authoring, getRepository(), console, originFiles)
-          .setVerbose(verbose)
+      return ChangeReader.Builder.forOrigin(authoring,
+          getRepository(), generalOptions.console(), originFiles)
+          .setVerbose(generalOptions.isVerbose())
           .setIncludeBranchCommitLogs(includeBranchCommitLogs);
+    }
+
+    private GitRepository getRepository() throws RepoException {
+      return gitOptions.cachedBareRepoForUrl(repoUrl);
     }
 
     /**
@@ -142,11 +165,30 @@ public class GitOrigin implements Origin<GitRevision> {
     public void checkout(GitRevision ref, Path workdir)
         throws RepoException, CannotResolveRevisionException {
       checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref,
-          gitOriginOptions.originRebaseRef);
+          /*topLevelCheckout=*/true);
       if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
         runCheckoutOrigin(workdir);
       }
     }
+
+    private void runCheckoutOrigin(Path workdir) throws RepoException {
+      try {
+        CommandOutputWithStatus result = CommandUtil.executeCommand(
+            new Command(new String[]{gitOriginOptions.originCheckoutHook},
+                generalOptions.getEnvironment(), workdir.toFile()), generalOptions.isVerbose());
+        logLines(generalOptions.console(), "git.origin hook (Stdout): ", result.getStdout());
+        logLines(generalOptions.console(), "git.origin hook (Stderr): ", result.getStderr());
+      } catch (BadExitStatusWithOutputException e) {
+        logLines(generalOptions.console(), "git.origin hook (Stdout): ", e.getOutput().getStdout());
+        logLines(generalOptions.console(), "git.origin hook (Stderr): ", e.getOutput().getStderr());
+        throw new RepoException(
+            "Error executing the git checkout hook: " + gitOriginOptions.originCheckoutHook, e);
+      } catch (CommandException e) {
+        throw new RepoException(
+            "Error executing the git checkout hook: " + gitOriginOptions.originCheckoutHook, e);
+      }
+    }
+
 
     /**
      * Checks out the repository, and rebases to a ref if necessary.
@@ -157,12 +199,11 @@ public class GitOrigin implements Origin<GitRevision> {
      * submodule repo doesn't apply.
      */
     private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
-        SubmoduleStrategy submoduleStrategy, GitRevision ref, @Nullable String rebaseToRef)
+        SubmoduleStrategy submoduleStrategy, GitRevision ref, boolean topLevelCheckout)
         throws RepoException, CannotResolveRevisionException {
       GitRepository repo = checkout(repository, workdir, ref);
-      if (rebaseToRef != null) {
-        console.info(String.format("Rebasing %s to %s", ref, rebaseToRef));
-        rebase(repo, gitOriginOptions.originRebaseRef);
+      if(topLevelCheckout) {
+        maybeRebase(repo);
       }
 
       if (submoduleStrategy == SubmoduleStrategy.NO) {
@@ -193,7 +234,7 @@ public class GitOrigin implements Origin<GitRevision> {
         checkoutRepo(subRepo, submodule.getUrl(), subdir,
             submoduleStrategy == SubmoduleStrategy.RECURSIVE
                 ? SubmoduleStrategy.RECURSIVE
-                : SubmoduleStrategy.NO, submoduleRef, /*rebaseToRef*/ null);
+                : SubmoduleStrategy.NO, submoduleRef, /*topLevelCheckout*/ false);
       }
     }
 
@@ -204,8 +245,13 @@ public class GitOrigin implements Origin<GitRevision> {
       return repo;
     }
 
-    private void rebase(GitRepository repo, String rebaseToRef)
+    protected void maybeRebase(GitRepository repo)
         throws RepoException, CannotResolveRevisionException {
+      String rebaseToRef = gitOriginOptions.originRebaseRef;
+      if (rebaseToRef == null) {
+        return;
+      }
+      generalOptions.console().info(String.format("Rebasing %s to %s", rebaseToRef, rebaseToRef));
       GitRevision rebaseRev = repo.fetchSingleRef(repoUrl, rebaseToRef);
       repo.simpleCommand("update-ref", COPYBARA_TMP_REF, rebaseRev.getSha1());
       repo.rebase(COPYBARA_TMP_REF);
@@ -277,25 +323,8 @@ public class GitOrigin implements Origin<GitRevision> {
 
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
-    return new ReaderImpl(originFiles, authoring);
-  }
-
-  private void runCheckoutOrigin(Path workdir) throws RepoException {
-    try {
-      CommandOutputWithStatus result = CommandUtil.executeCommand(
-          new Command(new String[]{gitOriginOptions.originCheckoutHook},
-              environment, workdir.toFile()), verbose);
-      Consoles.logLines(console, "git.origin hook (Stdout): ", result.getStdout());
-      Consoles.logLines(console, "git.origin hook (Stderr): ", result.getStderr());
-    } catch (BadExitStatusWithOutputException e) {
-      Consoles.logLines(console, "git.origin hook (Stdout): ", e.getOutput().getStdout());
-      Consoles.logLines(console, "git.origin hook (Stderr): ", e.getOutput().getStderr());
-      throw new RepoException(
-          "Error executing the git checkout hook: " + gitOriginOptions.originCheckoutHook, e);
-    } catch (CommandException e) {
-      throw new RepoException(
-          "Error executing the git checkout hook: " + gitOriginOptions.originCheckoutHook, e);
-    }
+    return new ReaderImpl(repoUrl, originFiles, authoring,
+        gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy);
   }
 
   @Override
@@ -315,7 +344,7 @@ public class GitOrigin implements Origin<GitRevision> {
     return repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions);
   }
 
-  private ImmutableList<Change<GitRevision>> asChanges(ImmutableList<GitChange> gitChanges) {
+  private static ImmutableList<Change<GitRevision>> asChanges(ImmutableList<GitChange> gitChanges) {
     ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
     for (GitChange gitChange : gitChanges) {
       result.add(gitChange.getChange());

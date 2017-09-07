@@ -31,6 +31,12 @@ import javax.annotation.Nullable;
  */
 public class GerritOrigin extends GitOrigin {
 
+  private final GeneralOptions generalOptions;
+  private final GitOptions gitOptions;
+  private final GitOriginOptions gitOriginOptions;
+  private final SubmoduleStrategy submoduleStrategy;
+  private final boolean includeBranchCommitLogs;
+
   private GerritOrigin(GeneralOptions generalOptions,
       String repoUrl, @Nullable String configRef,
       GitRepoType repoType, GitOptions gitOptions, GitOriginOptions gitOriginOptions,
@@ -38,6 +44,11 @@ public class GerritOrigin extends GitOrigin {
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
     super(generalOptions, repoUrl, configRef, repoType, gitOptions, gitOriginOptions,
         verbose, environment, submoduleStrategy, includeBranchCommitLogs);
+    this.generalOptions = generalOptions;
+    this.gitOptions = gitOptions;
+    this.gitOriginOptions = gitOriginOptions;
+    this.submoduleStrategy = submoduleStrategy;
+    this.includeBranchCommitLogs = includeBranchCommitLogs;
   }
 
   /**
@@ -58,7 +69,8 @@ public class GerritOrigin extends GitOrigin {
 
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
-    return new GitOrigin.ReaderImpl(originFiles, authoring) {
+    return new GitOrigin.ReaderImpl(repoUrl, originFiles, authoring, gitOptions, gitOriginOptions,
+        generalOptions, includeBranchCommitLogs, submoduleStrategy) {
       /**
        * Group identity is the individual change identity for now. If we want to group a list of
        * commits we would add Gerrit topic support and an option to git.gerrit_origin to enable it.

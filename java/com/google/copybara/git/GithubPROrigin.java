@@ -28,11 +28,11 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GithubUtil.GithubPrUrl;
 import com.google.copybara.git.github_api.Issue;
@@ -156,6 +156,15 @@ public class GithubPROrigin implements Origin<GitRevision> {
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring)
       throws ValidationException {
+    ReaderImpl reader = new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
+        generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy) {
+      @Override
+      protected void maybeRebase(GitRepository repo)
+          throws RepoException, CannotResolveRevisionException {
+        // TODO(malcon): Check useMerge and download refs/pull/12345/merge
+      }
+    };
+
     throw new ValidationException("THIS IS STILL NOT IMPLEMENTED");
   }
 
