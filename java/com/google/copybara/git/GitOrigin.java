@@ -43,7 +43,6 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.util.console.Consoles;
 import com.google.devtools.build.lib.shell.Command;
 import com.google.devtools.build.lib.shell.CommandException;
 import java.io.IOException;
@@ -152,7 +151,7 @@ public class GitOrigin implements Origin<GitRevision> {
           .setIncludeBranchCommitLogs(includeBranchCommitLogs);
     }
 
-    private GitRepository getRepository() throws RepoException {
+    protected GitRepository getRepository() throws RepoException {
       return gitOptions.cachedBareRepoForUrl(repoUrl);
     }
 
@@ -167,11 +166,11 @@ public class GitOrigin implements Origin<GitRevision> {
       checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref,
           /*topLevelCheckout=*/true);
       if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
-        runCheckoutOrigin(workdir);
+        runCheckoutHook(workdir);
       }
     }
 
-    private void runCheckoutOrigin(Path workdir) throws RepoException {
+    void runCheckoutHook(Path workdir) throws RepoException {
       try {
         CommandOutputWithStatus result = CommandUtil.executeCommand(
             new Command(new String[]{gitOriginOptions.originCheckoutHook},
@@ -198,12 +197,12 @@ public class GitOrigin implements Origin<GitRevision> {
      * <p>In the case of submodules, {@code rebaseToRef} is always null, because rebasing on the
      * submodule repo doesn't apply.
      */
-    private void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
+    void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
         SubmoduleStrategy submoduleStrategy, GitRevision ref, boolean topLevelCheckout)
         throws RepoException, CannotResolveRevisionException {
       GitRepository repo = checkout(repository, workdir, ref);
       if(topLevelCheckout) {
-        maybeRebase(repo);
+        maybeRebase(repo, ref, workdir);
       }
 
       if (submoduleStrategy == SubmoduleStrategy.NO) {
@@ -245,7 +244,7 @@ public class GitOrigin implements Origin<GitRevision> {
       return repo;
     }
 
-    protected void maybeRebase(GitRepository repo)
+    protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir)
         throws RepoException, CannotResolveRevisionException {
       String rebaseToRef = gitOriginOptions.originRebaseRef;
       if (rebaseToRef == null) {

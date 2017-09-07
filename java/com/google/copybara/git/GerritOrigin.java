@@ -16,10 +16,12 @@
 
 package com.google.copybara.git;
 
+import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.Glob;
 import java.util.Map;
@@ -39,10 +41,10 @@ public class GerritOrigin extends GitOrigin {
 
   private GerritOrigin(GeneralOptions generalOptions,
       String repoUrl, @Nullable String configRef,
-      GitRepoType repoType, GitOptions gitOptions, GitOriginOptions gitOriginOptions,
+      GitOptions gitOptions, GitOriginOptions gitOriginOptions,
       boolean verbose, @Nullable Map<String, String> environment,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
-    super(generalOptions, repoUrl, configRef, repoType, gitOptions, gitOriginOptions,
+    super(generalOptions, repoUrl, configRef, GitRepoType.GERRIT, gitOptions, gitOriginOptions,
         verbose, environment, submoduleStrategy, includeBranchCommitLogs);
     this.generalOptions = generalOptions;
     this.gitOptions = gitOptions;
@@ -51,10 +53,19 @@ public class GerritOrigin extends GitOrigin {
     this.includeBranchCommitLogs = includeBranchCommitLogs;
   }
 
+  @Override
+  public GitRevision resolve(@Nullable String reference) throws RepoException, ValidationException {
+    generalOptions.console().progress("Git Origin: Initializing local repo");
+
+    ValidationException.checkCondition(!Strings.isNullOrEmpty(reference),
+        "Expecting a change number as reference");
+    return GitRepoType.GERRIT.resolveRef(getRepository(), repoUrl, reference, this.generalOptions);
+  }
+
   /**
    * Builds a new {@link GerritOrigin}.
    */
-  static GerritOrigin newGerritOrigin(Options options, String url, GitRepoType type,
+  static GerritOrigin newGerritOrigin(Options options, String url,
       SubmoduleStrategy submoduleStrategy) {
 
     boolean verbose = options.get(GeneralOptions.class).isVerbose();
@@ -64,7 +75,6 @@ public class GerritOrigin extends GitOrigin {
         options.get(GeneralOptions.class),
         url,
         /* configRef= */ null,
-        type,
         options.get(GitOptions.class),
         options.get(GitOriginOptions.class),
         verbose,

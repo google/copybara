@@ -243,7 +243,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       }
 
       return GerritOrigin.newGerritOrigin(
-          self.options, url, GitRepoType.GERRIT, SkylarkUtil.stringToEnum(location, "submodules",
+          self.options, url, SkylarkUtil.stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class));
     }
   };
@@ -282,8 +282,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
 
 
   @SkylarkSignature(name = GITHUB_PR_ORIGIN_NAME, returnType = GithubPROrigin.class,
-      // TODO(malcon): Remove this
-      doc = "**[DON'T USE - NOT READY]** Defines a Git origin for Github pull requests.\n"
+      doc = "Defines a Git origin for Github pull requests.\n"
           + "\n"
           + "Implicit labels that can be used/exposed:\n"
           + "\n"

@@ -22,7 +22,10 @@ import static com.google.copybara.git.GithubUtil.getProjectNameFromUrl;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
@@ -41,8 +44,10 @@ import com.google.copybara.git.github_api.PullRequest;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 import javax.annotation.Nullable;
 
 /**
@@ -52,6 +57,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
 
   static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
+  public static final String GITHUB_BASE_BRANCH = "GITHUB_BASE_BRANCH";
 
   private final String url;
   private final boolean useMerge;
@@ -79,7 +85,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   @Override
   public GitRevision resolve(String reference) throws RepoException, ValidationException {
-    console.progress("GitHub PR Origin: Initializing local repo");
+    console.progress("GitHub PR Origin: Resolving reference " + reference);
 
     // A whole https pull request url
     Optional<GithubPrUrl> githubPrUrl = GithubUtil.maybeParseGithubPrUrl(reference);
@@ -101,6 +107,16 @@ public class GithubPROrigin implements Origin<GitRevision> {
     Optional<Integer> prNumber = GithubUtil.maybeParseGithubPrFromHeadRef(reference);
     if (prNumber.isPresent()) {
       return getRevisionForPR(configProjectName, prNumber.get());
+    }
+    String sha1Part = Splitter.on(" ").split(reference).iterator().next();
+    Matcher matcher = GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha1Part);
+    // The only valid use case for this is to resolve previous ref.  Because we fetch the head of
+    // the base branch when resolving the PR, it should exist at this point. If it doesn't then it
+    // is a non-valid reference.
+    // Note that this might not work if the PR is for a different branch than the imported to
+    // the destination. But in this case we cannot do that much apart from --force.
+    if (matcher.matches()) {
+      return new GitRevision(getRepository(), getRepository().parseRef(sha1Part));
     }
     throw new CannotResolveRevisionException(
         String.format("'%s' is not a valid reference for a GitHub Pull Request. Valid formats:"
@@ -125,14 +141,20 @@ public class GithubPROrigin implements Origin<GitRevision> {
           String.format("Cannot migrate http://github.com/%s/%d because it is missing the following"
               + " labels: %s", project, prNumber, required));
     }
-    String stableRef = GithubUtil.asHeadRef(prNumber);
-    GitRevision gitRevision = getRepository()
-        .fetchSingleRef(asGithubUrl(project), stableRef);
-
     PullRequest prData;
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
       prData = githubOptions.getApi().getPullRequest(project, prNumber);
     }
+    String stableRef = GithubUtil.asHeadRef(prNumber);
+
+    // Fetch also the baseline branch. It is almost free and doing a roundtrip later would hurt
+    // latency.
+    console.progressFmt("Fetching Pull Request %d and branch '%s'",
+        prNumber, prData.getBase().getRef());
+    getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true,
+        ImmutableList.of(stableRef + ":PR_HEAD", prData.getBase().getRef() + ":PR_BASE_BRANCH"));
+
+    GitRevision gitRevision = getRepository().resolveReference("PR_HEAD", /*contextRef=*/null);
 
     String integrateLabel = new GithubPRIntegrateLabel(getRepository(), generalOptions,
         project, prNumber,
@@ -145,7 +167,8 @@ public class GithubPROrigin implements Origin<GitRevision> {
         /*reviewReference=*/null,
         stableRef,
         ImmutableMap.of(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber),
-            GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel));
+            GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel,
+            GITHUB_BASE_BRANCH, prData.getBase().getRef()));
   }
 
   @VisibleForTesting
@@ -156,16 +179,36 @@ public class GithubPROrigin implements Origin<GitRevision> {
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring)
       throws ValidationException {
-    ReaderImpl reader = new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
+    return new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
         generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy) {
       @Override
-      protected void maybeRebase(GitRepository repo)
+      protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir)
           throws RepoException, CannotResolveRevisionException {
-        // TODO(malcon): Check useMerge and download refs/pull/12345/merge
+        if (!useMerge) {
+          return;
+        }
+        int prNumber = Integer.parseInt(ref.associatedLabels().get(GITHUB_PR_NUMBER_LABEL));
+        String mergeRef = GithubUtil.asMergeRef(prNumber);
+        try {
+          GitRevision mergeRevision = getRepository().fetchSingleRef(url, mergeRef);
+          checkoutRepo(getRepository(), url, workdir, submoduleStrategy, mergeRevision,
+              /*topLevelCheckout=*/false);
+          if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
+            runCheckoutHook(workdir);
+          }
+        } catch (CannotResolveRevisionException e) {
+          throw new CannotResolveRevisionException(String.format(
+              "Cannot find a merge reference for Pull Request %d."
+                  + " It might have a conflict with head.", prNumber), e);
+        }
+      }
+
+      @Nullable
+      @Override
+      public String getGroupIdentity(GitRevision rev) throws RepoException {
+        return rev.associatedLabels().get(GITHUB_PR_NUMBER_LABEL);
       }
     };
-
-    throw new ValidationException("THIS IS STILL NOT IMPLEMENTED");
   }
 
   @Override
