@@ -162,18 +162,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
 
   @VisibleForTesting
   String getProjectName() throws ValidationException {
-    URI uri = URI.create(url);
-    if (uri.getScheme() == null) {
-      uri = URI.create("notimportant://" + url);
-    }
-    String name = uri.getPath()
-        .replaceAll("^/", "")
-        .replaceAll("([.]git|/)$", "");
-
-    if (Strings.isNullOrEmpty(name)) {
-      throw new ValidationException("Cannot find project name from url " + url);
-    }
-    return name;
+    return GithubUtil.getProjectNameFromUrl(url);
   }
 
   private String branchFromGroupId(@Nullable String groupId) throws ValidationException {

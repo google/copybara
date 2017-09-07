@@ -30,6 +30,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.git.GithubDestinationOptions;
 import com.google.copybara.git.GithubOptions;
+import com.google.copybara.git.GithubPrOriginOptions;
 import com.google.copybara.git.github_api.GitHubApiTransportImpl;
 import com.google.copybara.git.github_api.GithubApi;
 import com.google.copybara.modules.PatchModule;
@@ -64,6 +65,7 @@ public class ModuleSupplier {
         new FolderOriginOptions(),
         gitOptions,
         new GitOriginOptions(),
+        new GithubPrOriginOptions(),
         gitDestinationOptions,
         new GithubOptions(generalOptionsSupplier, gitOptions),
         new GithubDestinationOptions(),

@@ -24,10 +24,12 @@ import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.git.GithubUtil.GithubPrUrl;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -100,7 +102,7 @@ public enum GitRepoType {
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
         throws RepoException, CannotResolveRevisionException {
       if ((ref.startsWith("https://github.com") && ref.startsWith(repoUrl))
-          || GITHUB_PULL_REQUEST_REF.matches(ref)) {
+          || GithubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
         GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, repoUrl, ref);
         if (ghPullRequest != null) {
           return ghPullRequest;
@@ -199,44 +201,34 @@ public enum GitRepoType {
   protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository,
       String repoUrl, String ref)
       throws RepoException, CannotResolveRevisionException {
-    Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
-    if (matcher.matches()) {
+    Optional<GithubPrUrl> githubPrUrl = GithubUtil.maybeParseGithubPrUrl(ref);
+    if (githubPrUrl.isPresent()) {
       // TODO(malcon): Support merge ref too once we have github pr origin.
-      String stableRef = "refs/pull/" + matcher.group(2) + "/head";
-      GitRevision gitRevision = repository.fetchSingleRef(matcher.group(1), stableRef);
+      String stableRef = "refs/pull/" + githubPrUrl.get().getPrNumber() + "/head";
+      GitRevision gitRevision = repository.fetchSingleRef(
+          "https://github.com/" + githubPrUrl.get().getProject(), stableRef);
       return new GitRevision(
           repository,
           gitRevision.getSha1(),
-          // TODO(malcon): Decide the format to use here:
           /*reviewReference=*/null,
           stableRef,
-          ImmutableMap.of(GITHUB_PR_NUMBER_LABEL, matcher.group(2)));
-
+          ImmutableMap.of());
     }
-    matcher = GITHUB_PULL_REQUEST_REF.matcher(ref);
-    if (matcher.matches()) {
+    if (GithubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
       GitRevision gitRevision = repository.fetchSingleRef(repoUrl, ref);
       return new GitRevision(
           repository,
           gitRevision.getSha1(),
-          // TODO(malcon): Decide the format to use here:
           /*reviewReference=*/null,
           ref,
-          ImmutableMap.of(GITHUB_PR_NUMBER_LABEL, matcher.group(1)));
+          ImmutableMap.of());
     }
     return null;
   }
 
   public static final String GERRIT_CHANGE_NUMBER_LABEL = "GERRIT_CHANGE_NUMBER";
-  public static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
 
   private static final Logger logger = Logger.getLogger(GitRepoType.class.getCanonicalName());
-
-  private static final Pattern GITHUB_PULL_REQUEST =
-      Pattern.compile("(?P<url>https://github[.]com/.+)/pull/([0-9]+)");
-
-  private static final Pattern GITHUB_PULL_REQUEST_REF =
-      Pattern.compile("refs/pull/([0-9]+)/(head|merge)");
 
   private static final Pattern GIT_URL =
       Pattern.compile("(\\w+://)(.+@)*([\\w.]+)(:[\\d]+){0,1}/*(.*)");
@@ -307,4 +299,5 @@ public enum GitRepoType {
     }
     return Integer.parseInt(reviewReference.substring(GERRIT_PATCH_SET_REF_PREFIX.length()));
   }
+
 }

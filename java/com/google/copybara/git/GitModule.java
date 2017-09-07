@@ -34,6 +34,7 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
+import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -49,6 +50,7 @@ import com.google.devtools.build.lib.syntax.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Main module that groups all the functions that create Git origins and destinations.
@@ -246,15 +248,11 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
-  @SkylarkSignature(name = "github_origin", returnType = GitOrigin.class,
-      doc = "Defines a Git origin of type Github.\n"
-          + "\n"
-          + "Implicit labels that can be used/exposed:\n"
-          + "\n"
-          + "  - " + GitRepoType.GITHUB_PR_NUMBER_LABEL + ": The pull request number if the"
-          + " reference passed was in the form of `https://github.com/project/pull/123`, "
-          + " `refs/pull/123/head` or `refs/pull/123/master`.",
+  static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
 
+  @SkylarkSignature(name = "github_origin", returnType = GitOrigin.class,
+      doc = "Defines a Git origin for a Github repository. This origin should be used for public"
+          + " branches. Use " + GITHUB_PR_ORIGIN_NAME + " for importing Pull Requests.",
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "url", type = String.class,
@@ -279,6 +277,54 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           SkylarkUtil.stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
           /*includeBranchCommitLogs=*/false);
+    }
+  };
+
+
+  @SkylarkSignature(name = GITHUB_PR_ORIGIN_NAME, returnType = GithubPROrigin.class,
+      // TODO(malcon): Remove this
+      doc = "**[DON'T USE - NOT READY]** Defines a Git origin for Github pull requests.\n"
+          + "\n"
+          + "Implicit labels that can be used/exposed:\n"
+          + "\n"
+          + "  - " + GithubPROrigin.GITHUB_PR_NUMBER_LABEL + ": The pull request number if the"
+          + " reference passed was in the form of `https://github.com/project/pull/123`, "
+          + " `refs/pull/123/head` or `refs/pull/123/master`.",
+
+      parameters = {
+          @Param(name = "self", type = GitModule.class, doc = "this object"),
+          @Param(name = "url", type = String.class,
+              doc = "Indicates the URL of the GitHub repository"),
+          @Param(name = "use_merge", type = Boolean.class, defaultValue = "False",
+              doc = "If the content for refs/pull/<ID>/merge should be used instead of the PR"
+                  + " head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head"
+                  + " revision."),
+          @Param(name = "required_labels", type = SkylarkList.class,
+              generic1 = String.class, defaultValue = "[]",
+              doc = "Required labels to import the PR. All the labels need to be present in order"
+                  + " to migrate the Pull Request.", positional = false),
+          @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
+              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+      },
+      objectType = GitModule.class, useLocation = true)
+  @UsesFlags(GithubPrOriginOptions.class)
+  public static final BuiltinFunction GITHUB_PR_ORIGIN = new BuiltinFunction(
+      GITHUB_PR_ORIGIN_NAME) {
+    public GithubPROrigin invoke(GitModule self, String url, Boolean merge,
+        SkylarkList<String> requiredLabels, String submodules,
+        Location location) throws EvalException {
+      if (!url.contains("github.com")) {
+        throw new EvalException(location, "Invalid Github URL: " + url);
+      }
+      GithubPrOriginOptions githubPrOriginOptions = self.options.get(GithubPrOriginOptions.class);
+      Set<String> labels = githubPrOriginOptions.getRequiredLabels(requiredLabels);
+      return new GithubPROrigin(url, merge,
+          self.options.get(GeneralOptions.class),
+          self.options.get(GitOptions.class),
+          self.options.get(GitOriginOptions.class),
+          self.options.get(GithubOptions.class),
+          labels,
+          SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class));
     }
   };
 
