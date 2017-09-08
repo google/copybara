@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -39,13 +40,22 @@ import javax.annotation.Nullable;
 public class Copybara {
 
   protected final ConfigValidator configValidator;
+  private final Consumer<Migration> migrationRanConsumer;
 
   public Copybara() {
     this.configValidator = new ConfigValidator() {};
+    this.migrationRanConsumer = migration -> {};
   }
 
+  public Copybara(ConfigValidator configValidator, Consumer<Migration> migrationRanConsumer) {
+    this.configValidator = Preconditions.checkNotNull(configValidator);
+    this.migrationRanConsumer = Preconditions.checkNotNull(migrationRanConsumer);
+  }
+
+  // TODO(malcon): Delete this method once imported internally.
   public Copybara(ConfigValidator configValidator) {
     this.configValidator = Preconditions.checkNotNull(configValidator);
+    this.migrationRanConsumer = migration -> {};
   }
 
   /**
@@ -55,7 +65,9 @@ public class Copybara {
       Path workdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
     Config config = loadConfig(options, configLoader, migrationName);
-    config.getMigration(migrationName).run(workdir, sourceRef);
+    Migration migration = config.getMigration(migrationName);
+    migrationRanConsumer.accept(migration);
+    migration.run(workdir, sourceRef);
   }
 
   /**
@@ -70,8 +82,8 @@ public class Copybara {
       console.info(String.format(
           "'%s': last_migrated %s - last_available %s.",
           migrationRef.getLabel(),
-          migrationRef.getLastMigrated() != null ?
-              migrationRef.getLastMigrated().asString() : "None",
+          migrationRef.getLastMigrated() != null
+              ? migrationRef.getLastMigrated().asString() : "None",
           migrationRef.getLastAvailableToMigrate() != null
               ? migrationRef.getLastAvailableToMigrate().asString() : "None"));
       if (!migrationRef.getAvailableToMigrate().isEmpty()) {
