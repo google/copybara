@@ -37,6 +37,7 @@ DEPS = [
 ]
 
 all_tests(
+    data = glob(["**/*_testdata.*"]),
     tags = ["local"],
     tests = glob(
         ["**/*.java"],
@@ -46,7 +47,6 @@ all_tests(
         ],
     ),
     deps = DEPS,
-    data = glob(["**/*_testdata.*"]),
 )
 
 all_tests(

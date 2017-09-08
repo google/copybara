@@ -74,10 +74,10 @@ public class ReferenceMigrator implements Transformation {
       ImmutableList<String> additionalLabels, Location location) throws EvalException {
     Map<String, Pattern> patterns = ImmutableMap.<String, Pattern>of("reference", forward);
     TemplateTokens beforeTokens =
-        new TemplateTokens(location, before, patterns, /*RepeatedGroups=*/ false);
+        new TemplateTokens(location, before, patterns, /* repeatedGroups= */ false);
     beforeTokens.validateUnused();
     TemplateTokens afterTokens =
-        new TemplateTokens(location, after, patterns, /*RepeatedGroups=*/ false);
+        new TemplateTokens(location, after, patterns, /* repeatedGroups= */ false);
     afterTokens.validateUnused();
     if (after.lastIndexOf("$1") != -1) {
       // TODO: Handle escaping

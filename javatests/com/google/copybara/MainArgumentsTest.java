@@ -22,11 +22,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.testing.OptionsBuilder;
-import java.util.List;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -96,12 +96,24 @@ public class MainArgumentsTest {
    */
   @Test
   public void testArgumentParsingMigrate() throws Exception {
-    checkParsing(ImmutableList.of("copy.bara.sky"),
-        Subcommand.MIGRATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
-    checkParsing(ImmutableList.of("migrate", "copy.bara.sky"),
-        Subcommand.MIGRATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
-    checkParsing(ImmutableList.of("copy.bara.sky", "import_wf"),
-        Subcommand.MIGRATE, "copy.bara.sky", "import_wf", /*sourceRef=*/ null);
+    checkParsing(
+        ImmutableList.of("copy.bara.sky"),
+        Subcommand.MIGRATE,
+        "copy.bara.sky",
+        "default",
+        /* expectedSourceRef= */ null);
+    checkParsing(
+        ImmutableList.of("migrate", "copy.bara.sky"),
+        Subcommand.MIGRATE,
+        "copy.bara.sky",
+        "default",
+        /* expectedSourceRef= */ null);
+    checkParsing(
+        ImmutableList.of("copy.bara.sky", "import_wf"),
+        Subcommand.MIGRATE,
+        "copy.bara.sky",
+        "import_wf",
+        /* expectedSourceRef= */ null);
     checkParsing(ImmutableList.of("copy.bara.sky", "import_wf", "some_ref"),
         Subcommand.MIGRATE, "copy.bara.sky", "import_wf", "some_ref");
     checkParsing(ImmutableList.of("migrate", "copy.bara.sky", "import_wf", "some_ref"),
@@ -113,8 +125,12 @@ public class MainArgumentsTest {
    */
   @Test
   public void testArgumentParsingValidate() throws Exception {
-    checkParsing(ImmutableList.of("validate", "copy.bara.sky"),
-        Subcommand.VALIDATE, "copy.bara.sky", "default", /*sourceRef=*/ null);
+    checkParsing(
+        ImmutableList.of("validate", "copy.bara.sky"),
+        Subcommand.VALIDATE,
+        "copy.bara.sky",
+        "default",
+        /* expectedSourceRef= */ null);
 
     thrown.expect(CommandLineException.class);
     thrown.expectMessage("Too many arguments for subcommand 'validate'");
@@ -126,10 +142,18 @@ public class MainArgumentsTest {
    */
   @Test
   public void testArgumentParsingInfo() throws Exception {
-    checkParsing(ImmutableList.of("info", "copy.bara.sky"),
-        Subcommand.INFO, "copy.bara.sky", "default", /*sourceRef=*/ null);
-    checkParsing(ImmutableList.of("info", "copy.bara.sky", "import_wf"),
-        Subcommand.INFO, "copy.bara.sky", "import_wf", /*sourceRef=*/ null);
+    checkParsing(
+        ImmutableList.of("info", "copy.bara.sky"),
+        Subcommand.INFO,
+        "copy.bara.sky",
+        "default",
+        /* expectedSourceRef= */ null);
+    checkParsing(
+        ImmutableList.of("info", "copy.bara.sky", "import_wf"),
+        Subcommand.INFO,
+        "copy.bara.sky",
+        "import_wf",
+        /* expectedSourceRef= */ null);
 
     thrown.expect(CommandLineException.class);
     thrown.expectMessage("Too many arguments for subcommand 'info'");

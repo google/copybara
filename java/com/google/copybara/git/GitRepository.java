@@ -1230,9 +1230,15 @@ public class GitRepository {
     }
 
     static LogCmd create(GitRepository repository, String refExpr) {
-      return new LogCmd(checkNotNull(repository), checkNotNull(refExpr), 0,
-          ImmutableList.of(), /*firstParent*/true,/*includeStats=*/false, /*includeBody=*/true,
-          /*grepString=*/null);
+      return new LogCmd(
+          checkNotNull(repository),
+          checkNotNull(refExpr),
+          0,
+          ImmutableList.of(), /*firstParent*/
+          true,
+          /* includeStat= */ false,
+          /*includeBody=*/ true,
+          /*grepString=*/ null);
     }
 
     /**

@@ -89,7 +89,7 @@ public final class Profiler {
 
   public Profiler(Ticker ticker) {
     this.ticker = ticker;
-    this.nullProfilerTask = new ProfilerTask(/*task=*/ null);
+    this.nullProfilerTask = new ProfilerTask(/* expectedTask= */ null);
   }
 
   /**

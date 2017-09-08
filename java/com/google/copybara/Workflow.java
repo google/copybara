@@ -212,30 +212,37 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   @Override
   public Info<? extends Revision> getInfo() throws RepoException, ValidationException {
-    return generalOptions.repoTask("info", (Callable<Info<? extends Revision>>) () -> {
-      O lastResolved = generalOptions.repoTask("origin.last_resolved",
-          () -> origin.resolve(/*sourceRef=*/ null));
+    return generalOptions.repoTask(
+        "info",
+        (Callable<Info<? extends Revision>>)
+            () -> {
+              O lastResolved =
+                  generalOptions.repoTask(
+                      "origin.last_resolved", () -> origin.resolve(/* reference= */ null));
 
-      Reader<O> oReader = origin.newReader(originFiles, authoring);
-      String groupIdentity = oReader.getGroupIdentity(lastResolved);
-      DestinationStatus destinationStatus = generalOptions.repoTask(
-          "destination.previous_ref",
-          () -> getDestinationStatus(groupIdentity));
+              Reader<O> oReader = origin.newReader(originFiles, authoring);
+              String groupIdentity = oReader.getGroupIdentity(lastResolved);
+              DestinationStatus destinationStatus =
+                  generalOptions.repoTask(
+                      "destination.previous_ref", () -> getDestinationStatus(groupIdentity));
 
-      O lastMigrated = generalOptions.repoTask(
-          "origin.last_migrated",
-          () -> (destinationStatus == null)
-              ? null
-              : origin.resolve(destinationStatus.getBaseline()));
+              O lastMigrated =
+                  generalOptions.repoTask(
+                      "origin.last_migrated",
+                      () ->
+                          (destinationStatus == null)
+                              ? null
+                              : origin.resolve(destinationStatus.getBaseline()));
 
-      ImmutableList<Change<O>> changes = generalOptions.repoTask(
-          "origin.changes",
-          () -> oReader.changes(lastMigrated, lastResolved));
+              ImmutableList<Change<O>> changes =
+                  generalOptions.repoTask(
+                      "origin.changes", () -> oReader.changes(lastMigrated, lastResolved));
 
-      MigrationReference<O> migrationRef = MigrationReference.create(
-          String.format("workflow_%s", name), lastMigrated, changes);
-      return Info.create(ImmutableList.of(migrationRef));
-    });
+              MigrationReference<O> migrationRef =
+                  MigrationReference.create(
+                      String.format("workflow_%s", name), lastMigrated, changes);
+              return Info.create(ImmutableList.of(migrationRef));
+            });
   }
 
   @Nullable

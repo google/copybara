@@ -62,9 +62,15 @@ public class GerritOrigin extends GitOrigin {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
-        url, /*ref=*/null, type, options.get(GitOptions.class),
-        options.get(GitOriginOptions.class), verbose, environment,
-        submoduleStrategy, /*includeBranchCommitLogs=*/false);
+        url,
+        /* configRef= */ null,
+        type,
+        options.get(GitOptions.class),
+        options.get(GitOriginOptions.class),
+        verbose,
+        environment,
+        submoduleStrategy,
+        /*includeBranchCommitLogs=*/ false);
   }
 
   @Override
