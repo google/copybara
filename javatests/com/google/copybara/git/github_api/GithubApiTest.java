@@ -80,7 +80,8 @@ public class GithubApiTest {
         return request;
       }
     };
-    GitHubApiTransportImpl transport = new GitHubApiTransportImpl(repo, httpTransport);
+    GitHubApiTransportImpl transport = new GitHubApiTransportImpl(repo, httpTransport,
+        "some_storage_file");
     Profiler profiler = new Profiler(Ticker.systemTicker());
     profiler.init(ImmutableList.of(new LogProfilerListener()));
     api = new GithubApi(transport, profiler);

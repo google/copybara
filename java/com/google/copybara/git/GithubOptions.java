@@ -41,7 +41,12 @@ public class GithubOptions implements Option {
 
   public GithubApi getApi() throws RepoException {
     GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
-    return new GithubApi(new GitHubApiTransportImpl(repo, getHttpTransport()),
+
+    String storePath = gitOptions.getCredentialHelperStorePath();
+    if (storePath == null) {
+      storePath = "~/.git-credentials";
+    }
+    return new GithubApi(new GitHubApiTransportImpl(repo, getHttpTransport(), storePath),
         generalOptionsSupplier.get().profiler());
   }
 

@@ -70,7 +70,7 @@ public final class GitCredential {
 
     // Prevent from asking user for the password (It goes directly to the terminal, not to the
     // passed InputStream/OutputStream.
-    env.put("GIT_ASKPASS", "");
+    env.put("GIT_TERMINAL_PROMPT", "0");
     URI uri;
 
     try {

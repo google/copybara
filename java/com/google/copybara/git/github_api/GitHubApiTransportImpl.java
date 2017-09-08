@@ -48,10 +48,13 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   private final GitRepository repo;
   private final HttpTransport httpTransport;
+  private final String storePath;
 
-  public GitHubApiTransportImpl(GitRepository repo, HttpTransport httpTransport) {
+  public GitHubApiTransportImpl(GitRepository repo, HttpTransport httpTransport,
+      String storePath) {
     this.repo = Preconditions.checkNotNull(repo);
     this.httpTransport = Preconditions.checkNotNull(httpTransport);
+    this.storePath = storePath;
   }
 
   @SuppressWarnings("unchecked")
@@ -108,7 +111,24 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     try {
       return repo.credentialFill(API_URL);
     } catch (ValidationException e) {
-      return repo.credentialFill(GITHUB_WEB_URL);
+      try {
+        return repo.credentialFill(GITHUB_WEB_URL);
+      } catch (ValidationException e1) {
+        // Ugly, but helpful...
+        throw new ValidationException(
+            "Cannot get credentials for host https://api.github.com or https://github.com from"
+                + " credentials helper. Make sure either your credential helper has the username"
+                + " and password/token or if you don't use one, that file '" + storePath
+                + "' contains one of the two lines:\n"
+                + "https://USERNAME:TOKEN@api.github.com\n"
+                + "or:\n"
+                + "https://USERNAME:TOKEN@github.com\n"
+                + "\n"
+                + "Note that spaces or other special characters need to be escaped. For example"
+                + " ' ' should be %20 and '@' should be %40 (For example when using the email"
+                + " as username)"
+            , e1);
+      }
     }
   }
 }
