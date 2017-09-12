@@ -24,6 +24,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableCollection;
@@ -59,6 +60,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -68,6 +70,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -181,6 +184,20 @@ public class GitRepository {
   }
 
   /**
+   * Get the version of git that will be used for running migrations. Returns empty
+   * if git cannot be found.
+   */
+  static Optional<String> version(Map<String, String> environment) {
+    try {
+      String version = executeGit(Paths.get(StandardSystemProperty.USER_DIR.value()),
+          ImmutableList.of("version"), environment, /*verbose=*/false).getStdout();
+      return Optional.of(version);
+    } catch (CommandException e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
    * Validate that a refspec is valid.
    *
    * @throws EvalException if the refspec is not valid
@@ -192,8 +209,12 @@ public class GitRepository {
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
           env,
           /*verbose=*/false);
-    } catch (CommandException e) {
-      throw new EvalException(location, "Invalid refspec: " + refspec);
+    }catch (CommandException e) {
+      Optional<String> version = version(env);
+      throw new EvalException(location, version.isPresent()
+                                        ? "Invalid refspec: " + refspec
+                                        : String.format("Cannot find git binary at '%s'",
+                                            resolveGitBinary(env)));
     }
   }
 

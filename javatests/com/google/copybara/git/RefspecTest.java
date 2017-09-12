@@ -18,9 +18,12 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static junit.framework.TestCase.fail;
 
 import com.google.devtools.build.lib.syntax.EvalException;
+import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -96,6 +99,19 @@ public class RefspecTest {
         "refs/origin/heads/master");
     checkConvert("refs/*/master:refs/origin/*/master", "refs/heads/master",
         "refs/origin/heads/master");
+  }
+
+  @Test
+  public void testGitBinaryNotFound() throws EvalException {
+    Map<String, String> gitEnv = getGitEnv();
+    gitEnv.put("GIT_EXEC_PATH", "some_non_existent_path");
+    try {
+      Refspec.create(gitEnv, FileSystems.getDefault().getPath("/"), "master",
+          /*location=*/null);
+      fail();
+    } catch (EvalException e) {
+      assertThat(e.getMessage()).contains("Cannot find git binary at 'some_non_existent_path/git'");
+    }
   }
 
   private void checkConvert(String refspec, String ref, String expectedDest) throws EvalException {
