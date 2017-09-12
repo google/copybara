@@ -47,6 +47,11 @@ public class MapConfigFile extends ConfigFile<String> {
     return containsLabel(resolved);
   }
 
+  @Override
+  public String relativeToRoot() {
+    return path();
+  }
+
   private String containsLabel(String resolved) throws CannotResolveLabel {
     if (!configFiles.containsKey(resolved)) {
       throw new CannotResolveLabel(

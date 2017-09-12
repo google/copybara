@@ -20,6 +20,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,6 +49,14 @@ public class CapturingConfigFileTest {
     ConfigFile<?> bazFooConfig = capture.resolve("baz/foo");
     assertThat(content(bazFooConfig)).isEqualTo("bazfoo");
     assertThat(content(bazFooConfig.resolve("bar"))).isEqualTo("bazbar");
+  }
+
+  @Test
+  public void relativeToRootIsRelative() {
+    Path root = Paths.get("/foo/bar");
+    CapturingConfigFile<Path> cfg = new CapturingConfigFile<>(
+        new PathBasedConfigFile(root.resolve("baz"), root));
+    assertThat(cfg.relativeToRoot()).isEqualTo("baz");;
   }
 
   @Test

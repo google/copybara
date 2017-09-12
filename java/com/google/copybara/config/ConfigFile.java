@@ -85,9 +85,7 @@ public abstract class ConfigFile<T> {
    *
    * <p>Users of this method should not try to parse the string, since it is subject to change.
    */
-  public String relativeToRoot() {
-    return path();
-  }
+  public abstract String relativeToRoot();
 
   /**
    * Perform additional validations and construct a ConfigFile object

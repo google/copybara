@@ -63,7 +63,7 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
 
   @Override
   public String relativeToRoot(){
-    return rootPath == null ? super.relativeToRoot() : rootPath.relativize(path).toString();
+    return rootPath == null ? path() : rootPath.relativize(path).toString();
   }
 
   @Override

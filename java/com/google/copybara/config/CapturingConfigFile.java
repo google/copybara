@@ -53,6 +53,11 @@ class CapturingConfigFile<T> extends ConfigFile<T> {
     return wrapped.relativeToCurrentPath(label);
   }
 
+  @Override
+  public String relativeToRoot() {
+    return wrapped.relativeToRoot();
+  }
+
   /**
    * Retrieve collected dependencies.
    * @return A Map mapping the path to the wrapped ConfigFile for each ConfigFile created by this or
