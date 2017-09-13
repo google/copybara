@@ -110,7 +110,7 @@ public class ProfilerTest {
       public void taskFinished(Task task) {
         if (task.isFinished() && task.getDescription().equals("//copybara")) {
           // This thread inherits from the profiler thread.
-          new Thread();
+          Thread unused = new Thread();
         }
       }
     }));
