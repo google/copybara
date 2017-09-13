@@ -67,6 +67,7 @@ public final class TransformWork {
   private final Revision resolvedReference;
   private final TreeState treeState;
   private final boolean insideExplicitTransform;
+  private TransformWork skylarkTransformWork;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference) {
@@ -84,6 +85,7 @@ public final class TransformWork {
     this.resolvedReference = Preconditions.checkNotNull(resolvedReference);
     this.treeState = treeState;
     this.insideExplicitTransform = insideExplicitTransform;
+    this.skylarkTransformWork = this;
   }
 
   /**
@@ -131,7 +133,11 @@ public final class TransformWork {
           .map(p -> new CheckoutPath(checkoutDir.relativize(p), checkoutDir))
           .collect(Collectors.toList()));
     } else if (runnable instanceof Transformation) {
-      ((Transformation) runnable).transform(this);
+      // Works like Sequence. We keep always the latest transform work to allow
+      // catching for two sequential replaces.
+      skylarkTransformWork = skylarkTransformWork.withUpdatedTreeState();
+      ((Transformation) runnable).transform(skylarkTransformWork);
+      this.updateFrom(skylarkTransformWork);
       return Runtime.NONE;
     }
 

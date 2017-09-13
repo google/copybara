@@ -370,6 +370,32 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testTreeStateRestored() throws IOException, ValidationException, RepoException {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base = fileSystem.getPath("testTreeStateRestored");
+    writeFile(base, "folder/file1.txt", "aaa");
+    writeFile(base, "folder/file2.txt", "aaa");
+    writeFile(base, "folder/file3.txt", "aaa");
+
+    Files.createDirectories(workdir.resolve("folder"));
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
+
+    runWorkflow("test", ""
+        + "def test(ctx):\n"
+        + "    message = ''\n"
+        + "    for f in ctx.run(glob(['**.txt'])):\n"
+        + "        ctx.run(core.move(f.path, 'prefix_' + f.name))\n"
+        + "        ctx.run(core.replace("
+        + "before ='aaa', after = 'bbb', paths = glob(['prefix_' + f.name])))");
+
+    assertThat(destination.processed.get(0).getWorkdir())
+        .containsExactlyEntriesIn(ImmutableMap.of(
+            "prefix_file1.txt", "bbb",
+            "prefix_file2.txt", "bbb",
+            "prefix_file3.txt", "bbb"));
+  }
+
+  @Test
   public void testRunFileOps() throws IOException, ValidationException, RepoException {
     checkPathOperations("folder/file.txt", ""
         + "path: folder/file.txt\n"
@@ -431,8 +457,12 @@ public class TransformWorkTest {
   }
 
   private Path touchFile(Path base, String path) throws IOException {
+    return writeFile(base, path, "");
+  }
+
+  private Path writeFile(Path base, String path, String content) throws IOException {
     Files.createDirectories(base.resolve(path).getParent());
-    return Files.write(base.resolve(path), new byte[]{});
+    return Files.write(base.resolve(path), content.getBytes(UTF_8));
   }
 
   private void runWorkflow(String functionName, String function)
