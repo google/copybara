@@ -31,6 +31,7 @@ public class GithubUtil {
 
   private static final Pattern GITHUB_PULL_REQUEST =
       Pattern.compile("https://github[.]com/(.+)/pull/([0-9]+)");
+  private static final String GIT_GITHUB_PROTOCOL = "git@github.com:";
 
   private GithubUtil() {
   }
@@ -39,7 +40,15 @@ public class GithubUtil {
    * Given a url that represents a GitHub repository, return the project name.
    */
   public static String getProjectNameFromUrl(String url) throws ValidationException {
-    URI uri = URI.create(url);
+    if (url.startsWith(GIT_GITHUB_PROTOCOL)) {
+      return url.substring(GIT_GITHUB_PROTOCOL.length()).replaceAll("([.]git|/)$", "");
+    }
+    URI uri;
+    try {
+      uri = URI.create(url);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException("Cannot find project name from url " + url);
+    }
     if (uri.getScheme() == null) {
       uri = URI.create("notimportant://" + url);
     }
