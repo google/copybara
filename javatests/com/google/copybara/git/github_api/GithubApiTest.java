@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -44,10 +45,11 @@ public class GithubApiTest extends AbstractGithubApiTest {
 
   private Map<String, byte[]> requestToResponse;
   private Map<String, Predicate<String>> requestValidators;
+  private Path credentialsFile;
 
   @Override
   public GitHubApiTransport getTransport() throws Exception {
-    Path credentialsFile = Files.createTempFile("credentials", "test");
+    credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
         getGitEnv(), /*verbose=*/true)
@@ -85,6 +87,12 @@ public class GithubApiTest extends AbstractGithubApiTest {
     String path = String.format("GET https://api.github.com%s", apiPath);
     requestToResponse.put(path, response);
     requestValidators.put(path, (r) -> true);
+  }
+
+  @Test
+  public void getWithoutCredentials() throws Exception {
+    Files.delete(credentialsFile);
+    testGetPull();
   }
 
   @Override

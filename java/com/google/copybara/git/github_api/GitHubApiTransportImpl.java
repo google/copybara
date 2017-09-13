@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.time.Duration;
+import javax.annotation.Nullable;
 
 /**
  * An implementation of {@link GitHubApiTransport} that uses Google http client and gson for doing
@@ -60,7 +61,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   @SuppressWarnings("unchecked")
   @Override
   public <T> T get(String path, Type responseType) throws RepoException, ValidationException {
-    HttpRequestFactory requestFactory = getHttpRequestFactory();
+    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent());
 
     GenericUrl url = new GenericUrl(URI.create(API_URL + "/" + path));
     try {
@@ -72,11 +73,23 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     }
   }
 
+  /**
+   * Credentials for API should be optional for any read operation (GET).
+   */
+  @Nullable
+  private UserPassword getCredentialsIfPresent() throws RepoException {
+    try {
+      return getCredentials();
+    } catch (ValidationException e) {
+      return null;
+    }
+  }
+
   @SuppressWarnings("unchecked")
   @Override
   public <T> T post(String path, Object request, Type responseType)
       throws RepoException, ValidationException {
-    HttpRequestFactory requestFactory = getHttpRequestFactory();
+    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials());
 
     GenericUrl url = new GenericUrl(URI.create(API_URL + "/" + path));
     try {
@@ -89,15 +102,18 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     }
   }
 
-  private HttpRequestFactory getHttpRequestFactory() throws RepoException, ValidationException {
-    UserPassword userPassword = getCredentials();
+  private HttpRequestFactory getHttpRequestFactory(@Nullable UserPassword userPassword)
+      throws RepoException, ValidationException {
     return httpTransport.createRequestFactory(
         request -> {
           request.setConnectTimeout((int) Duration.ofSeconds(60).toMillis());
           request.setReadTimeout((int) Duration.ofSeconds(60).toMillis());
-          request.setHeaders(new HttpHeaders()
-              .setBasicAuthentication(userPassword.getUsername(),
-                  userPassword.getPassword_BeCareful()));
+          HttpHeaders httpHeaders = new HttpHeaders();
+          if (userPassword != null) {
+            httpHeaders.setBasicAuthentication(userPassword.getUsername(),
+                userPassword.getPassword_BeCareful());
+          }
+          request.setHeaders(httpHeaders);
           request.setParser(new JsonObjectParser(JSON_FACTORY));
         });
   }
