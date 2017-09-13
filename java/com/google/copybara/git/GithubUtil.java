@@ -38,7 +38,7 @@ public class GithubUtil {
   /**
    * Given a url that represents a GitHub repository, return the project name.
    */
-  static String getProjectNameFromUrl(String url) throws ValidationException {
+  public static String getProjectNameFromUrl(String url) throws ValidationException {
     URI uri = URI.create(url);
     if (uri.getScheme() == null) {
       uri = URI.create("notimportant://" + url);
