@@ -675,7 +675,7 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
 
-    thrown.expect(RepoException.class);
+    thrown.expect(ValidationException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
     process(
         firstCommitWriter(),
@@ -689,7 +689,7 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
 
-    thrown.expect(RepoException.class);
+    thrown.expect(ValidationException.class);
     thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
     process(
         firstCommitWriter(),

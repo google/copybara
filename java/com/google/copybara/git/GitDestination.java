@@ -130,7 +130,8 @@ public final class GitDestination implements Destination<GitRevision> {
    * Throws an exception if the user.email or user.name Git configuration settings are not set. This
    * helps ensure that the committer field of generated commits is correct.
    */
-  private static void verifyUserInfoConfigured(GitRepository repo) throws RepoException {
+  private static void verifyUserInfoConfigured(GitRepository repo)
+      throws RepoException, ValidationException {
     String output = repo.simpleCommand("config", "-l").getStdout();
     boolean nameConfigured = false;
     boolean emailConfigured = false;
@@ -141,10 +142,9 @@ public final class GitDestination implements Destination<GitRevision> {
         emailConfigured = true;
       }
     }
-    if (!nameConfigured || !emailConfigured) {
-      throw new RepoException("'user.name' and/or 'user.email' are not configured. Please run "
-          + "`git config --global SETTING VALUE` to set them");
-    }
+    ValidationException.checkCondition(nameConfigured && emailConfigured,
+        "'user.name' and/or 'user.email' are not configured. Please run "
+            + "`git config --global SETTING VALUE` to set them");
   }
 
   @Override
@@ -498,7 +498,7 @@ public final class GitDestination implements Destination<GitRevision> {
     }
 
     private GitRepository configForPush(GitRepository repo, String repoUrl, String push)
-        throws RepoException {
+        throws RepoException, ValidationException {
 
       if (destinationOptions.localRepoPath != null) {
         // Configure the local repo to allow pushing to the ref manually outside of Copybara
