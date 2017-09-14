@@ -52,12 +52,6 @@ public class Copybara {
     this.migrationRanConsumer = Preconditions.checkNotNull(migrationRanConsumer);
   }
 
-  // TODO(malcon): Delete this method once imported internally.
-  public Copybara(ConfigValidator configValidator) {
-    this.configValidator = Preconditions.checkNotNull(configValidator);
-    this.migrationRanConsumer = migration -> {};
-  }
-
   /**
    * Runs the migration specified by {@code migrationName}.
    */
