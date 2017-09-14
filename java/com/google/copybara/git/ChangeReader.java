@@ -67,8 +67,7 @@ class ChangeReader {
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
     }
-
-    return parseChanges(logCmd.run());
+    return parseChanges(logCmd.includeFiles(true).includeMergeDiff(true).run());
   }
 
   static final String BRANCH_COMMIT_LOG_HEADING = "-- Branch commit log --";

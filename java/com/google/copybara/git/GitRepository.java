@@ -1229,6 +1229,7 @@ public class GitRepository {
 
     private final boolean includeStat;
     private final boolean includeBody;
+    private final boolean includeMergeDiff;
     private boolean firstParent;
 
     private final GitRepository repo;
@@ -1239,12 +1240,13 @@ public class GitRepository {
     @CheckReturnValue
     LogCmd(GitRepository repo, String refExpr, int limit, ImmutableCollection<String> paths,
         boolean firstParent, boolean includeStat, boolean includeBody,
-        @Nullable String grepString) {
+        @Nullable String grepString, boolean includeMergeDiff) {
       this.limit = limit;
       this.paths = paths;
       this.refExpr = refExpr;
       this.firstParent = firstParent;
       this.includeStat = includeStat;
+      this.includeMergeDiff = includeMergeDiff;
       this.includeBody = includeBody;
       this.repo = repo;
       this.grepString = grepString;
@@ -1259,7 +1261,8 @@ public class GitRepository {
           true,
           /* includeStat= */ false,
           /*includeBody=*/ true,
-          /*grepString=*/ null);
+          /*grepString=*/ null,
+          /*includeMergeDiff=*/ false);
     }
 
     /**
@@ -1269,7 +1272,7 @@ public class GitRepository {
     public LogCmd withLimit(int limit) {
       Preconditions.checkArgument(limit > 0);
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString);
+          grepString, includeMergeDiff);
     }
 
     /**
@@ -1279,7 +1282,7 @@ public class GitRepository {
     public LogCmd withPaths(ImmutableCollection<String> paths) {
       Preconditions.checkArgument(paths.stream().noneMatch(s -> s.trim().equals("")));
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString);
+          grepString, includeMergeDiff);
     }
 
     /**
@@ -1288,7 +1291,7 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd firstParent(boolean firstParent) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString);
+          grepString, includeMergeDiff);
     }
 
     /**
@@ -1297,7 +1300,16 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd includeFiles(boolean includeStat) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString);
+          grepString, includeMergeDiff);
+    }
+
+    /**
+     * If file diff should be shown for merges. Equivalent to 'git log -m' command.
+     */
+    @CheckReturnValue
+    public LogCmd includeMergeDiff(boolean includeMergeDiff) {
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
+          grepString, includeMergeDiff);
     }
 
     /**
@@ -1306,7 +1318,7 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd includeBody(boolean includeBody) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString);
+          grepString, includeMergeDiff);
     }
 
     /**
@@ -1315,7 +1327,7 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd grep(@Nullable String grepString) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString);
+          grepString, includeMergeDiff);
     }
 
     /**
@@ -1336,6 +1348,10 @@ public class GitRepository {
 
       if (firstParent) {
         cmd.add("--first-parent");
+      }
+
+      if (includeMergeDiff) {
+        cmd.add("-m");
       }
 
       if (!Strings.isNullOrEmpty(grepString) ){

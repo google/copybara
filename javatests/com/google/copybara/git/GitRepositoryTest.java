@@ -177,6 +177,39 @@ public class GitRepositoryTest {
     checkLog(/*body=*/false, /*includeFiles=*/false);
   }
 
+  @Test
+  public void testMerge() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), "".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "first");
+    repository.simpleCommand("branch", "foo");
+    repository.forceCheckout("foo");
+    Files.write(workdir.resolve("bar.txt"), "".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "branch change");
+    repository.forceCheckout("master");
+    Files.write(workdir.resolve("foo.txt"), "modified".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "second");
+    repository.simpleCommand("merge", "foo");
+
+    ImmutableList<GitLogEntry> log = repository.log("master").includeFiles(true)
+        .firstParent(true).run();
+
+    assertThat(log.get(0).getBody()).contains("Merge");
+    assertThat(log.get(0).getFiles()).isEmpty();
+
+    log = repository.log("master").includeFiles(true).firstParent(true).includeMergeDiff(true)
+        .run();
+    assertThat(log.get(0).getBody()).contains("Merge");
+    assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
+
+    log = repository.log("master").includeFiles(true).includeMergeDiff(true).run();
+
+    assertThat(log.get(0).getBody()).contains("Merge");
+    assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
+  }
+
   private void checkLog(boolean body, boolean includeFiles) throws IOException, RepoException,
       ValidationException {
     workdir = Files.createTempDirectory("workdir");

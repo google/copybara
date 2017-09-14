@@ -349,7 +349,7 @@ EOF
   expect_log "$commit_five.*commit five"
 }
 
-function test_can_skip_empty_commit() {
+function test_can_skip_excluded_commit() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
@@ -381,8 +381,6 @@ core.workflow(
 EOF
 
   copybara copy.bara.sky default $commit_three --last-rev $commit_master --force
-
-  expect_log "Migration of the revision resulted in an empty change"
 
   check_copybara_rev_id "$destination" "$commit_three"
 

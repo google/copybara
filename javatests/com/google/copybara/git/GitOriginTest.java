@@ -242,6 +242,33 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testMergeIncludeFiles() throws Exception {
+    repo.simpleCommand("branch", "foo");
+    repo.forceCheckout("foo");
+    Files.write(remote.resolve("bar.txt"), "".getBytes(UTF_8));
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "branch change");
+    repo.forceCheckout("master");
+    Files.write(remote.resolve("foo.txt"), "modified".getBytes(UTF_8));
+    Files.delete(remote.resolve("test.txt"));
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "second");
+    repo.simpleCommand("merge", "foo");
+
+    ImmutableList<Change<GitRevision>> changes = newReader().changes(/*fromRef=*/null,
+        origin.resolve("master"));
+
+    assertThat(changes.get(2).firstLineMessage()).contains("Merge");
+    assertThat(changes.get(2).getChangeFiles()).containsExactly("bar.txt");
+
+    assertThat(changes.get(1).firstLineMessage()).contains("second");
+    assertThat(changes.get(1).getChangeFiles()).containsExactly("foo.txt", "test.txt");
+
+    assertThat(changes.get(0).firstLineMessage()).contains("first");
+    assertThat(changes.get(0).getChangeFiles()).containsExactly("test.txt");
+  }
+
+  @Test
   public void testCheckoutBranchWithRebase() throws Exception {
     // As part of the setup, a first commit created test.txt in master
 
