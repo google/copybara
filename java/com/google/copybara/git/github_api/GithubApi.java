@@ -91,4 +91,20 @@ public class GithubApi {
       return transport.get(String.format("repos/%s/issues/%d", projectId, number), Issue.class);
     }
   }
+
+  /**
+   * Get all the refs for a repo (git ls-remote)
+   * @param projectId a project in the form of "google/copybara"
+   */
+  public ImmutableList<Ref> getLsRemote(String projectId)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_list_refs")) {
+      List<Ref> result =
+          transport.get(String.format("repos/%s/git/refs", projectId),
+              new TypeToken<List<Ref>>() {
+              }.getType());
+
+      return ImmutableList.copyOf(result);
+    }
+  }
 }

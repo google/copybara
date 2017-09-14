@@ -1,0 +1,29 @@
+[
+  {
+    "ref": "refs/heads/master",
+    "url": "https://api.github.com/repos/copybara-test/copybara/git/refs/heads/master",
+    "object": {
+      "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "type": "commit",
+      "url": "https://api.github.com/repos/copybara-test/copybara-test/git/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  {
+    "ref": "refs/pull/1/head",
+    "url": "https://api.github.com/repos/copybara-test/copybara/git/refs/pull/1/head",
+    "object": {
+      "sha": "1234567890123456789012345678901234567890",
+      "type": "commit",
+      "url": "https://api.github.com/repos/copybara-test/copybara-test/git/commits/1234567890123456789012345678901234567890"
+    }
+  },
+  {
+    "ref": "refs/pull/1/merge",
+    "url": "https://api.github.com/repos/copybara-test/copybara/git/refs/pull/1/merge",
+    "object": {
+      "sha": "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      "type": "commit",
+      "url": "https://api.github.com/repos/copybara-test/copybara/git/commits/abcdefabcdefabcdefabcdefabcdefabcdefabcd"
+    }
+  }
+]

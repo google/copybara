@@ -28,6 +28,7 @@ import com.google.copybara.git.github_api.GithubApi;
 import com.google.copybara.git.github_api.Issue;
 import com.google.copybara.git.github_api.Issue.Label;
 import com.google.copybara.git.github_api.PullRequest;
+import com.google.copybara.git.github_api.Ref;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import java.io.IOException;
@@ -104,6 +105,25 @@ public abstract class AbstractGithubApiTest {
     assertThat(pullRequest.getHead().getRef()).isEqualTo("example-branch");
     assertThat(pullRequest.getHead().getSha()).isEqualTo(
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+  }
+
+  @Test
+  public void testGetLsRemote() throws Exception {
+    trainMockGet(
+        "/repos/copybara-test/copybara/git/refs", getResource("lsremote_testdata.json"));
+    ImmutableList<Ref> refs = api.getLsRemote("copybara-test/copybara");
+
+    assertThat(refs).hasSize(3);
+    assertThat(refs.get(0).toString()).contains("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    assertThat(refs.get(0).toString()).contains("refs/heads/master");
+    assertThat(refs.get(0).getRef()).isEqualTo("refs/heads/master");
+    assertThat(refs.get(0).getUrl())
+        .isEqualTo("https://api.github.com/repos/copybara-test/copybara/git/refs/heads/master");
+    assertThat(refs.get(0).getSha()).isEqualTo("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    assertThat(refs.get(1).getRef()).isEqualTo("refs/pull/1/head");
+    assertThat(refs.get(1).getSha()).isEqualTo("1234567890123456789012345678901234567890");
+    assertThat(refs.get(2).getRef()).isEqualTo("refs/pull/1/merge");
+    assertThat(refs.get(2).getSha()).isEqualTo("abcdefabcdefabcdefabcdefabcdefabcdefabcd");
   }
 
   @Test
