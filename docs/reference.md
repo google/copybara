@@ -1154,7 +1154,7 @@ Defines a Git origin for Gerrit reviews.
 
 Implicit labels that can be used/exposed:
 
-  - GERRIT_CHANGE_NUMBER: The change number for the gerrit review.
+  - GERRIT_CHANGE_NUMBER: The change number for the gerrit review.  - GERRIT_CHANGE_ID: The change id for the gerrit review.  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
 
 `gitOrigin git.gerrit_origin(url, ref=None, submodules='NO')`
 
@@ -1190,7 +1190,7 @@ Defines a Git origin for Github pull requests.
 
 Implicit labels that can be used/exposed:
 
-  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.
+  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
 
 `githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], submodules='NO')`
 

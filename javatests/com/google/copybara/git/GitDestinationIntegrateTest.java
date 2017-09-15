@@ -55,6 +55,8 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitDestinationIntegrateTest {
 
+  private static final String CHANGE_ID = "Id5287e977c0d840a6d84eb2c3c1841036c411890";
+
   private String url;
 
   private Path repoGitDir;
@@ -235,15 +237,14 @@ public class GitDestinationIntegrateTest {
     GitRepository repo = fakeHttpsRepo("example.com/gerrit").withWorkTree(workTree);
 
     String label = new GerritIntegrateLabel(repo, options.general, "https://example.com/gerrit",
-                                            1020, 1, "Ie10ec4f86b8f66c8d32d6b125afcd6dfbf7f6a3d")
-        .toString();
+        1020, 1, CHANGE_ID).toString();
 
-    assertThat(label).isEqualTo("gerrit https://example.com/gerrit 1020 Patch Set 1"
-                                    + " Ie10ec4f86b8f66c8d32d6b125afcd6dfbf7f6a3d");
+    assertThat(label).isEqualTo("gerrit https://example.com/gerrit 1020 Patch Set 1 " + CHANGE_ID);
 
     GitRevision firstChange = singleChange(workTree, repo, "ignore_me", "Feature1 change");
     GitRevision secondChange = singleChange(workTree, repo, "ignore_me2", "Feature2 change");
 
+    GitTestUtil.createFakeGerritNodeDbMeta(repo, 1020, CHANGE_ID);
     repo.simpleCommand("update-ref", "refs/changes/20/1020/1", firstChange.getSha1());
     repo.simpleCommand("update-ref", "refs/changes/20/1020/2", secondChange.getSha1());
 
@@ -268,7 +269,7 @@ public class GitDestinationIntegrateTest {
     assertThat(merge.getBody()).isEqualTo("Merge Gerrit change 1020 Patch Set 1\n"
         + "\n"
         + "DummyOrigin-RevId: test\n"
-        + "Change-Id: Ie10ec4f86b8f66c8d32d6b125afcd6dfbf7f6a3d\n");
+        + "Change-Id: " + CHANGE_ID + "\n");
 
     assertThat(Lists.transform(merge.getParents(), GitRevision::getSha1))
         .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), firstChange.getSha1()));
@@ -294,6 +295,7 @@ public class GitDestinationIntegrateTest {
     GitRevision firstChange = singleChange(workTree, repo, "ignore_me", "Feature1 change");
 
     repo.simpleCommand("update-ref", "refs/changes/20/1020/1", firstChange.getSha1());
+    GitTestUtil.createFakeGerritNodeDbMeta(repo, 1020, CHANGE_ID);
 
     GitDestination destination = destinationWithDefaultIntegrates();
     GitLogEntry previous = createBaseDestinationChange(destination);

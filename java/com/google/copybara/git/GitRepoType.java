@@ -16,17 +16,24 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
+
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.ChangeMessage;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.git.GithubUtil.GithubPrUrl;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -130,11 +137,11 @@ public enum GitRepoType {
             repoUrl,
             Integer.parseInt(refMatcher.group(1)),
             Integer.parseInt(refMatcher.group(2)),
-            ref);
+            ref, options);
       }
       // A change number like '23423'
       if (CharMatcher.javaDigit().matchesAllOf(ref)) {
-        return resolveLatestPatchSet(repository, repoUrl, Integer.parseInt(ref));
+        return resolveLatestPatchSet(repository, repoUrl, Integer.parseInt(ref), options);
       }
 
       Matcher urlMatcher = URL.matcher(ref);
@@ -152,7 +159,7 @@ public enum GitRepoType {
       int change = Integer.parseInt(urlMatcher.group(1));
       Integer patchSet = urlMatcher.group(2) == null ? null : Integer.parseInt(urlMatcher.group(2));
       if (patchSet == null) {
-        return resolveLatestPatchSet(repository, repoUrl, change);
+        return resolveLatestPatchSet(repository, repoUrl, change, options);
       }
       Map<Integer, GitRevision> patchSets = getGerritPatchSets(repository, repoUrl, change);
       if (!patchSets.containsKey(patchSet)) {
@@ -162,11 +169,12 @@ public enum GitRepoType {
                 patchSet, change, repoUrl, patchSets.keySet()));
       }
       return fetchWithChangeNumberAsContext(
-          repository, repoUrl, change, patchSet, patchSets.get(patchSet).contextReference());
+          repository, repoUrl, change, patchSet, patchSets.get(patchSet).contextReference(),
+          options);
     }
 
     private GitRevision resolveLatestPatchSet(
-        GitRepository repository, String repoUrl, int changeNumber)
+        GitRepository repository, String repoUrl, int changeNumber, GeneralOptions options)
         throws RepoException, CannotResolveRevisionException {
       Entry<Integer, GitRevision> lastPatchset =
           // Last entry is the latest patchset, since it is ordered by patchsetId.
@@ -176,20 +184,60 @@ public enum GitRepoType {
           repoUrl,
           changeNumber,
           lastPatchset.getKey(),
-          lastPatchset.getValue().contextReference());
+          lastPatchset.getValue().contextReference(), options);
     }
 
     private GitRevision fetchWithChangeNumberAsContext(
-        GitRepository repository, String repoUrl, int change, int patchSet, String ref)
+        GitRepository repository, String repoUrl, int change, int patchSet, String ref,
+        GeneralOptions generalOptions)
         throws RepoException, CannotResolveRevisionException {
-      GitRevision gitRevision = repository.fetchSingleRef(repoUrl, ref);
+      String metaRef = String.format("refs/changes/%02d/%d/meta", change % 100, change);
+      repository.fetch(repoUrl, /*prune=*/true, /*force=*/true,
+          ImmutableList.of(ref + ":refs/gerrit/" + ref, metaRef + ":refs/gerrit/" + metaRef));
+      GitRevision gitRevision = repository.resolveReference("refs/gerrit/" + ref,
+          /*contextRef=*/null);
+      GitRevision metaRevision = repository.resolveReference("refs/gerrit/" + metaRef,
+          /*contextRef=*/null);
+      String changeId = getChangeIdFromMeta(repository, metaRevision , metaRef);
       String changeNumber = Integer.toString(change);
       return new GitRevision(
           repository,
           gitRevision.getSha1(),
           gerritPatchSetAsReviewReference(patchSet),
           changeNumber,
-          ImmutableMap.of(GERRIT_CHANGE_NUMBER_LABEL, changeNumber));
+          ImmutableMap.of(GERRIT_CHANGE_NUMBER_LABEL, changeNumber,
+              GERRIT_CHANGE_ID_LABEL, changeId,
+              DEFAULT_INTEGRATE_LABEL,
+              new GerritIntegrateLabel(repository, generalOptions, repoUrl, change, patchSet,
+                  changeId).toString()));
+    }
+
+    /**
+     * Use NoteDB for extracting the Change-id. It should be the first commit in the log
+     * of the meta reference.
+     */
+    private String getChangeIdFromMeta(GitRepository repo, GitRevision metaRevision,
+        String metaRef) throws RepoException {
+      List<ChangeMessage> changes = Lists.transform(repo.log(metaRevision.getSha1()).run(),
+          e -> ChangeMessage.parseMessage(e.getBody()));
+
+      if (changes.isEmpty()) {
+        throw new RepoException("Cannot find any PatchSet in " + metaRef);
+      }
+      String changeId = null;
+      for (LabelFinder change : Iterables.getLast(changes).getLabels()) {
+        if (change.isLabel() && change.getName().equals("Change-id")
+            && change.getSeparator().equals(": ")) {
+          changeId = change.getValue();
+        }
+      }
+      if (changeId == null) {
+        throw new RepoException(String.format(
+            "Cannot find Change-id in %s. Not present in: \n%s", metaRef,
+                Iterables.getLast(changes).getText()));
+      }
+
+      return changeId;
     }
   };
 
@@ -227,6 +275,7 @@ public enum GitRepoType {
   }
 
   public static final String GERRIT_CHANGE_NUMBER_LABEL = "GERRIT_CHANGE_NUMBER";
+  public static final String GERRIT_CHANGE_ID_LABEL = "GERRIT_CHANGE_ID";
 
   private static final Logger logger = Logger.getLogger(GitRepoType.class.getCanonicalName());
 
@@ -266,12 +315,12 @@ public enum GitRepoType {
           String.format("Cannot find change number %d in '%s'", changeNumber, url));
     }
     for (Entry<String, String> e : refsToSha1.entrySet()) {
-      Preconditions.checkState(
-          e.getKey().startsWith(basePath + "/"),
-          String.format("Unexpected response reference %s for %s", e.getKey(), basePath));
       if (e.getKey().endsWith("/meta")) {
         continue;
       }
+      Preconditions.checkState(
+          e.getKey().startsWith(basePath + "/"),
+          String.format("Unexpected response reference %s for %s", e.getKey(), basePath));
       Matcher matcher = WHOLE_GERRIT_REF.matcher(e.getKey());
       Preconditions.checkArgument(
           matcher.matches(),

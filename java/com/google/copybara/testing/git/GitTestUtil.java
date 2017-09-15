@@ -65,6 +65,50 @@ public class GitTestUtil {
     return values;
   }
 
+  public static void createFakeGerritNodeDbMeta(GitRepository repo, int change, String changeId)
+      throws RepoException, IOException, CannotResolveRevisionException {
+
+    // Save head for restoring it later
+    String head = repo.parseRef("HEAD");
+    // Start a branch without history
+    repo.simpleCommand("checkout", "--orphan", "meta_branch_" + change);
+
+    Files.write(repo.getWorkTree().resolve("not_used.txt"), "".getBytes());
+    repo.add().files("not_used.txt").run();
+
+    repo.simpleCommand("commit", "-m", ""
+        + "Create change\n"
+        + "\n"
+        + "Uploaded patch set 1.\n"
+        + "\n"
+        + "Patch-set: 1\n"
+        + "Change-id: " + changeId + "\n"
+        + "Subject: GerritDestination: Sample review message\n"
+        + "Branch: refs/heads/master\n"
+        + "Commit: 7d15cf91ee118e68b9784a7e7e2bba7a30ad8e59\n"
+        + "Groups: 7d15cf91ee118e68b9784a7e7e2bba7a30ad8e59");
+    Files.write(repo.getWorkTree().resolve("not_used.txt"), "a".getBytes());
+    repo.add().files("not_used.txt").run();
+
+    repo.simpleCommand("commit", "-m", ""
+        + "Create patch set 2\n"
+        + "\n"
+        + "Uploaded patch set 2.\n"
+        + "\n"
+        + "Patch-set: 2\n"
+        + "Subject: GerritDestination: Sample review message\n"
+        + "Commit: 2223378c91bb1c403c404d792d95b91dbc0472d9\n"
+        + "Groups: 2223378c91bb1c403c404d792d95b91dbc0472d9");
+
+    // Create the meta reference
+
+    String metaRef = String.format("refs/changes/%02d/%d/meta", change % 100, change);
+    repo.simpleCommand("update-ref", metaRef, repo.parseRef("meta_branch_" + change));
+
+    // Restore head
+    repo.simpleCommand("update-ref", "HEAD", head);
+  }
+
   public static class TestGitOptions extends GitOptions {
 
     private final Path httpsRepos;

@@ -20,9 +20,11 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 
 import com.google.common.base.Strings;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -48,7 +50,7 @@ public class GitRepoTypeTest {
   private GeneralOptions generalOptions;
 
   @Before
-  public void setup() throws IOException, RepoException {
+  public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("testRepo");
     fileRepoDir = Files.createTempDirectory("fileRepo");
     // We mock by default to avoid accidental network calls.
@@ -71,9 +73,8 @@ public class GitRepoTypeTest {
     testRepo.init();
   }
 
-  private void prepareFileRepo() throws RepoException, IOException {
-    fileRepo = GitRepository.newRepo(true, fileRepoDir, getGitEnv()).init(
-    );
+  private void prepareFileRepo() throws Exception {
+    fileRepo = GitRepository.newRepo(true, fileRepoDir, getGitEnv()).init();
     Files.write(fileRepoDir.resolve("foo"), new byte[]{});
 
     fileRepo.add().files("foo").run();
@@ -90,7 +91,7 @@ public class GitRepoTypeTest {
 
     // Dirty hack to simulate Gerrit
     fileRepo.git(fileRepoDir,  "symbolic-ref", "refs/changes/04/1204/1", "HEAD");
-
+    GitTestUtil.createFakeGerritNodeDbMeta(fileRepo, 1204, "Iaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   }
 
   @Test
