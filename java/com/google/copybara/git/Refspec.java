@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.copybara.ValidationException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.nio.file.Path;
@@ -56,7 +57,7 @@ public class Refspec {
    *
    * <p>Note that the {@code originRef} should match the origin refspec.
    */
-  String convert(String originRef) {
+  public String convert(String originRef) {
     if (!origin.contains("*")) {
       Preconditions.checkArgument(originRef.equals(origin),
           "originRef=%s origin=%s", originRef, origin);
@@ -80,8 +81,49 @@ public class Refspec {
     }
   }
 
+  /**
+   * Tests whether a ref matches the origin pattern of the refspec.
+   *
+   * <p>Note that the {@code originRef} should match the origin refspec.
+   */
+  public boolean matchesOrigin(String originRef) {
+    if (!origin.contains("*")) {
+      return originRef.equals(origin);
+    } else {
+      List<String> origSplit = Splitter.on('*').splitToList(origin);
+      Preconditions.checkState(origSplit.size() == 2);
+      String fromPrefix = origSplit.get(0);
+      String fromSuffix = origSplit.get(1);
+      return originRef.startsWith(fromPrefix) && originRef.endsWith(fromSuffix);
+    }
+  }
+
   public Refspec withAllowNoFastForward() {
     return new Refspec(origin, destination, /*allowNoFastForward*/true);
+  }
+
+  public Refspec originToOrigin() {
+    return new Refspec(origin, origin, allowNoFastForward);
+  }
+
+  public Refspec destinationToDestination() {
+    return new Refspec(destination, destination, allowNoFastForward);
+  }
+
+  public Refspec invert() {
+    return new Refspec(destination, origin, allowNoFastForward);
+  }
+
+  /**
+   * Same as {@see #create}, but does not provide Location data.
+   */
+  public static Refspec createBuiltin(Map<String, String> env, Path cwd, String refspecParam)
+      throws ValidationException {
+    try {
+      return create(env, cwd, refspecParam, Location.BUILTIN);
+    } catch (EvalException e) {
+      throw new ValidationException("Error creating refspec", e);
+    }
   }
 
   public static Refspec create(Map<String, String> env, Path cwd, String refspecParam,

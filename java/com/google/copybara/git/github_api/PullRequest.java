@@ -22,7 +22,7 @@ import com.google.api.client.util.Key;
  * Represents a pull request returned by
  * https://api.github.com/repos/REPO_ID/pulls/NUMBER
  */
-public class PullRequest extends PullRequestOrIssue{
+public class PullRequest extends PullRequestOrIssue {
 
   @Key
   private Revision head;

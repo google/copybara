@@ -61,6 +61,40 @@ public class RefspecTest {
   }
 
   @Test
+  public void testCreateBuiltin() throws Exception {
+    assertRefspec(Refspec.createBuiltin(
+        getGitEnv(), FileSystems.getDefault().getPath("/"), "refs/heads/master"),
+        "refs/heads/master", "refs/heads/master", /*expectForce=*/false);
+  }
+
+  @Test
+  public void testInvert() throws Exception {
+    assertRefspec(refspec("refs/heads/master:refs/heads/foo").invert(),
+        "refs/heads/foo", "refs/heads/master", /*expectForce=*/false);
+  }
+
+  @Test
+  public void testOriginToOrigin() throws Exception {
+    assertRefspec(refspec("refs/heads/master:refs/heads/foo").originToOrigin(),
+        "refs/heads/master", "refs/heads/master", /*expectForce=*/false);
+  }
+
+  @Test
+  public void testDestinationToDestination() throws Exception {
+    assertRefspec(refspec("refs/heads/master:refs/heads/foo").destinationToDestination(),
+        "refs/heads/foo", "refs/heads/foo", /*expectForce=*/false);
+  }
+
+  @Test
+  public void testMatchesOrigin() throws Exception {
+    assertThat(refspec("refs/heads/master").matchesOrigin("refs/heads/master")).isTrue();
+    assertThat(refspec("refs/*/master").matchesOrigin("refs/heads/master")).isTrue();
+    assertThat(refspec("refs/*/master").matchesOrigin("refs/heads/mistress")).isFalse();
+    assertThat(refspec("refs/heads/*").matchesOrigin("refs/heads/master")).isTrue();
+    assertThat(refspec("refs/heads/*").matchesOrigin("refs/tails/master")).isFalse();
+  }
+
+  @Test
   public void testNonValid() throws EvalException {
     thrown.expect(EvalException.class);
     thrown.expectMessage("Invalid refspec: aa bb");
@@ -87,6 +121,7 @@ public class RefspecTest {
     thrown.expectMessage("Multiple ':' found");
     refspec("la:la:la");
   }
+
 
   @Test
   public void convertTest() throws EvalException {

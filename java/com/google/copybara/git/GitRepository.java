@@ -209,7 +209,7 @@ public class GitRepository {
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
           env,
           /*verbose=*/false);
-    }catch (CommandException e) {
+    } catch (CommandException e) {
       Optional<String> version = version(env);
       throw new EvalException(location, version.isPresent()
                                         ? "Invalid refspec: " + refspec
@@ -376,9 +376,11 @@ public class GitRepository {
    * Execute show-ref git command in the local repository and returns a map from reference name to
    * GitReference(SHA-1).
    */
-  ImmutableMap<String, GitRevision> showRef() throws RepoException {
+  protected ImmutableMap<String, GitRevision> showRef(Collection<String> refs)
+      throws RepoException {
     ImmutableMap.Builder<String, GitRevision> result = ImmutableMap.builder();
-    CommandOutput commandOutput = gitAllowNonZeroExit(ImmutableList.of("show-ref"));
+    CommandOutput commandOutput = gitAllowNonZeroExit(
+        ImmutableList.<String>builder().add("show-ref").addAll(refs).build());
 
     if (!commandOutput.getStderr().isEmpty()) {
       throw new RepoException(String.format(
@@ -396,6 +398,15 @@ public class GitRepository {
       result.put(strings.get(1), new GitRevision(this, strings.get(0)));
     }
     return result.build();
+  }
+
+
+  /**
+   * Execute show-ref git command in the local repository and returns a map from reference name to
+   * GitReference(SHA-1).
+   */
+  protected ImmutableMap<String, GitRevision> showRef() throws RepoException {
+    return showRef(ImmutableList.of());
   }
 
   /**
@@ -1171,6 +1182,11 @@ public class GitRepository {
     public ImmutableList<Refspec> getRefspecs() {
       return refspecs;
     }
+
+    public boolean isPrune() {
+      return prune;
+    }
+
 
     @CheckReturnValue
     public PushCmd(GitRepository repo, @Nullable String url, ImmutableList<Refspec> refspecs,
