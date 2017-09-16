@@ -38,6 +38,7 @@
     - [git.mirror](#git.mirror)
     - [git.gerrit_origin](#git.gerrit_origin)
     - [git.github_origin](#git.github_origin)
+    - [git.github_pr_origin](#git.github_pr_origin)
     - [git.destination](#git.destination)
     - [git.gerrit_destination](#git.gerrit_destination)
   - [patch](#patch)
@@ -192,7 +193,7 @@ Core transformations for the change metadata
 
 Generate a message that includes a constant prefix text and a list of changes included in the squash change.
 
-`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, oldest_first=False)`
+`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, show_description=True, oldest_first=False)`
 
 ### Parameters:
 
@@ -203,6 +204,7 @@ max|`integer`<br><p>Max number of commits to include in the message. For the res
 compact|`boolean`<br><p>If compact is set, each change will be shown in just one line</p>
 show_ref|`boolean`<br><p>If each change reference should be present in the notes</p>
 show_author|`boolean`<br><p>If each change author should be present in the notes</p>
+show_description|`boolean`<br><p>If each change description should be present in the notes</p>
 oldest_first|`boolean`<br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
 
 
@@ -244,6 +246,26 @@ Changes for Project Foo:
 
   - a4321bcde first commit description
   - 1234abcde second commit description
+```
+
+
+#### Removing description:
+
+
+
+```python
+metadata.squash_notes("Changes for Project Foo:\n",
+    show_description = False,
+)
+```
+
+This transform will generate changes like:
+
+```
+Changes for Project Foo:
+
+  - a4321bcde by Foo Bar <foo@bar.com>
+  - 1234abcde by Foo Bar <foo@bar.com>
 ```
 
 
@@ -1148,11 +1170,7 @@ submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.
 <a id="git.github_origin" aria-hidden="true"></a>
 ## git.github_origin
 
-Defines a Git origin of type Github.
-
-Implicit labels that can be used/exposed:
-
-  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.
+Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
 `gitOrigin git.github_origin(url, ref=None, submodules='NO')`
 
@@ -1164,6 +1182,36 @@ url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 
+
+<a id="git.github_pr_origin" aria-hidden="true"></a>
+## git.github_pr_origin
+
+Defines a Git origin for Github pull requests.
+
+Implicit labels that can be used/exposed:
+
+  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.
+
+`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], submodules='NO')`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Indicates the URL of the GitHub repository</p>
+use_merge|`boolean`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
+required_labels|`sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
+submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--github-required-label | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
+--github-skip-required-labels | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 
 <a id="git.destination" aria-hidden="true"></a>
 ## git.destination
