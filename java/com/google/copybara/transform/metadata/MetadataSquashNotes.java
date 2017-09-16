@@ -25,7 +25,9 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Generates a message that includes a constant prefix text and a list of changes
@@ -36,17 +38,19 @@ public class MetadataSquashNotes implements Transformation {
   private final String prefix;
   private final int max;
   private final boolean compact;
-  private final boolean showRef;
   private final boolean showAuthor;
+  private final boolean showDescription;
+  private final boolean showRef;
   private final boolean oldestFirst;
 
   public MetadataSquashNotes(String prefix, int max, boolean compact, boolean showRef,
-      boolean showAuthor, boolean oldestFirst) {
+      boolean showAuthor, boolean showDescription, boolean oldestFirst) {
     this.prefix = prefix;
     this.max = max;
     this.compact = compact;
     this.showRef = showRef;
     this.showAuthor = showAuthor;
+    this.showDescription = showDescription;
     this.oldestFirst = oldestFirst;
   }
 
@@ -69,31 +73,37 @@ public class MetadataSquashNotes implements Transformation {
       if (counter == max) {
         break;
       }
+      ArrayList<String> summary = new ArrayList<>();
       if (compact) {
         sb.append("  - ");
         if (showRef) {
-          sb.append(c.refAsString());
-          sb.append(" ");
+          summary.add(c.refAsString());
         }
-        sb.append(cutIfLong(c.firstLineMessage()));
+        if (showDescription) {
+          summary.add(cutIfLong(c.firstLineMessage()));
+        }
         if (showAuthor) {
-          sb.append(" by ");
-          sb.append(c.getAuthor());
+          summary.add("by " + c.getAuthor().toString());
         }
+        sb.append(summary.stream()
+                  .collect(Collectors.joining(" ")));
         sb.append("\n");
       } else {
         sb.append("--\n");
         if (showRef) {
-          sb.append(c.refAsString());
+          summary.add(c.refAsString());
         } else {
-          sb.append("Change ").append(i + 1).append(" of ").append(changes.size());
+          summary.add(String.format("Change %s of %s", i + 1, changes.size()));
         }
         if (showAuthor) {
-          sb.append(" by ");
-          sb.append(c.getAuthor());
+          summary.add("by " + c.getAuthor().toString());
         }
-        sb.append(":\n\n");
-        sb.append(c.getMessage());
+        sb.append(summary.stream()
+            .collect(Collectors.joining(" ")));
+        if (showDescription) {
+          sb.append(":\n\n");
+          sb.append(c.getMessage());
+        }
         sb.append("\n");
       }
       counter++;
