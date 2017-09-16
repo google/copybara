@@ -77,6 +77,9 @@ public class MetadataModule {
           @Param(name = "show_author", type = Boolean.class,
               doc = "If each change author should be present in the notes",
               defaultValue = "True"),
+          @Param(name = "show_description", type = Boolean.class,
+              doc = "If each change description should be present in the notes",
+              defaultValue = "True"),
           @Param(name = "oldest_first", type = Boolean.class,
               doc = "If set to true, the list shows the oldest changes first. Otherwise"
                   + " it shows the changes in descending order.",
@@ -104,6 +107,17 @@ public class MetadataModule {
           + "  - a4321bcde first commit description\n"
           + "  - 1234abcde second commit description\n"
           + "```\n")
+  @Example(title = "Removing description",
+      before = "",
+      code = "metadata.squash_notes(\"Changes for Project Foo:\\n\",\n"
+          + "    show_description = False,\n"
+          + ")",
+      after = "This transform will generate changes like:\n\n"
+          + "```\n"
+          + "Changes for Project Foo:\n\n"
+          + "  - a4321bcde by Foo Bar <foo@bar.com>\n"
+          + "  - 1234abcde by Foo Bar <foo@bar.com>\n"
+          + "```\n")
   @Example(title = "Showing the full message",
       before = "",
       code = "metadata.squash_notes(\n"
@@ -127,10 +141,10 @@ public class MetadataModule {
           + "Extended text\n" + "```\n")
   static final BuiltinFunction SQUASH_NOTES = new BuiltinFunction("squash_notes") {
     public Transformation invoke(MetadataModule self, String prefix, Integer max,
-        Boolean compact, Boolean showRef, Boolean showAuthor, Boolean oldestFirst,
+        Boolean compact, Boolean showRef, Boolean showAuthor, Boolean showDescription, Boolean oldestFirst,
         Location location) throws EvalException {
       return new MetadataSquashNotes(SkylarkUtil.checkNotEmpty(prefix, "prefix", location),
-          max, compact, showRef, showAuthor, oldestFirst);
+          max, compact, showRef, showAuthor, showDescription, oldestFirst);
     }
   };
 
