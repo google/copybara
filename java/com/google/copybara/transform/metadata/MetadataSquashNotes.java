@@ -25,7 +25,9 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Generates a message that includes a constant prefix text and a list of changes
@@ -71,31 +73,33 @@ public class MetadataSquashNotes implements Transformation {
       if (counter == max) {
         break;
       }
+      ArrayList<String> summary = new ArrayList<>();
       if (compact) {
         sb.append("  - ");
         if (showRef) {
-          sb.append(c.refAsString());
+          summary.add(c.refAsString());
         }
         if (showDescription) {
-          sb.append(" ");
-          sb.append(cutIfLong(c.firstLineMessage()));
+          summary.add(cutIfLong(c.firstLineMessage()));
         }
         if (showAuthor) {
-          sb.append(" by ");
-          sb.append(c.getAuthor());
+          summary.add("by " + c.getAuthor().toString());
         }
+        sb.append(summary.stream()
+                  .collect(Collectors.joining(" ")));
         sb.append("\n");
       } else {
         sb.append("--\n");
         if (showRef) {
-          sb.append(c.refAsString());
+          summary.add(c.refAsString());
         } else {
-          sb.append("Change ").append(i + 1).append(" of ").append(changes.size());
+          summary.add(String.format("Change %s of %s", i + 1, changes.size()));
         }
         if (showAuthor) {
-          sb.append(" by ");
-          sb.append(c.getAuthor());
+          summary.add("by " + c.getAuthor().toString());
         }
+        sb.append(summary.stream()
+            .collect(Collectors.joining(" ")));
         if (showDescription) {
           sb.append(":\n\n");
           sb.append(c.getMessage());
