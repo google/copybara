@@ -95,7 +95,7 @@ public class Main {
     try {
       configureLog(fs);
     } catch (IOException e) {
-      handleUnexpectedError(console, e.getMessage(), e);
+      handleUnexpectedError(console, e.getMessage(), args, e);
       return ExitCode.ENVIRONMENT_ERROR;
     }
     // This is useful when debugging user issues
@@ -108,7 +108,7 @@ public class Main {
       shutdown(exitCode);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      handleUnexpectedError(console, "Execution was interrupted.", e);
+      handleUnexpectedError(console, "Execution was interrupted.", args, e);
     }
     return exitCode;
   }
@@ -185,11 +185,11 @@ public class Main {
           return ExitCode.COMMAND_LINE_ERROR;
       }
     } catch (CommandLineException | ParameterException e) {
-      printCauseChain(Level.WARNING, console, e);
+      printCauseChain(Level.WARNING, console, args, e);
       console.error("Try 'copybara --help'.");
       return ExitCode.COMMAND_LINE_ERROR;
     } catch (RepoException e) {
-      printCauseChain(Level.SEVERE, console, e);
+      printCauseChain(Level.SEVERE, console, args, e);
       return ExitCode.REPOSITORY_ERROR;
     } catch (EmptyChangeException e) {
       // This is not necessarily an error. Maybe the tool was run previously and there are no new
@@ -197,16 +197,17 @@ public class Main {
       console.warn(e.getMessage());
       return ExitCode.NO_OP;
     } catch (ValidationException e) {
-      printCauseChain(Level.WARNING, console, e);
+      printCauseChain(Level.WARNING, console, args, e);
       return ExitCode.CONFIGURATION_ERROR;
     } catch (IOException e) {
-      handleUnexpectedError(console, e.getMessage(), e);
+      handleUnexpectedError(console, e.getMessage(), args, e);
       return ExitCode.ENVIRONMENT_ERROR;
     } catch (RuntimeException e) {
       // This usually indicates a serious programming error that will require Copybara team
       // intervention. Print stack trace without concern for presentation.
       e.printStackTrace();
-      handleUnexpectedError(console, "Unexpected error (please file a bug): " + e.getMessage(), e);
+      handleUnexpectedError(console, "Unexpected error (please file a bug): " + e.getMessage(),
+          args, e);
       return ExitCode.INTERNAL_ERROR;
     }
   }
@@ -383,7 +384,7 @@ public class Main {
     }
   }
 
-  private void printCauseChain(Level level, Console console, Throwable e) {
+  private void printCauseChain(Level level, Console console, String[] args, Throwable e) {
     StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
     Throwable cause = e.getCause();
     while (cause != null) {
@@ -391,11 +392,11 @@ public class Main {
       cause = cause.getCause();
     }
     console.error(error.toString());
-    logger.log(level, e.getMessage(), e);
+    logger.log(level, formatLogError(e.getMessage(), args), e);
   }
 
-  private void handleUnexpectedError(Console console, String msg, Throwable e) {
-    logger.log(Level.SEVERE, msg, e);
+  private void handleUnexpectedError(Console console, String msg, String[] args, Throwable e) {
+    logger.log(Level.SEVERE, formatLogError(msg, args), e);
     console.error(msg + " (" + e + ")");
   }
 
@@ -408,5 +409,9 @@ public class Main {
         .append("Example:\n")
         .append("  copybara ").append(COPYBARA_SKYLARK_CONFIG_FILENAME).append(" origin/master\n");
     return fullUsage.toString();
+  }
+
+  private static String formatLogError(String message, String[] args) {
+    return String.format("%s (command args: %s)", message, Arrays.toString(args));
   }
 }
