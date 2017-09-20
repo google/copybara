@@ -117,10 +117,12 @@ public final class Replace implements Transformation {
         fileMatcherBuilder.relativeTo(checkoutDir));
     Replacer replacer = before.replacer(after, firstOnly, multiline, patternsToIgnore);
     List<FileState> changed = new ArrayList<>();
+    boolean matchedFile = false;
     for (FileState file : files) {
       if (Files.isSymbolicLink(file.getPath())) {
         continue;
       }
+      matchedFile = true;
       String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
       String transformed = replacer.replace(originalFileContent);
       if (!originalFileContent.equals(transformed)) {
@@ -137,7 +139,10 @@ public final class Replace implements Transformation {
     if (changed.isEmpty()) {
       workflowOptions.reportNoop(
           work.getConsole(),
-          "Transformation '" + toString() + "' was a no-op. It didn't affect the workdir.");
+          "Transformation '" + toString() + "' was a no-op because it didn't "
+              + (matchedFile
+                 ? "change any of the matching files."
+                 : "match any file."));
     }
   }
 

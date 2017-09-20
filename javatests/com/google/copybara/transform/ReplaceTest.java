@@ -479,14 +479,26 @@ public final class ReplaceTest {
   @Test
   public void noopReplaceAsWarning() throws Exception {
     options.workflowOptions.ignoreNoop = true;
-    Replace replace = eval("core.replace(\n"
+
+    writeFile(checkoutDir.resolve("foo"), "");
+    transform(eval("core.replace(\n"
         + "  before = \"BEFORE this string doesn't appear anywhere in source\",\n"
         + "  after = 'lulz',\n"
-        + ")");
-
-    transform(replace);
+        + ")"));
     console.assertThat()
-        .onceInLog(MessageType.WARNING, ".*BEFORE.*lulz.*didn't affect the workdir[.]");
+        .onceInLog(MessageType.WARNING,
+            ".*BEFORE.*lulz.*was a no-op because it didn't change any of the matching files[.]");
+
+    console.clearMessages();
+
+    transform(eval("core.replace(\n"
+        + "  before = \"BEFORE this string doesn't appear anywhere in source\",\n"
+        + "  after = 'lulz',\n"
+        + "  paths = glob(['bad_path/**'])\n"
+        + ")"));
+    console.assertThat()
+        .onceInLog(MessageType.WARNING,
+            ".*BEFORE.*lulz.*was a no-op because it didn't match any file[.]");
   }
 
   @Test
