@@ -66,8 +66,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   static final SkylarkList<GitIntegrateChanges> NO_GIT_DESTINATION_INTEGRATES =
       SkylarkList.createImmutable(ImmutableList.of(
           new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
-              // TODO(malcon): fake-merges Change this to FAKE_MERGE_AND_INCLUDE_FILES once working.
-              Strategy.FAKE_MERGE,
+              Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
               /*ignoreErrors=*/true)));
 
   private Options options;

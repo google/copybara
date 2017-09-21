@@ -157,6 +157,15 @@ public class ChangeMessage {
     return this;
   }
 
+  /**
+   * Remove a label by name and value if it exist.
+   */
+  public ChangeMessage removeLabelByNameAndValue(String name, String value) {
+    validateLabelName(name);
+    labels.removeIf(label -> label.isLabel(name) && label.getValue().equals(value));
+    return this;
+  }
+
   private static String validateLabelName(String label) {
     Preconditions.checkArgument(LabelFinder.VALID_LABEL.matcher(label).matches(),
         "Label '%s' is not a valid label", label);

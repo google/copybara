@@ -83,9 +83,7 @@ public final class GerritDestination implements Destination<GitRevision> {
      * Gerrit or not.
      */
     @Override
-    public MessageInfo message(TransformResult result, GitRepository repo)
-        throws RepoException, ValidationException {
-
+    public MessageInfo message(TransformResult result) throws RepoException, ValidationException {
       boolean newPush;
       String gerritChangeId;
       if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {

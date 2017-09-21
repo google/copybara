@@ -21,17 +21,26 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.ChangeMessage;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.GitRepository.StatusCode;
+import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,13 +71,15 @@ public class GitIntegrateChanges {
    * @throws RepoException if a git related error happens during the integrate
    */
   void run(GitRepository repository, GeneralOptions generalOptions,
-      GitDestinationOptions gitDestinationOptions, MessageInfo messageInfo, TransformResult result)
+      GitDestinationOptions gitDestinationOptions, MessageInfo messageInfo,
+      Predicate<String> externalFileMatcher, TransformResult result)
       throws CannotIntegrateException, RepoException {
     try {
-      doIntegrate(repository, generalOptions, result, messageInfo);
+      doIntegrate(repository, generalOptions, externalFileMatcher, result, messageInfo);
     } catch (CannotIntegrateException e) {
       if (gitDestinationOptions.ignoreIntegrationErrors || ignoreErrors) {
         logger.log(Level.WARNING, "Cannot integrate changes", e);
+        generalOptions.console().warnFmt("Cannot integrate changes: %s", e.getMessage());
       } else {
         throw e;
       }
@@ -82,7 +93,7 @@ public class GitIntegrateChanges {
   }
 
   private void doIntegrate(GitRepository repository, GeneralOptions generalOptions,
-      TransformResult result, MessageInfo messageInfo)
+      Predicate<String> externalFiles, TransformResult result, MessageInfo messageInfo)
       throws CannotIntegrateException, RepoException {
 
     for (LabelFinder label : result.findAllLabels()) {
@@ -107,8 +118,8 @@ public class GitIntegrateChanges {
           }
         }
 
-        strategy.integrate(repository, integrateLabel, label.getValue(), messageInfo,
-            generalOptions.console());
+        strategy.integrate(repository, integrateLabel, externalFiles, label,
+            messageInfo, generalOptions.console(), generalOptions.getDirFactory());
       } catch (CannotResolveRevisionException e) {
         throw new CannotIntegrateException(e, "Error resolving %s", label.getValue());
       }
@@ -124,21 +135,21 @@ public class GitIntegrateChanges {
      */
     FAKE_MERGE {
       @Override
-      void integrate(GitRepository repository, IntegrateLabel integrateLabel, String rawLabelValue,
-          MessageInfo messageInfo, Console console)
+      void integrate(GitRepository repository, IntegrateLabel integrateLabel,
+          Predicate<String> externalFiles, LabelFinder rawLabelValue,
+          MessageInfo messageInfo, Console console, DirFactory dirFactory)
           throws CannotIntegrateException, RepoException, CannotResolveRevisionException {
-        GitLogEntry head = Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
+        GitLogEntry head = getHeadCommit(repository);
 
-        GitRevision commit;
         String msg = integrateLabel.mergeMessage(messageInfo.labelsToAdd);
         // If there is already a merge, don't overwrite the merge but create a new one.
         // Otherwise amend the last commit as a merge.
-        commit = head.getParents().size() > 1
-            ? repository.commitTree(msg, head.getTree(),
+        GitRevision commit = head.getParents().size() > 1
+                             ? repository.commitTree(msg, head.getTree(),
             ImmutableList.of(head.getCommit(), integrateLabel.getRevision()))
-            : repository.commitTree(msg, head.getTree(),
-                ImmutableList.<GitRevision>builder().addAll(head.getParents())
-                    .add(integrateLabel.getRevision()).build());
+                             : repository.commitTree(msg, head.getTree(),
+                                 ImmutableList.<GitRevision>builder().addAll(head.getParents())
+                                     .add(integrateLabel.getRevision()).build());
         repository.simpleCommand("update-ref", "HEAD", commit.getSha1());
       }
     },
@@ -146,14 +157,99 @@ public class GitIntegrateChanges {
      * An hybrid that includes the changes that don't match destination_files but fake-merges
      * the rest.
      */
-    FAKE_MERGE_AND_INCLUDE_FILES,
+    FAKE_MERGE_AND_INCLUDE_FILES {
+      @Override
+      void integrate(GitRepository repository, IntegrateLabel gitRevision,
+          Predicate<String> externalFiles,
+          LabelFinder rawLabelValue, MessageInfo messageInfo, Console console,
+          DirFactory dirFactory)
+          throws CannotIntegrateException, RepoException, CannotResolveRevisionException {
+        // Fake merge first so that we have a commit and then amend that commit wit the external
+        // files
+        FAKE_MERGE.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
+            console, dirFactory);
+        INCLUDE_FILES.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
+            console, dirFactory);
+      }
+    },
     /**
      * Include changes that don't match destination_files but don't create a merge commit.
      */
-    INCLUDE_FILES;
+    INCLUDE_FILES {
+      @Override
+      void integrate(GitRepository repository, IntegrateLabel integrateLabel,
+          Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
+          Console console, DirFactory dirFactory)
+          throws CannotIntegrateException, RepoException, CannotResolveRevisionException {
+        // Save HEAD commit before starting messing with the repo
+        GitLogEntry head = getHeadCommit(repository);
 
-    void integrate(GitRepository repository, IntegrateLabel gitRevision, String rawLabelValue,
-        MessageInfo messageInfo, Console console)
+        // Create a patch of the changes from main_branch..feature head.
+        byte[] diff = repository.simpleCommand("diff",
+            head.getCommit().getSha1() + ".." + integrateLabel.getRevision().getSha1())
+            .getStdoutBytes();
+
+        try {
+          // Apply the patch to the current branch.
+          repository.apply(diff, /*index=*/true);
+        } catch (RebaseConflictException e) {
+          // Add more context information
+          throw new CannotIntegrateException(e,
+              "Cannot apply the changes from %s", integrateLabel.toString());
+        }
+
+        List<String> toRevert = new ArrayList<>();
+        for (StatusFile statusFile : repository.status()) {
+          // Just in case the worktree is dirty
+          if (statusFile.getIndexStatus() == StatusCode.UNMODIFIED) {
+            continue;
+          }
+          if (statusFile.getIndexStatus() == StatusCode.COPIED) {
+            revertIfInternal(toRevert, externalFiles, statusFile.getNewFileName());
+          } else if (statusFile.getIndexStatus().equals(StatusCode.RENAMED)) {
+            revertIfInternal(toRevert, externalFiles, statusFile.getFile());
+            revertIfInternal(toRevert, externalFiles, statusFile.getNewFileName());
+          } else {
+            revertIfInternal(toRevert, externalFiles, statusFile.getFile());
+          }
+        }
+        // Batch to prevent going over max arguments length.
+        for (List<String> revertBatch : Lists.partition(toRevert, 20)) {
+          ImmutableList.Builder<String> params = ImmutableList.<String>builder()
+              .add("reset", "HEAD", "--");
+          params.addAll(revertBatch);
+          repository.simpleCommand(params.build().toArray(new String[0]));
+        }
+        ChangeMessage msg = ChangeMessage.parseAllAsLabels(head.getBody());
+        msg.removeLabelByNameAndValue(rawLabelValue.getName(), rawLabelValue.getValue());
+
+        // Amend last commit with the external files and remove the integration label
+        try {
+          repository.commit(/*author=*/null, /*amend=*/true, /*timestamp=*/null, msg.toString());
+        } catch (ValidationException ignore) {
+          // This is expected. There might not be any external file
+        }
+        // Cleanup any non-comitted file
+        repository.simpleCommand("reset", "--hard");
+        repository.simpleCommand("clean", "-f");
+      }
+
+      private void revertIfInternal(List<String> toRevert, Predicate<String> externalFiles,
+          String file) {
+        if (!externalFiles.test(file)) {
+          toRevert.add(file);
+        }
+      }
+    };
+
+    private static GitLogEntry getHeadCommit(GitRepository repository) throws RepoException {
+      return Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
+    }
+
+    void integrate(GitRepository repository, IntegrateLabel gitRevision,
+        Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
+        Console console,
+        DirFactory dirFactory)
         throws CannotIntegrateException, RepoException, CannotResolveRevisionException {
       throw new CannotIntegrateException(this + " integrate mode is still not supported");
     }

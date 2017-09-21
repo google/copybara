@@ -48,6 +48,7 @@ import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
+import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.shell.Command;
@@ -82,6 +83,7 @@ import javax.annotation.Nullable;
  * A class for manipulating Git repositories
  */
 public class GitRepository {
+
   private static final Logger logger = Logger.getLogger(GitRepository.class.getName());
 
   private static final java.util.regex.Pattern SPACES = java.util.regex.Pattern.compile("( |\t)+");
@@ -136,7 +138,7 @@ public class GitRepository {
    */
   private final Path gitDir;
 
-  private final @Nullable Path workTree;
+  @Nullable private final Path workTree;
 
   private final boolean verbose;
   private final Map<String, String> environment;
@@ -277,7 +279,7 @@ public class GitRepository {
     }
 
     ImmutableMap<String, GitRevision> before = showRef();
-    CommandOutputWithStatus output = gitAllowNonZeroExit(args);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(CommandUtil.NO_INPUT, args);
     if (output.getTerminationStatus().success()) {
       ImmutableMap<String, GitRevision> after = showRef();
       return new FetchResult(before, after);
@@ -379,7 +381,7 @@ public class GitRepository {
   protected ImmutableMap<String, GitRevision> showRef(Collection<String> refs)
       throws RepoException {
     ImmutableMap.Builder<String, GitRevision> result = ImmutableMap.builder();
-    CommandOutput commandOutput = gitAllowNonZeroExit(
+    CommandOutput commandOutput = gitAllowNonZeroExit(CommandUtil.NO_INPUT,
         ImmutableList.<String>builder().add("show-ref").addAll(refs).build());
 
     if (!commandOutput.getStderr().isEmpty()) {
@@ -421,7 +423,8 @@ public class GitRepository {
    * The Git work tree - in a typical Git repo, this is the directory containing the {@code .git}
    * directory. Returns {@code null} for bare repos.
    */
-  @Nullable public Path getWorkTree() {
+  @Nullable
+  public Path getWorkTree() {
     return workTree;
   }
 
@@ -450,8 +453,7 @@ public class GitRepository {
   }
 
   /**
-   * An add command bound to the repo that can be configured and then executed with
-   * @{{@link #run()}}.
+   * An add command bound to the repo that can be configured and then executed with {@link #run()}.
    */
   public class AddCmd {
 
@@ -534,7 +536,7 @@ public class GitRepository {
     }
     params.add("--get");
     params.add(field);
-    CommandOutputWithStatus out = gitAllowNonZeroExit(params.build());
+    CommandOutputWithStatus out = gitAllowNonZeroExit(CommandUtil.NO_INPUT, params.build());
     if (out.getTerminationStatus().success()) {
       return out.getStdout().trim();
     } else if (out.getTerminationStatus().getExitCode() == 1 && out.getStderr().isEmpty()) {
@@ -549,12 +551,12 @@ public class GitRepository {
   public String parseRef(String ref) throws RepoException, CannotResolveRevisionException {
     // Runs rev-list on the reference and remove the extra newline from the output.
     CommandOutputWithStatus result = gitAllowNonZeroExit(
-        ImmutableList.of("rev-list", "-1", ref, "--"));
+        CommandUtil.NO_INPUT, ImmutableList.of("rev-list", "-1", ref, "--"));
     if (!result.getTerminationStatus().success()) {
       throw new CannotResolveRevisionException("Cannot find reference '" + ref + "'");
     }
     String sha1 = result.getStdout().trim();
-    Verify.verify(SHA1_PATTERN.matcher(sha1).matches(), "Should be resolved to a SHA-1: %s",sha1);
+    Verify.verify(SHA1_PATTERN.matcher(sha1).matches(), "Should be resolved to a SHA-1: %s", sha1);
     return sha1;
   }
 
@@ -569,7 +571,7 @@ public class GitRepository {
 
   public void rebase(String newBaseline) throws RepoException {
     CommandOutputWithStatus output = gitAllowNonZeroExit(
-        ImmutableList.of("rebase", checkNotNull(newBaseline)));
+        CommandUtil.NO_INPUT, ImmutableList.of("rebase", checkNotNull(newBaseline)));
 
     if (output.getTerminationStatus().success()) {
       return;
@@ -601,33 +603,58 @@ public class GitRepository {
 
   public void commit(String author, ZonedDateTime timestamp, String message)
       throws RepoException, ValidationException {
-    CommandOutput status = simpleCommand("diff", "--staged", "--stat");
-    if (status.getStdout().trim().isEmpty()) {
+    commit(checkNotNull(author), /*amend=*/false, checkNotNull(timestamp), checkNotNull(message));
+  }
+
+  // TODO(malcon): Create a CommitCmd object builder
+  public void commit(@Nullable String author, boolean amend, @Nullable ZonedDateTime timestamp,
+      String message)
+      throws RepoException, ValidationException {
+    if (isEmptyStaging() && ! amend) {
       throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
           + "Is the change already migrated?");
     }
 
-    if (message.getBytes(StandardCharsets.UTF_8).length > ARBITRARY_MAX_ARG_SIZE) {
-      Path descriptionFile = getCwd().resolve(UUID.randomUUID().toString() + ".desc");
-      try {
-        Files.write(descriptionFile, message.getBytes(StandardCharsets.UTF_8));
-        simpleCommand("commit", "--author", author,
-            "--date", timestamp.format(ISO_OFFSET_DATE_TIME_NO_SUBSECONDS),
-            "-F", descriptionFile.toAbsolutePath().toString());
-      } catch (IOException e) {
-        throw new RepoException(
-            "Could not commit change: Failed to write file " + descriptionFile, e);
-      } finally{
-        try{
-          Files.deleteIfExists(descriptionFile);
-        } catch (IOException e) {
-          logger.warning("Could not delete description file: " + descriptionFile);
-        }
-      }
-    } else {
-      simpleCommand("commit", "--author", author,
-          "--date", timestamp.format(ISO_OFFSET_DATE_TIME_NO_SUBSECONDS), "-m", message);
+    ImmutableList.Builder<String> params = ImmutableList.<String>builder().add("commit");
+    if (author != null) {
+      params.add("--author", author);
     }
+    if (timestamp != null) {
+      params.add("--date", timestamp.format(ISO_OFFSET_DATE_TIME_NO_SUBSECONDS));
+    }
+    if (amend) {
+      params.add("--amend");
+    }
+    Path descriptionFile = null;
+    try {
+      if (message.getBytes(StandardCharsets.UTF_8).length > ARBITRARY_MAX_ARG_SIZE) {
+        descriptionFile = getCwd().resolve(UUID.randomUUID().toString() + ".desc");
+        Files.write(descriptionFile, message.getBytes(StandardCharsets.UTF_8));
+        params.add("-F", descriptionFile.toAbsolutePath().toString());
+      } else {
+        params.add("-m", message);
+      }
+      git(getCwd(), addGitDirAndWorkTreeParams(params.build()));
+    } catch (IOException e) {
+      throw new RepoException(
+          "Could not commit change: Failed to write file " + descriptionFile, e);
+    } finally {
+      try {
+        if (descriptionFile != null) {
+          Files.deleteIfExists(descriptionFile);
+        }
+      } catch (IOException e) {
+        logger.warning("Could not delete description file: " + descriptionFile);
+      }
+    }
+  }
+
+  /**
+   * Check if staging is empty. That means that a commit would fail with EmptyCommitException.
+   */
+  private boolean isEmptyStaging() throws RepoException {
+    CommandOutput status = simpleCommand("diff", "--staged", "--stat");
+    return status.getStdout().trim().isEmpty();
   }
 
   public List<StatusFile> status() throws RepoException {
@@ -789,10 +816,11 @@ public class GitRepository {
   }
 
   public UserPassword credentialFill(String url) throws RepoException, ValidationException {
-         return new GitCredential(resolveGitBinary(environment),
-             Duration.ofSeconds(60),
-             environment).fill(gitDir, url);
+    return new GitCredential(resolveGitBinary(environment),
+        Duration.ofSeconds(60),
+        environment).fill(gitDir, url);
   }
+
   /**
    * Runs a {@code git} command with the {@code --git-dir} and (if non-bare) {@code --work-tree}
    * args set, and returns the {@link CommandOutput} if the command execution was successful.
@@ -807,6 +835,26 @@ public class GitRepository {
    */
   public CommandOutput simpleCommand(String... argv) throws RepoException {
     return git(getCwd(), addGitDirAndWorkTreeParams(Arrays.asList(argv)));
+  }
+
+  /**
+   * Execute git apply.
+   *
+   * @param index if true we pass --index to the git command
+   * @throws RebaseConflictException if it cannot apply the change.
+   */
+  public void apply(byte[] stdin, boolean index) throws RepoException {
+    CommandOutputWithStatus output = gitAllowNonZeroExit(stdin,
+        index ? ImmutableList.of("apply", "--index") : ImmutableList.of("apply"));
+    if (output.getTerminationStatus().success()) {
+      return;
+    }
+
+    if (output.getTerminationStatus().getExitCode() == 1) {
+      throw new RebaseConflictException("Couldn't apply patch:\n" + output.getStderr());
+    }
+
+    throw new RepoException("Couldn't apply patch:\n" + output.getStderr());
   }
 
   /**
@@ -870,10 +918,15 @@ public class GitRepository {
    * (0-10. The upper bound is arbitrary). And will still fail for exit codes like 127 (Command not
    * found).
    */
-  private CommandOutputWithStatus gitAllowNonZeroExit(Iterable<String> params)
+  private CommandOutputWithStatus gitAllowNonZeroExit(byte[] stdin, Iterable<String> params)
       throws RepoException {
     try {
-      return executeGit(getCwd(), addGitDirAndWorkTreeParams(params), environment, verbose);
+      List<String> allParams = new ArrayList<>();
+      allParams.add(resolveGitBinary(environment));
+      allParams.addAll(addGitDirAndWorkTreeParams(params));
+      return executeCommand(new Command(
+              Iterables.toArray(allParams, String.class), environment, getCwd().toFile()),
+          stdin, verbose);
     } catch (BadExitStatusWithOutputException e) {
       CommandOutputWithStatus output = e.getOutput();
       int exitCode = e.getOutput().getTerminationStatus().getExitCode();
@@ -942,8 +995,8 @@ public class GitRepository {
     }
     return new GitRevision(this, parseRef(reference),
                            /*reviewReference=*/null,
-                           contextRef,
-                           ImmutableMap.of());
+        contextRef,
+        ImmutableMap.of());
   }
 
   /**
@@ -951,7 +1004,7 @@ public class GitRepository {
    */
   private boolean checkSha1Exists(String reference) throws RepoException {
     ImmutableList<String> params = ImmutableList.of("cat-file", "-e", reference);
-    CommandOutputWithStatus output = gitAllowNonZeroExit(params);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(CommandUtil.NO_INPUT, params);
     if (output.getTerminationStatus().success()) {
       return true;
     }
@@ -1370,7 +1423,7 @@ public class GitRepository {
         cmd.add("-m");
       }
 
-      if (!Strings.isNullOrEmpty(grepString) ){
+      if (!Strings.isNullOrEmpty(grepString)) {
         cmd.add("--grep");
         cmd.add(grepString);
       }
@@ -1421,7 +1474,7 @@ public class GitRepository {
           parents.add(repo.createReferenceFromCompleteSha1(parent));
         }
 
-        String tree  = getField(fields, TREE_FIELD);
+        String tree = getField(fields, TREE_FIELD);
         String commit = getField(fields, COMMIT_FIELD);
         try {
           commits.add(new GitLogEntry(
@@ -1548,5 +1601,9 @@ public class GitRepository {
           .add("body", body)
           .toString();
     }
+  }
+
+  public String gitCmd() {
+    return "git --git-dir=" + gitDir + (workTree != null ? " --work-tree=" + workTree : "");
   }
 }

@@ -26,4 +26,8 @@ class RebaseConflictException extends RepoException {
   RebaseConflictException(String message) {
     super(message);
   }
+
+  RebaseConflictException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

@@ -16,10 +16,10 @@
 
 package com.google.copybara.git;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.RepoException;
-import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -37,12 +37,12 @@ import java.util.List;
  */
 final class AddExcludedFilesToIndex {
   private final GitRepository repo;
-  private final PathMatcher destinationFiles;
+  private final PathMatcher pathMatcher;
   private ArrayList<String> addBackSubmodules;
 
-  AddExcludedFilesToIndex(GitRepository repo, Glob destinationFilesGlob) {
-    this.repo = repo;
-    this.destinationFiles = destinationFilesGlob.relativeTo(repo.getWorkTree());
+  AddExcludedFilesToIndex(GitRepository repo, PathMatcher pathMatcher) {
+    this.repo = Preconditions.checkNotNull(repo);
+    this.pathMatcher = Preconditions.checkNotNull(pathMatcher);
   }
 
   /**
@@ -59,7 +59,7 @@ final class AddExcludedFilesToIndex {
         console.warn("Cannot parse line from 'git submodule status': " + line);
         continue;
       }
-      if (!destinationFiles.matches(repo.getWorkTree().resolve(submoduleName))) {
+      if (!pathMatcher.matches(repo.getWorkTree().resolve(submoduleName))) {
         addBackSubmodules.add(submoduleName);
       }
     }
@@ -69,7 +69,7 @@ final class AddExcludedFilesToIndex {
    * Adds all the excluded files and submodules.
    */
   void add() throws RepoException, IOException {
-    ExcludesFinder visitor = new ExcludesFinder(repo.getGitDir(), destinationFiles);
+    ExcludesFinder visitor = new ExcludesFinder(repo.getGitDir(), pathMatcher);
     Files.walkFileTree(repo.getWorkTree(), visitor);
 
     int size = 0;

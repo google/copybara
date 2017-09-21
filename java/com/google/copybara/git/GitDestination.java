@@ -46,6 +46,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.nio.file.PathMatcher;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -61,6 +62,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private static final String ORIGIN_LABEL_SEPARATOR = ": ";
 
   static class MessageInfo {
+
     final boolean newPush;
     final ImmutableList<LabelFinder> labelsToAdd;
 
@@ -71,14 +73,15 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   interface CommitGenerator {
+
     /** Generates a commit message based on the uncommitted index stored in the given repository. */
-    MessageInfo message(TransformResult transformResult, GitRepository repo)
-        throws RepoException, ValidationException;
+    MessageInfo message(TransformResult transformResult) throws RepoException, ValidationException;
   }
 
   static final class DefaultCommitGenerator implements CommitGenerator {
+
     @Override
-    public MessageInfo message(TransformResult transformResult, GitRepository repo) {
+    public MessageInfo message(TransformResult transformResult) {
       Revision rev = transformResult.getCurrentRevision();
       return new MessageInfo(ImmutableList.of(
           new LabelFinder(rev.getLabelName() + ORIGIN_LABEL_SEPARATOR + rev.asString())),
@@ -386,10 +389,12 @@ public final class GitDestination implements Destination<GitRevision> {
         fetchFromRemote(console, scratchClone, repoUrl, remoteFetch);
       }
 
+
+      PathMatcher pathMatcher = destinationFiles.relativeTo(scratchClone.getWorkTree());
       // Get the submodules before we stage them for deletion with
       // repo.simpleCommand(add --all)
       AddExcludedFilesToIndex excludedAdder =
-          new AddExcludedFilesToIndex(scratchClone, destinationFiles);
+          new AddExcludedFilesToIndex(scratchClone, pathMatcher);
       excludedAdder.findSubmodules(console);
 
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
@@ -398,11 +403,10 @@ public final class GitDestination implements Destination<GitRevision> {
       alternate.add().force().all().run();
 
       console.progress("Git Destination: Excluding files");
-
       excludedAdder.add();
 
       console.progress("Git Destination: Creating a local commit");
-      MessageInfo messageInfo = commitGenerator.message(transformResult, alternate);
+      MessageInfo messageInfo = commitGenerator.message(transformResult);
 
       ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
       for (LabelFinder label : messageInfo.labelsToAdd) {
@@ -417,6 +421,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
       for (GitIntegrateChanges integrate : integrates) {
         integrate.run(alternate, generalOptions, destinationOptions, messageInfo,
+            path -> !pathMatcher.matches(scratchClone.getWorkTree().resolve(path)),
             transformResult);
       }
 
@@ -469,8 +474,8 @@ public final class GitDestination implements Destination<GitRevision> {
       if (baseline != null && !repo.refExists(baseline)) {
         throw new RepoException("Cannot find baseline '" + baseline
             + (getLocalBranchRevision(repo) != null
-            ? "' from fetch reference '" + remoteFetch + "'"
-            : "' and fetch reference '" + remoteFetch + "' itself")
+               ? "' from fetch reference '" + remoteFetch + "'"
+               : "' and fetch reference '" + remoteFetch + "' itself")
             + " in " + repoUrl + ".");
       } else if (baseline != null) {
         // Update the local branch to use the baseline
@@ -520,6 +525,7 @@ public final class GitDestination implements Destination<GitRevision> {
     }
 
   }
+
   @VisibleForTesting
   String getFetch() {
     return fetch;
@@ -559,6 +565,7 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   static class ProcessPushStructuredOutput implements ProcessPushOutput {
+
     protected final StructuredOutput structuredOutput;
 
     ProcessPushStructuredOutput(StructuredOutput output) {

@@ -38,7 +38,10 @@ import java.util.logging.Logger;
 public final class CommandUtil {
 
   private static final Logger logger = Logger.getLogger(CommandUtil.class.getName());
-  private static final byte[] NO_INPUT = new byte[]{};
+  /**
+   * No input for the command.
+   */
+  public static final byte[] NO_INPUT = new byte[]{};
 
   private CommandUtil() {}
 
