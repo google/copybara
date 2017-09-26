@@ -41,5 +41,11 @@ public class GithubUtilTest {
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Cannot find project name");
     }
+    try {
+      getProjectNameFromUrl("file://some/local/dir");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e.getMessage()).contains("Not a github url");
+    }
   }
 }

@@ -22,6 +22,7 @@ import com.google.copybara.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.net.URI;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -32,6 +33,7 @@ public class GithubUtil {
   private static final Pattern GITHUB_PULL_REQUEST =
       Pattern.compile("https://github[.]com/(.+)/pull/([0-9]+)");
   private static final String GIT_GITHUB_PROTOCOL = "git@github.com:";
+  private static final String GITHUB_HOST = "github.com";
 
   private GithubUtil() {
   }
@@ -51,6 +53,9 @@ public class GithubUtil {
     }
     if (uri.getScheme() == null) {
       uri = URI.create("notimportant://" + url);
+    }
+    if (!Objects.equals(uri.getHost(), GITHUB_HOST)) {
+      throw new ValidationException("Not a github url: " + url);
     }
     String name = uri.getPath()
         .replaceAll("^/", "")
