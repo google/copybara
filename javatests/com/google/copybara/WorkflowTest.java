@@ -1055,6 +1055,26 @@ public class WorkflowTest {
   }
 
   @Test
+  public void changeRequestChanges() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change")
+        .addSimpleChange(2, "Third Change");
+    includeReleaseNotes = true;
+    Workflow workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
+    workflow.run(workdir, "HEAD");
+    assertThat(destination.processed).hasSize(1);
+    assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
+    assertThat(destination.processed.get(0).getChangesSummary()).isEqualTo(""
+        + "Copybara import of the project:\n"
+        + "\n"
+        + "  - 1 Second Change by Copybara <no-reply@google.com>\n"
+        + "  - 2 Third Change by Copybara <no-reply@google.com>\n");
+    console().assertThat()
+        .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
+  }
+
+  @Test
   public void changeRequest_findParentBaseline() throws Exception {
     origin
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")

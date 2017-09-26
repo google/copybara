@@ -181,11 +181,13 @@ public enum WorkflowMode {
   @DocField(description = "Import an origin tree state diffed by a common parent"
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
+    @SuppressWarnings("unchecked")
     @Override
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
+      final AtomicReference<O> baselineChange = new AtomicReference<>(null);
       ValidationException.checkCondition(runHelper.destinationSupportsPreviousRef(),
           String.format("'%s' is incompatible with destinations that don't support history"
               + " (For example folder.destination)", CHANGE_REQUEST));
@@ -198,6 +200,7 @@ public enum WorkflowMode {
                 (change, matchedLabels) -> {
                   if (!change.getRevision().asString().equals(resolvedRef.asString())) {
                     requestParent.set(matchedLabels.values().iterator().next());
+                    baselineChange.set((O) change.getRevision());
                     return ChangeVisitable.VisitResult.TERMINATE;
                   }
                   return ChangeVisitable.VisitResult.CONTINUE;
@@ -212,15 +215,24 @@ public enum WorkflowMode {
       }
       logger.info(String.format("Found baseline for label %s: %s", originLabelName,
           requestParent.get()));
-      Change<O> change = runHelper.getOriginReader().change(runHelper.getResolvedRef());
-      ComputedChanges changes = new ComputedChanges(ImmutableList.of(change), ImmutableList.of());
+
+      // If --change_request_parent was used, we don't have information about the origin changes
+      // included in the CHANGE_REQUEST so we assume the last change is the only change
+      ImmutableList<Change<O>> changes = baselineChange.get() == null
+          ? ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()))
+          : runHelper.getOriginReader().changes(baselineChange.get(), runHelper.getResolvedRef());
+
+      ComputedChanges computedChanges = new ComputedChanges(changes, ImmutableList.of());
       runHelper
-          .forChanges(changes.getCurrent())
+          .forChanges(computedChanges.getCurrent())
           .migrate(
               runHelper.getResolvedRef(),
               runHelper.getConsole(),
-              new Metadata(change.getMessage(), change.getAuthor()),
-              changes,
+              // Use latest change as the message/author. If it contains multiple changes the user
+              // can always use metadata.squash_notes or similar.
+              new Metadata(Iterables.getLast(changes).getMessage(),
+                  Iterables.getLast(changes).getAuthor()),
+              computedChanges,
               requestParent.get(),
               runHelper.getWorkflowIdentity(runHelper.getResolvedRef()));
     }
