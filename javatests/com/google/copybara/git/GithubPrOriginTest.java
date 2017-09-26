@@ -277,6 +277,49 @@ public class GithubPrOriginTest {
   }
 
   @Test
+  public void testMerge() throws Exception {
+    GitRepository remote = withTmpWorktree(localHubRepo("google/example"));
+    addFiles(remote, "base", ImmutableMap.<String, String>builder()
+        .put("a.txt", "").build());
+    remote.simpleCommand("branch", "foo");
+    remote.forceCheckout("foo");
+    addFiles(remote, "one", ImmutableMap.<String, String>builder()
+        .put("a.txt", "").put("b.txt", "").build());
+    addFiles(remote, "two", ImmutableMap.<String, String>builder()
+        .put("a.txt", "").put("b.txt", "").put("c.txt", "").build());
+    remote.forceCheckout("master");
+    addFiles(remote, "master change", ImmutableMap.<String, String>builder()
+        .put("a.txt", "").put("d.txt", "").build());
+    remote.simpleCommand("merge", "foo");
+    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), remote.parseRef("foo"));
+    remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("master"));
+
+    githubMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+
+    GithubPROrigin origin = githubPrOrigin(
+        "url = 'https://github.com/google/example'",
+        "use_merge = True");
+
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(origin.resolve("123"), workdir);
+
+    FileSubjects.assertThatPath(workdir)
+        .containsFiles("a.txt", "b.txt", "c.txt", "d.txt")
+        .containsNoMoreFiles();
+
+    GitRevision mergeRevision = origin.resolve("123");
+    Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    assertThat(Lists.transform(reader.changes(/*fromRef=*/null, mergeRevision), Change::getMessage))
+        .isEqualTo(Lists.newArrayList("base\n", "one\n", "two\n", "Merge branch 'foo'\n"));
+
+    // Simulate fast-forward
+    remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("foo"));
+
+    assertThat(Lists.transform(
+        reader.changes(/*fromRef=*/null, origin.resolve("123")), Change::getMessage))
+        .isEqualTo(Lists.newArrayList("base\n", "one\n", "two\n"));
+  }
+
+  @Test
   public void testCheckout_noMergeRef() throws Exception {
     GitRepository remote = localHubRepo("google/example");
     addFiles(remote, "base", ImmutableMap.<String, String>builder()

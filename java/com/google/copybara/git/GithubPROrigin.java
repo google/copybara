@@ -28,8 +28,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.Change;
+import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
@@ -37,6 +40,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GithubUtil.GithubPrUrl;
 import com.google.copybara.git.github_api.Issue;
 import com.google.copybara.git.github_api.Issue.Label;
@@ -145,14 +149,25 @@ public class GithubPROrigin implements Origin<GitRevision> {
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
       prData = githubOptions.getApi().getPullRequest(project, prNumber);
     }
-    String stableRef = GithubUtil.asHeadRef(prNumber);
+    String stableRef = useMerge ? GithubUtil.asMergeRef(prNumber) : GithubUtil.asHeadRef(prNumber);
 
     // Fetch also the baseline branch. It is almost free and doing a roundtrip later would hurt
     // latency.
     console.progressFmt("Fetching Pull Request %d and branch '%s'",
         prNumber, prData.getBase().getRef());
-    getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true,
-        ImmutableList.of(stableRef + ":PR_HEAD", prData.getBase().getRef() + ":PR_BASE_BRANCH"));
+    try {
+      getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true,
+          ImmutableList.of(stableRef + ":PR_HEAD", prData.getBase().getRef() + ":PR_BASE_BRANCH"));
+    } catch (CannotResolveRevisionException e) {
+      if (useMerge) {
+        throw new CannotResolveRevisionException(
+            String.format("Cannot find a merge reference for Pull Request %d."
+                + " It might have a conflict with head.", prNumber), e);
+      } else {
+        throw new CannotResolveRevisionException(
+            String.format("Cannot find Pull Request %d.", prNumber), e);
+      }
+    }
 
     GitRevision gitRevision = getRepository().resolveReference("PR_HEAD", /*contextRef=*/null);
 
@@ -181,25 +196,43 @@ public class GithubPROrigin implements Origin<GitRevision> {
       throws ValidationException {
     return new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
         generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy) {
+
+      /**
+       * Disable rebase since this is controlled by useMerge field.
+       */
       @Override
       protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir)
           throws RepoException, CannotResolveRevisionException {
+      }
+
+      /**
+       * Deal with the case of useMerge. We have a new commit (the merge) and first-parent from that
+       * commit doesn't work for this case.
+       */
+      @Override
+      public ImmutableList<Change<GitRevision>> changes(@Nullable GitRevision fromRef,
+          GitRevision toRef) throws RepoException {
         if (!useMerge) {
-          return;
+          return super.changes(fromRef, toRef);
         }
-        int prNumber = Integer.parseInt(ref.associatedLabels().get(GITHUB_PR_NUMBER_LABEL));
-        String mergeRef = GithubUtil.asMergeRef(prNumber);
+        GitLogEntry merge = Iterables.getOnlyElement(getRepository()
+            .log(toRef.getSha1())
+            .withLimit(1)
+            .run());
+        // Fast-forward merge
+        if (merge.getParents().size() == 1) {
+          return super.changes(fromRef, toRef);
+        }
+        // HEAD of the Pull Request
+        GitRevision gitRevision = merge.getParents().get(1);
+        ImmutableList<Change<GitRevision>> prChanges = super.changes(fromRef, gitRevision);
         try {
-          GitRevision mergeRevision = getRepository().fetchSingleRef(url, mergeRef);
-          checkoutRepo(getRepository(), url, workdir, submoduleStrategy, mergeRevision,
-              /*topLevelCheckout=*/false);
-          if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
-            runCheckoutHook(workdir);
-          }
-        } catch (CannotResolveRevisionException e) {
-          throw new CannotResolveRevisionException(String.format(
-              "Cannot find a merge reference for Pull Request %d."
-                  + " It might have a conflict with head.", prNumber), e);
+          return ImmutableList.<Change<GitRevision>>builder()
+              .addAll(prChanges)
+              .add(change(merge.getCommit()))
+              .build();
+        } catch (EmptyChangeException e) {
+          throw new RepoException("Error getting the merge commit information: " + merge, e);
         }
       }
 

@@ -343,7 +343,7 @@ public class GitOrigin implements Origin<GitRevision> {
     return repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions);
   }
 
-  private static ImmutableList<Change<GitRevision>> asChanges(ImmutableList<GitChange> gitChanges) {
+  static ImmutableList<Change<GitRevision>> asChanges(ImmutableList<GitChange> gitChanges) {
     ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
     for (GitChange gitChange : gitChanges) {
       result.add(gitChange.getChange());
