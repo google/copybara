@@ -27,7 +27,6 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * Given a label that is not present in the change message but it is in the changes

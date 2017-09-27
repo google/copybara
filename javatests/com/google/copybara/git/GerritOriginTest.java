@@ -53,7 +53,7 @@ public class GerritOriginTest {
       new Authoring(
           new Author("foo bar", "baz@bar.com"),
           AuthoringMappingMode.OVERWRITE,
-          ImmutableSet.<String>of());
+          ImmutableSet.of());
   private static final String CHANGE_ID = "Id5287e977c0d840a6d84eb2c3c1841036c411890";
 
   private GitOrigin origin;
@@ -100,7 +100,7 @@ public class GerritOriginTest {
         new GitRevision(
             repo,
             repo.parseRef("HEAD"),
-            GitRepoType.GERRIT.gerritPatchSetAsReviewReference(1),
+            GitRepoType.gerritPatchSetAsReviewReference(1),
             "12345",
             ImmutableMap.of(
                 GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",
@@ -113,7 +113,7 @@ public class GerritOriginTest {
         new GitRevision(
             repo,
             repo.parseRef("HEAD"),
-            GitRepoType.GERRIT.gerritPatchSetAsReviewReference(2),
+            GitRepoType.gerritPatchSetAsReviewReference(2),
             "12345",
             ImmutableMap.of(
                 GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",
@@ -126,7 +126,7 @@ public class GerritOriginTest {
         new GitRevision(
             repo,
             repo.parseRef("HEAD"),
-            GitRepoType.GERRIT.gerritPatchSetAsReviewReference(3),
+            GitRepoType.gerritPatchSetAsReviewReference(3),
             "12345",
             ImmutableMap.of(
                 GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",

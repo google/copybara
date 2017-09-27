@@ -24,7 +24,6 @@ import static com.google.copybara.util.console.AnsiColor.YELLOW;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 

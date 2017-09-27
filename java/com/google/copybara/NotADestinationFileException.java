@@ -16,9 +16,6 @@
 
 package com.google.copybara;
 
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-
 /**
  * An exception that indicates a file that was to be written to a destination is not actually
  * included in {@code destination_files}, indicating a bad configuration.

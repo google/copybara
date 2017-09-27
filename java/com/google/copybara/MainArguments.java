@@ -80,7 +80,7 @@ public final class MainArguments {
   @Nullable
   private ArgumentHolder argumentHolder;
 
-  private ImmutableList<String> originalArgs;
+  private final ImmutableList<String> originalArgs;
 
   /**
    * A list containing the original invocation arguments. Solely meant for debugging/logging.
@@ -114,7 +114,7 @@ public final class MainArguments {
   }
 
   public MainArguments(String[] args) {
-    this.originalArgs = ImmutableList.<String>copyOf(Preconditions.checkNotNull(args));
+    this.originalArgs = ImmutableList.copyOf(Preconditions.checkNotNull(args));
   }
 
   /**

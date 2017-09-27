@@ -36,7 +36,7 @@ public final class GitRevision implements Revision {
   private final GitRepository repository;
   private final String sha1;
   @Nullable private final String reference;
-  private ImmutableMap<String, String> associatedLabels;
+  private final ImmutableMap<String, String> associatedLabels;
   @Nullable private final String reviewReference;
 
   /**

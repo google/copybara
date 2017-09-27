@@ -29,6 +29,6 @@ public interface ConfigItemDescription {
 
   /** Returns a key-value ist of the options the endpoint was instantiated with. */
   default ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
-    return ImmutableSetMultimap.<String, String>of("type", getClass().getName());
+    return ImmutableSetMultimap.of("type", getClass().getName());
   }
 }

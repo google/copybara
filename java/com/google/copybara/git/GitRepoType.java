@@ -280,7 +280,7 @@ public enum GitRepoType {
   private static final Logger logger = Logger.getLogger(GitRepoType.class.getCanonicalName());
 
   private static final Pattern GIT_URL =
-      Pattern.compile("(\\w+://)(.+@)*([\\w.]+)(:[\\d]+){0,1}/*(.*)");
+      Pattern.compile("(\\w+://)(.+@)*([\\w.]+)(:[\\d]+)?/*(.*)");
 
   private static final Pattern FILE_URL = Pattern.compile("file://(.*)");
 

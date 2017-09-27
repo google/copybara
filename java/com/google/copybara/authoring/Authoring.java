@@ -125,7 +125,7 @@ public final class Authoring {
           throws EvalException {
         return new Authoring(Author.parse(location, defaultAuthor),
             AuthoringMappingMode.OVERWRITE,
-            ImmutableSet.<String>of());
+            ImmutableSet.of());
       }
     };
 
@@ -158,7 +158,7 @@ public final class Authoring {
           throws EvalException {
         return new Authoring(Author.parse(location, defaultAuthor),
             AuthoringMappingMode.PASS_THRU,
-            ImmutableSet.<String>of());
+            ImmutableSet.of());
       }
     };
 

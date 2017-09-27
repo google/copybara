@@ -21,7 +21,6 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static junit.framework.TestCase.fail;
 
 import com.google.devtools.build.lib.syntax.EvalException;
-import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.util.Map;
 import org.junit.Rule;

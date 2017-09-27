@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.RepoException;
@@ -151,8 +150,8 @@ class ChangeReader {
    */
   static class Builder {
     private Authoring authoring = null;
-    private GitRepository repository;
-    private Console console;
+    private final GitRepository repository;
+    private final Console console;
     private boolean verbose = false;
     private int limit = -1;
     private ImmutableList<String> roots = ImmutableList.of("");

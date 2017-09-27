@@ -71,7 +71,7 @@ public final class FileUtil {
    * Checks that the given path is relative and does not contain any {@code .} or {@code ..}
    * components.
    *
-   * @returns the {@code path} passed
+   * @return the {@code path} passed
    */
   public static String checkNormalizedRelative(String path) {
     checkArgument(!RELATIVISM.matcher(path).matches(),
@@ -85,7 +85,7 @@ public final class FileUtil {
    * Checks that the given path is relative and does not contain any {@code .} or {@code ..}
    * components.
    *
-   * @returns the {@code path} passed
+   * @return the {@code path} passed
    */
   public static Path checkNormalizedRelative(Path path) {
     checkNormalizedRelative(path.toString());

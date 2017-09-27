@@ -81,7 +81,7 @@ public class RevisionMigratorTest {
         "http://externalreviews.com/view?${reference}",
         Pattern.compile("[0-9]+"),
         Pattern.compile("[0-9a-f]+"),
-        ImmutableList.<String>of(),
+        ImmutableList.of(),
         location);
      OptionsBuilder options = new OptionsBuilder();
     console = new TestingConsole();
@@ -153,7 +153,7 @@ public class RevisionMigratorTest {
         "http://externalreviews.com/view?${reference}",
         Pattern.compile("[0-9]+"),
         Pattern.compile("[0-9a-f]+"),
-        ImmutableList.<String>of("LegacyImporter"),
+        ImmutableList.of("LegacyImporter"),
         location);
     String desc = "This is an awesome change, building on http://internalReviews.com/123";
     TransformWork work = getTransformWork(desc);
@@ -172,7 +172,7 @@ public class RevisionMigratorTest {
         "http://externalreviews.com/view?${reference}",
         Pattern.compile("[0-9]+"),
         Pattern.compile("[xyz]+"),
-        ImmutableList.<String>of(),
+        ImmutableList.of(),
         location);
     TransformWork work = getTransformWork(desc);
     thrown.expect(ValidationException.class);

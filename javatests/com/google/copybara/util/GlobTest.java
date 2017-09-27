@@ -151,7 +151,7 @@ public class GlobTest {
 
   @Test
   public void testRoots() {
-    assertThat(createGlob(ImmutableList.<String>of()).roots())
+    assertThat(createGlob(ImmutableList.of()).roots())
         .isEmpty();
     assertThat(createGlob(ImmutableList.of("**")).roots())
         .containsExactly("");

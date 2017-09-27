@@ -17,7 +17,6 @@
 package com.google.copybara.util.console;
 
 import com.google.common.base.Preconditions;
-import java.io.IOException;
 
 /**
  * A console that delegates to another console but adds a prefix to the progress messages

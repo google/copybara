@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
@@ -58,7 +57,7 @@ public final class RenameDetector<I> {
   private static final class HashingByteProcessor implements ByteProcessor<int[]> {
 
     int hash;
-    HashSet<Integer> hashes = new HashSet<>();
+    final HashSet<Integer> hashes = new HashSet<>();
 
     @Override
     public boolean processBytes(byte[] buf, int off, int len) {
@@ -99,7 +98,7 @@ public final class RenameDetector<I> {
    * the later revision. Closes {@code input} before returning.
    */
   public void addPriorFile(I key, InputStream input) throws IOException {
-    PriorFile<I> hash = new PriorFile<I>();
+    PriorFile<I> hash = new PriorFile<>();
     hash.key = key;
     hash.hashes = hashes(input);
     priorFiles.add(hash);

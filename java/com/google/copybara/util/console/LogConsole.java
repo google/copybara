@@ -18,7 +18,6 @@ package com.google.copybara.util.console;
 
 import com.google.common.base.Preconditions;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;

@@ -40,7 +40,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
-import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -207,7 +206,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     // Start new output entry and add origin refs
     workflow.getGeneralOptions().getStructuredOutput().getCurrentSummaryLineBuilder()
         .setOriginRefs(changes.getCurrent().stream()
-            .map(e -> e.refAsString()).collect(ImmutableList.toImmutableList()));
+            .map(Change::refAsString).collect(ImmutableList.toImmutableList()));
     processConsole.progress("Checking out the change");
     try (ProfilerTask ignored = profiler().start(
         "origin.checkout", profiler().taskType(originReader.getClass()))) {
@@ -262,7 +261,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                     new Metadata(transformWork.getMessage(), transformWork.getAuthor()),
                     changes,
                     workflow.getConsole(),
-                    new MigrationInfo(/*originLabel=*/ null, (ChangeVisitable) null),
+                    new MigrationInfo(/*originLabel=*/ null, null),
                     resolvedRef));
       }
       String diff = new String(DiffUtil.diff(originCopy, reverse, workflow.isVerbose()),

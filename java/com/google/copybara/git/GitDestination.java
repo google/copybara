@@ -179,8 +179,8 @@ public final class GitDestination implements Destination<GitRevision> {
 
     boolean alreadyFetched;
     boolean firstWrite = true;
-    LazyGitRepository localRepo;
-    String localBranch;
+    final LazyGitRepository localRepo;
+    final String localBranch;
 
     WriterState(LazyGitRepository localRepo, String localBranch) {
       this.localRepo = localRepo;

@@ -72,7 +72,7 @@ public class ReferenceMigrator implements Transformation {
   public static ReferenceMigrator create(
       String before, String after, Pattern forward, @Nullable Pattern backward,
       ImmutableList<String> additionalLabels, Location location) throws EvalException {
-    Map<String, Pattern> patterns = ImmutableMap.<String, Pattern>of("reference", forward);
+    Map<String, Pattern> patterns = ImmutableMap.of("reference", forward);
     TemplateTokens beforeTokens =
         new TemplateTokens(location, before, patterns, /* repeatedGroups= */ false);
     beforeTokens.validateUnused();

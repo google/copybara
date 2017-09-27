@@ -34,7 +34,7 @@ public abstract class Info<O extends Revision> {
 
   public static <O extends Revision> Info<O> create(
       Iterable<MigrationReference<O>> migrationReferences) {
-    return new AutoValue_Info<O>(ImmutableList.copyOf(migrationReferences));
+    return new AutoValue_Info<>(ImmutableList.copyOf(migrationReferences));
   }
 
   /**
@@ -58,7 +58,7 @@ public abstract class Info<O extends Revision> {
         String label,
         @Nullable O lastMigrated,
         Iterable<Change<O>> availableToMigrate) {
-      return new AutoValue_Info_MigrationReference<O>(
+      return new AutoValue_Info_MigrationReference<>(
           label, lastMigrated, ImmutableList.copyOf(availableToMigrate));
     }
 
@@ -93,7 +93,7 @@ public abstract class Info<O extends Revision> {
               .stream()
               .map(Change::getRevision)
               .reduce((first, second) -> second);
-      return lastAvailable.isPresent() ? lastAvailable.get() : null;
+      return lastAvailable.orElse(null);
     }
 
     /**

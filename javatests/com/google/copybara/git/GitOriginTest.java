@@ -419,7 +419,7 @@ public class GitOriginTest {
   }
 
   @Test
-  public void testCheckoutOfARef() throws Exception, ValidationException {
+  public void testCheckoutOfARef() throws Exception {
     GitRevision reference = origin.resolve(firstCommitRef);
     newReader().checkout(reference, checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");

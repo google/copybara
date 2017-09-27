@@ -213,10 +213,9 @@ public class GitRepository {
           /*verbose=*/false);
     } catch (CommandException e) {
       Optional<String> version = version(env);
-      throw new EvalException(location, version.isPresent()
-                                        ? "Invalid refspec: " + refspec
-                                        : String.format("Cannot find git binary at '%s'",
-                                            resolveGitBinary(env)));
+      throw new EvalException(location, version.map(s -> "Invalid refspec: " + refspec)
+          .orElseGet(() -> String.format("Cannot find git binary at '%s'",
+              resolveGitBinary(env))));
     }
   }
 
@@ -1299,7 +1298,7 @@ public class GitRepository {
     private final boolean includeStat;
     private final boolean includeBody;
     private final boolean includeMergeDiff;
-    private boolean firstParent;
+    private final boolean firstParent;
 
     private final GitRepository repo;
 

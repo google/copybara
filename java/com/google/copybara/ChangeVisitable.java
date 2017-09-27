@@ -89,7 +89,7 @@ public interface ChangeVisitable <R extends Revision> {
    * The result type for the function passed to
    * {@see visitChanges}.
    */
-  public enum VisitResult {
+  enum VisitResult {
     /**
      * Continue. If more changes are available for visiting, the origin will call again the
      * function with the next changes.

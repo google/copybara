@@ -55,7 +55,7 @@ public class AuthoringTest {
         "result = authoring.overwrite('foo bar <baz@bar.com>')");
     assertThat(authoring)
         .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
-        AuthoringMappingMode.OVERWRITE, ImmutableSet.<String>of()));
+        AuthoringMappingMode.OVERWRITE, ImmutableSet.of()));
   }
 
   @Test
@@ -64,7 +64,7 @@ public class AuthoringTest {
         "result = authoring.pass_thru('foo bar <baz@bar.com>')");
     assertThat(authoring)
         .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
-        AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of()));
+        AuthoringMappingMode.PASS_THRU, ImmutableSet.of()));
   }
 
   @Test
@@ -117,14 +117,14 @@ public class AuthoringTest {
   @Test
   public void testResolve_use_default() throws Exception {
     Authoring authoring = new Authoring(DEFAULT_AUTHOR, AuthoringMappingMode.OVERWRITE,
-        ImmutableSet.<String>of());
+        ImmutableSet.of());
     assertThat(authoring.useAuthor("baz@bar.com")).isFalse();
   }
 
   @Test
   public void testResolve_pass_thru() throws Exception {
     Authoring authoring = new Authoring(DEFAULT_AUTHOR, AuthoringMappingMode.PASS_THRU,
-        ImmutableSet.<String>of());
+        ImmutableSet.of());
     assertThat(authoring.useAuthor("baz@bar.com")).isTrue();
   }
 

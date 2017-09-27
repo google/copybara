@@ -138,7 +138,7 @@ public class SkylarkParser {
    */
   public <T> ConfigWithDependencies<T> getConfigWithTransitiveImports(
       ConfigFile<T> config, Options options) throws IOException, ValidationException {
-    CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<T>(config);
+    CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(config);
     ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
 
     Config parsedConfig = loadConfigInternal(capturingConfigFile, options, configFilesSupplier);
@@ -272,7 +272,7 @@ public class SkylarkParser {
       ConfigFile<?> mainConfigFile,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK,
-        ImmutableMap.<String, Extension>of());
+        ImmutableMap.of());
 
     for (Class<?> module : modules) {
       logger.log(Level.INFO, "Creating variable for " + module.getName());
@@ -354,7 +354,7 @@ public class SkylarkParser {
     private final String path;
 
     private InputSourceForConfigFile(ConfigFile content) throws IOException {
-      this.content = Preconditions.checkNotNull(new String(content.content(), UTF_8));
+      this.content = new String(content.content(), UTF_8);
       path = Preconditions.checkNotNull(content.path());
     }
 

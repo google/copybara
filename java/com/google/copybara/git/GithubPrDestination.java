@@ -39,7 +39,6 @@ import com.google.copybara.git.github_api.PullRequest;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.net.URI;
 import java.util.UUID;
 import javax.annotation.Nullable;
 

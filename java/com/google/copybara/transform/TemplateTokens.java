@@ -171,7 +171,7 @@ public final class TemplateTokens {
         String replaceTemplate;
         if (callback != null) {
           ImmutableMap.Builder<Integer, String> groupValues =
-              ImmutableMap.<Integer, String>builder();
+              ImmutableMap.builder();
           for (int i = 0; i <= matcher.groupCount(); i++) {
             groupValues.put(i, matcher.group(i));
           }
@@ -258,8 +258,8 @@ public final class TemplateTokens {
   }
 
   private static class Builder {
-    List<Token> tokens = new ArrayList<>();
-    Multimap<String, Integer> groupIndexes = ArrayListMultimap.create();
+    final List<Token> tokens = new ArrayList<>();
+    final Multimap<String, Integer> groupIndexes = ArrayListMultimap.create();
     Location location;
 
     /**
@@ -374,6 +374,6 @@ public final class TemplateTokens {
      * @param template The replacement template the replacer would normally use
      * @return The template to be used instead
      */
-    public String alter(Map<Integer, String> groupValues, String template);
+    String alter(Map<Integer, String> groupValues, String template);
   }
 }

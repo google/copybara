@@ -36,7 +36,7 @@ public class ChangeMessage {
   private static final CharMatcher TRIM = CharMatcher.is('\n');
 
   private String text;
-  private String groupSeparator;
+  private final String groupSeparator;
   private List<LabelFinder> labels;
 
   private ChangeMessage(String text, String groupSeparator, List<LabelFinder> labels) {

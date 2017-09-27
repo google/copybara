@@ -39,7 +39,7 @@ final class VerifyMatchVisitor extends SimpleFileVisitor<Path> {
   private final boolean verifyNoMatch;
   private final PathMatcher pathMatcher;
 
-  private ImmutableList.Builder<String> errorBuilder = ImmutableList.builder();
+  private final ImmutableList.Builder<String> errorBuilder = ImmutableList.builder();
 
   VerifyMatchVisitor(Pattern regEx, PathMatcher pathMatcher, boolean verifyNoMatch) {
     this.regEx = Preconditions.checkNotNull(regEx);

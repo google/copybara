@@ -62,7 +62,7 @@ public class DummyOriginTest {
         .addSimpleChange(/*timestamp*/ 4242, "foo msg");
 
     Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
-        AuthoringMappingMode.OVERWRITE, ImmutableSet.<String>of());
+        AuthoringMappingMode.OVERWRITE, ImmutableSet.of());
     Reader<DummyRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     ImmutableList<Change<DummyRevision>> changes =
         reader.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0"));
@@ -99,7 +99,7 @@ public class DummyOriginTest {
         .addSimpleChange(/*timestamp*/ 999);
 
     Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
-        AuthoringMappingMode.PASS_THRU, ImmutableSet.<String>of());
+        AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
     ImmutableList<Change<DummyRevision>> changes = origin.newReader(Glob.ALL_FILES, authoring)
         .changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1"));
 

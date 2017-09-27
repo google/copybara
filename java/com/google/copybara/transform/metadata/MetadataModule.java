@@ -553,7 +553,7 @@ public class MetadataModule {
               destinationFormat,
               beforePattern,
               afterPattern,
-              ImmutableList.<String>copyOf(Type.STRING_LIST.convert(labels, "labels")),
+              ImmutableList.copyOf(Type.STRING_LIST.convert(labels, "labels")),
               location);
     }
   };

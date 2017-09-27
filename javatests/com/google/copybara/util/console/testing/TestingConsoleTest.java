@@ -56,12 +56,7 @@ public final class TestingConsoleTest {
     console.error("jjj_asdf_mmm");
     final LogSubject logSubject = console.assertThat();
     expectAssertion(".*jjj_asdf_mmm.*",
-        new Runnable() {
-          @Override
-          public void run() {
-            logSubject.matchesNext(MessageType.ERROR, "asdf");
-          }
-        });
+        () -> logSubject.matchesNext(MessageType.ERROR, "asdf"));
   }
 
   @Test
@@ -70,12 +65,7 @@ public final class TestingConsoleTest {
     final LogSubject logSubject = console.assertThat()
         .matchesNext(MessageType.ERROR, "foo");
     expectAssertion("no more log messages.*",
-        new Runnable() {
-          @Override
-          public void run() {
-            logSubject.matchesNext(MessageType.ERROR, "foo");
-          }
-        });
+        () -> logSubject.matchesNext(MessageType.ERROR, "foo"));
   }
 
   @Test
@@ -124,13 +114,8 @@ public final class TestingConsoleTest {
   public void assertMessageTypeWrong1() {
     console.error("foo");
     expectAssertion(".*foo.*",
-        new Runnable() {
-          @Override
-          public void run() {
-            console.assertThat()
-                .matchesNext(MessageType.WARNING, "foo");
-          }
-        });
+        () -> console.assertThat()
+            .matchesNext(MessageType.WARNING, "foo"));
   }
 
   @Test
@@ -138,12 +123,7 @@ public final class TestingConsoleTest {
     console.info("bar");
     final LogSubject logSubject = console.assertThat();
     expectAssertion(".*bar.*",
-        new Runnable() {
-          @Override
-          public void run() {
-            logSubject.matchesNext(MessageType.PROGRESS, "bar");
-          }
-        });
+        () -> logSubject.matchesNext(MessageType.PROGRESS, "bar"));
   }
 
   @Test

@@ -45,7 +45,7 @@ public class AddHeader implements Transformation {
   private final boolean ignoreIfLabelNotFound;
   private final boolean newLine;
   private static final Pattern VAR_PATTERN =
-      Pattern.compile("\\$\\{(" + LabelFinder.VALID_LABEL + ")\\}");
+      Pattern.compile("\\$\\{(" + LabelFinder.VALID_LABEL + ")}");
 
   private final Set<String> labels = new HashSet<>();
 

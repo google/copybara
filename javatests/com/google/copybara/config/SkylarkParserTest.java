@@ -171,7 +171,7 @@ public class SkylarkParserTest {
       stringContentMap.put(entry.getKey(), content(entry.getValue()));
     }
     ConfigFile<String> derivedConfig =
-        new MapConfigFile(ImmutableMap.<String, byte[]>copyOf(contentMap), "copy.bara.sky");
+        new MapConfigFile(ImmutableMap.copyOf(contentMap), "copy.bara.sky");
     Map<String, String> derivedContentMap = new HashMap<>();
     for (Entry<String, ConfigFile<String>> entry : parser.getConfigMap(derivedConfig).entrySet()) {
       derivedContentMap.put(entry.getKey(), content(entry.getValue()));

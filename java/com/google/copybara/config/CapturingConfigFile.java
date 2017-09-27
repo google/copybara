@@ -66,7 +66,7 @@ class CapturingConfigFile<T> extends ConfigFile<T> {
   ImmutableMap<String, ConfigFile<T>> getAllLoadedFiles() throws IOException {
     Map<String, ConfigFile<T>> map = new HashMap<>();
     getAllLoadedFiles(map);
-    return ImmutableMap.<String, ConfigFile<T>>copyOf(map);
+    return ImmutableMap.copyOf(map);
   }
 
   private void getAllLoadedFiles(Map<String, ConfigFile<T>> map) throws IOException {
@@ -79,7 +79,7 @@ class CapturingConfigFile<T> extends ConfigFile<T> {
   @Override
   protected ConfigFile<T> createConfigFile(String label, T resolved) throws CannotResolveLabel {
     CapturingConfigFile<T> child =
-        new CapturingConfigFile<T>(wrapped.createConfigFile(label, resolved));
+        new CapturingConfigFile<>(wrapped.createConfigFile(label, resolved));
     children.add(child);
     return child;
   }
