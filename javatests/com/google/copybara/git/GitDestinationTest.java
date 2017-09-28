@@ -1102,7 +1102,9 @@ public class GitDestinationTest {
         + "\n"
         + "That already has a label\n"
         + "THE_LABEL: value\n";
-    writer.write(new TransformResult(workdir, rev, rev.getAuthor(), msg, rev), console);
+    writer.write(
+        new TransformResult(workdir, rev, rev.getAuthor(), msg, rev, /*workflowName*/ "default"),
+        console);
 
     String body = lastCommit("HEAD").getBody();
     assertThat(body).isEqualTo("This is a message\n"

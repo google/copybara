@@ -160,12 +160,17 @@ public class WorkflowTest {
     return (Workflow<?, ?>) loadConfig(config).getMigration(name);
   }
 
-  private Workflow iterativeWorkflow(@Nullable String previousRef)
+  private Workflow iterativeWorkflow(String workflowName, @Nullable String previousRef)
       throws ValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
     options.general = new GeneralOptions(
         options.general.getFileSystem(), options.general.isVerbose(), console());
-    return skylarkWorkflow("default", WorkflowMode.ITERATIVE);
+    return skylarkWorkflow(workflowName, WorkflowMode.ITERATIVE);
+  }
+
+  private Workflow iterativeWorkflow(@Nullable String previousRef)
+      throws ValidationException, IOException {
+    return iterativeWorkflow("default", previousRef);
   }
 
   private Workflow changeRequestWorkflow(@Nullable String baseline)
@@ -246,6 +251,22 @@ public class WorkflowTest {
     for (ProcessedChange change : destination.processed) {
       assertThat(change.getRequestedRevision().contextReference())
           .isEqualTo(change.getOriginRef().asString().equals("1") ? null : "HEAD");
+    }
+  }
+
+  @Test
+  public void iterativeWorkflowTestRecordMigrationKey() throws Exception {
+    for (int timestamp = 0; timestamp < 10; timestamp++) {
+      origin.addSimpleChange(timestamp);
+    }
+    String name = "notDefaultWorkflow";
+    Workflow workflow = iterativeWorkflow(name, "0");
+    workflow.run(workdir, /*sourceRef=*/ "1");
+    workflow = iterativeWorkflow(name, null);
+    workflow.run(workdir, /*sourceRef=*/ "HEAD");
+
+    for (ProcessedChange change : destination.processed) {
+      assertThat(change.getWorkflowName()).isEqualTo(name);
     }
   }
 

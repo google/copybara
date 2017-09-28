@@ -211,6 +211,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       return transformResult.getRequestedRevision();
     }
 
+    public String getWorkflowName() {
+      return transformResult.getWorkflowName();
+    }
+
     public int numFiles() {
       return workdir.size();
     }

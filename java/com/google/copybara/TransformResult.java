@@ -39,6 +39,7 @@ public final class TransformResult {
   private final Revision requestedRevision;
   @Nullable
   private final String changeIdentity;
+  private final String workflowName;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -46,16 +47,32 @@ public final class TransformResult {
   }
 
   public TransformResult(Path path, Revision currentRevision, Author author, String summary,
-      Revision requestedRevision)
+      Revision requestedRevision, String workflowName)
       throws RepoException {
-    this(path, currentRevision, author, readTimestampOrCurrentTime(currentRevision), summary,
-        /*baseline=*/ null, /*askForConfirmation=*/ false, requestedRevision,
-         /*changeIdentity=*/null /*groupIdentity=*/);
+    this(
+        path,
+        currentRevision,
+        author,
+        readTimestampOrCurrentTime(currentRevision),
+        summary,
+        /*baseline=*/ null,
+        /*askForConfirmation=*/ false,
+        requestedRevision,
+        /*changeIdentity=*/ null,
+        workflowName);
   }
 
-  private TransformResult(Path path, Revision currentRevision, Author author,
-      ZonedDateTime timestamp, String summary, @Nullable String baseline,
-      boolean askForConfirmation, Revision requestedRevision, @Nullable String changeIdentity) {
+  private TransformResult(
+      Path path,
+      Revision currentRevision,
+      Author author,
+      ZonedDateTime timestamp,
+      String summary,
+      @Nullable String baseline,
+      boolean askForConfirmation,
+      Revision requestedRevision,
+      @Nullable String changeIdentity,
+      String workflowName) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -65,13 +82,22 @@ public final class TransformResult {
     this.askForConfirmation = askForConfirmation;
     this.requestedRevision = Preconditions.checkNotNull(requestedRevision);
     this.changeIdentity = changeIdentity;
+    this.workflowName = Preconditions.checkNotNull(workflowName);
   }
 
   public TransformResult withBaseline(String newBaseline) {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
-        this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        newBaseline, this.askForConfirmation, this.requestedRevision, this.changeIdentity);
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        newBaseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName);
   }
 
   /**
@@ -81,23 +107,44 @@ public final class TransformResult {
   public TransformResult withSummary(String summary) {
     Preconditions.checkNotNull(summary);
     return new TransformResult(
-        this.path, this.currentRevision, this.author, this.timestamp, summary,
-        this.baseline, this.askForConfirmation, this.requestedRevision, this.changeIdentity
-    );
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        summary,
+        this.baseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName);
   }
 
   public TransformResult withIdentity(String changeIdentity) {
     return new TransformResult(
-        this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        this.baseline, this.askForConfirmation, this.requestedRevision, changeIdentity
-    );
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        this.baseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        changeIdentity,
+        this.workflowName);
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
     return new TransformResult(
-        this.path, this.currentRevision, this.author, this.timestamp, this.summary,
-        this.baseline, askForConfirmation, this.requestedRevision, this.changeIdentity
-    );
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        this.baseline,
+        askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName);
   }
 
   /**
@@ -183,6 +230,14 @@ public final class TransformResult {
    */
   public boolean isAskForConfirmation() {
     return askForConfirmation;
+  }
+
+  /**
+   * The workflow name for the migration. Together with the config path it uniquely identifies a
+   * workflow.
+   */
+  public String getWorkflowName() {
+    return workflowName;
   }
 
   /**

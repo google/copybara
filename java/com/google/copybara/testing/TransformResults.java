@@ -26,10 +26,15 @@ import java.nio.file.Path;
 public class TransformResults {
   private TransformResults() {}
 
-  /** Creates an instance with reasonable defaults for testing. */
   public static TransformResult of(Path path, DummyRevision originRef) throws RepoException {
-    return new TransformResult(path, originRef, originRef.getAuthor(), "test summary\n",
-                               originRef)
-        .withIdentity(originRef.asString() /*groupIdentity=*/);
+    return TransformResults.of(path, originRef, "default");
+  }
+
+  /** Creates an instance with reasonable defaults for testing. */
+  public static TransformResult of(Path path, DummyRevision originRef, String workflowName)
+      throws RepoException {
+    return new TransformResult(
+            path, originRef, originRef.getAuthor(), "test summary\n", originRef, workflowName)
+        .withIdentity(originRef.asString());
   }
 }

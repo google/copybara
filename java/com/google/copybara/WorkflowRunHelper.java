@@ -282,7 +282,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     // TODO(malcon): Pass metadata object instead
     TransformResult transformResult =
         new TransformResult(
-            checkoutDir, rev, transformWork.getAuthor(), transformWork.getMessage(), resolvedRef);
+            checkoutDir,
+            rev,
+            transformWork.getAuthor(),
+            transformWork.getMessage(),
+            resolvedRef,
+            workflow.getName());
     if (destinationBaseline != null) {
       transformResult = transformResult.withBaseline(destinationBaseline);
     }
