@@ -106,8 +106,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       throws RepoException, ValidationException {
     return httpTransport.createRequestFactory(
         request -> {
-          request.setConnectTimeout((int) Duration.ofSeconds(60).toMillis());
-          request.setReadTimeout((int) Duration.ofSeconds(60).toMillis());
+          request.setConnectTimeout((int) Duration.ofMinutes(1).toMillis());
+          request.setReadTimeout((int) Duration.ofMinutes(1).toMillis());
           HttpHeaders httpHeaders = new HttpHeaders();
           if (userPassword != null) {
             httpHeaders.setBasicAuthentication(userPassword.getUsername(),

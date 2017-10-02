@@ -816,7 +816,7 @@ public class GitRepository {
 
   public UserPassword credentialFill(String url) throws RepoException, ValidationException {
     return new GitCredential(resolveGitBinary(environment),
-        Duration.ofSeconds(60),
+        Duration.ofMinutes(1),
         environment).fill(gitDir, url);
   }
 
