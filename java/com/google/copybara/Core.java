@@ -471,7 +471,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           + " automatically reversed.",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object"),
-          @Param(name = "before", type = String.class,
+          @Param(name = "before_BREAK", type = String.class,
               doc = "The text before the transformation. Can contain references to regex groups."
               + " For example \"foo${x}text\".<p>If '$' literal character needs to be matched, "
               + "'`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'."),
