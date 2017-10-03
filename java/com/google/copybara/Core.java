@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.config.base.SkylarkUtil.check;
 import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.base.SkylarkUtil.stringToEnum;
 
@@ -33,6 +34,8 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Remove;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
+import com.google.copybara.transform.TodoReplace;
+import com.google.copybara.transform.TodoReplace.Mode;
 import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
@@ -139,8 +142,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         return Glob.createGlob(includeStrings, excludeStrings);
       } catch (IllegalArgumentException e) {
         throw new EvalException(location, String.format(
-                "Cannot create a glob from: include='%s' and exclude='%s': %s",
-                includeStrings, excludeStrings, e.getMessage()), e);
+            "Cannot create a glob from: include='%s' and exclude='%s': %s",
+            includeStrings, excludeStrings, e.getMessage()), e);
       }
     }
   };
@@ -205,18 +208,18 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               positional = false, defaultValue = "[]"),
           @Param(name = "origin_files", type = Glob.class,
               doc = "A glob relative to the workdir that will be read from the"
-              + " origin during the import. For example glob([\"**.java\"]), all java files,"
-              + " recursively, which excludes all other file types.",
+                  + " origin during the import. For example glob([\"**.java\"]), all java files,"
+                  + " recursively, which excludes all other file types.",
               defaultValue = "glob(['**'])", positional = false),
           @Param(name = "destination_files", type = Glob.class,
               doc = "A glob relative to the root of the destination repository that matches"
-              + " files that are part of the migration. Files NOT matching this glob will never"
-              + " be removed, even if the file does not exist in the source. For example"
-              + " glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when"
-              + " the origin does not have any BUILD files. You can also use this to limit the"
-              + " migration to a subdirectory of the destination,"
-              + " e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files"
-              + " in java/src.",
+                  + " files that are part of the migration. Files NOT matching this glob will never"
+                  + " be removed, even if the file does not exist in the source. For example"
+                  + " glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination"
+                  + " when the origin does not have any BUILD files. You can also use this to limit"
+                  + " the migration to a subdirectory of the destination,"
+                  + " e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD"
+                  + " files in java/src.",
               defaultValue = "glob(['**'])", positional = false),
           @Param(name = "mode", type = String.class, doc = ""
               + "Workflow mode. Currently we support three modes:<br>"
@@ -293,7 +296,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       boolean checkLastRevState = checkLastRevStateField || self.workflowOptions.checkLastRevState;
 
       if (checkLastRevState) {
-        SkylarkUtil.check(location, mode != WorkflowMode.CHANGE_REQUEST,
+        check(location, mode != WorkflowMode.CHANGE_REQUEST,
             "%s is not compatible with %s", CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
       }
 
@@ -333,15 +336,15 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       returnType = Transformation.class,
       doc = "Moves files between directories and renames files",
       parameters = {
-        @Param(name = "self", type = Core.class, doc = "this object"),
-        @Param(name = "before", type = String.class, doc = ""
-            + "The name of the file or directory before moving. If this is the empty"
-            + " string and 'after' is a directory, then all files in the workdir will be moved to"
-            + " the sub directory specified by 'after', maintaining the directory tree."),
-        @Param(name = "after", type = String.class, doc = ""
-            + "The name of the file or directory after moving. If this is the empty"
-            + " string and 'before' is a directory, then all files in 'before' will be moved to"
-            + " the repo root, maintaining the directory tree inside 'before'."),
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "before", type = String.class, doc = ""
+              + "The name of the file or directory before moving. If this is the empty"
+              + " string and 'after' is a directory, then all files in the workdir will be moved to"
+              + " the sub directory specified by 'after', maintaining the directory tree."),
+          @Param(name = "after", type = String.class, doc = ""
+              + "The name of the file or directory after moving. If this is the empty"
+              + " string and 'before' is a directory, then all files in 'before' will be moved to"
+              + " the repo root, maintaining the directory tree inside 'before'."),
           @Param(name = "paths", type = Glob.class,
               doc = "A glob expression relative to 'before' if it represents a directory."
                   + " Only files matching the expression will be moved. For example,"
@@ -370,10 +373,11 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction MOVE = new BuiltinFunction("move",
       ImmutableList.of(Glob.ALL_FILES, false)) {
     @SuppressWarnings("unused")
-    public Transformation invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
+    public Transformation invoke(Core self, String before, String after, Glob paths,
+        Boolean overwrite,
         Location location) throws EvalException {
 
-      SkylarkUtil.check(location, !Objects.equals(before, after),
+      check(location, !Objects.equals(before, after),
           "Moving from the same folder to the same folder is a noop. Remove the"
               + " transformation.");
 
@@ -423,9 +427,10 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction COPY = new BuiltinFunction("copy",
       ImmutableList.of(Glob.ALL_FILES, false)) {
     @SuppressWarnings("unused")
-    public Transformation invoke(Core self, String before, String after, Glob paths, Boolean overwrite,
+    public Transformation invoke(Core self, String before, String after, Glob paths,
+        Boolean overwrite,
         Location location) throws EvalException {
-      SkylarkUtil.check(location, !Objects.equals(before, after),
+      check(location, !Objects.equals(before, after),
           "Copying from the same folder to the same folder is a noop. Remove the"
               + " transformation.");
       return CopyOrMove.createCopy(before, after, self.workflowOptions, paths, overwrite, location);
@@ -473,8 +478,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           @Param(name = "self", type = Core.class, doc = "this object"),
           @Param(name = "before", type = String.class,
               doc = "The text before the transformation. Can contain references to regex groups."
-              + " For example \"foo${x}text\".<p>If '$' literal character needs to be matched, "
-              + "'`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'."),
+                  + " For example \"foo${x}text\".<p>If '$' literal character needs to be matched, "
+                  + "'`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'."),
           @Param(name = "after", type = String.class,
               doc = "The text after the transformation. It can also contain references to regex "
                   + "groups, like 'before' field."),
@@ -488,8 +493,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               defaultValue = "glob([\"**\"])"),
           @Param(name = "first_only", type = Boolean.class,
               doc = "If true, only replaces the first instance rather than all. In single line"
-              + " mode, replaces the first instance on each line. In multiline mode, replaces the"
-              + " first instance in each file.",
+                  + " mode, replaces the first instance on each line. In multiline mode, replaces the"
+                  + " first instance in each file.",
               defaultValue = "False"),
           @Param(name = "multiline", type = Boolean.class,
               doc = "Whether to replace text that spans more than one line.",
@@ -582,6 +587,83 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   };
 
   @SkylarkSignature(
+      name = "todo_replace",
+      returnType = TodoReplace.class,
+      doc = "Replace Google style TODOs. For example `TODO(username, othername)`.",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "tags", type = SkylarkList.class, generic1 = String.class,
+              doc = "Prefix tag to look for", defaultValue = "['TODO', 'NOTE']"),
+          @Param(name = "mapping", type = SkylarkDict.class,
+              doc = "Mapping of users/strings", defaultValue = "{}"),
+          @Param(name = "mode", type = String.class,
+              doc = "Mode for the replace:\n"
+                  + "<ul>\n"
+                  + "<li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li>\n"
+                  + "<li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found."
+                  + "</li>\n"
+                  + "<li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found."
+                  + "</li>\n"
+                  + "<li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'"
+                  + "</li>\n"
+                  + "<li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li>"
+                  + "</ul>\n\n", defaultValue = "'MAP_OR_IGNORE'"),
+          @Param(name = "paths", type = Glob.class,
+              doc = "A glob expression relative to the workdir representing the files to apply"
+                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
+                  + " recursively. Defaults to match all the files recursively.",
+              defaultValue = "glob([\"**\"])"),
+          @Param(name = "default", type = String.class,
+              doc = "Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or"
+                  + " 'USE_DEFAULT' modes", noneable = true, defaultValue = "None"),
+      },
+      objectType = Core.class, useLocation = true)
+  @Example(title = "Simple update",
+      before = "Replace TODOs and NOTES for users in the mapping:",
+      code = "core.todo_replace(\n"
+          + "  mapping = {\n"
+          + "    'test1' : 'external1',\n"
+          + "    'test2' : 'external2'\n"
+          + "  }\n"
+          + ")",
+      after = "Would replace texts like TODO(test1) or NOTE(test1, test2) with TODO(external1)"
+          + " or NOTE(external1, external2)")
+  @Example(title = "Scrubbing",
+      before = "Remove text from inside TODOs",
+      code = "core.todo_replace(\n"
+          + "  mode = 'SCRUB_NAMES'\n"
+          + ")",
+      after = "Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo"
+          + " and NOTE:foo")
+  public static final BuiltinFunction TODO_REPLACE = new BuiltinFunction("todo_replace",
+      ImmutableList.of(
+          SkylarkList.createImmutable(ImmutableList.of("TODO", "NOTE")),
+          SkylarkDict.empty(),
+          TodoReplace.Mode.MAP_OR_IGNORE.toString(),
+          Glob.ALL_FILES,
+          Runtime.NONE)) {
+    public TodoReplace invoke(Core self, SkylarkList<String> skyTags,
+        SkylarkDict<String, String> skyMapping, String modeStr, Glob paths, Object skyDefault,
+        Location location) throws EvalException {
+      Mode mode = SkylarkUtil.stringToEnum(location, "mode", modeStr, Mode.class);
+      Map<String, String> mapping = Type.STRING_DICT.convert(skyMapping, "mapping");
+      String defaultString = SkylarkUtil.convertFromNoneable(skyDefault, /*defaultValue=*/null);
+      ImmutableList<String> tags = ImmutableList.copyOf(Type.STRING_LIST.convert(skyTags, "tags"));
+
+      check(location, !tags.isEmpty(), "'tags' cannot be empty");
+      if (mode == Mode.MAP_OR_DEFAULT || mode == Mode.USE_DEFAULT) {
+        check(location, defaultString != null, "'default' needs to be set for mode '%s'", mode);
+      } else {
+        check(location, defaultString == null, "'default' cannot be used for mode '%s'", mode);
+      }
+      if (mode == Mode.USE_DEFAULT || mode == Mode.SCRUB_NAMES) {
+        check(location, mapping.isEmpty(), "'mapping' cannot be used with mode %s", mode);
+      }
+      return new TodoReplace(location, paths, tags, mode, mapping, defaultString);
+    }
+  };
+
+  @SkylarkSignature(
       name = "verify_match",
       returnType = VerifyMatch.class,
       doc = "Verifies that a RegEx matches (or not matches) the specified files. Does not, "
@@ -595,8 +677,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + " '^' refers to the beginning of a file and '$' to its end."),
           @Param(name = "paths", type = Glob.class,
               doc = "A glob expression relative to the workdir representing the files to apply"
-              + " the transformation. For example, glob([\"**.java\"]), matches all java files"
-              + " recursively. Defaults to match all the files recursively.",
+                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
+                  + " recursively. Defaults to match all the files recursively.",
               defaultValue = "glob([\"**\"])"),
           @Param(name = "verify_no_match", type = Boolean.class,
               doc = "If true, the transformation will verify that the RegEx does not match.",
@@ -633,7 +715,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           @Param(name = "transformations",
               type = SkylarkList.class, generic1 = Transformation.class,
               doc = "The list of transformations to run as a result of running this"
-              + " transformation."),
+                  + " transformation."),
           @Param(name = "reversal", type = SkylarkList.class, generic1 = Transformation.class,
               doc = "The list of transformations to run as a result of running this"
                   + " transformation in reverse.", named = true, positional = false,
