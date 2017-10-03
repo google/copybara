@@ -132,7 +132,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     if (!requiredLabels.isEmpty()) {
       Issue issue;
       try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_issue")) {
-        issue = githubOptions.getApi().getIssue(project, prNumber);
+        issue = githubOptions.getApi(project).getIssue(project, prNumber);
       }
 
       Set<String> required = Sets.newHashSet(requiredLabels);
@@ -146,7 +146,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     }
     PullRequest prData;
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
-      prData = githubOptions.getApi().getPullRequest(project, prNumber);
+      prData = githubOptions.getApi(project).getPullRequest(project, prNumber);
     }
     String stableRef = useMerge ? GithubUtil.asMergeRef(prNumber) : GithubUtil.asHeadRef(prNumber);
 

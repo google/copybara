@@ -30,6 +30,7 @@ import com.google.copybara.Destination.Writer;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.github_api.GithubApi;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
@@ -64,6 +65,7 @@ public class GithubPrDestinationTest {
   public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private Path localHub;
+  private String expectedProject = "foo";
   private GithubMockHttpTransport githubMockHttpTransport;
 
   @Before
@@ -80,6 +82,12 @@ public class GithubPrDestinationTest {
     options.git = new TestGitOptions(localHub, () -> GithubPrDestinationTest.this.options.general);
 
     options.github = new GithubOptions(() -> options.general, options.git) {
+      @Override
+      public GithubApi getApi(String project) throws RepoException {
+        assertThat(project).isEqualTo(expectedProject);
+        return super.getApi(project);
+      }
+
       @Override
       protected HttpTransport getHttpTransport() {
         return githubMockHttpTransport;

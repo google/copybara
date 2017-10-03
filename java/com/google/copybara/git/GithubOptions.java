@@ -31,7 +31,7 @@ import java.util.function.Supplier;
  */
 public class GithubOptions implements Option {
 
-  private final Supplier<GeneralOptions> generalOptionsSupplier;
+  protected final Supplier<GeneralOptions> generalOptionsSupplier;
   private final GitOptions gitOptions;
 
   public GithubOptions(Supplier<GeneralOptions> generalOptionsSupplier, GitOptions gitOptions) {
@@ -39,7 +39,7 @@ public class GithubOptions implements Option {
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
   }
 
-  public GithubApi getApi() throws RepoException {
+  public GithubApi getApi(String gitHubRepo) throws RepoException {
     GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
 
     String storePath = gitOptions.getCredentialHelperStorePath();

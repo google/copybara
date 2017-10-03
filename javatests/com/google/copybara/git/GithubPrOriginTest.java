@@ -36,6 +36,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.git.github_api.GithubApi;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
@@ -43,6 +44,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.sun.org.apache.regexp.internal.RE;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -72,6 +74,7 @@ public class GithubPrOriginTest {
   private Path workdir;
   private Path localHub;
   private GithubMockHttpTransport githubMockHttpTransport;
+  private String expectedProject = "google/example";
 
   @Before
   public void setup() throws Exception {
@@ -87,6 +90,12 @@ public class GithubPrOriginTest {
     options.git = new TestGitOptions(localHub, () -> this.options.general);
 
     options.github = new GithubOptions(() -> options.general, options.git) {
+      @Override
+      public GithubApi getApi(String project) throws RepoException {
+        assertThat(project).isEqualTo(expectedProject);
+        return super.getApi(project);
+      }
+
       @Override
       protected HttpTransport getHttpTransport() {
         return githubMockHttpTransport;

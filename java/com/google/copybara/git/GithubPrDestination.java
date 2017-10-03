@@ -129,7 +129,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
           return result;
         }
 
-        GithubApi api = githubOptions.getApi();
+        GithubApi api = githubOptions.getApi(GithubUtil.getProjectNameFromUrl(url));
         for (PullRequest pr : api.getPullRequests(getProjectName())) {
           if (pr.isOpen() && pr.getHead().getRef().equals(pushBranchName)) {
             console.infoFmt("Pull request for branch %s already exists as %s/pull/%s",
@@ -183,7 +183,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
     return GitRepository.GIT_ORIGIN_REV_ID;
   }
 
-  private class GithubWriterState extends WriterState {
+  private static class GithubWriterState extends WriterState {
 
     @Nullable
     Long pullRequestNumber;
