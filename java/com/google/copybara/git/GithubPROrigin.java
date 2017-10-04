@@ -88,6 +88,10 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   @Override
   public GitRevision resolve(String reference) throws RepoException, ValidationException {
+    ValidationException.checkCondition(reference != null,""
+        + "A pull request reference is expected as argument in the command line."
+        + " Invoke copybara as:\n"
+        + "    copybara copy.bara.sky workflow_name 12345");
     console.progress("GitHub PR Origin: Resolving reference " + reference);
 
     // A whole https pull request url

@@ -44,7 +44,6 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.sun.org.apache.regexp.internal.RE;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -128,6 +127,16 @@ public class GithubPrOriginTest {
 
   private GitRepository repoForPath(Path path) {
     return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true);
+  }
+
+  @Test
+  public void testNoCommandLineReference() throws Exception {
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("A pull request reference is expected");
+    githubPrOrigin(
+        "url = 'https://github.com/google/example'",
+        "required_labels = ['foo: yes', 'bar: yes']")
+        .resolve(null);
   }
 
   @Test
