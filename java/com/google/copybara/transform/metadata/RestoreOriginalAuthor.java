@@ -25,7 +25,9 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Restores an original author stored in a label.
@@ -33,9 +35,11 @@ import java.io.IOException;
 public class RestoreOriginalAuthor implements Transformation {
 
   private final String label;
+  private boolean searchAllChanges;
 
-  RestoreOriginalAuthor(String label) {
+  RestoreOriginalAuthor(String label, boolean searchAllChanges) {
     this.label = label;
+    this.searchAllChanges = searchAllChanges;
   }
 
   @Override
@@ -54,6 +58,9 @@ public class RestoreOriginalAuthor implements Transformation {
           // difficult for a user to recover from this.
           work.getConsole().warn("Cannot restore original author: " + e.getMessage());
         }
+      }
+      if (!searchAllChanges) {
+        break;
       }
     }
     if (author != null) {

@@ -141,7 +141,8 @@ public class MetadataModule {
           + "Extended text\n" + "```\n")
   static final BuiltinFunction SQUASH_NOTES = new BuiltinFunction("squash_notes") {
     public Transformation invoke(MetadataModule self, String prefix, Integer max,
-        Boolean compact, Boolean showRef, Boolean showAuthor, Boolean showDescription, Boolean oldestFirst,
+        Boolean compact, Boolean showRef, Boolean showAuthor, Boolean showDescription,
+        Boolean oldestFirst,
         Location location) throws EvalException {
       return new MetadataSquashNotes(SkylarkUtil.checkNotEmpty(prefix, "prefix", location),
           max, compact, showRef, showAuthor, showDescription, oldestFirst);
@@ -164,7 +165,7 @@ public class MetadataModule {
       return new SaveOriginalAuthor(label);
     }
   };
-  
+
   static final String MAP_AUTHOR_EXAMPLE_SIMPLE = ""
       + "metadata.map_author({\n"
       + "    'john' : 'Some Person <some@example.com>',\n"
@@ -197,9 +198,9 @@ public class MetadataModule {
                   + " workflow.",
               defaultValue = "False", positional = false),
       }, objectType = MetadataModule.class, useLocation = true)
-  @Example(title =  "Map some names, emails and complete authors",
-  before = "Here we show how to map authors using different options:",
-  code = MAP_AUTHOR_EXAMPLE_SIMPLE)
+  @Example(title = "Map some names, emails and complete authors",
+      before = "Here we show how to map authors using different options:",
+      code = MAP_AUTHOR_EXAMPLE_SIMPLE)
   static final BuiltinFunction MAP_AUTHOR = new BuiltinFunction("map_author") {
     public Transformation invoke(MetadataModule self, SkylarkDict<String, String> authors,
         Boolean reversible, Boolean failIfNotFound, Boolean reverseFailIfNotFound,
@@ -296,11 +297,16 @@ public class MetadataModule {
           @Param(name = "label", type = String.class,
               doc = "The label to use for restoring the author",
               defaultValue = "'ORIGINAL_AUTHOR'"),
+          @Param(name = "search_all_changes", type = Boolean.class,
+              doc = "By default Copybara only looks in the last current change for the author"
+                  + " label. This allows to do the search in all current changes (Only makes sense"
+                  + "for SQUASH/CHANGE_REQUEST).", defaultValue = "False"),
       }, objectType = MetadataModule.class, useLocation = true)
   static final BuiltinFunction RESTORE_ORIGINAL_AUTHOR = new BuiltinFunction("restore_author") {
-    public Transformation invoke(MetadataModule self, String label, Location location)
+    public Transformation invoke(MetadataModule self, String label, Boolean searchAllChanges,
+        Location location)
         throws EvalException {
-      return new RestoreOriginalAuthor(label);
+      return new RestoreOriginalAuthor(label, searchAllChanges);
     }
   };
 

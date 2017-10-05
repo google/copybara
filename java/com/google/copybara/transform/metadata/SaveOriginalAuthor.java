@@ -41,7 +41,7 @@ public class SaveOriginalAuthor implements Transformation {
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
-    return new RestoreOriginalAuthor(label);
+    return new RestoreOriginalAuthor(label, /*searchAllChanges=*/false);
   }
 
   @Override

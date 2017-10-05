@@ -376,6 +376,25 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testRestoreAuthorSquash() throws Exception {
+    origin.setAuthor(new Author("remove me", "remove@me.com"))
+        .addSimpleChange(0, "A change\n\nORIGINAL_AUTHOR=restore me <restore@me.com>\n")
+        .addSimpleChange(1, "Another change\n\n");
+    createWorkflow(WorkflowMode.SQUASH, "metadata.restore_author()")
+        .run(workdir, /*sourceRef=*/null);
+    ProcessedChange change = Iterables.getLast(destination.processed);
+
+    assertThat(change.getAuthor().toString()).isEqualTo("Copybara <no-reply@google.com>");
+
+    destination.processed.clear();
+    createWorkflow(WorkflowMode.SQUASH, "metadata.restore_author(search_all_changes = True)")
+        .run(workdir, /*sourceRef=*/null);
+    change = Iterables.getLast(destination.processed);
+
+    assertThat(change.getAuthor().toString()).isEqualTo("restore me <restore@me.com>");
+  }
+
+  @Test
   public void testRestoreAuthorOtherLabel() throws Exception {
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL')");
     origin.setAuthor(new Author("remove me", "remove@me.com"))
