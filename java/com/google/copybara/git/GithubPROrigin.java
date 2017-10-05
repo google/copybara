@@ -160,10 +160,10 @@ public class GithubPROrigin implements Origin<GitRevision> {
         prNumber, prData.getBase().getRef());
     try {
       getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true,
-          ImmutableList.of(stableRef + ":PR_HEAD",
+          ImmutableList.of(stableRef + ":refs/PR_HEAD",
               // Prefix the branch name with 'refs/heads/' since some implementations of
               // GitRepository need the whole reference name.
-              "refs/heads/" + prData.getBase().getRef() + ":PR_BASE_BRANCH"));
+              "refs/heads/" + prData.getBase().getRef() + ":refs/PR_BASE_BRANCH"));
     } catch (CannotResolveRevisionException e) {
       if (useMerge) {
         throw new CannotResolveRevisionException(

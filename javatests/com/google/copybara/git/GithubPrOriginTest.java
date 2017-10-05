@@ -98,6 +98,7 @@ public class GithubPrOriginTest {
               // implementations of GitRepository might have problems if we don't
               // pass the whole reference.
               assertThat(refspec).startsWith("refs/");
+              assertThat(refspec).contains(":refs/");
             }
           }
         });
