@@ -42,6 +42,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
+import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -86,7 +87,20 @@ public class GithubPrOriginTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-    options.git = new TestGitOptions(localHub, () -> this.options.general);
+    options.git = new TestGitOptions(localHub, () -> this.options.general,
+        new Validator() {
+          @Override
+          public void validateFetch(String url, boolean prune, boolean force,
+              Iterable<String> refspecs) {
+            for (String refspec : refspecs) {
+              // WARNING! This check is important. While using short names like
+              // 'master' in git fetch works for local git invocations, other
+              // implementations of GitRepository might have problems if we don't
+              // pass the whole reference.
+              assertThat(refspec).startsWith("refs/");
+            }
+          }
+        });
 
     options.github = new GithubOptions(() -> options.general, options.git) {
       @Override

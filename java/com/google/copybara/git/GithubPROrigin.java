@@ -88,7 +88,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   @Override
   public GitRevision resolve(String reference) throws RepoException, ValidationException {
-    ValidationException.checkCondition(reference != null,""
+    ValidationException.checkCondition(reference != null, ""
         + "A pull request reference is expected as argument in the command line."
         + " Invoke copybara as:\n"
         + "    copybara copy.bara.sky workflow_name 12345");
@@ -160,7 +160,10 @@ public class GithubPROrigin implements Origin<GitRevision> {
         prNumber, prData.getBase().getRef());
     try {
       getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true,
-          ImmutableList.of(stableRef + ":PR_HEAD", prData.getBase().getRef() + ":PR_BASE_BRANCH"));
+          ImmutableList.of(stableRef + ":PR_HEAD",
+              // Prefix the branch name with 'refs/heads/' since some implementations of
+              // GitRepository need the whole reference name.
+              "refs/heads/" + prData.getBase().getRef() + ":PR_BASE_BRANCH"));
     } catch (CannotResolveRevisionException e) {
       if (useMerge) {
         throw new CannotResolveRevisionException(

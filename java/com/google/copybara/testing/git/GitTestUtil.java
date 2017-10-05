@@ -41,6 +41,7 @@ import java.util.function.Supplier;
  * Common utilities for creating and working with git repos in test
  */
 public class GitTestUtil {
+
   static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
   static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
   public static final GithubMockHttpTransport NO_GITHUB_API_CALLS = new GithubMockHttpTransport() {
@@ -109,19 +110,35 @@ public class GitTestUtil {
     repo.simpleCommand("update-ref", "HEAD", head);
   }
 
+  public static class Validator {
+
+    public void validateFetch(String url, boolean prune, boolean force,
+        Iterable<String> refspecs) {
+      // Intended to be empty
+    }
+  }
+
   public static class TestGitOptions extends GitOptions {
 
     private final Path httpsRepos;
+    private final Validator validator;
 
     public TestGitOptions(Path httpsRepos, Supplier<GeneralOptions> generalOptionsSupplier) {
+      this(httpsRepos, generalOptionsSupplier, new Validator());
+    }
+
+    public TestGitOptions(Path httpsRepos, Supplier<GeneralOptions> generalOptionsSupplier,
+        Validator validator) {
       super(generalOptionsSupplier);
       this.httpsRepos = Preconditions.checkNotNull(httpsRepos);
+      this.validator = Preconditions.checkNotNull(validator);
     }
 
     @Override
     protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
         throws RepoException {
-      return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, httpsRepos));
+      return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, httpsRepos,
+          validator));
     }
   }
 
@@ -129,17 +146,20 @@ public class GitTestUtil {
 
     private final GeneralOptions generalOptions;
     private final Path httpsRepos;
+    private Validator validator;
 
     RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
-        Path httpsRepos) {
+        Path httpsRepos, Validator validator) {
       super(gitDir, workTree, generalOptions.isVerbose(), generalOptions.getEnvironment());
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
+      this.validator = validator;
     }
 
     @Override
     protected FetchResult fetch(String url, boolean prune, boolean force,
         Iterable<String> refspecs) throws RepoException, CannotResolveRevisionException {
+      validator.validateFetch(url, prune, force, refspecs);
       return super.fetch(mapUrl(url), prune, force, refspecs);
     }
 
@@ -159,7 +179,8 @@ public class GitTestUtil {
 
     @Override
     public GitRepository withWorkTree(Path newWorkTree) {
-      return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, httpsRepos);
+      return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, httpsRepos,
+          validator);
     }
 
     private String mapUrl(String url) {
