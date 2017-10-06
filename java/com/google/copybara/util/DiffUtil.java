@@ -81,7 +81,9 @@ public class DiffUtil {
     }
     Preconditions.checkArgument(stripSlashes >= 0, "stripSlashes must be >= 0.");
     ImmutableList.Builder<String> params = ImmutableList.builder();
-    params.add("git", "apply", "-p" + stripSlashes);
+
+    // Show verbose output unconditionally since it is helpful for debugging issues with patches.
+    params.add("git", "apply", "-v","--stat","--apply", "-p" + stripSlashes);
     for (String excludedPath : excludedPaths) {
       params.add("--exclude", excludedPath);
     }
