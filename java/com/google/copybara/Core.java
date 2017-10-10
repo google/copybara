@@ -597,17 +597,17 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           @Param(name = "mapping", type = SkylarkDict.class,
               doc = "Mapping of users/strings", defaultValue = "{}"),
           @Param(name = "mode", type = String.class,
-              doc = "Mode for the replace:\n"
-                  + "<ul>\n"
-                  + "<li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li>\n"
+              doc = "Mode for the replace:"
+                  + "<ul>"
+                  + "<li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li>"
                   + "<li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found."
-                  + "</li>\n"
+                  + "</li>"
                   + "<li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found."
-                  + "</li>\n"
+                  + "</li>"
                   + "<li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'"
-                  + "</li>\n"
+                  + "</li>"
                   + "<li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li>"
-                  + "</ul>\n\n", defaultValue = "'MAP_OR_IGNORE'"),
+                  + "</ul>", defaultValue = "'MAP_OR_IGNORE'"),
           @Param(name = "paths", type = Glob.class,
               doc = "A glob expression relative to the workdir representing the files to apply"
                   + " the transformation. For example, glob([\"**.java\"]), matches all java files"
