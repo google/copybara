@@ -40,7 +40,7 @@ Copybara doesn't have a release process yet, so you need to compile from HEAD. I
 you need:
 
   * [Install JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
-  * [Install Bazel](http://bazel.io/docs/install.html).
+  * [Install Bazel](https://docs.bazel.build/versions/master/install.html).
   * Build: *bazel build //java/com/google/copybara*.
   * Tests: *bazel test //...* if you want to ensure you are not using a broken version.
 
@@ -62,7 +62,7 @@ targets:
   //third_party/...
 ```
 
-Note that configuration files can be stored in any place, Even in a local folder. We recommend to
+Note that configuration files can be stored in any place, even in a local folder. We recommend to
 use a VCS (like git) to store them; treat them as source code.
 
 ## Documentation
@@ -74,5 +74,5 @@ We are still working on the documentation. Here are some resources:
 
 ## Optional tips
 
-  * If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your ~/.bazelrc: *test --test_output=streamed*.
+  * If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your `~/.bazelrc: *test --test_output=streamed*`.
 
