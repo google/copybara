@@ -415,13 +415,14 @@ This would add it as `REVIEW_URL: the_value`.
 
 For a given change, restore the author present in the ORIGINAL_AUTHOR label as the author of the change.
 
-`transformation metadata.restore_author(label='ORIGINAL_AUTHOR')`
+`transformation metadata.restore_author(label='ORIGINAL_AUTHOR', search_all_changes=False)`
 
 ### Parameters:
 
 Parameter | Description
 --------- | -----------
 label|`string`<br><p>The label to use for restoring the author</p>
+search_all_changes|`boolean`<br><p>By default Copybara only looks in the last current change for the author label. This allows to do the search in all current changes (Only makes sensefor SQUASH/CHANGE_REQUEST).</p>
 
 
 <a id="metadata.add_header" aria-hidden="true"></a>
@@ -1029,15 +1030,7 @@ Parameter | Description
 --------- | -----------
 tags|`sequence of string`<br><p>Prefix tag to look for</p>
 mapping|`dict`<br><p>Mapping of users/strings</p>
-mode|`string`<br><p>Mode for the replace:
-<ul>
-<li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li>
-<li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li>
-<li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li>
-<li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li>
-<li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul>
-
-</p>
+mode|`string`<br><p>Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul></p>
 paths|`glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 default|`string`<br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
 
