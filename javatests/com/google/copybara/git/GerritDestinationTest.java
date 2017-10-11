@@ -40,7 +40,6 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
-import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.ByteArrayOutputStream;
@@ -52,6 +51,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,7 +62,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
 
-  private final String GERRIT_RESPONSE = "Counting objects: 9, done.\n"
+  private static final String GERRIT_RESPONSE = "Counting objects: 9, done.\n"
       + "Delta compression using up to 4 threads.\n"
       + "Compressing objects: 100% (6/6), done.\n"
       + "Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.\n"
@@ -144,7 +144,7 @@ public class GerritDestinationTest {
       throws ValidationException, RepoException, IOException {
     WriterResult result = destination()
         .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
-            /*dryRun=*/false, /*groupId=*/null,/*oldWriter=*/null)
+            /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
         .write(
             TransformResults.of(workdir, originRef),
             console);
@@ -215,9 +215,14 @@ public class GerritDestinationTest {
           protected GerritChangeFinder newChangeFinder() {
             return new GerritChangeFinder() {
               @Override
-              public GerritChange query(String repoUrl, String changeId, Console console) {
+              public Optional<GerritChange> query(String repoUrl, String changeId) {
                 assertThat(changeId).isEqualTo(expectedChangeId);
-                return new GerritChange(changeId, "NEW", true);
+                return Optional.of(new GerritChange(changeId, "NEW"));
+              }
+
+              @Override
+              public boolean canQuery(String repoUrl) {
+                return true;
               }
             };
           }
@@ -225,6 +230,43 @@ public class GerritDestinationTest {
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref"))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + expectedChangeId);
+  }
+
+  @Test
+  public void finderCannotQuery() throws Exception {
+    fetch = "master";
+
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+
+    options.setForce(true);
+    String expectedChangeId = "I" + Hashing.sha1()
+        .newHasher()
+        .putString("origin_ref", StandardCharsets.UTF_8)
+        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
+        .putInt(0)
+        .hash();
+    options.gerrit =
+        new GerritOptions() {
+          @Override
+          protected GerritChangeFinder newChangeFinder() {
+            return new GerritChangeFinder() {
+              @Override
+              public Optional<GerritChange> query(String repoUrl, String changeId) {
+                fail("Shouldn't be called when canQuery is false");
+                throw new IllegalStateException();
+              }
+
+              @Override
+              public boolean canQuery(String repoUrl) {
+                return false;
+              }
+            };
+          }
+        };
+    process(new DummyRevision("origin_ref"));
+    assertThat(lastCommitChangeIdLine("origin_ref")).contains(GerritDestination.CHANGE_ID_LABEL);
+    assertThat(lastCommitChangeIdLine("origin_ref"))
+        .isNotEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + expectedChangeId);
   }
 
   @Test
@@ -250,10 +292,15 @@ public class GerritDestinationTest {
           protected GerritChangeFinder newChangeFinder() {
             return new GerritChangeFinder() {
               @Override
-              public GerritChange query(String repoUrl, String changeId, Console console) {
+              public Optional<GerritChange> query(String repoUrl, String changeId) {
                 return changeId.equals(firstChangeId)
-                    ? new GerritChange(changeId, "MERGED", true)
-                    : new GerritChange(changeId, null, false);
+                    ? Optional.of(new GerritChange(changeId, "MERGED"))
+                    : Optional.empty();
+              }
+
+              @Override
+              public boolean canQuery(String repoUrl) {
+                return true;
               }
             };
           }
@@ -286,8 +333,13 @@ public class GerritDestinationTest {
           protected GerritChangeFinder newChangeFinder() {
             return new GerritChangeFinder() {
               @Override
-              public GerritChange query(String repoUrl, String changeId, Console console) {
-                return new GerritChange(changeId, "MERGED", true);
+              public Optional<GerritChange> query(String repoUrl, String changeId) {
+                return Optional.of(new GerritChange(changeId, "MERGED"));
+              }
+
+              @Override
+              public boolean canQuery(String repoUrl) {
+                return true;
               }
             };
           }

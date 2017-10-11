@@ -24,6 +24,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.hash.Hashing;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
@@ -41,9 +42,11 @@ import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -51,7 +54,9 @@ import javax.annotation.Nullable;
  */
 public final class GerritDestination implements Destination<GitRevision> {
 
-  public static final String CHANGE_ID_LABEL = "Change-Id";
+  private static final int MAX_FIND_ATTEMPTS = 100;
+  
+  static final String CHANGE_ID_LABEL = "Change-Id";
 
   private static final class CommitGenerator implements GitDestination.CommitGenerator {
 
@@ -84,24 +89,63 @@ public final class GerritDestination implements Destination<GitRevision> {
      */
     @Override
     public MessageInfo message(TransformResult result) throws RepoException, ValidationException {
-      boolean newPush;
-      String gerritChangeId;
       if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
-        newPush = false;
-        gerritChangeId = gerritOptions.gerritChangeId;
-      } else {
-        GerritChange response = gerritOptions.getChangeFinder().get()
-            .find(repoUrl, result.getChangeIdentity(), committer, console);
-        newPush = !response.wasFound();
-        gerritChangeId = response.getChangeId();
+        return createMessageInfo(result, /*newPush=*/false, gerritOptions.gerritChangeId);
       }
 
+      String workflowId = result.getChangeIdentity();
+      GerritChangeFinder changeFinder = gerritOptions.getChangeFinder().get();
+      if (changeFinder == null) {
+        return defaultMessageInfo(result, workflowId);
+      } else if (!changeFinder.canQuery(repoUrl)) {
+        console.warnFmt("Url '%s' is not eligible for Gerrit review reuse"
+                            + " - new reviews will be created for each patch set.", repoUrl);
+        return defaultMessageInfo(result, workflowId);
+      }
+      int attempt = 0;
+      while (attempt <= MAX_FIND_ATTEMPTS) {
+        String changeId = computeChangeId(workflowId, committer.getEmail(), attempt);
+        console.progressFmt("Querying Gerrit ('%s') for change '%s'", repoUrl, changeId);
+        Optional<GerritChange> change = changeFinder.query(repoUrl, changeId);
+        if (!change.isPresent()) {
+          return createMessageInfo(result, /*newPush=*/true, changeId);
+        }
+        if (change.get().getStatus().equals("NEW")) {
+          return createMessageInfo(result, /*newPush=*/false, change.get().getChangeId());
+        }
+        attempt++;
+      }
+      throw new RepoException(
+          String.format("Unable to find unmerged change for '%s', committer '%s'.",
+                        workflowId, committer));
+    }
+
+    private MessageInfo defaultMessageInfo(TransformResult result, String workflowId) {
+      // Default implementation: hash with the time to avoid collisions - will never find a change
+      return createMessageInfo(
+          result,
+          /*newPush=*/true,
+          computeChangeId(workflowId, committer.getEmail(),
+                          (int) (System.currentTimeMillis() / 1000)));
+    }
+
+    private static MessageInfo createMessageInfo(TransformResult result, boolean newPush,
+        String gerritChangeId) {
       Revision rev = result.getCurrentRevision();
 
       return new MessageInfo(ImmutableList.of(
           new LabelFinder(rev.getLabelName() + ": " + rev.asString()),
-          new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId)),
-          newPush);
+          new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId)), newPush);
+    }
+
+    static String computeChangeId(String workflowId, String committerEmail, int attempt) {
+      return "I"
+          + Hashing.sha1()
+          .newHasher()
+          .putString(workflowId, StandardCharsets.UTF_8)
+          .putString(committerEmail, StandardCharsets.UTF_8)
+          .putInt(attempt)
+          .hash();
     }
   }
 
