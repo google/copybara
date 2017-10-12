@@ -722,7 +722,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               noneable = true, defaultValue = "The reverse of 'transformations'"),
           @Param(name = "ignore_noop", type = Boolean.class,
               doc = "In case a noop error happens in the group of transformations (Both forward and"
-                  + " reverse), it will be ignored. In general this is a bad idea and prevents"
+                  + " reverse), it will be ignored and rest of the transformations in the group"
+                  + " will not be executed. In general this is a bad idea and prevents"
                   + " Copybara for detecting important transformation errors.",
               named = true, positional = false,
               defaultValue = "False"),
