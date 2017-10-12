@@ -72,7 +72,7 @@ public enum GitRepoType {
       if (sha1WithPatchSet.matches()) {
         GitRevision rev = repository.fetchSingleRef(repoUrl, sha1WithPatchSet.group(1));
         return new GitRevision(repository, rev.getSha1(), sha1WithPatchSet.group(2),
-                               rev.contextReference(), rev.associatedLabels());
+                               rev.contextReference(), rev.associatedLabels(), repoUrl);
       }
 
 
@@ -194,10 +194,8 @@ public enum GitRepoType {
       String metaRef = String.format("refs/changes/%02d/%d/meta", change % 100, change);
       repository.fetch(repoUrl, /*prune=*/true, /*force=*/true,
           ImmutableList.of(ref + ":refs/gerrit/" + ref, metaRef + ":refs/gerrit/" + metaRef));
-      GitRevision gitRevision = repository.resolveReference("refs/gerrit/" + ref,
-          /*contextRef=*/null);
-      GitRevision metaRevision = repository.resolveReference("refs/gerrit/" + metaRef,
-          /*contextRef=*/null);
+      GitRevision gitRevision = repository.resolveReference("refs/gerrit/" + ref);
+      GitRevision metaRevision = repository.resolveReference("refs/gerrit/" + metaRef);
       String changeId = getChangeIdFromMeta(repository, metaRevision , metaRef);
       String changeNumber = Integer.toString(change);
       return new GitRevision(
@@ -209,7 +207,7 @@ public enum GitRepoType {
               GERRIT_CHANGE_ID_LABEL, changeId,
               DEFAULT_INTEGRATE_LABEL,
               new GerritIntegrateLabel(repository, generalOptions, repoUrl, change, patchSet,
-                  changeId).toString()));
+                  changeId).toString()), repoUrl);
     }
 
     /**
@@ -260,7 +258,7 @@ public enum GitRepoType {
           gitRevision.getSha1(),
           /*reviewReference=*/null,
           stableRef,
-          ImmutableMap.of());
+          ImmutableMap.of(), repoUrl);
     }
     if (GithubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
       GitRevision gitRevision = repository.fetchSingleRef(repoUrl, ref);
@@ -269,7 +267,7 @@ public enum GitRepoType {
           gitRevision.getSha1(),
           /*reviewReference=*/null,
           ref,
-          ImmutableMap.of());
+          ImmutableMap.of(), repoUrl);
     }
     return null;
   }
@@ -335,7 +333,7 @@ public enum GitRepoType {
               e.getValue(),
               gerritPatchSetAsReviewReference(patchSet),
               e.getKey(),
-              ImmutableMap.of()));
+              ImmutableMap.of(), url));
     }
     return patchSets;
   }

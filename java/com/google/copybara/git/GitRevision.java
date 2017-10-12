@@ -38,7 +38,7 @@ public final class GitRevision implements Revision {
   @Nullable private final String reference;
   private final ImmutableMap<String, String> associatedLabels;
   @Nullable private final String reviewReference;
-
+  @Nullable private final String url;
   /**
    * Create a git revision from a complete (40 characters) git SHA-1 string.
    *
@@ -46,7 +46,8 @@ public final class GitRevision implements Revision {
    * @param sha1 a 40 characters SHA-1
    */
   GitRevision(GitRepository repository, String sha1) {
-    this(repository, sha1, /*reviewReference=*/ null, /*reference=*/ null, ImmutableMap.of());
+    this(repository, sha1, /*reviewReference=*/ null, /*reference=*/ null, ImmutableMap.of(),
+        /*url=*/null);
   }
 
   /**
@@ -67,13 +68,15 @@ public final class GitRevision implements Revision {
    * @param reference a stable name that describes where this is coming from. Could be a git
    *     reference like 'master'
    * @param associatedLabels labels associated with this reference
+   * @param url if present, the url of the repository that the revision comes from
    */
   GitRevision(
       GitRepository repository,
       String sha1,
       @Nullable String reviewReference,
       @Nullable String reference,
-      ImmutableMap<String, String> associatedLabels) {
+      ImmutableMap<String, String> associatedLabels,
+      @Nullable String url) {
     this.reviewReference = reviewReference;
     Preconditions.checkArgument(
         COMPLETE_SHA1_PATTERN.matcher(sha1).matches(),
@@ -84,6 +87,7 @@ public final class GitRevision implements Revision {
     this.sha1 = sha1;
     this.reference = reference;
     this.associatedLabels = associatedLabels;
+    this.url = url;
   }
 
   @Nullable
@@ -124,6 +128,11 @@ public final class GitRevision implements Revision {
   @Override
   public String toString() {
     return sha1;
+  }
+
+  @Nullable
+  public String getUrl() {
+    return url;
   }
 
   @Override

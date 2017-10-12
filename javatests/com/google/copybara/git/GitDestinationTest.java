@@ -42,6 +42,7 @@ import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -459,7 +460,7 @@ public class GitDestinationTest {
     process(writer, new DummyRevision("second_commit"));
     assertCommitHasOrigin("feature", "second_commit");
 
-    GitRevision oldHead = repo().resolveReference("HEAD", /*contextRef=*/null);
+    GitRevision oldHead = repo().resolveReference("HEAD");
 
     options.gitDestination.nonFastForwardPush = true;
 
@@ -1034,7 +1035,7 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).add().force().files("base").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "base");
 
-    GitRevision master = repo().resolveReference("master", /*contextRef=*/null);
+    GitRevision master = repo().resolveReference("master");
 
     repo().simpleCommand("update-ref", "refs/other/master", master.getSha1());
 
@@ -1103,7 +1104,8 @@ public class GitDestinationTest {
         + "That already has a label\n"
         + "THE_LABEL: value\n";
     writer.write(
-        new TransformResult(workdir, rev, rev.getAuthor(), msg, rev, /*workflowName*/ "default"),
+        new TransformResult(workdir, rev, rev.getAuthor(), msg, rev, /*workflowName*/ "default",
+            TransformWorks.EMPTY_CHANGES),
         console);
 
     String body = lastCommit("HEAD").getBody();

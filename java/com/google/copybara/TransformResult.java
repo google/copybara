@@ -40,6 +40,7 @@ public final class TransformResult {
   @Nullable
   private final String changeIdentity;
   private final String workflowName;
+  private Changes changes;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -47,7 +48,7 @@ public final class TransformResult {
   }
 
   public TransformResult(Path path, Revision currentRevision, Author author, String summary,
-      Revision requestedRevision, String workflowName)
+      Revision requestedRevision, String workflowName, Changes changes)
       throws RepoException {
     this(
         path,
@@ -59,7 +60,8 @@ public final class TransformResult {
         /*askForConfirmation=*/ false,
         requestedRevision,
         /*changeIdentity=*/ null,
-        workflowName);
+        workflowName,
+        changes);
   }
 
   private TransformResult(
@@ -72,7 +74,8 @@ public final class TransformResult {
       boolean askForConfirmation,
       Revision requestedRevision,
       @Nullable String changeIdentity,
-      String workflowName) {
+      String workflowName,
+      Changes changes) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -83,6 +86,7 @@ public final class TransformResult {
     this.requestedRevision = Preconditions.checkNotNull(requestedRevision);
     this.changeIdentity = changeIdentity;
     this.workflowName = Preconditions.checkNotNull(workflowName);
+    this.changes = Preconditions.checkNotNull(changes);
   }
 
   public TransformResult withBaseline(String newBaseline) {
@@ -97,7 +101,8 @@ public final class TransformResult {
         this.askForConfirmation,
         this.requestedRevision,
         this.changeIdentity,
-        this.workflowName);
+        this.workflowName,
+        this.changes);
   }
 
   /**
@@ -116,7 +121,8 @@ public final class TransformResult {
         this.askForConfirmation,
         this.requestedRevision,
         this.changeIdentity,
-        this.workflowName);
+        this.workflowName,
+        this.changes);
   }
 
   public TransformResult withIdentity(String changeIdentity) {
@@ -130,7 +136,8 @@ public final class TransformResult {
         this.askForConfirmation,
         this.requestedRevision,
         changeIdentity,
-        this.workflowName);
+        this.workflowName,
+        this.changes);
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
@@ -144,7 +151,24 @@ public final class TransformResult {
         askForConfirmation,
         this.requestedRevision,
         this.changeIdentity,
-        this.workflowName);
+        this.workflowName,
+        this.changes);
+  }
+
+  @SuppressWarnings("unused")
+  public TransformResult withChanges(Changes changes) {
+    return new TransformResult(
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        this.baseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName,
+        changes);
   }
 
   /**
@@ -245,5 +269,12 @@ public final class TransformResult {
    */
   public ImmutableList<LabelFinder> findAllLabels() {
     return ChangeMessage.parseMessage(summary).getLabels();
+  }
+
+  /**
+   * Data about the set of changes that are being migrated.
+   */
+  public Changes getChanges() {
+    return changes;
   }
 }

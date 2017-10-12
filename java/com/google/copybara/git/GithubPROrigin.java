@@ -175,7 +175,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
       }
     }
 
-    GitRevision gitRevision = getRepository().resolveReference("PR_HEAD", /*contextRef=*/null);
+    GitRevision gitRevision = getRepository().resolveReference("PR_HEAD");
 
     String integrateLabel = new GithubPRIntegrateLabel(getRepository(), generalOptions,
         project, prNumber,
@@ -189,7 +189,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
         stableRef,
         ImmutableMap.of(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber),
             GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel,
-            GITHUB_BASE_BRANCH, prData.getBase().getRef()));
+            GITHUB_BASE_BRANCH, prData.getBase().getRef()), url);
   }
 
   @VisibleForTesting

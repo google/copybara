@@ -287,7 +287,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             transformWork.getAuthor(),
             transformWork.getMessage(),
             resolvedRef,
-            workflow.getName());
+            workflow.getName(),
+            changes);
     if (destinationBaseline != null) {
       transformResult = transformResult.withBaseline(destinationBaseline);
     }

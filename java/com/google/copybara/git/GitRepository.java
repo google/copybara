@@ -138,7 +138,8 @@ public class GitRepository {
    */
   private final Path gitDir;
 
-  @Nullable private final Path workTree;
+  @Nullable
+  private final Path workTree;
 
   private final boolean verbose;
   private final Map<String, String> environment;
@@ -164,7 +165,7 @@ public class GitRepository {
       escapedUrl = escapedUrl.substring(0, REPO_FOLDER_NAME_LIMIT - 1)
           + "_"
           + Hashing.sha1().hashString(
-              escapedUrl.substring(REPO_FOLDER_NAME_LIMIT), StandardCharsets.UTF_8);
+          escapedUrl.substring(REPO_FOLDER_NAME_LIMIT), StandardCharsets.UTF_8);
     }
     return repoStorage.resolve(escapedUrl);
   }
@@ -241,13 +242,13 @@ public class GitRepository {
     if (isSha1Reference(ref)) {
       fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of());
       try {
-        return resolveReference(ref, /*contextRef=*/ref);
+        return resolveReferenceWithContext(ref, /*contextRef=*/ref, url);
       } catch (RepoException ignore) {
         // Ignore, the fetch below will attempt using the SHA-1.
       }
     }
     fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(ref));
-    return resolveReference("FETCH_HEAD", /*contextRef=*/ref);
+    return resolveReferenceWithContext("FETCH_HEAD", /*contextRef=*/ref, url);
   }
 
   /**
@@ -609,7 +610,7 @@ public class GitRepository {
   public void commit(@Nullable String author, boolean amend, @Nullable ZonedDateTime timestamp,
       String message)
       throws RepoException, ValidationException {
-    if (isEmptyStaging() && ! amend) {
+    if (isEmptyStaging() && !amend) {
       throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
           + "Is the change already migrated?");
     }
@@ -981,7 +982,7 @@ public class GitRepository {
    *
    * @throws CannotResolveRevisionException if it cannot resolve the reference
    */
-  GitRevision resolveReference(String reference, @Nullable String contextRef)
+  GitRevision resolveReferenceWithContext(String reference, @Nullable String contextRef, String url)
       throws RepoException, CannotResolveRevisionException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
     // check that the reference exists.
@@ -992,10 +993,27 @@ public class GitRepository {
       throw new CannotResolveRevisionException(
           "Cannot find '" + reference + "' object in the repository");
     }
-    return new GitRevision(this, parseRef(reference),
-                           /*reviewReference=*/null,
-        contextRef,
-        ImmutableMap.of());
+    return new GitRevision(this, parseRef(reference),/*reviewReference=*/null, contextRef,
+        ImmutableMap.of(), url);
+  }
+
+  /**
+   * Resolve a reference
+   *
+   * @throws CannotResolveRevisionException if it cannot resolve the reference
+   */
+  GitRevision resolveReference(String reference)
+      throws RepoException, CannotResolveRevisionException {
+    // Nothing needs to be resolved, since it is a complete SHA-1. But we
+    // check that the reference exists.
+    if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
+      if (checkSha1Exists(reference)) {
+        return new GitRevision(this, reference);
+      }
+      throw new CannotResolveRevisionException(
+          "Cannot find '" + reference + "' object in the repository");
+    }
+    return new GitRevision(this, parseRef(reference));
   }
 
   /**

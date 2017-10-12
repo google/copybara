@@ -376,7 +376,7 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "foo/foo.txt", "-m", "message");
     GitRevision rev = new GitRevision(repository, repository.parseRef("HEAD"),
                                        "this is review text", /*reference=*/null,
-                                       ImmutableMap.of());
+                                       ImmutableMap.of(), /*url=*/null);
     ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/");
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getPath()).isEqualTo("foo/foo.txt");

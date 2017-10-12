@@ -456,7 +456,7 @@ public class GitDestinationIntegrateTest {
     Files.write(workTree.resolve(file), new byte[0]);
     repo.add().all().run();
     repo.simpleCommand("commit", "-m", msg);
-    return repo.resolveReference("HEAD", null);
+    return repo.resolveReference("HEAD");
   }
 
   private GitLogEntry getLastMigratedChange(String ref) throws RepoException {

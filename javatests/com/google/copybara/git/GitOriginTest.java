@@ -215,6 +215,11 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testResolveWithUrl() throws Exception {
+    assertThat(origin.resolve("master").getUrl()).isEqualTo(url);
+  }
+
+  @Test
   public void testCheckout() throws Exception {
     // Check that we get can checkout a branch
     newReader().checkout(origin.resolve("master"), checkoutDir);

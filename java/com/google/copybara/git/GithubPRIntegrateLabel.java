@@ -88,8 +88,9 @@ class GithubPRIntegrateLabel implements IntegrateLabel {
   @Override
   public GitRevision getRevision() throws RepoException, CannotResolveRevisionException {
     String pr = "https://github.com/" + projectId + "/pull/" + prNumber;
-    GitRevision gitRevision = GitRepoType.GITHUB.resolveRef(repository,
-        "https://github.com/" + projectId, pr, generalOptions);
+    String repoUrl = "https://github.com/" + projectId;
+    GitRevision gitRevision = GitRepoType.GITHUB.resolveRef(repository, repoUrl, pr,
+        generalOptions);
     if (sha1 == null) {
       return gitRevision;
     }
@@ -99,6 +100,6 @@ class GithubPRIntegrateLabel implements IntegrateLabel {
     generalOptions.console().warnFmt(String.format(
         "Pull Request %s has more changes after %s (PR HEAD is %s)."
             + " Not all changes might be migrated", pr, sha1, gitRevision.getSha1()));
-    return repository.resolveReference(sha1, gitRevision.contextReference());
+    return repository.resolveReferenceWithContext(sha1, gitRevision.contextReference(), repoUrl);
   }
 }

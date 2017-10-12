@@ -325,7 +325,7 @@ public final class GitDestination implements Destination<GitRevision> {
     @Nullable
     private GitRevision getLocalBranchRevision(GitRepository gitRepository) throws RepoException {
       try {
-        return gitRepository.resolveReference(state.localBranch, state.localBranch);
+        return gitRepository.resolveReference(state.localBranch);
       } catch (CannotResolveRevisionException e) {
         if (force) {
           return null;

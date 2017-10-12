@@ -105,7 +105,7 @@ public class GerritOriginTest {
             ImmutableMap.of(
                 GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",
                 GitRepoType.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
-                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 1 " + CHANGE_ID));
+                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 1 " + CHANGE_ID), url);
     git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
 
     git("commit", "-m", "second change", "--date", commitTime, "--amend");
@@ -118,7 +118,7 @@ public class GerritOriginTest {
             ImmutableMap.of(
                 GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",
                 GitRepoType.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
-                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 2 " + CHANGE_ID));
+                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 2 " + CHANGE_ID), url);
     git("update-ref", "refs/changes/45/12345/2", secondRevision.getSha1());
 
     git("commit", "-m", "third change", "--date", commitTime, "--amend");
@@ -131,7 +131,7 @@ public class GerritOriginTest {
             ImmutableMap.of(
                 GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",
                 GitRepoType.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
-                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 3 " + CHANGE_ID));
+                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 3 " + CHANGE_ID), url);
     git("update-ref", "refs/changes/45/12345/3", thirdRevision.getSha1());
 
     GitTestUtil.createFakeGerritNodeDbMeta(repo, 12345, CHANGE_ID);
@@ -217,6 +217,7 @@ public class GerritOriginTest {
     assertThat(resolved.getReviewReference()).isEqualTo(expected.getReviewReference());
     assertThat(resolved.contextReference()).isEqualTo(expected.contextReference());
     assertThat(resolved.associatedLabels()).isEqualTo(expected.associatedLabels());
+    assertThat(resolved.getUrl()).isEqualTo(expected.getUrl());
   }
 
   private void createTestRepo(Path folder) throws Exception {
