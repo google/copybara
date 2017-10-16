@@ -36,7 +36,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.vfs.PathFragment;
 import com.google.re2j.Pattern;
 import java.nio.file.FileSystem;
@@ -70,7 +69,7 @@ public class RevisionMigratorTest {
     checkoutDir = fs.getPath("/test-checkoutDir");
     origin = new DummyOrigin();
     destinationReader = new MockReader();
-    location = new Location(1, 2){
+    location = new Location(1, 2) {
       @Override
       public PathFragment getPath() {
         return null;
@@ -83,7 +82,7 @@ public class RevisionMigratorTest {
         Pattern.compile("[0-9a-f]+"),
         ImmutableList.of(),
         location);
-     OptionsBuilder options = new OptionsBuilder();
+    OptionsBuilder options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
     skylark = new SkylarkTestExecutor(options, MetadataModule.class);
@@ -92,18 +91,8 @@ public class RevisionMigratorTest {
 
   private TransformWork getTransformWork(String msg) {
     return new TransformWork(checkoutDir, new Metadata(msg, new Author("foo", "foo@foo.com")),
-        new Changes() {
-          @Override
-          public SkylarkList<? extends Change<?>> getCurrent() {
-            throw new UnsupportedOperationException();
-          }
-
-          @Override
-          public SkylarkList<? extends Change<?>> getMigrated() {
-            throw new UnsupportedOperationException();
-          }
-        }, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader),
-                             new DummyRevision("1234567890"));
+        Changes.EMPTY, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader),
+        new DummyRevision("1234567890"));
   }
 
   @Test
@@ -161,7 +150,6 @@ public class RevisionMigratorTest {
     assertThat(work.getMessage())
         .isEqualTo("This is an awesome change, building on http://externalreviews.com/view?7b");
   }
-
 
 
   @Test
@@ -278,14 +266,14 @@ public class RevisionMigratorTest {
   @Test
   public void testDestinationFormatNeedsGroup() throws Exception {
     skylark.evalFails(""
-        + "metadata.map_references(\n"
-        + "    before = \"origin/\\${reference}\\${other}\",\n"
-        + "    after = \"destination/\\${other}\",\n"
-        + "    regex_groups = {"
-        + "        \"before_ref\": \"[0-9a-f]+\",\n"
-        + "    },\n"
-        + ")",
-    "Interpolation is used but not defined: other");
+            + "metadata.map_references(\n"
+            + "    before = \"origin/\\${reference}\\${other}\",\n"
+            + "    after = \"destination/\\${other}\",\n"
+            + "    regex_groups = {"
+            + "        \"before_ref\": \"[0-9a-f]+\",\n"
+            + "    },\n"
+            + ")",
+        "Interpolation is used but not defined: other");
   }
 
   @Test
@@ -302,6 +290,7 @@ public class RevisionMigratorTest {
   }
 
   class MockReader implements ChangeVisitable<DummyRevision> {
+
     @Override
     public void visitChanges(DummyRevision start, ChangesVisitor visitor)
         throws RepoException {

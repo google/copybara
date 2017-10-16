@@ -15,15 +15,12 @@
  */
 package com.google.copybara.testing;
 
-import com.google.common.collect.ImmutableList;
-import com.google.copybara.Change;
 import com.google.copybara.Changes;
 import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
 import com.google.copybara.TransformWork;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.nio.file.Path;
 
 /**
@@ -34,17 +31,7 @@ public class TransformWorks {
   /**
    * A {@link Changes} object with no changes inside.
    */
-  public static final Changes EMPTY_CHANGES = new Changes() {
-    @Override
-    public SkylarkList<? extends Change<?>> getCurrent() {
-      return SkylarkList.createImmutable(ImmutableList.of());
-    }
-
-    @Override
-    public SkylarkList<? extends Change<?>> getMigrated() {
-      return SkylarkList.createImmutable(ImmutableList.of());
-    }
-  };
+  public static final Changes EMPTY_CHANGES = Changes.EMPTY;
 
   /**
    * Creates an instance with reasonable defaults for testing.
@@ -53,18 +40,7 @@ public class TransformWorks {
     return new TransformWork(
         checkoutDir,
         new Metadata(msg, new Author("foo", "foo@foo.com")),
-        new Changes() {
-          @Override
-          public SkylarkList<? extends Change<?>> getCurrent() {
-            throw new UnsupportedOperationException();
-          }
-
-          @Override
-          public SkylarkList<? extends Change<?>> getMigrated() {
-            throw new UnsupportedOperationException();
-          }
-          // TODO(malcon): Pass this from test.
-        },
+        Changes.EMPTY,
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
         new DummyRevision("1234567890"));

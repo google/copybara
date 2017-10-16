@@ -156,7 +156,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         return null;
       }
       Change<O> change = originReader.change(lastRev);
-      ComputedChanges changes = new ComputedChanges(ImmutableList.of(change), ImmutableList.of());
+      Changes changes = new Changes(ImmutableList.of(change), ImmutableList.of());
       WorkflowRunHelper<O, D> helper = forChanges(changes.getCurrent()).withDryRun();
 
       try {
@@ -404,29 +404,5 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     getConsole().infoFmt("Skipped change %s as it would create an empty result.",
         currentChange.toString());
     return true;
-  }
-
-  @SkylarkModule(name = "ComputedChanges", doc = "Computed changes implementation",
-      documented = false)
-  static class ComputedChanges extends Changes {
-    static final Changes EMPTY = new ComputedChanges(ImmutableList.of(), ImmutableList.of());
-
-    private final SkylarkList<? extends Change<?>> current;
-    private final SkylarkList<? extends Change<?>> migrated;
-
-    ComputedChanges(Iterable<? extends Change<?>> current, Iterable<? extends Change<?>> migrated) {
-      this.current = SkylarkList.createImmutable(current);
-      this.migrated = SkylarkList.createImmutable(migrated);
-    }
-
-    @Override
-    public SkylarkList<? extends Change<?>> getCurrent() {
-      return current;
-    }
-
-    @Override
-    public SkylarkList<? extends Change<?>> getMigrated() {
-      return migrated;
-    }
   }
 }

@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.WriterResult;
-import com.google.copybara.WorkflowRunHelper.ComputedChanges;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.ProgressPrefixConsole;
@@ -89,7 +88,7 @@ public enum WorkflowMode {
               runHelper.getConsole(),
               metadata,
               // Squash notes an Skylark API expect last commit to be the first one.
-              new ComputedChanges(detectedChanges.reverse(), ImmutableList.of()),
+              new Changes(detectedChanges.reverse(), ImmutableList.of()),
               /*destinationBaseline=*/null,
               runHelper.getWorkflowIdentity(runHelper.getResolvedRef()));
     }
@@ -139,7 +138,7 @@ public enum WorkflowMode {
                       change.getRevision(),
                       new ProgressPrefixConsole(prefix, runHelper.getConsole()),
                       new Metadata(change.getMessage(), change.getAuthor()),
-                      new ComputedChanges(current, migrated),
+                      new Changes(current, migrated),
                       /*destinationBaseline=*/null,
                       // Use the current change since we might want to create different
                       // reviews in the destination. Will not work if we want to group
@@ -222,7 +221,7 @@ public enum WorkflowMode {
           ? ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()))
           : runHelper.getOriginReader().changes(baselineChange.get(), runHelper.getResolvedRef());
 
-      ComputedChanges computedChanges = new ComputedChanges(changes, ImmutableList.of());
+      Changes computedChanges = new Changes(changes, ImmutableList.of());
       runHelper
           .forChanges(computedChanges.getCurrent())
           .migrate(

@@ -34,7 +34,6 @@ import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -174,7 +173,7 @@ public class TransformWorkTest {
   }
 
   @Test
-  public void testsDeleteNotFound() throws Exception{
+  public void testsDeleteNotFound() throws Exception {
     checkLabelWithSkylark("Foo\n",
         "ctx.remove_label('SOME', False)",
         "Foo\n");
@@ -229,35 +228,24 @@ public class TransformWorkTest {
         "Foo\n\nSOME=TEST\n");
   }
 
+  private Change<DummyRevision> toChange(DummyRevision dummyRevision) {
+    return new Change<>(dummyRevision, ORIGINAL_AUTHOR, dummyRevision.getMessage(),
+        ZonedDateTime.now(), dummyRevision.getLabels(),
+                                /*changeFiles=*/null);
+  }
+
   @Test
   public void testGetLabel() {
     TransformWork work = create("Foo\n\nSOME=TEST\n").withChanges(
-        new Changes() {
-          @Override
-          public SkylarkList<? extends Change<?>> getCurrent() {
-            return SkylarkList.createImmutable(ImmutableList.of(
-                toChange(
-                    new DummyRevision("1")
-                        .withLabels(ImmutableMap.of("ONE", "one", "SOME", "SHOULD_NOT_HAPPEN"))),
-                toChange(
-                    new DummyRevision("2").withLabels(ImmutableMap.of("TWO", "two"))),
-                toChange(
-                    new DummyRevision("3").withLabels(ImmutableMap.of("THREE", "three")))
-            ));
-          }
-
-          private Change<DummyRevision> toChange(DummyRevision dummyRevision) {
-            return new Change<>(dummyRevision, ORIGINAL_AUTHOR, dummyRevision.getMessage(),
-                ZonedDateTime.now(), dummyRevision.getLabels(),
-                                /*changeFiles=*/null);
-          }
-
-          @Override
-          public SkylarkList<? extends Change<?>> getMigrated() {
-            throw new UnsupportedOperationException();
-          }
-        }
-    ).withResolvedReference(new DummyRevision("resolved").withLabels(
+        new Changes(ImmutableList.of(
+            toChange(
+                new DummyRevision("1")
+                    .withLabels(ImmutableMap.of("ONE", "one", "SOME", "SHOULD_NOT_HAPPEN"))),
+            toChange(
+                new DummyRevision("2").withLabels(ImmutableMap.of("TWO", "two"))),
+            toChange(
+                new DummyRevision("3").withLabels(ImmutableMap.of("THREE", "three")))
+        ), ImmutableList.of())).withResolvedReference(new DummyRevision("resolved").withLabels(
         ImmutableMap.of("RESOLVED", "resolved",
             "ONE", "SHOULD_NOT_HAPPEN",
             "SOME", "SHOULD_NOT_HAPPEN")));

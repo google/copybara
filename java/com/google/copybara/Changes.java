@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -30,14 +31,28 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
         + "Each change includes information like: original author, change message, "
         + "labels, etc. You receive this as a field in TransformWork object for used defined "
         + "transformations")
-public abstract class Changes {
+public final class Changes {
+
+  public static final Changes EMPTY = new Changes(ImmutableList.of(), ImmutableList.of());
+
+  private final SkylarkList<? extends Change<?>> current;
+  private final SkylarkList<? extends Change<?>> migrated;
+
+  public Changes(Iterable<? extends Change<?>> current, Iterable<? extends Change<?>> migrated) {
+    this.current = SkylarkList.createImmutable(current);
+    this.migrated = SkylarkList.createImmutable(migrated);
+  }
 
   @SkylarkCallable(name = "current", doc = "List of changes that will be migrated",
       structField = true)
-  public abstract SkylarkList<? extends Change<?>> getCurrent();
+  public final SkylarkList<? extends Change<?>> getCurrent() {
+    return current;
+  }
 
   @SkylarkCallable(name = "migrated", doc =
       "List of changes that where migrated in previous Copybara executions or if using ITERATIVE"
           + " mode in previous iterations of this workflow.", structField = true)
-  public abstract SkylarkList<? extends Change<?>> getMigrated();
+  public SkylarkList<? extends Change<?>> getMigrated() {
+    return migrated;
+  }
 }
