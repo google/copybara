@@ -17,13 +17,14 @@
 package com.google.copybara.util;
 
 import com.google.common.base.Stopwatch;
-import com.google.devtools.build.lib.shell.BadExitStatusException;
-import com.google.devtools.build.lib.shell.Command;
-import com.google.devtools.build.lib.shell.CommandException;
-import com.google.devtools.build.lib.shell.FutureCommandResult;
-import com.google.devtools.build.lib.shell.ShellUtils;
-import com.google.devtools.build.lib.shell.TerminationStatus;
-import java.io.ByteArrayInputStream;
+import com.google.copybara.shell.BadExitStatusException;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
+import com.google.copybara.shell.CommandResult;
+import com.google.copybara.shell.ShellUtils;
+import com.google.copybara.shell.SimpleKillableObserver;
+import com.google.copybara.shell.TerminationStatus;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -70,17 +71,18 @@ public final class CommandUtil {
     ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
     ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();
 
-    FutureCommandResult cmdResult;
+    CommandResult cmdResult;
 
     TerminationStatus exitStatus = null;
     try {
-      cmdResult = cmd.executeAsync(new ByteArrayInputStream(input),
+      cmdResult = cmd.execute(input, new SimpleKillableObserver(),
+          // If verbose we stream to the user console too
           verbose ? new DemultiplexOutputStream(System.err, stdoutCollector) : stdoutCollector,
           verbose ? new DemultiplexOutputStream(System.err, stderrCollector) : stderrCollector,
-          /*killSubprocessOnInterrupt*/ true);
-      exitStatus = cmdResult.get().getTerminationStatus();
+          true);
+      exitStatus = cmdResult.getTerminationStatus();
       return new CommandOutputWithStatus(
-          exitStatus,
+          cmdResult.getTerminationStatus(),
           stdoutCollector.toByteArray(),
           stderrCollector.toByteArray());
     } catch (BadExitStatusException e) {

@@ -22,8 +22,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.shell.Command;
-import com.google.devtools.build.lib.shell.CommandException;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Path;
 

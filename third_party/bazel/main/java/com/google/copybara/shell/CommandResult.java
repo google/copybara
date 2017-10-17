@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.devtools.build.lib.shell;
+package com.google.copybara.shell;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 public final class CommandResult {
 
   private static final Logger log =
-    Logger.getLogger("com.google.devtools.build.lib.shell.Command");
+    Logger.getLogger("com.google.copybara.shell.Command");
 
   private static final byte[] NO_BYTES = new byte[0];
 

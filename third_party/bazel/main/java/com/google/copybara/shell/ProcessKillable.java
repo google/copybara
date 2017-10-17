@@ -12,17 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.devtools.build.lib.shell;
+package com.google.copybara.shell;
 
 /**
- * Thrown when a command could not even be executed by the JVM; in particular, when
- * {@link Runtime#exec(String[])} fails.
+ * {@link Killable} implementation which simply wraps a
+ * {@link Process} instance.
  */
-public final class ExecFailedException extends CommandException {
+final class ProcessKillable implements Killable {
 
-  public ExecFailedException(Command command, final Throwable cause) {
-    super(command, cause);
+  private final Process process;
+
+  ProcessKillable(final Process process) {
+    this.process = process;
   }
 
-  private static final long serialVersionUID = 2L;
+  /**
+   * Calls {@link Process#destroy()}.
+   */
+  @Override
+  public void kill() {
+    process.destroy();
+  }
 }

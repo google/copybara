@@ -20,8 +20,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandUtil;
-import com.google.devtools.build.lib.shell.Command;
-import com.google.devtools.build.lib.shell.CommandException;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -18,12 +18,14 @@ package com.google.copybara.util;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.devtools.build.lib.shell.TerminationStatus;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandResult;
+import com.google.copybara.shell.TerminationStatus;
 
 /**
- * A class that contains a {@link com.google.devtools.build.lib.shell.Command} result.
+ * A class that contains a {@link Command} result.
  *
- * <p>This class is equivalent to {@link com.google.devtools.build.lib.shell.CommandResult} but
+ * <p>This class is equivalent to {@link CommandResult} but
  * doesn't fail if the output was not collected and allows to work in stream mode and accumulate the
  * result.
  */
