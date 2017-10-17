@@ -262,7 +262,7 @@ public class GitRepository {
    * @return the set of fetched references and what action was done ( rejected, new reference,
    * updated, etc.)
    */
-  protected FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
+  public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
       throws RepoException, CannotResolveRevisionException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
