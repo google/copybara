@@ -61,6 +61,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   @Nullable
   private final String lastRevisionFlag;
+  private final boolean initHistoryFlag;
   private final Console console;
   private final GeneralOptions generalOptions;
   private final Glob originFiles;
@@ -85,6 +86,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       Authoring authoring,
       Transformation transformation,
       @Nullable String lastRevisionFlag,
+      boolean initHistoryFlag,
       GeneralOptions generalOptions,
       Glob originFiles,
       Glob destinationFiles,
@@ -101,6 +103,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.authoring = Preconditions.checkNotNull(authoring);
     this.transformation = Preconditions.checkNotNull(transformation);
     this.lastRevisionFlag = lastRevisionFlag;
+    this.initHistoryFlag = initHistoryFlag;
     this.console = Preconditions.checkNotNull(generalOptions.console());
     this.generalOptions = generalOptions;
     this.originFiles = Preconditions.checkNotNull(originFiles);
@@ -300,6 +303,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable
   public String getLastRevisionFlag() {
     return lastRevisionFlag;
+  }
+
+  public boolean isInitHistory() {
+    return initHistoryFlag;
   }
 
   public WorkflowMode getMode() {

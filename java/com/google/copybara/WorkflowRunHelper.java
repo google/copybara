@@ -32,8 +32,6 @@ import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -115,6 +113,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   boolean isForce() {
     return workflow.isForce();
+  }
+
+  private boolean isInitHistory() {
+    return workflow.isInitHistory();
   }
 
   boolean isSquashWithoutHistory() {
@@ -328,25 +330,31 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    *
    * @throws RepoException if a last revision couldn't be found
    */
+  @Nullable
   O getLastRev() throws RepoException, ValidationException {
     O lastRev = maybeGetLastRev();
-    if (lastRev == null) {
+    if (lastRev == null && !isInitHistory()) {
       throw new CannotResolveRevisionException(String.format(
-          "Previous revision label %s could not be found in %s and --last-rev flag"
-              + " was not passed", workflow.getOrigin().getLabelName(), workflow.getDestination()));
+          "Previous revision label %s could not be found in %s and --last-rev or --init-history "
+              + "flags were not passed",
+          workflow.getOrigin().getLabelName(), workflow.getDestination()));
     }
     return lastRev;
   }
 
   /**
    * Returns the last revision that was imported from this origin to the destination. Returns
-   * {@code null} if it cannot be determined.
+   * {@code null} if it cannot be determined or this is the first import ({@code --init-history}
+   * is specified).
    *
    * <p>If {@code --last-rev} is specified, that revision will be used. Otherwise, the previous
    * revision will be resolved in the destination with the origin label.
    */
   @Nullable
   private O maybeGetLastRev() throws RepoException, ValidationException {
+    if (workflow.isInitHistory()) {
+      return null;
+    }
     if (workflow.getLastRevisionFlag() != null) {
       try {
         return workflow.getOrigin().resolve(workflow.getLastRevisionFlag());
@@ -357,7 +365,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             e);
       }
     }
-
     DestinationStatus status = writer.getDestinationStatus(workflow.getOrigin().getLabelName());
     return (status == null) ? null : workflow.getOrigin().resolve(status.getBaseline());
   }

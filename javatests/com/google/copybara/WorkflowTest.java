@@ -173,6 +173,14 @@ public class WorkflowTest {
     return iterativeWorkflow("default", previousRef);
   }
 
+  private Workflow iterativeWorkflowFirst()
+      throws ValidationException, IOException {
+    options.workflowOptions.initHistory = true;
+    options.general = new GeneralOptions(
+        options.general.getFileSystem(), options.general.isVerbose(), console());
+    return skylarkWorkflow("default", WorkflowMode.ITERATIVE);
+  }
+
   private Workflow changeRequestWorkflow(@Nullable String baseline)
       throws ValidationException, IOException {
     options.workflowOptions.changeBaseline = baseline;
@@ -1502,6 +1510,51 @@ public class WorkflowTest {
                     .map(Change::getMessage)
                     .collect(Collectors.toList());
     assertThat(commitMessages).containsExactly("change1\n");
+  }
+
+
+  @Test
+  public void iterativeInitHistory() throws Exception {
+    transformations = ImmutableList.of();
+    origin.singleFileChange(0, "change 1", "file.txt", "a");
+    origin.singleFileChange(1, "change 2", "file.txt", "b");
+    origin.singleFileChange(2, "change 3", "file.txt", "c");
+    origin.singleFileChange(3, "change 4", "file.txt", "d");
+    origin.singleFileChange(4, "change 5", "file.txt", "e");
+    iterativeWorkflowFirst().run(workdir, /*sourceRef=*/"3");
+    assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
+        .isEqualTo(Lists.newArrayList("0", "1", "2", "3"));
+  }
+
+  @Test
+  public void squashInitHistory() throws Exception {
+    transformations = ImmutableList.of();
+    origin.singleFileChange(0, "change 1", "file.txt", "a");
+    origin.singleFileChange(1, "change 2", "file.txt", "b");
+    origin.singleFileChange(2, "change 3", "file.txt", "c");
+    origin.singleFileChange(3, "change 4", "file.txt", "d");
+    origin.singleFileChange(4, "change 5", "file.txt", "e");
+    options.workflowOptions.initHistory = true;
+    skylarkWorkflow("default", SQUASH).run(workdir, /*sourceRef=*/"3");
+    assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
+        .isEqualTo(Lists.newArrayList("3"));
+  }
+
+  @Test
+  public void changeRequestInitHistory() throws Exception {
+    options.workflowOptions.initHistory = true;
+    options.general = new GeneralOptions(
+        options.general.getFileSystem(), options.general.isVerbose(), console());
+    try {
+      skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
+      fail("Should fail");
+    } catch (ValidationException e) {
+      for (Message message : console().getMessages()) {
+        System.err.println(message);
+      }
+      console().assertThat().onceInLog(MessageType.ERROR,
+          ".*--init-history is not compatible with CHANGE_REQUEST.*");
+    }
   }
 
   private void checkLastRevStatus(WorkflowMode mode)

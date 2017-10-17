@@ -43,6 +43,16 @@ public class WorkflowOptions implements Option {
       description = "Last revision that was migrated to the destination")
   public String lastRevision;
 
+  static final String INIT_HISTORY_FLAG = "--init-history";
+
+  @Parameter(names = INIT_HISTORY_FLAG,
+      description = "Import all the changes from the beginning of the history up to the resolved"
+          + " ref. For 'ITERATIVE' workflows this will import individual changes since the first "
+          + "one. For 'SQUASH' it will import the squashed change up to the resolved ref. "
+          + "WARNING: Use with care, this flag should be used only for the very first run of "
+          + "Copybara for a workflow.")
+  public boolean initHistory = false;
+
   @Parameter(names = "--iterative-limit-changes",
       description = "Import just a number of changes instead of all the pending ones")
   int iterativeLimitChanges = Integer.MAX_VALUE;
@@ -104,6 +114,10 @@ public class WorkflowOptions implements Option {
 
   public String getLastRevision() {
     return lastRevision;
+  }
+
+  public boolean isInitHistory() {
+    return initHistory;
   }
 
   public String getChangeBaseline() {

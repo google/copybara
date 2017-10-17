@@ -300,6 +300,12 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
             "%s is not compatible with %s", CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
       }
 
+      if (self.workflowOptions.initHistory) {
+        check(location, mode != WorkflowMode.CHANGE_REQUEST,
+            "%s is not compatible with %s", WorkflowOptions.INIT_HISTORY_FLAG,
+            WorkflowMode.CHANGE_REQUEST);
+      }
+
       self.addMigration(location, workflowName, new Workflow<>(
           workflowName,
           origin,
@@ -307,6 +313,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           authoring,
           sequenceTransform,
           self.workflowOptions.getLastRevision(),
+          self.workflowOptions.isInitHistory(),
           self.generalOptions,
           originFiles,
           destinationFiles,
