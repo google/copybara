@@ -157,7 +157,7 @@ public class GitTestUtil {
     }
 
     @Override
-    protected FetchResult fetch(String url, boolean prune, boolean force,
+    public FetchResult fetch(String url, boolean prune, boolean force,
         Iterable<String> refspecs) throws RepoException, CannotResolveRevisionException {
       validator.validateFetch(url, prune, force, refspecs);
       return super.fetch(mapUrl(url), prune, force, refspecs);

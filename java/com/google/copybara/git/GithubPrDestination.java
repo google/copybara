@@ -110,8 +110,13 @@ public class GithubPrDestination implements Destination<GitRevision> {
 
     return new WriterImpl<GithubWriterState>(destinationFiles, effectiveSkipPush, url,
         destinationRef, pushBranchName,
-        destinationOptions, generalOptions, commitGenerator, processPushOutput,
-        state, /*nonFastForwardPush=*/true, integrates) {
+        generalOptions, commitGenerator, processPushOutput,
+        state, /*nonFastForwardPush=*/true, integrates,
+        destinationOptions.lastRevFirstParent,
+        destinationOptions.ignoreIntegrationErrors,
+        destinationOptions.localRepoPath,
+        destinationOptions.committerName,
+        destinationOptions.committerEmail) {
       @Override
       public WriterResult write(TransformResult transformResult, Console console)
           throws ValidationException, RepoException, IOException {

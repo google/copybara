@@ -71,20 +71,19 @@ public class GitIntegrateChanges {
    * @throws RepoException if a git related error happens during the integrate
    */
   void run(GitRepository repository, GeneralOptions generalOptions,
-      GitDestinationOptions gitDestinationOptions, MessageInfo messageInfo,
-      Predicate<String> externalFileMatcher, TransformResult result)
-      throws CannotIntegrateException, RepoException {
+      MessageInfo messageInfo, Predicate<String> externalFileMatcher, TransformResult result,
+      boolean ignoreIntegrationErrors) throws CannotIntegrateException, RepoException {
     try {
       doIntegrate(repository, generalOptions, externalFileMatcher, result, messageInfo);
     } catch (CannotIntegrateException e) {
-      if (gitDestinationOptions.ignoreIntegrationErrors || ignoreErrors) {
+      if (ignoreIntegrationErrors || ignoreErrors) {
         logger.log(Level.WARNING, "Cannot integrate changes", e);
         generalOptions.console().warnFmt("Cannot integrate changes: %s", e.getMessage());
       } else {
         throw e;
       }
     } catch (RepoException e) {
-      if (gitDestinationOptions.ignoreIntegrationErrors || ignoreErrors) {
+      if (ignoreIntegrationErrors || ignoreErrors) {
         logger.log(Level.SEVERE, "Cannot integrate changes", e);
       } else {
         throw e;
