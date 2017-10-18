@@ -492,6 +492,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + "groups, like 'before' field."),
           @Param(name = "regex_groups", type = SkylarkDict.class,
               doc = "A set of named regexes that can be used to match part of the replaced text."
+                  + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
                   + " For example {\"x\": \"[A-Za-z]+\"}", defaultValue = "{}"),
           @Param(name = "paths", type = Glob.class,
               doc = "A glob expression relative to the workdir representing the files to apply"
@@ -681,7 +682,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               doc = "The regex pattern to verify. To satisfy the validation, there has to be at"
                   + "least one (or no matches if verify_no_match) match in each of the files "
                   + "included in paths. The re2j pattern will be applied in multiline mode, i.e."
-                  + " '^' refers to the beginning of a file and '$' to its end."),
+                  + " '^' refers to the beginning of a file and '$' to its end. "
+                  + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."),
           @Param(name = "paths", type = Glob.class,
               doc = "A glob expression relative to the workdir representing the files to apply"
                   + " the transformation. For example, glob([\"**.java\"]), matches all java files"

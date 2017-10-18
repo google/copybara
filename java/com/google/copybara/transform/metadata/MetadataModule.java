@@ -499,7 +499,8 @@ public class MetadataModule {
           @Param(name = "regex_groups", type = SkylarkDict.class, defaultValue = "{}",
               doc = "Regexes for the ${reference} token's content. Requires one 'before_ref' entry"
                   + " matching the ${reference} token's content on the before side. Optionally"
-                  + " accepts one 'after_ref' used for validation."),
+                  + " accepts one 'after_ref' used for validation."
+                  + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."),
           @Param(name = "additional_import_labels",
               type = SkylarkList.class, generic1 = String.class, defaultValue = "[]",
               doc = "Meant to be used when migrating from another tool: Per default, copybara will "
