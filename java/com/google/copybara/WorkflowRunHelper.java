@@ -30,6 +30,7 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 import java.io.IOException;
@@ -62,6 +63,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     this.originReader = Preconditions.checkNotNull(originReader);
     this.writer = Preconditions.checkNotNull(destinationWriter);
     this.groupId = groupId;
+  }
+
+  /**
+   * origin_files used for this workflow
+   */
+  protected Glob getOriginFiles(){
+    return workflow.getOriginFiles();
   }
 
   /**

@@ -1104,6 +1104,40 @@ public class WorkflowTest {
   }
 
   @Test
+  public void changeRequestEmptyChanges() throws Exception {
+    Path originPath = Files.createTempDirectory("origin");
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    options.setOutputRootToTmpDir();
+    String config = "core.workflow("
+        + "    name = 'default',"
+        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
+        + "    destination = testing.destination(),\n"
+        + "    authoring = " + authoring + ","
+        + "    origin_files = glob(['included/**']),"
+        + "    mode = '" + WorkflowMode.CHANGE_REQUEST + "',"
+        + ")\n";
+
+    Migration workflow = loadConfig(config).getMigration("default");
+
+    Files.createDirectory(originPath.resolve("included"));
+    Files.write(originPath.resolve("included/foo.txt"), "a".getBytes(UTF_8));
+    origin.add().files("included/foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(),
+        "the baseline\n\n" + destination.getLabelNameWhenOrigin() + "=42");
+
+    Files.createDirectory(originPath.resolve("excluded"));
+    Files.write(originPath.resolve("excluded/foo.txt"), "a".getBytes(UTF_8));
+    origin.add().files("excluded/foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "head change");
+
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage(
+        "doesn't include any change for origin_files = glob(include = [\"included/**\"])");
+    workflow.run(workdir,/*sourceRef=*/null);
+
+  }
+
+  @Test
   public void changeRequest_findParentBaseline() throws Exception {
     origin
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")

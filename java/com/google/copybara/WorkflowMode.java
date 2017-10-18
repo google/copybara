@@ -217,9 +217,18 @@ public enum WorkflowMode {
 
       // If --change_request_parent was used, we don't have information about the origin changes
       // included in the CHANGE_REQUEST so we assume the last change is the only change
-      ImmutableList<Change<O>> changes = baselineChange.get() == null
-          ? ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()))
-          : runHelper.getOriginReader().changes(baselineChange.get(), runHelper.getResolvedRef());
+      ImmutableList<Change<O>> changes;
+      if (baselineChange.get() == null) {
+        changes = ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()));
+      } else {
+        changes = runHelper.getOriginReader().changes(baselineChange.get(),
+            runHelper.getResolvedRef());
+        if (changes.isEmpty()) {
+          throw new EmptyChangeException(String
+              .format("Change '%s' doesn't include any change for origin_files = %s",
+                  runHelper.getResolvedRef(), runHelper.getOriginFiles()));
+        }
+      }
 
       Changes computedChanges = new Changes(changes, ImmutableList.of());
       runHelper
