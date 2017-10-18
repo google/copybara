@@ -317,7 +317,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   
   ImmutableList<Change<O>> getChanges(@Nullable O from, O to)
       throws RepoException, ValidationException {
-    return originReader.changes(from, to);
+    try (ProfilerTask ignore = profiler().start("get_changes")) {
+      return originReader.changes(from, to);
+    }
   }
 
   @Nullable
