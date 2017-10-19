@@ -161,8 +161,12 @@ public class GerritOptions implements Option {
    */
   protected GerritApiTransport getGerritApiTransport(URI uri)
       throws RepoException, ValidationException {
-    GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
-    return new GerritApiTransportImpl(repo, uri, getHttpTransport());
+    return new GerritApiTransportImpl(getCredentialsRepo(), uri, getHttpTransport());
+  }
+
+  @VisibleForTesting
+  protected GitRepository getCredentialsRepo() throws RepoException {
+    return gitOptions.cachedBareRepoForUrl("just_for_github_api");
   }
 
   @VisibleForTesting

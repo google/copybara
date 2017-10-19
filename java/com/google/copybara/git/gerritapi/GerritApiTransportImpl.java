@@ -23,6 +23,7 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
@@ -74,7 +75,8 @@ public class GerritApiTransportImpl implements GerritApiTransport {
     HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials(uri.toString()));
     GenericUrl url = getUrl(path);
     try {
-      return execute(responseType, requestFactory.buildGetRequest(url));
+      return execute(responseType, requestFactory.buildPostRequest(
+          url, new JsonHttpContent(JSON_FACTORY, request)));
     } catch (IOException e) {
       throw new RepoException("Error running Gerrit API operation " + url, e);
     }

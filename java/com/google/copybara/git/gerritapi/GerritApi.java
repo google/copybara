@@ -46,4 +46,18 @@ public class GerritApi {
       return ImmutableList.copyOf(result);
     }
   }
+
+  public ChangeInfo abandonChange(String changeId, AbandonInput abandonInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_abandon_change")) {
+      return transport.post("/changes/" + changeId + "/abandon", abandonInput, ChangeInfo.class);
+    }
+  }
+
+  public ChangeInfo restoreChange(String changeId, RestoreInput restoreInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_restore_change")) {
+      return transport.post("/changes/" + changeId + "/restore", restoreInput, ChangeInfo.class);
+    }
+  }
 }

@@ -18,6 +18,11 @@ package com.google.copybara.git.gerritapi;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.copybara.git.GitRepository.newBareRepo;
+import static com.google.copybara.git.gerritapi.ChangeStatus.ABANDONED;
+import static com.google.copybara.git.gerritapi.ChangeStatus.NEW;
+import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.LowLevelHttpRequest;
@@ -26,11 +31,15 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.copybara.RepoException;
 import com.google.copybara.git.GerritOptions;
+import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -50,6 +59,7 @@ public class GerritApiTest {
 
   protected GerritApi gerritApi;
   private MockHttpTransport httpTransport;
+  private Path credentialsFile;
 
   @Before
   public void setUp() throws Exception {
@@ -57,6 +67,15 @@ public class GerritApiTest {
         .setWorkdirToRealTempDir()
         .setEnvironment(GitTestUtil.getGitEnv())
         .setOutputRootToTmpDir();
+
+    credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, "https://user:SECRET@copybara-not-real.com".getBytes(UTF_8));
+    GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
+                                     getGitEnv(), /*verbose=*/true)
+        .init()
+        .withCredentialHelper("store --file=" + credentialsFile);
+
+
     httpTransport = new MockHttpTransport() {
       @Override
       public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
@@ -84,6 +103,11 @@ public class GerritApiTest {
       protected HttpTransport getHttpTransport() {
         return httpTransport;
       }
+
+      @Override
+      protected GitRepository getCredentialsRepo() throws RepoException {
+        return repo;
+      }
     };
     gerritApi = gerritOptions.newGerritApi(getHost() + "/foo/bar/baz");
   }
@@ -95,35 +119,12 @@ public class GerritApiTest {
   @Test
   public void testChanges() throws Exception {
     mockResponse(new CheckRequest("GET", "/changes/\\?q=status(:|%3A)open"), ""
-        + ")]}'\n"
-        + "[\n"
-        + "  {\n"
-        + "    \"id\": \"copybara-team%2Fcopybara~master~" + CHANGE_ID + "\",\n"
-        + "    \"project\": \"copybara-team/copybara\",\n"
-        + "    \"branch\": \"master\",\n"
-        + "    \"hashtags\": [],\n"
-        + "    \"change_id\": \"" + CHANGE_ID + "\",\n"
-        + "    \"subject\": \"JUST A TEST\",\n"
-        + "    \"status\": \"NEW\",\n"
-        + "    \"created\": \"2017-12-01 17:33:30.000000000\",\n"
-        + "    \"updated\": \"2017-12-01 17:37:59.000000000\",\n"
-        + "    \"submit_type\": \"REBASE_IF_NECESSARY\",\n"
-        + "    \"mergeable\": true,\n"
-        + "    \"insertions\": 1,\n"
-        + "    \"deletions\": 1,\n"
-        + "    \"unresolved_comment_count\": 0,\n"
-        + "    \"has_review_started\": true,\n"
-        + "    \"_number\": 1234567,\n"
-        + "    \"owner\": {\n"
-        + "      \"_account_id\": 12345\n"
-        + "    }\n"
-        + "  }\n"
-        + "]");
+        + ")]}'\n" + "[\n" + mockChangeInfo(NEW) + "]");
 
     List<ChangeInfo> changes = gerritApi.getChanges(new ChangesQuery("status:open"));
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getId()).contains(CHANGE_ID);
-    assertThat(changes.get(0).getStatus()).isEqualTo(ChangeStatus.NEW);
+    assertThat(changes.get(0).getStatus()).isEqualTo(NEW);
   }
 
   @Test
@@ -146,6 +147,46 @@ public class GerritApiTest {
     } catch (GerritApiException e) {
       assertThat(e.getExitCode()).isEqualTo(404);
     }
+  }
+
+  @Test
+  public void testAbandonRestore() throws Exception {
+    mockResponse(new CheckRequest("POST", ".*/abandon.*"), ""
+        + ")]}'\n" + mockChangeInfo(ChangeStatus.ABANDONED));
+    mockResponse(new CheckRequest("POST", ".*/restore.*"), ""
+        + ")]}'\n" + mockChangeInfo(NEW));
+
+    ChangeInfo change = gerritApi.abandonChange(CHANGE_ID, AbandonInput.createWithoutComment());
+    assertThat(change.getId()).contains(CHANGE_ID);
+    assertThat(change.getStatus()).isEqualTo(ABANDONED);
+
+    change = gerritApi.restoreChange(CHANGE_ID, RestoreInput.createWithoutComment());
+    assertThat(change.getId()).contains(CHANGE_ID);
+    assertThat(change.getStatus()).isEqualTo(NEW);
+  }
+
+  private static String mockChangeInfo(final ChangeStatus status) {
+    return "  {\n"
+        + "    \"id\": \"copybara-team%2Fcopybara~master~" + CHANGE_ID + "\",\n"
+        + "    \"project\": \"copybara-team/copybara\",\n"
+        + "    \"branch\": \"master\",\n"
+        + "    \"hashtags\": [],\n"
+        + "    \"change_id\": \"" + CHANGE_ID + "\",\n"
+        + "    \"subject\": \"JUST A TEST\",\n"
+        + "    \"status\": \"" + status + "\",\n"
+        + "    \"created\": \"2017-12-01 17:33:30.000000000\",\n"
+        + "    \"updated\": \"2017-12-01 17:37:59.000000000\",\n"
+        + "    \"submit_type\": \"REBASE_IF_NECESSARY\",\n"
+        + "    \"mergeable\": true,\n"
+        + "    \"insertions\": 1,\n"
+        + "    \"deletions\": 1,\n"
+        + "    \"unresolved_comment_count\": 0,\n"
+        + "    \"has_review_started\": true,\n"
+        + "    \"_number\": 1234567,\n"
+        + "    \"owner\": {\n"
+        + "      \"_account_id\": 12345\n"
+        + "    }\n"
+        + "  }\n";
   }
 
   public void mockResponse(Predicate<String> filter, String response) throws Exception {
