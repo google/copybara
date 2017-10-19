@@ -149,6 +149,7 @@ class ChangeReader {
    * Builder for ChangeReader.
    */
   static class Builder {
+
     private Authoring authoring = null;
     private final GitRepository repository;
     private final Console console;
