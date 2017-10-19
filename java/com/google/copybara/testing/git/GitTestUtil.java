@@ -21,6 +21,7 @@ import static org.junit.Assert.fail;
 
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
@@ -35,15 +36,16 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
  * Common utilities for creating and working with git repos in test
  */
-public class GitTestUtil {
+public final class GitTestUtil {
 
-  static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
-  static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
+  private static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
+  private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
   public static final GithubMockHttpTransport NO_GITHUB_API_CALLS = new GithubMockHttpTransport() {
     @Override
     protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
@@ -52,6 +54,8 @@ public class GitTestUtil {
       throw new IllegalStateException();
     }
   };
+
+  private GitTestUtil() {}
 
   /**
    * Returns an environment that contains the System environment and a set of variables
@@ -122,6 +126,7 @@ public class GitTestUtil {
 
     private final Path httpsRepos;
     private final Validator validator;
+    private final Set<String> mappingPrefixes = Sets.newHashSet("https://");
 
     public TestGitOptions(Path httpsRepos, Supplier<GeneralOptions> generalOptionsSupplier) {
       this(httpsRepos, generalOptionsSupplier, new Validator());
@@ -138,7 +143,15 @@ public class GitTestUtil {
     protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
         throws RepoException {
       return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, httpsRepos,
-          validator));
+                                                  validator, mappingPrefixes));
+    }
+
+    /**
+     * Add additional prefixes that should be mapped for test.
+     */
+    public TestGitOptions addPrefix(String prefix) {
+      mappingPrefixes.add(prefix);
+      return this;
     }
   }
 
@@ -146,14 +159,16 @@ public class GitTestUtil {
 
     private final GeneralOptions generalOptions;
     private final Path httpsRepos;
-    private Validator validator;
+    private final Validator validator;
+    private final Set<String> mappingPrefixes;
 
     RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
-        Path httpsRepos, Validator validator) {
+        Path httpsRepos, Validator validator, Set<String> mappingPrefixes) {
       super(gitDir, workTree, generalOptions.isVerbose(), generalOptions.getEnvironment());
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
       this.validator = validator;
+      this.mappingPrefixes = mappingPrefixes;
     }
 
     @Override
@@ -180,16 +195,18 @@ public class GitTestUtil {
     @Override
     public GitRepository withWorkTree(Path newWorkTree) {
       return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, httpsRepos,
-          validator);
+                                         validator, mappingPrefixes);
     }
 
     private String mapUrl(String url) {
-      if (!url.startsWith("https://")) {
-        return url;
+      for (String prefix : mappingPrefixes) {
+        if (url.startsWith(prefix)) {
+          Path repo = httpsRepos.resolve(url.replace(prefix, ""));
+          assertWithMessage(repo.toString()).that(Files.isDirectory(repo)).isTrue();
+          return "file:///" + repo;
+        }
       }
-      Path repo = httpsRepos.resolve(url.replaceAll("https://", ""));
-      assertWithMessage(repo.toString()).that(Files.isDirectory(repo)).isTrue();
-      return "file:///" + repo.toString();
+      return url;
     }
   }
 }

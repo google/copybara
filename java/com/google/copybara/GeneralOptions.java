@@ -59,7 +59,7 @@ public final class GeneralOptions implements Option {
   @Nullable
   private final Path outputRoot;
 
-  private final Profiler profiler = new Profiler(Ticker.systemTicker());
+  private Profiler profiler = new Profiler(Ticker.systemTicker());
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
@@ -81,6 +81,16 @@ public final class GeneralOptions implements Option {
     this.noCleanup = noCleanup;
     this.disableReversibleCheck = disableReversibleCheck;
     this.force = force;
+  }
+
+  public GeneralOptions withForce(boolean force) {
+    return new GeneralOptions(environment, fileSystem, verbose, console, configRoot, outputRoot,
+                              noCleanup, disableReversibleCheck, force);
+  }
+
+  public GeneralOptions withConsole(Console console) {
+    return new GeneralOptions(environment, fileSystem, verbose, console, configRoot, outputRoot,
+                              noCleanup, disableReversibleCheck, force);
   }
 
   public Map<String, String> getEnvironment() {
@@ -184,6 +194,11 @@ public final class GeneralOptions implements Option {
       String home = checkNotNull(environment.get("HOME"), "$HOME environment var is not set");
       return new DirFactory(fileSystem.getPath(home).resolve("copybara"));
     }
+  }
+
+  public GeneralOptions withProfiler(Profiler profiler) {
+    this.profiler = profiler;
+    return this;
   }
 
   @Parameters(separators = "=")

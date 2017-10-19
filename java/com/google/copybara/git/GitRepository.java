@@ -295,7 +295,7 @@ public class GitRepository {
   /**
    * Create a refspec from a string
    */
-  Refspec createRefSpec(String ref) throws RepoException {
+  public Refspec createRefSpec(String ref) throws RepoException {
     try {
       // Validate refspec
       return Refspec.create(environment, gitDir, ref,/*location=*/null);
@@ -1283,7 +1283,7 @@ public class GitRepository {
     /**
      * Runs the push command and returns the response from the server.
      */
-    String run() throws RepoException {
+    public String run() throws RepoException {
       return repo.runPush(this);
     }
 
