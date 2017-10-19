@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform.metadata;
 
+import static com.google.copybara.ValidationException.checkCondition;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
@@ -104,8 +106,7 @@ public class MapAuthor implements Transformation {
       work.setAuthor(byName);
       return;
     }
-    ValidationException.checkCondition(!failIfNotFound,
-        String.format("Cannot find a mapping for author '%s'", work.getAuthor()));
+    checkCondition(!failIfNotFound, "Cannot find a mapping for author '%s'", work.getAuthor());
   }
 
   @Override

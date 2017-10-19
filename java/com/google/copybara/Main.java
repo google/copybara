@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME;
+import static com.google.copybara.ValidationException.checkCondition;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
@@ -257,10 +258,10 @@ public class Main {
       GeneralOptions generalOptions, String configLocation) throws ValidationException {
     Path configPath = generalOptions.getFileSystem().getPath(configLocation);
     String fileName = configPath.getFileName().toString();
-    ValidationException.checkCondition(
+    checkCondition(
         fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
-        String.format("Copybara config file filename should be '%s' but it is '%s'.",
-            COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName()));
+        "Copybara config file filename should be '%s' but it is '%s'.",
+            COPYBARA_SKYLARK_CONFIG_FILENAME, configPath.getFileName());
 
     // Treat the top level element specially since it is passed thru the command line.
     if (!Files.exists(configPath)) {

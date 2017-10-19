@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.ValidationException.checkCondition;
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 
 import com.google.common.base.Strings;
@@ -187,9 +188,9 @@ public enum WorkflowMode {
       final AtomicReference<String> requestParent = new AtomicReference<>(
           runHelper.workflowOptions().changeBaseline);
       final AtomicReference<O> baselineChange = new AtomicReference<>(null);
-      ValidationException.checkCondition(runHelper.destinationSupportsPreviousRef(),
-          String.format("'%s' is incompatible with destinations that don't support history"
-              + " (For example folder.destination)", CHANGE_REQUEST));
+      checkCondition(runHelper.destinationSupportsPreviousRef(),
+          "'%s' is incompatible with destinations that don't support history"
+              + " (For example folder.destination)", CHANGE_REQUEST);
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
       if (Strings.isNullOrEmpty(requestParent.get())) {
         O resolvedRef = runHelper.getResolvedRef();
@@ -249,7 +250,7 @@ public enum WorkflowMode {
   private static <O extends Revision, D extends Revision> void manageNoChangesDetectedForSquash(
       WorkflowRunHelper<O, D> runHelper, O current, O lastRev)
       throws ValidationException, RepoException {
-    ValidationException.checkCondition(
+    checkCondition(
         lastRev != null || runHelper.isForce(), String.format(
             "Cannot find any change in history up to '%s'. Use %s if you really want to migrate to"
                 + " the revision.", current.asString(), GeneralOptions.FORCE));
@@ -259,7 +260,7 @@ public enum WorkflowMode {
     if (lastRev == null
         || !current.asString().equals(lastRev.asString())
         && runHelper.getChanges(current, lastRev).isEmpty()) {
-      ValidationException.checkCondition(runHelper.isForce(), String.format(
+      checkCondition(runHelper.isForce(), String.format(
           "Last imported revision '%s' is not an ancestor of the revision currently being"
               + " migrated ('%s'). Use %s if you really want to migrate the reference.",
           lastRev, current.asString(), GeneralOptions.FORCE));

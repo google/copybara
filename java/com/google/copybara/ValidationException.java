@@ -30,10 +30,10 @@ public class ValidationException extends Exception {
     super(message, cause);
   }
 
-  public static void checkCondition(boolean condition, String msg)
+  public static void checkCondition(boolean condition, String format, Object... args)
       throws ValidationException {
     if (!condition) {
-      throw new ValidationException(msg);
+      throw new ValidationException(String.format(format, args));
     }
   }
 }

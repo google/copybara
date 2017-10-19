@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform.metadata;
 
+import static com.google.copybara.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -63,7 +65,7 @@ public class ExposeLabelInMessage implements Transformation {
     }
 
     if (value == null) {
-      ValidationException.checkCondition(ignoreNotFound, "Cannot find label " + label);
+      checkCondition(ignoreNotFound, "Cannot find label %s", label);
       return;
     }
 

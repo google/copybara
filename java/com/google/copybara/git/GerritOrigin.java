@@ -16,6 +16,8 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.ValidationException.checkCondition;
+
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -57,8 +59,7 @@ public class GerritOrigin extends GitOrigin {
   public GitRevision resolve(@Nullable String reference) throws RepoException, ValidationException {
     generalOptions.console().progress("Git Origin: Initializing local repo");
 
-    ValidationException.checkCondition(!Strings.isNullOrEmpty(reference),
-        "Expecting a change number as reference");
+    checkCondition(!Strings.isNullOrEmpty(reference), "Expecting a change number as reference");
     return GitRepoType.GERRIT.resolveRef(getRepository(), repoUrl, reference, this.generalOptions);
   }
 

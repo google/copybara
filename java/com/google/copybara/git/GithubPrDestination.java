@@ -176,11 +176,11 @@ public class GithubPrDestination implements Destination<GitRevision> {
     // We could do more magic here with the change identity. But this is already complex so we
     // require  a group identity either provided by the origin or the workflow (Will be implemented
     // later.
-    ValidationException.checkCondition(groupId != null, String.format(
-            "git.github_pr_destination is incompatible with the current origin. Origin has to be"
-                + " able to provide the group identity or use '%s' flag",
-            GithubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH));
-    return groupId.replaceAll("[^A-Za-z0-9_-]","_");
+    ValidationException.checkCondition(groupId != null,
+        "git.github_pr_destination is incompatible with the current origin. Origin has to be"
+            + " able to provide the group identity or use '%s' flag",
+        GithubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
+    return groupId.replaceAll("[^A-Za-z0-9_-]", "_");
   }
 
   @Override

@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.ValidationException.checkCondition;
 import static com.google.copybara.git.GithubUtil.asGithubUrl;
 import static com.google.copybara.git.GithubUtil.getProjectNameFromUrl;
 
@@ -88,7 +89,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   @Override
   public GitRevision resolve(String reference) throws RepoException, ValidationException {
-    ValidationException.checkCondition(reference != null, ""
+    checkCondition(reference != null, ""
         + "A pull request reference is expected as argument in the command line."
         + " Invoke copybara as:\n"
         + "    copybara copy.bara.sky workflow_name 12345");
@@ -98,10 +99,10 @@ public class GithubPROrigin implements Origin<GitRevision> {
     Optional<GithubPrUrl> githubPrUrl = GithubUtil.maybeParseGithubPrUrl(reference);
     String configProjectName = GithubUtil.getProjectNameFromUrl(url);
     if (githubPrUrl.isPresent()) {
-      ValidationException.checkCondition(
+      checkCondition(
           githubPrUrl.get().getProject().equals(configProjectName),
-          String.format("Project name should be '%s' but it is '%s' instead", configProjectName,
-              githubPrUrl.get().getProject()));
+          "Project name should be '%s' but it is '%s' instead", configProjectName,
+              githubPrUrl.get().getProject());
 
       return getRevisionForPR(configProjectName, githubPrUrl.get().getPrNumber());
     }
@@ -143,10 +144,10 @@ public class GithubPROrigin implements Origin<GitRevision> {
       required.removeAll(Collections2.transform(issue.getLabels(), Label::getName));
 
       // TODO(malcon): Find a better exception for this.
-      ValidationException.checkCondition(
+      checkCondition(
           required.isEmpty(),
-          String.format("Cannot migrate http://github.com/%s/%d because it is missing the following"
-              + " labels: %s", project, prNumber, required));
+          "Cannot migrate http://github.com/%s/%d because it is missing the following"
+              + " labels: %s", project, prNumber, required);
     }
     PullRequest prData;
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {

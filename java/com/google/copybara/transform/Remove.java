@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform;
 
+import static com.google.copybara.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
@@ -49,7 +51,7 @@ public class Remove implements Transformation {
   @Override
   public void transform(TransformWork work) throws IOException, ValidationException {
     // TODO(malcon): Fix ConfigValidator and move this logic there.
-    ValidationException.checkCondition(work.isInsideExplicitTransform(),
+    checkCondition(work.isInsideExplicitTransform(),
         "core.remove() is only mean to be used inside core.transform for reversing"
             + " transformations like core.copy(). Please use origin_files exclude for"
             + " filtering out files.");

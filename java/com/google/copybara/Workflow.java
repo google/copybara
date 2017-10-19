@@ -207,11 +207,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
    */
   private void validateFlags() throws ValidationException {
     checkCondition(!isInitHistory() || mode != WorkflowMode.CHANGE_REQUEST,
-        String.format("%s is not compatible with %s",
-            WorkflowOptions.INIT_HISTORY_FLAG, WorkflowMode.CHANGE_REQUEST));
+        "%s is not compatible with %s",
+            WorkflowOptions.INIT_HISTORY_FLAG, WorkflowMode.CHANGE_REQUEST);
     checkCondition(!isCheckLastRevState() || mode != WorkflowMode.CHANGE_REQUEST,
-            String.format("%s is not compatible with %s",
-                WorkflowOptions.CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST));
+            "%s is not compatible with %s",
+                WorkflowOptions.CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
   }
 
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)

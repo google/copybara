@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform;
 
+import static com.google.copybara.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Joiner;
@@ -130,8 +131,8 @@ public class TodoReplace implements Transformation {
       String suffix = matcher.group(3);
       switch (mode) {
         case MAP_OR_FAIL:
-          ValidationException.checkCondition(mapping.containsKey(originUser),
-              String.format("Cannot find a mapping '%s' in '%s' (%s)", originUser, rawText, path));
+          checkCondition(mapping.containsKey(originUser),
+              "Cannot find a mapping '%s' in '%s' (%s)", originUser, rawText, path);
           // fall through
         case MAP_OR_IGNORE:
           String destUser = mapping.getOrDefault(originUser, originUser);

@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.ChangeMessage.parseMessage;
+import static com.google.copybara.ValidationException.checkCondition;
 import static com.google.copybara.git.LazyGitRepository.memoized;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -145,7 +146,7 @@ public final class GitDestination implements Destination<GitRevision> {
         emailConfigured = true;
       }
     }
-    ValidationException.checkCondition(nameConfigured && emailConfigured,
+    checkCondition(nameConfigured && emailConfigured,
         "'user.name' and/or 'user.email' are not configured. Please run "
             + "`git config --global SETTING VALUE` to set them");
   }
@@ -475,7 +476,7 @@ public final class GitDestination implements Destination<GitRevision> {
       }
       if (!skipPush) {
         console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, remotePush));
-        ValidationException.checkCondition(!nonFastForwardPush
+        checkCondition(!nonFastForwardPush
             || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
             + " allowed when fetch != push");
 
