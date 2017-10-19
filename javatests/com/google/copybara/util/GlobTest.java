@@ -126,6 +126,12 @@ public class GlobTest {
   }
 
   @Test
+  public void testSpecialChars()
+      throws IOException, ValidationException, RepoException {
+    createPathMatcher("glob(['\\n','\\\"', \"\\t\\r\\f\\b\\000\"])");
+  }
+
+  @Test
   public void testSimpleIncludeWithExclusion()
       throws IOException, ValidationException, RepoException {
     PathMatcher pathMatcher = createPathMatcher("glob(['b*','foo'], exclude =['baz'])");
@@ -224,6 +230,11 @@ public class GlobTest {
   }
 
   private Glob parseGlob(String expression) throws ValidationException {
-    return skylark.eval("result", "result=" + expression);
+    Glob glob = skylark.eval("result", "result=" + expression);
+    System.err.println("---------->"+expression+"<---------");
+    System.err.println("---------->"+glob.toString()+"<---------");
+    // Check toString implementation is a valid glob
+    assertThat(skylark.<Glob>eval("result", "result=" + glob.toString())).isEqualTo(glob);
+    return glob;
   }
 }

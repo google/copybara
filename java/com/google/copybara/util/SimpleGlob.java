@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.nio.file.FileSystems;
@@ -36,7 +37,8 @@ import javax.annotation.Nullable;
 final class SimpleGlob extends Glob implements SkylarkValue {
 
   private final ImmutableList<String> include;
-  @Nullable private final Glob exclude;
+  @Nullable
+  private final Glob exclude;
 
   SimpleGlob(Iterable<String> include, @Nullable Glob exclude) {
     this.include = ImmutableList.copyOf(include);
@@ -80,15 +82,33 @@ final class SimpleGlob extends Glob implements SkylarkValue {
         + (exclude == null
         ? ""
         // TODO(malcon): Correct but messy. We should accept a list of excludes in the constructor
-        : ", exclude = " + exclude.getIncludes()) + ")";
+        : ", exclude = " + toStringList(exclude.getIncludes())) + ")";
   }
 
-  private String toStringList(ImmutableList<String> list) {
-    if (list.isEmpty()) {
-      return "[]";
+  private String toStringList(Iterable<String> iterable) {
+    StringBuilder sb = new StringBuilder("[");
+    boolean first = true;
+    for (String s : iterable) {
+      if (first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+      sb.append('"').append(sanitize(s)).append('"');
     }
+    return sb.append("]").toString();
+  }
 
-    return "[\"" + Joiner.on("\", ").join(list) + "\"]";
+  private String sanitize(String s) {
+    return s
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("\f", "\\f")
+        .replace("\b", "\\b")
+        .replace("\000", "\\000");
   }
 
   @Override
