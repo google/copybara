@@ -74,6 +74,7 @@ public final class TransformWork {
     this(checkoutDir, metadata, changes, console, migrationInfo, resolvedReference,
         new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/ false);
   }
+
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState,
       boolean insideExplicitTransform) {
@@ -326,7 +327,7 @@ public final class TransformWork {
    */
   public TransformWork withConsole(Console newConsole) {
     return new TransformWork(checkoutDir, metadata, changes, Preconditions.checkNotNull(newConsole),
-                             migrationInfo, resolvedReference);
+        migrationInfo, resolvedReference);
   }
 
   /**
