@@ -78,7 +78,9 @@ public class WorkflowOptions implements Option {
           + " flag disables that behavior and runs for all the changes.")
   public boolean importNoopChanges = false;
 
-  @Parameter(names = "--check-last-rev-state",
+  public static final String CHECK_LAST_REV_STATE = "--check-last-rev-state";
+
+  @Parameter(names = CHECK_LAST_REV_STATE,
       description = "If enabled, Copybara will validate that the destination didn't change"
           + " since last-rev import for destination_files. Note that this"
           + " flag doesn't work for CHANGE_REQUEST mode.")

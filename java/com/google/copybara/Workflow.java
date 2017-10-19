@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.ValidationException.checkCondition;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -180,6 +182,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
+    validateFlags();
     try (ProfilerTask ignore = profiler().start("run/" + name)) {
       console.progress("Getting last revision: "
           + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
@@ -195,6 +198,20 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         mode.run(newRunHelper(workdir, resolvedRef));
       }
     }
+  }
+
+  /**
+   * Validates if flags are compatible with this workflow.
+   *
+   * @throws ValidationException if flags are invalid for this workflow
+   */
+  private void validateFlags() throws ValidationException {
+    checkCondition(!isInitHistory() || mode != WorkflowMode.CHANGE_REQUEST,
+        String.format("%s is not compatible with %s",
+            WorkflowOptions.INIT_HISTORY_FLAG, WorkflowMode.CHANGE_REQUEST));
+    checkCondition(!isCheckLastRevState() || mode != WorkflowMode.CHANGE_REQUEST,
+            String.format("%s is not compatible with %s",
+                WorkflowOptions.CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST));
   }
 
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)

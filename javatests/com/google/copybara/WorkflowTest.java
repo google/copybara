@@ -1486,8 +1486,8 @@ public class WorkflowTest {
       checkLastRevStatus(WorkflowMode.CHANGE_REQUEST);
       fail();
     } catch (ValidationException e) {
-      console().assertThat().onceInLog(MessageType.ERROR,
-          ".*check_last_rev_state is not compatible with CHANGE_REQUEST.*");
+      assertThat(e.getMessage())
+          .isEqualTo("--check-last-rev-state is not compatible with CHANGE_REQUEST");
     }
   }
 
@@ -1580,14 +1580,10 @@ public class WorkflowTest {
     options.general = new GeneralOptions(
         options.general.getFileSystem(), options.general.isVerbose(), console());
     try {
-      skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
+      skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST).run(workdir, "");
       fail("Should fail");
     } catch (ValidationException e) {
-      for (Message message : console().getMessages()) {
-        System.err.println(message);
-      }
-      console().assertThat().onceInLog(MessageType.ERROR,
-          ".*--init-history is not compatible with CHANGE_REQUEST.*");
+      assertThat(e.getMessage()).isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
     }
   }
 
