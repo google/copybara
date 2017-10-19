@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
+import static com.google.copybara.WorkflowMode.ITERATIVE;
 import static com.google.copybara.WorkflowMode.SQUASH;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
@@ -171,14 +172,6 @@ public class WorkflowTest {
   private Workflow iterativeWorkflow(@Nullable String previousRef)
       throws ValidationException, IOException {
     return iterativeWorkflow("default", previousRef);
-  }
-
-  private Workflow iterativeWorkflowFirst()
-      throws ValidationException, IOException {
-    options.workflowOptions.initHistory = true;
-    options.general = new GeneralOptions(
-        options.general.getFileSystem(), options.general.isVerbose(), console());
-    return skylarkWorkflow("default", WorkflowMode.ITERATIVE);
   }
 
   private Workflow changeRequestWorkflow(@Nullable String baseline)
@@ -1555,9 +1548,35 @@ public class WorkflowTest {
     origin.singleFileChange(2, "change 3", "file.txt", "c");
     origin.singleFileChange(3, "change 4", "file.txt", "d");
     origin.singleFileChange(4, "change 5", "file.txt", "e");
-    iterativeWorkflowFirst().run(workdir, /*sourceRef=*/"3");
+    options.workflowOptions.initHistory = true;
+    skylarkWorkflow("default", ITERATIVE).run(workdir, /*sourceRef=*/"3");
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("0", "1", "2", "3"));
+  }
+
+  @Test
+  public void iterativeInitHistoryIgnored() throws Exception {
+    options.workflowOptions.initHistory = true;
+
+    transformations = ImmutableList.of();
+    origin.singleFileChange(0, "change 1", "file.txt", "a");
+    origin.singleFileChange(1, "change 2", "file.txt", "b");
+    origin.singleFileChange(2, "change 3", "file.txt", "c");
+    origin.singleFileChange(3, "change 4", "file.txt", "d");
+
+    skylarkWorkflow("default", ITERATIVE).run(workdir, /*sourceRef=*/"3");
+    assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
+        .isEqualTo(Lists.newArrayList("0", "1", "2", "3"));
+
+    origin.singleFileChange(4, "change 5", "file.txt", "e");
+    origin.singleFileChange(5, "change 6", "file.txt", "f");
+
+    skylarkWorkflow("default", ITERATIVE).run(workdir, /*sourceRef=*/"5");
+    assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
+        .isEqualTo(Lists.newArrayList("0", "1", "2", "3", "4", "5"));
+    console().assertThat().onceInLog(MessageType.WARNING,
+        ".*Ignoring --init-history because a previous imported revision '3' was found in "
+            + "the destination.*");
   }
 
   @Test

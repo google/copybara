@@ -354,29 +354,42 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   /**
    * Returns the last revision that was imported from this origin to the destination. Returns
-   * {@code null} if it cannot be determined or this is the first import ({@code --init-history}
-   * is specified).
+   * {@code null} if it cannot be determined.
    *
    * <p>If {@code --last-rev} is specified, that revision will be used. Otherwise, the previous
    * revision will be resolved in the destination with the origin label.
+   *
+   * <p>If {@code --init-history} it will return null, if a last revision cannot be resolved in the
+   * destination. The reason is to avoid users importing accidentally all the history again by using
+   * the flag when they shouldn't.
    */
   @Nullable
   private O maybeGetLastRev() throws RepoException, ValidationException {
-    if (workflow.isInitHistory()) {
-      return null;
-    }
     if (workflow.getLastRevisionFlag() != null) {
       try {
         return workflow.getOrigin().resolve(workflow.getLastRevisionFlag());
       } catch (RepoException e) {
         throw new CannotResolveRevisionException(
             "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
-                + workflow.getLastRevisionFlag(),
-            e);
+                + workflow.getLastRevisionFlag(), e);
       }
     }
     DestinationStatus status = writer.getDestinationStatus(workflow.getOrigin().getLabelName());
-    return (status == null) ? null : workflow.getOrigin().resolve(status.getBaseline());
+    try {
+      O lastRev = (status == null) ? null : workflow.getOrigin().resolve(status.getBaseline());
+      if (lastRev != null && workflow.isInitHistory()) {
+        getConsole().warnFmt(
+            "Ignoring %s because a previous imported revision '%s' was found in the destination.",
+            WorkflowOptions.INIT_HISTORY_FLAG, lastRev.asString());
+      }
+      return lastRev;
+    } catch (CannotResolveRevisionException e) {
+      if (workflow.isInitHistory()) {
+        // Expected to not find a revision if --init-history is provided
+        return null;
+      }
+      throw e;
+    }
   }
 
   public Profiler profiler() {
