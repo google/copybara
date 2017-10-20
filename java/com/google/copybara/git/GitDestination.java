@@ -42,6 +42,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
@@ -293,7 +294,11 @@ public final class GitDestination implements Destination<GitRevision> {
     private void fetchIfNeeded(GitRepository repo, Console console)
         throws RepoException, ValidationException {
       if (!state.alreadyFetched) {
-        GitRevision revision = fetchFromRemote(console, repo, repoUrl, remoteFetch);
+
+        GitRevision revision = generalOptions.repoTask(
+            "destination_fetch",
+            () -> fetchFromRemote(console, repo, repoUrl, remoteFetch));
+
         if (revision != null) {
           repo.simpleCommand("branch", state.localBranch, revision.getSha1());
         }
@@ -480,10 +485,13 @@ public final class GitDestination implements Destination<GitRevision> {
             || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
             + " allowed when fetch != push");
 
-        String serverResponse = scratchClone.push()
-            .withRefspecs(repoUrl, ImmutableList.of(scratchClone.createRefSpec(
-                (nonFastForwardPush ? "+" : "") + "HEAD:" + remotePush)))
-            .run();
+        String serverResponse = generalOptions.repoTask(
+            "push",
+            () -> scratchClone.push()
+                .withRefspecs(repoUrl, ImmutableList.of(scratchClone.createRefSpec(
+                    (nonFastForwardPush ? "+" : "") + "HEAD:" + remotePush)))
+                .run()
+        );
         processPushOutput.process(serverResponse, messageInfo.newPush, alternate);
       }
       return WriterResult.OK;
@@ -515,7 +523,7 @@ public final class GitDestination implements Destination<GitRevision> {
     @Nullable
     private GitRevision fetchFromRemote(Console console, GitRepository repo, String repoUrl,
         String fetch) throws RepoException, ValidationException {
-      try {
+      try (ProfilerTask ignore = generalOptions.profiler().start("destination_fetch")){
         console.progress("Git Destination: Fetching: " + repoUrl + " " + fetch);
         return repo.fetchSingleRef(repoUrl, fetch);
       } catch (CannotResolveRevisionException e) {
@@ -614,8 +622,10 @@ public final class GitDestination implements Destination<GitRevision> {
     }
   }
 
-  @VisibleForTesting
-  LazyGitRepository getLocalRepo() {
+  /**
+   * Not a public API. It is subject to change.
+   */
+  public LazyGitRepository getLocalRepo() {
     return localRepo;
   }
 
