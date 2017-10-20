@@ -255,6 +255,7 @@ public class SkylarkParser {
   private static Environment createEnvironment(EventHandler eventHandler, Frame globals,
       Map<String, Extension> imports) {
     return Environment.builder(Mutability.create("CopybaraModules"))
+        .useDefaultSemantics()
         .setGlobals(globals)
         .setImportedExtensions(imports)
         .setSkylark()
