@@ -58,13 +58,13 @@ public class OptionsBuilder {
       new GeneralOptions(
           System.getenv(),
           Jimfs.newFileSystem(),
-          /*verbose=*/true,
+          /*verbose=*/ true,
           LogConsole.readWriteConsole(System.in, System.out, /*verbose*/ true),
-          /*rootCfgPath=*/null,
+          /* configRoot= */ null,
           /*outputRoot*/ null,
           /*reuseOutputDirs*/ true,
-          /*forceReversibleCheck=*/false,
-          /*force=*/false);
+          /* disableReversibleCheck= */ false,
+          /*force=*/ false);
 
   // TODO(team): Rename to folderDestination
   public FolderDestinationOptions localDestination = new FolderDestinationOptions();

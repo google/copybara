@@ -273,8 +273,12 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     }
     // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
     // Should be K since info doesn't write but only read.
-    return destination.newWriter(destinationFiles, /*dryrun=*/false,
-        computeGroupIdentity(groupIdentity), /*oldWriter=*/null)
+    return destination
+        .newWriter(
+            destinationFiles,
+            /* dryRun= */ false,
+            computeGroupIdentity(groupIdentity),
+            /*oldWriter=*/ null)
         .getDestinationStatus(origin.getLabelName());
   }
 

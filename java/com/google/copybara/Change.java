@@ -101,7 +101,8 @@ public final class Change<R extends Revision> {
       + " heuristic and it could include things that are not labels.",
       structField = true)
   public SkylarkDict<String, String> getLabelsForSkylark() {
-    return SkylarkDict.copyOf(/*environment=*/null,
+    return SkylarkDict.copyOf(
+        /* env= */ null,
         ImmutableMap.copyOf(Maps.transformValues(labels.asMap(), Iterables::getLast)));
   }
 
@@ -111,8 +112,8 @@ public final class Change<R extends Revision> {
       + " is an heuristic and it could include things that are not labels.",
       structField = true)
   public SkylarkDict<String, SkylarkList<String>> getLabelsAllForSkylark() {
-    return SkylarkDict.copyOf(/*environment=*/null,
-        Maps.transformValues(labels.asMap(), SkylarkList::createImmutable));
+    return SkylarkDict.copyOf(
+        /* env= */ null, Maps.transformValues(labels.asMap(), SkylarkList::createImmutable));
   }
 
   /**
