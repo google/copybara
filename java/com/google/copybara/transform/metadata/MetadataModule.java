@@ -197,19 +197,23 @@ public class MetadataModule {
               doc = "Same as fail_if_not_found but when the transform is used in a inverse"
                   + " workflow.",
               defaultValue = "False", positional = false),
+          @Param(name = "map_all_changes", type = Boolean.class,
+              doc = "If all changes being migrated should be mapped. Useful for getting a mapped"
+                  + " metadata.squash_notes. By default we only map the current author.",
+              defaultValue = "False", positional = false)
       }, objectType = MetadataModule.class, useLocation = true)
   @Example(title = "Map some names, emails and complete authors",
       before = "Here we show how to map authors using different options:",
       code = MAP_AUTHOR_EXAMPLE_SIMPLE)
   static final BuiltinFunction MAP_AUTHOR = new BuiltinFunction("map_author") {
     public Transformation invoke(MetadataModule self, SkylarkDict<String, String> authors,
-        Boolean reversible, Boolean failIfNotFound, Boolean reverseFailIfNotFound,
+        Boolean reversible, Boolean failIfNotFound, Boolean reverseFailIfNotFound, Boolean mapAll,
         Location location) throws EvalException {
       SkylarkUtil.check(location, reversible || !reverseFailIfNotFound,
           "'reverse_fail_if_not_found' can only be true if 'reversible' is true");
 
       return MapAuthor.create(location, Type.STRING_DICT.convert(authors, "authors"),
-          reversible, failIfNotFound, reverseFailIfNotFound);
+          reversible, failIfNotFound, reverseFailIfNotFound, mapAll);
     }
   };
 

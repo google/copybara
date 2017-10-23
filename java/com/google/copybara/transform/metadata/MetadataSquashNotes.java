@@ -83,7 +83,7 @@ public class MetadataSquashNotes implements Transformation {
           summary.add(cutIfLong(c.firstLineMessage()));
         }
         if (showAuthor) {
-          summary.add("by " + c.getAuthor().toString());
+          summary.add("by " + c.getMappedAuthor().toString());
         }
         sb.append(summary.stream()
                   .collect(Collectors.joining(" ")));

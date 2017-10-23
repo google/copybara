@@ -55,7 +55,7 @@ public class UseLastChange implements Transformation {
       work.setMessage(work.getChanges().getCurrent().get(0).getMessage());
     }
     if (useAuthor) {
-      work.setAuthor(work.getChanges().getCurrent().get(0).getAuthor());
+      work.setAuthor(work.getChanges().getCurrent().get(0).getMappedAuthor());
     }
   }
 

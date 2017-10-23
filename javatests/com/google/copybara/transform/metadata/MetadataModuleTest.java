@@ -118,6 +118,10 @@ public class MetadataModuleTest {
   @Test
   public void testMessageTransformerForSquashCompact() throws Exception {
     runWorkflow(WorkflowMode.SQUASH, ""
+        + "metadata.map_author({"
+        + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
+        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
+        + "}),"
         + "metadata.squash_notes("
         + "  prefix = 'Importing foo project:\\n\\n',"
         + "  oldest_first = True,"
@@ -129,6 +133,28 @@ public class MetadataModuleTest {
             + "\n"
             + "  - 1 second commit by Foo Bar <foo@bar.com>\n"
             + "  - 2 third commit by Foo Baz <foo@baz.com>\n");
+    assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
+  public void testSquashWithMapAuthor() throws Exception {
+    runWorkflow(WorkflowMode.SQUASH, ""
+        + "metadata.map_author({"
+        + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
+        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
+        + "},"
+        + "  map_all_changes = True),"
+        + "metadata.squash_notes("
+        + "  prefix = 'Importing foo project:\\n\\n',"
+        + "  oldest_first = True,"
+        + ")");
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary())
+        .isEqualTo(""
+            + "Importing foo project:\n"
+            + "\n"
+            + "  - 1 second commit by Public Foo Bar <public@foobar.com>\n"
+            + "  - 2 third commit by Public Foo Baz <public@foobaz.com>\n");
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
 
@@ -276,6 +302,23 @@ public class MetadataModuleTest {
         + "\n"
         + "Extended text");
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
+  public void testUseLastChange_map_author() throws Exception {
+    runWorkflow(WorkflowMode.SQUASH, ""
+        + "metadata.map_author({"
+        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
+        + "},"
+        + "  map_all_changes = True),"
+        + "metadata.use_last_change()");
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+
+    assertThat(change.getChangesSummary()).isEqualTo(""
+        + "third commit\n"
+        + "\n"
+        + "Extended text");
+    assertThat(change.getAuthor()).isEqualTo(new Author("Public Foo Baz", "public@foobaz.com"));
   }
 
   @Test

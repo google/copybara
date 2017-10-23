@@ -50,6 +50,8 @@ public final class Change<R extends Revision> {
   private final String message;
   private final ZonedDateTime dateTime;
   private final ImmutableMultimap<String, String> labels;
+  private Author mappedAuthor;
+
   @Nullable
   private final ImmutableSet<String> changeFiles;
 
@@ -86,9 +88,22 @@ public final class Change<R extends Revision> {
     return revision.asString();
   }
 
-  @SkylarkCallable(name = "author", doc = "The author of the change", structField = true)
+  @SkylarkCallable(name = "original_author", doc = "The author of the change before any"
+      + " mapping", structField = true)
   public Author getAuthor() {
     return author;
+  }
+
+  /**
+   * The author of the change. Can already be mapped using metadata.map_author
+   */
+  @SkylarkCallable(name = "author", doc = "The author of the change", structField = true)
+  public Author getMappedAuthor() {
+    return Preconditions.checkNotNull(mappedAuthor == null ? author : mappedAuthor);
+  }
+
+  public void setMappedAuthor(Author mappedAuthor) {
+    this.mappedAuthor = mappedAuthor;
   }
 
   @SkylarkCallable(name = "message", doc = "The message of the change", structField = true)

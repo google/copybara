@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.Change;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -47,11 +48,13 @@ public class MapAuthor implements Transformation {
   private final boolean reversible;
   private final boolean failIfNotFound;
   private final boolean failIfNotFoundInReverse;
+  private boolean mapAll;
   private final Location location;
 
   private MapAuthor(Location location, ImmutableMap<String, String> authorToAuthor,
       ImmutableMap<String, Author> mailToAuthor, ImmutableMap<String, Author> nameToAuthor,
-      boolean reversible, boolean failIfNotFound, boolean failIfNotFoundInReverse) {
+      boolean reversible, boolean failIfNotFound, boolean failIfNotFoundInReverse,
+      boolean mapAll) {
     this.location = Preconditions.checkNotNull(location);
     this.authorToAuthor = Preconditions.checkNotNull(authorToAuthor);
     this.mailToAuthor = Preconditions.checkNotNull(mailToAuthor);
@@ -59,10 +62,12 @@ public class MapAuthor implements Transformation {
     this.reversible = reversible;
     this.failIfNotFound = failIfNotFound;
     this.failIfNotFoundInReverse = failIfNotFoundInReverse;
+    this.mapAll = mapAll;
   }
 
   public static MapAuthor create(Location location, Map<String, String> authorMap,
-      boolean reversible, boolean failIfNotFound, boolean failIfNotFoundInReverse)
+      boolean reversible, boolean failIfNotFound, boolean failIfNotFoundInReverse,
+      boolean mapAll)
       throws EvalException {
     ImmutableMap.Builder<String, String> authorToAuthor = ImmutableMap.builder();
     ImmutableMap.Builder<String, Author> mailToAuthor = ImmutableMap.builder();
@@ -82,31 +87,39 @@ public class MapAuthor implements Transformation {
       }
     }
     return new MapAuthor(location, authorToAuthor.build(), mailToAuthor.build(),
-        nameToAuthor.build(), reversible, failIfNotFound, failIfNotFoundInReverse);
+        nameToAuthor.build(), reversible, failIfNotFound, failIfNotFoundInReverse, mapAll);
   }
 
   @Override
   public void transform(TransformWork work) throws IOException, ValidationException {
-    String newAuthor = authorToAuthor.get(work.getAuthor().toString());
+    work.setAuthor(getMappedAuthor(work.getAuthor()));
+
+    if (mapAll) {
+      for (Change<?> current : work.getChanges().getCurrent()) {
+        current.setMappedAuthor(getMappedAuthor(current.getAuthor()));
+      }
+    }
+  }
+
+  private Author getMappedAuthor(Author originalAuthor) throws ValidationException {
+    String newAuthor = authorToAuthor.get(originalAuthor.toString());
     if (newAuthor != null) {
       try {
-        work.setAuthor(AuthorParser.parse(newAuthor));
+        return AuthorParser.parse(newAuthor);
       } catch (InvalidAuthorException e) {
         throw new IllegalStateException("Shouldn't happen. We validate before", e);
       }
-      return;
     }
-    Author byMail = mailToAuthor.get(work.getAuthor().getEmail());
+    Author byMail = mailToAuthor.get(originalAuthor.getEmail());
     if (byMail != null) {
-      work.setAuthor(byMail);
-      return;
+      return byMail;
     }
-    Author byName = nameToAuthor.get(work.getAuthor().getName());
+    Author byName = nameToAuthor.get(originalAuthor.getName());
     if (byName != null) {
-      work.setAuthor(byName);
-      return;
+      return byName;
     }
-    checkCondition(!failIfNotFound, "Cannot find a mapping for author '%s'", work.getAuthor());
+    checkCondition(!failIfNotFound, "Cannot find a mapping for author '%s'", originalAuthor);
+    return originalAuthor;
   }
 
   @Override
@@ -128,7 +141,7 @@ public class MapAuthor implements Transformation {
       ImmutableMap<String, String> reverse = ImmutableBiMap.<String, String>builder()
           .putAll(authorToAuthor).build().inverse();
       return new MapAuthor(location, reverse, ImmutableMap.of(),
-          ImmutableMap.of(), reversible, failIfNotFoundInReverse, failIfNotFound);
+          ImmutableMap.of(), reversible, failIfNotFoundInReverse, failIfNotFound, mapAll);
     } catch (IllegalArgumentException e) {
       throw new NonReversibleValidationException(location, "non-reversible author map:"
           + e.getMessage());
