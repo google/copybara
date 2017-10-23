@@ -35,6 +35,7 @@ public class GerritOptions implements Option {
 
   /** Validate that the argument is a valid Gerrit Change-id */
   public static final class ChangeIdValidator implements IParameterValidator {
+
     @Override
     public void validate(String name, String value) throws ParameterException {
       if (!Strings.isNullOrEmpty(value) && !CHANGE_ID_PATTERN.matcher(value).matches()) {
@@ -51,6 +52,10 @@ public class GerritOptions implements Option {
       validateWith = ChangeIdValidator.class)
   String gerritChangeId = "";
 
+  @Parameter(names = "--gerrit-new-change",
+      description = "Create a new change instead of trying to reuse an existing one.")
+  boolean newChange = false;
+
   @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
   String gerritTopic = "";
 
@@ -59,7 +64,8 @@ public class GerritOptions implements Option {
   }
 
   /** Override this method in a class for a specific Gerrit implementation. */
-  @Nullable protected GerritChangeFinder newChangeFinder() {
+  @Nullable
+  protected GerritChangeFinder newChangeFinder() {
     return null;
   }
 }

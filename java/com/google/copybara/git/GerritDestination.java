@@ -95,7 +95,7 @@ public final class GerritDestination implements Destination<GitRevision> {
 
       String workflowId = result.getChangeIdentity();
       GerritChangeFinder changeFinder = gerritOptions.getChangeFinder().get();
-      if (changeFinder == null) {
+      if (changeFinder == null || gerritOptions.newChange) {
         return defaultMessageInfo(result, workflowId);
       } else if (!changeFinder.canQuery(repoUrl)) {
         console.warnFmt("Url '%s' is not eligible for Gerrit review reuse"
