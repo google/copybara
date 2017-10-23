@@ -21,6 +21,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.copybara.util.console.Console;
 import java.util.Objects;
+import javax.annotation.Nullable;
 
 /**
  * Arguments for {@link Workflow} components.
@@ -77,6 +78,16 @@ public class WorkflowOptions implements Option {
           + " destination. Ignoring changes that only affect excluded files in origin_files. This"
           + " flag disables that behavior and runs for all the changes.")
   public boolean importNoopChanges = false;
+
+  // TODO(malcon): Remove this flag after 12-01-2017
+  @Parameter(names = {"--noworkflow-identity-user"},
+      description = "Don't use the current a user in change identity")
+  public boolean workflowIdentityWithoutUser = false;
+
+  @Parameter(names = {"--workflow-identity-user"},
+      description = "Use a custom string as a user for computing change identity")
+  @Nullable
+  public String workflowIdentityUser = null;
 
   public static final String CHECK_LAST_REV_STATE = "--check-last-rev-state";
 

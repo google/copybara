@@ -19,7 +19,9 @@ package com.google.copybara;
 import static com.google.copybara.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Preconditions;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -372,12 +374,18 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   private String computeIdentity(String type, String ref) {
-    String identity = MoreObjects.toStringHelper(type)
-            .add("type", "workflow")
-            .add("config_path", mainConfigFile.relativeToRoot())
-            .add("workflow_name", this.name)
-        .add("context_ref", ref)
-            .toString();
+    ToStringHelper helper = MoreObjects.toStringHelper(type)
+        .add("type", "workflow")
+        .add("config_path", mainConfigFile.relativeToRoot())
+        .add("workflow_name", this.name)
+        .add("context_ref", ref);
+    // TODO(malcon): Replace with 'true' after 12-01-2017
+    if (!workflowOptions.workflowIdentityWithoutUser) {
+      helper.add("user", workflowOptions.workflowIdentityUser != null
+          ? workflowOptions.workflowIdentityUser
+          : StandardSystemProperty.USER_NAME.value());
+    }
+    String identity = helper.toString();
     String hash = BaseEncoding.base16().encode(
         Hashing.md5()
                     .hashString(identity, StandardCharsets.UTF_8)

@@ -28,6 +28,7 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -699,6 +700,30 @@ public class WorkflowTest {
     // But if we use direct reference (3 instead of 'HEAD') it changes since we cannot
     // find the context reference.
     assertThat(after).isNotEqualTo(nonConstant);
+  }
+
+  @Test
+  public void migrationIdentityWithUser() throws Exception {
+    // Squash always sets the default author for the commit but not in the release notes
+    origin.addSimpleChange(/*timestamp*/ 1);
+    String withUser = workflow().getMigrationIdentity(origin.resolve(HEAD));
+
+    options.workflowOptions.workflowIdentityWithoutUser = true;
+    String withoutUser = workflow().getMigrationIdentity(origin.resolve(HEAD));
+
+    assertThat(withUser).isNotEqualTo(withoutUser);
+
+    options.workflowOptions.workflowIdentityWithoutUser = false;
+    options.workflowOptions.workflowIdentityUser = StandardSystemProperty.USER_NAME.value();
+
+    assertThat(withUser).isEqualTo(workflow().getMigrationIdentity(origin.resolve(HEAD)));
+
+    options.workflowOptions.workflowIdentityUser = "TEST";
+
+    String withOtherUser = workflow().getMigrationIdentity(origin.resolve(HEAD));
+
+    assertThat(withOtherUser).isNotEqualTo(withUser);
+    assertThat(withOtherUser).isNotEqualTo(withoutUser);
   }
 
   @Test
