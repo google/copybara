@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -70,7 +71,8 @@ public final class GitRevision implements Revision {
    * @param associatedLabels labels associated with this reference
    * @param url if present, the url of the repository that the revision comes from
    */
-  GitRevision(
+  @VisibleForTesting
+  public GitRevision(
       GitRepository repository,
       String sha1,
       @Nullable String reviewReference,
