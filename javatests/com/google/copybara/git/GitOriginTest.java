@@ -554,6 +554,24 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testVisitOutsideRoot() throws Exception {
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "two", "bar/test.txt", "some content2");
+    String first = Iterables.getOnlyElement(repo.log("HEAD").withLimit(1).run()).getCommit()
+        .getSha1();
+    singleFileCommit(author, "three", "foo/test.txt", "some content3");
+    singleFileCommit(author, "four", "bar/test.txt", "some content3");
+    GitRevision lastCommitRef = getLastCommitRef();
+
+    originFiles = createGlob(ImmutableList.of("foo/**"));
+    thrown.expect(CannotResolveRevisionException.class);
+    thrown.expectMessage("Neither '"+first+"' revision or any parent in the history matches"
+        + " origin_files = glob(include = [\"foo/**\"])");
+
+    newReader().visitChanges(lastCommitRef, input -> VisitResult.CONTINUE);
+  }
+
+  @Test
   public void testVisitMerge() throws Exception {
     createBranchMerge("John Name <john@name.com>");
     GitRevision lastCommitRef = getLastCommitRef();
@@ -844,7 +862,9 @@ public class GitOriginTest {
 
   private void singleFileCommit(String author, String commitMessage, String fileName,
       String fileContent) throws Exception {
-    Files.write(remote.resolve(fileName), fileContent.getBytes(UTF_8));
+    Path path = remote.resolve(fileName);
+    Files.createDirectories(path.getParent());
+    Files.write(path, fileContent.getBytes(UTF_8));
     repo.add().files(fileName).run();
     git("commit", "-m", commitMessage, "--author=" + author);
   }
