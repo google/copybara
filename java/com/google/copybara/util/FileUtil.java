@@ -118,12 +118,17 @@ public final class FileUtil {
     // Optimization to skip folders that will be skipped. This works well for huge file trees
     // where we have a very specific Glob ( foo/bar/**).
     for (String root : glob.roots()) {
-      Files.walkFileTree(from.resolve(root),
-          new CopyVisitor(from.resolve(root), to.resolve(root), symlinkStrategy,
-              // The PathMatcher matches destination files so that it can work with
-              // absolute symlink materialization (We create a new CopyVisitor with the
-              // resolved symlink as origin.
-              glob.relativeTo(to)));
+      Path rootElement = from.resolve(root);
+      if (!Files.exists(rootElement)) {
+        continue;
+      }
+      Files.walkFileTree(
+          rootElement,
+          new CopyVisitor(rootElement, to.resolve(root), symlinkStrategy,
+                          // The PathMatcher matches destination files so that it can work with
+                          // absolute symlink materialization (We create a new CopyVisitor with the
+                          // resolved symlink as origin.
+                          glob.relativeTo(to)));
     }
   }
 

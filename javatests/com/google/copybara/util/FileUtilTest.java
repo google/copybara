@@ -247,4 +247,20 @@ public class FileUtilTest {
         .containsFiles("foo/include.txt", "foo/exclude.txt", "bar/nonono.txt")
         .containsNoMoreFiles();
   }
+
+  @Test
+  public void testCopyWithGlob_oneRootNotPresent() throws Exception {
+    Path one = Files.createDirectory(temp.resolve("one"));
+    Path two = Files.createDirectory(temp.resolve("two"));
+    // We don't create 'bar' directory.
+    Files.createDirectories(one.resolve("foo"));
+    touch(one.resolve("foo/include.txt"));
+
+    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS,
+        Glob.createGlob(ImmutableList.of("foo/**", "bar/**")));
+
+    assertThatPath(two).containsFiles("foo/include.txt")
+        .containsNoMoreFiles();
+  }
+
 }
