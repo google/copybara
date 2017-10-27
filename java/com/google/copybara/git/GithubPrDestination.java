@@ -116,7 +116,8 @@ public class GithubPrDestination implements Destination<GitRevision> {
         destinationOptions.ignoreIntegrationErrors,
         destinationOptions.localRepoPath,
         destinationOptions.committerName,
-        destinationOptions.committerEmail) {
+        destinationOptions.committerEmail,
+        destinationOptions.rebaseWhenBaseline()) {
       @Override
       public WriterResult write(TransformResult transformResult, Console console)
           throws ValidationException, RepoException, IOException {

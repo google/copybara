@@ -174,7 +174,7 @@ public final class GitDestination implements Destination<GitRevision> {
         state, destinationOptions.nonFastForwardPush, integrates,
         destinationOptions.lastRevFirstParent, destinationOptions.ignoreIntegrationErrors,
         destinationOptions.localRepoPath, destinationOptions.committerName,
-        destinationOptions.committerEmail);
+        destinationOptions.committerEmail, destinationOptions.rebaseWhenBaseline());
   }
 
   /**
@@ -219,6 +219,7 @@ public final class GitDestination implements Destination<GitRevision> {
     private String localRepoPath;
     private String committerName;
     private String committerEmail;
+    private boolean rebase;
 
     /**
      * Create a new git.destination writer
@@ -228,7 +229,7 @@ public final class GitDestination implements Destination<GitRevision> {
         ProcessPushOutput processPushOutput, S state, boolean nonFastForwardPush,
         Iterable<GitIntegrateChanges> integrates, boolean lastRevFirstParent,
         boolean ignoreIntegrationErrors, String localRepoPath, String committerName,
-        String committerEmail) {
+        String committerEmail, boolean rebase) {
       this.destinationFiles = checkNotNull(destinationFiles);
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
@@ -247,6 +248,7 @@ public final class GitDestination implements Destination<GitRevision> {
       this.localRepoPath = localRepoPath;
       this.committerName = committerName;
       this.committerEmail = committerEmail;
+      this.rebase = rebase;
     }
 
     @Override
@@ -450,7 +452,7 @@ public final class GitDestination implements Destination<GitRevision> {
             transformResult, ignoreIntegrationErrors);
       }
 
-      if (baseline != null) {
+      if (baseline != null && rebase) {
         // Our current implementation (That we should change) leaves unstaged files in the
         // work-tree. This is fine for commit/push but not for rebase, since rebase could fail
         // and needs to create a conflict resolution work-tree.

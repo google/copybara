@@ -820,6 +820,37 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void processWithBaseline_noRebase() throws Exception {
+    options.gitDestination.noRebase =true;
+    options.setForce(true);
+    fetch = "master";
+    push = "master";
+    DummyRevision ref = new DummyRevision("origin_ref");
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("excluded"), "some content".getBytes());
+    process(firstCommitWriter(), ref);
+    String firstCommit = repo().parseRef("master");
+    Files.write(workdir.resolve("test.txt"), "new content".getBytes());
+    process(newWriter(), ref);
+
+    // Lets exclude now 'excluded' so that we check that the rebase correctly ignores
+    // the missing file (IOW, it doesn't delete the file in the commit).
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded"));
+
+    Files.delete(workdir.resolve("excluded"));
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("other.txt"), "other file".getBytes());
+    push = "refs/heads/my_branch";
+    processWithBaseline(newWriter(), ref, firstCommit);
+
+    GitTesting.assertThatCheckout(repo(), "refs/heads/my_branch")
+        .containsFile("test.txt", "some content")
+        .containsFile("other.txt", "other file")
+        .containsFile("excluded", "some content")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void processWithBaselineSameFileConflict() throws Exception {
     fetch = "master";
     push = "master";

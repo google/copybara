@@ -101,6 +101,13 @@ public final class GitDestinationOptions implements Option {
       description = "If an integration error occurs, ignore it and continue without the integrate")
   boolean ignoreIntegrationErrors = false;
 
+  @Parameter(names = "--nogit-destination-rebase",
+      description = "Don't rebase the change automatically for workflows CHANGE_REQUEST mode")
+  public boolean noRebase = false;
+
+  boolean rebaseWhenBaseline() {
+    return !noRebase;
+  }
 
   /**
    * Returns a non-bare repo. Either because it uses a custom worktree or because it is a user
