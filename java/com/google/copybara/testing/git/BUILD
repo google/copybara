@@ -28,6 +28,7 @@ java_library(
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
         "//third_party:guava",
+        "//third_party:jsr305",
         "//third_party:junit",
         "//third_party:truth",
     ],

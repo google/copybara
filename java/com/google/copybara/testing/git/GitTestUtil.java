@@ -21,6 +21,7 @@ import static org.junit.Assert.fail;
 
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
@@ -29,6 +30,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.git.FetchResult;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.Refspec;
 import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,14 +40,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 /**
  * Common utilities for creating and working with git repos in test
  */
-public final class GitTestUtil {
+public class GitTestUtil {
 
-  private static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
-  private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
+  static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
+  static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
   public static final GithubMockHttpTransport NO_GITHUB_API_CALLS = new GithubMockHttpTransport() {
     @Override
     protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
@@ -54,8 +57,6 @@ public final class GitTestUtil {
       throw new IllegalStateException();
     }
   };
-
-  private GitTestUtil() {}
 
   /**
    * Returns an environment that contains the System environment and a set of variables
@@ -127,6 +128,7 @@ public final class GitTestUtil {
     private final Path httpsRepos;
     private final Validator validator;
     private final Set<String> mappingPrefixes = Sets.newHashSet("https://");
+    @Nullable private String forcePushForRefspec;
 
     public TestGitOptions(Path httpsRepos, Supplier<GeneralOptions> generalOptionsSupplier) {
       this(httpsRepos, generalOptionsSupplier, new Validator());
@@ -143,7 +145,8 @@ public final class GitTestUtil {
     protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
         throws RepoException {
       return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, httpsRepos,
-                                                  validator, mappingPrefixes));
+                                                  validator, mappingPrefixes,
+                                                  forcePushForRefspec));
     }
 
     /**
@@ -151,6 +154,11 @@ public final class GitTestUtil {
      */
     public TestGitOptions addPrefix(String prefix) {
       mappingPrefixes.add(prefix);
+      return this;
+    }
+
+    public TestGitOptions forcePushForRefspecPrefix(String forcePushForRefspec) {
+      this.forcePushForRefspec = forcePushForRefspec;
       return this;
     }
   }
@@ -161,14 +169,17 @@ public final class GitTestUtil {
     private final Path httpsRepos;
     private final Validator validator;
     private final Set<String> mappingPrefixes;
+    @Nullable private final String forcePushForRefspec;
 
     RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
-        Path httpsRepos, Validator validator, Set<String> mappingPrefixes) {
+        Path httpsRepos, Validator validator, Set<String> mappingPrefixes,
+        @Nullable String forcePushForRefspec) {
       super(gitDir, workTree, generalOptions.isVerbose(), generalOptions.getEnvironment());
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
       this.validator = validator;
       this.mappingPrefixes = mappingPrefixes;
+      this.forcePushForRefspec = forcePushForRefspec;
     }
 
     @Override
@@ -184,7 +195,16 @@ public final class GitTestUtil {
         pushCmd = pushCmd.withRefspecs(mapUrl(pushCmd.getUrl()),
             pushCmd.getRefspecs());
       }
-      return super.runPush(pushCmd);
+      ImmutableList.Builder<Refspec> newRefspec = ImmutableList.builder();
+      for (Refspec refspec : pushCmd.getRefspecs()) {
+        if (forcePushForRefspec != null
+            && refspec.getDestination().startsWith(forcePushForRefspec)) {
+          newRefspec.add(refspec.withAllowNoFastForward());
+        } else {
+          newRefspec.add(refspec);
+        }
+      }
+      return super.runPush(pushCmd.withRefspecs(pushCmd.getUrl(), newRefspec.build()));
     }
 
     @Override
@@ -195,18 +215,16 @@ public final class GitTestUtil {
     @Override
     public GitRepository withWorkTree(Path newWorkTree) {
       return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, httpsRepos,
-                                         validator, mappingPrefixes);
+                                         validator, mappingPrefixes, forcePushForRefspec);
     }
 
     private String mapUrl(String url) {
-      for (String prefix : mappingPrefixes) {
-        if (url.startsWith(prefix)) {
-          Path repo = httpsRepos.resolve(url.replace(prefix, ""));
-          assertWithMessage(repo.toString()).that(Files.isDirectory(repo)).isTrue();
-          return "file:///" + repo;
-        }
+      if (!url.startsWith("https://")) {
+        return url;
       }
-      return url;
+      Path repo = httpsRepos.resolve(url.replaceAll("https://", ""));
+      assertWithMessage(repo.toString()).that(Files.isDirectory(repo)).isTrue();
+      return "file:///" + repo.toString();
     }
   }
 }
