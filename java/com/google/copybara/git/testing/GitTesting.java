@@ -76,8 +76,7 @@ public class GitTesting {
   public static FileSubjects.PathSubject assertThatCheckout(GitRepository repo, String ref)
       throws IOException, RepoException {
     Path tempWorkTree = Files.createTempDirectory("assertAboutCheckout");
-    repo.withWorkTree(tempWorkTree)
-        .simpleCommand("checkout", ref, "--", ".");
+    repo.withWorkTree(tempWorkTree).forceCheckout(ref);
     return assertThatPath(tempWorkTree);
   }
 }
