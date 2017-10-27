@@ -60,7 +60,7 @@ import javax.annotation.Nullable;
 public class GithubPROrigin implements Origin<GitRevision> {
 
 
-  static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
+  public static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
   public static final String GITHUB_BASE_BRANCH = "GITHUB_BASE_BRANCH";
 
   private final String url;
