@@ -82,9 +82,12 @@ class ChangeReader {
       return "";
     }
 
-    ImmutableList<GitLogEntry> entries = repository.log(parents.get(0) + ".." + ref)
-        .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots)
-        .firstParent(false).run();
+    ImmutableList<GitLogEntry> entries =
+        repository
+            .log(parents.get(0).getSha1() + ".." + ref.getSha1())
+            .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots)
+            .firstParent(false)
+            .run();
 
     // Remove the merge commit. Since we already have that in the body.
     entries = entries.subList(1, entries.size());
@@ -92,7 +95,7 @@ class ChangeReader {
     return "\n" + BRANCH_COMMIT_LOG_HEADING + "\n" +
         Joiner.on("\n").join(entries.stream()
             .map(e -> ""
-                + "commit " + e.getCommit() + "\n"
+                + "commit " + e.getCommit().getSha1() + "\n"
                 + "Author:  " + filterAuthor(e.getAuthor()) + "\n"
                 + "Date:    " + e.getAuthorDate() + "\n"
                 + "\n"

@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -129,7 +130,12 @@ public final class GitRevision implements Revision {
 
   @Override
   public String toString() {
-    return sha1;
+    return MoreObjects.toStringHelper(this)
+        .omitNullValues()
+        .add("url", url)
+        .add("reference", reference)
+        .add("sha1", this.sha1)
+        .toString();
   }
 
   @Nullable
