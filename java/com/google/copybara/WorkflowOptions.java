@@ -35,7 +35,7 @@ public class WorkflowOptions implements Option {
       description = "Commit revision to be used as parent when importing a commit using"
           + " CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able"
           + " to detect the parent commit message.")
-  String changeBaseline = "";
+  public String changeBaseline = "";
 
   /**
    * Public so that it can be used programmatically.

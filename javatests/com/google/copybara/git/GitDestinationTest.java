@@ -1136,7 +1136,7 @@ public class GitDestinationTest {
         + "THE_LABEL: value\n";
     writer.write(
         new TransformResult(workdir, rev, rev.getAuthor(), msg, rev, /*workflowName*/ "default",
-            TransformWorks.EMPTY_CHANGES),
+                            TransformWorks.EMPTY_CHANGES, "first_commit"),
         console);
 
     String body = lastCommit("HEAD").getBody();

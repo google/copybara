@@ -197,7 +197,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               this.toString()));
       logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
       try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
-        mode.run(newRunHelper(workdir, resolvedRef));
+        mode.run(newRunHelper(workdir, resolvedRef, sourceRef));
       }
     }
   }
@@ -216,7 +216,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                 WorkflowOptions.CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
   }
 
-  protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef)
+  protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef, String rawSourceRef)
       throws ValidationException, RepoException {
 
     Reader<O> reader = getOrigin()
@@ -225,7 +225,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     Writer<D> writer = getDestination().newWriter(getDestinationFiles(), dryRunMode, groupId,
         /*oldWriter=*/ null);
     return new WorkflowRunHelper<>(this, workdir, resolvedRef, reader, writer,
-        groupId);
+        groupId, rawSourceRef);
   }
 
   Set<String> configPaths() {

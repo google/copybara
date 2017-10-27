@@ -53,9 +53,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   protected final Destination.Writer<D> writer;
   @Nullable
   private final String groupId;
+  @Nullable protected final String rawSourceRef;
 
   protected WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
-      Reader<O> originReader, Writer<D> destinationWriter, @Nullable String groupId)
+      Reader<O> originReader, Writer<D> destinationWriter, @Nullable String groupId,
+      @Nullable String rawSourceRef)
       throws ValidationException, RepoException {
     this.workflow = Preconditions.checkNotNull(workflow);
     this.workdir = Preconditions.checkNotNull(workdir);
@@ -63,6 +65,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     this.originReader = Preconditions.checkNotNull(originReader);
     this.writer = Preconditions.checkNotNull(destinationWriter);
     this.groupId = groupId;
+    this.rawSourceRef = rawSourceRef;
   }
 
   /**
@@ -86,8 +89,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   protected WorkflowRunHelper<O, D> withDryRun()
       throws RepoException, ValidationException, IOException {
     return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, originReader,
-        workflow.getDestination().newWriter(workflow.getDestinationFiles(), /*dryRun=*/true,
-            groupId, /*oldWriter=*/null), groupId);
+                                   workflow.getDestination().newWriter(workflow.getDestinationFiles(), /*dryRun=*/true,
+            groupId, /*oldWriter=*/null), groupId, rawSourceRef);
   }
 
   protected Path getWorkdir() {
@@ -298,7 +301,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             transformWork.getMessage(),
             resolvedRef,
             workflow.getName(),
-            changes);
+            changes,
+            rawSourceRef);
     if (destinationBaseline != null) {
       transformResult = transformResult.withBaseline(destinationBaseline);
     }

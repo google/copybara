@@ -34,8 +34,8 @@ public class TransformResults {
   public static TransformResult of(Path path, DummyRevision originRef, String workflowName)
       throws RepoException {
     return new TransformResult(
-            path, originRef, originRef.getAuthor(), "test summary\n", originRef, workflowName,
-        TransformWorks.EMPTY_CHANGES)
+        path, originRef, originRef.getAuthor(), "test summary\n", originRef, workflowName,
+        TransformWorks.EMPTY_CHANGES, originRef.contextReference())
         .withIdentity(originRef.asString());
   }
 }
