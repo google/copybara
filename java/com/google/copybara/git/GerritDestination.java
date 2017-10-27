@@ -129,13 +129,16 @@ public final class GerritDestination implements Destination<GitRevision> {
                           (int) (System.currentTimeMillis() / 1000)));
     }
 
-    private static MessageInfo createMessageInfo(TransformResult result, boolean newPush,
+    private MessageInfo createMessageInfo(TransformResult result, boolean newPush,
         String gerritChangeId) {
       Revision rev = result.getCurrentRevision();
 
-      return new MessageInfo(ImmutableList.of(
-          new LabelFinder(rev.getLabelName() + ": " + rev.asString()),
-          new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId)), newPush);
+      ImmutableList.Builder<LabelFinder> labels = ImmutableList.builder();
+      if (gerritOptions.addRevId()) {
+        labels.add(new LabelFinder(rev.getLabelName() + ": " + rev.asString()));
+      }
+      labels.add(new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId));
+      return new MessageInfo(labels.build(), newPush);
     }
 
     static String computeChangeId(String workflowId, String committerEmail, int attempt) {

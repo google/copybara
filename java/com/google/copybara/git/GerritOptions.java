@@ -50,14 +50,22 @@ public class GerritOptions implements Option {
       description = "ChangeId to use in the generated commit message. Use this flag if you want "
           + "to reuse the same Gerrit review for an export.",
       validateWith = ChangeIdValidator.class)
-  String gerritChangeId = "";
+  protected String gerritChangeId = "";
 
   @Parameter(names = "--gerrit-new-change",
       description = "Create a new change instead of trying to reuse an existing one.")
-  boolean newChange = false;
+  protected boolean newChange = false;
 
   @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
-  String gerritTopic = "";
+  protected String gerritTopic = "";
+
+  @Parameter(names = "--nogerrit-rev-id-label", description = "Don't add origin rev-id to the"
+      + " created/updated review.", hidden = true)
+  public boolean noRevId = false;
+
+  public boolean addRevId() {
+    return !noRevId;
+  }
 
   synchronized Supplier<GerritChangeFinder> getChangeFinder() {
     return Suppliers.memoize(this::newChangeFinder);
