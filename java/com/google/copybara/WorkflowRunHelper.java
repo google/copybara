@@ -277,7 +277,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                     new MigrationInfo(/*originLabel=*/ null, null),
                     resolvedRef));
       }
-      String diff = new String(DiffUtil.diff(originCopy, reverse, workflow.isVerbose()),
+      String diff = new String(DiffUtil.diff(originCopy, reverse, workflow.isVerbose(),
+          workflow.getGeneralOptions().getEnvironment()),
           StandardCharsets.UTF_8);
       if (!diff.trim().isEmpty()) {
         workflow.getConsole().error("Non reversible transformations:\n"

@@ -26,6 +26,7 @@ import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Diff utilities that are repository-agnostic.
@@ -40,7 +41,8 @@ public class DiffUtil {
    * <p>Returns the diff as an encoding-independent {@code byte[]} that can be write to a file or
    * fed directly into {@link DiffUtil#patch}.
    */
-  public static byte[] diff(Path one, Path other, boolean verbose) throws IOException {
+  public static byte[] diff(Path one, Path other, boolean verbose, Map<String, String> environment)
+      throws IOException {
     Preconditions.checkArgument(one.getParent().equals(other.getParent()),
         "Paths 'one' and 'other' must be sibling directories.");
     Path root = one.getParent();
@@ -49,7 +51,7 @@ public class DiffUtil {
         root.relativize(one).toString(),
         root.relativize(other).toString()
     };
-    Command cmd = new Command(params, /*envVars*/ null, root.toFile());
+    Command cmd = new Command(params, environment, root.toFile());
     try {
       CommandUtil.executeCommand(cmd, verbose);
       return EMPTY_DIFF;
@@ -73,7 +75,7 @@ public class DiffUtil {
    */
   public static void patch(
       Path rootDir, byte[] diffContents, ImmutableList<String> excludedPaths, int stripSlashes,
-      boolean verbose, boolean reverse)
+      boolean verbose, boolean reverse, Map<String, String> environment)
       throws IOException {
     // TODO(copybara-team): Think if it makes sense to throw EmptyChangeException here
     if (diffContents.length == 0) {
@@ -92,7 +94,7 @@ public class DiffUtil {
     }
     params.add("-");
     Command cmd =
-        new Command(params.build().toArray(new String[0]), /*envVars*/ null, rootDir.toFile());
+        new Command(params.build().toArray(new String[0]), environment, rootDir.toFile());
     try {
       CommandUtil.executeCommand(cmd, diffContents, verbose);
     } catch (BadExitStatusWithOutputException e) {

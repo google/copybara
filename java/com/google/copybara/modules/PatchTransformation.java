@@ -57,7 +57,7 @@ class PatchTransformation implements Transformation {
       try {
         DiffUtil.patch(
             work.getCheckoutDir(), patch.content(), excludedPaths, SLASHES_TO_STRIP,
-            options.isVerbose(), reverse);
+            options.isVerbose(), reverse, options.getEnvironment());
       } catch (IOException ioException) {
         work.getConsole().error("Error applying patch: " + ioException.getMessage());
         throw new ValidationException("Error applying patch.", ioException);
