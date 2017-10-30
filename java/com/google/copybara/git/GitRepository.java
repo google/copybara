@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.git.GitExecPath.resolveGitBinary;
 import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -946,26 +947,6 @@ public class GitRepository {
     Iterables.addAll(allParams, params);
     return executeCommand(new Command(
         Iterables.toArray(allParams, String.class), env, cwd.toFile()), verbose);
-  }
-
-  /**
-   * Returns a String representing the git binary to be executed.
-   *
-   * <p>The env var {@code GIT_EXEC_PATH} determines where Git looks for its sub-programs, but also
-   * the regular git binaries (git, git-upload-pack, etc) are duplicated in {@code GIT_EXEC_PATH}.
-   *
-   * <p>If the env var is not set, then we will execute "git", that it will be resolved in the path
-   * as usual.
-   */
-  @VisibleForTesting
-  static String resolveGitBinary(Map<String, String> environment) {
-    if (environment.containsKey("GIT_EXEC_PATH")) {
-      return FileSystems.getDefault()
-          .getPath(environment.get("GIT_EXEC_PATH"))
-          .resolve("git")
-          .toString();
-    }
-    return "git";
   }
 
   @Override

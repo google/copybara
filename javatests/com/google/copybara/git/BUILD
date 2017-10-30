@@ -19,6 +19,7 @@ licenses(["notice"])  # Apache 2.0
 DEPS = [
     "//java/com/google/copybara:base",
     "//java/com/google/copybara:copybara_lib",
+    "//java/com/google/copybara:git/exec_path",
     "//java/com/google/copybara/authoring",
     "//java/com/google/copybara/git/testing",
     "//java/com/google/copybara/profiler",

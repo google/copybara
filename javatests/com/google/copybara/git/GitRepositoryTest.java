@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitExecPath.resolveGitBinary;
 import static com.google.copybara.git.GitRepository.StatusCode.DELETED;
 import static com.google.copybara.git.GitRepository.StatusCode.MODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
@@ -322,9 +323,9 @@ public class GitRepositoryTest {
 
   @Test
   public void testGitBinaryResolution() throws Exception {
-    assertThat(GitRepository.resolveGitBinary(ImmutableMap.of()))
+    assertThat(resolveGitBinary(ImmutableMap.of()))
         .isEqualTo("git");
-    assertThat(GitRepository.resolveGitBinary(ImmutableMap.of("GIT_EXEC_PATH", "/some/path")))
+    assertThat(resolveGitBinary(ImmutableMap.of("GIT_EXEC_PATH", "/some/path")))
         .isEqualTo("/some/path/git");
   }
 

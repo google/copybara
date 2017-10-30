@@ -16,14 +16,16 @@
 
 package com.google.copybara.util;
 
+import static com.google.copybara.git.GitExecPath.resolveGitBinary;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.util.console.AnsiColor;
-import com.google.copybara.util.console.Console;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
+import com.google.copybara.util.console.AnsiColor;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
@@ -85,7 +87,8 @@ public class DiffUtil {
     ImmutableList.Builder<String> params = ImmutableList.builder();
 
     // Show verbose output unconditionally since it is helpful for debugging issues with patches.
-    params.add("git", "apply", "-v","--stat","--apply", "-p" + stripSlashes);
+    params.add(resolveGitBinary(environment),
+        "apply", "-v","--stat","--apply", "-p" + stripSlashes);
     for (String excludedPath : excludedPaths) {
       params.add("--exclude", excludedPath);
     }

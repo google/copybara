@@ -54,6 +54,15 @@ java_library(
     ],
 )
 
+java_library(
+    name = "git/exec_path",
+    srcs = ["git/GitExecPath.java"],
+    javacopts = JAVACOPTS,
+    deps = [
+        "//third_party:jsr305",
+    ]
+)
+
 doc_generator(
     name = "docs",
     deps = [":copybara"],
@@ -116,6 +125,7 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         ":base",
+        ":git/exec_path",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config/base",
         "//java/com/google/copybara/doc:annotations",
