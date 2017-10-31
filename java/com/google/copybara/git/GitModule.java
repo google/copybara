@@ -316,13 +316,18 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
                   + " to migrate the Pull Request.", positional = false),
           @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+          @Param(name = "baseline_from_branch", type = Boolean.class,
+              doc = "WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>"
+                  + "When the field is set to true for CHANGE_REQUEST workflows it will find the"
+                  + " baseline comparing the Pull Request with the base branch instead of looking"
+                  + " for the *-RevId label in the commit message.", defaultValue = "False"),
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags(GithubPrOriginOptions.class)
   public static final BuiltinFunction GITHUB_PR_ORIGIN = new BuiltinFunction(
       GITHUB_PR_ORIGIN_NAME) {
     public GithubPROrigin invoke(GitModule self, String url, Boolean merge,
-        SkylarkList<String> requiredLabels, String submodules,
+        SkylarkList<String> requiredLabels, String submodules, Boolean baselineFromBranch,
         Location location) throws EvalException {
       if (!url.contains("github.com")) {
         throw new EvalException(location, "Invalid Github URL: " + url);
@@ -335,7 +340,8 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           self.options.get(GitOriginOptions.class),
           self.options.get(GithubOptions.class),
           labels,
-          SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class));
+          SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
+          baselineFromBranch);
     }
   };
 

@@ -36,6 +36,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
+import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
@@ -56,6 +57,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -295,7 +297,8 @@ public class GithubPrOriginTest {
     githubMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
 
     GithubPROrigin origin = githubPrOrigin(
-        "url = 'https://github.com/google/example'");
+        "url = 'https://github.com/google/example'",
+        "baseline_from_branch = True");
 
     GitRevision headPrRevision = origin.resolve("123");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH, "master");
@@ -305,7 +308,18 @@ public class GithubPrOriginTest {
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_BODY,
         "test summary\n\nMore text");
 
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(headPrRevision, workdir);
+    Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    Optional<Baseline<GitRevision>> baselineObj = reader.findBaseline(headPrRevision, "RevId");
+    assertThat(baselineObj.isPresent()).isTrue();
+    assertThat(baselineObj.get().getBaseline())
+        .isEqualTo(baselineObj.get().getOriginRevision().getSha1());
+
+    assertThat(baselineObj.get().getBaseline()).isEqualTo(baseline1);
+
+    assertThat(reader.changes(baselineObj.get().getOriginRevision(), headPrRevision).size())
+    .isEqualTo(2);
+
+    reader.checkout(headPrRevision, workdir);
 
     FileSubjects.assertThatPath(workdir)
         .containsFile("test.txt", "c")
@@ -314,7 +328,8 @@ public class GithubPrOriginTest {
     // Now try with merge ref
     origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
-        "use_merge = True");
+        "use_merge = True",
+        "baseline_from_branch = True");
 
     GitRevision mergePrRevision = origin.resolve("123");
 
@@ -326,7 +341,18 @@ public class GithubPrOriginTest {
     assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_PR_BODY,
         "test summary\n\nMore text");
 
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(mergePrRevision, workdir);
+    reader = origin.newReader(Glob.ALL_FILES, authoring);
+    baselineObj = reader.findBaseline(mergePrRevision, "RevId");
+    assertThat(baselineObj.isPresent()).isTrue();
+    assertThat(baselineObj.get().getBaseline())
+        .isEqualTo(baselineObj.get().getOriginRevision().getSha1());
+
+    assertThat(baselineObj.get().getBaseline()).isEqualTo(baselineMerge);
+
+    assertThat(reader.changes(baselineObj.get().getOriginRevision(), headPrRevision).size())
+        .isEqualTo(2);
+
+    reader.checkout(mergePrRevision, workdir);
 
     FileSubjects.assertThatPath(workdir)
         .containsFile("other.txt", "")

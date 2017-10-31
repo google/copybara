@@ -75,10 +75,12 @@ public class GithubPROrigin implements Origin<GitRevision> {
   private final Set<String> requiredLabels;
   private final SubmoduleStrategy submoduleStrategy;
   private final Console console;
+  private boolean baselineFromBranch;
 
   GithubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GithubOptions githubOptions,
-      Set<String> requiredLabels, SubmoduleStrategy submoduleStrategy) {
+      Set<String> requiredLabels, SubmoduleStrategy submoduleStrategy,
+      boolean baselineFromBranch) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -88,6 +90,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     this.requiredLabels = Preconditions.checkNotNull(requiredLabels);
     this.submoduleStrategy = Preconditions.checkNotNull(submoduleStrategy);
     console = generalOptions.console();
+    this.baselineFromBranch = baselineFromBranch;
   }
 
   @Override
@@ -224,6 +227,20 @@ public class GithubPROrigin implements Origin<GitRevision> {
       @Override
       protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir)
           throws RepoException, CannotResolveRevisionException {
+      }
+
+      @Override
+      public Optional<Baseline<GitRevision>> findBaseline(GitRevision startRevision, String label)
+          throws RepoException, ValidationException {
+        if (!baselineFromBranch) {
+          return super.findBaseline(startRevision, label);
+        }
+        String baseline = startRevision.associatedLabels().get(GITHUB_BASE_BRANCH_SHA1);
+        Preconditions.checkNotNull(baseline, "%s label should be present in %s",
+            GITHUB_BASE_BRANCH_SHA1, startRevision);
+
+        GitRevision gitRevision = getRepository().resolveReference(baseline);
+        return Optional.of(new Baseline<>(gitRevision.getSha1(), gitRevision));
       }
 
       /**
