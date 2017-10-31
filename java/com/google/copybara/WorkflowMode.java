@@ -21,9 +21,9 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.Origin.Baseline;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.ProgressPrefixConsole;
@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -185,45 +185,35 @@ public enum WorkflowMode {
     @Override
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
-      final AtomicReference<String> requestParent = new AtomicReference<>(
-          runHelper.workflowOptions().changeBaseline);
-      final AtomicReference<O> baselineChange = new AtomicReference<>(null);
+
       checkCondition(runHelper.destinationSupportsPreviousRef(),
           "'%s' is incompatible with destinations that don't support history"
               + " (For example folder.destination)", CHANGE_REQUEST);
       final String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
-      if (Strings.isNullOrEmpty(requestParent.get())) {
-        O resolvedRef = runHelper.getResolvedRef();
-        runHelper.getOriginReader().visitChangesWithAnyLabel(
-                resolvedRef,
-                ImmutableSet.of(originLabelName),
-                (change, matchedLabels) -> {
-                  if (!change.getRevision().asString().equals(resolvedRef.asString())) {
-                    requestParent.set(matchedLabels.values().iterator().next());
-                    baselineChange.set((O) change.getRevision());
-                    return ChangeVisitable.VisitResult.TERMINATE;
-                  }
-                  return ChangeVisitable.VisitResult.CONTINUE;
-                });
-      }
+      Optional<Baseline<O>> baseline;
+      /*originRevision=*/
+      baseline = Strings.isNullOrEmpty(runHelper.workflowOptions().changeBaseline)
+          ? runHelper.getOriginReader().findBaseline(runHelper.getResolvedRef(), originLabelName)
+          : Optional.of(
+              new Baseline<O>(runHelper.workflowOptions().changeBaseline,/*originRevision=*/null));
 
-      if (Strings.isNullOrEmpty(requestParent.get())) {
+      if (!baseline.isPresent()) {
         throw new ValidationException(
             "Cannot find matching parent commit in in the destination. Use '"
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
       logger.info(String.format("Found baseline for label %s: %s", originLabelName,
-          requestParent.get()));
+                                baseline.get().getBaseline()));
 
       // If --change_request_parent was used, we don't have information about the origin changes
       // included in the CHANGE_REQUEST so we assume the last change is the only change
       ImmutableList<Change<O>> changes;
-      if (baselineChange.get() == null) {
+      if (baseline.get().getOriginRevision() == null) {
         changes = ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()));
       } else {
-        changes = runHelper.getOriginReader().changes(baselineChange.get(),
-            runHelper.getResolvedRef());
+        changes = runHelper.getOriginReader().changes(baseline.get().getOriginRevision(),
+                                                      runHelper.getResolvedRef());
         if (changes.isEmpty()) {
           throw new EmptyChangeException(String
               .format("Change '%s' doesn't include any change for origin_files = %s",
@@ -242,7 +232,7 @@ public enum WorkflowMode {
               new Metadata(Iterables.getLast(changes).getMessage(),
                   Iterables.getLast(changes).getAuthor()),
               computedChanges,
-              requestParent.get(),
+              baseline.get().getBaseline(),
               runHelper.getWorkflowIdentity(runHelper.getResolvedRef()));
     }
   };

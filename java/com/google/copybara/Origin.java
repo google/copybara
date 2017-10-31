@@ -16,12 +16,18 @@
 
 package com.google.copybara;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -96,6 +102,53 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
     default String getGroupIdentity(R rev) throws RepoException{
       return null;
     }
+
+    /**
+     * Finds the baseline of startRevision. Most of the implementations will use the label to
+     * look for the closest parent with that label, but there might be other kind of implementations
+     * that ignore it.
+     *
+     * <p>If the the label is present in a change multiple times it generally uses the last
+     * appearance.
+     */
+    default Optional<Baseline<R>> findBaseline(R startRevision, String label)
+        throws RepoException, ValidationException {
+      FindLatestWithLabel<R> visitor = new FindLatestWithLabel<>(startRevision, label);
+      visitChanges(startRevision, visitor);
+      return visitor.getBaseline();
+    }
+
+    class FindLatestWithLabel<R extends Revision> implements ChangesVisitor {
+
+      private final R startRevision;
+      private final String label;
+      @Nullable
+      private Baseline<R> baseline;
+
+      public FindLatestWithLabel(R startRevision, String label) {
+        this.startRevision = Preconditions.checkNotNull(startRevision);
+        this.label = Preconditions.checkNotNull(label);
+      }
+
+      public Optional<Baseline<R>> getBaseline() {
+        return Optional.ofNullable(baseline);
+      }
+
+      @SuppressWarnings("unchecked")
+      @Override
+      public VisitResult visit(Change<? extends Revision> input) {
+        if (input.getRevision().asString().equals(startRevision.asString())) {
+          return VisitResult.CONTINUE;
+        }
+        ImmutableMap<String, Collection<String>> labels = input.getLabels().asMap();
+        if (!labels.containsKey(label)) {
+          return VisitResult.CONTINUE;
+        }
+        baseline = new Baseline<R>(Iterables.getLast(labels.get(label)),
+                                   (R) input.getRevision());
+        return VisitResult.TERMINATE;
+      }
+    }
   }
 
   /**
@@ -118,4 +171,41 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
    */
   String getLabelName();
 
+  /**
+   * Represents a baseline pointer in the origin
+   * @param <R>
+   */
+  class Baseline<R extends Revision> {
+
+    private final String baseline;
+    private final R originRevision;
+
+    public Baseline(String baseline, @Nullable R originRevision) {
+      this.baseline = Preconditions.checkNotNull(baseline);
+      this.originRevision = originRevision;
+    }
+
+    /**
+     * The baseline reference that will be used in the destination.
+     */
+    public String getBaseline() {
+      return baseline;
+    }
+
+    /**
+     * A reference to the origin revision where the baseline was found.
+     */
+    @Nullable
+    public R getOriginRevision() {
+      return originRevision;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("baseline", baseline)
+          .add("originRevision", originRevision)
+          .toString();
+    }
+  }
 }

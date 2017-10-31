@@ -60,7 +60,7 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         "//third_party:jsr305",
-    ]
+    ],
 )
 
 doc_generator(
