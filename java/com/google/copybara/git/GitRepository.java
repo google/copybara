@@ -412,6 +412,10 @@ public class GitRepository {
     return showRef(ImmutableList.of());
   }
 
+  protected String mergeBase(String commit1, String commit2) throws RepoException {
+    return simpleCommand("merge-base", commit1, commit2).getStdout().trim();
+  }
+
   /**
    * Returns an instance equivalent to this one but with a different work tree. This does not
    * initialize or alter the given work tree.

@@ -62,6 +62,9 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   public static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
   public static final String GITHUB_BASE_BRANCH = "GITHUB_BASE_BRANCH";
+  public static final String GITHUB_BASE_BRANCH_SHA1 = "GITHUB_BASE_BRANCH_SHA1";
+  public static final String GITHUB_PR_TITLE = "GITHUB_PR_TITLE";
+  public static final String GITHUB_PR_BODY = "GITHUB_PR_BODY";
 
   private final String url;
   private final boolean useMerge;
@@ -182,15 +185,26 @@ public class GithubPROrigin implements Origin<GitRevision> {
         project, prNumber,
         prData.getHead().getLabel(), gitRevision.getSha1()).toString();
 
+
+    ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
+    labels.put(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber));
+    labels.put(GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel);
+    labels.put(GITHUB_BASE_BRANCH, prData.getBase().getRef());
+
+    String mergeBase = getRepository().mergeBase("refs/PR_HEAD", "refs/PR_BASE_BRANCH");
+    labels.put(GITHUB_BASE_BRANCH_SHA1, mergeBase);
+
+    labels.put(GITHUB_PR_TITLE, prData.getTitle());
+    labels.put(GITHUB_PR_BODY, prData.getBody());
+
     return new GitRevision(
         getRepository(),
         gitRevision.getSha1(),
         // TODO(malcon): Decide the format to use here:
         /*reviewReference=*/null,
         stableRef,
-        ImmutableMap.of(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber),
-            GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel,
-            GITHUB_BASE_BRANCH, prData.getBase().getRef()), url);
+        labels.build(),
+        url);
   }
 
   @VisibleForTesting

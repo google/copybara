@@ -19,6 +19,10 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.base.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH_SHA1;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -291,9 +295,13 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           + "\n"
           + "  - " + GithubPROrigin.GITHUB_PR_NUMBER_LABEL + ": The pull request number if the"
           + " reference passed was in the form of `https://github.com/project/pull/123`, "
-          + " `refs/pull/123/head` or `refs/pull/123/master`."
+          + " `refs/pull/123/head` or `refs/pull/123/master`.\n"
           + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
-          + " integrate automatically in the reverse workflow.",
+          + " integrate automatically in the reverse workflow.\n"
+          + "  - " + GITHUB_BASE_BRANCH + ": The base branch name used for the Pull Request.\n"
+          + "  - " + GITHUB_BASE_BRANCH_SHA1 + ": The base branch SHA-1 used as baseline.\n"
+          + "  - " + GITHUB_PR_TITLE + ": Title of the Pull Request.\n"
+          + "  - " + GITHUB_PR_BODY + ": Body of the Pull Request.\n",
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "url", type = String.class,

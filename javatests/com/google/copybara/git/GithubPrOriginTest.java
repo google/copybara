@@ -17,6 +17,11 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH_SHA1;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_NUMBER_LABEL;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -27,6 +32,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
@@ -271,7 +277,7 @@ public class GithubPrOriginTest {
   @Test
   public void testCheckout() throws Exception {
     GitRepository remote = localHubRepo("google/example");
-    addFiles(remote, "base", ImmutableMap.<String, String>builder()
+    String baseline1 = addFiles(remote, "base", ImmutableMap.<String, String>builder()
         .put("test.txt", "a").build());
     addFiles(remote, "one", ImmutableMap.<String, String>builder()
         .put("test.txt", "b").build());
@@ -282,7 +288,7 @@ public class GithubPrOriginTest {
 
     withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // master = base commit.
 
-    addFiles(remote, "master change", ImmutableMap.<String, String>builder()
+    String baselineMerge = addFiles(remote, "master change", ImmutableMap.<String, String>builder()
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
@@ -291,7 +297,15 @@ public class GithubPrOriginTest {
     GithubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
 
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(origin.resolve("123"), workdir);
+    GitRevision headPrRevision = origin.resolve("123");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH, "master");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH_SHA1, baseline1);
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_NUMBER_LABEL, "123");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_TITLE, "test summary");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_BODY,
+        "test summary\n\nMore text");
+
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(headPrRevision, workdir);
 
     FileSubjects.assertThatPath(workdir)
         .containsFile("test.txt", "c")
@@ -302,7 +316,17 @@ public class GithubPrOriginTest {
         "url = 'https://github.com/google/example'",
         "use_merge = True");
 
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(origin.resolve("123"), workdir);
+    GitRevision mergePrRevision = origin.resolve("123");
+
+    assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH, "master");
+    assertThat(mergePrRevision.associatedLabels())
+        .containsEntry(GITHUB_BASE_BRANCH_SHA1, baselineMerge);
+    assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_PR_NUMBER_LABEL, "123");
+    assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_PR_TITLE, "test summary");
+    assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_PR_BODY,
+        "test summary\n\nMore text");
+
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(mergePrRevision, workdir);
 
     FileSubjects.assertThatPath(workdir)
         .containsFile("other.txt", "")
@@ -386,14 +410,14 @@ public class GithubPrOriginTest {
     GitRevision rev = origin.resolve(reference);
     assertThat(rev.asString()).hasLength(40);
     assertThat(rev.contextReference()).isEqualTo(GithubUtil.asHeadRef(prNumber));
-    assertThat(rev.associatedLabels()).containsEntry(GithubPROrigin.GITHUB_PR_NUMBER_LABEL,
+    assertThat(rev.associatedLabels()).containsEntry(GITHUB_PR_NUMBER_LABEL,
         Integer.toString(prNumber));
     assertThat(rev.associatedLabels()).containsEntry(GitModule.DEFAULT_INTEGRATE_LABEL,
         "https://github.com/google/example/pull/" + prNumber
             + " from googletestuser:example-branch " + sha1);
   }
 
-  private void addFiles(GitRepository remote, String msg, Map<String, String> files)
+  private String addFiles(GitRepository remote, String msg, Map<String, String> files)
       throws IOException, RepoException {
     GitRepository tmpRepo = withTmpWorktree(remote);
 
@@ -405,6 +429,7 @@ public class GithubPrOriginTest {
 
     tmpRepo.add().all().run();
     tmpRepo.simpleCommand("commit", "-m", msg);
+    return Iterables.getOnlyElement(tmpRepo.log("HEAD").withLimit(1).run()).getCommit().getSha1();
   }
 
   private GitRepository withTmpWorktree(GitRepository remote) throws IOException {
@@ -438,7 +463,7 @@ public class GithubPrOriginTest {
             + "  \"number\": " + prNumber + ",\n"
             + "  \"state\": \"open\",\n"
             + "  \"title\": \"test summary\",\n"
-            + "  \"body\": \"test summary\",\n"
+            + "  \"body\": \"test summary\n\nMore text\",\n"
             + "  \"head\": {\n"
             + "    \"label\": \"googletestuser:example-branch\",\n"
             + "    \"ref\": \"example-branch\"\n"
