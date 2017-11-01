@@ -17,6 +17,7 @@
     - [metadata.expose_label](#metadata.expose_label)
     - [metadata.restore_author](#metadata.restore_author)
     - [metadata.add_header](#metadata.add_header)
+    - [metadata.replace_message](#metadata.replace_message)
     - [metadata.scrubber](#metadata.scrubber)
     - [metadata.verify_match](#metadata.verify_match)
     - [metadata.map_references](#metadata.map_references)
@@ -319,7 +320,7 @@ label|`string`<br><p>The label to use for storing the author</p>
 
 Map the author name and mail to another author. The mapping can be done by both name and mail or only using any of the two.
 
-`transformation metadata.map_author(authors, reversible=False, fail_if_not_found=False, reverse_fail_if_not_found=False)`
+`transformation metadata.map_author(authors, reversible=False, fail_if_not_found=False, reverse_fail_if_not_found=False, map_all_changes=False)`
 
 ### Parameters:
 
@@ -329,6 +330,7 @@ authors|`dict`<br><p>The author mapping. Keys can be in the form of 'Your Name',
 reversible|`boolean`<br><p>If the transform is automatically reversible. Workflows using the reverse of this transform will be able to automatically map values to keys.</p>
 fail_if_not_found|`boolean`<br><p>Fail if a mapping cannot be found. Helps discovering early authors that should be in the map</p>
 reverse_fail_if_not_found|`boolean`<br><p>Same as fail_if_not_found but when the transform is used in a inverse workflow.</p>
+map_all_changes|`boolean`<br><p>If all changes being migrated should be mapped. Useful for getting a mapped metadata.squash_notes. By default we only map the current author.</p>
 
 
 ### Example:
@@ -532,6 +534,41 @@ documentation
 
 
 
+<a id="metadata.replace_message" aria-hidden="true"></a>
+## metadata.replace_message
+
+Replace the change message with a template text. Any variable present in the message in the form of ${LABEL_NAME} will be replaced by the corresponding label in the message. Note that this requires that the label is already in the message or in any of the changes being imported. The label in the message takes priority over the ones in the list of original messages of changes imported.
+
+
+`transformation metadata.replace_message(text, ignore_label_not_found=False)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+text|`string`<br><p>The template text to use for the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
+ignore_label_not_found|`boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
+
+
+### Example:
+
+#### Replace the message:
+
+Replace the original message with a text:
+
+```python
+metadata.replace_message("COPYBARA CHANGE: Import of ${GITHUB_PR_NUMBER}\n\n${GITHUB_PR_BODY}\n")
+```
+
+Will transform the message to:
+
+```
+COPYBARA CHANGE: Import of 12345
+Body from Github Pull Request
+```
+
+
+
 <a id="metadata.scrubber" aria-hidden="true"></a>
 ## metadata.scrubber
 
@@ -646,7 +683,7 @@ Parameter | Description
 --------- | -----------
 before|`string`<br><p>Template for origin references in the change message. Use a '${reference}' token to capture the actual references. E.g. if the origin uses linkslike 'http://changes?1234', the template would be 'http://internalReviews.com/${reference}', with reference_regex = '[0-9]+'</p>
 after|`string`<br><p>Format for references in the destination, use the token '${reference}' to represent the destination reference. E.g. 'http://changes(${reference})'.</p>
-regex_groups|`dict`<br><p>Regexes for the ${reference} token's content. Requires one 'before_ref' entry matching the ${reference} token's content on the before side. Optionally accepts one 'after_ref' used for validation.</p>
+regex_groups|`dict`<br><p>Regexes for the ${reference} token's content. Requires one 'before_ref' entry matching the ${reference} token's content on the before side. Optionally accepts one 'after_ref' used for validation. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
 additional_import_labels|`sequence of string`<br><p>Meant to be used when migrating from another tool: Per default, copybara will only recognize the labels defined in the workflow's endpoints. The tool will use these additional labels to find labels created by other invocations and tools.</p>
 
 
@@ -790,10 +827,13 @@ Name | Type | Description
 ---- | ----------- | -----------
 --change_request_parent | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 --last-rev | *string* | Last revision that was migrated to the destination
+--init-history | *boolean* | Import all the changes from the beginning of the history up to the resolved ref. For 'ITERATIVE' workflows this will import individual changes since the first one. For 'SQUASH' it will import the squashed change up to the resolved ref. WARNING: Use with care, this flag should be used only for the very first run of Copybara for a workflow.
 --iterative-limit-changes | *int* | Import just a number of changes instead of all the pending ones
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
 --squash-skip-history | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
 --import-noop-changes | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
+--noworkflow-identity-user | *boolean* | Don't use the current a user in change identity
+--workflow-identity-user | *string* | Use a custom string as a user for computing change identity
 --check-last-rev-state | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 --dry-run | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 
@@ -938,7 +978,7 @@ Parameter | Description
 --------- | -----------
 before|`string`<br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'.</p>
 after|`string`<br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
-regex_groups|`dict`<br><p>A set of named regexes that can be used to match part of the replaced text. For example {"x": "[A-Za-z]+"}</p>
+regex_groups|`dict`<br><p>A set of named regexes that can be used to match part of the replaced text.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 paths|`glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 first_only|`boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 multiline|`boolean`<br><p>Whether to replace text that spans more than one line.</p>
@@ -1075,7 +1115,7 @@ Verifies that a RegEx matches (or not matches) the specified files. Does not, tr
 
 Parameter | Description
 --------- | -----------
-regex|`string`<br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end.</p>
+regex|`string`<br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
 paths|`glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 verify_no_match|`boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
 
@@ -1093,7 +1133,7 @@ Parameter | Description
 --------- | -----------
 transformations|`sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation.</p>
 reversal|`sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
-ignore_noop|`boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored. In general this is a bad idea and prevents Copybara for detecting important transformation errors.</p>
+ignore_noop|`boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored and rest of the transformations in the group will not be executed. In general this is a bad idea and prevents Copybara for detecting important transformation errors.</p>
 
 
 
@@ -1239,9 +1279,15 @@ Defines a Git origin for Github pull requests.
 
 Implicit labels that can be used/exposed:
 
-  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
+  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.
+  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
+  - GITHUB_BASE_BRANCH: The base branch name used for the Pull Request.
+  - GITHUB_BASE_BRANCH_SHA1: The base branch SHA-1 used as baseline.
+  - GITHUB_PR_TITLE: Title of the Pull Request.
+  - GITHUB_PR_BODY: Body of the Pull Request.
 
-`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], submodules='NO')`
+
+`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], submodules='NO', baseline_from_branch=False)`
 
 ### Parameters:
 
@@ -1251,6 +1297,7 @@ url|`string`<br><p>Indicates the URL of the GitHub repository</p>
 use_merge|`boolean`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
 required_labels|`sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+baseline_from_branch|`boolean`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
 
 
 
@@ -1296,6 +1343,7 @@ Name | Type | Description
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 --git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 --git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+--nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
 ## git.gerrit_destination
@@ -1329,6 +1377,7 @@ Name | Type | Description
 --git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 --git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 --git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+--nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 
 # patch
