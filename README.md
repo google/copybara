@@ -71,6 +71,10 @@ We are still working on the documentation. Here are some resources:
 
   * [Reference documentation](docs/reference.md)
   * [Examples](docs/examples.md)
+  
+## Contact us
+
+If you have any questions about how Copybara works please contact us at our [mailing list](https://groups.google.com/forum/#!forum/copybara-discuss)
 
 ## Optional tips
 
