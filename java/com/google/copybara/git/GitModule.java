@@ -219,11 +219,11 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           + "Implicit labels that can be used/exposed:\n"
           + "\n"
           + "  - " + GitRepoType.GERRIT_CHANGE_NUMBER_LABEL + ": The change number for the gerrit"
-          + " review."
+          + " review.\n"
           + "  - " + GitRepoType.GERRIT_CHANGE_ID_LABEL + ": The change id for the gerrit"
-          + " review."
+          + " review.\n"
           + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
-          + " integrate automatically in the reverse workflow.",
+          + " integrate automatically in the reverse workflow.\n",
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "url", type = String.class,
