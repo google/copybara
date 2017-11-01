@@ -476,6 +476,25 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testReplaceMessage() throws Exception {
+    options.setLastRevision(origin.resolve("HEAD").asString());
+
+    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+        "metadata.replace_message('[HEADER with ${LABEL}]\\n')");
+
+    origin.addSimpleChange(0, ""
+        + "A change\n"
+        + "\n"
+        + "LABEL=some label\n");
+
+    wf.run(workdir, /*sourceRef=*/null);
+
+    ProcessedChange change = Iterables.getLast(destination.processed);
+
+    assertThat(change.getChangesSummary()).isEqualTo("[HEADER with some label]\n");
+  }
+
+  @Test
   public void testAddHeader_noNewLine() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
 

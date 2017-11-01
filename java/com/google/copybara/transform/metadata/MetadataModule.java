@@ -393,7 +393,46 @@ public class MetadataModule {
     public Transformation invoke(MetadataModule self, String header, Boolean ignoreIfLabelNotFound,
         Boolean newLine)
         throws EvalException {
-      return new AddHeader(header, ignoreIfLabelNotFound, newLine);
+      return new TemplateMessage(header, ignoreIfLabelNotFound, newLine, /*replaceMessage=*/ false);
+    }
+  };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(name = "replace_message", returnType = Transformation.class,
+      doc = "Replace the change message with a template text. Any variable present in the message"
+          + " in the form of ${LABEL_NAME} will be replaced by the corresponding label in the"
+          + " message. Note that this requires that the label is already in the message or in any"
+          + " of the changes being imported. The label in the message takes priority over the ones"
+          + " in the list of original messages of changes imported.\n",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "text", type = String.class,
+              doc = "The template text to use for the message. For example "
+                  + "'[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL}"
+                  + " to the corresponding label."),
+          @Param(name = "ignore_label_not_found", type = Boolean.class,
+              doc = "If a label used in the template is not found, ignore the error and"
+                  + " don't add the header. By default it will stop the migration and fail.",
+              defaultValue = "False"),
+      }, objectType = MetadataModule.class)
+  @Example(title = "Replace the message",
+      before = "Replace the original message with a text:",
+      code = "metadata.replace_message(\"COPYBARA CHANGE: Import of ${GITHUB_PR_NUMBER}\\n"
+          + "\\n"
+          + "${GITHUB_PR_BODY}\\n\")",
+      after = "Will transform the message to:\n\n"
+          + "```\n"
+          + "COPYBARA CHANGE: Import of 12345"
+          + "\n"
+          + "Body from Github Pull Request"
+          + "\n"
+          + "```\n\n")
+  static final BuiltinFunction REPLACE_MESSAGE = new BuiltinFunction("replace_message") {
+    public Transformation invoke(MetadataModule self, String template,
+        Boolean ignoreIfLabelNotFound)
+        throws EvalException {
+      return new TemplateMessage(template, ignoreIfLabelNotFound, /*newLine=*/false,
+          /*replaceMessage=*/true);
     }
   };
 

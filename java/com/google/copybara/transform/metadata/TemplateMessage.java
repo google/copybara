@@ -39,20 +39,23 @@ import java.util.Set;
  * <p>This transforms allows to refer to change labels both from the current message or the set of
  * commits being imported.
  */
-public class AddHeader implements Transformation {
+public class TemplateMessage implements Transformation {
 
   private final String header;
   private final boolean ignoreIfLabelNotFound;
   private final boolean newLine;
+  private boolean replaceMessage;
   private static final Pattern VAR_PATTERN =
       Pattern.compile("\\$\\{(" + LabelFinder.VALID_LABEL + ")}");
 
   private final Set<String> labels = new HashSet<>();
 
-  AddHeader(String header, boolean ignoreIfLabelNotFound, boolean newLine) {
+  TemplateMessage(String header, boolean ignoreIfLabelNotFound, boolean newLine,
+      boolean replaceMessage) {
     this.header = Preconditions.checkNotNull(header);
     this.ignoreIfLabelNotFound = ignoreIfLabelNotFound;
     this.newLine = newLine;
+    this.replaceMessage = replaceMessage;
     Matcher matcher = VAR_PATTERN.matcher(header);
     while (matcher.find()) {
       labels.add(matcher.group(1));
@@ -80,7 +83,11 @@ public class AddHeader implements Transformation {
     for (Entry<String, String> entry : labelValues.entrySet()) {
       msgPrefix = msgPrefix.replace("${" + entry.getKey() + "}", entry.getValue());
     }
-    work.setMessage(msgPrefix + (newLine ? "\n" : "") + work.getMessage());
+    String newMsg = msgPrefix;
+    if (!replaceMessage) {
+      newMsg += (newLine ? "\n" : "") + work.getMessage();
+    }
+    work.setMessage(newMsg);
   }
 
   @Override
