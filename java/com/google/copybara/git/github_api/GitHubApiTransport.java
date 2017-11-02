@@ -20,7 +20,7 @@ import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import java.lang.reflect.Type;
 /**
- * TODO(copybara-team): Document
+ * Http transport interface for talking to GitHub.
  */
 public interface GitHubApiTransport {
 
