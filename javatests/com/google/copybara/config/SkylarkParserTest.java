@@ -303,13 +303,6 @@ public class SkylarkParserTest {
     parser.loadConfig(prepareResolveLabelTest());
   }
 
-  /**
-   * TODO(copybara-team): Migrate SkylarkParserTest.testNonReversibleTransform
-   */
-  public void disabledTestNonReversibleTransform() {
-
-  }
-
   @SkylarkModule(
       name = "mock_labels_aware_module",
       doc = "LabelsAwareModule for testing purposes",
