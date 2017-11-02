@@ -118,8 +118,6 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
 
   @SkylarkSignature(name = "integrate", returnType = GitIntegrateChanges.class,
       doc = "Integrate changes from a url present in the migrated change label.",
-      // TODO(malcon): fake-merges Flip this
-      documented = false,
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "label", type = String.class,
