@@ -274,6 +274,10 @@ public class GithubPrOriginTest {
     // common ancestor.
     assertThat(Lists.transform(changes, Change::getMessage))
         .isEqualTo(Lists.newArrayList("one\n", "two\n"));
+    assertThat(changes.stream()
+        .map(c -> c.getRevision().getUrl())
+        .allMatch(c -> c.startsWith("https://github.com/")))
+        .isTrue();
   }
 
   @Test

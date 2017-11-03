@@ -178,6 +178,7 @@ public class GerritOriginTest {
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, AUTHORING);
     Change<GitRevision> res = reader.change(origin.resolve("http://foo.com/#/c/12345/2"));
     assertThat(res.getRevision()).isEqualTo(secondRevision);
+    assertThat(res.getRevision().getUrl()).isNotNull();
     assertThat(res.getRevision().contextReference()).isEqualTo(secondRevision.contextReference());
     assertThat(res.getRevision().getReviewReference())
         .isEqualTo(secondRevision.getReviewReference());
@@ -186,6 +187,7 @@ public class GerritOriginTest {
             origin.resolve("http://foo.com/#/c/12345/1"),
             origin.resolve("http://foo.com/#/c/12345/3"));
 
+    assertThat(changes.get(0).getRevision().getUrl()).isNotNull();
     // Each ref is conceptually a rebase. Size is not really important for this test.
     assertThat(changes).hasSize(1);
   }

@@ -47,9 +47,11 @@ class ChangeReader {
   private final int limit;
   private final ImmutableList<String> roots;
   private final boolean includeBranchCommitLogs;
+  private String url;
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, Console console,
-      boolean verbose, int limit, Iterable<String> roots, boolean includeBranchCommitLogs) {
+      boolean verbose, int limit, Iterable<String> roots, boolean includeBranchCommitLogs,
+      @Nullable String url) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
     this.console = checkNotNull(console, "console");
@@ -57,6 +59,7 @@ class ChangeReader {
     this.limit = limit;
     this.roots = ImmutableList.copyOf(roots);
     this.includeBranchCommitLogs = includeBranchCommitLogs;
+    this.url = url;
   }
 
   ImmutableList<GitChange> run(String refExpression) throws RepoException {
@@ -109,7 +112,7 @@ class ChangeReader {
     ImmutableList.Builder<GitChange> result = ImmutableList.builder();
     for (GitLogEntry e : logEntries) {
       result.add(new GitChange(new Change<>(
-          e.getCommit(),
+          e.getCommit().withUrl(url),
           filterAuthor(e.getAuthor())
           , e.getBody() + branchCommitLog(e.getCommit(), e.getParents()),
           e.getAuthorDate(),
@@ -160,6 +163,7 @@ class ChangeReader {
     private int limit = -1;
     private ImmutableList<String> roots = ImmutableList.of("");
     private boolean includeBranchCommitLogs = false;
+    private String url;
 
     // TODO(matvore): Consider adding destinationFiles.
     // For ALL_FILES and where roots is [""], This will skip merges that don't affect the tree
@@ -200,6 +204,10 @@ class ChangeReader {
       this.includeBranchCommitLogs = includeBranchCommitLogs;
       return this;
     }
+    public Builder setUrl(String url) {
+      this.url = url;
+      return this;
+    }
 
     private Builder setRoots(Iterable<String> roots) {
       this.roots = ImmutableList.copyOf(roots);
@@ -208,8 +216,9 @@ class ChangeReader {
 
     ChangeReader build() {
       return new ChangeReader(
-          authoring, repository, console, verbose, limit, roots, includeBranchCommitLogs);
+          authoring, repository, console, verbose, limit, roots, includeBranchCommitLogs, url);
     }
+
   }
 
 }

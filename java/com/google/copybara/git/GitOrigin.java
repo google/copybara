@@ -127,6 +127,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final GeneralOptions generalOptions;
     private final boolean includeBranchCommitLogs;
     private final SubmoduleStrategy submoduleStrategy;
+    private String url;
 
     ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
         GitOptions gitOptions,
@@ -144,11 +145,12 @@ public class GitOrigin implements Origin<GitRevision> {
       this.submoduleStrategy = checkNotNull(submoduleStrategy);
     }
 
-    private ChangeReader.Builder changeReaderBuilder() throws RepoException {
+    private ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
       return ChangeReader.Builder.forOrigin(authoring,
           getRepository(), generalOptions.console(), originFiles)
           .setVerbose(generalOptions.isVerbose())
-          .setIncludeBranchCommitLogs(includeBranchCommitLogs);
+          .setIncludeBranchCommitLogs(includeBranchCommitLogs)
+          .setUrl(repoUrl);
     }
 
     protected GitRepository getRepository() throws RepoException {
@@ -264,14 +266,14 @@ public class GitOrigin implements Origin<GitRevision> {
       String refRange = fromRef == null
           ? toRef.getSha1()
           : fromRef.getSha1() + ".." + toRef.getSha1();
-      ChangeReader changeReader = changeReaderBuilder().build();
+      ChangeReader changeReader = changeReaderBuilder(repoUrl).build();
       return asChanges(changeReader.run(refRange));
     }
 
     @Override
     public Change<GitRevision> change(GitRevision ref) throws RepoException, EmptyChangeException {
       // The limit=1 flag guarantees that only one change is returned
-      ChangeReader changeReader = changeReaderBuilder()
+      ChangeReader changeReader = changeReaderBuilder(repoUrl)
           .setLimit(1)
           .build();
       ImmutableList<Change<GitRevision>> changes = asChanges(changeReader.run(ref.getSha1()));
@@ -295,7 +297,7 @@ public class GitOrigin implements Origin<GitRevision> {
     @Override
     public void visitChanges(GitRevision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
-      ChangeReader queryChanges = changeReaderBuilder()
+      ChangeReader queryChanges = changeReaderBuilder(repoUrl)
           .setLimit(1)
           .build();
 

@@ -445,6 +445,10 @@ public class GitOriginTest {
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
     assertThat(changes).hasSize(3);
+    assertThat(changes.stream()
+        .map(c -> c.getRevision().getUrl())
+        .allMatch(c -> c.startsWith("file://")))
+        .isTrue();
     assertThat(changes.get(0).getMessage()).isEqualTo("change2\n");
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
@@ -474,6 +478,7 @@ public class GitOriginTest {
     assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
     assertThat(change.firstLineMessage()).isEqualTo("change2");
     assertThat(change.getRevision().asString()).isEqualTo(lastCommitRef.asString());
+    assertThat(change.getRevision().getUrl()).startsWith("file://");
   }
 
   @Test

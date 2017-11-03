@@ -164,4 +164,8 @@ public final class GitRevision implements Revision {
   public ImmutableMap<String, String> associatedLabels() {
     return associatedLabels;
   }
+
+  GitRevision withUrl(String url) {
+    return new GitRevision(repository, sha1, reviewReference, reference, associatedLabels, url);
+  }
 }
