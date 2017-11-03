@@ -88,6 +88,7 @@ public class Mirror implements Migration {
   @Override
   public ImmutableSetMultimap<String, String> getOriginDescription() {
     return new ImmutableSetMultimap.Builder<String, String>()
+        .put("type", "git.mirror")
         .put("url", origin)
         .putAll("ref", refspec.stream().map(Refspec::toString).collect(Collectors.toList()))
         .build();
@@ -96,6 +97,7 @@ public class Mirror implements Migration {
   @Override
   public ImmutableSetMultimap<String, String> getDestinationDescription() {
     return new ImmutableSetMultimap.Builder<String, String>()
+        .put("type", "git.mirror")
         .put("url", destination)
         .putAll("ref", refspec.stream().map(Refspec::toString).collect(Collectors.toList()))
         .build();

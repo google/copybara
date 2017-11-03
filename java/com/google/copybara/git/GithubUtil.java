@@ -68,6 +68,18 @@ public class GithubUtil {
   }
 
   /**
+   * Returns true if url is a GitHub url.
+   */
+  public static boolean isGitHubUrl(String url) {
+    try {
+      GithubUtil.getProjectNameFromUrl(url);
+      return true;
+    } catch (ValidationException e) {
+      return false;
+    }
+  }
+
+  /**
    * Given a project name, like copybara/google, return the GitHub https url of it.
    */
   static String asGithubUrl(String project) {
