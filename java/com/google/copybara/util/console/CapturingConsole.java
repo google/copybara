@@ -89,7 +89,6 @@ public class CapturingConsole implements Console {
 
   @Override
   public void verbose(String message) {
-    System.err.println("VERBOSE: " + message);
     addMessage(MessageType.VERBOSE, message);
     delegate.verbose(message);
   }
