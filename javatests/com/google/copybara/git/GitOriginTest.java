@@ -215,6 +215,21 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testInvalidGithubUrlWithGithubString() throws Exception {
+    try {
+      skylark.eval("result",
+          "result = git.github_origin(\n"
+              + "    url = 'https://foo.com/github.com',\n"
+              + "    ref = 'master',\n"
+              + ")");
+      fail();
+    } catch (ValidationException expected) {
+      console.assertThat()
+          .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/github.com.*");
+    }
+  }
+
+  @Test
   public void testResolveWithUrl() throws Exception {
     assertThat(origin.resolve("master").getUrl()).isEqualTo(url);
   }

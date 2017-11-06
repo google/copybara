@@ -272,7 +272,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction GITHUB_ORIGIN = new BuiltinFunction("github_origin") {
     public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
         Location location) throws EvalException {
-      if (!url.contains("github.com")) {
+      if (!GithubUtil.isGitHubUrl(url)) {
         throw new EvalException(location, "Invalid Github URL: " + url);
       }
 
