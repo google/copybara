@@ -101,7 +101,7 @@ public class GitDestinationIntegrateTest {
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
 
-    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("ignore*"));;
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("ignore*"));
     options.setForce(true);
 
     url = "file://" + repoGitDir;
