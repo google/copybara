@@ -296,11 +296,7 @@ public final class GitDestination implements Destination<GitRevision> {
     private void fetchIfNeeded(GitRepository repo, Console console)
         throws RepoException, ValidationException {
       if (!state.alreadyFetched) {
-
-        GitRevision revision = generalOptions.repoTask(
-            "destination_fetch",
-            () -> fetchFromRemote(console, repo, repoUrl, remoteFetch));
-
+        GitRevision revision = fetchFromRemote(console, repo, repoUrl, remoteFetch);
         if (revision != null) {
           repo.simpleCommand("branch", state.localBranch, revision.getSha1());
         }
