@@ -144,8 +144,8 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
         if (!labels.containsKey(label)) {
           return VisitResult.CONTINUE;
         }
-        baseline = new Baseline<R>(Iterables.getLast(labels.get(label)),
-                                   (R) input.getRevision());
+        baseline = new Baseline<>(Iterables.getLast(labels.get(label)),
+            (R) input.getRevision());
         return VisitResult.TERMINATE;
       }
     }
