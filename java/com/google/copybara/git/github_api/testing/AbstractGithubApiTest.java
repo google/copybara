@@ -29,11 +29,13 @@ import com.google.copybara.git.github_api.Issue;
 import com.google.copybara.git.github_api.Issue.Label;
 import com.google.copybara.git.github_api.PullRequest;
 import com.google.copybara.git.github_api.Ref;
+import com.google.copybara.git.github_api.Review;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
@@ -105,6 +107,24 @@ public abstract class AbstractGithubApiTest {
     assertThat(pullRequest.getHead().getRef()).isEqualTo("example-branch");
     assertThat(pullRequest.getHead().getSha()).isEqualTo(
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+  }
+
+  @Test
+  public void testGetPullReviews() throws Exception {
+    trainMockGet(
+        "/repos/octocat/Hello-World/pulls/12/reviews",
+        getResource("pulls_12345_reviews_testdata.json"));
+    List<Review> reviews = api.getReviews("octocat/Hello-World", 12);
+
+    assertThat(reviews).hasSize(1);
+    assertThat(reviews.get(0).getBody()).isEqualTo("Here is the body for the review.");
+    assertThat(reviews.get(0).getId()).isEqualTo(80L);
+    assertThat(reviews.get(0).getUser().getId()).isEqualTo(1L);
+    assertThat(reviews.get(0).getUser().getLogin()).isEqualTo("octocat");
+    assertThat(reviews.get(0).getState()).isEqualTo("APPROVED");
+    assertThat(reviews.get(0).isApproved()).isTrue();
+    assertThat(reviews.get(0).getCommitId())
+        .isEqualTo("ecdd80bb57125d7ba9641ffaa4d7d2c19d3f3091");
   }
 
   @Test

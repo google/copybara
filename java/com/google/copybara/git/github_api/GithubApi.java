@@ -68,6 +68,21 @@ public class GithubApi {
   }
 
   /**
+   * Get reviews for a pull request
+   *
+   * @param projectId a project in the form of "google/copybara"
+   * @param number the pull request number
+   */
+  public List<Review> getReviews(String projectId, long number)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_reviews")) {
+      return transport.get(
+          String.format("repos/%s/pulls/%d/reviews", projectId, number),
+          new TypeToken<List<Review>>() {}.getType());
+    }
+  }
+
+  /**
    * Create a pull request
    */
   public PullRequest createPullRequest(String projectId, CreatePullRequest request)
