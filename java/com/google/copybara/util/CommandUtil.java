@@ -25,11 +25,13 @@ import com.google.copybara.shell.ShellUtils;
 import com.google.copybara.shell.SimpleKillableObserver;
 import com.google.copybara.shell.TerminationStatus;
 
+import com.google.copybara.shell.TimeoutKillableObserver;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,6 +45,9 @@ public final class CommandUtil {
    * No input for the command.
    */
   public static final byte[] NO_INPUT = new byte[]{};
+  // TODO(malcon): Make this a flag
+  // Kill the command after 15 minutes.
+  private static final long COMMAND_TIMEOUT = TimeUnit.MINUTES.toMillis(15);
 
   private CommandUtil() {}
 
@@ -75,7 +80,7 @@ public final class CommandUtil {
 
     TerminationStatus exitStatus = null;
     try {
-      cmdResult = cmd.execute(input, new SimpleKillableObserver(),
+      cmdResult = cmd.execute(input, new TimeoutKillableObserver(COMMAND_TIMEOUT),
           // If verbose we stream to the user console too
           verbose ? new DemultiplexOutputStream(System.err, stdoutCollector) : stdoutCollector,
           verbose ? new DemultiplexOutputStream(System.err, stderrCollector) : stderrCollector,
