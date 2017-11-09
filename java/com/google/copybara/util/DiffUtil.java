@@ -79,7 +79,6 @@ public class DiffUtil {
       Path rootDir, byte[] diffContents, ImmutableList<String> excludedPaths, int stripSlashes,
       boolean verbose, boolean reverse, Map<String, String> environment)
       throws IOException {
-    // TODO(copybara-team): Think if it makes sense to throw EmptyChangeException here
     if (diffContents.length == 0) {
       return;
     }
