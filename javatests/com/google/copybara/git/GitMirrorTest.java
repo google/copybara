@@ -121,7 +121,12 @@ public class GitMirrorTest {
 
     loadMigration(cfgContent, "one").run(workdir, /*sourceRef=*/null);
     originRepo.simpleCommand("branch", "-D", "other");
-    loadMigration(cfgContent, "two").run(workdir, /*sourceRef=*/null);
+    Mirror mirror = (Mirror) loadMigration(cfgContent, "two");
+
+    assertThat(mirror.getOriginDescription().get("ref")).containsExactly("refs/heads/*");
+    assertThat(mirror.getDestinationDescription().get("ref")).containsExactly("refs/heads/*");
+
+    mirror.run(workdir, /*sourceRef=*/null);
 
     checkRefDoesntExist("refs/heads/other");
   }

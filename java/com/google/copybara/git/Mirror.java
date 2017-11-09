@@ -90,7 +90,7 @@ public class Mirror implements Migration {
     return new ImmutableSetMultimap.Builder<String, String>()
         .put("type", "git.mirror")
         .put("url", origin)
-        .putAll("ref", refspec.stream().map(Refspec::toString).collect(Collectors.toList()))
+        .putAll("ref", refspec.stream().map(Refspec::getOrigin).collect(Collectors.toList()))
         .build();
   }
 
@@ -99,7 +99,7 @@ public class Mirror implements Migration {
     return new ImmutableSetMultimap.Builder<String, String>()
         .put("type", "git.mirror")
         .put("url", destination)
-        .putAll("ref", refspec.stream().map(Refspec::toString).collect(Collectors.toList()))
+        .putAll("ref", refspec.stream().map(Refspec::getDestination).collect(Collectors.toList()))
         .build();
   }
 
