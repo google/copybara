@@ -191,15 +191,12 @@ public abstract class AbstractGithubApiTest {
   }
 
   protected <T> Predicate<String> createValidator(Class<T> clazz, Predicate<T> predicate) {
-    return new Predicate<String>() {
-      @Override
-      public boolean test(String s) {
-        try {
-          T requestObject = GsonFactory.getDefaultInstance().createJsonParser(s).parse(clazz);
-          return predicate.test(requestObject);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+    return s -> {
+      try {
+        T requestObject = GsonFactory.getDefaultInstance().createJsonParser(s).parse(clazz);
+        return predicate.test(requestObject);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     };
   }
