@@ -52,9 +52,9 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -367,19 +367,22 @@ public class GitRepository {
     return lsRemote(url, refs, environment);
   }
 
-  // TODO(team): Use JGit URIish.java
   static String validateUrl(String url) throws RepoException {
-    if (!FULL_URI.matcher(url).matches()) {
-      throw new RepoException(String.format("URL '%s' is not valid", url));
+    if (FULL_URI.matcher(url).matches()) {
+      return url;
     }
-    return url;
-  }
 
+    // Support local folders
+    if (Files.isDirectory(Paths.get(url))) {
+      return url;
+    }
+    throw new RepoException(String.format("URL '%s' is not valid", url));
+  }
   /**
    * Execute show-ref git command in the local repository and returns a map from reference name to
    * GitReference(SHA-1).
    */
-  protected ImmutableMap<String, GitRevision> showRef(Collection<String> refs)
+  protected ImmutableMap<String, GitRevision> showRef(Iterable<String> refs)
       throws RepoException {
     ImmutableMap.Builder<String, GitRevision> result = ImmutableMap.builder();
     CommandOutput commandOutput = gitAllowNonZeroExit(CommandUtil.NO_INPUT,
@@ -1002,7 +1005,7 @@ public class GitRepository {
   }
 
   /**
-   * Checks if a SHA-1 object exist in the the repository
+   * Checks if a SHA-1 object exist in the repository
    */
   private boolean checkSha1Exists(String reference) throws RepoException {
     ImmutableList<String> params = ImmutableList.of("cat-file", "-e", reference);
@@ -1179,10 +1182,10 @@ public class GitRepository {
         return false;
       }
       StatusFile that = (StatusFile) o;
-      return Objects.equals(file, that.file) &&
-          Objects.equals(newFileName, that.newFileName) &&
-          indexStatus == that.indexStatus &&
-          workdirStatus == that.workdirStatus;
+      return Objects.equals(file, that.file)
+          && Objects.equals(newFileName, that.newFileName)
+          && indexStatus == that.indexStatus
+          && workdirStatus == that.workdirStatus;
     }
 
     @Override
@@ -1194,8 +1197,8 @@ public class GitRepository {
     public String toString() {
       return Character.toString(indexStatus.getCode())
           + getWorkdirStatus().getCode()
-          + " " + file +
-          (newFileName != null ? " -> " + newFileName : "");
+          + " " + file
+          + (newFileName != null ? " -> " + newFileName : "");
     }
   }
 
@@ -1221,6 +1224,9 @@ public class GitRepository {
     }
   }
 
+  /**
+   * An object capable of performing a 'git push' operation to a remote repository.
+   */
   public static class PushCmd {
 
     private final GitRepository repo;

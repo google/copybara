@@ -292,7 +292,7 @@ public class GitRepositoryTest {
 
     String fetchUrl = "file://" + repository.getGitDir();
 
-    FetchResult result = dest.fetch(fetchUrl,/*prune=*/true, /*force=*/true,
+    FetchResult result = dest.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
         ImmutableList.of("refs/*:refs/*"));
 
     assertThat(result.getDeleted()).isEmpty();
@@ -335,6 +335,9 @@ public class GitRepositoryTest {
     GitRepository.validateUrl("https://github.com/foo/foo");
     GitRepository.validateUrl("protocol://some/url");
     GitRepository.validateUrl("git@github.com:foo/foo.git");
+    // A folder is a valid url. We do a sanity check internally that the directory exist. See
+    // #invalidUrl test for a failure case.
+    GitRepository.validateUrl(workdir.toString());
   }
 
   @Test
@@ -389,7 +392,7 @@ public class GitRepositoryTest {
     String line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\n";
     int repeats = SOME_LARGE_INPUT_SIZE / line.getBytes(StandardCharsets.UTF_8).length;
     StringBuilder descBuilder = new StringBuilder();
-    for (int i=0; i<repeats; i++) {
+    for (int i = 0; i < repeats; i++) {
       descBuilder.append(line);
     }
     Files.write(workdir.resolve("foo.txt"), new byte[] {});
