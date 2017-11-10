@@ -18,16 +18,14 @@ package com.google.copybara.transform.metadata;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Iterables;
-import com.google.copybara.authoring.Author;
 import com.google.copybara.Change;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Restores an original author stored in a label.
