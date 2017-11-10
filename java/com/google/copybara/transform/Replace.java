@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.copybara.LocalParallelizer;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -116,20 +117,10 @@ public final class Replace implements Transformation {
     Iterable<FileState> files = work.getTreeState().find(
         fileMatcherBuilder.relativeTo(checkoutDir));
     Replacer replacer = before.replacer(after, firstOnly, multiline, patternsToIgnore);
-    List<FileState> changed = new ArrayList<>();
-    boolean matchedFile = false;
-    for (FileState file : files) {
-      if (Files.isSymbolicLink(file.getPath())) {
-        continue;
-      }
-      matchedFile = true;
-      String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
-      String transformed = replacer.replace(originalFileContent);
-      if (!originalFileContent.equals(transformed)) {
-        changed.add(file);
-        Files.write(file.getPath(), transformed.getBytes(UTF_8));
-      }
-    }
+    BatchReplace batchReplace = new BatchReplace(replacer);
+    workflowOptions.parallelizer().run(files, batchReplace);
+    List<FileState> changed = batchReplace.getChanged();
+    boolean matchedFile = batchReplace.isMatchedFile();
     logger.info(String.format("Applied %s to %s files. %s changed.",
                               this,
                               Iterables.size(files),
@@ -205,5 +196,51 @@ public final class Replace implements Transformation {
     return new Replace(
         beforeTokens, afterTokens, parsedGroups, firstOnly, multiline, repeatedGroups, paths,
         parsedIgnorePatterns, workflowOptions);
+  }
+
+  private final static class BatchReplace
+      implements LocalParallelizer.TransformFunc<FileState, Boolean> {
+
+    private final Replacer replacer;
+    private final List<FileState> changed = new ArrayList<>();
+    private boolean matchedFile = false;
+
+    BatchReplace(Replacer replacer) {
+      this.replacer = replacer;
+    }
+
+    public List<FileState> getChanged() {
+      return changed;
+    }
+
+    boolean isMatchedFile() {
+      return matchedFile;
+    }
+
+    @Override
+    public Boolean run(Iterable<FileState> elements) throws IOException, ValidationException {
+      List<FileState> changed = new ArrayList<>();
+      boolean matchedFile = false;
+      for (FileState file : elements) {
+        if (Files.isSymbolicLink(file.getPath())) {
+          continue;
+        }
+        matchedFile = true;
+        String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
+        String transformed = replacer.replace(originalFileContent);
+        if (!originalFileContent.equals(transformed)) {
+          synchronized (this) {
+            changed.add(file);
+          }
+          Files.write(file.getPath(), transformed.getBytes(UTF_8));
+        }
+      }
+      synchronized (this) {
+        this.matchedFile |= matchedFile;
+        this.changed.addAll(changed);
+      }
+      // We cannot return null here.
+      return true;
+    }
   }
 }

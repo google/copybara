@@ -19,8 +19,10 @@ package com.google.copybara;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.copybara.util.console.Console;
 import java.util.Objects;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 /**
@@ -103,10 +105,25 @@ public class WorkflowOptions implements Option {
           + " branch.")
   public boolean dryRunMode = false;
 
+  @Parameter(names = "--threads",
+      description = "Number of threads to use when running transformations that change lot of files")
+  public int threads = 1;
+
+  @Parameter(names = "--threads-min-size",
+      description = "Minimum size of the lists to process to run them in parallel")
+  public int threadsMinSize = 100;
+
   @Parameter(names = "--notransformation-join",
       description = "By default Copybara tries to join certain transformations in one so that it"
           + " is more efficient. This disables the feature.")
   public boolean noTransformationJoin = false;
+
+  private final Supplier<LocalParallelizer> parallelizerSupplier =
+      Suppliers.memoize(() -> new LocalParallelizer(threads, threadsMinSize));
+
+  public LocalParallelizer parallelizer() {
+    return parallelizerSupplier.get();
+  }
 
   public boolean joinTransformations() {
     return !noTransformationJoin;

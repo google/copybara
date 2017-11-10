@@ -378,6 +378,7 @@ public class GitRepository {
     }
     throw new RepoException(String.format("URL '%s' is not valid", url));
   }
+
   /**
    * Execute show-ref git command in the local repository and returns a map from reference name to
    * GitReference(SHA-1).

@@ -85,6 +85,7 @@ BASE_SRCS = [
     "Option.java",
     "Options.java",
     "Origin.java",
+    "LocalParallelizer.java",
     "RepoException.java",
     "Revision.java",
     "Transformation.java",

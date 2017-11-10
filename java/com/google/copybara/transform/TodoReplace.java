@@ -26,6 +26,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.copybara.LocalParallelizer;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -57,6 +59,7 @@ public class TodoReplace implements Transformation {
   private Location location;
   private Glob glob;
   private ImmutableList<String> todoTags;
+  private final LocalParallelizer parallelizer;
   private Mode mode;
   private ImmutableMap<String, String> mapping;
   @Nullable
@@ -64,10 +67,11 @@ public class TodoReplace implements Transformation {
 
   public TodoReplace(Location location, Glob glob, ImmutableList<String> todoTags,
       Mode mode,
-      Map<String, String> mapping, @Nullable String defaultString) {
+      Map<String, String> mapping, @Nullable String defaultString, LocalParallelizer parallelizer) {
     this.location = Preconditions.checkNotNull(location);
     this.glob = Preconditions.checkNotNull(glob);
     this.todoTags = Preconditions.checkNotNull(todoTags);
+    this.parallelizer = parallelizer;
     Preconditions.checkArgument(!todoTags.isEmpty());
     this.mode = Preconditions.checkNotNull(mode);
     this.mapping = Preconditions.checkNotNull(ImmutableMap.copyOf(mapping));
@@ -86,9 +90,13 @@ public class TodoReplace implements Transformation {
 
   @Override
   public void transform(TransformWork work) throws IOException, ValidationException {
-    Path checkoutDir = work.getCheckoutDir();
-    Iterable<FileState> files = work.getTreeState().find(glob.relativeTo(checkoutDir));
+    work.getTreeState().notifyModify(
+        Iterables.concat(
+            parallelizer.run(
+                work.getTreeState().find(glob.relativeTo(work.getCheckoutDir())), this::run)));
+  }
 
+  private Set<FileState> run(Iterable<FileState> files) throws IOException, ValidationException {
     Set<FileState> modifiedFiles = new HashSet<>();
     for (FileState file : files) {
       if (Files.isSymbolicLink(file.getPath())) {
@@ -115,7 +123,7 @@ public class TodoReplace implements Transformation {
         Files.write(file.getPath(), sb.toString().getBytes(UTF_8));
       }
     }
-    work.getTreeState().notifyModify(modifiedFiles);
+    return modifiedFiles;
   }
 
   private List<String> mapUsers(List<String> users, String rawText, Path path)
@@ -172,7 +180,8 @@ public class TodoReplace implements Transformation {
           "Non-reversible mapping: " + e.getMessage());
     }
 
-    return new TodoReplace(location, glob, todoTags, mode, mapping.inverse(), defaultString);
+    return new TodoReplace(location, glob, todoTags, mode, mapping.inverse(), defaultString,
+                           parallelizer);
   }
 
   @Override

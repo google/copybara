@@ -660,7 +660,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       if (mode == Mode.USE_DEFAULT || mode == Mode.SCRUB_NAMES) {
         check(location, mapping.isEmpty(), "'mapping' cannot be used with mode %s", mode);
       }
-      return new TodoReplace(location, paths, tags, mode, mapping, defaultString);
+      return new TodoReplace(location, paths, tags, mode, mapping, defaultString,
+                             self.workflowOptions.parallelizer());
     }
   };
 
@@ -695,9 +696,10 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     public VerifyMatch invoke(Core self, String regex, Glob paths, Boolean verifyNoMatch,
         Location location) throws EvalException {
       return VerifyMatch.create(location,
-          regex,
-          paths,
-          verifyNoMatch);
+                                regex,
+                                paths,
+                                verifyNoMatch,
+                                self.workflowOptions.parallelizer());
     }
   };
 
