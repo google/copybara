@@ -44,10 +44,10 @@ public class GerritOrigin extends GitOrigin {
   private GerritOrigin(GeneralOptions generalOptions,
       String repoUrl, @Nullable String configRef,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions,
-      boolean verbose, @Nullable Map<String, String> environment,
+      @Nullable Map<String, String> environment,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
     super(generalOptions, repoUrl, configRef, GitRepoType.GERRIT, gitOptions, gitOriginOptions,
-        verbose, environment, submoduleStrategy, includeBranchCommitLogs);
+        environment, submoduleStrategy, includeBranchCommitLogs);
     this.generalOptions = generalOptions;
     this.gitOptions = gitOptions;
     this.gitOriginOptions = gitOriginOptions;
@@ -78,7 +78,6 @@ public class GerritOrigin extends GitOrigin {
         /* configRef= */ null,
         options.get(GitOptions.class),
         options.get(GitOriginOptions.class),
-        verbose,
         environment,
         submoduleStrategy,
         /*includeBranchCommitLogs=*/ false);

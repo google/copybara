@@ -85,7 +85,6 @@ public class GitOrigin implements Origin<GitRevision> {
   private final GitRepoType repoType;
   private final GitOptions gitOptions;
   private final GitOriginOptions gitOriginOptions;
-  private final boolean verbose;
   @Nullable
   private final Map<String, String> environment;
   private final SubmoduleStrategy submoduleStrategy;
@@ -93,7 +92,7 @@ public class GitOrigin implements Origin<GitRevision> {
 
   GitOrigin(GeneralOptions generalOptions, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
-      GitOriginOptions gitOriginOptions, boolean verbose,
+      GitOriginOptions gitOriginOptions,
       @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs) {
     this.generalOptions = generalOptions;
@@ -106,7 +105,6 @@ public class GitOrigin implements Origin<GitRevision> {
     this.repoType = checkNotNull(repoType);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
-    this.verbose = verbose;
     this.environment = environment;
     this.submoduleStrategy = submoduleStrategy;
     this.includeBranchCommitLogs = includeBranchCommitLogs;
@@ -378,7 +376,7 @@ public class GitOrigin implements Origin<GitRevision> {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
-        verbose, environment, submoduleStrategy, includeBranchCommitLogs);
+        environment, submoduleStrategy, includeBranchCommitLogs);
   }
 
   @Override
