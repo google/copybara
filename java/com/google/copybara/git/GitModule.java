@@ -150,7 +150,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       code = "git.destination(\n"
           + "        url = \"https://example.com/some_git_repo\",\n"
           + "        integrates = [git.integrate()],\n"
-          + "        \n"
+          + "\n"
           + ")",
       after =
           "It will look for `" + DEFAULT_INTEGRATE_LABEL

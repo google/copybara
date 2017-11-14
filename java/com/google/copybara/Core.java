@@ -666,8 +666,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   @SkylarkSignature(
       name = "verify_match",
       returnType = VerifyMatch.class,
-      doc = "Verifies that a RegEx matches (or not matches) the specified files. Does not, "
-          + "transform anything, but will stop the workflow if it fails.",
+      doc = "Verifies that a RegEx matches (or not matches) the specified files. Does not"
+          + " transform anything, but will stop the workflow if it fails.",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object"),
           @Param(name = "regex", type = String.class,

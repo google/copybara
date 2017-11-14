@@ -37,6 +37,7 @@
     - [folder.origin](#folder.origin)
   - [git](#git)
     - [git.origin](#git.origin)
+    - [git.integrate](#git.integrate)
     - [git.mirror](#git.mirror)
     - [git.gerrit_origin](#git.gerrit_origin)
     - [git.github_origin](#git.github_origin)
@@ -648,7 +649,7 @@ very public
 <a id="metadata.verify_match" aria-hidden="true"></a>
 ## metadata.verify_match
 
-Verifies that a RegEx matches (or not matches) the change message. Does not, transform anything, but will stop the workflow if it fails.
+Verifies that a RegEx matches (or not matches) the change message. Does not transform anything, but will stop the workflow if it fails.
 
 `transformation metadata.verify_match(regex, verify_no_match=False)`
 
@@ -1107,7 +1108,7 @@ Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:fo
 <a id="core.verify_match" aria-hidden="true"></a>
 ## core.verify_match
 
-Verifies that a RegEx matches (or not matches) the specified files. Does not, transform anything, but will stop the workflow if it fails.
+Verifies that a RegEx matches (or not matches) the specified files. Does not transform anything, but will stop the workflow if it fails.
 
 `verifyMatch core.verify_match(regex, paths=glob(["**"]), verify_no_match=False)`
 
@@ -1210,6 +1211,38 @@ submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.
 include_branch_commit_logs|`boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message. This setting *only* affects merge commits.</p>
 
 
+<a id="git.integrate" aria-hidden="true"></a>
+## git.integrate
+
+Integrate changes from a url present in the migrated change label.
+
+`git_integrate git.integrate(label="COPYBARA_INTEGRATE_REVIEW", strategy="FAKE_MERGE_AND_INCLUDE_FILES", ignore_errors=True)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+label|`string`<br><p>The migration label that will contain the url to the change to integrate.</p>
+strategy|`string`<br><p>How to integrate the change:<br><ul> <li><b>'FAKE_MERGE'</b>: Add the url revision/reference as parent of the migration change but ignore all the files from the url. The commit message will be a standard merge one but will include the corresponding RevId label</li> <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any change to files that doesn't match destination_files will be included as part of the merge commit. So it will be a semi fake merge: Fake for destination_files but merge for non destination files.</li> <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it it doesn't create a merge but only include changes not matching destination_files</li></ul></p>
+ignore_errors|`boolean`<br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
+
+
+### Example:
+
+#### Integrate changes from a review url:
+
+Assuming we have a git.destination defined like this:
+
+```python
+git.destination(
+        url = "https://example.com/some_git_repo",
+        integrates = [git.integrate()],
+
+)
+```
+
+It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration. If the label is found, it will fetch the git url and add that change as an additional parent to the migration commit (merge). It will fake-merge any change from the url that matches destination_files but it will include changes not matching it.
+
 <a id="git.mirror" aria-hidden="true"></a>
 ## git.mirror
 
@@ -1243,7 +1276,10 @@ Defines a Git origin for Gerrit reviews.
 
 Implicit labels that can be used/exposed:
 
-  - GERRIT_CHANGE_NUMBER: The change number for the gerrit review.  - GERRIT_CHANGE_ID: The change id for the gerrit review.  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
+  - GERRIT_CHANGE_NUMBER: The change number for the gerrit review.
+  - GERRIT_CHANGE_ID: The change id for the gerrit review.
+  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
+
 
 `gitOrigin git.gerrit_origin(url, ref=None, submodules='NO')`
 

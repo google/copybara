@@ -497,8 +497,8 @@ public class MetadataModule {
 
   @SuppressWarnings("unused")
   @SkylarkSignature(name = "verify_match", returnType = Transformation.class,
-      doc = "Verifies that a RegEx matches (or not matches) the change message. Does not, " +
-          "transform anything, but will stop the workflow if it fails.",
+      doc = "Verifies that a RegEx matches (or not matches) the change message. Does not"
+          + " transform anything, but will stop the workflow if it fails.",
       parameters = {
           @Param(name = "self", type = MetadataModule.class, doc = "this object"),
           @Param(name = "regex", type = String.class,
