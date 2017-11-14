@@ -20,9 +20,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.base.Joiner;
-import com.google.common.truth.FailureStrategy;
+import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.Subject;
-import com.google.common.truth.SubjectFactory;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import java.util.ArrayDeque;
@@ -36,13 +35,8 @@ import javax.annotation.Nullable;
  */
 public class LogSubjects {
 
-  static final SubjectFactory<LogSubject, TestingConsole> CONSOLE_SUBJECT_FACTORY =
-      new SubjectFactory<LogSubject, TestingConsole>() {
-        @Override
-        public LogSubject getSubject(FailureStrategy failureStrategy, TestingConsole target) {
-          return new LogSubject(failureStrategy, target);
-        }
-      };
+  static final Subject.Factory<LogSubject, TestingConsole> CONSOLE_SUBJECT_FACTORY =
+      LogSubject::new;
 
   private LogSubjects() {}
 
@@ -50,8 +44,8 @@ public class LogSubjects {
 
     private final ArrayDeque<Message> messages;
 
-    LogSubject(FailureStrategy failureStrategy, TestingConsole target) {
-      super(failureStrategy, target);
+    LogSubject(FailureMetadata failureMetadata, TestingConsole target) {
+      super(failureMetadata, target);
       this.messages = new ArrayDeque<>(target.getMessages());
     }
 

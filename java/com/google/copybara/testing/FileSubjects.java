@@ -20,9 +20,8 @@ import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
-import com.google.common.truth.FailureStrategy;
+import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.Subject;
-import com.google.common.truth.SubjectFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
@@ -38,13 +37,8 @@ import java.util.Set;
  */
 public class FileSubjects {
 
-  private static final SubjectFactory<PathSubject, Path> PATH_SUBJECT_FACTORY =
-      new SubjectFactory<PathSubject, Path>() {
-        @Override
-        public PathSubject getSubject(FailureStrategy failureStrategy, Path target) {
-          return new PathSubject(failureStrategy, target);
-        }
-      };
+  private static final Subject.Factory<PathSubject, Path> PATH_SUBJECT_FACTORY =
+      PathSubject::new;
 
   private FileSubjects() {}
 
@@ -66,8 +60,8 @@ public class FileSubjects {
 
     private final Set<Path> whitelistedPaths = new HashSet<>();
 
-    PathSubject(FailureStrategy failureStrategy, Path target) {
-      super(failureStrategy, target);
+    PathSubject(FailureMetadata failureMetadata, Path target) {
+      super(failureMetadata, target);
     }
 
     /**

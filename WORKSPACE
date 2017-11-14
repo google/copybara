@@ -52,8 +52,8 @@ maven_jar(
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "truth",
-    artifact = "com.google.truth:truth:0.28",
-    sha1 = "0a388c7877c845ff4b8e19689dda5ac9d34622c4",
+    artifact = "com.google.truth:truth:0.36",
+    sha1 = "7485219d2c1d341097a19382c02bde07e69ff5d2",
 )
 
 # LICENSE: The Apache Software License, Version 2.0
