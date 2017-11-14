@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.ChangeMessage.parseMessage;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
@@ -566,12 +567,19 @@ public class GitDestinationTest {
     scratchRepo.simpleCommand("branch", "b1");
     scratchRepo.simpleCommand("branch", "b2");
 
-    branchChange(scratchTree, scratchRepo, "b2", "b2-1\n\n"
-        + DummyOrigin.LABEL_NAME + ": b2-origin");
     branchChange(scratchTree, scratchRepo, "b1", "b1-1\n\n"
         + DummyOrigin.LABEL_NAME + ": b1-origin");
+
+    // Wait a second so that the git log history is ordered.
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      fail("Interrupted while waiting: " + e.getMessage());
+    }
+    branchChange(scratchTree, scratchRepo, "b2", "b2-1\n\n"
+        + DummyOrigin.LABEL_NAME + ": b2-origin");
     branchChange(scratchTree, scratchRepo, "b1", "b1-2");
-    branchChange(scratchTree, scratchRepo, "b1", "b2-2");
+    branchChange(scratchTree, scratchRepo, "b2", "b2-2");
 
     scratchRepo.simpleCommand("checkout", "b1");
     scratchRepo.simpleCommand("merge", "b2");
