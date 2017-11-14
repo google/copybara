@@ -45,6 +45,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -228,8 +229,14 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         groupId, rawSourceRef);
   }
 
+  /**
+   * Return the config files relative to their roots. For example a config file like 'admin/foo/bar'
+   * with a root 'admin' would return 'foo/bar'.
+   */
   Set<String> configPaths() {
-    return allConfigFiles.get().keySet();
+    return allConfigFiles.get().values().stream()
+        .map(ConfigFile::relativeToRoot)
+        .collect(Collectors.toSet());
   }
 
   @Override

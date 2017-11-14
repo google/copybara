@@ -56,7 +56,7 @@ public class CapturingConfigFileTest {
     Path root = Paths.get("/foo/bar");
     CapturingConfigFile<Path> cfg = new CapturingConfigFile<>(
         new PathBasedConfigFile(root.resolve("baz"), root));
-    assertThat(cfg.relativeToRoot()).isEqualTo("baz");;
+    assertThat(cfg.relativeToRoot()).isEqualTo("baz");
   }
 
   @Test
