@@ -79,7 +79,8 @@ public final class SequenceTest {
     OptionsBuilder options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
-    sequence = new Sequence(options.general.profiler(), ImmutableList.of(t1, t2));
+    sequence = new Sequence(options.general.profiler(), /*joinTransformations*/true,
+                            ImmutableList.of(t1, t2));
   }
 
   /**

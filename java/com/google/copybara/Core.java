@@ -282,6 +282,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
 
       Sequence sequenceTransform = Sequence.fromConfig(self.generalOptions.profiler(),
+          self.workflowOptions.joinTransformations(),
           transformations, "transformations", env);
       Transformation reverseTransform = null;
       if (!self.generalOptions.isDisableReversibleCheck()
@@ -735,8 +736,10 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     public Transformation invoke(Core self,
         SkylarkList<Transformation> transformations,
         Object reversal, Boolean ignoreNoop, Environment env) throws EvalException {
-      Sequence forward = Sequence.fromConfig(self.generalOptions.profiler(), transformations,
-          "transformations", env);
+      Sequence forward = Sequence.fromConfig(self.generalOptions.profiler(),
+                                             self.workflowOptions.joinTransformations(),
+                                             transformations,
+                                             "transformations", env);
       SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
       if (reverseList == null) {
         try {
@@ -746,8 +749,9 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               + " Use 'reversal' field to explicitly configure the reversal of the transform", e);
         }
       }
-      Sequence reverse = Sequence.fromConfig(self.generalOptions.profiler(), reverseList,
-          "reversal", env);
+      Sequence reverse = Sequence.fromConfig(self.generalOptions.profiler(),
+                                             self.workflowOptions.joinTransformations(),
+                                             reverseList, "reversal", env);
       return new ExplicitReversal(forward, reverse, ignoreNoop,
           self.generalOptions.console());
     }

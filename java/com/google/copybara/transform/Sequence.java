@@ -31,6 +31,8 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkType;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,13 +42,15 @@ import java.util.logging.Logger;
 public class Sequence implements Transformation {
 
   private final Profiler profiler;
+  private final boolean joinTransformations;
   private final ImmutableList<Transformation> sequence;
 
   protected final Logger logger = Logger.getLogger(Sequence.class.getName());
 
   @VisibleForTesting
-  Sequence(Profiler profiler, ImmutableList<Transformation> sequence) {
+  Sequence(Profiler profiler, boolean joinTransformations, ImmutableList<Transformation> sequence) {
     this.profiler = Preconditions.checkNotNull(profiler);
+    this.joinTransformations = joinTransformations;
     this.sequence = Preconditions.checkNotNull(sequence);
   }
 
@@ -64,10 +68,13 @@ public class Sequence implements Transformation {
     // Force to create a new fresh copy of the tree state to leave the
     // old one untouched so that a upper level call would return a fs based implementation.
     TransformWork localWork = work.withUpdatedTreeState();
-    for (int i = 0; i < sequence.size(); i++) {
-      Transformation transformation = sequence.get(i);
+
+    List<Transformation> transformationList = getTransformations();
+
+    for (int i = 0; i < transformationList.size(); i++) {
+      Transformation transformation = transformationList.get(i);
       String transformMsg = String.format(
-          "[%2d/%d] Transform %s", i + 1, sequence.size(),
+          "[%2d/%d] Transform %s", i + 1, transformationList.size(),
           transformation.describe());
       logger.log(Level.INFO, transformMsg);
 
@@ -77,6 +84,28 @@ public class Sequence implements Transformation {
     }
     // Update parent work with potentially modified metadata.
     work.updateFrom(localWork);
+  }
+
+  private List<Transformation> getTransformations() {
+    if (!joinTransformations) {
+      return sequence;
+    }
+    List<Transformation> result = new ArrayList<>(sequence.size());
+    Transformation prev = null;
+    for (Transformation transformation : sequence) {
+      if (prev != null && prev.canJoin(transformation)) {
+        prev = prev.join(transformation);
+      } else {
+        if (prev != null) {
+          result.add(prev);
+        }
+        prev = transformation;
+      }
+    }
+    if (prev != null) {
+      result.add(prev);
+    }
+    return result;
   }
 
   private void runOneTransform(TransformWork work, Transformation transform)
@@ -92,7 +121,7 @@ public class Sequence implements Transformation {
     for (Transformation element : sequence) {
       list.add(element.reverse());
     }
-    return new Sequence(profiler, list.build().reverse());
+    return new Sequence(profiler, joinTransformations, list.build().reverse());
   }
 
   @VisibleForTesting
@@ -115,16 +144,20 @@ public class Sequence implements Transformation {
 
   /**
    * Create a sequence from a list of native and Skylark transforms.
+   *
+   * @param joinTransformations if compatible and consecutive transformations can be joined for
+   * efficiency
    * @param description a description of the argument being converted, such as its name
    * @param env skylark environment for user defined transformations
    */
-  public static Sequence fromConfig(Profiler profiler, SkylarkList<?> elements, String description, Environment env)
+  public static Sequence fromConfig(Profiler profiler, boolean joinTransformations,
+      SkylarkList<?> elements, String description, Environment env)
       throws EvalException {
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
     for (Object element : elements) {
       transformations.add(convertToTransformation(description, env, element));
     }
-    return new Sequence(profiler, transformations.build());
+    return new Sequence(profiler, joinTransformations, transformations.build());
   }
 
   private static Transformation convertToTransformation(String description, Environment env,

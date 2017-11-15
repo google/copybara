@@ -49,4 +49,13 @@ public interface Transformation {
    * {@link #toString()} method but something more user friendly.
    */
   String describe();
+
+  default boolean canJoin(Transformation transformation) {
+    return false;
+  }
+
+  default Transformation join(Transformation next) {
+    throw new IllegalStateException(String.format(
+        "Unexpected join call for %s and %s", this, next));
+  }
 }

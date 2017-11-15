@@ -103,6 +103,14 @@ public class WorkflowOptions implements Option {
           + " branch.")
   public boolean dryRunMode = false;
 
+  @Parameter(names = "--notransformation-join",
+      description = "By default Copybara tries to join certain transformations in one so that it"
+          + " is more efficient. This disables the feature.")
+  public boolean noTransformationJoin = false;
+
+  public boolean joinTransformations() {
+    return !noTransformationJoin;
+  }
 
   /**
    * Reports that some operation is a no-op. This will either throw an exception or report the
