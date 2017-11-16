@@ -303,7 +303,7 @@ public class MetadataModule {
               defaultValue = "'ORIGINAL_AUTHOR'"),
           @Param(name = "search_all_changes", type = Boolean.class,
               doc = "By default Copybara only looks in the last current change for the author"
-                  + " label. This allows to do the search in all current changes (Only makes sense"
+                  + " label. This allows to do the search in all current changes (Only makes sense "
                   + "for SQUASH/CHANGE_REQUEST).", defaultValue = "False"),
       }, objectType = MetadataModule.class, useLocation = true)
   static final BuiltinFunction RESTORE_ORIGINAL_AUTHOR = new BuiltinFunction("restore_author") {
