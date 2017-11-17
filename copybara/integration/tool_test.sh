@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+#
 # Copyright 2016 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-#!/usr/bin/env bash
 
 source third_party/bazel/bashunit/unittest.bash
 
@@ -55,7 +55,7 @@ function copybara() {
 function set_up() {
    # Avoid reusing the same directory for each tests so that we don't
    # share state between tests.
-   cd "$(mktemp -d)"
+   cd "$(mktemp -d)" || return
    # set XDG_CACHE_HOME so that we have a writeable place for our caches
    export XDG_CACHE_HOME="$(mktemp -d)"
    # An early check to avoid confusing test failures
@@ -93,7 +93,7 @@ function copybara_with_exit_code() {
 function check_copybara_rev_id() {
    local repo="$1"
    local origin_id="$2"
-   ( cd $repo
+   ( cd $repo || return
      run_git log master -1 > $TEST_log
      expect_log "GitOrigin-RevId: $origin_id"
    )
@@ -103,7 +103,7 @@ function test_git_tracking() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  pushd $remote
+  pushd $remote || return
   run_git init .
   echo "first version for food and foooooo" > test.txt
   mkdir subdir
@@ -111,7 +111,7 @@ function test_git_tracking() {
   run_git add test.txt subdir/test.txt
   run_git commit -m "first commit"
   first_commit=$(run_git rev-parse HEAD)
-  popd
+  popd || return
 
     cat > copy.bara.sky <<EOF
 core.workflow(
@@ -158,14 +158,14 @@ EOF
   check_copybara_rev_id "$destination" "$first_commit"
 
   # Do a new modification and check that we are tracking the changes to the branch
-  pushd $remote
+  pushd $remote || return
   echo "second version for food and foooooo" > test.txt
   echo "second version for food and fools" > subdir/test.txt
 
   run_git add test.txt
   run_git commit -m "second commit"
   second_commit=$(git rev-parse HEAD)
-  popd
+  popd || return
 
   copybara copy.bara.sky
 
@@ -174,7 +174,7 @@ EOF
 
   check_copybara_rev_id "$destination" "$second_commit"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git show master > $TEST_log
   )
 
@@ -188,7 +188,7 @@ function test_git_iterative() {
   workdir=$(temp_dir workdir)
   destination=$(empty_git_bare_repo)
 
-  pushd $remote
+  pushd $remote || return
   run_git init .
   commit_one=$(single_file_commit "commit one" file.txt "food fooooo content1")
   commit_two=$(single_file_commit "commit two" file.txt "food fooooo content2")
@@ -196,7 +196,7 @@ function test_git_iterative() {
   commit_four=$(single_file_commit "commit four" file.txt "food fooooo content4")
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
 
-  popd
+  popd || return
     cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
@@ -218,7 +218,7 @@ EOF
 
   check_copybara_rev_id "$destination" "$commit_three"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git log master~1..master > $TEST_log
   )
   expect_not_log "commit two"
@@ -228,12 +228,12 @@ EOF
 
   check_copybara_rev_id "$destination" "$commit_five"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git log master~2..master~1 > $TEST_log
   )
   expect_log "commit four"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git log master~1..master > $TEST_log
   )
   expect_log "commit five"
@@ -257,14 +257,14 @@ function test_get_git_changes() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  pushd $remote
+  pushd $remote || return
   run_git init .
   commit_one=$(single_file_commit "commit one" file.txt "food fooooo content1")
   commit_two=$(single_file_commit "commit two" file.txt "food fooooo content2")
   commit_three=$(single_file_commit "commit three" file.txt "food fooooo content3")
   commit_four=$(single_file_commit "commit four" file.txt "food fooooo content4")
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
-  popd
+  popd || return
 
     cat > copy.bara.sky <<EOF
 core.workflow(
@@ -307,7 +307,7 @@ EOF
   expect_log "3 - $commit_four commit four by Bara Kopi <bara@kopi.com>"
   expect_log "4 - $commit_five commit five by Bara Kopi <bara@kopi.com>"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git log master~1..master > $TEST_log
   )
   # By default we include the whole history if last_rev cannot be found. --squash-without-history
@@ -323,7 +323,7 @@ EOF
 
   check_copybara_rev_id "$destination" "$commit_four"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git log master~1..master > $TEST_log
   )
   # "commit one" should not be included because it was migrated before
@@ -337,7 +337,7 @@ EOF
 
   check_copybara_rev_id "$destination" "$commit_five"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git log master~1..master > $TEST_log
   )
   # We are forcing to use commit_three as the last migration. This has
@@ -353,14 +353,14 @@ function test_can_skip_excluded_commit() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  pushd $remote
+  pushd $remote || return
   run_git init .
   commit_master=$(single_file_commit "last rev commit" file2.txt "origin")
   commit_one=$(single_file_commit "commit one" file.txt "foooo")
   # Because we exclude file2.txt this is effectively an empty commit in the destination
   commit_two=$(single_file_commit "commit two" file2.txt "bar")
   commit_three=$(single_file_commit "commit three" file.txt "baaaz")
-  popd
+  popd || return
 
     cat > copy.bara.sky <<EOF
 core.workflow(
@@ -384,7 +384,7 @@ EOF
 
   check_copybara_rev_id "$destination" "$commit_three"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git log > $TEST_log
   )
   expect_log "commit one"
@@ -394,9 +394,9 @@ EOF
 
 function empty_git_bare_repo() {
   repo=$(temp_dir repo)
-  cd $repo
+  cd $repo || return
   run_git init . --bare > $TEST_log 2>&1 || fail "Cannot create repo"
-  run_git --work-tree=$(mktemp -d) commit --allow-empty -m "Empty repo" \
+  run_git --work-tree="$(mktemp -d)" commit --allow-empty -m "Empty repo" \
     > $TEST_log 2>&1 || fail "Cannot commit to empty repo"
   echo $repo
 }
@@ -405,7 +405,7 @@ function prepare_glob_tree() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  ( cd $remote
+  ( cd $remote || return
     run_git init .
     echo "foo" > test.txt
     echo "foo" > test.java
@@ -445,7 +445,7 @@ core.workflow(
 )
 EOF
   copybara copy.bara.sky --force
-  ( cd $(mktemp -d)
+  ( cd "$(mktemp -d)" || return
     run_git clone $destination .
     expect_in_file "foo" test.txt
     expect_in_file "bar" test.java
@@ -492,18 +492,18 @@ core.workflow(
 EOF
 
   # Create the SoT repo
-  pushd $(mktemp -d)
+  pushd "$(mktemp -d)" || return
   run_git clone $sot .
   commit_one=$(single_file_commit "commit one" one.txt "content")
   commit_two=$(single_file_commit "commit two" two.txt "content")
   commit_three=$(single_file_commit "commit three" three.txt "content")
   run_git push
-  popd
+  popd || return
 
   copybara copy.bara.sky export $commit_two
 
   # Check that we have exported correctly the tree state as in commit_two
-  pushd $(mktemp -d)
+  pushd "$(mktemp -d)" || return
   run_git clone $public .
   [[ -f one.txt ]] || fail "one.txt should exist in commit two"
   [[ -f two.txt ]] || fail "two.txt should exist in commit two"
@@ -512,19 +512,19 @@ EOF
   # Create a new change on top of the public version (commit_two)
   pr_request=$(single_file_commit "pull request" pr.txt "content")
   run_git push
-  popd
+  popd || return
 
   copybara copy.bara.sky import_change $pr_request
 
   # Check that the SoT contains the change from pr_request but that it has not reverted
   # commit_three (SoT was ahead of public).
-  pushd $(mktemp -d)
+  pushd "$(mktemp -d)" || return
   run_git clone $sot .
   [[ -f one.txt ]] || fail "one.txt should exist after pr import"
   [[ -f two.txt ]] || fail "two.txt should exist after pr import"
   [[ -f three.txt ]] || fail "three.txt should exist after pr import"
   [[ -f pr.txt ]] || fail "pr.txt should exist after pr import"
-  popd
+  popd || return
 }
 
 function test_git_delete() {
@@ -532,7 +532,7 @@ function test_git_delete() {
   destination=$(empty_git_bare_repo)
   destination=$(empty_git_bare_repo)
 
-  ( cd $remote
+  ( cd $remote || return
     run_git init .
     echo "first version for food and foooooo" > test.txt
     mkdir subdir
@@ -562,7 +562,7 @@ core.workflow(
 EOF
   copybara copy.bara.sky --force
 
-  ( cd $(mktemp -d)
+  ( cd "$(mktemp -d)" || return
     run_git clone $destination .
     [[ ! -f subdir/test.txt ]] || fail "/subdir/test.txt should be deleted"
     [[ ! -f subdir2/test.java ]] || fail "/subdir2/test.java should be deleted"
@@ -578,7 +578,7 @@ function test_reverse_sequence() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  ( cd $remote
+  ( cd $remote || return
     run_git init .
     echo "foobaz" > test.txt
     run_git add -A
@@ -622,14 +622,14 @@ core.workflow(
 EOF
   copybara copy.bara.sky forward --force
 
-  ( cd $(mktemp -d)
+  ( cd "$(mktemp -d)" || return
     run_git clone $destination .
     [[ -f test.txt ]] || fail "/test.txt should exit"
     expect_in_file "barbee" test.txt
   )
   copybara copy.bara.sky reverse --force
 
-  ( cd $(mktemp -d)
+  ( cd "$(mktemp -d)" || return
     run_git clone $remote .
     run_git checkout reverse
     [[ -f test.txt ]] || fail "/test.txt should exit"
@@ -640,7 +640,7 @@ EOF
 function test_local_dir_destination() {
   remote=$(temp_dir remote)
 
-  ( cd $remote
+  ( cd $remote || return
     run_git init .
     echo "first version for food and foooooo" > test.txt
     echo "first version" > test.txt
@@ -680,7 +680,7 @@ EOF
 function test_choose_non_default_workflow() {
   remote=$(temp_dir remote)
 
-  ( cd $remote
+  ( cd $remote || return
     run_git init .
     echo "foo" > test.txt
     run_git add test.txt
@@ -718,7 +718,7 @@ EOF
 function test_file_move() {
   remote=$(temp_dir remote)
 
-  ( cd $remote
+  ( cd $remote || return
     run_git init .
     echo "foo" > test1.txt
     echo "foo" > test2.txt
@@ -747,14 +747,14 @@ EOF
 
   expect_in_file "foo" destination/test1.moved
   expect_in_file "foo" destination/test2.moved
-  [[ ! -z destination/test1.txt ]] || fail "test1.txt should have been moved"
-  [[ ! -z destination/test2.txt ]] || fail "test2.txt should have been moved"
+  [[ ! -f destination/test1.txt ]] || fail "test1.txt should have been moved"
+  [[ ! -f destination/test2.txt ]] || fail "test2.txt should have been moved"
 }
 
 function test_profile() {
   remote=$(temp_dir remote)
 
-  ( cd $remote
+  ( cd $remote || return
     run_git init .
     echo "foo" > test.txt
     run_git add test.txt
@@ -844,13 +844,13 @@ function setup_reversible_check_workflow() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  pushd $remote
+  pushd $remote || return
   run_git init .
   echo "Is the reverse of the reverse forward?" > test.txt
   run_git add test.txt
   run_git commit -m "first commit"
   first_commit=$(run_git rev-parse HEAD)
-  popd
+  popd || return
 
     cat > copy.bara.sky <<EOF
 core.workflow(
@@ -903,7 +903,7 @@ function test_log_console_is_write_only() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  ( cd $remote
+  ( cd $remote || return
     run_git init .
     echo "first version for food and foooooo" > test.txt
     run_git add -A
@@ -933,11 +933,11 @@ EOF
 function run_multifile() {
   config_folder=$1
   shift
-  flags="$@"
+  flags="$*"
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  pushd $remote
+  pushd $remote || return
   run_git init .
   echo "first version for food and foooooo" > test.txt
   mkdir subdir
@@ -945,7 +945,7 @@ function run_multifile() {
   run_git add test.txt subdir/test.txt
   run_git commit -m "first commit"
   first_commit=$(run_git rev-parse HEAD)
-  popd
+  popd || return
   mkdir -p $config_folder/foo/bar/baz
   mkdir -p $config_folder/baz
   # Just in case:
@@ -973,7 +973,7 @@ core.workflow(
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
 )
 EOF
-  cd $config_folder
+  cd $config_folder || return
   copybara foo/bar/copy.bara.sky $flags --force
 
   [[ -f $workdir/checkout/test.txt ]] || fail "Checkout was not successful"
@@ -982,9 +982,9 @@ EOF
 # Test that we can find the root when config is in a git repo
 function test_multifile_git_root() {
   config_folder=$(temp_dir config)
-  pushd $config_folder
+  pushd $config_folder || return
   run_git init .
-  popd
+  popd || return
   run_multifile $config_folder
 }
 
@@ -1112,7 +1112,7 @@ EOF
 
 function test_apply_patch() {
   prepare_glob_tree
-  ( cd $remote
+  ( cd $remote || return
     echo "patched" > test.java
     echo "patched" > folder/test.java
     git --no-pager diff > $workdir/../diff1.patch
@@ -1145,7 +1145,7 @@ core.workflow(
 )
 EOF
   copybara copy.bara.sky --force
-  ( cd $(mktemp -d)
+  ( cd "$(mktemp -d)" || return
     run_git clone $destination .
     expect_in_file "patched" test.java
     expect_in_file "patched" folder/test.java
@@ -1157,13 +1157,13 @@ function test_description_migrator() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  pushd $remote
+  pushd $remote || return
     run_git init .
     commit_initial=$(single_file_commit "initial rev commit" file2.txt "initial")
     commit_master=$(single_file_commit "last rev commit" file23.txt "origin")
     commit_one=$(single_file_commit "c1 foooo origin/${commit_master} bar" file.txt "one")
 
-  popd
+  popd || return
 
     cat > copy.bara.sky <<EOF
 core.workflow(
@@ -1198,7 +1198,7 @@ EOF
 
   check_copybara_rev_id "$destination" "$commit_one"
 
-  ( cd $destination
+  ( cd $destination || return
     run_git log > $TEST_log
   )
   expect_log "c1 foooo destination/[a-f0-9]\{1,\} bar"
@@ -1208,10 +1208,10 @@ function test_invalid_last_rev() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
 
-  pushd $remote
+  pushd $remote || return
     run_git init .
     commit_initial=$(single_file_commit "initial rev commit" file2.txt "initial")
-  popd
+  popd || return
 
     cat > copy.bara.sky <<EOF
 core.workflow(
