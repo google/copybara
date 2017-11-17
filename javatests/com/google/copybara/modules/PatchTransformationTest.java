@@ -23,11 +23,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.ValidationException;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
+import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -90,6 +93,7 @@ public class PatchTransformationTest {
             "series", ("diff.patch\n").getBytes(UTF_8));
     patchFile = new MapConfigFile(configFiles , "diff.patch");
     seriesFile = new MapConfigFile(configFiles, "series");
+    options.setEnvironment(GitTestUtil.getGitEnv());
   }
 
   @Test
@@ -101,6 +105,19 @@ public class PatchTransformationTest {
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void insideGitFolderTest() throws Exception {
+    GitRepository.newRepo(/*verbose=*/false, checkoutDir, options.general.getEnvironment()).init();
+
+    Path foo = Files.createDirectories(checkoutDir.resolve("foo"));
+    Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+    PatchTransformation transform =
+        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, general, false);
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("Cannot use patch.apply because Copybara temporary directory");
+    transform.transform(TransformWorks.of(foo, "testmsg", console));
   }
 
   @Test

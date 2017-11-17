@@ -45,6 +45,7 @@ public final class GeneralOptions implements Option {
   public static final String NOANSI = "--noansi";
   public static final String FORCE = "--force";
   public static final String CONFIG_ROOT_FLAG = "--config-root";
+  public static final String OUTPUT_ROOT_FLAG = "--output-root";
 
   private final Map<String, String> environment;
   private final FileSystem fileSystem;
@@ -229,7 +230,7 @@ public final class GeneralOptions implements Option {
     boolean disableReversibleCheck = false;
 
     @Parameter(
-      names = "--output-root",
+      names = OUTPUT_ROOT_FLAG,
       description =
           "The root directory where to generate output files. If not set, ~/copybara/out is used "
               + "by default. Use with care, Copybara might remove files inside this root if "

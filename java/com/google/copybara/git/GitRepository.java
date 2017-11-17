@@ -46,6 +46,8 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
@@ -53,8 +55,6 @@ import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -185,6 +185,21 @@ public class GitRepository {
   public static GitRepository newBareRepo(Path gitDir, Map<String, String> environment,
       boolean verbose) {
     return new GitRepository(gitDir,/*workTree=*/null, verbose, environment);
+  }
+
+  public static Optional<String> revParse(Path cwd, Map<String, String> environment,
+      boolean verbose) throws RepoException {
+    try {
+      return Optional.of(executeGit(cwd, ImmutableList.of("rev-parse", "--git-dir")
+              , environment, verbose).getStdout().trim());
+    } catch (BadExitStatusWithOutputException e) {
+      if (e.getOutput().getStderr().contains("Not a git repository")) {
+        return Optional.empty();
+      }
+      throw new RepoException("Error executing rev-parse", e);
+    } catch (CommandException e) {
+      throw new RepoException("Error executing rev-parse", e);
+    }
   }
 
   /**
