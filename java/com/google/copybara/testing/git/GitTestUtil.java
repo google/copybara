@@ -31,7 +31,7 @@ import com.google.copybara.git.FetchResult;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.Refspec;
-import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
+import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,7 +49,7 @@ public final class GitTestUtil {
 
   private static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
-  public static final GithubMockHttpTransport NO_GITHUB_API_CALLS = new GithubMockHttpTransport() {
+  public static final GitApiMockHttpTransport NO_GITHUB_API_CALLS = new GitApiMockHttpTransport() {
     @Override
     protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
         throws IOException {

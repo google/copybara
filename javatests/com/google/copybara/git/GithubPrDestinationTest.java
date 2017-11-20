@@ -33,7 +33,7 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github_api.GithubApi;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
+import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
@@ -66,7 +66,7 @@ public class GithubPrDestinationTest {
   private Path workdir;
   private Path localHub;
   private String expectedProject = "foo";
-  private GithubMockHttpTransport githubMockHttpTransport;
+  private GitApiMockHttpTransport gitApiMockHttpTransport;
 
   @Before
   public void setup() throws Exception {
@@ -90,7 +90,7 @@ public class GithubPrDestinationTest {
 
       @Override
       protected HttpTransport getHttpTransport() {
-        return githubMockHttpTransport;
+        return gitApiMockHttpTransport;
       }
     };
     Path credentialsFile = Files.createTempFile("credentials", "test");
@@ -125,7 +125,7 @@ public class GithubPrDestinationTest {
 
   private void checkWrite(String groupId)
       throws ValidationException, RepoException, IOException {
-    githubMockHttpTransport = new GithubMockHttpTransport() {
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
 
       @Override
       protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
@@ -226,7 +226,7 @@ public class GithubPrDestinationTest {
 
   @Test
   public void testWriteNoMaster() throws ValidationException, IOException, RepoException {
-    githubMockHttpTransport = new GithubMockHttpTransport() {
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
 
       @Override
       protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
@@ -278,7 +278,7 @@ public class GithubPrDestinationTest {
   @Test
   public void testDestinationStatus() throws ValidationException, IOException, RepoException {
     options.githubDestination.createPullRequest = false;
-    githubMockHttpTransport = GitTestUtil.NO_GITHUB_API_CALLS;
+    gitApiMockHttpTransport = GitTestUtil.NO_GITHUB_API_CALLS;
     GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");

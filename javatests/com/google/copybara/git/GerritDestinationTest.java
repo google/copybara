@@ -21,6 +21,7 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -32,12 +33,15 @@ import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.GerritDestination.GerritProcessPushOutput;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.LogConsole;
@@ -88,6 +92,8 @@ public class GerritDestinationTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+  private Path urlMapper;
+  private GitApiMockHttpTransport gitApiMockHttpTransport;
 
   @Before
   public void setup() throws Exception {
@@ -99,7 +105,15 @@ public class GerritDestinationTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-
+    urlMapper = Files.createTempDirectory("url_mapper");
+    options.git = new TestGitOptions(urlMapper, () -> options.general);
+    options.gerrit = new GerritOptions(() -> options.general, options.git) {
+      @Override
+      protected GerritApiTransportImpl getGerritApiTransport(String url) throws RepoException {
+        return new GerritApiTransportImpl(repo(), url, gitApiMockHttpTransport);
+      }
+    };
+    options.gitDestination = new GitDestinationOptions(() -> options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     excludedDestinationPaths = ImmutableList.of();
@@ -127,8 +141,8 @@ public class GerritDestinationTest {
         + ")");
   }
 
-  private String lastCommitChangeIdLine(String ref) throws Exception {
-    GitLogEntry log = Iterables.getOnlyElement(repo().log("refs/for/master").withLimit(1).run());
+  private static String lastCommitChangeIdLine(String ref, GitRepository repo) throws Exception {
+    GitLogEntry log = Iterables.getOnlyElement(repo.log("refs/for/master").withLimit(1).run());
     assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + ref + "\n");
     for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
       if (label.isLabel(GerritDestination.CHANGE_ID_LABEL)) {
@@ -146,7 +160,7 @@ public class GerritDestinationTest {
         .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
             /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
         .write(
-            TransformResults.of(workdir, originRef),
+            TransformResults.of(workdir, originRef).withIdentity(originRef.asString()),
             console);
     assertThat(result).isEqualTo(WriterResult.OK);
   }
@@ -160,7 +174,7 @@ public class GerritDestinationTest {
     options.setForce(true);
     process(new DummyRevision("origin_ref"));
 
-    String firstChangeIdLine = lastCommitChangeIdLine("origin_ref");
+    String firstChangeIdLine = lastCommitChangeIdLine("origin_ref", repo());
 
     Files.write(workdir.resolve("file2"), "some more content".getBytes());
     git("branch", "master", "refs/for/master");
@@ -168,7 +182,7 @@ public class GerritDestinationTest {
     process(new DummyRevision("origin_ref2"));
 
     assertThat(firstChangeIdLine)
-        .isNotEqualTo(lastCommitChangeIdLine("origin_ref2"));
+        .isNotEqualTo(lastCommitChangeIdLine("origin_ref2", repo()));
   }
 
   @Test
@@ -181,7 +195,7 @@ public class GerritDestinationTest {
     options.setForce(true);
     options.gerrit.gerritChangeId = changeId;
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref"))
+    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + changeId);
 
     git("branch", "master", "refs/for/master");
@@ -192,8 +206,69 @@ public class GerritDestinationTest {
     options.setForce(false);
     options.gerrit.gerritChangeId = changeId;
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref"))
+    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + changeId);
+  }
+
+  @Test
+  public void reuseChangeId() throws Exception {
+    fetch = "master";
+
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+
+    options.setForce(true);
+    options.gerrit.newGerritApi = true;
+    options.gerrit.gerritChangeId = null;
+
+    url = "https://localhost:33333";
+    GitRepository repo = localGerritRepo("localhost:33333");
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+          throws IOException {
+        // No changes found
+        return "[]".getBytes();
+      }
+    };
+
+    process(new DummyRevision("origin_ref"));
+    String changeId = lastCommitChangeIdLine("origin_ref", repo);
+    assertThat(changeId).matches(GerritDestination.CHANGE_ID_LABEL + ": I[a-z0-9]+");
+    LabelFinder labelFinder = new LabelFinder(changeId);
+
+    Files.write(workdir.resolve("file"), "some different content".getBytes());
+
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+          throws IOException {
+        String expected = "https://localhost:33333/changes/q=change:%20" + labelFinder.getValue();
+        if (method.equals("GET") && url.equals(expected)) {
+          String result = "["
+              + "{"
+              + "  change_id : \"" + labelFinder.getValue() + "\","
+              + "  status : \"NEW\""
+              + "}]";
+          System.err.println(result);
+          return result
+              .getBytes(UTF_8);
+        }
+        throw new IllegalArgumentException(method + " " + url);
+      }
+    };
+    // Allow to push again in a non-fastforward way.
+    repo.simpleCommand("update-ref", "-d", "refs/for/master");
+    process(new DummyRevision("origin_ref"));
+    assertThat(lastCommitChangeIdLine("origin_ref", repo)).isEqualTo(changeId);
+    GitTesting.assertThatCheckout(repo, "refs/for/master")
+        .containsFile("file", "some different content")
+        .containsNoMoreFiles();
+  }
+
+  public GitRepository localGerritRepo(String url) throws RepoException {
+    return GitRepository
+        .newBareRepo(urlMapper.resolve(url), getGitEnv(), options.general.isVerbose())
+        .init();
   }
 
   @Test
@@ -210,7 +285,7 @@ public class GerritDestinationTest {
         .putInt(0)
         .hash();
     options.gerrit =
-        new GerritOptions() {
+        new GerritOptions(() -> options.general, options.git) {
           @Override
           protected GerritChangeFinder newChangeFinder() {
             return new GerritChangeFinder() {
@@ -228,7 +303,7 @@ public class GerritDestinationTest {
           }
         };
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref"))
+    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + expectedChangeId);
   }
 
@@ -246,7 +321,7 @@ public class GerritDestinationTest {
         .putInt(0)
         .hash();
     options.gerrit =
-        new GerritOptions() {
+        new GerritOptions(() -> options.general, options.git) {
           @Override
           protected GerritChangeFinder newChangeFinder() {
             return new GerritChangeFinder() {
@@ -264,8 +339,9 @@ public class GerritDestinationTest {
           }
         };
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref")).contains(GerritDestination.CHANGE_ID_LABEL);
-    assertThat(lastCommitChangeIdLine("origin_ref"))
+    assertThat(lastCommitChangeIdLine("origin_ref", repo())).contains(
+        GerritDestination.CHANGE_ID_LABEL);
+    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isNotEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + expectedChangeId);
   }
 
@@ -287,7 +363,7 @@ public class GerritDestinationTest {
         .putInt(1)
         .hash();
     options.gerrit =
-        new GerritOptions() {
+        new GerritOptions(() -> options.general, options.git) {
           @Override
           protected GerritChangeFinder newChangeFinder() {
             return new GerritChangeFinder() {
@@ -306,7 +382,7 @@ public class GerritDestinationTest {
           }
         };
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref"))
+    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + secondChangeId);
   }
 
@@ -328,7 +404,7 @@ public class GerritDestinationTest {
         .putInt(1)
         .hash();
     options.gerrit =
-        new GerritOptions() {
+        new GerritOptions(() -> options.general, options.git) {
           @Override
           protected GerritChangeFinder newChangeFinder() {
             return new GerritChangeFinder() {

@@ -84,7 +84,7 @@ public class OptionsBuilder {
   };
   public GithubDestinationOptions githubDestination = new GithubDestinationOptions();
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions(() -> general, git);
-  public GerritOptions gerrit = new GerritOptions();
+  public GerritOptions gerrit = new GerritOptions(() -> general, git);
   public WorkflowOptions workflowOptions =
       new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null,
           /*checkLastRevState=*/false);
@@ -180,7 +180,10 @@ public class OptionsBuilder {
     return ImmutableMap.copyOf(updatedEnvironment);
   }
 
-  public abstract static class GithubMockHttpTransport extends MockHttpTransport {
+  /**
+   * An utility class to mock http responses for Git code review tools (GitHub and Gerrit).
+   */
+  public abstract static class GitApiMockHttpTransport extends MockHttpTransport {
 
     @Override
     public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {

@@ -46,7 +46,7 @@ import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.git.github_api.GithubApi;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.OptionsBuilder.GithubMockHttpTransport;
+import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
@@ -81,7 +81,7 @@ public class GithubPrOriginTest {
   public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private Path localHub;
-  private GithubMockHttpTransport githubMockHttpTransport;
+  private GitApiMockHttpTransport gitApiMockHttpTransport;
   private String expectedProject = "google/example";
 
   @Before
@@ -120,7 +120,7 @@ public class GithubPrOriginTest {
 
       @Override
       protected HttpTransport getHttpTransport() {
-        return githubMockHttpTransport;
+        return gitApiMockHttpTransport;
       }
     };
     Path credentialsFile = Files.createTempFile("credentials", "test");
@@ -254,7 +254,7 @@ public class GithubPrOriginTest {
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
-    githubMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
 
     GithubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
@@ -298,7 +298,7 @@ public class GithubPrOriginTest {
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
-    githubMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
 
     GithubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
@@ -381,7 +381,7 @@ public class GithubPrOriginTest {
     remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), remote.parseRef("foo"));
     remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("master"));
 
-    githubMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
 
     GithubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
@@ -414,7 +414,7 @@ public class GithubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
 
-    githubMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
 
     // Now try with merge ref
     GithubPROrigin origin = githubPrOrigin(
@@ -435,7 +435,7 @@ public class GithubPrOriginTest {
     String sha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GithubUtil.asHeadRef(prNumber), sha1);
 
-    githubMockHttpTransport = new MockPullRequest(prNumber, presentLabels);
+    gitApiMockHttpTransport = new MockPullRequest(prNumber, presentLabels);
 
     GitRevision rev = origin.resolve(reference);
     assertThat(rev.asString()).hasLength(40);
@@ -471,7 +471,7 @@ public class GithubPrOriginTest {
         + "    " + Joiner.on(",\n    ").join(lines) + ",\n)");
   }
 
-  private static class MockPullRequest extends GithubMockHttpTransport {
+  private static class MockPullRequest extends GitApiMockHttpTransport {
 
     private final int prNumber;
     private final ImmutableList<String> presentLabels;

@@ -37,6 +37,10 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.git.GerritChangeFinder.GerritChange;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
+import com.google.copybara.git.gerritapi.ChangeInfo;
+import com.google.copybara.git.gerritapi.ChangeStatus;
+import com.google.copybara.git.gerritapi.ChangesQuery;
+import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
@@ -93,6 +97,11 @@ public final class GerritDestination implements Destination<GitRevision> {
         return createMessageInfo(result, /*newPush=*/false, gerritOptions.gerritChangeId);
       }
 
+      // TODO(malcon): Inline and remove the rest of the method
+      if (gerritOptions.newGerritApi) {
+        return newGerritApiFinder(gerritOptions.newGerritApi(repoUrl), result);
+      }
+
       String workflowId = result.getChangeIdentity();
       GerritChangeFinder changeFinder = gerritOptions.getChangeFinder().get();
       if (changeFinder == null || gerritOptions.newChange) {
@@ -112,6 +121,28 @@ public final class GerritDestination implements Destination<GitRevision> {
         }
         if (change.get().getStatus().equals("NEW")) {
           return createMessageInfo(result, /*newPush=*/false, change.get().getChangeId());
+        }
+        attempt++;
+      }
+      throw new RepoException(
+          String.format("Unable to find unmerged change for '%s', committer '%s'.",
+                        workflowId, committer));
+    }
+
+    private MessageInfo newGerritApiFinder(GerritApi gerritApi,
+        TransformResult result) throws RepoException, ValidationException {
+      String workflowId = result.getChangeIdentity();
+
+      int attempt = 0;
+      while (attempt <= MAX_FIND_ATTEMPTS) {
+        String changeId = computeChangeId(workflowId, committer.getEmail(), attempt);
+        console.progressFmt("Querying Gerrit ('%s') for change '%s'", repoUrl, changeId);
+        List<ChangeInfo> changes = gerritApi.getChanges(new ChangesQuery("change: " + changeId));
+        if (changes.isEmpty()) {
+          return createMessageInfo(result, /*newPush=*/true, changeId);
+        }
+        if (changes.get(0).getStatus().equals(ChangeStatus.NEW)) {
+          return createMessageInfo(result, /*newPush=*/false, changes.get(0).getChangeId());
         }
         attempt++;
       }

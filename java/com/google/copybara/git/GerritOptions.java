@@ -20,9 +20,14 @@ import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.base.Strings;
 import com.google.common.base.Suppliers;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
+import com.google.copybara.RepoException;
+import com.google.copybara.git.gerritapi.GerritApi;
+import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -32,6 +37,13 @@ import javax.annotation.Nullable;
 public class GerritOptions implements Option {
 
   private static final Pattern CHANGE_ID_PATTERN = Pattern.compile("I[0-9a-f]{40}");
+  protected final Supplier<GeneralOptions> generalOptionsSupplier;
+  protected GitOptions gitOptions;
+
+  public GerritOptions(Supplier<GeneralOptions> generalOptionsSupplier, GitOptions gitOptions) {
+    this.generalOptionsSupplier = generalOptionsSupplier;
+    this.gitOptions = gitOptions;
+  }
 
   /** Validate that the argument is a valid Gerrit Change-id */
   public static final class ChangeIdValidator implements IParameterValidator {
@@ -56,6 +68,11 @@ public class GerritOptions implements Option {
       description = "Create a new change instead of trying to reuse an existing one.")
   protected boolean newChange = false;
 
+  // TODO(malcon): Remove this
+  @Parameter(names = "--gerrit-use-new-api", description = "Use the new Gerrit API code",
+      hidden = true)
+  protected boolean newGerritApi = false;
+
   @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
   protected String gerritTopic = "";
 
@@ -71,9 +88,24 @@ public class GerritOptions implements Option {
     return Suppliers.memoize(this::newChangeFinder);
   }
 
-  /** Override this method in a class for a specific Gerrit implementation. */
+  /**
+   * TODO(malcon): Remove this
+   */
   @Nullable
+  @Deprecated
   protected GerritChangeFinder newChangeFinder() {
     return null;
+  }
+
+  /**
+   * Override this method in a class for a specific Gerrit implementation.
+   */
+  protected final GerritApi newGerritApi(String url) throws RepoException {
+    return new GerritApi(getGerritApiTransport(url), generalOptionsSupplier.get().profiler());
+  }
+
+  protected GerritApiTransportImpl getGerritApiTransport(String url) throws RepoException {
+    GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
+    return new GerritApiTransportImpl(repo, url, new NetHttpTransport());
   }
 }
