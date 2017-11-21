@@ -91,7 +91,7 @@ public final class VerifyMatchTest {
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("1 file(s) failed the validation of Verify match 'foo'.");
       console.assertThat().onceInLog(MessageType.ERROR,
-          "File '/file1.txt' failed validation 'Verify match 'foo''.");
+          "File 'file1.txt' failed validation 'Verify match 'foo''.");
     }
   }
 
@@ -108,7 +108,7 @@ public final class VerifyMatchTest {
       fail();
     } catch (ValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
-          "File '/file1.txt' failed validation 'Verify match 'foo''.");
+          "File 'file1.txt' failed validation 'Verify match 'foo''.");
     }
   }
 
@@ -135,9 +135,9 @@ public final class VerifyMatchTest {
       fail();
     } catch (ValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
-          "File '/file1.txt' failed validation 'Verify match 'foo''.");
+          "File 'file1.txt' failed validation 'Verify match 'foo''.");
       console.assertThat().onceInLog(MessageType.ERROR,
-          "File '/folder/file1.txt' failed validation 'Verify match 'foo''.");
+          "File 'folder/file1.txt' failed validation 'Verify match 'foo''.");
     }
   }
 

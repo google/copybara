@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.copybara.LocalParallelizer;
+import com.google.copybara.LocalParallelizer.TransformFunc;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
@@ -72,7 +73,8 @@ public final class VerifyMatch implements Transformation {
     Iterable<FileState> files = work.getTreeState().find(
         fileMatcherBuilder.relativeTo(checkoutDir));
 
-    Iterable<String> errors = Iterables.concat(parallelizer.run(files, this::runForFiles));
+    Iterable<String> errors = Iterables.concat(parallelizer.run(files,
+        new BatchRun(work.getCheckoutDir())));
 
     int size = 0;
     for (String error : errors) {
@@ -87,15 +89,26 @@ public final class VerifyMatch implements Transformation {
         "%d file(s) failed the validation of %s.", size, describe());
   }
 
-  private List<String> runForFiles(Iterable<FileState> files) throws IOException {
-    List<String> errors = new ArrayList<>();
-    for (FileState file : files) {
-      String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
-      if (verifyNoMatch == pattern.matcher(originalFileContent).find()) {
-        errors.add(file.getPath().toString());
-      }
+  private class BatchRun implements TransformFunc<FileState, List<String>> {
+
+    private Path checkoutDir;
+
+    private BatchRun(Path checkoutDir) {
+      this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     }
-    return errors;
+
+    @Override
+    public List<String> run(Iterable<FileState> files)
+        throws IOException, ValidationException {
+      List<String> errors = new ArrayList<>();
+      for (FileState file : files) {
+        String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
+        if (verifyNoMatch == pattern.matcher(originalFileContent).find()) {
+          errors.add(checkoutDir.relativize(file.getPath()).toString());
+        }
+      }
+      return errors;
+    }
   }
 
   @Override
