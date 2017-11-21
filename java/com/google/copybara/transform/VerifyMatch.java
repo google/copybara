@@ -92,7 +92,7 @@ public final class VerifyMatch implements Transformation {
     for (FileState file : files) {
       String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
       if (verifyNoMatch == pattern.matcher(originalFileContent).find()) {
-        errors.add(file.toString());
+        errors.add(file.getPath().toString());
       }
     }
     return errors;
