@@ -221,9 +221,8 @@ public enum WorkflowMode {
         }
       }
 
-      Changes computedChanges = new Changes(changes, ImmutableList.of());
       runHelper
-          .forChanges(computedChanges.getCurrent())
+          .forChanges(changes)
           .migrate(
               runHelper.getResolvedRef(),
               runHelper.getConsole(),
@@ -231,7 +230,8 @@ public enum WorkflowMode {
               // can always use metadata.squash_notes or similar.
               new Metadata(Iterables.getLast(changes).getMessage(),
                   Iterables.getLast(changes).getAuthor()),
-              computedChanges,
+              // Squash notes an Skylark API expect last commit to be the first one.
+              new Changes(changes.reverse(), ImmutableList.of()),
               baseline.get().getBaseline(),
               runHelper.getWorkflowIdentity(runHelper.getResolvedRef()));
     }
