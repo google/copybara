@@ -30,6 +30,8 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.transform.ExplicitReversal;
+import com.google.copybara.transform.IntentionalNoop;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
@@ -46,6 +48,7 @@ public class MapAuthor implements Transformation {
   private final ImmutableMap<String, Author> mailToAuthor;
   private final ImmutableMap<String, Author> nameToAuthor;
   private final boolean reversible;
+  private boolean noopReverse;
   private final boolean failIfNotFound;
   private final boolean failIfNotFoundInReverse;
   private boolean mapAll;
@@ -53,22 +56,22 @@ public class MapAuthor implements Transformation {
 
   private MapAuthor(Location location, ImmutableMap<String, String> authorToAuthor,
       ImmutableMap<String, Author> mailToAuthor, ImmutableMap<String, Author> nameToAuthor,
-      boolean reversible, boolean failIfNotFound, boolean failIfNotFoundInReverse,
-      boolean mapAll) {
+      boolean reversible, boolean noopReverse, boolean failIfNotFound,
+      boolean failIfNotFoundInReverse, boolean mapAll) {
     this.location = Preconditions.checkNotNull(location);
     this.authorToAuthor = Preconditions.checkNotNull(authorToAuthor);
     this.mailToAuthor = Preconditions.checkNotNull(mailToAuthor);
     this.nameToAuthor = Preconditions.checkNotNull(nameToAuthor);
     this.reversible = reversible;
+    this.noopReverse = noopReverse;
     this.failIfNotFound = failIfNotFound;
     this.failIfNotFoundInReverse = failIfNotFoundInReverse;
     this.mapAll = mapAll;
   }
 
   public static MapAuthor create(Location location, Map<String, String> authorMap,
-      boolean reversible, boolean failIfNotFound, boolean failIfNotFoundInReverse,
-      boolean mapAll)
-      throws EvalException {
+      boolean reversible, boolean noopReverse, boolean failIfNotFound,
+      boolean failIfNotFoundInReverse, boolean mapAll) throws EvalException {
     ImmutableMap.Builder<String, String> authorToAuthor = ImmutableMap.builder();
     ImmutableMap.Builder<String, Author> mailToAuthor = ImmutableMap.builder();
     ImmutableMap.Builder<String, Author> nameToAuthor = ImmutableMap.builder();
@@ -87,7 +90,8 @@ public class MapAuthor implements Transformation {
       }
     }
     return new MapAuthor(location, authorToAuthor.build(), mailToAuthor.build(),
-        nameToAuthor.build(), reversible, failIfNotFound, failIfNotFoundInReverse, mapAll);
+        nameToAuthor.build(), reversible, noopReverse, failIfNotFound, failIfNotFoundInReverse,
+        mapAll);
   }
 
   @Override
@@ -124,6 +128,9 @@ public class MapAuthor implements Transformation {
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
+    if (noopReverse) {
+      return new ExplicitReversal(IntentionalNoop.INSTANCE, this);
+    }
     if (!reversible) {
       throw new NonReversibleValidationException(location,
           "Author mapping doesn't have reversible enabled");
@@ -141,7 +148,8 @@ public class MapAuthor implements Transformation {
       ImmutableMap<String, String> reverse = ImmutableBiMap.<String, String>builder()
           .putAll(authorToAuthor).build().inverse();
       return new MapAuthor(location, reverse, ImmutableMap.of(),
-          ImmutableMap.of(), reversible, failIfNotFoundInReverse, failIfNotFound, mapAll);
+          ImmutableMap.of(), reversible, noopReverse, failIfNotFoundInReverse, failIfNotFound,
+          mapAll);
     } catch (IllegalArgumentException e) {
       throw new NonReversibleValidationException(location, "non-reversible author map:"
           + e.getMessage());

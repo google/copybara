@@ -36,6 +36,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 
 /**
  * Metadata module for manipulating metadata of the changes. This is intended to be used by the
@@ -189,6 +190,11 @@ public class MetadataModule {
               doc = "If the transform is automatically reversible. Workflows using the reverse of"
                   + " this transform will be able to automatically map values to keys.",
               defaultValue = "False", positional = false),
+          @Param(name = "noop_reverse", type = Boolean.class,
+              doc = "If true, the reversal of the transformation doesn't do anything. This is"
+                  + " useful to avoid having to write "
+                  + "`core.transformation(metadata.map_author(...), reversal = [])`.",
+              defaultValue = "False", positional = false),
           @Param(name = "fail_if_not_found", type = Boolean.class,
               doc = "Fail if a mapping cannot be found. Helps discovering early authors that should"
                   + " be in the map",
@@ -207,13 +213,16 @@ public class MetadataModule {
       code = MAP_AUTHOR_EXAMPLE_SIMPLE)
   static final BuiltinFunction MAP_AUTHOR = new BuiltinFunction("map_author") {
     public Transformation invoke(MetadataModule self, SkylarkDict<String, String> authors,
-        Boolean reversible, Boolean failIfNotFound, Boolean reverseFailIfNotFound, Boolean mapAll,
-        Location location) throws EvalException {
+        Boolean reversible, Boolean noopReverse, Boolean failIfNotFound,
+        Boolean reverseFailIfNotFound, Boolean mapAll, Location location) throws EvalException {
       SkylarkUtil.check(location, reversible || !reverseFailIfNotFound,
           "'reverse_fail_if_not_found' can only be true if 'reversible' is true");
 
+      SkylarkUtil.check(location, !noopReverse || !reverseFailIfNotFound,
+          "'reverse_fail_if_not_found' can only be true if 'noop_reverse' is not set");
+
       return MapAuthor.create(location, Type.STRING_DICT.convert(authors, "authors"),
-          reversible, failIfNotFound, reverseFailIfNotFound, mapAll);
+          reversible, noopReverse, failIfNotFound, reverseFailIfNotFound, mapAll);
     }
   };
 

@@ -741,6 +741,21 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testMapAuthor_noop_reversal() throws Exception {
+    Transformation m = skylarkExecutor.eval("m", "m = "
+        + "metadata.map_author({\n"
+        + "    'a' : 'b <b@example.com>',\n"
+        + "},"
+        + "noop_reverse = True)");
+    TransformWork work = TransformWorks.of(workdir, "test", testingConsole);
+    work.setAuthor(new Author("a", "foo@foo"));
+    m.transform(work);
+    assertThat(work.getAuthor().getEmail()).isEqualTo("b@example.com");
+    m.reverse().transform(work);
+    assertThat(work.getAuthor().getEmail()).isEqualTo("b@example.com");
+  }
+
+  @Test
   public void testMapAuthor_reverseFaiIfNotFound() throws Exception {
     Transformation m = skylarkExecutor.eval("m", "m = "
         + "metadata.map_author({\n"
