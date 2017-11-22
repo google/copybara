@@ -98,12 +98,14 @@ public class TodoReplace implements Transformation {
 
   private Set<FileState> run(Iterable<FileState> files) throws IOException, ValidationException {
     Set<FileState> modifiedFiles = new HashSet<>();
+    // TODO(malcon): Remove reconstructing pattern once RE2J doesn't synchronize on matching.
+    Pattern batchPattern = Pattern.compile(pattern.pattern(), pattern.flags());
     for (FileState file : files) {
       if (Files.isSymbolicLink(file.getPath())) {
         continue;
       }
       String content = new String(Files.readAllBytes(file.getPath()), UTF_8);
-      Matcher matcher = pattern.matcher(content);
+      Matcher matcher = batchPattern.matcher(content);
       StringBuffer sb = new StringBuffer();
       boolean modified = false;
       while (matcher.find()) {

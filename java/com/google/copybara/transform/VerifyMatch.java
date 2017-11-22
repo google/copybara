@@ -73,14 +73,14 @@ public final class VerifyMatch implements Transformation {
     Iterable<FileState> files = work.getTreeState().find(
         fileMatcherBuilder.relativeTo(checkoutDir));
 
-    Iterable<String> errors = Iterables.concat(parallelizer.run(files,
-        new BatchRun(work.getCheckoutDir())));
+    Iterable<String> errors = Iterables.concat(
+        parallelizer.run(files, new BatchRun(work.getCheckoutDir())));
 
     int size = 0;
     for (String error : errors) {
       size++;
       work.getConsole().error(String.format("File '%s' failed validation '%s'.", error,
-          describe()));
+                                            describe()));
     }
     work.getTreeState().notifyNoChange();
 
@@ -101,9 +101,11 @@ public final class VerifyMatch implements Transformation {
     public List<String> run(Iterable<FileState> files)
         throws IOException, ValidationException {
       List<String> errors = new ArrayList<>();
+      // TODO(malcon): Remove reconstructing pattern once RE2J doesn't synchronize on matching.
+      Pattern batchPattern = Pattern.compile(pattern.pattern(), pattern.flags());
       for (FileState file : files) {
         String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
-        if (verifyNoMatch == pattern.matcher(originalFileContent).find()) {
+        if (verifyNoMatch == batchPattern.matcher(originalFileContent).find()) {
           errors.add(checkoutDir.relativize(file.getPath()).toString());
         }
       }

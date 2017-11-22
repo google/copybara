@@ -92,17 +92,21 @@ public final class TemplateTokens {
 
   public Replacer replacer(
       TemplateTokens after, boolean firstOnly, boolean multiline, List<Pattern> patternsToIgnore) {
-    return new Replacer(after, null, firstOnly, multiline, patternsToIgnore);
+    // TODO(malcon): Remove reconstructing pattern once RE2J doesn't synchronize on matching.
+    return new Replacer(Pattern.compile(before.pattern(), before.flags()), after, null, firstOnly,
+                        multiline, patternsToIgnore);
   }
 
   public Replacer callbackReplacer(
       TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline,
       @Nullable List<Pattern> patternsToIgnore) {
-    return new Replacer(after, callback, firstOnly, multiline, patternsToIgnore);
+    return new Replacer(Pattern.compile(before.pattern()), after, callback, firstOnly, multiline,
+                        patternsToIgnore);
   }
 
   public class Replacer {
 
+    private final Pattern before;
     private final TemplateTokens after;
     private final boolean firstOnly;
     private final boolean multiline;
@@ -116,9 +120,10 @@ public final class TemplateTokens {
     private final AlterAfterTemplate callback;
 
 
-    private Replacer(
-        TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline,
+    private Replacer(Pattern before, TemplateTokens after, AlterAfterTemplate callback,
+        boolean firstOnly, boolean multiline,
         @Nullable List<Pattern> patternsToIgnore) {
+      this.before = before;
       this.after = after;
       afterReplaceTemplate = this.after.after(TemplateTokens.this);
       // Precomputed the repeated groups as this should be used only on rare occasions and we

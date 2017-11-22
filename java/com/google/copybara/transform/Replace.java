@@ -116,8 +116,8 @@ public final class Replace implements Transformation {
 
     Iterable<FileState> files = work.getTreeState().find(
         fileMatcherBuilder.relativeTo(checkoutDir));
-    Replacer replacer = before.replacer(after, firstOnly, multiline, patternsToIgnore);
-    BatchReplace batchReplace = new BatchReplace(replacer);
+    BatchReplace batchReplace = new BatchReplace(
+        before, after, firstOnly, multiline, patternsToIgnore);
     workflowOptions.parallelizer().run(files, batchReplace);
     List<FileState> changed = batchReplace.getChanged();
     boolean matchedFile = batchReplace.isMatchedFile();
@@ -201,12 +201,23 @@ public final class Replace implements Transformation {
   private final static class BatchReplace
       implements LocalParallelizer.TransformFunc<FileState, Boolean> {
 
-    private final Replacer replacer;
+
+    private final TemplateTokens before;
+    private final TemplateTokens after;
+    private final boolean firstOnly;
+    private final boolean multiline;
+    private final ImmutableList<Pattern> patternsToIgnore;
+
     private final List<FileState> changed = new ArrayList<>();
     private boolean matchedFile = false;
 
-    BatchReplace(Replacer replacer) {
-      this.replacer = replacer;
+    BatchReplace(TemplateTokens before, TemplateTokens after, boolean firstOnly,
+        boolean multiline, ImmutableList<Pattern> patternsToIgnore) {
+      this.before = before;
+      this.after = after;
+      this.firstOnly = firstOnly;
+      this.multiline = multiline;
+      this.patternsToIgnore = patternsToIgnore;
     }
 
     public List<FileState> getChanged() {
@@ -219,6 +230,7 @@ public final class Replace implements Transformation {
 
     @Override
     public Boolean run(Iterable<FileState> elements) throws IOException, ValidationException {
+      Replacer replacer = before.replacer(after, firstOnly, multiline, patternsToIgnore);
       List<FileState> changed = new ArrayList<>();
       boolean matchedFile = false;
       for (FileState file : elements) {
