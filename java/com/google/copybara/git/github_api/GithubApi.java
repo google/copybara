@@ -33,6 +33,8 @@ public class GithubApi {
   private final GitHubApiTransport transport;
   private final Profiler profiler;
 
+  private static final int REFS_PER_PAGE = 100;
+
   public GithubApi(GitHubApiTransport transport, Profiler profiler) {
     this.transport = Preconditions.checkNotNull(transport);
     this.profiler = Preconditions.checkNotNull(profiler);
@@ -115,7 +117,7 @@ public class GithubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_list_refs")) {
       List<Ref> result =
-          transport.get(String.format("repos/%s/git/refs", projectId),
+          transport.get(String.format("repos/%s/git/refs?per_page=%d", projectId, REFS_PER_PAGE),
               new TypeToken<List<Ref>>() {
               }.getType());
 

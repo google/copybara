@@ -130,7 +130,8 @@ public abstract class AbstractGithubApiTest {
   @Test
   public void testGetLsRemote() throws Exception {
     trainMockGet(
-        "/repos/copybara-test/copybara/git/refs", getResource("lsremote_testdata.json"));
+        "/repos/copybara-test/copybara/git/refs?per_page=100",
+        getResource("lsremote_testdata.json"));
     ImmutableList<Ref> refs = api.getLsRemote("copybara-test/copybara");
 
     assertThat(refs).hasSize(3);
