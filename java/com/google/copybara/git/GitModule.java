@@ -206,7 +206,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       Core.getCore(env).addMigration(location, name,
           new Mirror(generalOptions, self.options.get(GitOptions.class),
               name, origin, destination, refspecs,
-              self.options.get(GitMirrorOptions.class).forcePush, prune, self.mainConfigFile));
+              self.options.get(GitMirrorOptions.class), prune, self.mainConfigFile));
       return Runtime.NONE;
     }
   };

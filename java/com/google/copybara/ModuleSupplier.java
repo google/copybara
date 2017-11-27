@@ -66,7 +66,7 @@ public class ModuleSupplier {
         gitDestinationOptions,
         new GithubOptions(generalOptionsSupplier, gitOptions),
         new GithubDestinationOptions(),
-        new GitMirrorOptions(),
+        new GitMirrorOptions(generalOptionsSupplier, gitOptions),
         newGerritOptions(),
         new WorkflowOptions());
   }

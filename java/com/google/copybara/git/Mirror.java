@@ -43,12 +43,12 @@ public class Mirror implements Migration {
   private final String origin;
   private final String destination;
   private final List<Refspec> refspec;
-  private final boolean forcePush;
+  private final GitMirrorOptions mirrorOptions;
   private final boolean prune;
   private final ConfigFile<?> mainConfigFile;
 
   Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
-      String destination, List<Refspec> refspec, boolean forcePush, boolean prune,
+      String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions, boolean prune,
       ConfigFile<?> mainConfigFile) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
@@ -56,7 +56,7 @@ public class Mirror implements Migration {
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.refspec = Preconditions.checkNotNull(refspec);
-    this.forcePush = forcePush;
+    this.mirrorOptions = Preconditions.checkNotNull(mirrorOptions);
     this.prune = prune;
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
   }
@@ -64,20 +64,7 @@ public class Mirror implements Migration {
   @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
-    GitRepository repo = getLocalRepo();
-    List<String> fetchRefspecs = refspec.stream()
-        .map(r -> r.getOrigin() + ":" + r.getOrigin())
-        .collect(Collectors.toList());
-
-    generalOptions.console().progress("Fetching from " + origin);
-
-    repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
-
-    generalOptions.console().progress("Pushing to " + destination);
-    List<Refspec> pushRefspecs = forcePush
-        ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
-        : refspec;
-    repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+    mirrorOptions.mirror(origin, destination, refspec, prune);
   }
 
   @VisibleForTesting

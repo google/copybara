@@ -18,15 +18,48 @@ package com.google.copybara.git;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.common.base.Preconditions;
+import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
+import com.google.copybara.RepoException;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Arguments for git.mirror migration.
  */
 @Parameters(separators = "=")
-public final class GitMirrorOptions implements Option {
+public class GitMirrorOptions implements Option {
+
+  private final GitOptions gitOptions;
+  private final Supplier<GeneralOptions> generalOptionsSupplier;
+
+  public GitMirrorOptions(Supplier<GeneralOptions> generalOptionsSupplier, GitOptions gitOptions) {
+    this.gitOptions = Preconditions.checkNotNull(gitOptions);
+    this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
+  }
 
   @Parameter(names = "--git-mirror-force",
       description = "Force push even if it is not fast-forward")
   boolean forcePush = false;
+
+  public void mirror(String origin, String destination, List<Refspec> refspec, boolean prune)
+      throws RepoException, CannotResolveRevisionException {
+    GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
+    List<String> fetchRefspecs = refspec.stream()
+        .map(r -> r.originToOrigin().toString())
+        .collect(Collectors.toList());
+
+    generalOptionsSupplier.get().console().progressFmt("Fetching from %s", origin);
+
+    repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
+
+    generalOptionsSupplier.get().console().progressFmt("Pushing to %s", destination);
+    List<Refspec> pushRefspecs = forcePush
+        ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
+        : refspec;
+    repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+  }
 }
