@@ -85,7 +85,6 @@ public class Copybara {
           migrationRef.getLastAvailableToMigrate() != null
               ? migrationRef.getLastAvailableToMigrate().asString() : "None"));
 
-      structuredOutput.appendSummaryLine();
       if (migrationRef.getAvailableToMigrate().isEmpty()) {
         structuredOutput.getCurrentSummaryLineBuilder()
             .setSummary("No changes available to migrate.");
@@ -113,6 +112,7 @@ public class Copybara {
                     "Changes available to migrate: %d.",
                     migrationRef.getAvailableToMigrate().size()));
       }
+      structuredOutput.appendSummaryLine();
     }
   }
 
