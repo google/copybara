@@ -1324,6 +1324,7 @@ public class GitRepository {
     private final boolean includeBody;
     private final boolean includeMergeDiff;
     private final boolean firstParent;
+    private final int skip;
 
     private final GitRepository repo;
 
@@ -1333,7 +1334,7 @@ public class GitRepository {
     @CheckReturnValue
     LogCmd(GitRepository repo, String refExpr, int limit, ImmutableCollection<String> paths,
         boolean firstParent, boolean includeStat, boolean includeBody,
-        @Nullable String grepString, boolean includeMergeDiff) {
+        @Nullable String grepString, boolean includeMergeDiff, int skip) {
       this.limit = limit;
       this.paths = paths;
       this.refExpr = refExpr;
@@ -1343,6 +1344,7 @@ public class GitRepository {
       this.includeBody = includeBody;
       this.repo = repo;
       this.grepString = grepString;
+      this.skip = skip;
     }
 
     static LogCmd create(GitRepository repository, String refExpr) {
@@ -1355,7 +1357,7 @@ public class GitRepository {
           /* includeStat= */ false,
           /*includeBody=*/ true,
           /*grepString=*/ null,
-          /*includeMergeDiff=*/ false);
+          /*includeMergeDiff=*/ false, /*skip=*/0);
     }
 
     /**
@@ -1365,7 +1367,17 @@ public class GitRepository {
     public LogCmd withLimit(int limit) {
       Preconditions.checkArgument(limit > 0);
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff);
+          grepString, includeMergeDiff, skip);
+    }
+
+    /**
+     * Skip the first {@code skip} commits. Should be >= 0.
+     */
+    @CheckReturnValue
+    public LogCmd withSkip(int skip) {
+      Preconditions.checkArgument(skip >= 0);
+      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
+          grepString, includeMergeDiff, skip);
     }
 
     /**
@@ -1375,7 +1387,7 @@ public class GitRepository {
     public LogCmd withPaths(ImmutableCollection<String> paths) {
       Preconditions.checkArgument(paths.stream().noneMatch(s -> s.trim().equals("")));
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff);
+          grepString, includeMergeDiff, skip);
     }
 
     /**
@@ -1384,7 +1396,7 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd firstParent(boolean firstParent) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff);
+          grepString, includeMergeDiff, skip);
     }
 
     /**
@@ -1393,7 +1405,7 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd includeFiles(boolean includeStat) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff);
+          grepString, includeMergeDiff, skip);
     }
 
     /**
@@ -1402,7 +1414,7 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd includeMergeDiff(boolean includeMergeDiff) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff);
+          grepString, includeMergeDiff, skip);
     }
 
     /**
@@ -1411,7 +1423,7 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd includeBody(boolean includeBody) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff);
+          grepString, includeMergeDiff, skip);
     }
 
     /**
@@ -1420,7 +1432,7 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd grep(@Nullable String grepString) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff);
+          grepString, includeMergeDiff, skip);
     }
 
     /**
@@ -1445,6 +1457,10 @@ public class GitRepository {
 
       if (includeMergeDiff) {
         cmd.add("-m");
+      }
+      if (skip > 0) {
+        cmd.add("--skip");
+        cmd.add(Integer.toString(skip));
       }
 
       if (!Strings.isNullOrEmpty(grepString)) {

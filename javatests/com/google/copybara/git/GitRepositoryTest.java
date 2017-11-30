@@ -45,8 +45,11 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -264,6 +267,128 @@ public class GitRepositoryTest {
       assertThat(entries.get(0).getFiles()).isNull();
       assertThat(entries.get(1).getFiles()).isNull();
     }
+  }
+
+  @Test
+  public void testMultipleEntriesForMergeDiff() throws Exception {
+    createGraphOfCommits();
+
+    ImmutableList<GitLogEntry> result = repository.log("master")
+        .includeFiles(true)
+        .includeMergeDiff(true)
+        .firstParent(false)
+        .run();
+
+    // Three entries for the same commmit. One per each branch merged
+    assertThat(result.get(0).getCommit()).isEqualTo(result.get(1).getCommit());
+    assertThat(result.get(1).getCommit()).isEqualTo(result.get(2).getCommit());
+    assertThat(result.get(2).getCommit()).isNotEqualTo(result.get(3).getCommit());
+
+    // But the first entry is the difference with the current branch
+    assertThat(result.get(0).getFiles()).containsExactly("feature1.txt", "feature2.txt");
+
+    // Amend the merge
+    Files.write(workdir.resolve("other"), "content".getBytes(UTF_8));
+    repository.add().files("other").run();
+    repository.commit("Foo <bar@bara.com>",/*amend=*/true,
+        ZonedDateTime.now(ZoneId.of("-07:00")).truncatedTo(ChronoUnit.SECONDS), "Merge");
+
+    result = repository.log("master")
+        .includeFiles(true)
+        .includeMergeDiff(true)
+        .firstParent(false)
+        .withLimit(1)
+        .run();
+
+    // Still three entries
+    assertThat(result).hasSize(3);
+    // But the first entry is the difference with the current branch
+    assertThat(result.get(0).getFiles()).containsExactly("feature1.txt", "feature2.txt", "other");
+  }
+
+  @Test
+  public void testPagination() throws Exception {
+    createGraphOfCommits();
+    ImmutableList<GitLogEntry> singlePage = repository.log("master")
+        .firstParent(false)
+        .run();
+    List<GitLogEntry> paged = new ArrayList<>();
+    int skip = 0;
+    for (int i = 0; i < 1000; i++) {
+      ImmutableList<GitLogEntry> page = repository.log("master")
+          .firstParent(false)
+          .withLimit(3)
+          .withSkip(skip)
+          .run();
+      if (page.size() == 0) {
+        break;
+      }
+      paged.addAll(page);
+      skip = paged.size();
+    }
+    assertThat(paged.toString()).isEqualTo(singlePage.toString());
+
+    singlePage = repository.log("master")
+        .includeFiles(true)
+        .includeMergeDiff(true)
+        .firstParent(false)
+        .run();
+    paged = new ArrayList<>();
+    skip = 0;
+    for (int i = 0; i < 1000; i++) {
+      ImmutableList<GitLogEntry> page = repository.log("master")
+          .includeFiles(true)
+          .includeMergeDiff(true)
+          .firstParent(false)
+          .withLimit(3)
+          .withSkip(skip)
+          .run();
+      if (page.size() == 0) {
+        break;
+      }
+      paged.addAll(page);
+      // Merge commit shows multiple entries when using -m and --name-only but first parent is
+      // disabled. Each entry represents the parent file changes.
+      skip += page.stream().map(e -> e.getCommit().getSha1()).collect(Collectors.toSet()).size();
+    }
+    assertThat(paged.toString()).isEqualTo(singlePage.toString());
+  }
+
+  private void createGraphOfCommits() throws Exception {
+    for (int i = 0; i < 10; i++) {
+      singleFileCommit("master_" + i, "foo.txt", "foo_" + i);
+    }
+    repository.simpleCommand("checkout", "-b", "feature1");
+    singleFileCommit("feature1_first", "feature1.txt", "feature1_first");
+    String feature1Second = repository.parseRef("HEAD");
+    singleFileCommit("feature1_second", "feature1.txt", "feature1_second");
+    for (int i = 0; i < 10; i++) {
+      singleFileCommit("feature1_" + i, "feature1.txt", "feature1_" + i);
+    }
+    String feature1Head = repository.parseRef("HEAD");
+    repository.forceCheckout(feature1Second);
+    repository.simpleCommand("checkout", "-b", "feature2");
+    for (int i = 0; i < 10; i++) {
+      singleFileCommit("feature2_" + i, "feature2.txt", "feature2_" + i);
+    }
+    repository.simpleCommand("merge", feature1Head);
+    for (int i = 10; i < 20; i++) {
+      singleFileCommit("feature2_" + i, "feature2.txt", "feature2_" + i);
+    }
+    repository.forceCheckout("feature1");
+    singleFileCommit("feature1_last", "feature1.txt", "feature1_last");
+    repository.forceCheckout("master");
+    singleFileCommit("master_last", "foo.txt", "master_last");
+    repository.simpleCommand("merge", "feature1", "feature2");
+  }
+
+  private void singleFileCommit(String message, String file, String content) throws Exception {
+    Path path = workdir.resolve(file);
+    Files.createDirectories(path.getParent());
+    Files.write(path, content.getBytes(UTF_8));
+    repository.add().files(file).run();
+    repository.commit("Foo <bar@bara.com>",
+        ZonedDateTime.now(ZoneId.of("-07:00")).truncatedTo(ChronoUnit.SECONDS), message);
   }
 
   @Test
