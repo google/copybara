@@ -38,6 +38,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
@@ -85,16 +86,14 @@ public class GitOrigin implements Origin<GitRevision> {
   private final GitRepoType repoType;
   private final GitOptions gitOptions;
   private final GitOriginOptions gitOriginOptions;
-  @Nullable
-  private final Map<String, String> environment;
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
+  boolean firstParent;
 
   GitOrigin(GeneralOptions generalOptions, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
-      GitOriginOptions gitOriginOptions,
-      @Nullable Map<String, String> environment, SubmoduleStrategy submoduleStrategy,
-      boolean includeBranchCommitLogs) {
+      GitOriginOptions gitOriginOptions, SubmoduleStrategy submoduleStrategy,
+      boolean includeBranchCommitLogs, boolean firstParent) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -105,9 +104,9 @@ public class GitOrigin implements Origin<GitRevision> {
     this.repoType = checkNotNull(repoType);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
-    this.environment = environment;
     this.submoduleStrategy = submoduleStrategy;
     this.includeBranchCommitLogs = includeBranchCommitLogs;
+    this.firstParent = firstParent;
   }
 
   @VisibleForTesting
@@ -125,6 +124,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final GeneralOptions generalOptions;
     private final boolean includeBranchCommitLogs;
     private final SubmoduleStrategy submoduleStrategy;
+    private boolean firstParent;
     private String url;
 
     ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
@@ -132,7 +132,8 @@ public class GitOrigin implements Origin<GitRevision> {
         GitOriginOptions gitOriginOptions,
         GeneralOptions generalOptions,
         boolean includeBranchCommitLogs,
-        SubmoduleStrategy submoduleStrategy) {
+        SubmoduleStrategy submoduleStrategy,
+        boolean firstParent) {
       this.repoUrl = checkNotNull(repoUrl);
       this.originFiles = checkNotNull(originFiles, "originFiles");
       this.authoring = checkNotNull(authoring, "authoring");
@@ -141,6 +142,7 @@ public class GitOrigin implements Origin<GitRevision> {
       this.generalOptions = checkNotNull(generalOptions);
       this.includeBranchCommitLogs = includeBranchCommitLogs;
       this.submoduleStrategy = checkNotNull(submoduleStrategy);
+      this.firstParent = firstParent;
     }
 
     private ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
@@ -200,6 +202,12 @@ public class GitOrigin implements Origin<GitRevision> {
     void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
         SubmoduleStrategy submoduleStrategy, GitRevision ref, boolean topLevelCheckout)
         throws RepoException, CannotResolveRevisionException {
+      // TODO(malcon): Remove includeBranchCommitLogs from the code after 2017-12-31
+      if (includeBranchCommitLogs) {
+        generalOptions.console().warnFmt("'include_branch_commit_logs' is deprecated. Use"
+            + " first_parent = False instead. metadata.squash_notes and metadata.use_last_change"
+            + " don't include merge commits by default");
+      }
       GitRepository repo = checkout(repository, workdir, ref);
       if(topLevelCheckout) {
         maybeRebase(repo, ref, workdir);
@@ -264,7 +272,9 @@ public class GitOrigin implements Origin<GitRevision> {
       String refRange = fromRef == null
           ? toRef.getSha1()
           : fromRef.getSha1() + ".." + toRef.getSha1();
-      ChangeReader changeReader = changeReaderBuilder(repoUrl).build();
+      ChangeReader changeReader = changeReaderBuilder(repoUrl)
+          .setFirstParent(firstParent)
+          .build();
       return asChanges(changeReader.run(refRange));
     }
 
@@ -273,6 +283,7 @@ public class GitOrigin implements Origin<GitRevision> {
       // The limit=1 flag guarantees that only one change is returned
       ChangeReader changeReader = changeReaderBuilder(repoUrl)
           .setLimit(1)
+          .setFirstParent(firstParent)
           .build();
       ImmutableList<Change<GitRevision>> changes = asChanges(changeReader.run(ref.getSha1()));
       if (changes.isEmpty()) {
@@ -281,7 +292,8 @@ public class GitOrigin implements Origin<GitRevision> {
                 "'%s' revision cannot be found in the origin or it didn't affect the origin paths.",
                 ref.asString()));
       }
-      Change<GitRevision> rev = Iterables.getOnlyElement(changes);
+      // 'git log -1 -m' for a merge commit returns two entries :(
+      Change<GitRevision> rev = changes.get(0);
 
       // Keep the original revision since it might have context information like code review
       // info. The difference with changes method is that here we know exactly what we've
@@ -289,34 +301,45 @@ public class GitOrigin implements Origin<GitRevision> {
       // means that extensions of GitOrigin need to implement changes if they want to provide
       // additional information.
       return new Change<>(ref, rev.getAuthor(), rev.getMessage(), rev.getDateTime(),
-                          rev.getLabels(), rev.getChangeFiles());
+          rev.getLabels(), rev.getChangeFiles(), rev.isMerge());
     }
 
+    /**
+     * Visit changes using git --skip and -n for pagination.
+     */
     @Override
     public void visitChanges(GitRevision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
-      ChangeReader queryChanges = changeReaderBuilder(repoUrl)
-          .setLimit(1)
-          .build();
+      ChangeReader.Builder queryChanges = changeReaderBuilder(repoUrl)
+          .setFirstParent(firstParent);
 
-      ImmutableList<GitChange> result = queryChanges.run(start.asString());
-      if (result.isEmpty()) {
-        throw new CannotResolveRevisionException("Cannot resolve reference " + start.asString());
+      int skip = 0;
+      boolean finished = false;
+      try (ProfilerTask ignore = generalOptions.profiler().start("origin/visit_changes")) {
+        while (!finished) {
+          ImmutableList<GitChange> result;
+          try (ProfilerTask ignore2 = generalOptions.profiler().start(
+              "git_log_" + skip + "_" + gitOriginOptions.visitChangePageSize)) {
+            result = queryChanges.setSkip(skip)
+                .setLimit(gitOriginOptions.visitChangePageSize)
+                .build()
+                .run(start.asString())
+                .reverse();
+          }
+          if (result.isEmpty()) {
+            break;
+          }
+          skip += result.size();
+          for (GitChange current : result) {
+            if (visitor.visit(current.getChange()) == VisitResult.TERMINATE) {
+              finished = true;
+              break;
+            }
+          }
+        }
       }
-      GitChange current = Iterables.getOnlyElement(result);
-      while (current != null) {
-        if (visitor.visit(current.getChange()) == VisitResult.TERMINATE
-            || current.getParents().isEmpty()) {
-          break;
-        }
-        String parentRef = current.getParents().get(0).asString();
-        ImmutableList<GitChange> changes = queryChanges.run(parentRef);
-        if (changes.isEmpty()) {
-          throw new CannotResolveRevisionException(String.format(
-              "Neither '%s' revision or any parent in the history matches origin_files = %s",
-              parentRef, originFiles));
-        }
-        current = Iterables.getOnlyElement(changes);
+      if (skip == 0) {
+        throw new CannotResolveRevisionException("Cannot resolve reference " + start.asString());
       }
     }
   }
@@ -324,7 +347,8 @@ public class GitOrigin implements Origin<GitRevision> {
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(repoUrl, originFiles, authoring,
-        gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy);
+        gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy,
+        firstParent);
   }
 
   @Override
@@ -370,13 +394,12 @@ public class GitOrigin implements Origin<GitRevision> {
    * Builds a new {@link GitOrigin}.
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
-      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
-    boolean verbose = options.get(GeneralOptions.class).isVerbose();
+      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent) {
     Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
-        environment, submoduleStrategy, includeBranchCommitLogs);
+        submoduleStrategy, includeBranchCommitLogs, firstParent);
   }
 
   @Override

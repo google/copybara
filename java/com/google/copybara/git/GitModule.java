@@ -102,17 +102,22 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
           @Param(name = "include_branch_commit_logs", type = Boolean.class, defaultValue = "False",
               doc = "Whether to include raw logs of branch commits in the migrated change message."
+                  + "WARNING: This field is deprecated in favor of 'first_parent' one."
               + " This setting *only* affects merge commits.", positional = false),
+          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True",
+              doc = "If true, it only uses the first parent when looking for changes. Note that"
+                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                  + " change of the merged branch.", positional = false),
       },
       objectType = GitModule.class)
   public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
     public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
-        Boolean includeBranchCommitLogs) throws EvalException {
+        Boolean includeBranchCommitLogs, Boolean firstParent) throws EvalException {
       return GitOrigin.newGitOrigin(
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
           SkylarkUtil.stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
-          includeBranchCommitLogs);
+          includeBranchCommitLogs, firstParent);
     }
   };
 
@@ -230,10 +235,15 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               doc = "DEPRECATED. Use git.origin for submitted branches."),
           @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True",
+              doc = "If true, it only uses the first parent when looking for changes. Note that"
+                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                  + " change of the merged branch.", positional = false),
       },
       objectType = GitModule.class, useLocation = true)
   public static final BuiltinFunction GERRIT_ORIGIN = new BuiltinFunction("gerrit_origin") {
     public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
+        Boolean firstParent,
         Location location) throws EvalException {
       String refField = Type.STRING.convertOptional(ref, "ref");
       if (!Strings.isNullOrEmpty(refField)) {
@@ -244,12 +254,12 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
             self.options, url, refField, GitRepoType.GERRIT,
             SkylarkUtil.stringToEnum(location, "submodules",
                 submodules, GitOrigin.SubmoduleStrategy.class),
-          /*includeBranchCommitLogs=*/false);
+          /*includeBranchCommitLogs=*/false, firstParent);
       }
 
       return GerritOrigin.newGerritOrigin(
           self.options, url, SkylarkUtil.stringToEnum(location, "submodules",
-              submodules, GitOrigin.SubmoduleStrategy.class));
+              submodules, GitOrigin.SubmoduleStrategy.class), firstParent);
     }
   };
 
@@ -267,11 +277,16 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
                   + "from the git repository. For example: 'master'"),
           @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True",
+              doc = "If true, it only uses the first parent when looking for changes. Note that"
+                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                  + " change of the merged branch.", positional = false),
+
       },
       objectType = GitModule.class, useLocation = true)
   public static final BuiltinFunction GITHUB_ORIGIN = new BuiltinFunction("github_origin") {
     public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
-        Location location) throws EvalException {
+        Boolean firstParent, Location location) throws EvalException {
       if (!GithubUtil.isGitHubUrl(url)) {
         throw new EvalException(location, "Invalid Github URL: " + url);
       }
@@ -281,7 +296,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
           SkylarkUtil.stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
-          /*includeBranchCommitLogs=*/false);
+          /*includeBranchCommitLogs=*/false, firstParent);
     }
   };
 
@@ -319,6 +334,10 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
                   + "When the field is set to true for CHANGE_REQUEST workflows it will find the"
                   + " baseline comparing the Pull Request with the base branch instead of looking"
                   + " for the *-RevId label in the commit message.", defaultValue = "False"),
+          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True",
+              doc = "If true, it only uses the first parent when looking for changes. Note that"
+                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                  + " change of the merged branch.", positional = false),
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags(GithubPrOriginOptions.class)
@@ -326,7 +345,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       GITHUB_PR_ORIGIN_NAME) {
     public GithubPROrigin invoke(GitModule self, String url, Boolean merge,
         SkylarkList<String> requiredLabels, String submodules, Boolean baselineFromBranch,
-        Location location) throws EvalException {
+        Boolean firstParent, Location location) throws EvalException {
       if (!url.contains("github.com")) {
         throw new EvalException(location, "Invalid Github URL: " + url);
       }
@@ -339,7 +358,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           self.options.get(GithubOptions.class),
           labels,
           SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
-          baselineFromBranch);
+          baselineFromBranch, firstParent);
     }
   };
 

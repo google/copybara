@@ -51,6 +51,7 @@ public final class Change<R extends Revision> {
   private final ZonedDateTime dateTime;
   private final ImmutableMultimap<String, String> labels;
   private Author mappedAuthor;
+  private final boolean merge;
 
   @Nullable
   private final ImmutableSet<String> changeFiles;
@@ -63,17 +64,18 @@ public final class Change<R extends Revision> {
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
       ImmutableMap<String, String> labels, @Nullable Set<String> changeFiles) {
     this(revision, author, message, dateTime, ImmutableMultimap.copyOf(Multimaps.forMap(labels)),
-        changeFiles);
+        changeFiles, /*merge=*/false);
   }
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
-      ImmutableMultimap<String, String> labels, @Nullable Set<String> changeFiles) {
+      ImmutableMultimap<String, String> labels, @Nullable Set<String> changeFiles, boolean merge) {
     this.revision = Preconditions.checkNotNull(revision);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
     this.dateTime = dateTime;
     this.labels = labels;
     this.changeFiles = changeFiles == null ? null : ImmutableSet.copyOf(changeFiles);
+    this.merge = merge;
   }
 
   /**
@@ -162,6 +164,15 @@ public final class Change<R extends Revision> {
   public String firstLineMessage() {
     int idx = message.indexOf('\n');
     return idx == -1 ? message : message.substring(0, idx);
+  }
+
+  /**
+   * Returns true if the change represents a merge.
+   */
+  @SkylarkCallable(name = "merge", doc = "Returns true if the change represents a merge"
+      , structField = true)
+  public boolean isMerge() {
+    return merge;
   }
 
   @Override

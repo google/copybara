@@ -42,32 +42,36 @@ class ChangeReader {
   @Nullable
   private final Authoring authoring;
   private final GitRepository repository;
-  private final Console console;
-  private final boolean verbose;
   private final int limit;
   private final ImmutableList<String> roots;
   private final boolean includeBranchCommitLogs;
   private String url;
+  private boolean firstParent;
+  private int skip;
 
-  private ChangeReader(@Nullable Authoring authoring, GitRepository repository, Console console,
-      boolean verbose, int limit, Iterable<String> roots, boolean includeBranchCommitLogs,
-      @Nullable String url) {
+  private ChangeReader(@Nullable Authoring authoring, GitRepository repository, int limit,
+      Iterable<String> roots, boolean includeBranchCommitLogs, @Nullable String url,
+      boolean firstParent, int skip) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
-    this.console = checkNotNull(console, "console");
-    this.verbose = verbose;
     this.limit = limit;
     this.roots = ImmutableList.copyOf(roots);
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.url = url;
+    this.firstParent = firstParent;
+    this.skip = skip;
   }
 
   ImmutableList<GitChange> run(String refExpression) throws RepoException {
     LogCmd logCmd = repository
         .log(refExpression)
+        .firstParent(firstParent)
         .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots);
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
+    }
+    if (skip > 0) {
+      logCmd = logCmd.withSkip(skip);
     }
     return parseChanges(logCmd.includeFiles(true).includeMergeDiff(true).run());
   }
@@ -110,14 +114,20 @@ class ChangeReader {
       throws RepoException {
 
     ImmutableList.Builder<GitChange> result = ImmutableList.builder();
+    GitRevision last = null;
     for (GitLogEntry e : logEntries) {
+      // Keep the first commit if repeated (merge commits).
+      if (last != null && last.equals(e.getCommit())) {
+        continue;
+      }
+      last = e.getCommit();
       result.add(new GitChange(new Change<>(
           e.getCommit().withUrl(url),
           filterAuthor(e.getAuthor())
           , e.getBody() + branchCommitLog(e.getCommit(), e.getParents()),
           e.getAuthorDate(),
           ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap(),
-          e.getFiles()),
+          e.getFiles(), e.getParents().size() > 1),
           e.getParents()));
     }
     return result.build().reverse();
@@ -164,6 +174,8 @@ class ChangeReader {
     private ImmutableList<String> roots = ImmutableList.of("");
     private boolean includeBranchCommitLogs = false;
     private String url;
+    private boolean firstParent;
+    private int skip;
 
     // TODO(matvore): Consider adding destinationFiles.
     // For ALL_FILES and where roots is [""], This will skip merges that don't affect the tree
@@ -190,6 +202,12 @@ class ChangeReader {
       return this;
     }
 
+    Builder setSkip(int skip) {
+      Preconditions.checkArgument(skip >= 0);
+      this.skip = skip;
+      return this;
+    }
+
     private Builder setAuthoring(Authoring authoring) {
       this.authoring = checkNotNull(authoring, "authoring");
       return this;
@@ -197,6 +215,11 @@ class ChangeReader {
 
     Builder setVerbose(boolean verbose) {
       this.verbose = verbose;
+      return this;
+    }
+
+    Builder setFirstParent(boolean firstParent) {
+      this.firstParent = firstParent;
       return this;
     }
 
@@ -216,7 +239,8 @@ class ChangeReader {
 
     ChangeReader build() {
       return new ChangeReader(
-          authoring, repository, console, verbose, limit, roots, includeBranchCommitLogs, url);
+          authoring, repository, limit, roots, includeBranchCommitLogs, url,
+          firstParent, skip);
     }
 
   }

@@ -42,9 +42,10 @@ public class MetadataSquashNotes implements Transformation {
   private final boolean showDescription;
   private final boolean showRef;
   private final boolean oldestFirst;
+  private boolean useMerge;
 
   public MetadataSquashNotes(String prefix, int max, boolean compact, boolean showRef,
-      boolean showAuthor, boolean showDescription, boolean oldestFirst) {
+      boolean showAuthor, boolean showDescription, boolean oldestFirst, boolean useMerge) {
     this.prefix = prefix;
     this.max = max;
     this.compact = compact;
@@ -52,6 +53,7 @@ public class MetadataSquashNotes implements Transformation {
     this.showAuthor = showAuthor;
     this.showDescription = showDescription;
     this.oldestFirst = oldestFirst;
+    this.useMerge = useMerge;
   }
 
   @Override
@@ -67,6 +69,9 @@ public class MetadataSquashNotes implements Transformation {
     List<? extends Change<?>> changes = work.getChanges().getCurrent();
     if (oldestFirst) {
       changes = Lists.reverse(changes);
+    }
+    if (!useMerge) {
+      changes = changes.stream().filter(e -> !e.isMerge()).collect(Collectors.toList());
     }
     for (int i = 0; i < changes.size(); i++) {
       Change c = changes.get(i);

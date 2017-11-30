@@ -45,9 +45,9 @@ public class GerritOrigin extends GitOrigin {
       String repoUrl, @Nullable String configRef,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions,
       @Nullable Map<String, String> environment,
-      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs) {
+      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent) {
     super(generalOptions, repoUrl, configRef, GitRepoType.GERRIT, gitOptions, gitOriginOptions,
-        environment, submoduleStrategy, includeBranchCommitLogs);
+        submoduleStrategy, includeBranchCommitLogs, firstParent);
     this.generalOptions = generalOptions;
     this.gitOptions = gitOptions;
     this.gitOriginOptions = gitOriginOptions;
@@ -67,9 +67,8 @@ public class GerritOrigin extends GitOrigin {
    * Builds a new {@link GerritOrigin}.
    */
   static GerritOrigin newGerritOrigin(Options options, String url,
-      SubmoduleStrategy submoduleStrategy) {
+      SubmoduleStrategy submoduleStrategy, boolean firstParent) {
 
-    boolean verbose = options.get(GeneralOptions.class).isVerbose();
     Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
 
     return new GerritOrigin(
@@ -80,13 +79,14 @@ public class GerritOrigin extends GitOrigin {
         options.get(GitOriginOptions.class),
         environment,
         submoduleStrategy,
-        /*includeBranchCommitLogs=*/ false);
+        /*includeBranchCommitLogs=*/ false,
+        firstParent);
   }
 
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new GitOrigin.ReaderImpl(repoUrl, originFiles, authoring, gitOptions, gitOriginOptions,
-        generalOptions, includeBranchCommitLogs, submoduleStrategy) {
+        generalOptions, includeBranchCommitLogs, submoduleStrategy, firstParent) {
       /**
        * Group identity is the individual change identity for now. If we want to group a list of
        * commits we would add Gerrit topic support and an option to git.gerrit_origin to enable it.

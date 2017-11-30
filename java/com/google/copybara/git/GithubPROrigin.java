@@ -76,11 +76,12 @@ public class GithubPROrigin implements Origin<GitRevision> {
   private final SubmoduleStrategy submoduleStrategy;
   private final Console console;
   private boolean baselineFromBranch;
+  private Boolean firstParent;
 
   GithubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GithubOptions githubOptions,
       Set<String> requiredLabels, SubmoduleStrategy submoduleStrategy,
-      boolean baselineFromBranch) {
+      boolean baselineFromBranch, Boolean firstParent) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -91,6 +92,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     this.submoduleStrategy = Preconditions.checkNotNull(submoduleStrategy);
     console = generalOptions.console();
     this.baselineFromBranch = baselineFromBranch;
+    this.firstParent = firstParent;
   }
 
   @Override
@@ -219,7 +221,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring)
       throws ValidationException {
     return new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
-        generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy) {
+        generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy, firstParent) {
 
       /**
        * Disable rebase since this is controlled by useMerge field.

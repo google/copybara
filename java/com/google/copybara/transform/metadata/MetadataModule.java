@@ -36,7 +36,6 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 /**
  * Metadata module for manipulating metadata of the changes. This is intended to be used by the
@@ -85,6 +84,9 @@ public class MetadataModule {
               doc = "If set to true, the list shows the oldest changes first. Otherwise"
                   + " it shows the changes in descending order.",
               defaultValue = "False"),
+          @Param(name = "use_merge", type = Boolean.class,
+              doc = "If true then merge changes are included in the squash notes",
+              defaultValue = "False", positional = false),
       }, objectType = MetadataModule.class, useLocation = true)
   @Example(title = "Simple usage",
       before = "'Squash notes' default is to print one line per change with information about"
@@ -143,10 +145,10 @@ public class MetadataModule {
   static final BuiltinFunction SQUASH_NOTES = new BuiltinFunction("squash_notes") {
     public Transformation invoke(MetadataModule self, String prefix, Integer max,
         Boolean compact, Boolean showRef, Boolean showAuthor, Boolean showDescription,
-        Boolean oldestFirst,
+        Boolean oldestFirst, Boolean useMerge,
         Location location) throws EvalException {
       return new MetadataSquashNotes(SkylarkUtil.checkNotEmpty(prefix, "prefix", location),
-          max, compact, showRef, showAuthor, showDescription, oldestFirst);
+          max, compact, showRef, showAuthor, showDescription, oldestFirst, useMerge);
     }
   };
 
@@ -242,17 +244,20 @@ public class MetadataModule {
           @Param(name = "default_message", type = String.class,
               doc = "Replace message with last change message.",
               noneable = true, defaultValue = "None", positional = false),
+          @Param(name = "use_merge", type = Boolean.class,
+              doc = "If true then merge changes are taken into account for looking for the last"
+                  + " change.", defaultValue = "False", positional = false),
       }, objectType = MetadataModule.class, useLocation = true)
   static final BuiltinFunction USE_LAST_CHANGE = new BuiltinFunction("use_last_change") {
     public Transformation invoke(MetadataModule self, Boolean useAuthor, Boolean useMsg,
-        Object defaultMsg, Location location) throws EvalException {
+        Object defaultMsg, Boolean useMerge, Location location) throws EvalException {
       SkylarkUtil.check(location, useAuthor || useMsg, "author or message should"
           + " be enabled");
       String defaultMessage = convertFromNoneable(defaultMsg, null);
 
       SkylarkUtil.check(location, defaultMessage == null || useMsg,
           "default_message can only be used if message = True ");
-      return new UseLastChange(useAuthor, useMsg, defaultMessage);
+      return new UseLastChange(useAuthor, useMsg, defaultMessage, useMerge);
     }
   };
 

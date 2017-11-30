@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
@@ -584,31 +585,63 @@ public class GitOriginTest {
     GitRevision lastCommitRef = getLastCommitRef();
 
     originFiles = createGlob(ImmutableList.of("foo/**"));
-    thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage("Neither '"+first+"' revision or any parent in the history matches"
-        + " origin_files = glob(include = [\"foo/**\"])");
-
-    newReader().visitChanges(lastCommitRef, input -> VisitResult.CONTINUE);
+    List<String> changes = new ArrayList<>();
+    newReader().visitChanges(lastCommitRef, input -> {
+      changes.add(input.getMessage());
+      return VisitResult.CONTINUE;
+    });
+    assertThat(changes).isEqualTo(ImmutableList.of("three\n"));
   }
 
   @Test
-  public void testVisitMerge() throws Exception {
+  public void testFirstParent() throws Exception {
+    options.gitOrigin.visitChangePageSize = 3;
     createBranchMerge("John Name <john@name.com>");
     GitRevision lastCommitRef = getLastCommitRef();
     final List<Change<?>> visited = new ArrayList<>();
-    newReader().visitChanges(lastCommitRef,
+    Reader<GitRevision> reader = origin().newReader(originFiles, authoring);
+    reader.visitChanges(lastCommitRef,
         input -> {
           visited.add(input);
           return VisitResult.CONTINUE;
         });
 
-    // We don't visit 'feature' branch since the visit is using --first-parent. Maybe we have
-    // to revisit this in the future.
+    // We don't visit 'feature' branch since the visit is using --first-parent
     assertThat(visited).hasSize(4);
     assertThat(visited.get(0).firstLineMessage()).isEqualTo("Merge branch 'feature'");
     assertThat(visited.get(1).firstLineMessage()).isEqualTo("master2");
     assertThat(visited.get(2).firstLineMessage()).isEqualTo("master1");
     assertThat(visited.get(3).firstLineMessage()).isEqualTo("first file");
+
+    ImmutableList<Change<GitRevision>> changes = reader.changes(/*fromRef=*/null, lastCommitRef);
+    assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
+        Lists.transform(visited, Change::getRevision));
+    assertThat(changes.reverse().get(0).isMerge()).isTrue();
+    assertThat(visited.get(0).isMerge()).isTrue();
+
+    visited.clear();
+    moreOriginArgs = "first_parent = False,\n";
+    reader = origin().newReader(originFiles, authoring);
+    reader.visitChanges(lastCommitRef,
+        input -> {
+          visited.add(input);
+          return VisitResult.CONTINUE;
+        });
+
+    // Now because we don't use --first-parent we visit feature branch.
+    assertThat(visited).hasSize(6);
+    // First commit is the merge
+    assertThat(visited.get(0).firstLineMessage()).isEqualTo("Merge branch 'feature'");
+    // The rest can come in a different order depending on the time difference, as git log
+    // ordering is undefined for same time.
+    assertThat(Lists.transform(visited, Change::firstLineMessage)).containsExactly(
+        "Merge branch 'feature'", "master2", "change3", "master1", "change2", "first file");
+
+    changes = reader.changes(/*fromRef=*/null, lastCommitRef);
+    assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
+        Lists.transform(visited, Change::getRevision));
+    assertThat(changes.reverse().get(0).isMerge()).isTrue();
+    assertThat(visited.get(0).isMerge()).isTrue();
   }
 
   /**
