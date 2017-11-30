@@ -17,9 +17,12 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.config.ConfigValidator;
+import com.google.copybara.util.StructuredOutput;
+import com.google.copybara.util.StructuredOutput.AvailableToMigrate;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
@@ -72,6 +75,7 @@ public class Copybara {
     @SuppressWarnings("unchecked")
     Info<? extends Revision> info = getInfo(migrationName, config);
     Console console = options.get(GeneralOptions.class).console();
+    StructuredOutput structuredOutput = options.get(GeneralOptions.class).getStructuredOutput();
     for (MigrationReference<? extends Revision> migrationRef : info.migrationReferences()) {
       console.info(String.format(
           "'%s': last_migrated %s - last_available %s.",
@@ -80,7 +84,12 @@ public class Copybara {
               ? migrationRef.getLastMigrated().asString() : "None",
           migrationRef.getLastAvailableToMigrate() != null
               ? migrationRef.getLastAvailableToMigrate().asString() : "None"));
-      if (!migrationRef.getAvailableToMigrate().isEmpty()) {
+
+      structuredOutput.appendSummaryLine();
+      if (migrationRef.getAvailableToMigrate().isEmpty()) {
+        structuredOutput.getCurrentSummaryLineBuilder()
+            .setSummary("No changes available to migrate.");
+      } else {
         console.info("Available changes:");
         int changeNumber = 1;
         for (Change change : migrationRef.getAvailableToMigrate()) {
@@ -90,6 +99,19 @@ public class Copybara {
               change.firstLineMessage(),
               change.getAuthor()));
         }
+        structuredOutput
+            .getCurrentSummaryLineBuilder()
+            .setAvailableToMigrate(
+                AvailableToMigrate.create(
+                    migrationRef
+                        .getAvailableToMigrate()
+                        .stream()
+                        .map(change -> change.getRevision().asString())
+                        .collect(ImmutableList.toImmutableList())))
+            .setSummary(
+                String.format(
+                    "Changes available to migrate: %d.",
+                    migrationRef.getAvailableToMigrate().size()));
       }
     }
   }

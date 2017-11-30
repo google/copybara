@@ -95,6 +95,13 @@ public class StructuredOutput {
     public abstract String getDestinationRef();
 
     /**
+     * Returns the available to migrate information.
+     */
+    @Nullable
+    public abstract AvailableToMigrate getAvailableToMigrate();
+
+
+    /**
      * Builder to allow having one mutable instance during the workflow.
      */
     @AutoValue.Builder
@@ -102,8 +109,27 @@ public class StructuredOutput {
       public abstract Builder setSummary(String summary);
       public abstract Builder setDestinationRef(String destinationRef);
       public abstract Builder setOriginRefs(ImmutableList<String> originRefs);
+      public abstract Builder setAvailableToMigrate(AvailableToMigrate availableToMigrate);
 
       abstract SummaryLine build();
     }
+  }
+
+  /**
+   * Represents the changes in the origin that are available to migrate.
+   */
+  @AutoValue
+  public abstract static class AvailableToMigrate {
+
+    public static AvailableToMigrate create(ImmutableList<String> revisions) {
+      return new AutoValue_StructuredOutput_AvailableToMigrate(revisions);
+    }
+
+    /**
+     * Returns the list of revisions available to migrate.
+     */
+    @Nullable
+    public abstract ImmutableList<String> getRevisions();
+
   }
 }
