@@ -82,7 +82,7 @@ public class GithubUtil {
   /**
    * Given a project name, like copybara/google, return the GitHub https url of it.
    */
-  static String asGithubUrl(String project) {
+  public static String asGithubUrl(String project) {
     return "https://github.com/" + project;
   }
 
