@@ -21,6 +21,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
+import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
@@ -39,24 +40,26 @@ import javax.annotation.Nullable;
 /**
  * Implementation of {@link GerritApiTransport} that uses direct http calls.
  */
+@SuppressWarnings("TypeParameterUnusedInFormals")
 public class GerritApiTransportImpl implements GerritApiTransport {
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
 
   private final GitRepository repo;
-  private final String url;
+  private final URI uri;
   private final HttpTransport httpTransport;
 
-  public GerritApiTransportImpl(GitRepository repo, String url, HttpTransport httpTransport) {
+  public GerritApiTransportImpl(GitRepository repo, URI uri, HttpTransport httpTransport) {
     this.repo = repo;
-    this.url = Preconditions.checkNotNull(url);
+    this.uri = Preconditions.checkNotNull(uri);
     this.httpTransport = Preconditions.checkNotNull(httpTransport);
   }
 
   @Override
   public <T> T get(String path, Type responseType)
       throws RepoException, ValidationException {
-    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent(url));
+    HttpRequestFactory requestFactory = getHttpRequestFactory(
+        getCredentialsIfPresent(uri.toString()));
     GenericUrl url = getUrl(path);
     try {
       return execute(responseType, requestFactory.buildGetRequest(url));
@@ -68,7 +71,7 @@ public class GerritApiTransportImpl implements GerritApiTransport {
   @Override
   public <T> T post(String path, Object request, Type responseType)
       throws RepoException, ValidationException {
-    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials(url));
+    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials(uri.toString()));
     GenericUrl url = getUrl(path);
     try {
       return execute(responseType, requestFactory.buildGetRequest(url));
@@ -78,15 +81,18 @@ public class GerritApiTransportImpl implements GerritApiTransport {
   }
 
   public GenericUrl getUrl(String path) {
-    return new GenericUrl(URI.create(this.url + path));
+    Preconditions.checkArgument(path.startsWith("/"), path);
+    return new GenericUrl(uri.resolve(uri.getPath() + path));
   }
 
   @SuppressWarnings("unchecked")
   public static <T> T execute(Type responseType, HttpRequest httpRequest)
       throws IOException, GerritApiException {
-    HttpResponse response = httpRequest.execute();
-    if (response.getStatusCode() >= 400) {
-      throw new GerritApiException(response.getStatusCode(), response.parseAsString());
+    HttpResponse response;
+    try {
+      response = httpRequest.execute();
+    } catch (HttpResponseException e) {
+      throw new GerritApiException(e.getStatusCode(), e.getContent());
     }
     return (T) response.parseAs(responseType);
   }

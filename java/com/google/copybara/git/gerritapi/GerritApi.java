@@ -41,7 +41,7 @@ public class GerritApi {
   public List<ChangeInfo> getChanges(ChangesQuery query)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_get_changes")) {
-      List<ChangeInfo> result = transport.get("/changes/" + query.asUrlParams(),
+      List<ChangeInfo> result = transport.get("/changes/?" + query.asUrlParams(),
                                               new TypeToken<List<ChangeInfo>>() {}.getType());
       return ImmutableList.copyOf(result);
     }

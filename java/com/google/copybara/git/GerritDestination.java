@@ -137,7 +137,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       while (attempt <= MAX_FIND_ATTEMPTS) {
         String changeId = computeChangeId(workflowId, committer.getEmail(), attempt);
         console.progressFmt("Querying Gerrit ('%s') for change '%s'", repoUrl, changeId);
-        List<ChangeInfo> changes = gerritApi.getChanges(new ChangesQuery("change: " + changeId));
+        List<ChangeInfo> changes = gerritApi.getChanges(new ChangesQuery(
+            "change: " + changeId + " AND project:" + gerritOptions.getProject(repoUrl)));
         if (changes.isEmpty()) {
           return createMessageInfo(result, /*newPush=*/true, changeId);
         }

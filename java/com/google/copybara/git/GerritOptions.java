@@ -16,18 +16,26 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.ValidationException.checkCondition;
+
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.base.Suppliers;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.git.gerritapi.GerritApi;
+import com.google.copybara.git.gerritapi.GerritApiTransport;
 import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -100,12 +108,65 @@ public class GerritOptions implements Option {
   /**
    * Override this method in a class for a specific Gerrit implementation.
    */
-  protected final GerritApi newGerritApi(String url) throws RepoException {
-    return new GerritApi(getGerritApiTransport(url), generalOptionsSupplier.get().profiler());
+  @VisibleForTesting
+  public final GerritApi newGerritApi(String url) throws RepoException, ValidationException {
+    return new GerritApi(getGerritApiTransport(hostUrl(url)),
+                         generalOptionsSupplier.get().profiler());
   }
 
-  protected GerritApiTransportImpl getGerritApiTransport(String url) throws RepoException {
+  /**
+   * Return the url removing the path part, since the API needs the host.
+   */
+  private static URI hostUrl(String url) throws ValidationException {
+    URI result = asUri(url);
+    try {
+      checkCondition(result.getHost() != null, "Wrong url: %s", url);
+      checkCondition(result.getScheme() != null, "Wrong url: %s", url);
+      return new URI(result.getScheme(), result.getUserInfo(), result.getHost(), result.getPort(),
+                     /*path=*/null, /*query=*/null, /*fragment=*/null);
+    } catch (URISyntaxException e) {
+      // Shouldn't happen
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private static URI asUri(String url) throws ValidationException {
+    try {
+      return URI.create(url);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException("Invalid URL " + url);
+    }
+  }
+
+  /**
+   * Given a repo url, return the project part.
+   *
+   * <p>Not static on prupose, since we might introduce different behavior based on
+   * other flags in the future.
+   */
+  @SuppressWarnings("MethodMayBeStatic")
+  public String getProject(String url) throws ValidationException {
+    String file = asUri(url).getPath();
+    if (file.startsWith("/")) {
+      file = file.substring(1);
+    }
+    if (file.endsWith("/")) {
+      file = file.substring(0, file.length() - 1);
+    }
+    return file.replaceAll("[ \"'&]", "");
+  }
+
+  /**
+   * Get the Gerrit http transport for a URI.
+   */
+  protected GerritApiTransport getGerritApiTransport(URI uri)
+      throws RepoException, ValidationException {
     GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
-    return new GerritApiTransportImpl(repo, url, new NetHttpTransport());
+    return new GerritApiTransportImpl(repo, uri, getHttpTransport());
+  }
+
+  @VisibleForTesting
+  protected HttpTransport getHttpTransport() {
+    return new NetHttpTransport();
   }
 }

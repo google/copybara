@@ -49,6 +49,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -109,8 +110,8 @@ public class GerritDestinationTest {
     options.git = new TestGitOptions(urlMapper, () -> options.general);
     options.gerrit = new GerritOptions(() -> options.general, options.git) {
       @Override
-      protected GerritApiTransportImpl getGerritApiTransport(String url) throws RepoException {
-        return new GerritApiTransportImpl(repo(), url, gitApiMockHttpTransport);
+      protected GerritApiTransportImpl getGerritApiTransport(URI uri) throws RepoException {
+        return new GerritApiTransportImpl(repo(), uri, gitApiMockHttpTransport);
       }
     };
     options.gitDestination = new GitDestinationOptions(() -> options.general, options.git);
@@ -220,8 +221,8 @@ public class GerritDestinationTest {
     options.gerrit.newGerritApi = true;
     options.gerrit.gerritChangeId = null;
 
-    url = "https://localhost:33333";
-    GitRepository repo = localGerritRepo("localhost:33333");
+    url = "https://localhost:33333/foo/bar";
+    GitRepository repo = localGerritRepo("localhost:33333/foo/bar");
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
       @Override
       protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
@@ -242,16 +243,15 @@ public class GerritDestinationTest {
       @Override
       protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
           throws IOException {
-        String expected = "https://localhost:33333/changes/q=change:%20" + labelFinder.getValue();
+        String expected = "https://localhost:33333/changes/?q=change:%20" + labelFinder.getValue()
+            + "%20AND%20project:foo/bar";
         if (method.equals("GET") && url.equals(expected)) {
           String result = "["
               + "{"
               + "  change_id : \"" + labelFinder.getValue() + "\","
               + "  status : \"NEW\""
               + "}]";
-          System.err.println(result);
-          return result
-              .getBytes(UTF_8);
+          return result.getBytes(UTF_8);
         }
         throw new IllegalArgumentException(method + " " + url);
       }
