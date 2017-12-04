@@ -271,9 +271,12 @@ public class SkylarkParser {
             .incompatibleDisallowKeywordOnlyArgs(defaultSem.incompatibleDisallowKeywordOnlyArgs())
             .incompatibleDisallowToplevelIfStatement(
                 defaultSem.incompatibleDisallowToplevelIfStatement())
+            .incompatibleDisallowUncalledSetConstructor(
+                defaultSem.incompatibleDisallowUncalledSetConstructor())
             .incompatibleListPlusEqualsInplace(defaultSem.incompatibleListPlusEqualsInplace())
             .incompatibleLoadArgumentIsLabel(false)
             .incompatibleNewActionsApi(defaultSem.incompatibleNewActionsApi())
+            .incompatibleShowAllPrintMessages(defaultSem.incompatibleShowAllPrintMessages())
             .incompatibleStringIsNotIterable(defaultSem.incompatibleStringIsNotIterable())
             .internalDoNotExportBuiltins(defaultSem.internalDoNotExportBuiltins())
             .internalSkylarkFlagTestCanary(defaultSem.internalSkylarkFlagTestCanary())
