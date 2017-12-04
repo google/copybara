@@ -150,7 +150,16 @@ public class GitRepoTypeTest {
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use",
         "https://github.com/google/example master", generalOptions).asString())
         .hasLength(40);
-    assertFetch("https://github.com/google/example", "master");
+    assertFetch("https://github.com/google/example", "refs/heads/master");
+    assertUrlOverwritten();
+  }
+
+  @Test
+  public void testGitResolveUrlAndCompleteRef() throws Exception {
+    assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use",
+        "https://github.com/google/example refs/pull/1234/head", generalOptions).asString())
+        .hasLength(40);
+    assertFetch("https://github.com/google/example", "refs/pull/1234/head");
     assertUrlOverwritten();
   }
 

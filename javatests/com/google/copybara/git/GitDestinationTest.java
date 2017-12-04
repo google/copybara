@@ -276,8 +276,9 @@ public class GitDestinationTest {
     // Validate that we really have pushed the commit.
     assertThat(change).contains("test summary");
     console.assertThat()
-        .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching: file:.* master")
-        .matchesNext(MessageType.WARNING, "Git Destination: 'master' doesn't exist in 'file://.*")
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching: file:.* refs/heads/master")
+        .matchesNext(MessageType.WARNING,
+            "Git Destination: 'refs/heads/master' doesn't exist in 'file://.*")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Checking out master")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Adding all files")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Excluding files")
@@ -335,7 +336,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
     thrown.expect(ValidationException.class);
-    thrown.expectMessage("'testPullFromRef' doesn't exist");
+    thrown.expectMessage("'refs/heads/testPullFromRef' doesn't exist");
     process(
         newWriter(),
         new DummyRevision("origin_ref"));

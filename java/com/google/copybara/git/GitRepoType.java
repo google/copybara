@@ -78,7 +78,7 @@ public enum GitRepoType {
 
       if (!GIT_URL.matcher(ref).matches() && !FILE_URL.matcher(ref).matches()) {
         // If ref is not an url try a normal fetch of repoUrl and ref
-        return repository.fetchSingleRef(repoUrl, ref);
+        return fetchFromUrl(repository, repoUrl, ref);
       }
       String msg = "Git origin URL overwritten in the command line as " + ref;
       generalOptions.console().warn(msg);
@@ -92,9 +92,21 @@ public enum GitRepoType {
 
       // Treat "http://someurl ref" as a url and a reference. This
       if (spaceIdx != -1) {
-        return repository.fetchSingleRef(ref.substring(0, spaceIdx), ref.substring(spaceIdx + 1));
+        return fetchFromUrl(repository, ref.substring(0, spaceIdx), ref.substring(spaceIdx + 1));
       }
-      return repository.fetchSingleRef(ref, "HEAD");
+      return fetchFromUrl(repository, ref, "HEAD");
+    }
+
+    private GitRevision fetchFromUrl(GitRepository repository, String repoUrl, String ref)
+        throws RepoException, CannotResolveRevisionException {
+      // The internal implementation of our GH code requires full references.
+      if (!GitRepository.SHA1_PATTERN.matches(ref)
+          && !ref.startsWith("refs/")
+          && !ref.equals("HEAD")
+          && GithubUtil.isGitHubUrl(repoUrl)) {
+        ref = "refs/heads/" + ref;
+      }
+      return repository.fetchSingleRef(repoUrl, ref);
     }
   },
   @DocField(description = "A git repository hosted in Github")

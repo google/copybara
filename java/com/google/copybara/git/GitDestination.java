@@ -404,7 +404,7 @@ public final class GitDestination implements Destination<GitRevision> {
           scratchClone.simpleCommand("checkout", "-f", "-q", reference);
         } else {
           // Configure the commit to go to local branch instead of master.
-          scratchClone.simpleCommand("symbolic-ref", "HEAD", "refs/heads/" + state.localBranch);
+          scratchClone.simpleCommand("symbolic-ref", "HEAD", getCompleteRef(state.localBranch));
         }
         state.firstWrite = false;
       } else if (!skipPush) {
@@ -487,7 +487,7 @@ public final class GitDestination implements Destination<GitRevision> {
             "push",
             () -> scratchClone.push()
                 .withRefspecs(repoUrl, ImmutableList.of(scratchClone.createRefSpec(
-                    (nonFastForwardPush ? "+" : "") + "HEAD:" + remotePush)))
+                    (nonFastForwardPush ? "+" : "") + "HEAD:" + getCompleteRef(remotePush))))
                 .run()
         );
         processPushOutput.process(serverResponse, messageInfo.newPush, alternate);
@@ -521,12 +521,13 @@ public final class GitDestination implements Destination<GitRevision> {
     @Nullable
     private GitRevision fetchFromRemote(Console console, GitRepository repo, String repoUrl,
         String fetch) throws RepoException, ValidationException {
+      String completeFetchRef = getCompleteRef(fetch);
       try (ProfilerTask ignore = generalOptions.profiler().start("destination_fetch")){
-        console.progress("Git Destination: Fetching: " + repoUrl + " " + fetch);
-        return repo.fetchSingleRef(repoUrl, fetch);
+        console.progress("Git Destination: Fetching: " + repoUrl + " " + completeFetchRef);
+        return repo.fetchSingleRef(repoUrl, completeFetchRef);
       } catch (CannotResolveRevisionException e) {
         String warning = String.format("Git Destination: '%s' doesn't exist in '%s'",
-            fetch, repoUrl);
+            completeFetchRef, repoUrl);
         if (!force) {
           throw new ValidationException(
               String.format("%s. Use %s flag if you want to push anyway", warning,
@@ -535,6 +536,11 @@ public final class GitDestination implements Destination<GitRevision> {
         console.warn(warning);
       }
       return null;
+    }
+
+    private String getCompleteRef(String fetch) {
+      // Assume that it is a branch. Doesn't work for tags. But we don't update tags (For now).
+      return fetch.startsWith("refs/") ? fetch : "refs/heads/" + fetch;
     }
 
     private GitRepository configForPush(GitRepository repo, String repoUrl, String push)

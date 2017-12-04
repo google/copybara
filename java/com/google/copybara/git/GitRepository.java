@@ -98,7 +98,7 @@ public class GitRepository {
 
   private static final Pattern LS_REMOTE_OUTPUT_LINE = Pattern.compile("([a-f0-9]{40})\t(.+)");
 
-  private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
+  static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
 
   private static final Pattern FAILED_REBASE = Pattern.compile("Failed to merge in the changes");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
