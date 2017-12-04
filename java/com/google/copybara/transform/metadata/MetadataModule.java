@@ -369,24 +369,25 @@ public class MetadataModule {
   @Example(title = "Add a header that uses a label",
       before = "Adds a header to messages that contain a label. Otherwise it skips the message"
           + " manipulation.",
-      code = "metadata.add_header(\"COPYBARA CHANGE FOR ${GIT_URL}\",\n"
+      code = "metadata.add_header(\"COPYBARA CHANGE FOR"
+          + " https://github.com/myproject/foo/pull/${GITHUB_PR_NUMBER}\",\n"
           + "    ignore_label_not_found = True,\n"
           + ")",
-      after = "Messages like:\n\n"
+      after = "A change message, imported using git.github_pr_origin, like:\n\n"
           + "```\n"
           + "A change\n\n"
           + "Example description for\n"
           + "documentation\n\n"
-          + "GIT_URL=http://foo.com/1234"
           + "```\n\n"
           + "Will be transformed into:\n\n"
           + "```\n"
-          + "COPYBARA CHANGE FOR http://foo.com/1234\n"
+          + "COPYBARA CHANGE FOR https://github.com/myproject/foo/pull/1234\n"
           + "Example description for\n"
           + "documentation\n\n"
           + "GIT_URL=http://foo.com/1234"
           + "```\n\n"
-          + "But any change without that label will not be transformed.")
+          + "Assuming the PR number is 1234. But any change without that label will not be"
+          + " transformed.")
   @Example(title = "Add a header without new line",
       before = "Adds a header without adding a new line before the original message:",
       code = "metadata.add_header(\"COPYBARA CHANGE: \", new_line = False)",
