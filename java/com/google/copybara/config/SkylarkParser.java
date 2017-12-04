@@ -41,6 +41,7 @@ import com.google.devtools.build.lib.syntax.Environment.Frame;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
+import com.google.devtools.build.lib.syntax.SkylarkSemantics;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
 import com.google.devtools.build.lib.syntax.StringLiteral;
 import com.google.devtools.build.lib.vfs.PathFragment;
@@ -254,8 +255,29 @@ public class SkylarkParser {
    */
   private static Environment createEnvironment(EventHandler eventHandler, Frame globals,
       Map<String, Extension> imports) {
+    SkylarkSemantics defaultSem = SkylarkSemantics.DEFAULT_SEMANTICS;
     return Environment.builder(Mutability.create("CopybaraModules"))
-        .useDefaultSemantics()
+        .setSemantics(SkylarkSemantics.builder()
+            // <== Add new options here in alphabetic order ==>
+            .incompatibleBzlDisallowLoadAfterStatement(
+                defaultSem.incompatibleBzlDisallowLoadAfterStatement())
+            .incompatibleCheckedArithmetic(defaultSem.incompatibleCheckedArithmetic())
+            .incompatibleComprehensionVariablesDoNotLeak(
+                defaultSem.incompatibleComprehensionVariablesDoNotLeak())
+            .incompatibleDepsetIsNotIterable(defaultSem.incompatibleDepsetIsNotIterable())
+            .incompatibleDictLiteralHasNoDuplicates(
+                defaultSem.incompatibleDictLiteralHasNoDuplicates())
+            .incompatibleDisallowDictPlus(defaultSem.incompatibleDisallowDictPlus())
+            .incompatibleDisallowKeywordOnlyArgs(defaultSem.incompatibleDisallowKeywordOnlyArgs())
+            .incompatibleDisallowToplevelIfStatement(
+                defaultSem.incompatibleDisallowToplevelIfStatement())
+            .incompatibleListPlusEqualsInplace(defaultSem.incompatibleListPlusEqualsInplace())
+            .incompatibleLoadArgumentIsLabel(false)
+            .incompatibleNewActionsApi(defaultSem.incompatibleNewActionsApi())
+            .incompatibleStringIsNotIterable(defaultSem.incompatibleStringIsNotIterable())
+            .internalDoNotExportBuiltins(defaultSem.internalDoNotExportBuiltins())
+            .internalSkylarkFlagTestCanary(defaultSem.internalSkylarkFlagTestCanary())
+            .build())
         .setGlobals(globals)
         .setImportedExtensions(imports)
         .setSkylark()
