@@ -24,6 +24,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A mini API for getting and updating Gerrit projects through the Gerrit REST API.
@@ -58,6 +59,14 @@ public class GerritApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_restore_change")) {
       return transport.post("/changes/" + changeId + "/restore", restoreInput, ChangeInfo.class);
+    }
+  }
+
+  public Map<String, ProjectInfo> listProjects(ListProjectsInput listProjectsInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_list_projects")) {
+      return transport.get("/projects/?" + listProjectsInput.asUrlParams(),
+          new TypeToken<Map<String, ProjectInfo>>() {}.getType());
     }
   }
 }

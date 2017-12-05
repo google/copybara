@@ -165,6 +165,35 @@ public class GerritApiTest {
     assertThat(change.getStatus()).isEqualTo(NEW);
   }
 
+  @Test
+  public void testListProjects() throws Exception {
+    mockResponse(new CheckRequest("GET", "/projects/"), ""
+        + ")]}'\n"
+        + "{\n"
+        + "    \"external/bison\": {\n"
+        + "      \"id\": \"external%2Fbison\",\n"
+        + "      \"description\": \"GNU parser generator\"\n"
+        + "    },\n"
+        + "    \"external/gcc\": {\n"
+        + "      \"id\": \"external%2Fgcc\"\n"
+        + "    },\n"
+        + "    \"external/openssl\": {\n"
+        + "      \"id\": \"external%2Fopenssl\",\n"
+        + "      \"description\": \"encryption\\\\ncrypto routines\"\n"
+        + "    }\n"
+        + "  }");
+    ;
+
+    Map<String, ProjectInfo> projects = gerritApi.listProjects(
+        new ListProjectsInput().withLimit(3).withRegex("external.*"));
+
+    assertThat(projects).hasSize(3);
+    assertThat(projects.get("external/bison").getId()).isEqualTo("external%2Fbison");
+    assertThat(projects.get("external/bison").getDescription()).isEqualTo("GNU parser generator");
+    assertThat(projects.get("external/gcc").getId()).isEqualTo("external%2Fgcc");
+    assertThat(projects.get("external/openssl").getId()).isEqualTo("external%2Fopenssl");
+  }
+
   private static String mockChangeInfo(final ChangeStatus status) {
     return "  {\n"
         + "    \"id\": \"copybara-team%2Fcopybara~master~" + CHANGE_ID + "\",\n"
