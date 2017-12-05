@@ -49,15 +49,15 @@ public class ChangesQuery {
     this.start = start;
   }
 
-  ChangesQuery withStart(int start) {
+  public ChangesQuery withStart(int start) {
     return new ChangesQuery(query, include, limit, start);
   }
 
-  ChangesQuery withLimit(int limit) {
+  public ChangesQuery withLimit(int limit) {
     return new ChangesQuery(query, include, limit, start);
   }
 
-  ChangesQuery withInclude(Iterable<IncludeResult> include) {
+  public ChangesQuery withInclude(Iterable<IncludeResult> include) {
     return new ChangesQuery(query, ImmutableSet.copyOf(include), limit, start);
   }
 

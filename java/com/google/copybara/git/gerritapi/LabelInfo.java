@@ -75,7 +75,7 @@ public class LabelInfo {
   }
 
   public ImmutableList<ApprovalInfo> getAll() {
-    return ImmutableList.copyOf(all);
+    return all != null ? ImmutableList.copyOf(all) : ImmutableList.of();
   }
 
   @Override
