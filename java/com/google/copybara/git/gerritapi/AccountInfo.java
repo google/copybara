@@ -17,6 +17,7 @@
 package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
@@ -31,6 +32,15 @@ public class AccountInfo {
   @Key String email;
   @Key("secondary_emails") List<String> secondaryEmails;
   @Key String username;
+
+  public AccountInfo() {
+  }
+
+  @VisibleForTesting
+  public AccountInfo(long accountId, String email) {
+    this.accountId = accountId;
+    this.email = email;
+  }
 
   public long getAccountId() {
     return accountId;

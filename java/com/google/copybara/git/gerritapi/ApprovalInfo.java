@@ -17,6 +17,7 @@
 package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
+import com.google.common.annotations.VisibleForTesting;
 import java.time.ZonedDateTime;
 
 /**
@@ -32,6 +33,15 @@ public class ApprovalInfo extends AccountInfo {
 
   public ZonedDateTime getDate() {
     return GerritApiUtil.parseTimestamp(date);
+  }
+
+  public ApprovalInfo() {
+  }
+
+  @VisibleForTesting
+  public ApprovalInfo(long accountId, String email, int value) {
+    super(accountId, email);
+    this.value = value;
   }
 
   @Override
