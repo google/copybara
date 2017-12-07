@@ -82,4 +82,11 @@ public final class TestingConsole extends CapturingConsole {
   public String colorize(AnsiColor ansiColor, String message) {
     return outputConsole.colorize(ansiColor, message);
   }
+
+  /**
+   * Clear messages
+   */
+  public void reset() {
+    clearMessages();
+  }
 }
