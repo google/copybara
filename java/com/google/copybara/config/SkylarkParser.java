@@ -255,31 +255,10 @@ public class SkylarkParser {
    */
   private static Environment createEnvironment(EventHandler eventHandler, Frame globals,
       Map<String, Extension> imports) {
-    SkylarkSemantics defaultSem = SkylarkSemantics.DEFAULT_SEMANTICS;
     return Environment.builder(Mutability.create("CopybaraModules"))
-        .setSemantics(SkylarkSemantics.builder()
-            // <== Add new options here in alphabetic order ==>
-            .incompatibleBzlDisallowLoadAfterStatement(
-                defaultSem.incompatibleBzlDisallowLoadAfterStatement())
-            .incompatibleCheckedArithmetic(defaultSem.incompatibleCheckedArithmetic())
-            .incompatibleComprehensionVariablesDoNotLeak(
-                defaultSem.incompatibleComprehensionVariablesDoNotLeak())
-            .incompatibleDepsetIsNotIterable(defaultSem.incompatibleDepsetIsNotIterable())
-            .incompatibleDictLiteralHasNoDuplicates(
-                defaultSem.incompatibleDictLiteralHasNoDuplicates())
-            .incompatibleDisallowDictPlus(defaultSem.incompatibleDisallowDictPlus())
-            .incompatibleDisallowKeywordOnlyArgs(defaultSem.incompatibleDisallowKeywordOnlyArgs())
-            .incompatibleDisallowToplevelIfStatement(
-                defaultSem.incompatibleDisallowToplevelIfStatement())
-            .incompatibleDisallowUncalledSetConstructor(
-                defaultSem.incompatibleDisallowUncalledSetConstructor())
-            .incompatibleListPlusEqualsInplace(defaultSem.incompatibleListPlusEqualsInplace())
+        .setSemantics(SkylarkSemantics.DEFAULT_SEMANTICS
+            .toBuilder()
             .incompatibleLoadArgumentIsLabel(false)
-            .incompatibleNewActionsApi(defaultSem.incompatibleNewActionsApi())
-            .incompatibleShowAllPrintMessages(defaultSem.incompatibleShowAllPrintMessages())
-            .incompatibleStringIsNotIterable(defaultSem.incompatibleStringIsNotIterable())
-            .internalDoNotExportBuiltins(defaultSem.internalDoNotExportBuiltins())
-            .internalSkylarkFlagTestCanary(defaultSem.internalSkylarkFlagTestCanary())
             .build())
         .setGlobals(globals)
         .setImportedExtensions(imports)
