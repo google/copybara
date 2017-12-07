@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Migration;
@@ -65,6 +66,18 @@ public class Mirror implements Migration {
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
     mirrorOptions.mirror(origin, destination, refspec, prune);
+    generalOptions.getStructuredOutput().getCurrentSummaryLineBuilder()
+        .setSummary("Refspecs " + refspec + " mirrored successfully")
+        .setOriginRefs(ImmutableList.of(getOriginDestinationRef(origin)))
+        .setDestinationRef(getOriginDestinationRef(destination));
+    generalOptions.getStructuredOutput().appendSummaryLine();
+  }
+
+  public static String getOriginDestinationRef(String url) throws ValidationException {
+    return GithubUtil.isGitHubUrl(url)
+        ? GithubUtil.asGithubUrl(
+        GithubUtil.getProjectNameFromUrl(url))
+        : url;
   }
 
   @VisibleForTesting
