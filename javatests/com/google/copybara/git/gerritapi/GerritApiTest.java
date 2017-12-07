@@ -30,6 +30,7 @@ import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.copybara.RepoException;
 import com.google.copybara.git.GerritOptions;
@@ -140,7 +141,6 @@ public class GerritApiTest {
   @Test
   public void testChanges404NotFound() throws Exception {
     mockResponse(s -> false, "");
-
     try {
       gerritApi.getChanges(new ChangesQuery("status:open"));
       Assert.fail();
@@ -148,6 +148,31 @@ public class GerritApiTest {
       assertThat(e.getExitCode()).isEqualTo(404);
     }
   }
+
+  @Test
+  public void testGetChange() throws Exception {
+    mockResponse(new CheckRequest("GET", "/changes/*"), ""
+        + ")]}'\n" + mockGetChangeInfo());
+    ChangeInfo change = gerritApi.getChange(
+        new GetChangeInput(CHANGE_ID,
+            ImmutableSet.of(IncludeResult.CURRENT_REVISION, IncludeResult.CURRENT_COMMIT)));
+    assertThat(change.getChangeId()).isEqualTo(CHANGE_ID);
+    RevisionInfo revisionInfo = change.getAllRevisions().get(change.getCurrentRevision());
+    assertThat(revisionInfo.getCommit().getMessage()).contains("JUST A TEST");
+    assertThat(revisionInfo.getCommit().getMessage()).contains("Second line of description");
+  }
+
+  @Test
+  public void testGetChange404NotFound() throws Exception {
+    mockResponse(s -> false, "");
+    try {
+      gerritApi.getChange(new GetChangeInput(CHANGE_ID));
+      Assert.fail();
+    } catch (GerritApiException e) {
+      assertThat(e.getExitCode()).isEqualTo(404);
+    }
+  }
+
 
   @Test
   public void testAbandonRestore() throws Exception {
@@ -216,6 +241,70 @@ public class GerritApiTest {
         + "      \"_account_id\": 12345\n"
         + "    }\n"
         + "  }\n";
+  }
+
+  private static String mockGetChangeInfo() {
+        return "{\n"
+        + "  \"id\": \"copybara-project~" + CHANGE_ID + "\",\n"
+        + "  \"project\": \"copybara-project\",\n"
+        + "  \"branch\": \"master\",\n"
+        + "  \"hashtags\": [],\n"
+        + "  \"change_id\": \"" + CHANGE_ID + "\",\n"
+        + "  \"subject\": \"JUST A TEST\",\n"
+        + "  \"status\": \"NEW\",\n"
+        + "  \"created\": \"2017-12-01 17:33:30.000000000\",\n"
+        + "  \"updated\": \"2017-12-01 17:33:30.000000000\",\n"
+        + "  \"submit_type\": \"MERGE_IF_NECESSARY\",\n"
+        + "  \"mergeable\": true,\n"
+        + "  \"insertions\": 2,\n"
+        + "  \"deletions\": 10,\n"
+        + "  \"unresolved_comment_count\": 0,\n"
+        + "  \"has_review_started\": true,\n"
+        + "  \"_number\": 1082,\n"
+        + "  \"owner\": {\n"
+        + "    \"_account_id\": 12345\n"
+        + "  },\n"
+        + "  \"current_revision\": \"f33bd8687ae27c25254a21012b3c9b4a546db779\",\n"
+        + "  \"revisions\": {\n"
+        + "    \"f33bd8687ae27c25254a21012b3c9b4a546db779\": {\n"
+        + "      \"kind\": \"REWORK\",\n"
+        + "      \"_number\": 1,\n"
+        + "      \"created\": \"2017-12-07 19:11:59.000000000\",\n"
+        + "      \"uploader\": {\n"
+        + "        \"_account_id\": 12345\n"
+        + "      },\n"
+        + "      \"ref\": \"refs/changes/11/11111/1\",\n"
+        + "      \"fetch\": {\n"
+        + "        \"https\": {\n"
+        + "          \"url\": \"https://foo.bar/copybara/test\",\n"
+        + "          \"ref\": \"refs/changes/11/11111/1\"\n"
+        + "        }\n"
+        + "      },\n"
+        + "      \"commit\": {\n"
+        + "        \"parents\": [\n"
+        + "          {\n"
+        + "            \"commit\": \"e6b7772add9d2137fd5f879192bd249dfc4d0a00\",\n"
+        + "            \"subject\": \"Parent commit description.\"\n"
+        + "          }\n"
+        + "        ],\n"
+        + "        \"author\": {\n"
+        + "          \"name\": \"Glorious Copybara\",\n"
+        + "          \"email\": \"no-reply@glorious-copybara.com\",\n"
+        + "          \"date\": \"2017-12-01 00:00:00.000000000\",\n"
+        + "          \"tz\": -480\n"
+        + "        },\n"
+        + "        \"committer\": {\n"
+        + "          \"name\": \"Glorious Copybara\",\n"
+        + "          \"email\": \"no-reply@glorious-copybara.com\",\n"
+        + "          \"date\": \"2017-12-01 00:00:00.000000000\",\n"
+        + "          \"tz\": -480\n"
+        + "        },\n"
+        + "        \"subject\": \"JUST A TEST\",\n"
+        + "        \"message\": \"JUST A TEST\\n\\nSecond line of description.\n\"\n"
+        + "      }\n"
+        + "    }\n"
+        + "  }\n"
+        + "}\n";
   }
 
   public void mockResponse(Predicate<String> filter, String response) throws Exception {

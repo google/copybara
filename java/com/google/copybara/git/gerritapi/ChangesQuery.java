@@ -83,29 +83,4 @@ public class ChangesQuery {
     }
   }
 
-  /**
-   * Fields to include in the response
-   */
-  public enum IncludeResult {
-    LABELS,
-    DETAILED_LABELS,
-    CURRENT_REVISION,
-    ALL_REVISIONS,
-    DOWNLOAD_COMMANDS,
-    CURRENT_COMMIT,
-    ALL_COMMITS,
-    CURRENT_FILES,
-    ALL_FILES,
-    DETAILED_ACCOUNTS,
-    REVIEWER_UPDATES,
-    MESSAGES,
-    CURRENT_ACTIONS,
-    CHANGE_ACTIONS,
-    REVIEWED,
-    SUBMITTABLE,
-    WEB_LINKS,
-    CHECK,
-    COMMIT_FOOTERS,
-    PUSH_CERTIFICATES
-  }
 }

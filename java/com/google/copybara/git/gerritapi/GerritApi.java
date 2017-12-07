@@ -48,6 +48,13 @@ public class GerritApi {
     }
   }
 
+  public ChangeInfo getChange(GetChangeInput getChangeInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_get_change")) {
+      return transport.get(getChangeInput.getUrl(), ChangeInfo.class);
+    }
+  }
+
   public ChangeInfo abandonChange(String changeId, AbandonInput abandonInput)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_abandon_change")) {
