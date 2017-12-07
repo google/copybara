@@ -23,7 +23,6 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import javax.annotation.Nullable;
 

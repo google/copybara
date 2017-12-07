@@ -22,9 +22,7 @@ import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.shell.CommandResult;
 import com.google.copybara.shell.ShellUtils;
-import com.google.copybara.shell.SimpleKillableObserver;
 import com.google.copybara.shell.TerminationStatus;
-
 import com.google.copybara.shell.TimeoutKillableObserver;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

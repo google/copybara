@@ -1,11 +1,10 @@
 package com.google.copybara.transform;
 
-import static com.google.common.truth.Truth.*;
+import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.jimfs.Jimfs;
-import com.google.common.truth.Truth;
 import com.google.copybara.Core;
 import com.google.copybara.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -18,9 +17,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
