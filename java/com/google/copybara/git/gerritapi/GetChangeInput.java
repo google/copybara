@@ -16,8 +16,9 @@
 
 package com.google.copybara.git.gerritapi;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import java.util.stream.Collectors;
 
 /**
  * An object that represents the input parameters for get change:
@@ -25,24 +26,17 @@ import com.google.common.collect.ImmutableSet;
  * https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#get-change
  */
 public class GetChangeInput {
-
-  private final String changeId;
   private final ImmutableSet<IncludeResult> include;
 
-  public GetChangeInput(String changeId) {
-    this(changeId, ImmutableSet.of());
+  public GetChangeInput() {
+    this(ImmutableSet.of());
   }
 
-  public GetChangeInput(String changeId, ImmutableSet<IncludeResult> include) {
-    this.changeId = Preconditions.checkNotNull(changeId);
+  public GetChangeInput(ImmutableSet<IncludeResult> include) {
     this.include = include;
   }
 
-  String getUrl() {
-    StringBuilder sb = new StringBuilder("/changes/").append(changeId).append("/?");
-    for (IncludeResult includeResult : include) {
-      sb.append("&o=").append(includeResult);
-    }
-    return sb.toString();
+  String asUrlParams() {
+    return Joiner.on("&").join(include.stream().map(i -> "o=" + i).collect(Collectors.toList()));
   }
 }

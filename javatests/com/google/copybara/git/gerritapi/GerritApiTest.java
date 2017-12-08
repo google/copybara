@@ -93,7 +93,7 @@ public class GerritApiTest {
           }
         }
         response.setStatusCode(404);
-        response.setContent(("REQUEST: " + requestString));
+        response.setContent(("NO URL MATCHED! (Returning 404) REQUEST: " + requestString));
         return request;
       }
     };
@@ -151,10 +151,10 @@ public class GerritApiTest {
 
   @Test
   public void testGetChange() throws Exception {
-    mockResponse(new CheckRequest("GET", "/changes/*"), ""
-        + ")]}'\n" + mockGetChangeInfo());
-    ChangeInfo change = gerritApi.getChange(
-        new GetChangeInput(CHANGE_ID,
+    mockResponse(new CheckRequest("GET", "/changes/" + CHANGE_ID + "\\?o="), ""
+        + ")]}'\n" + mockChangeInfo(NEW));
+    ChangeInfo change = gerritApi.getChange(CHANGE_ID,
+        new GetChangeInput(
             ImmutableSet.of(IncludeResult.CURRENT_REVISION, IncludeResult.CURRENT_COMMIT)));
     assertThat(change.getChangeId()).isEqualTo(CHANGE_ID);
     RevisionInfo revisionInfo = change.getAllRevisions().get(change.getCurrentRevision());
@@ -166,7 +166,7 @@ public class GerritApiTest {
   public void testGetChange404NotFound() throws Exception {
     mockResponse(s -> false, "");
     try {
-      gerritApi.getChange(new GetChangeInput(CHANGE_ID));
+      gerritApi.getChange(CHANGE_ID, new GetChangeInput());
       Assert.fail();
     } catch (GerritApiException e) {
       assertThat(e.getExitCode()).isEqualTo(404);
@@ -207,7 +207,6 @@ public class GerritApiTest {
         + "      \"description\": \"encryption\\\\ncrypto routines\"\n"
         + "    }\n"
         + "  }");
-    ;
 
     Map<String, ProjectInfo> projects = gerritApi.listProjects(
         new ListProjectsInput().withLimit(3).withRegex("external.*"));
@@ -219,31 +218,7 @@ public class GerritApiTest {
     assertThat(projects.get("external/openssl").getId()).isEqualTo("external%2Fopenssl");
   }
 
-  private static String mockChangeInfo(final ChangeStatus status) {
-    return "  {\n"
-        + "    \"id\": \"copybara-team%2Fcopybara~master~" + CHANGE_ID + "\",\n"
-        + "    \"project\": \"copybara-team/copybara\",\n"
-        + "    \"branch\": \"master\",\n"
-        + "    \"hashtags\": [],\n"
-        + "    \"change_id\": \"" + CHANGE_ID + "\",\n"
-        + "    \"subject\": \"JUST A TEST\",\n"
-        + "    \"status\": \"" + status + "\",\n"
-        + "    \"created\": \"2017-12-01 17:33:30.000000000\",\n"
-        + "    \"updated\": \"2017-12-01 17:37:59.000000000\",\n"
-        + "    \"submit_type\": \"REBASE_IF_NECESSARY\",\n"
-        + "    \"mergeable\": true,\n"
-        + "    \"insertions\": 1,\n"
-        + "    \"deletions\": 1,\n"
-        + "    \"unresolved_comment_count\": 0,\n"
-        + "    \"has_review_started\": true,\n"
-        + "    \"_number\": 1234567,\n"
-        + "    \"owner\": {\n"
-        + "      \"_account_id\": 12345\n"
-        + "    }\n"
-        + "  }\n";
-  }
-
-  private static String mockGetChangeInfo() {
+  private static String mockChangeInfo(ChangeStatus status) {
         return "{\n"
         + "  \"id\": \"copybara-project~" + CHANGE_ID + "\",\n"
         + "  \"project\": \"copybara-project\",\n"
@@ -251,7 +226,7 @@ public class GerritApiTest {
         + "  \"hashtags\": [],\n"
         + "  \"change_id\": \"" + CHANGE_ID + "\",\n"
         + "  \"subject\": \"JUST A TEST\",\n"
-        + "  \"status\": \"NEW\",\n"
+        + "    \"status\": \"" + status + "\",\n"
         + "  \"created\": \"2017-12-01 17:33:30.000000000\",\n"
         + "  \"updated\": \"2017-12-01 17:33:30.000000000\",\n"
         + "  \"submit_type\": \"MERGE_IF_NECESSARY\",\n"
