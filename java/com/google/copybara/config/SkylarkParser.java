@@ -47,6 +47,7 @@ import com.google.devtools.build.lib.syntax.StringLiteral;
 import com.google.devtools.build.lib.vfs.PathFragment;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -66,6 +67,7 @@ public class SkylarkParser {
 
   private static final Object initializationLock = new Object();
 
+  private static final Set<Class<?>> initializedModules = new HashSet<>();
   public SkylarkParser(Set<Class<?>> modules) {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(Authoring.Module.class)
@@ -79,8 +81,10 @@ public class SkylarkParser {
     synchronized (initializationLock) {
       // Register module functions
       for (Class<?> module : this.modules) {
-        // This method should be only called once for VM or at least not concurrently,
-        // since it registers functions in an static HashMap.
+        // configureSkylarkFunctions() should be only called once for each module and java process.
+        if (!initializedModules.add(module)) {
+          continue;
+        }
         try {
           SkylarkSignatureProcessor.configureSkylarkFunctions(module);
         } catch (Exception e) {
