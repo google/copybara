@@ -47,6 +47,8 @@ public class ChangeMessage {
 
   /**
    * Create a new message object looking for labels in just the last paragraph.
+   *
+   * <p>Use this for Copybara well-formed messages.
    */
   public static ChangeMessage parseMessage(String message) {
     message = TRIM.trimFrom(message);

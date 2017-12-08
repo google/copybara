@@ -17,6 +17,7 @@
 package com.google.copybara.git.gerritapi;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import java.util.stream.Collectors;
 
@@ -38,5 +39,22 @@ public class GetChangeInput {
 
   String asUrlParams() {
     return Joiner.on("&").join(include.stream().map(i -> "o=" + i).collect(Collectors.toList()));
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    GetChangeInput that = (GetChangeInput) o;
+    return Objects.equal(include, that.include);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(include);
   }
 }
