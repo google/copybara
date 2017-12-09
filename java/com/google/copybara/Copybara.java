@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.config.ConfigValidator;
@@ -76,6 +77,7 @@ public class Copybara {
     Info<? extends Revision> info = getInfo(migrationName, config);
     Console console = options.get(GeneralOptions.class).console();
     StructuredOutput structuredOutput = options.get(GeneralOptions.class).getStructuredOutput();
+    int outputSize = 0;
     for (MigrationReference<? extends Revision> migrationRef : info.migrationReferences()) {
       console.info(String.format(
           "'%s': last_migrated %s - last_available %s.",
@@ -85,13 +87,23 @@ public class Copybara {
           migrationRef.getLastAvailableToMigrate() != null
               ? migrationRef.getLastAvailableToMigrate().asString() : "None"));
 
-      if (migrationRef.getAvailableToMigrate().isEmpty()) {
+      ImmutableList<? extends Change<? extends Revision>> availableToMigrate =
+          migrationRef.getAvailableToMigrate();
+      int outputLimit = options.get(GeneralOptions.class).getOutputLimit();
+      if (availableToMigrate.isEmpty()) {
         structuredOutput.getCurrentSummaryLineBuilder()
             .setSummary("No changes available to migrate.");
       } else {
-        console.info("Available changes:");
+        console.infoFmt(
+            "Available changes%s:",
+            availableToMigrate.size() <= outputLimit
+                ? ""
+                : String.format(
+                    " (showing only first %d out of %d)", outputLimit, availableToMigrate.size()));
         int changeNumber = 1;
-        for (Change change : migrationRef.getAvailableToMigrate()) {
+        for (Change<? extends Revision> change :
+            Iterables.limit(availableToMigrate, outputLimit)) {
+          outputSize++;
           console.info(String.format("%d - %s %s by %s",
               changeNumber++,
               change.getRevision().asString(),
@@ -102,15 +114,19 @@ public class Copybara {
             .getCurrentSummaryLineBuilder()
             .setAvailableToMigrate(
                 AvailableToMigrate.create(
-                    migrationRef
-                        .getAvailableToMigrate()
+                    availableToMigrate
                         .stream()
                         .map(change -> change.getRevision().asString())
                         .collect(ImmutableList.toImmutableList())))
             .setSummary(
                 String.format(
                     "Changes available to migrate: %d.",
-                    migrationRef.getAvailableToMigrate().size()));
+                    availableToMigrate.size()));
+      }
+      // TODO(danielromero): Check flag usage on 2018-06 and decide if we keep it
+      if (outputSize > 100) {
+        console.infoFmt(
+            "Use %s to limit the output of the command.", GeneralOptions.OUTPUT_LIMIT_FLAG);
       }
       structuredOutput.appendSummaryLine();
     }

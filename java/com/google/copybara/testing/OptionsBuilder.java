@@ -64,7 +64,7 @@ public class OptionsBuilder {
           /*outputRoot*/ null,
           /*reuseOutputDirs*/ true,
           /* disableReversibleCheck= */ false,
-          /*force=*/ false);
+          /*force=*/ false, /*outputLimit*/ 0);
 
   // TODO(team): Rename to folderDestination
   public FolderDestinationOptions localDestination = new FolderDestinationOptions();
@@ -101,7 +101,8 @@ public class OptionsBuilder {
         FileSystems.getDefault(), /*verbose=*/true,
         general.console(),
         general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced());
+        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
+        /*outputLimit*/ 0);
     return this;
   }
 
@@ -110,7 +111,8 @@ public class OptionsBuilder {
         environment,
         general.getFileSystem(), general.isVerbose(), general.console(),
         general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced());
+        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
+        /*outputLimit*/ 0);
     return this;
   }
 
@@ -122,7 +124,8 @@ public class OptionsBuilder {
         // Using Files.createTempDirectory() generates paths > 255 in some tests and that causes
         // 'File name too long' exceptions in Linux
         FileSystems.getDefault().getPath(StandardSystemProperty.JAVA_IO_TMPDIR.value()),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced());
+        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
+        /*outputLimit*/ 0);
     return this;
   }
 
@@ -130,7 +133,8 @@ public class OptionsBuilder {
     general = new GeneralOptions(
         general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
         general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced());
+        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
+        /*outputLimit*/ 0);
     return this;
   }
 
@@ -139,7 +143,8 @@ public class OptionsBuilder {
         updateEnvironment(general.getEnvironment(), "HOME", homeDir),
         general.getFileSystem(), general.isVerbose(), general.console(),
         general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced());
+        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
+        /*outputLimit*/ 0);
     return this;
   }
 
@@ -148,7 +153,7 @@ public class OptionsBuilder {
         general.getEnvironment(),
         general.getFileSystem(), general.isVerbose(), general.console(),
         general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), force);
+        general.isNoCleanup(), general.isDisableReversibleCheck(), force, /*outputLimit*/ 0);
     return this;
   }
 

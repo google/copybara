@@ -46,6 +46,7 @@ public final class GeneralOptions implements Option {
   public static final String FORCE = "--force";
   public static final String CONFIG_ROOT_FLAG = "--config-root";
   public static final String OUTPUT_ROOT_FLAG = "--output-root";
+  public static final String OUTPUT_LIMIT_FLAG = "--output-limit";
 
   private final Map<String, String> environment;
   private final FileSystem fileSystem;
@@ -55,6 +56,7 @@ public final class GeneralOptions implements Option {
   private final boolean noCleanup;
   private final boolean disableReversibleCheck;
   private final boolean force;
+  private final int outputLimit;
   @Nullable
   private final Path configRoot;
   @Nullable
@@ -65,13 +67,14 @@ public final class GeneralOptions implements Option {
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
     this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
-        /*noCleanup*/ true, /*disableReversibleCheck=*/false, /*force=*/false);
+        /*noCleanup*/ true, /*disableReversibleCheck=*/false, /*force=*/false,
+        /*outputLimit*/ 0);
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
       Console console, @Nullable Path configRoot, @Nullable Path outputRoot,
-      boolean noCleanup, boolean disableReversibleCheck, boolean force)
+      boolean noCleanup, boolean disableReversibleCheck, boolean force, int outputLimit)
   {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
@@ -82,16 +85,17 @@ public final class GeneralOptions implements Option {
     this.noCleanup = noCleanup;
     this.disableReversibleCheck = disableReversibleCheck;
     this.force = force;
+    this.outputLimit = outputLimit;
   }
 
   public GeneralOptions withForce(boolean force) {
     return new GeneralOptions(environment, fileSystem, verbose, console, configRoot, outputRoot,
-                              noCleanup, disableReversibleCheck, force);
+                              noCleanup, disableReversibleCheck, force, outputLimit);
   }
 
   public GeneralOptions withConsole(Console console) {
     return new GeneralOptions(environment, fileSystem, verbose, console, configRoot, outputRoot,
-                              noCleanup, disableReversibleCheck, force);
+                              noCleanup, disableReversibleCheck, force, outputLimit);
   }
 
   public Map<String, String> getEnvironment() {
@@ -148,6 +152,15 @@ public final class GeneralOptions implements Option {
   @Nullable
   public Path getOutputRoot() {
     return outputRoot;
+  }
+
+  /**
+   * Returns the output limit.
+   *
+   * <p>Each subcommand can use this value differently.
+   */
+  public int getOutputLimit() {
+    return outputLimit > 0 ? outputLimit : Integer.MAX_VALUE;
   }
 
   public Profiler profiler() {
@@ -238,6 +251,14 @@ public final class GeneralOptions implements Option {
     String outputRoot = null;
 
     @Parameter(
+      names = OUTPUT_LIMIT_FLAG,
+      description =
+          "Limit the output in the console to a number of records. Each subcommand might use this "
+              + "flag differently. Defaults to 0, which shows all the output."
+    )
+    int outputLimit = 0;
+
+    @Parameter(
         names = "--nocleanup",
         description =
             "Cleanup the output directories. This includes the workdir, scratch clones of Git"
@@ -257,7 +278,7 @@ public final class GeneralOptions implements Option {
       Path outputRoot = this.outputRoot != null ? fileSystem.getPath(this.outputRoot) : null;
       return new GeneralOptions(
           environment, fileSystem, verbose, console, configRoot, outputRoot, noCleanup,
-          disableReversibleCheck, force);
+          disableReversibleCheck, force, outputLimit);
     }
   }
 }
