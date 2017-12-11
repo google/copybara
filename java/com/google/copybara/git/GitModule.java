@@ -432,9 +432,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               doc = "If set, copybara will not actually push the result to the destination. This is"
                   + " meant for testing workflows and dry runs."),
       },
-      objectType = GitModule.class, useLocation = true,
-      // Still not ready for public usage:
-      documented = false)
+      objectType = GitModule.class, useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GithubDestinationOptions.class})
   public static final BuiltinFunction GH_PR_DESTINATION = new BuiltinFunction(
       "github_pr_destination",

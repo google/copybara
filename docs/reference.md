@@ -43,6 +43,7 @@
     - [git.github_origin](#git.github_origin)
     - [git.github_pr_origin](#git.github_pr_origin)
     - [git.destination](#git.destination)
+    - [git.github_pr_destination](#git.github_pr_destination)
     - [git.gerrit_destination](#git.gerrit_destination)
   - [patch](#patch)
     - [patch.apply](#patch.apply)
@@ -196,7 +197,7 @@ Core transformations for the change metadata
 
 Generate a message that includes a constant prefix text and a list of changes included in the squash change.
 
-`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, show_description=True, oldest_first=False)`
+`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, show_description=True, oldest_first=False, use_merge=False)`
 
 ### Parameters:
 
@@ -209,6 +210,7 @@ show_ref|`boolean`<br><p>If each change reference should be present in the notes
 show_author|`boolean`<br><p>If each change author should be present in the notes</p>
 show_description|`boolean`<br><p>If each change description should be present in the notes</p>
 oldest_first|`boolean`<br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
+use_merge|`boolean`<br><p>If true then merge changes are included in the squash notes</p>
 
 
 ### Examples:
@@ -321,7 +323,7 @@ label|`string`<br><p>The label to use for storing the author</p>
 
 Map the author name and mail to another author. The mapping can be done by both name and mail or only using any of the two.
 
-`transformation metadata.map_author(authors, reversible=False, fail_if_not_found=False, reverse_fail_if_not_found=False, map_all_changes=False)`
+`transformation metadata.map_author(authors, reversible=False, noop_reverse=False, fail_if_not_found=False, reverse_fail_if_not_found=False, map_all_changes=False)`
 
 ### Parameters:
 
@@ -329,6 +331,7 @@ Parameter | Description
 --------- | -----------
 authors|`dict`<br><p>The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or 'Your Name <some@mail>'. The mapping applies heuristics to know which field to use in the mapping. The value has to be always in the form of 'Your Name <some@mail>'</p>
 reversible|`boolean`<br><p>If the transform is automatically reversible. Workflows using the reverse of this transform will be able to automatically map values to keys.</p>
+noop_reverse|`boolean`<br><p>If true, the reversal of the transformation doesn't do anything. This is useful to avoid having to write `core.transformation(metadata.map_author(...), reversal = [])`.</p>
 fail_if_not_found|`boolean`<br><p>Fail if a mapping cannot be found. Helps discovering early authors that should be in the map</p>
 reverse_fail_if_not_found|`boolean`<br><p>Same as fail_if_not_found but when the transform is used in a inverse workflow.</p>
 map_all_changes|`boolean`<br><p>If all changes being migrated should be mapped. Useful for getting a mapped metadata.squash_notes. By default we only map the current author.</p>
@@ -353,7 +356,7 @@ metadata.map_author({
 
 Use metadata (message or/and author) from the last change being migrated. Useful when using 'SQUASH' mode but user only cares about the last change.
 
-`transformation metadata.use_last_change(author=True, message=True, default_message=None)`
+`transformation metadata.use_last_change(author=True, message=True, default_message=None, use_merge=False)`
 
 ### Parameters:
 
@@ -362,6 +365,7 @@ Parameter | Description
 author|`boolean`<br><p>Replace author with the last change author (Could still be the default author if not whitelisted or using `authoring.overwrite`.</p>
 message|`boolean`<br><p>Replace message with last change message.</p>
 default_message|`string`<br><p>Replace message with last change message.</p>
+use_merge|`boolean`<br><p>If true then merge changes are taken into account for looking for the last change.</p>
 
 
 <a id="metadata.expose_label" aria-hidden="true"></a>
@@ -425,7 +429,7 @@ For a given change, restore the author present in the ORIGINAL_AUTHOR label as t
 Parameter | Description
 --------- | -----------
 label|`string`<br><p>The label to use for restoring the author</p>
-search_all_changes|`boolean`<br><p>By default Copybara only looks in the last current change for the author label. This allows to do the search in all current changes (Only makes sensefor SQUASH/CHANGE_REQUEST).</p>
+search_all_changes|`boolean`<br><p>By default Copybara only looks in the last current change for the author label. This allows to do the search in all current changes (Only makes sense for SQUASH/CHANGE_REQUEST).</p>
 
 
 <a id="metadata.add_header" aria-hidden="true"></a>
@@ -481,12 +485,12 @@ documentation
 Adds a header to messages that contain a label. Otherwise it skips the message manipulation.
 
 ```python
-metadata.add_header("COPYBARA CHANGE FOR ${GIT_URL}",
+metadata.add_header("COPYBARA CHANGE FOR https://github.com/myproject/foo/pull/${GITHUB_PR_NUMBER}",
     ignore_label_not_found = True,
 )
 ```
 
-Messages like:
+A change message, imported using git.github_pr_origin, like:
 
 ```
 A change
@@ -494,18 +498,18 @@ A change
 Example description for
 documentation
 
-GIT_URL=http://foo.com/1234```
+```
 
 Will be transformed into:
 
 ```
-COPYBARA CHANGE FOR http://foo.com/1234
+COPYBARA CHANGE FOR https://github.com/myproject/foo/pull/1234
 Example description for
 documentation
 
 GIT_URL=http://foo.com/1234```
 
-But any change without that label will not be transformed.
+Assuming the PR number is 1234. But any change without that label will not be transformed.
 
 #### Add a header without new line:
 
@@ -837,6 +841,9 @@ Name | Type | Description
 --workflow-identity-user | *string* | Use a custom string as a user for computing change identity
 --check-last-rev-state | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 --dry-run | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
+--threads | *int* | Number of threads to use when running transformations that change lot of files
+--threads-min-size | *int* | Minimum size of the lists to process to run them in parallel
+--notransformation-join | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
 
 <a id="core.move" aria-hidden="true"></a>
 ## core.move
@@ -1199,7 +1206,7 @@ Name | Type | Description
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False)`
+`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True)`
 
 ### Parameters:
 
@@ -1208,7 +1215,8 @@ Parameter | Description
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-include_branch_commit_logs|`boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message. This setting *only* affects merge commits.</p>
+include_branch_commit_logs|`boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
+first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 
 
 <a id="git.integrate" aria-hidden="true"></a>
@@ -1281,7 +1289,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
 
 
-`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO')`
+`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True)`
 
 ### Parameters:
 
@@ -1290,6 +1298,7 @@ Parameter | Description
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 
 
 <a id="git.github_origin" aria-hidden="true"></a>
@@ -1297,7 +1306,7 @@ submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
-`gitOrigin git.github_origin(url, ref=None, submodules='NO')`
+`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True)`
 
 ### Parameters:
 
@@ -1306,6 +1315,7 @@ Parameter | Description
 url|`string`<br><p>Indicates the URL of the git repository</p>
 ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 
 
 <a id="git.github_pr_origin" aria-hidden="true"></a>
@@ -1323,7 +1333,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_BODY: Body of the Pull Request.
 
 
-`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], submodules='NO', baseline_from_branch=False)`
+`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True)`
 
 ### Parameters:
 
@@ -1334,6 +1344,7 @@ use_merge|`boolean`<br><p>If the content for refs/pull/<ID>/merge should be used
 required_labels|`sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 baseline_from_branch|`boolean`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
+first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 
 
 
@@ -1380,6 +1391,42 @@ Name | Type | Description
 --git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 --git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 --nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+
+<a id="git.github_pr_destination" aria-hidden="true"></a>
+## git.github_pr_destination
+
+Creates changes in a new branch in the destination, that can be then used for creating a pull request. In the future the PR will be created automatically.
+
+`githubPrDestination git.github_pr_destination(url, destination_ref=master, skip_push=False)`
+
+### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
+destination_ref|`string`<br><p>Destination reference for the change. By default 'master'</p>
+skip_push|`boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
+--git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+--git-destination-url | *string* | If set, overrides the git destination URL.
+--git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
+--git-destination-push | *string* | If set, overrides the git destination push reference.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+--git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
+--git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+--git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+--git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+--nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+--github-destination-pr-branch | *string* | If set, uses this branch for creating the pull request instead of using a generated one
+--github-destination-pr-create | *boolean* | If the pull request should be created
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
 ## git.gerrit_destination
