@@ -24,6 +24,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.google.common.truth.Truth;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
@@ -55,6 +56,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -87,11 +89,9 @@ public class GitDestinationTest {
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
 
-    git("init", "--bare", repoGitDir.toString());
     console = new TestingConsole();
-    options = new OptionsBuilder()
-        .setConsole(console)
-        .setOutputRootToTmpDir();
+    options = getOptionsBuilder(console);
+    git("init", "--bare", repoGitDir.toString());
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
@@ -101,12 +101,25 @@ public class GitDestinationTest {
     force = false;
   }
 
+  public OptionsBuilder getOptionsBuilder(
+      TestingConsole console) throws IOException {
+    return new OptionsBuilder()
+        .setConsole(this.console)
+        .setOutputRootToTmpDir();
+  }
+
   private GitRepository repo() {
     return repoForPath(repoGitDir);
   }
 
   private GitRepository repoForPath(Path path) {
-    return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true);
+    return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true);
+  }
+
+  private Map<String, String> getEnv() {
+    Map<String, String> env = Maps.newHashMap(options.general.getEnvironment());
+    env.putAll(getGitEnv());
+    return env;
   }
 
   private String git(String... argv) throws RepoException {
@@ -1102,7 +1115,7 @@ public class GitDestinationTest {
     process(writer, new DummyRevision("origin_ref1"));
 
     //    Path localPath = Files.createTempDirectory("local_repo");
-    GitRepository localRepo = GitRepository.newRepo(true, localPath, getGitEnv()).init(
+    GitRepository localRepo = GitRepository.newRepo(true, localPath, getEnv()).init(
     );
 
     GitTesting.assertThatCheckout(localRepo, "master")
