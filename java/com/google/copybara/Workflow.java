@@ -263,10 +263,17 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                               ? null
                               : origin.resolve(destinationStatus.getBaseline()));
 
-              ImmutableList<Change<O>> changes =
+              ImmutableList<Change<O>> allChanges =
                   generalOptions.repoTask(
                       "origin.changes", () -> oReader.changes(lastMigrated, lastResolved));
 
+              ImmutableList<Change<O>> changes =
+                  allChanges
+                      .stream()
+                      .filter(
+                          change ->
+                              !WorkflowRunHelper.shouldSkipChange(change, this, workflowOptions))
+                      .collect(ImmutableList.toImmutableList());
               MigrationReference<O> migrationRef =
                   MigrationReference.create(
                       String.format("workflow_%s", name), lastMigrated, changes);

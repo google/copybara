@@ -410,14 +410,28 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * are stored in the origin.
    */
   boolean skipChange(Change<?> currentChange) {
-    if (workflowOptions().importNoopChanges) {
+    boolean skipChange = shouldSkipChange(currentChange, workflow, workflowOptions());
+    if (skipChange) {
+      getConsole().infoFmt("Skipped change %s as it would create an empty result.",
+          currentChange.toString());
+    }
+    return skipChange;
+  }
+
+  /**
+   * Returns true iff the given change should be skipped based on the origin globs and flags
+   * provided.
+   */
+  static boolean shouldSkipChange(Change<?> currentChange,
+      Workflow<? extends Revision, ? extends Revision> workflow, WorkflowOptions workflowOptions) {
+    if (workflowOptions.importNoopChanges) {
       return false;
     }
     // We cannot know the files included. Try to migrate then.
     if (currentChange.getChangeFiles() == null) {
       return false;
     }
-     PathMatcher pathMatcher = workflow.getOriginFiles().relativeTo(Paths.get("/"));
+    PathMatcher pathMatcher = workflow.getOriginFiles().relativeTo(Paths.get("/"));
     for (String changedFile : currentChange.getChangeFiles()) {
       if (pathMatcher.matches(Paths.get("/" + changedFile))) {
         return false;
@@ -436,8 +450,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
       }
     }
-    getConsole().infoFmt("Skipped change %s as it would create an empty result.",
-        currentChange.toString());
     return true;
   }
 }

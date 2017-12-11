@@ -1528,24 +1528,24 @@ public class WorkflowTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void givenLastRevFlagInfoCommandUsesIt()
-          throws IOException, RepoException, ValidationException {
+  public void givenLastRevFlagInfoCommandUsesIt() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init(
-    );
-    GitRepository destination = GitRepository.newRepo(true, destinationPath, getGitEnv()).init(
-    );
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    GitRepository destination = GitRepository.newRepo(true, destinationPath, getGitEnv()).init();
 
     String config = "core.workflow("
-            + "    name = '" + "default" + "',"
-            + "    origin = git.origin( url = 'file://"
-            + origin.getWorkTree() + "', ref = 'master' ),\n"
-            + "    destination = git.destination( url = 'file://"
-            + destination.getWorkTree() + "'),"
-            + "    authoring = " + authoring + ","
-            + "    mode = '" + WorkflowMode.ITERATIVE + "',"
-            + ")\n";
+        + "    name = '" + "default" + "',"
+        + "    origin = git.origin("
+        + "        url = 'file://" + origin.getWorkTree() + "',\n"
+        + "        ref = 'master',\n"
+        + "    ),\n"
+        + "    destination = git.destination("
+        + "        url = 'file://" + destination.getWorkTree() + "',\n"
+        + "    ),\n"
+        + "    authoring = " + authoring + ","
+        + "    mode = '" + WorkflowMode.ITERATIVE + "',"
+        + ")\n";
 
     Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
@@ -1571,17 +1571,35 @@ public class WorkflowTest {
     options.workflowOptions.checkLastRevState = true;
     options.setLastRevision(firstCommit);
 
-    final Info<Revision> info = (Info<Revision>) loadConfig(config).getMigration("default")
-      .getInfo();
-    final List<String> commitMessages =
-            StreamSupport.stream(info.migrationReferences().spliterator(), false)
-                    .flatMap(revisionMigrationReference ->
-                               revisionMigrationReference.getAvailableToMigrate().stream())
-                    .map(Change::getMessage)
-                    .collect(Collectors.toList());
-    assertThat(commitMessages).containsExactly("change1\n");
+    Info<Revision> info = (Info<Revision>) loadConfig(config).getMigration("default").getInfo();
+    verifyInfo(info, "change1\n");
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testInfoSkipsChangesThatDontAffectOriginPaths() throws Exception {
+    originFiles = "glob(['**'], exclude = ['folder/**'])";
+    transformations = ImmutableList.of();
+
+    Workflow workflow = iterativeWorkflow(/*previousRef*/ "0");
+
+    origin.singleFileChange(0, "change1", "file.txt", "aaa");
+    origin.singleFileChange(1, "change2", "file.txt", "bbb");
+    // This is to keep file.txt unchanged
+    origin.addChange(2, "change3", ImmutableMap.of("folder/foo.txt", "bar", "file.txt","bbb"));
+    origin.singleFileChange(3, "change4", "file.txt", "ccc");
+
+    workflow.run(workdir, /*sourceRef=*/"1");
+
+    workflow = iterativeWorkflow(/*previousRef*/ null);
+
+    verifyInfo(workflow.getInfo(), "change4");
+
+    workflow.run(workdir, /*sourceRef=*/"3");
+
+    // Empty list of changes
+    verifyInfo(workflow.getInfo());
+  }
 
   @Test
   public void iterativeInitHistory() throws Exception {
@@ -1720,8 +1738,19 @@ public class WorkflowTest {
     origin.addChange(1, base, "excludes", /*matchesGlob=*/true);
   }
 
-  private Path touchFile(Path base, String path, String content) throws IOException {
+  private void touchFile(Path base, String path, String content) throws IOException {
     Files.createDirectories(base.resolve(path).getParent());
-    return Files.write(base.resolve(path), content.getBytes(UTF_8));
+    Files.write(base.resolve(path), content.getBytes(UTF_8));
+  }
+
+  private void verifyInfo(Info<Revision> info, String... expectedChanges) {
+    List<String> commitMessages =
+        StreamSupport.stream(info.migrationReferences().spliterator(), false)
+            .flatMap(
+                revisionMigrationReference ->
+                    revisionMigrationReference.getAvailableToMigrate().stream())
+            .map(Change::getMessage)
+            .collect(Collectors.toList());
+    assertThat(commitMessages).containsExactly((Object[]) expectedChanges);
   }
 }

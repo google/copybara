@@ -154,13 +154,13 @@ public class DummyOrigin implements Origin<DummyRevision> {
     }
 
     @Override
-    public void checkout(final DummyRevision ref, final Path workdir) throws RepoException {
+    public void checkout(final DummyRevision rev, final Path workdir) throws RepoException {
       try {
-        Files.walkFileTree(ref.changesBase, new SimpleFileVisitor<Path>() {
+        Files.walkFileTree(rev.changesBase, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                 throws IOException {
-              Path destination = workdir.resolve(ref.changesBase.relativize(file).toString());
+              Path destination = workdir.resolve(rev.changesBase.relativize(file).toString());
               Files.createDirectories(destination.getParent());
               Files.write(destination, Files.readAllBytes(file));
               return FileVisitResult.CONTINUE;
@@ -173,22 +173,22 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
     @Override
     public ImmutableList<Change<DummyRevision>> changes(
-        @Nullable DummyRevision oldRef, DummyRevision newRef) throws RepoException {
+        @Nullable DummyRevision oldRev, DummyRevision newRev) throws RepoException {
 
-      if (oldRef != null
-          && Integer.parseInt(oldRef.asString()) >= Integer.parseInt(newRef.asString())) {
+      if (oldRev != null
+          && Integer.parseInt(oldRev.asString()) >= Integer.parseInt(newRev.asString())) {
         return ImmutableList.of();
       }
-      int current = (oldRef == null) ? 0 : Integer.parseInt(oldRef.asString()) + 1;
+      int current = (oldRev == null) ? 0 : Integer.parseInt(oldRev.asString()) + 1;
 
       ImmutableList.Builder<Change<DummyRevision>> result = ImmutableList.builder();
-      String group = changeIdToGroup.get(newRef.asString());
+      String group = changeIdToGroup.get(newRev.asString());
       while (current < changes.size()) {
-        DummyRevision ref = changes.get(current);
-        if (ref.matchesGlob() && Objects.equals(changeIdToGroup.get(ref.asString()), group)) {
-          result.add(ref.toChange(authoring));
+        DummyRevision rev = changes.get(current);
+        if (rev.matchesGlob() && Objects.equals(changeIdToGroup.get(rev.asString()), group)) {
+          result.add(rev.toChange(authoring));
         }
-        if (newRef == ref) {
+        if (newRev == rev) {
           break;
         }
         current++;
@@ -197,15 +197,15 @@ public class DummyOrigin implements Origin<DummyRevision> {
     }
 
     @Override
-    public Change<DummyRevision> change(DummyRevision ref) throws RepoException {
-      int idx = Integer.parseInt(ref.asString());
-      DummyRevision dummyRef;
+    public Change<DummyRevision> change(DummyRevision rev) throws RepoException {
+      int idx = Integer.parseInt(rev.asString());
+      DummyRevision dummyRev;
       try {
-        dummyRef = changes.get(idx);
+        dummyRev = changes.get(idx);
       } catch (IndexOutOfBoundsException e) {
-        throw new RepoException(String.format("Reference '%s' not found", ref));
+        throw new RepoException(String.format("Reference '%s' not found", rev));
       }
-      return dummyRef.toChange(authoring);
+      return dummyRev.toChange(authoring);
     }
 
     @Override
