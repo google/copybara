@@ -40,6 +40,7 @@ import com.google.devtools.build.lib.vfs.PathFragment;
 import com.google.re2j.Pattern;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.Before;
 import org.junit.Rule;
@@ -47,7 +48,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
 
 @RunWith(JUnit4.class)
 public class RevisionMigratorTest {
@@ -307,10 +307,13 @@ public class RevisionMigratorTest {
         if (changeNumber % 11 == 0) {
           labels.put("LegacyImporter", "" + changeNumber);
         }
-        change = new Change<>(new DummyRevision(destinationId),
-            new Author("Foo", "Bar"),
-            "Lorem Ipsum", ZonedDateTime.now(),
-            labels.build());
+        change =
+            new Change<>(
+                new DummyRevision(destinationId),
+                new Author("Foo", "Bar"),
+                "Lorem Ipsum",
+                ZonedDateTime.now(ZoneId.systemDefault()),
+                labels.build());
 
       } while (visitor.visit(change) != VisitResult.TERMINATE);
     }

@@ -30,6 +30,7 @@ import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.StructuredOutput.SummaryLine;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -105,7 +106,7 @@ public class CopybaraTest {
         new DummyRevision(revision),
         new Author("Foo", "Bar"),
         "Lorem Ipsum",
-        ZonedDateTime.now(),
+        ZonedDateTime.now(ZoneId.systemDefault()),
         ImmutableMap.of());
   }
 }

@@ -39,6 +39,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -229,9 +230,13 @@ public class TransformWorkTest {
   }
 
   private Change<DummyRevision> toChange(DummyRevision dummyRevision) {
-    return new Change<>(dummyRevision, ORIGINAL_AUTHOR, dummyRevision.getMessage(),
-        ZonedDateTime.now(), dummyRevision.getLabels(),
-                                /*changeFiles=*/null);
+    return new Change<>(
+        dummyRevision,
+        ORIGINAL_AUTHOR,
+        dummyRevision.getMessage(),
+        ZonedDateTime.now(ZoneId.systemDefault()),
+        dummyRevision.getLabels(),
+        /*changeFiles=*/ null);
   }
 
   @Test

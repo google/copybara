@@ -35,6 +35,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import javax.annotation.Nullable;
 
@@ -83,7 +84,7 @@ public class FolderOrigin implements Origin<FolderRevision> {
       throw new ValidationException(path + " is not readable/executable");
     }
 
-    return new FolderRevision(path, ZonedDateTime.now(), LABEL_NAME);
+    return new FolderRevision(path, ZonedDateTime.now(ZoneId.systemDefault()), LABEL_NAME);
   }
 
   @Override

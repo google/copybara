@@ -34,6 +34,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -217,6 +218,6 @@ public class GitOriginSubmodulesTest {
 
   private void commit(GitRepository repo, String message)
       throws RepoException, ValidationException {
-    repo.commit("foo <foobar@example.com>", ZonedDateTime.now(), message);
+    repo.commit("foo <foobar@example.com>", ZonedDateTime.now(ZoneId.systemDefault()), message);
   }
 }

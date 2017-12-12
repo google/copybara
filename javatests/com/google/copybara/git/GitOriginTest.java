@@ -49,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -451,7 +452,7 @@ public class GitOriginTest {
   @Test
   public void testChanges() throws Exception {
     // Need to "round" it since git doesn't store the milliseconds
-    ZonedDateTime beforeTime = ZonedDateTime.now().minusSeconds(1);
+    ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "change2", "test.txt", "some content2");
     singleFileCommit(author, "change3", "test.txt", "some content3");
@@ -471,7 +472,8 @@ public class GitOriginTest {
     for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
       assertThat(change.getDateTime()).isAtLeast(beforeTime);
-      assertThat(change.getDateTime()).isAtMost(ZonedDateTime.now().plusSeconds(1));
+      assertThat(change.getDateTime())
+          .isAtMost(ZonedDateTime.now(ZoneId.systemDefault()).plusSeconds(1));
     }
   }
 
@@ -679,7 +681,7 @@ public class GitOriginTest {
   @Test
   public void testChangesMerge() throws Exception {
     // Need to "round" it since git doesn't store the milliseconds
-    ZonedDateTime beforeTime = ZonedDateTime.now().minusSeconds(1);
+    ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
 
     String author = "John Name <john@name.com>";
     createBranchMerge(author);
@@ -694,7 +696,8 @@ public class GitOriginTest {
     for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
       assertThat(change.getDateTime()).isAtLeast(beforeTime);
-      assertThat(change.getDateTime()).isAtMost(ZonedDateTime.now().plusSeconds(1));
+      assertThat(change.getDateTime())
+          .isAtMost(ZonedDateTime.now(ZoneId.systemDefault()).plusSeconds(1));
     }
   }
 

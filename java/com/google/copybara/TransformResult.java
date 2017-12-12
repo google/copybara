@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.authoring.Author;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import javax.annotation.Nullable;
 
@@ -45,7 +46,7 @@ public final class TransformResult {
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
-    return (refTimestamp != null) ? refTimestamp : ZonedDateTime.now();
+    return (refTimestamp != null) ? refTimestamp : ZonedDateTime.now(ZoneId.systemDefault());
   }
 
   public TransformResult(Path path, Revision currentRevision, Author author, String summary,

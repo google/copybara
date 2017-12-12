@@ -63,6 +63,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
@@ -1154,13 +1155,15 @@ public class WorkflowTest {
     Files.createDirectory(originPath.resolve("included"));
     Files.write(originPath.resolve("included/foo.txt"), "a".getBytes(UTF_8));
     origin.add().files("included/foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(),
+    origin.commit(
+        "Foo <foo@bara.com>",
+        ZonedDateTime.now(ZoneId.systemDefault()),
         "the baseline\n\n" + destination.getLabelNameWhenOrigin() + "=42");
 
     Files.createDirectory(originPath.resolve("excluded"));
     Files.write(originPath.resolve("excluded/foo.txt"), "a".getBytes(UTF_8));
     origin.add().files("excluded/foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "head change");
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "head change");
 
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage(
@@ -1546,16 +1549,17 @@ public class WorkflowTest {
 
     Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "not important");
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
     String firstCommit = origin.parseRef("HEAD");
 
     Files.write(destinationPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
     destination.add().files("foo.txt").run();
-    destination.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "not important");
+    destination.commit(
+        "Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
 
     Files.write(originPath.resolve("foo.txt"), "foo".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "change1");
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "change1");
 
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
@@ -1666,12 +1670,12 @@ public class WorkflowTest {
 
     Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "not important");
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
     String firstCommit = origin.parseRef("HEAD");
 
     Files.write(originPath.resolve("foo.txt"), "foo".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "change1");
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "change1");
 
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
@@ -1692,7 +1696,7 @@ public class WorkflowTest {
 
     Files.write(originPath.resolve("foo.txt"), "foo_origin_changed".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
-    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(), "change2");
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "change2");
 
     options.setForce(false);
     options.setLastRevision(null);
