@@ -39,7 +39,7 @@ public class ChangeInfo {
   @Key private String created;
   @Key private String updated;
   @Key private String submitted;
-  @Key private long number;
+  @Key("_number") private long number;
   @Key private AccountInfo owner;
   @Key private Map<String, LabelInfo> labels;
   @Key("current_revision") private String currentRevision;

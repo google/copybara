@@ -126,6 +126,7 @@ public class GerritApiTest {
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getId()).contains(CHANGE_ID);
     assertThat(changes.get(0).getStatus()).isEqualTo(NEW);
+    assertThat(changes.get(0).getNumber()).isEqualTo(1082);
   }
 
   @Test
@@ -157,6 +158,7 @@ public class GerritApiTest {
         new GetChangeInput(
             ImmutableSet.of(IncludeResult.CURRENT_REVISION, IncludeResult.CURRENT_COMMIT)));
     assertThat(change.getChangeId()).isEqualTo(CHANGE_ID);
+    assertThat(change.getNumber()).isEqualTo(1082);
     RevisionInfo revisionInfo = change.getAllRevisions().get(change.getCurrentRevision());
     assertThat(revisionInfo.getCommit().getMessage()).contains("JUST A TEST");
     assertThat(revisionInfo.getCommit().getMessage()).contains("Second line of description");
