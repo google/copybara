@@ -16,6 +16,8 @@
 
 package com.google.copybara.testing;
 
+import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -29,6 +31,7 @@ import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -45,7 +48,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
@@ -95,18 +97,16 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   public DummyOrigin singleFileChange(int timestamp, String message, String strPath, String content)
       throws IOException {
-     return addChange(timestamp, message, ImmutableMap.of(strPath, content));
-  }
-
-  public DummyOrigin addChange(int timestamp, String message, Map<String, String> pathToContent)
-      throws IOException {
     Path path = fs.getPath("" + changes.size());
     Files.createDirectories(path);
-    for (Entry<String, String> entry : pathToContent.entrySet()) {
-      Path writePath = path.resolve(entry.getKey());
-      Files.createDirectories(writePath.getParent());
-      Files.write(writePath, entry.getValue().getBytes(StandardCharsets.UTF_8));
+    if (changes.size() > 1) {
+      // Copy files from previous change folder to emulate history
+      Path previousChangePath = fs.getPath("" + (changes.size() - 1));
+      FileUtil.copyFilesRecursively(previousChangePath, path, FAIL_OUTSIDE_SYMLINKS);
     }
+    Path writePath = path.resolve(strPath);
+    Files.createDirectories(writePath.getParent());
+    Files.write(writePath, content.getBytes(StandardCharsets.UTF_8));
     addChange(timestamp, path, message, /*matchesGlob=*/true);
     return this;
   }

@@ -512,14 +512,9 @@ public class WorkflowTest {
   public void iterativeOnlyRunForMatchingOriginFiles() throws Exception {
     origin.singleFileChange(0, "base", "file.txt", "a");
     origin.singleFileChange(1, "one", "file.txt", "b");
-    origin.addChange(2, "two", ImmutableMap.of("excluded/two", "b",
-                                               "file.txt", "b"));
-    origin.addChange(3, "three", ImmutableMap.of("excluded/two", "b",
-                                                 "file.txt", "b",
-                                                 "copy.bara.sky", ""));
-    origin.addChange(4, "four", ImmutableMap.of("excluded/two", "b",
-                                                "file.txt", "c",
-                                                "copy.bara.sky", ""));
+    origin.singleFileChange(2, "two", "excluded/two", "b");
+    origin.singleFileChange(3, "three", "copy.bara.sky", "");
+    origin.singleFileChange(4, "four", "copy.bara.sky", "");
     transformations = ImmutableList.of();
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"0");
     workflow.run(workdir, /*sourceRef=*/HEAD);
@@ -1585,8 +1580,7 @@ public class WorkflowTest {
 
     origin.singleFileChange(0, "change1", "file.txt", "aaa");
     origin.singleFileChange(1, "change2", "file.txt", "bbb");
-    // This is to keep file.txt unchanged
-    origin.addChange(2, "change3", ImmutableMap.of("folder/foo.txt", "bar", "file.txt","bbb"));
+    origin.singleFileChange(2, "change3", "folder/foo.txt", "bar");
     origin.singleFileChange(3, "change4", "file.txt", "ccc");
 
     workflow.run(workdir, /*sourceRef=*/"1");
