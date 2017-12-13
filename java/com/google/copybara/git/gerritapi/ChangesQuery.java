@@ -17,6 +17,7 @@
 package com.google.copybara.git.gerritapi;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.UnsupportedEncodingException;
@@ -85,4 +86,13 @@ public class ChangesQuery {
     }
   }
 
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("query", query)
+        .add("include", include)
+        .add("limit", limit)
+        .add("start", start)
+        .toString();
+  }
 }
