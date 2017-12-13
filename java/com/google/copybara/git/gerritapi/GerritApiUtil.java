@@ -30,10 +30,9 @@ public final class GerritApiUtil {
    * Parse dates like "2014-12-21 17:30:08.000000000"
    */
   private static final DateTimeFormatter timestampFormat =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.n");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.n").withZone(ZoneOffset.UTC);
 
-  private GerritApiUtil() {
-  }
+  private GerritApiUtil() {}
 
   static ZonedDateTime parseTimestamp(String date) {
     return ZonedDateTime.ofInstant(timestampFormat.parse(date, Instant::from), ZoneOffset.UTC);

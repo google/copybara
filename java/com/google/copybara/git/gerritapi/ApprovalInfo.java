@@ -35,8 +35,7 @@ public class ApprovalInfo extends AccountInfo {
     return GerritApiUtil.parseTimestamp(date);
   }
 
-  public ApprovalInfo() {
-  }
+  public ApprovalInfo() {}
 
   @VisibleForTesting
   public ApprovalInfo(long accountId, String email, int value) {

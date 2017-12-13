@@ -21,6 +21,9 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.git.gerritapi.ChangeStatus.ABANDONED;
 import static com.google.copybara.git.gerritapi.ChangeStatus.NEW;
+import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_COMMIT;
+import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_REVISION;
+import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_LABELS;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -30,6 +33,7 @@ import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -42,6 +46,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -156,10 +161,11 @@ public class GerritApiTest {
     mockResponse(new CheckRequest("GET", "/changes/" + CHANGE_ID + "\\?o="), ""
         + ")]}'\n" + mockChangeInfo(NEW));
     ChangeInfo change = gerritApi.getChange(CHANGE_ID,
-        new GetChangeInput(
-            ImmutableSet.of(IncludeResult.CURRENT_REVISION, IncludeResult.CURRENT_COMMIT)));
+        new GetChangeInput(ImmutableSet.of(CURRENT_REVISION, CURRENT_COMMIT, DETAILED_LABELS)));
     assertThat(change.getChangeId()).isEqualTo(CHANGE_ID);
     assertThat(change.getNumber()).isEqualTo(1082);
+    assertThat(change.getUpdated().format(DateTimeFormatter.ISO_DATE_TIME))
+        .isEqualTo("2017-12-01T17:33:30Z");
     RevisionInfo revisionInfo = change.getAllRevisions().get(change.getCurrentRevision());
     assertThat(revisionInfo.getCommit().getMessage()).contains("JUST A TEST");
     assertThat(revisionInfo.getCommit().getMessage()).contains("Second line of description");
@@ -172,6 +178,12 @@ public class GerritApiTest {
     assertThat(messages).hasSize(1);
     ChangeMessageInfo message = Iterables.getOnlyElement(messages);
     assertThat(message.getMessage()).isEqualTo("Uploaded patch set 1.");
+
+    ImmutableMap<String, LabelInfo> labels = change.getLabels();
+    assertThat(labels).hasSize(1);
+    LabelInfo labelInfo = Iterables.getOnlyElement(labels.values());
+    assertThat(labelInfo.getAll().asList().get(0).getDate().format(DateTimeFormatter.ISO_DATE_TIME))
+        .isEqualTo("2017-01-01T12:00:00Z");
   }
 
   @Test
@@ -251,6 +263,37 @@ public class GerritApiTest {
         + "  \"owner\": {\n"
         + "    \"_account_id\": 12345\n"
         + "  },\n"
+        + "  \"labels\": {\n"
+        + "    \"Code-Review\": {\n"
+        + "      \"all\": [\n"
+        + "        {\n"
+        + "          \"value\": 2,\n"
+        + "          \"date\": \"2017-01-01 12:00:00.000000000\",\n"
+        + "          \"permitted_voting_range\": {\n"
+        + "            \"min\": 2,\n"
+        + "            \"max\": 2\n"
+        + "          },\n"
+        + "          \"_account_id\": 123456\n"
+        + "        },\n"
+        + "        {\n"
+        + "          \"value\": 0,\n"
+        + "          \"_account_id\": 123456\n"
+        + "        },\n"
+        + "        {\n"
+        + "          \"value\": 0,\n"
+        + "          \"_account_id\": 123456\n"
+        + "        }\n"
+        + "      ],\n"
+        + "      \"values\": {\n"
+        + "        \"-2\": \"Do not submit\",\n"
+        + "        \"-1\": \"I would prefer that you didn\\u0027t submit this\",\n"
+        + "        \" 0\": \"No score\",\n"
+        + "        \"+1\": \"Looks good to me, but someone else must approve\",\n"
+        + "        \"+2\": \"Looks good to me, approved\"\n"
+        + "      },\n"
+        + "      \"default_value\": 0\n"
+        + "    }\n"
+        + "},\n"
         + "  \"current_revision\": \"f33bd8687ae27c25254a21012b3c9b4a546db779\",\n"
         + "  \"revisions\": {\n"
         + "    \"f33bd8687ae27c25254a21012b3c9b4a546db779\": {\n"
