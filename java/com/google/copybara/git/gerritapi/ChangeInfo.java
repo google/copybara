@@ -20,8 +20,10 @@ import static com.google.copybara.git.gerritapi.GerritApiUtil.parseTimestamp;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,6 +44,7 @@ public class ChangeInfo {
   @Key("_number") private long number;
   @Key private AccountInfo owner;
   @Key private Map<String, LabelInfo> labels;
+  @Key private List<ChangeMessageInfo> messages;
   @Key("current_revision") private String currentRevision;
   @Key("revisions") private Map<String, RevisionInfo> allRevisions;
   @Key("_more_changes") private boolean moreChanges;
@@ -98,6 +101,10 @@ public class ChangeInfo {
     return ImmutableMap.copyOf(labels);
   }
 
+  public List<ChangeMessageInfo> getMessages() {
+    return ImmutableList.copyOf(messages);
+  }
+
   public String getCurrentRevision() {
     return currentRevision;
   }
@@ -126,6 +133,7 @@ public class ChangeInfo {
         .add("number", number)
         .add("owner", owner)
         .add("labels", labels)
+        .add("messages", messages)
         .add("currentRevision", currentRevision)
         .add("allRevisions", allRevisions)
         .add("moreChanges", moreChanges)
