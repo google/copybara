@@ -16,6 +16,7 @@
 
 package com.google.copybara.git.gerritapi;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.UnsupportedEncodingException;
@@ -61,7 +62,8 @@ public class ChangesQuery {
     return new ChangesQuery(query, ImmutableSet.copyOf(include), limit, start);
   }
 
-  String asUrlParams() {
+  @VisibleForTesting
+  public String asUrlParams() {
     StringBuilder sb = new StringBuilder("q=").append(escape(query));
     for (IncludeResult includeResult : include) {
       sb.append("&o=").append(includeResult);

@@ -17,6 +17,9 @@
 package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 
 /**
  * See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#revision-info
@@ -28,6 +31,7 @@ public class RevisionInfo {
   @Key private String created;
   @Key private AccountInfo uploader;
   @Key private String ref;
+  @Key private Map<String, FetchInfo> fetch;
   @Key private CommitInfo commit;
 
   public Kind getKind() {
@@ -50,6 +54,10 @@ public class RevisionInfo {
     return ref;
   }
 
+  public ImmutableMap<String, FetchInfo> getFetch() {
+    return ImmutableMap.copyOf(fetch);
+  }
+
   public CommitInfo getCommit() {
     return commit;
   }
@@ -59,5 +67,18 @@ public class RevisionInfo {
    */
   public enum Kind {
     REWORK, TRIVIAL_REBASE, MERGE_FIRST_PARENT_UPDATE, NO_CODE_CHANGE, NO_CHANGE
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("kind", kind)
+        .add("patchsetNumber", patchsetNumber)
+        .add("created", created)
+        .add("uploader", uploader)
+        .add("ref", ref)
+        .add("fetch", fetch)
+        .add("commit", commit)
+        .toString();
   }
 }

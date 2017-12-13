@@ -163,6 +163,10 @@ public class GerritApiTest {
     RevisionInfo revisionInfo = change.getAllRevisions().get(change.getCurrentRevision());
     assertThat(revisionInfo.getCommit().getMessage()).contains("JUST A TEST");
     assertThat(revisionInfo.getCommit().getMessage()).contains("Second line of description");
+    assertThat(revisionInfo.getFetch()).containsKey("https");
+    FetchInfo fetchInfo = revisionInfo.getFetch().get("https");
+    assertThat(fetchInfo.getUrl()).isEqualTo("https://foo.bar/copybara/test");
+    assertThat(fetchInfo.getRef()).isEqualTo("refs/changes/11/11111/1");
 
     List<ChangeMessageInfo> messages = change.getMessages();
     assertThat(messages).hasSize(1);
