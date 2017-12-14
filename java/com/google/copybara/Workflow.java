@@ -393,12 +393,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         .add("config_path", mainConfigFile.relativeToRoot())
         .add("workflow_name", this.name)
         .add("context_ref", ref);
-    // TODO(malcon): Replace with 'true' after 12-01-2017
-    if (!workflowOptions.workflowIdentityWithoutUser) {
-      helper.add("user", workflowOptions.workflowIdentityUser != null
-          ? workflowOptions.workflowIdentityUser
-          : StandardSystemProperty.USER_NAME.value());
-    }
+    helper.add("user", workflowOptions.workflowIdentityUser != null
+        ? workflowOptions.workflowIdentityUser
+        : StandardSystemProperty.USER_NAME.value());
     String identity = helper.toString();
     String hash = BaseEncoding.base16().encode(
         Hashing.md5()

@@ -81,11 +81,6 @@ public class WorkflowOptions implements Option {
           + " flag disables that behavior and runs for all the changes.")
   public boolean importNoopChanges = false;
 
-  // TODO(malcon): Remove this flag after 12-01-2017
-  @Parameter(names = {"--noworkflow-identity-user"},
-      description = "Don't use the current a user in change identity")
-  public boolean workflowIdentityWithoutUser = false;
-
   @Parameter(names = {"--workflow-identity-user"},
       description = "Use a custom string as a user for computing change identity")
   @Nullable

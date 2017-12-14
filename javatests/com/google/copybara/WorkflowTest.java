@@ -704,12 +704,6 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 1);
     String withUser = workflow().getMigrationIdentity(origin.resolve(HEAD));
 
-    options.workflowOptions.workflowIdentityWithoutUser = true;
-    String withoutUser = workflow().getMigrationIdentity(origin.resolve(HEAD));
-
-    assertThat(withUser).isNotEqualTo(withoutUser);
-
-    options.workflowOptions.workflowIdentityWithoutUser = false;
     options.workflowOptions.workflowIdentityUser = StandardSystemProperty.USER_NAME.value();
 
     assertThat(withUser).isEqualTo(workflow().getMigrationIdentity(origin.resolve(HEAD)));
@@ -719,7 +713,6 @@ public class WorkflowTest {
     String withOtherUser = workflow().getMigrationIdentity(origin.resolve(HEAD));
 
     assertThat(withOtherUser).isNotEqualTo(withUser);
-    assertThat(withOtherUser).isNotEqualTo(withoutUser);
   }
 
   @Test
