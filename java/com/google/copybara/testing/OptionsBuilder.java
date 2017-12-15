@@ -66,8 +66,7 @@ public class OptionsBuilder {
           /* disableReversibleCheck= */ false,
           /*force=*/ false, /*outputLimit*/ 0);
 
-  // TODO(team): Rename to folderDestination
-  public FolderDestinationOptions localDestination = new FolderDestinationOptions();
+  public FolderDestinationOptions folderDestination = new FolderDestinationOptions();
   public FolderOriginOptions folderOrigin = new FolderOriginOptions();
 
   public GitOptions git = new GitOptions(() -> general);
@@ -169,7 +168,7 @@ public class OptionsBuilder {
    */
   protected Iterable<Option> allOptions() {
     return ImmutableList
-        .of(general, localDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
+        .of(general, folderDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
             gitDestination, gitMirrorOptions, gerrit, github, githubDestination, workflowOptions,
             testingOptions);
   }

@@ -84,7 +84,7 @@ public class FolderDestinationTest {
     Files.write(workdir.resolve("file1.txt"), new byte[]{});
     Files.write(localFolder.resolve("file2.txt"), new byte[]{});
 
-    options.localDestination.localFolder = localFolder.toString();
+    options.folderDestination.localFolder = localFolder.toString();
 
     write();
 
@@ -105,7 +105,7 @@ public class FolderDestinationTest {
     Files.write(localFolder.resolve("one/file.java"), new byte[]{});
     Files.write(localFolder.resolve("two/file.java"), new byte[]{});
 
-    options.localDestination.localFolder = localFolder.toString();
+    options.folderDestination.localFolder = localFolder.toString();
     excludedPathsForDeletion = ImmutableList.of("root_file", "**\\.java");
 
     write();
