@@ -86,10 +86,9 @@ public class GitOriginTest {
   public void setup() throws Exception {
     options = new OptionsBuilder();
     console = new TestingConsole();
-    options = new OptionsBuilder().setConsole(console);
-
-    Path reposDir = Files.createTempDirectory("repos_repo");
-    options.git.repoStorage = reposDir.toString();
+    options = new OptionsBuilder()
+        .setConsole(console)
+        .setOutputRootToTmpDir();
 
     skylark = new SkylarkTestExecutor(options, GitModule.class);
     // Pass custom HOME directory so that we run an hermetic test and we

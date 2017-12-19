@@ -69,9 +69,6 @@ public class GitMirrorTest {
     originRepo.init();
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
 
-    Path reposDir = Files.createTempDirectory("repos_repo");
-    options.git.repoStorage = reposDir.toString();
-
     destRepo.init();
 
     skylark = new SkylarkTestExecutor(options, GitModule.class);

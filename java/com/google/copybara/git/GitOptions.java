@@ -37,11 +37,11 @@ public class GitOptions implements Option {
   private final Supplier<GeneralOptions> generalOptionsSupplier;
 
   // Not used by git.destination but it will be at some point to make fetches more efficient.
+  @Deprecated // TODO(danielromero): Remove after 1 release
   @Parameter(names = "--git-repo-storage",
       description = "Location of the storage path for git repositories. DEPRECATED",
-      // TODO(malcon): Deprecate this flag
       hidden = true)
-  String repoStorage;
+  private String repoStorageDEPRECATED;
 
   @Nullable
   public String getCredentialHelperStorePath() {
@@ -63,10 +63,10 @@ public class GitOptions implements Option {
   }
 
   private Path getRepoStorage() throws IOException {
-    if (repoStorage == null) {
+    if (repoStorageDEPRECATED == null) {
       return generalOptionsSupplier.get().getDirFactory().getCacheDir("git_repos");
     }
-    return Paths.get(repoStorage);
+    return Paths.get(repoStorageDEPRECATED);
   }
 
   public final GitRepository cachedBareRepoForUrl(String url) throws RepoException {

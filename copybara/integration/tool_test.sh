@@ -42,7 +42,7 @@ copybara_binary="${copybara_binary-"${TEST_SRCDIR}/copybara/java/com/google/copy
 
 function copybara() {
   $copybara_binary --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" \
-      --git-repo-storage "$repo_storage" \
+      --output-root "$repo_storage" \
       --work-dir "$workdir" > $TEST_log 2>&1 \
       && return
 

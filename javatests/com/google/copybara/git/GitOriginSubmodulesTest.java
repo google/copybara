@@ -60,10 +60,9 @@ public class GitOriginSubmodulesTest {
 
   @Before
   public void setup() throws Exception {
-    OptionsBuilder options = new OptionsBuilder().setConsole(new TestingConsole());
-
-    Path reposDir = Files.createTempDirectory("repos_repo");
-    options.git.repoStorage = reposDir.toString();
+    OptionsBuilder options = new OptionsBuilder()
+        .setConsole(new TestingConsole())
+        .setOutputRootToTmpDir();
 
     skylark = new SkylarkTestExecutor(options, GitModule.class);
     // Pass custom HOME directory so that we run an hermetic test and we

@@ -23,9 +23,6 @@
       --git-previous-ref
          Previous SHA-1 reference used for the migration.
          Default: <empty string>
-      --git-repo-storage
-         Location of the storage path for git repositories
-         Default: */.copybara/repos (glob)
       --help
          Shows this help text
          Default: false
