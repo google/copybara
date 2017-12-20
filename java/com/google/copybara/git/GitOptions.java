@@ -24,7 +24,6 @@ import com.google.copybara.Option;
 import com.google.copybara.RepoException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -35,13 +34,6 @@ import javax.annotation.Nullable;
 public class GitOptions implements Option {
 
   private final Supplier<GeneralOptions> generalOptionsSupplier;
-
-  // Not used by git.destination but it will be at some point to make fetches more efficient.
-  @Deprecated // TODO(danielromero): Remove after 1 release
-  @Parameter(names = "--git-repo-storage",
-      description = "Location of the storage path for git repositories. DEPRECATED",
-      hidden = true)
-  private String repoStorageDEPRECATED;
 
   @Nullable
   public String getCredentialHelperStorePath() {
@@ -63,10 +55,7 @@ public class GitOptions implements Option {
   }
 
   private Path getRepoStorage() throws IOException {
-    if (repoStorageDEPRECATED == null) {
-      return generalOptionsSupplier.get().getDirFactory().getCacheDir("git_repos");
-    }
-    return Paths.get(repoStorageDEPRECATED);
+    return generalOptionsSupplier.get().getDirFactory().getCacheDir("git_repos");
   }
 
   public final GitRepository cachedBareRepoForUrl(String url) throws RepoException {
