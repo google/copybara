@@ -115,6 +115,9 @@ public class GitRepository {
           + "|no such remote ref"
           // Gerrit when fetching
           + "|ERR want .+ not valid)");
+  private static final Pattern NO_GIT_REPOSITORY =
+      Pattern.compile("does not appear to be a git repository");
+
   /**
    * Label to be used for marking the original revision id (Git SHA-1) for migrated commits.
    */
@@ -303,6 +306,9 @@ public class GitRepository {
     if (output.getStderr().isEmpty()
         || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
       throw new CannotResolveRevisionException("Cannot find references: " + refspecs);
+    } else if (NO_GIT_REPOSITORY.matcher(output.getStderr()).find()){
+      throw new CannotResolveRevisionException(
+          String.format("Invalid Git repository: %s. Error: %s", url, output.getStderr()));
     } else {
       throw throwUnknownGitError(output, args);
     }

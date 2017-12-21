@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.FAKE_MERGE;
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.INCLUDE_FILES;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static org.junit.Assert.fail;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.common.base.Joiner;
@@ -470,9 +471,10 @@ public class GitDestinationIntegrateTest {
   public void testBadLabel() throws ValidationException, IOException, RepoException {
     try {
       runBadLabel(/*ignoreErrors=*/false);
-    } catch (RepoException e) {
+      fail();
+    } catch (ValidationException e) {
       assertThat(e.getMessage()
-      ).contains("Error executing 'git fetch file:///non_existent_repository");
+      ).contains("Error resolving file:///non_existent_repository");
     }
   }
 

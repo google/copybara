@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
@@ -68,12 +69,9 @@ public class GitRepositoryTest {
 
   private GitRepository repository;
   private Path workdir;
-  private OptionsBuilder options;
 
   @Before
   public void setup() throws Exception {
-    options = new OptionsBuilder()
-        .setOutputRootToTmpDir();
     workdir = Files.createTempDirectory("workdir");
     repository = GitRepository
         .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true)
@@ -437,6 +435,23 @@ public class GitRepositoryTest {
     assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
     assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/master");
     assertThat(result.getInserted()).isEmpty();
+  }
+
+  @Test
+  public void testFetchInvalidGitRepo() throws Exception {
+    GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
+        getGitEnv(), /*verbose=*/true);
+    dest.init();
+
+    Path notAGitRepo = Files.createTempDirectory("not_a_git_repo");
+    String fetchUrl = "file://" + notAGitRepo.toString();
+
+    try {
+      dest.fetch(fetchUrl, /*prune=*/ true, /*force=*/ true, ImmutableList.of("refs/*:refs/*"));
+      fail();
+    } catch (CannotResolveRevisionException expected) {
+      // Expected
+    }
   }
 
   @Test
