@@ -97,6 +97,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   }
 
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "glob",
       returnType = Glob.class,
@@ -148,6 +149,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "reverse", returnType = SkylarkList.class,
       doc = "Given a list of transformations, returns the list of transformations equivalent to"
           + " undoing all the transformations",
@@ -159,6 +161,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       objectType = Core.class, useLocation = true)
   public static final BuiltinFunction REVERSE =
       new BuiltinFunction("reverse") {
+        @SuppressWarnings("unused")
         public SkylarkList<Transformation> invoke(Core self, SkylarkList<Transformation> transforms,
             Location location)
             throws EvalException {
@@ -177,6 +180,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       };
 
   private static final String CHECK_LAST_REV_STATE = "check_last_rev_state";
+
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "workflow", returnType = NoneType.class,
       doc = "Defines a migration pipeline which can be invoked via the Copybara command.\n"
           + "\n"
@@ -469,6 +474,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "replace",
       returnType = Replace.class,
@@ -587,6 +593,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "todo_replace",
       returnType = TodoReplace.class,
@@ -665,6 +672,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "verify_match",
       returnType = VerifyMatch.class,
@@ -703,6 +711,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(
       name = "transform",
       returnType = Transformation.class,
@@ -735,6 +744,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       objectType = Core.class, useEnvironment = true)
   public static final BuiltinFunction TRANSFORM = new BuiltinFunction("transform",
       ImmutableList.of(Runtime.NONE, Boolean.FALSE)) {
+    @SuppressWarnings("unused")
     public Transformation invoke(Core self,
         SkylarkList<Transformation> transformations,
         Object reversal, Boolean ignoreNoop, Environment env) throws EvalException {
