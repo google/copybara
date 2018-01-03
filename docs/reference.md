@@ -837,7 +837,6 @@ Name | Type | Description
 --ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
 --squash-skip-history | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
 --import-noop-changes | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
---noworkflow-identity-user | *boolean* | Don't use the current a user in change identity
 --workflow-identity-user | *string* | Use a custom string as a user for computing change identity
 --check-last-rev-state | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 --dry-run | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
@@ -1284,8 +1283,9 @@ Defines a Git origin for Gerrit reviews.
 
 Implicit labels that can be used/exposed:
 
-  - GERRIT_CHANGE_NUMBER: The change number for the gerrit review.
-  - GERRIT_CHANGE_ID: The change id for the gerrit review.
+  - GERRIT_CHANGE_NUMBER: The change number for the Gerrit review.
+  - GERRIT_CHANGE_ID: The change id for the Gerrit review.
+  - GERRIT_CHANGE_DESCRIPTION: The description of the Gerrit review.
   - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
 
 
