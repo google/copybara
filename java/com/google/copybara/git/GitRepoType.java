@@ -133,7 +133,7 @@ public enum GitRepoType {
   @DocField(description = "A Gerrit code review repository")
   GERRIT {
 
-    private final Pattern URL = Pattern.compile("https?://.*?/([0-9]+)(?:/([0-9]+))?/?");
+    private final Pattern url = Pattern.compile("https?://.*?/([0-9]+)(?:/([0-9]+))?/?");
 
     @Override
     GitRevision resolveRef(
@@ -156,7 +156,7 @@ public enum GitRepoType {
         return resolveLatestPatchSet(repository, repoUrl, Integer.parseInt(ref), options);
       }
 
-      Matcher urlMatcher = URL.matcher(ref);
+      Matcher urlMatcher = url.matcher(ref);
       if (!urlMatcher.matches()) {
         return GIT.resolveRef(repository, repoUrl, ref, options);
       }
@@ -210,16 +210,23 @@ public enum GitRepoType {
       GitRevision metaRevision = repository.resolveReference("refs/gerrit/" + metaRef);
       String changeId = getChangeIdFromMeta(repository, metaRevision , metaRef);
       String changeNumber = Integer.toString(change);
+      String changeDescription = getDescriptionFromMeta(repository, metaRevision , metaRef);
       return new GitRevision(
           repository,
           gitRevision.getSha1(),
           gerritPatchSetAsReviewReference(patchSet),
           changeNumber,
-          ImmutableMap.of(GERRIT_CHANGE_NUMBER_LABEL, changeNumber,
-              GERRIT_CHANGE_ID_LABEL, changeId,
-              DEFAULT_INTEGRATE_LABEL,
-              new GerritIntegrateLabel(repository, generalOptions, repoUrl, change, patchSet,
-                  changeId).toString()), repoUrl);
+          ImmutableMap.<String, String>builder()
+              .put(GERRIT_CHANGE_NUMBER_LABEL, changeNumber)
+              .put(GERRIT_CHANGE_ID_LABEL, changeId)
+              .put(GERRIT_CHANGE_DESCRIPTION_LABEL, changeDescription)
+              .put(
+                  DEFAULT_INTEGRATE_LABEL,
+                  new GerritIntegrateLabel(
+                          repository, generalOptions, repoUrl, change, patchSet, changeId)
+                      .toString())
+              .build(),
+          repoUrl);
     }
 
     /**
@@ -228,12 +235,7 @@ public enum GitRepoType {
      */
     private String getChangeIdFromMeta(GitRepository repo, GitRevision metaRevision,
         String metaRef) throws RepoException {
-      List<ChangeMessage> changes = Lists.transform(repo.log(metaRevision.getSha1()).run(),
-          e -> ChangeMessage.parseMessage(e.getBody()));
-
-      if (changes.isEmpty()) {
-        throw new RepoException("Cannot find any PatchSet in " + metaRef);
-      }
+      List<ChangeMessage> changes = getChanges(repo, metaRevision, metaRef);
       String changeId = null;
       for (LabelFinder change : Iterables.getLast(changes).getLabels()) {
         if (change.isLabel() && change.getName().equals("Change-id")
@@ -248,6 +250,26 @@ public enum GitRepoType {
       }
 
       return changeId;
+    }
+
+    private String getDescriptionFromMeta(GitRepository repo, GitRevision metaRevision,
+        String metaRef) throws RepoException {
+      List<ChangeMessage> changes = getChanges(repo, metaRevision, metaRef);
+      return changes.get(0).getText();
+    }
+
+    /**
+     * Returns the list of {@link ChangeMessage}s. Guarantees that there is at least one change.
+     */
+    private List<ChangeMessage> getChanges(GitRepository repo, GitRevision metaRevision,
+        String metaRef) throws RepoException {
+      List<ChangeMessage> changes = Lists.transform(repo.log(metaRevision.getSha1()).run(),
+          e -> ChangeMessage.parseMessage(e.getBody()));
+
+      if (changes.isEmpty()) {
+        throw new RepoException("Cannot find any PatchSet in " + metaRef);
+      }
+      return changes;
     }
   };
 
@@ -286,6 +308,9 @@ public enum GitRepoType {
 
   public static final String GERRIT_CHANGE_NUMBER_LABEL = "GERRIT_CHANGE_NUMBER";
   public static final String GERRIT_CHANGE_ID_LABEL = "GERRIT_CHANGE_ID";
+  // TODO(danielromero): Implement (and refer from gerrit_origin documentation in GitModule)
+  public static final String GERRIT_CHANGE_URL_LABEL = "GERRIT_CHANGE_URL";
+  public static final String GERRIT_CHANGE_DESCRIPTION_LABEL = "GERRIT_CHANGE_DESCRIPTION";
 
   private static final Logger logger = Logger.getLogger(GitRepoType.class.getCanonicalName());
 

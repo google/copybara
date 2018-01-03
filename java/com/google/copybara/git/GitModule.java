@@ -19,6 +19,9 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.base.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
+import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
+import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH_SHA1;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
@@ -76,6 +79,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   private Options options;
   private ConfigFile<?> mainConfigFile;
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "origin", returnType = GitOrigin.class,
       doc = "Defines a standard Git origin. For Git specific origins use: `github_origin` or "
           + "`gerrit_origin`.<br><br>"
@@ -121,6 +125,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "integrate", returnType = GitIntegrateChanges.class,
       doc = "Integrate changes from a url present in the migrated change label.",
       parameters = {
@@ -216,15 +221,15 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "gerrit_origin", returnType = GitOrigin.class,
       doc = "Defines a Git origin for Gerrit reviews.\n"
           + "\n"
           + "Implicit labels that can be used/exposed:\n"
           + "\n"
-          + "  - " + GitRepoType.GERRIT_CHANGE_NUMBER_LABEL + ": The change number for the gerrit"
-          + " review.\n"
-          + "  - " + GitRepoType.GERRIT_CHANGE_ID_LABEL + ": The change id for the gerrit"
-          + " review.\n"
+          + "  - " + GERRIT_CHANGE_NUMBER_LABEL + ": The change number for the Gerrit review.\n"
+          + "  - " + GERRIT_CHANGE_ID_LABEL + ": The change id for the Gerrit review.\n"
+          + "  - " + GERRIT_CHANGE_DESCRIPTION_LABEL + ": The description of the Gerrit review.\n"
           + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
           + " integrate automatically in the reverse workflow.\n",
       parameters = {
@@ -265,6 +270,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "github_origin", returnType = GitOrigin.class,
       doc = "Defines a Git origin for a Github repository. This origin should be used for public"
           + " branches. Use " + GITHUB_PR_ORIGIN_NAME + " for importing Pull Requests.",
@@ -300,7 +306,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
-
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = GITHUB_PR_ORIGIN_NAME, returnType = GithubPROrigin.class,
       doc = "Defines a Git origin for Github pull requests.\n"
           + "\n"
@@ -362,6 +368,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "destination", returnType = GitDestination.class,
       doc = "Creates a commit in a git repository using the transformed worktree."
           + "<br><br>Given that Copybara doesn't ask for user/password in the console when"
@@ -416,7 +423,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
-
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "github_pr_destination", returnType = GithubPrDestination.class,
       doc = "Creates changes in a new branch in the destination, that can be then used for"
           + " creating a pull request. In the future the PR will be created automatically.",
@@ -474,6 +481,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     return null;
   }
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "gerrit_destination", returnType = GerritDestination.class,
       doc = "Creates a change in Gerrit using the transformed worktree. If this is used in "
           + "iterative mode, then each commit pushed in a single Copybara invocation will have the "

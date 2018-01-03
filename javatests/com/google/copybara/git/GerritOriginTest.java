@@ -18,6 +18,9 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
+import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
+import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
+import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -55,6 +58,9 @@ public class GerritOriginTest {
           AuthoringMappingMode.OVERWRITE,
           ImmutableSet.of());
   private static final String CHANGE_ID = "Id5287e977c0d840a6d84eb2c3c1841036c411890";
+  private static final String CHANGE_DESCRIPTION = "Create patch set 2\n"
+      + "\n"
+      + "Uploaded patch set 2.";
 
   private GitOrigin origin;
   private Path remote;
@@ -102,8 +108,9 @@ public class GerritOriginTest {
             GitRepoType.gerritPatchSetAsReviewReference(1),
             "12345",
             ImmutableMap.of(
-                GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",
-                GitRepoType.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
+                GERRIT_CHANGE_NUMBER_LABEL, "12345",
+                GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
+                GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,
                 DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 1 " + CHANGE_ID), url);
     git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
 
@@ -115,8 +122,9 @@ public class GerritOriginTest {
             GitRepoType.gerritPatchSetAsReviewReference(2),
             "12345",
             ImmutableMap.of(
-                GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",
-                GitRepoType.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
+                GERRIT_CHANGE_NUMBER_LABEL, "12345",
+                GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
+                GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,
                 DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 2 " + CHANGE_ID), url);
     git("update-ref", "refs/changes/45/12345/2", secondRevision.getSha1());
 
@@ -128,8 +136,9 @@ public class GerritOriginTest {
             GitRepoType.gerritPatchSetAsReviewReference(3),
             "12345",
             ImmutableMap.of(
-                GitRepoType.GERRIT_CHANGE_NUMBER_LABEL, "12345",
-                GitRepoType.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
+                GERRIT_CHANGE_NUMBER_LABEL, "12345",
+                GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
+                GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,
                 DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 3 " + CHANGE_ID), url);
     git("update-ref", "refs/changes/45/12345/3", thirdRevision.getSha1());
 
