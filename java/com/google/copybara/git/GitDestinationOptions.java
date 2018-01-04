@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 /**
@@ -138,7 +139,9 @@ public final class GitDestinationOptions implements Option {
   }
 
   private static boolean isGitRepoOrEmptyDir(Path path) throws IOException {
-    return Files.exists(path.resolve(".git")) || !Files.list(path).findAny().isPresent();
+    try (Stream<Path> stream = Files.list(path)) {
+      return Files.exists(path.resolve(".git")) || !stream.findAny().isPresent();
+    }
   }
 
 }

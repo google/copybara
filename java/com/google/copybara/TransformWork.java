@@ -41,6 +41,7 @@ import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 /**
@@ -128,11 +129,14 @@ public final class TransformWork {
     if (runnable instanceof Glob) {
       PathMatcher pathMatcher = ((Glob) runnable).relativeTo(checkoutDir);
 
-      return SkylarkList.createImmutable(Files.walk(checkoutDir)
-          .filter(Files::isRegularFile)
-          .filter(pathMatcher::matches)
-          .map(p -> new CheckoutPath(checkoutDir.relativize(p), checkoutDir))
-          .collect(Collectors.toList()));
+      try (Stream<Path> stream = Files.walk(checkoutDir)) {
+        return SkylarkList.createImmutable(
+            stream
+                .filter(Files::isRegularFile)
+                .filter(pathMatcher::matches)
+                .map(p -> new CheckoutPath(checkoutDir.relativize(p), checkoutDir))
+                .collect(Collectors.toList()));
+      }
     } else if (runnable instanceof Transformation) {
       // Works like Sequence. We keep always the latest transform work to allow
       // catching for two sequential replaces.

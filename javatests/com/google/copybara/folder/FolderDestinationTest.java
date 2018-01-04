@@ -32,6 +32,7 @@ import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -123,8 +124,11 @@ public class FolderDestinationTest {
 
     write();
 
-    Path outputPath = Iterables.getOnlyElement(
-        Files.newDirectoryStream(defaultRootPath.resolve("copybara/" + DirFactory.TMP)));
+    Path outputPath;
+    try (DirectoryStream<Path> stream =
+        Files.newDirectoryStream(defaultRootPath.resolve("copybara/" + DirFactory.TMP))) {
+      outputPath = Iterables.getOnlyElement(stream);
+    }
 
     assertThatPath(outputPath)
         .containsFiles("test.txt", "dir/file.txt")
