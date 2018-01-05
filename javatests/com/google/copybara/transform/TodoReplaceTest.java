@@ -16,8 +16,10 @@
 
 package com.google.copybara.transform;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
 import com.google.common.jimfs.Jimfs;
@@ -35,9 +37,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -47,9 +47,6 @@ public final class TodoReplaceTest {
   private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException {
@@ -80,8 +77,13 @@ public final class TodoReplaceTest {
   @Test
   public void testReversibleErrors() throws Exception {
     TodoReplace replace = todoReplace("mode = 'USE_DEFAULT', default = 'a'");
-    thrown.expect(NonReversibleValidationException.class);
-    replace.reverse();
+    try{
+      replace.reverse();
+      fail();
+    } catch (NonReversibleValidationException expected) {
+      // Exoected
+    }
+
   }
 
   @Test
@@ -90,8 +92,12 @@ public final class TodoReplaceTest {
     todoReplace("mapping = { 'aaa': 'foo', 'bbb' : 'bar'}").reverse().reverse();
 
     // But fails if not:
-    thrown.expect(NonReversibleValidationException.class);
-    todoReplace("mapping = { 'aaa': 'bar', 'bbb' : 'bar'}").reverse();
+    try{
+      todoReplace("mapping = { 'aaa': 'bar', 'bbb' : 'bar'}").reverse();
+      fail();
+    } catch (NonReversibleValidationException expected) {
+      // Exoected
+    }
   }
 
   @Test
@@ -147,9 +153,24 @@ public final class TodoReplaceTest {
 
     write("one.txt", "// TODO(bbb): Example\n");
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot find a mapping 'bbb' in 'TODO(bbb)' (/one.txt)");
-    run(replace);
+    try {
+      run(replace);
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage())
+          .contains("Cannot find a mapping 'bbb' in 'TODO(bbb)' (/one.txt)");
+    }
+
+    // Does not conform the pattern for users
+    write("one.txt", "// TODO(aaa foo/1234): Example\n");
+
+    try {
+      run(replace);
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage())
+          .contains("Unexpected 'aaa foo/1234' doesn't match expected format");
+    }
   }
 
   @Test
@@ -161,9 +182,15 @@ public final class TodoReplaceTest {
 
     write("one.txt", "// TODO(aaa, nonExistent): Example\n");
     run(replace);
-
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO(foo, TEST): Example\n")
+        .containsNoMoreFiles();
+
+    // Does not conform the pattern, will be replaced by the default anyway
+    write("one.txt", "// TODO(aaa foo/1234, nonExistent): Example\n");
+    run(replace);
+    assertThatPath(checkoutDir)
+        .containsFile("one.txt", "// TODO( TEST): Example\n")
         .containsNoMoreFiles();
   }
 
@@ -190,7 +217,13 @@ public final class TodoReplaceTest {
 
     write("one.txt", "// TODO(bbb, ccc): Example\n");
     run(replace);
+    assertThatPath(checkoutDir)
+        .containsFile("one.txt", "// TODO(TEST): Example\n")
+        .containsNoMoreFiles();
 
+    // Does not conform the pattern, will be replaced by default anyway
+    write("one.txt", "// TODO(bbb, ccc foo/1234): Example\n");
+    run(replace);
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO(TEST): Example\n")
         .containsNoMoreFiles();
@@ -203,7 +236,13 @@ public final class TodoReplaceTest {
 
     write("one.txt", "// TODO(aaa, bbb): Example\n");
     run(replace);
+    assertThatPath(checkoutDir)
+        .containsFile("one.txt", "// TODO: Example\n")
+        .containsNoMoreFiles();
 
+    // Does not conform the pattern, will be scrubbed anyway
+    write("one.txt", "// TODO(aaa, bbb foo/1234): Example\n");
+    run(replace);
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO: Example\n")
         .containsNoMoreFiles();

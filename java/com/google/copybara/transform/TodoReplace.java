@@ -34,6 +34,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -93,10 +94,11 @@ public class TodoReplace implements Transformation {
     work.getTreeState().notifyModify(
         Iterables.concat(
             parallelizer.run(
-                work.getTreeState().find(glob.relativeTo(work.getCheckoutDir())), this::run)));
+                work.getTreeState().find(glob.relativeTo(work.getCheckoutDir())),
+                files -> run(files, work.getConsole()))));
   }
 
-  private Set<FileState> run(Iterable<FileState> files) throws IOException, ValidationException {
+  private Set<FileState> run(Iterable<FileState> files, Console console) throws IOException, ValidationException {
     Set<FileState> modifiedFiles = new HashSet<>();
     // TODO(malcon): Remove reconstructing pattern once RE2J doesn't synchronize on matching.
     Pattern batchPattern = Pattern.compile(pattern.pattern(), pattern.flags());
@@ -110,7 +112,7 @@ public class TodoReplace implements Transformation {
       boolean modified = false;
       while (matcher.find()) {
         List<String> users = Splitter.on(",").splitToList(matcher.group(2));
-        List<String> mappedUsers = mapUsers(users, matcher.group(0), file.getPath());
+        List<String> mappedUsers = mapUsers(users, matcher.group(0), file.getPath(), console);
         modified |= !users.equals(mappedUsers);
         String result = matcher.group(1);
         if (!mappedUsers.isEmpty()) {
@@ -128,14 +130,22 @@ public class TodoReplace implements Transformation {
     return modifiedFiles;
   }
 
-  private List<String> mapUsers(List<String> users, String rawText, Path path)
+  private List<String> mapUsers(List<String> users, String rawText, Path path, Console console)
       throws ValidationException {
-    Set<String> alreadAdded = new HashSet<>();
+    Set<String> alreadyAdded = new HashSet<>();
     List<String> result = new ArrayList<>();
     for (String rawUser : users) {
       Matcher matcher = SINGLE_USER_PATTERN.matcher(rawUser);
-      // Regex is pretty lax. It should match.
-      Preconditions.checkState(matcher.matches(), rawUser);
+      // Throw VE if the pattern doesn't match and mode is MAP_OR_FAIL
+      if (!matcher.matches()) {
+        if (mode == Mode.MAP_OR_FAIL) {
+          throw new ValidationException(String.format(
+              "Unexpected '%s' doesn't match expected format", rawUser));
+        } else {
+          console.warnFmt("Skipping '%s' that doesn't match expected format", rawUser);
+          continue;
+        }
+      }
       String prefix = matcher.group(1);
       String originUser = matcher.group(2);
       String suffix = matcher.group(3);
@@ -146,20 +156,20 @@ public class TodoReplace implements Transformation {
           // fall through
         case MAP_OR_IGNORE:
           String destUser = mapping.getOrDefault(originUser, originUser);
-          if (alreadAdded.add(destUser)) {
+          if (alreadyAdded.add(destUser)) {
             result.add(prefix + destUser + suffix);
           }
           break;
         case MAP_OR_DEFAULT:
           destUser = mapping.getOrDefault(originUser, defaultString);
-          if (alreadAdded.add(destUser)) {
+          if (alreadyAdded.add(destUser)) {
             result.add(prefix + destUser + suffix);
           }
           break;
         case SCRUB_NAMES:
           break;
         case USE_DEFAULT:
-          if (alreadAdded.add(defaultString)) {
+          if (alreadyAdded.add(defaultString)) {
             result.add(prefix + defaultString + suffix);
           }
           break;
