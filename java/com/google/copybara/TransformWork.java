@@ -40,6 +40,8 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -59,6 +61,10 @@ import javax.annotation.Nullable;
 public final class TransformWork {
 
   static final String COPYBARA_CONTEXT_REFERENCE_LABEL = "COPYBARA_CONTEXT_REFERENCE";
+  static final String COPYBARA_LAST_REV = "COPYBARA_LAST_REV";
+  static final String COPYBARA_CURRENT_REV = "COPYBARA_CURRENT_REV";
+  static final String COPYBARA_CURRENT_MESSAGE = "COPYBARA_CURRENT_MESSAGE";
+  static final String COPYBARA_CURRENT_MESSAGE_TITLE = "COPYBARA_CURRENT_MESSAGE_TITLE";
 
   private final Path checkoutDir;
   private Metadata metadata;
@@ -68,17 +74,20 @@ public final class TransformWork {
   private final Revision resolvedReference;
   private final TreeState treeState;
   private final boolean insideExplicitTransform;
+  @Nullable
+  private Revision lastRev;
   private TransformWork skylarkTransformWork;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference) {
     this(checkoutDir, metadata, changes, console, migrationInfo, resolvedReference,
-        new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/ false);
+        new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/ false,
+        /*lastRev=*/null);
   }
 
-  public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
+  private TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState,
-      boolean insideExplicitTransform) {
+      boolean insideExplicitTransform, @Nullable Revision lastRev) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
@@ -87,6 +96,7 @@ public final class TransformWork {
     this.resolvedReference = Preconditions.checkNotNull(resolvedReference);
     this.treeState = treeState;
     this.insideExplicitTransform = insideExplicitTransform;
+    this.lastRev = lastRev;
     this.skylarkTransformWork = this;
   }
 
@@ -253,11 +263,9 @@ public final class TransformWork {
   }
 
   private SkylarkList<String> findLabelValues(String label, boolean all) {
-    if (label.equals(COPYBARA_CONTEXT_REFERENCE_LABEL)) {
-      String ctxRef = resolvedReference.contextReference();
-      return SkylarkList.createImmutable(ctxRef == null
-          ? ImmutableList.of()
-          : ImmutableList.of(ctxRef));
+    Map<String, ImmutableList<String>> coreLabels = getCoreLabels();
+    if (coreLabels.containsKey(label)) {
+      return SkylarkList.createImmutable(coreLabels.get(label));
     }
     ArrayList<String> result = new ArrayList<>();
     ImmutableList<LabelFinder> msgLabel = getLabelInMessage(label);
@@ -341,27 +349,33 @@ public final class TransformWork {
   public TransformWork withUpdatedTreeState() {
     return new TransformWork(checkoutDir, metadata, changes, console,
         migrationInfo, resolvedReference, treeState.newTreeState(),
-        insideExplicitTransform);
+        insideExplicitTransform, lastRev);
   }
 
   @VisibleForTesting
   public TransformWork withChanges(Changes changes) {
     Preconditions.checkNotNull(changes);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-        resolvedReference, treeState, insideExplicitTransform);
+        resolvedReference, treeState, insideExplicitTransform, lastRev);
+  }
+
+  @VisibleForTesting
+  public TransformWork withLastRev(@Nullable Revision previousRef) {
+    return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
+        resolvedReference, treeState, insideExplicitTransform, previousRef);
   }
 
   @VisibleForTesting
   public TransformWork withResolvedReference(Revision resolvedReference) {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-        resolvedReference, treeState, insideExplicitTransform);
+        resolvedReference, treeState, insideExplicitTransform, lastRev);
   }
 
   public TransformWork insideExplicitTransform() {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-        resolvedReference, treeState, /*insideExplicitTransform=*/true);
+        resolvedReference, treeState, /*insideExplicitTransform=*/true, lastRev);
   }
 
   /**
@@ -373,5 +387,37 @@ public final class TransformWork {
 
   public TreeState getTreeState() {
     return treeState;
+  }
+
+  /**
+   * Return the map of internal core labels.
+   *
+   * <p/> We use a Map instead of Multimap so that we can differentiate the label exists but
+   * we don't have a value.
+   */
+  private Map<String, ImmutableList<String>> getCoreLabels() {
+    Map<String, ImmutableList<String>> labels = new HashMap<>();
+    String ctxRef = resolvedReference.contextReference();
+    labels.put(COPYBARA_CONTEXT_REFERENCE_LABEL, ctxRef == null
+        ? ImmutableList.of()
+        : ImmutableList.of(ctxRef));
+
+    labels.put(COPYBARA_LAST_REV, lastRev == null
+        ? ImmutableList.of()
+        // Skip anything after space in the revision, since we might include metadata like
+        // snapshot number, etc. that is subject to change.
+        : ImmutableList.of(lastRev.asString().replaceAll(" .*", "")));
+
+    labels.put(COPYBARA_CURRENT_REV, changes.getCurrent().isEmpty()
+        ? ImmutableList.of()
+        // Skip anything after space in the revision, since we might include metadata like
+        // snapshot number, etc. that is subject to change.
+        : ImmutableList.of(
+            changes.getCurrent().get(0).getRevision().asString().replaceAll(" .*", "")));
+
+    labels.put(COPYBARA_CURRENT_MESSAGE, ImmutableList.of(getMessage()));
+    labels.put(COPYBARA_CURRENT_MESSAGE_TITLE,
+        ImmutableList.of(Change.extractFirstLine(metadata.getMessage())));
+    return labels;
   }
 }

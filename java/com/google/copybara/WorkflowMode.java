@@ -50,9 +50,9 @@ public enum WorkflowMode {
         throws RepoException, IOException, ValidationException {
       ImmutableList<Change<O>> detectedChanges = ImmutableList.of();
       O current = runHelper.getResolvedRef();
-
+      O lastRev = null;
       if (isHistorySupported(runHelper)) {
-        O lastRev = maybeGetLastRev(runHelper);
+        lastRev = maybeGetLastRev(runHelper);
         detectedChanges = runHelper.getChanges(lastRev, current);
         if (detectedChanges.isEmpty()) {
           manageNoChangesDetectedForSquash(runHelper, current, lastRev);
@@ -86,6 +86,7 @@ public enum WorkflowMode {
 
       helperForChanges.migrate(
               current,
+              lastRev,
               runHelper.getConsole(),
               metadata,
               // Squash notes an Skylark API expect last commit to be the first one.
@@ -103,7 +104,8 @@ public enum WorkflowMode {
     @Override
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
-      ImmutableList<Change<O>> changes = runHelper.changesSinceLastImport();
+      O lastRev = runHelper.getLastRev();
+      ImmutableList<Change<O>> changes = runHelper.getChanges(lastRev, runHelper.getResolvedRef());
       if (changes.isEmpty()) {
         throw new EmptyChangeException(
             "No new changes to import for resolved ref: " + runHelper.getResolvedRef().asString());
@@ -137,6 +139,7 @@ public enum WorkflowMode {
           }
           result = currentHelper.migrate(
                       change.getRevision(),
+                      lastRev,
                       new ProgressPrefixConsole(prefix, runHelper.getConsole()),
                       new Metadata(change.getMessage(), change.getAuthor()),
                       new Changes(current, migrated),
@@ -225,6 +228,7 @@ public enum WorkflowMode {
           .forChanges(changes)
           .migrate(
               runHelper.getResolvedRef(),
+              /*lastRev=*/null,
               runHelper.getConsole(),
               // Use latest change as the message/author. If it contains multiple changes the user
               // can always use metadata.squash_notes or similar.

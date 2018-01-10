@@ -495,6 +495,63 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testReplaceMessageLastRevCurrentRev() throws Exception {
+    options.setForce(true);
+    String transform =
+        "metadata.replace_message('Changes: ${COPYBARA_LAST_REV}..${COPYBARA_CURRENT_REV}\\n')";
+
+    origin.addSimpleChange(3, "A change\n");
+
+    createWorkflow(WorkflowMode.SQUASH, transform).run(workdir, /*sourceRef=*/null);
+
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+        .isEqualTo("Changes: 0..3\n");
+
+    origin.addSimpleChange(4, "Another change\n");
+
+    options.setForce(false);
+    options.setLastRevision(null);
+
+    createWorkflow(WorkflowMode.SQUASH, transform).run(workdir, /*sourceRef=*/null);
+
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+        .isEqualTo("Changes: 3..4\n");
+  }
+
+  @Test
+  public void testReplaceMessageLastRevNotPresent() throws Exception {
+    options.setForce(true);
+    options.setLastRevision(null);
+
+    try {
+      createWorkflow(WorkflowMode.SQUASH, "metadata.replace_message('${COPYBARA_LAST_REV}\\n')")
+          .run(workdir, /*sourceRef=*/null);
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("Cannot find label 'COPYBARA_LAST_REV' in message");
+    }
+  }
+
+  @Test
+  public void testReplaceCurrentMessage() throws Exception {
+    options.setForce(true);
+
+    createWorkflow(WorkflowMode.SQUASH,
+        "metadata.replace_message('foo\\n\\nbar\\nbaz\\n')",
+        "metadata.replace_message('Message: ${COPYBARA_CURRENT_MESSAGE_TITLE}\\n"
+            + "<${COPYBARA_CURRENT_MESSAGE}>')")
+        .run(workdir, /*sourceRef=*/null);
+
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+        .isEqualTo("Message: foo\n"
+            + "<foo\n"
+            + "\n"
+            + "bar\n"
+            + "baz\n"
+            + ">");
+  }
+
+  @Test
   public void testAddHeader_noNewLine() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
 

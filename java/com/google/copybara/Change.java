@@ -162,6 +162,10 @@ public final class Change<R extends Revision> {
   @SkylarkCallable(name = "first_line_message", doc = "The message of the change"
       , structField = true)
   public String firstLineMessage() {
+    return extractFirstLine(message);
+  }
+
+  static String extractFirstLine(String message) {
     int idx = message.indexOf('\n');
     return idx == -1 ? message : message.substring(0, idx);
   }

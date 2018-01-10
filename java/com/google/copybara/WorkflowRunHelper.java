@@ -174,7 +174,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
       try {
         workflow.getGeneralOptions().ioRepoTask("migrate", () ->
-            helper.migrate(lastRev,
+            // We pass lastRev as the lastRev. This is not correct but we cannot know the previous
+            // rev of the last rev. Furthermore, this should only be used for generating messages,
+            // so users shouldn't care about the value (but they might care about its presence, so
+            // it cannot be null.
+            helper.migrate(lastRev, lastRev,
                 new ProgressPrefixConsole("Validating last migration: ", helper.getConsole()),
                 metadata == null ? new Metadata(change.getMessage(), change.getAuthor()) : metadata,
                 changes,
@@ -196,15 +200,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * exactly once.
    *
    * @param rev revision to the version which will be written to the destination
-   * @param processConsole console to use to print progress messages
+   * @param lastRev last revision that was migrated
+   *@param processConsole console to use to print progress messages
    * @param metadata metadata of the change to be migrated
    * @param changes changes included in this migration
    * @param destinationBaseline it not null, use this baseline in the destination
    * @param changeIdentity if not null, an identifier that destination can use to reuse an
-   * existing destination entity (code review for example).
-   * @return The result of this migration
+* existing destination entity (code review for example).      @return The result of this migration
    */
-  WriterResult migrate(O rev, Console processConsole,
+  WriterResult migrate(O rev, @Nullable O lastRev, Console processConsole,
       Metadata metadata, Changes changes, @Nullable String destinationBaseline,
       @Nullable String changeIdentity)
       throws IOException, RepoException, ValidationException {
@@ -253,7 +257,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             changes,
             workflow.getConsole(),
             new MigrationInfo(workflow.getOrigin().getLabelName(), getDestinationVisitor()),
-            resolvedRef);
+            resolvedRef)
+        .withLastRev(lastRev);
     try (ProfilerTask ignored = profiler().start("transforms")) {
       workflow.getTransformation().transform(transformWork);
     }
@@ -323,11 +328,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   }
 
 
-  ImmutableList<Change<O>> changesSinceLastImport() throws RepoException, ValidationException {
-    return getChanges(getLastRev(), resolvedRef);
-  }
-
-  
   ImmutableList<Change<O>> getChanges(@Nullable O from, O to)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler().start("get_changes")) {
