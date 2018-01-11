@@ -22,9 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.copybara.Change;
+import com.google.copybara.Changes;
 import com.google.copybara.Config;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.RepoException;
@@ -49,6 +53,8 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -134,6 +140,78 @@ public class MetadataModuleTest {
             + "  - 1 second commit by Foo Bar <foo@bar.com>\n"
             + "  - 2 third commit by Foo Baz <foo@baz.com>\n");
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
+  public void testSquashNotesWithMerge() throws Exception {
+    Changes changes = new Changes(
+        ImmutableList.of(
+            new Change<>(new DummyRevision("3"), ORIGINAL_AUTHOR, "merge", fakeDate(),
+                ImmutableMultimap.of(),/*changeFiles=*/null, /*merge=*/true),
+            new Change<>(new DummyRevision("2"), ORIGINAL_AUTHOR, "change2", fakeDate(),
+                ImmutableMap.of()),
+            new Change<>(new DummyRevision("1"), ORIGINAL_AUTHOR, "change1", fakeDate(),
+                ImmutableMap.of())
+        ),
+        ImmutableList.of()
+    );
+    TransformWork work = TransformWorks.of(workdir, "the message", testingConsole)
+        .withChanges(changes);
+
+    // The default is to use merges, since git.origin does --first-parent by default
+    skylarkExecutor.<MetadataSquashNotes>eval("s", "s = metadata.squash_notes()").transform(work);
+
+    assertThat(work.getMessage()).isEqualTo("Copybara import of the project:\n"
+        + "\n"
+        + "  - 3 merge by Foo Bar <foo@bar.com>\n"
+        + "  - 2 change2 by Foo Bar <foo@bar.com>\n"
+        + "  - 1 change1 by Foo Bar <foo@bar.com>\n");
+
+    work = TransformWorks.of(workdir, "the message", testingConsole)
+        .withChanges(changes);
+
+    skylarkExecutor.<MetadataSquashNotes>eval("s", "s = metadata.squash_notes(use_merge = False)")
+        .transform(work);
+
+    assertThat(work.getMessage()).isEqualTo("Copybara import of the project:\n"
+        + "\n"
+        + "  - 2 change2 by Foo Bar <foo@bar.com>\n"
+        + "  - 1 change1 by Foo Bar <foo@bar.com>\n");
+  }
+
+  @Test
+  public void testLastMessageWithMerge() throws Exception {
+    Changes changes = new Changes(
+        ImmutableList.of(
+            new Change<>(new DummyRevision("3"), ORIGINAL_AUTHOR, "merge", fakeDate(),
+                ImmutableMultimap.of(),/*changeFiles=*/null, /*merge=*/true),
+            new Change<>(new DummyRevision("2"), ORIGINAL_AUTHOR, "change2", fakeDate(),
+                ImmutableMap.of()),
+            new Change<>(new DummyRevision("1"), ORIGINAL_AUTHOR, "change1", fakeDate(),
+                ImmutableMap.of())
+        ),
+        ImmutableList.of()
+    );
+    TransformWork work = TransformWorks.of(workdir, "the message", testingConsole)
+        .withChanges(changes);
+
+    // The default is to use merges, since git.origin does --first-parent by default
+    skylarkExecutor.<UseLastChange>eval("s", "s = metadata.use_last_change()")
+        .transform(work);
+
+    assertThat(work.getMessage()).isEqualTo("merge");
+
+    work = TransformWorks.of(workdir, "the message", testingConsole)
+        .withChanges(changes);
+
+    skylarkExecutor.<UseLastChange>eval("s", "s = metadata.use_last_change(use_merge = False)")
+        .transform(work);
+
+    assertThat(work.getMessage()).isEqualTo("change2");
+  }
+
+  private ZonedDateTime fakeDate() {
+    return ZonedDateTime.now(ZoneId.systemDefault());
   }
 
   @Test

@@ -86,7 +86,7 @@ public class MetadataModule {
               defaultValue = "False"),
           @Param(name = "use_merge", type = Boolean.class,
               doc = "If true then merge changes are included in the squash notes",
-              defaultValue = "False", positional = false),
+              defaultValue = "True", positional = false),
       }, objectType = MetadataModule.class, useLocation = true)
   @Example(title = "Simple usage",
       before = "'Squash notes' default is to print one line per change with information about"
@@ -246,7 +246,7 @@ public class MetadataModule {
               noneable = true, defaultValue = "None", positional = false),
           @Param(name = "use_merge", type = Boolean.class,
               doc = "If true then merge changes are taken into account for looking for the last"
-                  + " change.", defaultValue = "False", positional = false),
+                  + " change.", defaultValue = "True", positional = false),
       }, objectType = MetadataModule.class, useLocation = true)
   static final BuiltinFunction USE_LAST_CHANGE = new BuiltinFunction("use_last_change") {
     public Transformation invoke(MetadataModule self, Boolean useAuthor, Boolean useMsg,
