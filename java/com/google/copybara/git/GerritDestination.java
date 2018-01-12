@@ -226,6 +226,7 @@ public final class GerritDestination implements Destination<GitRevision> {
             fetch,
             push,
             destinationOptions,
+            options.get(GitOptions.class),
             generalOptions,
             /*skipPush=*/ false,
             new CommitGenerator(gerritOptions,

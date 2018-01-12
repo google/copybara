@@ -28,6 +28,8 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
+import com.google.copybara.ChangeVisitable.ChangesVisitor;
+import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -35,6 +37,7 @@ import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.git.ChangeReader.Builder;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
@@ -124,7 +127,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final GeneralOptions generalOptions;
     private final boolean includeBranchCommitLogs;
     private final SubmoduleStrategy submoduleStrategy;
-    private boolean firstParent;
+    private final boolean firstParent;
     private String url;
 
     ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
@@ -310,37 +313,45 @@ public class GitOrigin implements Origin<GitRevision> {
     @Override
     public void visitChanges(GitRevision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
-      ChangeReader.Builder queryChanges = changeReaderBuilder(repoUrl)
-          .setFirstParent(firstParent);
+      ChangeReader.Builder queryChanges = changeReaderBuilder(repoUrl).setFirstParent(firstParent);
 
-      int skip = 0;
-      boolean finished = false;
-      try (ProfilerTask ignore = generalOptions.profiler().start("origin/visit_changes")) {
-        while (!finished) {
-          ImmutableList<GitChange> result;
-          try (ProfilerTask ignore2 = generalOptions.profiler().start(
-              "git_log_" + skip + "_" + gitOriginOptions.visitChangePageSize)) {
-            result = queryChanges.setSkip(skip)
-                .setLimit(gitOriginOptions.visitChangePageSize)
-                .build()
-                .run(start.asString())
-                .reverse();
-          }
-          if (result.isEmpty()) {
+      GitOrigin.visitChanges(start, visitor, queryChanges, generalOptions, "origin",
+                   gitOptions.visitChangePageSize);
+    }
+  }
+
+  public static void visitChanges(GitRevision start, ChangesVisitor visitor,
+      ChangeReader.Builder queryChanges, GeneralOptions generalOptions, final String type,
+      int visitChangePageSize)
+      throws RepoException, CannotResolveRevisionException {
+    Preconditions.checkNotNull(start);
+    int skip = 0;
+    boolean finished = false;
+    try (ProfilerTask ignore = generalOptions.profiler().start(type + "/visit_changes")) {
+      while (!finished) {
+        ImmutableList<GitChange> result;
+        try (ProfilerTask ignore2 = generalOptions.profiler().start(
+            "git_log_" + skip + "_" + visitChangePageSize)) {
+          result = queryChanges.setSkip(skip)
+              .setLimit(visitChangePageSize)
+              .build()
+              .run(start.asString())
+              .reverse();
+        }
+        if (result.isEmpty()) {
+          break;
+        }
+        skip += result.size();
+        for (GitChange current : result) {
+          if (visitor.visit(current.getChange()) == VisitResult.TERMINATE) {
+            finished = true;
             break;
-          }
-          skip += result.size();
-          for (GitChange current : result) {
-            if (visitor.visit(current.getChange()) == VisitResult.TERMINATE) {
-              finished = true;
-              break;
-            }
           }
         }
       }
-      if (skip == 0) {
-        throw new CannotResolveRevisionException("Cannot resolve reference " + start.asString());
-      }
+    }
+    if (skip == 0) {
+      throw new CannotResolveRevisionException("Cannot resolve reference " + start.getSha1());
     }
   }
 

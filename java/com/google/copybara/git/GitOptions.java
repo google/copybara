@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.RepoException;
+import com.google.copybara.jcommander.GreaterThanZeroValidator;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.function.Supplier;
@@ -49,6 +50,12 @@ public class GitOptions implements Option {
       description = "Disable using credentials store. See "
           + "https://git-scm.com/docs/git-credential-store")
   boolean noCredentialHelperStore = false;
+
+
+  @Parameter(names = "--git-visit-changes-page-size",
+      description = "Size of the git log page used for visiting changes.", hidden = true,
+      validateWith = GreaterThanZeroValidator.class)
+  int visitChangePageSize = 200;
 
   public GitOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
     this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);

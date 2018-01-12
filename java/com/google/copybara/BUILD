@@ -130,6 +130,7 @@ java_library(
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config/base",
         "//java/com/google/copybara/doc:annotations",
+        "//java/com/google/copybara/jcommander:validators",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/util",

@@ -39,7 +39,6 @@ import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
-import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -97,6 +96,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private final String fetch;
   private final String push;
   private final GitDestinationOptions destinationOptions;
+  private final GitOptions gitOptions;
   private final GeneralOptions generalOptions;
   // Whether the skip_push flag is set in copy.bara.sky
   private final boolean skipPush;
@@ -113,6 +113,7 @@ public final class GitDestination implements Destination<GitRevision> {
       String fetch,
       String push,
       GitDestinationOptions destinationOptions,
+      GitOptions gitOptions,
       GeneralOptions generalOptions,
       boolean skipPush,
       CommitGenerator commitGenerator,
@@ -122,7 +123,8 @@ public final class GitDestination implements Destination<GitRevision> {
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
     this.destinationOptions = checkNotNull(destinationOptions);
-    this.generalOptions = generalOptions;
+    this.gitOptions = Preconditions.checkNotNull(gitOptions);
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.skipPush = skipPush;
     this.integrates = Preconditions.checkNotNull(integrates);
     this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
@@ -170,11 +172,12 @@ public final class GitDestination implements Destination<GitRevision> {
     }
 
     return new WriterImpl<>(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
-        generalOptions, commitGenerator, processPushOutput,
-        state, destinationOptions.nonFastForwardPush, integrates,
-        destinationOptions.lastRevFirstParent, destinationOptions.ignoreIntegrationErrors,
-        destinationOptions.localRepoPath, destinationOptions.committerName,
-        destinationOptions.committerEmail, destinationOptions.rebaseWhenBaseline());
+                            generalOptions, commitGenerator, processPushOutput,
+                            state, destinationOptions.nonFastForwardPush, integrates,
+                            destinationOptions.lastRevFirstParent, destinationOptions.ignoreIntegrationErrors,
+                            destinationOptions.localRepoPath, destinationOptions.committerName,
+                            destinationOptions.committerEmail, destinationOptions.rebaseWhenBaseline(),
+                            gitOptions.visitChangePageSize);
   }
 
   /**
@@ -214,12 +217,13 @@ public final class GitDestination implements Destination<GitRevision> {
     // We could get it from destinationOptions but this is in preparation of a GH PR destination.
     private final boolean nonFastForwardPush;
     private final Iterable<GitIntegrateChanges> integrates;
-    private boolean lastRevFirstParent;
-    private boolean ignoreIntegrationErrors;
-    private String localRepoPath;
-    private String committerName;
-    private String committerEmail;
-    private boolean rebase;
+    private final boolean lastRevFirstParent;
+    private final boolean ignoreIntegrationErrors;
+    private final String localRepoPath;
+    private final String committerName;
+    private final String committerEmail;
+    private final boolean rebase;
+    private final int visitChangePageSize;
 
     /**
      * Create a new git.destination writer
@@ -229,7 +233,7 @@ public final class GitDestination implements Destination<GitRevision> {
         ProcessPushOutput processPushOutput, S state, boolean nonFastForwardPush,
         Iterable<GitIntegrateChanges> integrates, boolean lastRevFirstParent,
         boolean ignoreIntegrationErrors, String localRepoPath, String committerName,
-        String committerEmail, boolean rebase) {
+        String committerEmail, boolean rebase, int visitChangePageSize) {
       this.destinationFiles = checkNotNull(destinationFiles);
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
@@ -249,6 +253,7 @@ public final class GitDestination implements Destination<GitRevision> {
       this.committerName = committerName;
       this.committerEmail = committerEmail;
       this.rebase = rebase;
+      this.visitChangePageSize = visitChangePageSize;
     }
 
     @Override
@@ -265,29 +270,12 @@ public final class GitDestination implements Destination<GitRevision> {
       if (startRef == null) {
         return;
       }
-      String revString = start == null ? startRef.getSha1() : start.getSha1();
-      ChangeReader changeReader =
+      ChangeReader.Builder queryChanges =
           ChangeReader.Builder.forDestination(repository, baseConsole)
-              .setVerbose(generalOptions.isVerbose())
-              .setLimit(1)
-              .build();
+              .setVerbose(generalOptions.isVerbose());
 
-      ImmutableList<GitChange> result = changeReader.run(revString);
-      if (result.isEmpty()) {
-        if (start == null) {
-          baseConsole.error("Unable to find HEAD - is the destination repository bare?");
-        }
-        throw new CannotResolveRevisionException("Cannot find reference " + revString);
-      }
-      GitChange current = Iterables.getOnlyElement(result);
-      while (current != null) {
-        if (visitor.visit(current.getChange()) == VisitResult.TERMINATE
-            || current.getParents().isEmpty()) {
-          break;
-        }
-        current =
-            Iterables.getOnlyElement(changeReader.run(current.getParents().get(0).getSha1()));
-      }
+      GitOrigin.visitChanges(start == null ? startRef : start, visitor, queryChanges,
+                             generalOptions, "destination", visitChangePageSize);
     }
 
     /**

@@ -37,8 +37,4 @@ public class GitOriginOptions implements Option {
           + " if set. A common use case: importing a Github PR, rebase it to the main branch "
           + "(usually 'master'). Note that, if the repo uses submodules, they won't be rebased.")
   String originRebaseRef = null;
-
-  @Parameter(names = "--git-origin-visit-changes-page-size",
-      description = "Size of the git log page used for visiting changes.", hidden = true)
-  int visitChangePageSize = 100;
 }

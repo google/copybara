@@ -596,7 +596,7 @@ public class GitOriginTest {
 
   @Test
   public void testFirstParent() throws Exception {
-    options.gitOrigin.visitChangePageSize = 3;
+    options.git.visitChangePageSize = 3;
     createBranchMerge("John Name <john@name.com>");
     GitRevision lastCommitRef = getLastCommitRef();
     final List<Change<?>> visited = new ArrayList<>();

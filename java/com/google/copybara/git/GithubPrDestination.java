@@ -53,6 +53,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
   private final GithubOptions githubOptions;
   private final GitDestinationOptions destinationOptions;
   private final GithubDestinationOptions githubDestinationOptions;
+  private final GitOptions gitOptions;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
   private final Iterable<GitIntegrateChanges> integrates;
@@ -62,6 +63,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
   public GithubPrDestination(String url, String destinationRef, GeneralOptions generalOptions,
       GithubOptions githubOptions,
       GitDestinationOptions destinationOptions, GithubDestinationOptions githubDestinationOptions,
+      GitOptions gitOptions,
       boolean skipPush, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
       Iterable<GitIntegrateChanges> integrates) {
     this.url = Preconditions.checkNotNull(url);
@@ -70,6 +72,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
     this.githubOptions = Preconditions.checkNotNull(githubOptions);
     this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
     this.githubDestinationOptions = Preconditions.checkNotNull(githubDestinationOptions);
+    this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
     this.integrates = Preconditions.checkNotNull(integrates);
@@ -117,7 +120,8 @@ public class GithubPrDestination implements Destination<GitRevision> {
         destinationOptions.localRepoPath,
         destinationOptions.committerName,
         destinationOptions.committerEmail,
-        destinationOptions.rebaseWhenBaseline()) {
+        destinationOptions.rebaseWhenBaseline(),
+        gitOptions.visitChangePageSize) {
       @Override
       public WriterResult write(TransformResult transformResult, Console console)
           throws ValidationException, RepoException, IOException {
