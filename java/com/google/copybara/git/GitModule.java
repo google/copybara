@@ -57,7 +57,6 @@ import com.google.devtools.build.lib.syntax.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Main module that groups all the functions that create Git origins and destinations.
@@ -333,6 +332,10 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               generic1 = String.class, defaultValue = "[]",
               doc = "Required labels to import the PR. All the labels need to be present in order"
                   + " to migrate the Pull Request.", positional = false),
+          @Param(name = "retryable_labels", type = SkylarkList.class,
+              generic1 = String.class, defaultValue = "[]",
+              doc = "Required labels to import the PR that should be retried. This parameter must"
+                  + " be a subset of required_labels.", positional = false),
           @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
           @Param(name = "baseline_from_branch", type = Boolean.class,
@@ -350,19 +353,19 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction GITHUB_PR_ORIGIN = new BuiltinFunction(
       GITHUB_PR_ORIGIN_NAME) {
     public GithubPROrigin invoke(GitModule self, String url, Boolean merge,
-        SkylarkList<String> requiredLabels, String submodules, Boolean baselineFromBranch,
-        Boolean firstParent, Location location) throws EvalException {
+        SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
+        Boolean baselineFromBranch, Boolean firstParent, Location location) throws EvalException {
       if (!url.contains("github.com")) {
         throw new EvalException(location, "Invalid Github URL: " + url);
       }
       GithubPrOriginOptions githubPrOriginOptions = self.options.get(GithubPrOriginOptions.class);
-      Set<String> labels = githubPrOriginOptions.getRequiredLabels(requiredLabels);
       return new GithubPROrigin(url, merge,
           self.options.get(GeneralOptions.class),
           self.options.get(GitOptions.class),
           self.options.get(GitOriginOptions.class),
           self.options.get(GithubOptions.class),
-          labels,
+          githubPrOriginOptions.getRequiredLabels(requiredLabels),
+          githubPrOriginOptions.getRetryableLabels(retryableLabels),
           SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
           baselineFromBranch, firstParent);
     }

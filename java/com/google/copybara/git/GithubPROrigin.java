@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.EmptyChangeException;
@@ -49,8 +50,10 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import javax.annotation.Nullable;
 
@@ -65,6 +68,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
   public static final String GITHUB_BASE_BRANCH_SHA1 = "GITHUB_BASE_BRANCH_SHA1";
   public static final String GITHUB_PR_TITLE = "GITHUB_PR_TITLE";
   public static final String GITHUB_PR_BODY = "GITHUB_PR_BODY";
+  static final int RETRY_COUNT = 3;
 
   private final String url;
   private final boolean useMerge;
@@ -73,6 +77,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
   private final GitOriginOptions gitOriginOptions;
   private final GithubOptions githubOptions;
   private final Set<String> requiredLabels;
+  private final Set<String> retryableLabels;
   private final SubmoduleStrategy submoduleStrategy;
   private final Console console;
   private boolean baselineFromBranch;
@@ -80,7 +85,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   GithubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GithubOptions githubOptions,
-      Set<String> requiredLabels, SubmoduleStrategy submoduleStrategy,
+      Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
       boolean baselineFromBranch, Boolean firstParent) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
@@ -89,6 +94,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     this.gitOriginOptions = Preconditions.checkNotNull(gitOriginOptions);
     this.githubOptions = githubOptions;
     this.requiredLabels = Preconditions.checkNotNull(requiredLabels);
+    this.retryableLabels = Preconditions.checkNotNull(retryableLabels);
     this.submoduleStrategy = Preconditions.checkNotNull(submoduleStrategy);
     console = generalOptions.console();
     this.baselineFromBranch = baselineFromBranch;
@@ -143,19 +149,32 @@ public class GithubPROrigin implements Origin<GitRevision> {
   private GitRevision getRevisionForPR(String project, int prNumber)
       throws RepoException, ValidationException {
     if (!requiredLabels.isEmpty()) {
-      Issue issue;
-      try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_issue")) {
-        issue = githubOptions.getApi(project).getIssue(project, prNumber);
-      }
+      int retryCount = 0;
+      Set<String> requiredButNotPresent;
+      do {
+        Issue issue;
+        try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_issue")) {
+          issue = githubOptions.getApi(project).getIssue(project, prNumber);
+        }
 
-      Set<String> required = Sets.newHashSet(requiredLabels);
-      required.removeAll(Collections2.transform(issue.getLabels(), Label::getName));
-
+        requiredButNotPresent = Sets.newHashSet(requiredLabels);
+        requiredButNotPresent.removeAll(Collections2.transform(issue.getLabels(), Label::getName));
+        // If we got all the labels we want or none of the ones we didn't get are retryable, return.
+        if (requiredButNotPresent.isEmpty()
+            || Collections.disjoint(requiredButNotPresent, retryableLabels)) {
+          break;
+        }
+        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
+        retryCount++;
+      } while (retryCount < RETRY_COUNT);
       // TODO(malcon): Find a better exception for this.
       checkCondition(
-          required.isEmpty(),
+          requiredButNotPresent.isEmpty(),
           "Cannot migrate http://github.com/%s/%d because it is missing the following"
-              + " labels: %s", project, prNumber, required);
+              + " labels: %s",
+          project,
+          prNumber,
+          requiredButNotPresent);
     }
     PullRequest prData;
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {

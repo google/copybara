@@ -227,6 +227,44 @@ public class GithubPrOriginTest {
   }
 
   @Test
+  public void testGitResolveRequiredLabelsRetried() throws Exception {
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_labels = ['foo: yes', 'bar: yes']",
+            "retryable_labels = ['foo: yes', 'bar: yes']"),
+        "125",
+        125,
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes", "bar: yes")));
+  }
+
+  @Test
+  public void testGitResolveRequiredLabelsNotRetryable() throws Exception {
+    thrown.expect(ValidationException.class);
+    thrown.expectMessage("Cannot migrate http://github.com/google/example/125 because it is missing"
+        + " the following labels: [foo: yes]");
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_labels = ['foo: yes']"),
+        "125",
+        125,
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes")));
+  }
+
+  @Test
+  public void testGitResolveRequiredLabelsMixed() throws Exception {
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_labels = ['foo: yes', 'bar: yes']",
+            "retryable_labels = ['foo: yes']"),
+        "125",
+        125,
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes", "bar: yes")));
+  }
+
+  @Test
   public void testGitResolveInvalidReference() throws Exception {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("'master' is not a valid reference for a GitHub Pull Request");
@@ -427,7 +465,7 @@ public class GithubPrOriginTest {
   }
 
   private void checkResolve(GithubPROrigin origin, String reference, int prNumber,
-      final ImmutableList<String> presentLabels)
+      MockPullRequest mockPullRequest)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = localHubRepo("google/example");
     addFiles(remote, "first change", ImmutableMap.<String, String>builder()
@@ -435,7 +473,7 @@ public class GithubPrOriginTest {
     String sha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GithubUtil.asHeadRef(prNumber), sha1);
 
-    gitApiMockHttpTransport = new MockPullRequest(prNumber, presentLabels);
+    gitApiMockHttpTransport = mockPullRequest;
 
     GitRevision rev = origin.resolve(reference);
     assertThat(rev.asString()).hasLength(40);
@@ -445,6 +483,13 @@ public class GithubPrOriginTest {
     assertThat(rev.associatedLabels()).containsEntry(GitModule.DEFAULT_INTEGRATE_LABEL,
         "https://github.com/google/example/pull/" + prNumber
             + " from googletestuser:example-branch " + sha1);
+  }
+
+  private void checkResolve(GithubPROrigin origin, String reference, int prNumber,
+      final ImmutableList<String> presentLabels)
+      throws RepoException, IOException, ValidationException {
+    checkResolve(
+        origin, reference, prNumber, new MockPullRequest(prNumber, presentLabels));
   }
 
   private String addFiles(GitRepository remote, String msg, Map<String, String> files)
@@ -474,18 +519,31 @@ public class GithubPrOriginTest {
   private static class MockPullRequest extends GitApiMockHttpTransport {
 
     private final int prNumber;
-    private final ImmutableList<String> presentLabels;
+    private final ImmutableList<String> defaultPresentLabels;
+    private final ImmutableList<String> lastTryPresentLabels;
+    private int retryCount;
 
-    MockPullRequest(int prNumber, ImmutableList<String> presentLabels) {
+    MockPullRequest(
+        int prNumber,
+        ImmutableList<String> defaultPresentLabels,
+        ImmutableList<String> lastTryPresentLabels) {
       this.prNumber = prNumber;
-      this.presentLabels = presentLabels;
+      this.defaultPresentLabels = defaultPresentLabels;
+      this.lastTryPresentLabels = lastTryPresentLabels;
+      retryCount = 0;
+    }
+
+    MockPullRequest(
+        int prNumber,
+        ImmutableList<String> defaultPresentLabels) {
+      this(prNumber, defaultPresentLabels, defaultPresentLabels);
     }
 
     @Override
     protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
         throws IOException {
       if (url.equals("https://api.github.com/repos/google/example/issues/" + prNumber)) {
-        return mockIssue(Integer.toString(prNumber), presentLabels).getBytes();
+        return mockIssue(Integer.toString(prNumber), defaultPresentLabels).getBytes();
       } else if (url.startsWith(
           "https://api.github.com/repos/google/example/pulls/" + prNumber)) {
         return ("{\n"
@@ -508,7 +566,15 @@ public class GithubPrOriginTest {
       throw new IllegalStateException();
     }
 
-    private String mockIssue(String number, ImmutableList<String> labels) {
+    protected String mockIssue(String number, ImmutableList<String> labels) {
+      if (retryCount < GithubPROrigin.RETRY_COUNT - 1) {
+        retryCount++;
+        return createIssue(number, defaultPresentLabels);
+      }
+      return createIssue(number, lastTryPresentLabels);
+    }
+
+    protected String createIssue(String number, ImmutableList<String> labels) {
       String result = "{\n"
           + "  \"id\": 1,\n"
           + "  \"number\": " + number + ",\n"

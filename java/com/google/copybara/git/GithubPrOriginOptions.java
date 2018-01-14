@@ -36,6 +36,11 @@ public class GithubPrOriginOptions implements Option {
           + GitModule.GITHUB_PR_ORIGIN_NAME)
   public List<String> requiredLabels= new ArrayList<>();
 
+  @Parameter(names = "--github-retryable-label",
+      description = "Required labels in the Pull Request that should be retryed to be imported by "
+          + GitModule.GITHUB_PR_ORIGIN_NAME)
+  public List<String> retryableLabels= new ArrayList<>();
+
   @Parameter(names = "--github-skip-required-labels", description = "Skip checking labels for"
       + " importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.")
   public boolean skipRequiredLabels = false;
@@ -54,4 +59,20 @@ public class GithubPrOriginOptions implements Option {
     }
     return ImmutableSet.copyOf(requiredLabels);
   }
+
+  /**
+   * Compute the labels that should be retried by git.github_pr_origin for importing a
+   * Pull Request.
+   *
+   * <p>This method might be overwritten to provide custom behavior.
+   */
+  public Set<String> getRetryableLabels(Iterable<String> configLabels) {
+    if (skipRequiredLabels) {
+      return ImmutableSet.of();
+    } else if (retryableLabels.isEmpty()) {
+      return ImmutableSet.copyOf(configLabels);
+    }
+    return ImmutableSet.copyOf(retryableLabels);
+  }
+
 }
