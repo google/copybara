@@ -37,18 +37,17 @@ import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.git.ChangeReader.Builder;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -414,10 +413,15 @@ public class GitOrigin implements Origin<GitRevision> {
   }
 
   @Override
-  public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
+  public String getType() {
+    return "git.origin";
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<String, String>()
-            .put("type", "git.origin")
+            .put("type", getType())
             .put("repoType", repoType.name())
             .put("url", repoUrl)
             .put("submodules", submoduleStrategy.name());

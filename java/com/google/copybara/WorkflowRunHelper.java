@@ -225,8 +225,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         .setOriginRefs(changes.getCurrent().stream()
             .map(Change::refAsString).collect(ImmutableList.toImmutableList()));
     processConsole.progress("Checking out the change");
+
     try (ProfilerTask ignored = profiler().start(
-        "origin.checkout", profiler().taskType(originReader.getClass()))) {
+        "origin.checkout", profiler().taskType(workflow.getOrigin().getType()))) {
       originReader.checkout(rev, checkoutDir);
     }
 
@@ -318,7 +319,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
     WriterResult result;
     try (ProfilerTask ignored = profiler().start(
-        "destination.write", profiler().taskType(writer.getClass()))) {
+        "destination.write", profiler().taskType(workflow.getDestination().getType()))) {
       result = writer.write(transformResult, processConsole);
     }
     Verify.verifyNotNull(result, "Destination returned a null result.");

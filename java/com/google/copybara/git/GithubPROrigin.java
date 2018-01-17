@@ -309,10 +309,15 @@ public class GithubPROrigin implements Origin<GitRevision> {
   }
 
   @Override
-  public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
+  public String getType() {
+    return "git.github_pr_origin";
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<String, String>()
-            .put("type", "git.github_pr_origin")
+            .put("type", getType())
             .put("url", url);
     return builder.build();
   }

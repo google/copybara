@@ -81,15 +81,21 @@ public class GithubPrDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
-    ImmutableSetMultimap.Builder<String, String> result = new Builder<String, String>()
-        .put("type", "git.github_pr_destination")
-        .put("name", url)
-        .put("destination_ref", destinationRef);
+  public String getType() {
+    return "git.github_pr_destination";
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+    ImmutableSetMultimap.Builder<String, String> builder =
+        new ImmutableSetMultimap.Builder<String, String>()
+            .put("type", getType())
+            .put("name", url)
+            .put("destination_ref", destinationRef);
     if (effectiveSkipPush) {
-      result.put("skip_push", "True");
+      builder.put("skip_push", "True");
     }
-    return result.build();
+    return builder.build();
   }
 
   @Override

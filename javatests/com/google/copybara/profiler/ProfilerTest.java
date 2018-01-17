@@ -185,10 +185,8 @@ public class ProfilerTest {
 
   @Test
   public void testTaskType() throws Exception {
-    assertThat(profiler.taskType(ProfilerTest.TaskWithType.class))
-        .isEqualTo(ImmutableMap.of("type", "ProfilerTest$TaskWithType"));
-    assertThat(profiler.taskType(ProfilerTest.class))
-        .isEqualTo(ImmutableMap.of("type", "ProfilerTest"));
+    assertThat(profiler.taskType("profiler_test"))
+        .isEqualTo(ImmutableMap.of("type", "profiler_test"));
   }
 
   private static class RecordingListener implements Listener {

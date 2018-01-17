@@ -622,10 +622,15 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
+  public String getType() {
+    return "git.destination";
+  }
+
+  @Override
   public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<String, String>()
-            .put("type", "git.destination")
+            .put("type", getType())
             .put("url", repoUrl)
             .put("fetch", fetch)
             .put("push", push);
