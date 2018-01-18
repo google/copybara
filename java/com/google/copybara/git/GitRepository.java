@@ -190,21 +190,6 @@ public class GitRepository {
     return new GitRepository(gitDir,/*workTree=*/null, verbose, environment);
   }
 
-  public static Optional<String> revParse(Path cwd, Map<String, String> environment,
-      boolean verbose) throws RepoException {
-    try {
-      return Optional.of(executeGit(cwd, ImmutableList.of("rev-parse", "--git-dir")
-              , environment, verbose).getStdout().trim());
-    } catch (BadExitStatusWithOutputException e) {
-      if (e.getOutput().getStderr().contains("Not a git repository")) {
-        return Optional.empty();
-      }
-      throw new RepoException("Error executing rev-parse", e);
-    } catch (CommandException e) {
-      throw new RepoException("Error executing rev-parse", e);
-    }
-  }
-
   /**
    * Get the version of git that will be used for running migrations. Returns empty
    * if git cannot be found.

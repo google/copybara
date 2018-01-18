@@ -20,13 +20,12 @@ import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.ValidationException;
 import com.google.copybara.config.ConfigFile;
-import com.google.copybara.git.GitRepository;
 import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.InsideGitDirException;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -55,8 +54,6 @@ class PatchTransformation implements Transformation {
 
   @Override
   public void transform(TransformWork work) throws ValidationException, IOException {
-    checkNotInsideGitRepo(work);
-
     for (int i = 0; i < patches.size(); i++) {
       ConfigFile<?> patch = patches.get(i);
       work.getConsole().info(
@@ -68,29 +65,12 @@ class PatchTransformation implements Transformation {
       } catch (IOException ioException) {
         work.getConsole().error("Error applying patch: " + ioException.getMessage());
         throw new ValidationException("Error applying patch.", ioException);
+      } catch (InsideGitDirException e) {
+        throw new ValidationException(String.format(
+            "Cannot use patch.apply because Copybara temporary directory (%s) is inside a git"
+                + " directory (%s). Please remove the git repository or use %s flag.",
+            e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG));
       }
-    }
-  }
-
-  /**
-   * It is very common for users to have a git repo for their $HOME, so that they can version
-   * their configurations. Unfortunately this fails for the default output directory (inside
-   * $HOME).
-   */
-  private void checkNotInsideGitRepo(TransformWork work) throws IOException, ValidationException {
-    Optional<String> gitDir;
-    try {
-      gitDir = GitRepository.revParse(work.getCheckoutDir(), options.getEnvironment(),
-          options.isVerbose());
-    } catch (RepoException e) {
-      // We don't want RepoExceptions outside of repos.
-      throw new IOException(e);
-    }
-    if (gitDir.isPresent()) {
-      throw new ValidationException(String.format(
-          "Cannot use patch.apply because Copybara temporary directory (%s) is inside a git"
-              + " directory (%s). Please remove the git repository or use %s flag.",
-          work.getCheckoutDir(), gitDir.get(), OUTPUT_ROOT_FLAG));
     }
   }
 

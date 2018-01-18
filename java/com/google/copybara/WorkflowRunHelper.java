@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 
 import com.google.common.base.Preconditions;
@@ -31,6 +32,7 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 import java.io.IOException;
@@ -283,9 +285,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                     new MigrationInfo(/*originLabel=*/ null, null),
                     resolvedRef));
       }
-      String diff = new String(DiffUtil.diff(originCopy, reverse, workflow.isVerbose(),
-          workflow.getGeneralOptions().getEnvironment()),
-          StandardCharsets.UTF_8);
+      String diff;
+      try {
+        diff = new String(DiffUtil.diff(originCopy, reverse, workflow.isVerbose(),
+            workflow.getGeneralOptions().getEnvironment()),
+            StandardCharsets.UTF_8);
+      } catch (InsideGitDirException e) {
+        throw new ValidationException(String.format(
+            "Cannot use 'reversible_check = True' because Copybara temporary directory (%s) is"
+                + " inside a git directory (%s). Please remove the git repository or use %s flag.",
+            e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG));
+      }
       if (!diff.trim().isEmpty()) {
         workflow.getConsole().error("Non reversible transformations:\n"
             + DiffUtil.colorize(workflow.getConsole(), diff));

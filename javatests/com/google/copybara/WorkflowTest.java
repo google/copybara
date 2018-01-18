@@ -28,6 +28,7 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -1425,6 +1426,31 @@ public class WorkflowTest {
         + "    reversible_check = True,\n"
         + ")\n";
     loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+  }
+
+  @Test
+  public void testNonReversibleInsideGit() throws IOException, ValidationException, RepoException {
+    origin.singleFileChange(0, "one commit", "foo.txt", "foo\nbar\n");
+
+    GitRepository.newRepo(/*verbose=*/true, workdir, getGitEnv()).init();
+    Path subdir = Files.createDirectory(workdir.resolve("subdir"));
+    String config = ""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = testing.origin(),\n"
+        + "    destination = testing.destination(),\n"
+        + "    transformations = [core.replace('foo', 'bar')],\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    reversible_check = True,\n"
+        + ")\n";
+    Migration workflow = loadConfig(config).getMigration("default");
+    try {
+      workflow.run(subdir, /*sourceRef=*/null);
+      fail("Should fail because the workflow is not reversible");
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat()
+          .contains("Cannot use 'reversible_check = True' because Copybara temporary directory");
+    }
   }
 
   @Test

@@ -17,6 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.copybara.git.GitExecPath.resolveGitBinary;
+import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -44,9 +45,10 @@ public class DiffUtil {
    * fed directly into {@link DiffUtil#patch}.
    */
   public static byte[] diff(Path one, Path other, boolean verbose, Map<String, String> environment)
-      throws IOException {
+      throws IOException, InsideGitDirException {
     Preconditions.checkArgument(one.getParent().equals(other.getParent()),
         "Paths 'one' and 'other' must be sibling directories.");
+    checkNotInsideGitRepo(one, verbose, environment);
     Path root = one.getParent();
     String[] params = new String[] {
         "git", "diff", "--no-color", "--",
@@ -78,11 +80,12 @@ public class DiffUtil {
   public static void patch(
       Path rootDir, byte[] diffContents, ImmutableList<String> excludedPaths, int stripSlashes,
       boolean verbose, boolean reverse, Map<String, String> environment)
-      throws IOException {
+      throws IOException, InsideGitDirException {
     if (diffContents.length == 0) {
       return;
     }
     Preconditions.checkArgument(stripSlashes >= 0, "stripSlashes must be >= 0.");
+    checkNotInsideGitRepo(rootDir, verbose, environment);
     ImmutableList.Builder<String> params = ImmutableList.builder();
 
     // Show verbose output unconditionally since it is helpful for debugging issues with patches.
@@ -125,5 +128,32 @@ public class DiffUtil {
       }
     }
     return sb.toString();
+  }
+
+  /**
+   * It is very common for users to have a git repo for their $HOME, so that they can version
+   * their configurations. Unfortunately this fails for the default output directory (inside
+   * $HOME).
+   */
+  private static void checkNotInsideGitRepo(Path path, boolean verbose, Map<String, String> env)
+      throws IOException, InsideGitDirException {
+    try {
+      Command cmd = new Command(new String[]{
+          resolveGitBinary(env), "rev-parse", "--git-dir"}, env, path.toFile());
+
+      String gitDir = executeCommand(cmd, verbose).getStdout().trim();
+
+      // If it doesn't fail it means taht we are inside a git directory
+      throw new InsideGitDirException(String.format(
+          "Cannot diff/patch because Copybara temporary directory (%s) is inside a git"
+              + " directory (%s).", path, gitDir),
+          gitDir, path);
+    } catch (BadExitStatusWithOutputException e) {
+      if (!e.getOutput().getStderr().contains("Not a git repository")) {
+        throw new IOException("Error executing rev-parse", e);
+      }
+    } catch (CommandException e) {
+      throw new IOException("Error executing rev-parse", e);
+    }
   }
 }
