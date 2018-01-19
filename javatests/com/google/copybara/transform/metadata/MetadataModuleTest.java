@@ -630,6 +630,32 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testCurrentRevForSquashEmptyChanges() throws Exception {
+    options.setForce(true);
+    passThruAuthoring();
+    options.setLastRevision(origin.resolve("HEAD").asString());
+    origin.singleFileChange(42, "test", "excluded", "");
+    DummyRevision expectedRev = origin.resolve("HEAD");
+    Config config = loadConfig(""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin =  testing.origin(),\n"
+        + "    origin_files =  glob(['**'], exclude = ['excluded']),\n"
+        + "    authoring = " + authoring + "\n,"
+        + "    destination = testing.destination(),\n"
+        + "    mode = '" + WorkflowMode.SQUASH + "',\n"
+        + "    transformations = ["
+        + "        metadata.replace_message('${COPYBARA_CURRENT_REV}'),"
+        + "    ]\n"
+        + ")\n");
+
+    config.getMigration("default").run(workdir, /*sourceRef=*/null);
+
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+        .isEqualTo(expectedRev.asString());
+  }
+
+  @Test
   public void testAddHeader_noNewLine() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
 

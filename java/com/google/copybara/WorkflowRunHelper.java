@@ -261,7 +261,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             workflow.getConsole(),
             new MigrationInfo(workflow.getOrigin().getLabelName(), getDestinationVisitor()),
             resolvedRef)
-        .withLastRev(lastRev);
+        .withLastRev(lastRev)
+        .withCurrentRev(rev);
     try (ProfilerTask ignored = profiler().start("transforms")) {
       workflow.getTransformation().transform(transformWork);
     }

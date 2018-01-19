@@ -76,18 +76,20 @@ public final class TransformWork {
   private final boolean insideExplicitTransform;
   @Nullable
   private Revision lastRev;
+  @Nullable private Revision currentRev;
   private TransformWork skylarkTransformWork;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference) {
     this(checkoutDir, metadata, changes, console, migrationInfo, resolvedReference,
         new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/ false,
-        /*lastRev=*/null);
+        /*lastRev=*/null, /*currentRev=*/null);
   }
 
   private TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState,
-      boolean insideExplicitTransform, @Nullable Revision lastRev) {
+      boolean insideExplicitTransform, @Nullable Revision lastRev,
+      @Nullable Revision currentRev) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
@@ -97,6 +99,7 @@ public final class TransformWork {
     this.treeState = treeState;
     this.insideExplicitTransform = insideExplicitTransform;
     this.lastRev = lastRev;
+    this.currentRev = currentRev;
     this.skylarkTransformWork = this;
   }
 
@@ -348,34 +351,45 @@ public final class TransformWork {
    */
   public TransformWork withUpdatedTreeState() {
     return new TransformWork(checkoutDir, metadata, changes, console,
-        migrationInfo, resolvedReference, treeState.newTreeState(),
-        insideExplicitTransform, lastRev);
+                             migrationInfo, resolvedReference, treeState.newTreeState(),
+                             insideExplicitTransform, lastRev, currentRev);
   }
 
   @VisibleForTesting
   public TransformWork withChanges(Changes changes) {
     Preconditions.checkNotNull(changes);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-        resolvedReference, treeState, insideExplicitTransform, lastRev);
+                             resolvedReference, treeState, insideExplicitTransform, lastRev,
+                             currentRev);
   }
 
   @VisibleForTesting
   public TransformWork withLastRev(@Nullable Revision previousRef) {
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-        resolvedReference, treeState, insideExplicitTransform, previousRef);
+                             resolvedReference, treeState, insideExplicitTransform, previousRef,
+                             currentRev);
   }
 
   @VisibleForTesting
   public TransformWork withResolvedReference(Revision resolvedReference) {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-        resolvedReference, treeState, insideExplicitTransform, lastRev);
+                             resolvedReference, treeState, insideExplicitTransform, lastRev,
+                             currentRev);
   }
 
   public TransformWork insideExplicitTransform() {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-        resolvedReference, treeState, /*insideExplicitTransform=*/true, lastRev);
+                             resolvedReference, treeState, /*insideExplicitTransform=*/true,
+                             lastRev, currentRev);
+  }
+
+  public <O extends Revision> TransformWork withCurrentRev(Revision currentRev) {
+    Preconditions.checkNotNull(currentRev);
+    return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
+                             resolvedReference, treeState, /*insideExplicitTransform=*/true,
+                             lastRev, currentRev);
   }
 
   /**
@@ -408,12 +422,12 @@ public final class TransformWork {
         // snapshot number, etc. that is subject to change.
         : ImmutableList.of(lastRev.asString().replaceAll(" .*", "")));
 
-    labels.put(COPYBARA_CURRENT_REV, changes.getCurrent().isEmpty()
+    labels.put(COPYBARA_CURRENT_REV, currentRev == null
         ? ImmutableList.of()
         // Skip anything after space in the revision, since we might include metadata like
         // snapshot number, etc. that is subject to change.
         : ImmutableList.of(
-            changes.getCurrent().get(0).getRevision().asString().replaceAll(" .*", "")));
+            currentRev.asString().replaceAll(" .*", "")));
 
     labels.put(COPYBARA_CURRENT_MESSAGE, ImmutableList.of(getMessage()));
     labels.put(COPYBARA_CURRENT_MESSAGE_TITLE,
