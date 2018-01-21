@@ -20,24 +20,29 @@ def _doc_impl(ctx):
     for jar in dep.java.transitive_source_jars:
       jars.append(jar)
   tmp = ctx.new_file("tmp.md")
-  ctx.action(
+  ctx.actions.run(
       inputs = [ctx.executable._doc_tool] + jars,
       outputs = [tmp],
       progress_message = "Generating reference documentation for %s" % ctx.label,
-      command = "%s %s %s" % (ctx.executable._doc_tool.path, tmp.path, " ".join([f.path for f in jars])))
+      use_default_shell_env = True,
+      executable = ctx.executable._doc_tool.path,
+      arguments = [tmp.path] + [f.path for f in jars],
+  )
   # If suffix file exists, concat, copy otherwise
   if ctx.attr.suffix_file != None:
-    ctx.action(
+    ctx.actions.run_shell(
         inputs = [ctx.files.suffix_file[0], tmp],
         outputs = [ctx.outputs.out],
         progress_message = "Appending suffix from %s" % ctx.files.suffix_file,
-        command = "cat %s %s >> %s" %  (tmp.path, ctx.files.suffix_file[0].path, ctx.outputs.out.path)
+        command = "cat %s %s >> %s" %  (tmp.path, ctx.files.suffix_file[0].path, ctx.outputs.out.path),
     )
   else:
-    ctx.action(
+    ctx.actions.run(
         inputs = [tmp],
         outputs = [ctx.outputs.out],
-        command = "cp %s %s" %  (tmp.path, ctx.outputs.out.path))
+        executable = "cp",
+        arguments = [tmp.path, ctx.outputs.out.path],
+    )
 
 # Generates documentation by scanning the transitive set of dependencies of a Java binary.
 doc_generator = rule(
