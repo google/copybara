@@ -41,7 +41,9 @@ you need:
 
   * [Install JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
   * [Install Bazel](https://docs.bazel.build/versions/master/install.html).
-  * Build: *bazel build //java/com/google/copybara*.
+  * Build:
+      * `bazel build //java/com/google/copybara`.
+	  * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create a executable uberjar.
   * Tests: *bazel test //...* if you want to ensure you are not using a broken version.
 
 ### Using Intellij with Bazel plugin
