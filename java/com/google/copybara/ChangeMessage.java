@@ -51,17 +51,21 @@ public class ChangeMessage {
    * <p>Use this for Copybara well-formed messages.
    */
   public static ChangeMessage parseMessage(String message) {
-    message = TRIM.trimFrom(message);
-    int doubleNewLine = message.lastIndexOf(DOUBLE_NEWLINE);
-    int dashDash = message.lastIndexOf(DASH_DASH_SEPARATOR);
+    String trimMsg = TRIM.trimFrom(message);
+    int doubleNewLine = trimMsg.lastIndexOf(DOUBLE_NEWLINE);
+    int dashDash = trimMsg.lastIndexOf(DASH_DASH_SEPARATOR);
     if (doubleNewLine == -1 && dashDash == -1) {
-      return new ChangeMessage(message, DOUBLE_NEWLINE, new ArrayList<>());
+      // Empty message like "\n\nfoo: bar" or "\n\nfoo bar baz"
+      if (message.startsWith(DOUBLE_NEWLINE)) {
+        return new ChangeMessage("", DOUBLE_NEWLINE, linesAsLabels(trimMsg));
+      }
+      return new ChangeMessage(trimMsg, DOUBLE_NEWLINE, new ArrayList<>());
     } else if (doubleNewLine > dashDash) {
-      return new ChangeMessage(message.substring(0, doubleNewLine), DOUBLE_NEWLINE,
-          linesAsLabels(message.substring(doubleNewLine + 2)));
+      return new ChangeMessage(trimMsg.substring(0, doubleNewLine), DOUBLE_NEWLINE,
+          linesAsLabels(trimMsg.substring(doubleNewLine + 2)));
     } else {
-      return new ChangeMessage(message.substring(0, dashDash), DASH_DASH_SEPARATOR,
-          linesAsLabels(message.substring(dashDash + 4)));
+      return new ChangeMessage(trimMsg.substring(0, dashDash), DASH_DASH_SEPARATOR,
+          linesAsLabels(trimMsg.substring(dashDash + 4)));
     }
   }
 
