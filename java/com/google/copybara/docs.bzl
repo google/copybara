@@ -40,7 +40,7 @@ def _doc_impl(ctx):
     ctx.actions.run(
         inputs = [tmp],
         outputs = [ctx.outputs.out],
-        executable = "cp",
+        executable = "/bin/cp",
         arguments = [tmp.path, ctx.outputs.out.path],
     )
 
