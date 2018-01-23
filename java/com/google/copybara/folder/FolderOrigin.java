@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
@@ -138,5 +139,16 @@ public class FolderOrigin implements Origin<FolderRevision> {
   @Override
   public String getLabelName() {
     return LABEL_NAME;
+  }
+
+  public String getType() {
+    return "folder.origin";
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob destinationFiles) {
+    return new ImmutableSetMultimap.Builder<String, String>()
+        .put("type", getType())
+        .build();
   }
 }

@@ -18,6 +18,7 @@ package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
@@ -139,4 +140,16 @@ public class FolderDestination implements Destination<Revision> {
   public String getLabelNameWhenOrigin() throws ValidationException {
     throw new ValidationException(FOLDER_DESTINATION_NAME + " does not support labels");
   }
+
+  public String getType() {
+    return "folder.destination";
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob destinationFiles) {
+    return new ImmutableSetMultimap.Builder<String, String>()
+        .put("type", getType())
+        .build();
+  }
+
 }
