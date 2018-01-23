@@ -141,15 +141,14 @@ public class FolderDestination implements Destination<Revision> {
     throw new ValidationException(FOLDER_DESTINATION_NAME + " does not support labels");
   }
 
+  @Override
   public String getType() {
     return "folder.destination";
   }
 
   @Override
   public ImmutableSetMultimap<String, String> describe(Glob destinationFiles) {
-    return new ImmutableSetMultimap.Builder<String, String>()
-        .put("type", getType())
-        .build();
+    return ImmutableSetMultimap.of("type", getType());
   }
 
 }

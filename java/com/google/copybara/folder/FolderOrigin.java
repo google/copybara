@@ -141,14 +141,13 @@ public class FolderOrigin implements Origin<FolderRevision> {
     return LABEL_NAME;
   }
 
+  @Override
   public String getType() {
     return "folder.origin";
   }
 
   @Override
   public ImmutableSetMultimap<String, String> describe(Glob destinationFiles) {
-    return new ImmutableSetMultimap.Builder<String, String>()
-        .put("type", getType())
-        .build();
+    return ImmutableSetMultimap.of("type", getType());
   }
 }
