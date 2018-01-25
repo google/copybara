@@ -176,9 +176,11 @@ public class GitOrigin implements Origin<GitRevision> {
 
     void runCheckoutHook(Path workdir) throws RepoException {
       try {
-        CommandOutputWithStatus result = CommandUtil.executeCommand(
-            new Command(new String[]{gitOriginOptions.originCheckoutHook},
-                generalOptions.getEnvironment(), workdir.toFile()), generalOptions.isVerbose());
+        Command cmd = new Command(new String[]{gitOriginOptions.originCheckoutHook},
+            generalOptions.getEnvironment(), workdir.toFile());
+        CommandOutputWithStatus result = new CommandUtil(cmd)
+            .withVerbose(generalOptions.isVerbose())
+            .execute();
         logLines(generalOptions.console(), "git.origin hook (Stdout): ", result.getStdout());
         logLines(generalOptions.console(), "git.origin hook (Stderr): ", result.getStderr());
       } catch (BadExitStatusWithOutputException e) {

@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.git.GitExecPath.resolveGitBinary;
-import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -939,9 +938,12 @@ public class GitRepository {
       List<String> allParams = new ArrayList<>();
       allParams.add(resolveGitBinary(environment));
       allParams.addAll(addGitDirAndWorkTreeParams(params));
-      return executeCommand(new Command(
-              Iterables.toArray(allParams, String.class), environment, getCwd().toFile()),
-          stdin, verbose);
+      Command cmd = new Command(
+          Iterables.toArray(allParams, String.class), environment, getCwd().toFile());
+      return new CommandUtil(cmd)
+          .withVerbose(verbose)
+          .withInput(stdin)
+          .execute();
     } catch (BadExitStatusWithOutputException e) {
       CommandOutputWithStatus output = e.getOutput();
       int exitCode = e.getOutput().getTerminationStatus().getExitCode();
@@ -959,8 +961,11 @@ public class GitRepository {
     List<String> allParams = new ArrayList<>(Iterables.size(params) + 1);
     allParams.add(resolveGitBinary(env));
     Iterables.addAll(allParams, params);
-    return executeCommand(new Command(
-        Iterables.toArray(allParams, String.class), env, cwd.toFile()), verbose);
+    Command cmd = new Command(
+        Iterables.toArray(allParams, String.class), env, cwd.toFile());
+    return new CommandUtil(cmd)
+        .withVerbose(verbose)
+        .execute();
   }
 
   @Override

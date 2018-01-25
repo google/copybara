@@ -17,7 +17,6 @@
 package com.google.copybara.util;
 
 import static com.google.copybara.git.GitExecPath.resolveGitBinary;
-import static com.google.copybara.util.CommandUtil.executeCommand;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -57,7 +56,9 @@ public class DiffUtil {
     };
     Command cmd = new Command(params, environment, root.toFile());
     try {
-      CommandUtil.executeCommand(cmd, verbose);
+      new CommandUtil(cmd)
+          .withVerbose(verbose)
+          .execute();
       return EMPTY_DIFF;
     } catch (BadExitStatusWithOutputException e) {
       CommandOutput output = e.getOutput();
@@ -101,7 +102,10 @@ public class DiffUtil {
     Command cmd =
         new Command(params.build().toArray(new String[0]), environment, rootDir.toFile());
     try {
-      CommandUtil.executeCommand(cmd, diffContents, verbose);
+      new CommandUtil(cmd)
+          .withVerbose(verbose)
+          .withInput(diffContents)
+          .execute();
     } catch (BadExitStatusWithOutputException e) {
       throw new IOException(
           "Error executing 'git apply': " + e.getMessage()
@@ -141,7 +145,11 @@ public class DiffUtil {
       Command cmd = new Command(new String[]{
           resolveGitBinary(env), "rev-parse", "--git-dir"}, env, path.toFile());
 
-      String gitDir = executeCommand(cmd, verbose).getStdout().trim();
+      String gitDir = new CommandUtil(cmd)
+          .withVerbose(verbose)
+          .execute()
+          .getStdout()
+          .trim();
 
       // If it doesn't fail it means taht we are inside a git directory
       throw new InsideGitDirException(String.format(

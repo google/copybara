@@ -16,6 +16,7 @@
 
 package com.google.copybara.util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
@@ -32,9 +33,11 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckReturnValue;
 
 /**
  * An utility class for executing commands and logging the output appropriately.
+ * TODO(danielromero): Rename to CommandRunner
  */
 public final class CommandUtil {
 
@@ -47,23 +50,41 @@ public final class CommandUtil {
   // Kill the command after 15 minutes.
   private static final long COMMAND_TIMEOUT = TimeUnit.MINUTES.toMillis(15);
 
-  private CommandUtil() {}
+  private final Command cmd;
+  private final boolean verbose;
+  private final byte[] input;
+
+  private CommandUtil(Command cmd, boolean verbose, byte[] input) {
+    this.cmd = Preconditions.checkNotNull(cmd);
+    this.verbose = verbose;
+    this.input = Preconditions.checkNotNull(input);
+  }
+
+  public CommandUtil(Command cmd) {
+    this(cmd, false, NO_INPUT);
+  }
 
   /**
-   * Executes a {@link Command} and writes to the console and the log depending on the exit code of
-   * the command and the verbose flag.
+   * Sets the verbose level for the command execution.
    */
-  public static CommandOutputWithStatus executeCommand(Command cmd, boolean verbose)
-      throws CommandException {
-    return executeCommand(cmd, NO_INPUT, verbose);
+  @CheckReturnValue
+  public CommandUtil withVerbose(boolean verbose) {
+    return new CommandUtil(this.cmd, verbose, this.input);
+  }
+
+  /**
+   * Sets the input for the command execution.
+   */
+  @CheckReturnValue
+  public CommandUtil withInput(byte[] input) {
+    return new CommandUtil(this.cmd, this.verbose, input);
   }
 
   /**
    * Executes a {@link Command} with the given input and writes to the console and the log depending
    * on the exit code of the command and the verbose flag.
    */
-  public static CommandOutputWithStatus executeCommand(
-      Command cmd, byte[] input, boolean verbose) throws CommandException {
+  public CommandOutputWithStatus execute() throws CommandException {
     Stopwatch stopwatch = Stopwatch.createStarted();
     String startMsg = "Executing ["
         + ShellUtils.prettyPrintArgv(Arrays.asList(cmd.getCommandLineElements())) + "]";
@@ -74,15 +95,15 @@ public final class CommandUtil {
     ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
     ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();
 
-    CommandResult cmdResult;
-
+    OutputStream stdoutStream = commandOutputStream(verbose, stdoutCollector);
+    OutputStream stderrStream = commandOutputStream(verbose, stderrCollector);
     TerminationStatus exitStatus = null;
     try {
-      cmdResult = cmd.execute(input, new TimeoutKillableObserver(COMMAND_TIMEOUT),
-          // If verbose we stream to the user console too
-          verbose ? new DemultiplexOutputStream(System.err, stdoutCollector) : stdoutCollector,
-          verbose ? new DemultiplexOutputStream(System.err, stderrCollector) : stderrCollector,
-          true);
+      CommandResult cmdResult =
+          cmd.execute(
+              input,
+              new TimeoutKillableObserver(COMMAND_TIMEOUT),
+              stdoutStream, stderrStream, true);
       exitStatus = cmdResult.getTerminationStatus();
       return new CommandOutputWithStatus(
           cmdResult.getTerminationStatus(),
@@ -94,13 +115,17 @@ public final class CommandUtil {
           stdoutCollector.toByteArray(),
           stderrCollector.toByteArray());
     } finally {
-      String finishMsg = "Command '" + cmd.getCommandLineElements()[0] + "' finished in "
-          + stopwatch + ". " + (exitStatus != null ? exitStatus.toString() : "(No exit status)");
+      String commandName = cmd.getCommandLineElements()[0];
 
-      logOutput(Level.INFO, cmd, "STDOUT", stdoutCollector);
-      logOutput(Level.INFO, cmd, "STDERR", stderrCollector);
+      logOutput(Level.INFO, String.format("'%s' STDOUT: ", commandName), stdoutCollector);
+      logOutput(Level.INFO, String.format("'%s' STDERR: ", commandName), stderrCollector);
+
+      String finishMsg =
+          String.format(
+              "Command '%s' finished in %s. %s",
+              commandName, stopwatch,
+              exitStatus != null ? exitStatus.toString() : "(No exit status)");
       logger.log(Level.INFO, finishMsg);
-
       if (verbose) {
         System.err.println(finishMsg);
       }
@@ -108,17 +133,23 @@ public final class CommandUtil {
   }
 
   /**
+   * Creates the necessary OutputStream to be passed to the {@link Command#execute()}.
+   */
+  private static OutputStream commandOutputStream(boolean verbose, OutputStream outputStream) {
+    // If verbose we stream to the user console too
+    return verbose ? new DemultiplexOutputStream(System.err, outputStream) : outputStream;
+  }
+
+  /**
    * Log to the appropiate log level the output of the command
    */
-  private static void logOutput(Level level, Command cmd, final String outputType,
-      ByteArrayOutputStream outputBytes) {
-
+  private static void logOutput(Level level, String prefix, ByteArrayOutputStream outputBytes) {
     String string = asString(outputBytes).trim();
     if (string.isEmpty()) {
       return;
     }
     for (String line : string.split(System.lineSeparator())) {
-      logger.log(level, "'" + cmd.getCommandLineElements()[0] + "' " + outputType + ": " + line);
+      logger.log(level, prefix + line);
     }
   }
 

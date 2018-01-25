@@ -36,7 +36,7 @@ public class CommandTest {
   @Test
   public void testCommand() throws CommandException {
     Command command = new Command(new String[]{"echo", "hello", "world"});
-    CommandOutputWithStatus result = CommandUtil.executeCommand(command, /*verbose=*/false);
+    CommandOutputWithStatus result = new CommandUtil(command).execute();
     assertThat(result.getTerminationStatus().success()).isTrue();
     assertThat(result.getStdout()).isEqualTo("hello world\n");
   }
