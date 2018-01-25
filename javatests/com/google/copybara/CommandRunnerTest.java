@@ -19,7 +19,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.copybara.util.CommandOutputWithStatus;
-import com.google.copybara.util.CommandUtil;
+import com.google.copybara.util.CommandRunner;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 
@@ -31,12 +31,12 @@ import org.junit.runners.JUnit4;
  * Tests that we can execute commands with Bazel shell library.
  */
 @RunWith(JUnit4.class)
-public class CommandTest {
+public class CommandRunnerTest {
 
   @Test
   public void testCommand() throws CommandException {
     Command command = new Command(new String[]{"echo", "hello", "world"});
-    CommandOutputWithStatus result = new CommandUtil(command).execute();
+    CommandOutputWithStatus result = new CommandRunner(command).execute();
     assertThat(result.getTerminationStatus().success()).isTrue();
     assertThat(result.getStdout()).isEqualTo("hello world\n");
   }

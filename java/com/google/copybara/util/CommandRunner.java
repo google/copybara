@@ -36,12 +36,11 @@ import java.util.logging.Logger;
 import javax.annotation.CheckReturnValue;
 
 /**
- * An utility class for executing commands and logging the output appropriately.
- * TODO(danielromero): Rename to CommandRunner
+ * Allows running a {@link Command} with easier stderr/stdout and logging management.
  */
-public final class CommandUtil {
+public final class CommandRunner {
 
-  private static final Logger logger = Logger.getLogger(CommandUtil.class.getName());
+  private static final Logger logger = Logger.getLogger(CommandRunner.class.getName());
   /**
    * No input for the command.
    */
@@ -54,13 +53,13 @@ public final class CommandUtil {
   private final boolean verbose;
   private final byte[] input;
 
-  private CommandUtil(Command cmd, boolean verbose, byte[] input) {
+  private CommandRunner(Command cmd, boolean verbose, byte[] input) {
     this.cmd = Preconditions.checkNotNull(cmd);
     this.verbose = verbose;
     this.input = Preconditions.checkNotNull(input);
   }
 
-  public CommandUtil(Command cmd) {
+  public CommandRunner(Command cmd) {
     this(cmd, false, NO_INPUT);
   }
 
@@ -68,16 +67,16 @@ public final class CommandUtil {
    * Sets the verbose level for the command execution.
    */
   @CheckReturnValue
-  public CommandUtil withVerbose(boolean verbose) {
-    return new CommandUtil(this.cmd, verbose, this.input);
+  public CommandRunner withVerbose(boolean verbose) {
+    return new CommandRunner(this.cmd, verbose, this.input);
   }
 
   /**
    * Sets the input for the command execution.
    */
   @CheckReturnValue
-  public CommandUtil withInput(byte[] input) {
-    return new CommandUtil(this.cmd, this.verbose, input);
+  public CommandRunner withInput(byte[] input) {
+    return new CommandRunner(this.cmd, this.verbose, input);
   }
 
   /**

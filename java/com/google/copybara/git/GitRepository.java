@@ -50,7 +50,7 @@ import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
-import com.google.copybara.util.CommandUtil;
+import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -282,7 +282,7 @@ public class GitRepository {
     }
 
     ImmutableMap<String, GitRevision> before = showRef();
-    CommandOutputWithStatus output = gitAllowNonZeroExit(CommandUtil.NO_INPUT, args);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(CommandRunner.NO_INPUT, args);
     if (output.getTerminationStatus().success()) {
       ImmutableMap<String, GitRevision> after = showRef();
       return new FetchResult(before, after);
@@ -391,7 +391,7 @@ public class GitRepository {
   protected ImmutableMap<String, GitRevision> showRef(Iterable<String> refs)
       throws RepoException {
     ImmutableMap.Builder<String, GitRevision> result = ImmutableMap.builder();
-    CommandOutput commandOutput = gitAllowNonZeroExit(CommandUtil.NO_INPUT,
+    CommandOutput commandOutput = gitAllowNonZeroExit(CommandRunner.NO_INPUT,
         ImmutableList.<String>builder().add("show-ref").addAll(refs).build());
 
     if (!commandOutput.getStderr().isEmpty()) {
@@ -550,7 +550,7 @@ public class GitRepository {
     }
     params.add("--get");
     params.add(field);
-    CommandOutputWithStatus out = gitAllowNonZeroExit(CommandUtil.NO_INPUT, params.build());
+    CommandOutputWithStatus out = gitAllowNonZeroExit(CommandRunner.NO_INPUT, params.build());
     if (out.getTerminationStatus().success()) {
       return out.getStdout().trim();
     } else if (out.getTerminationStatus().getExitCode() == 1 && out.getStderr().isEmpty()) {
@@ -565,7 +565,7 @@ public class GitRepository {
   public String parseRef(String ref) throws RepoException, CannotResolveRevisionException {
     // Runs rev-list on the reference and remove the extra newline from the output.
     CommandOutputWithStatus result = gitAllowNonZeroExit(
-        CommandUtil.NO_INPUT, ImmutableList.of("rev-list", "-1", ref, "--"));
+        CommandRunner.NO_INPUT, ImmutableList.of("rev-list", "-1", ref, "--"));
     if (!result.getTerminationStatus().success()) {
       throw new CannotResolveRevisionException("Cannot find reference '" + ref + "'");
     }
@@ -585,7 +585,7 @@ public class GitRepository {
 
   public void rebase(String newBaseline) throws RepoException {
     CommandOutputWithStatus output = gitAllowNonZeroExit(
-        CommandUtil.NO_INPUT, ImmutableList.of("rebase", checkNotNull(newBaseline)));
+        CommandRunner.NO_INPUT, ImmutableList.of("rebase", checkNotNull(newBaseline)));
 
     if (output.getTerminationStatus().success()) {
       return;
@@ -940,7 +940,7 @@ public class GitRepository {
       allParams.addAll(addGitDirAndWorkTreeParams(params));
       Command cmd = new Command(
           Iterables.toArray(allParams, String.class), environment, getCwd().toFile());
-      return new CommandUtil(cmd)
+      return new CommandRunner(cmd)
           .withVerbose(verbose)
           .withInput(stdin)
           .execute();
@@ -963,7 +963,7 @@ public class GitRepository {
     Iterables.addAll(allParams, params);
     Command cmd = new Command(
         Iterables.toArray(allParams, String.class), env, cwd.toFile());
-    return new CommandUtil(cmd)
+    return new CommandRunner(cmd)
         .withVerbose(verbose)
         .execute();
   }
@@ -1021,7 +1021,7 @@ public class GitRepository {
    */
   private boolean checkSha1Exists(String reference) throws RepoException {
     ImmutableList<String> params = ImmutableList.of("cat-file", "-e", reference);
-    CommandOutputWithStatus output = gitAllowNonZeroExit(CommandUtil.NO_INPUT, params);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(CommandRunner.NO_INPUT, params);
     if (output.getTerminationStatus().success()) {
       return true;
     }

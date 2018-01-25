@@ -43,7 +43,7 @@ import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
-import com.google.copybara.util.CommandUtil;
+import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.shell.Command;
@@ -178,7 +178,7 @@ public class GitOrigin implements Origin<GitRevision> {
       try {
         Command cmd = new Command(new String[]{gitOriginOptions.originCheckoutHook},
             generalOptions.getEnvironment(), workdir.toFile());
-        CommandOutputWithStatus result = new CommandUtil(cmd)
+        CommandOutputWithStatus result = new CommandRunner(cmd)
             .withVerbose(generalOptions.isVerbose())
             .execute();
         logLines(generalOptions.console(), "git.origin hook (Stdout): ", result.getStdout());

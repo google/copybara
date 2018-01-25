@@ -56,7 +56,7 @@ public class DiffUtil {
     };
     Command cmd = new Command(params, environment, root.toFile());
     try {
-      new CommandUtil(cmd)
+      new CommandRunner(cmd)
           .withVerbose(verbose)
           .execute();
       return EMPTY_DIFF;
@@ -102,7 +102,7 @@ public class DiffUtil {
     Command cmd =
         new Command(params.build().toArray(new String[0]), environment, rootDir.toFile());
     try {
-      new CommandUtil(cmd)
+      new CommandRunner(cmd)
           .withVerbose(verbose)
           .withInput(diffContents)
           .execute();
@@ -145,7 +145,7 @@ public class DiffUtil {
       Command cmd = new Command(new String[]{
           resolveGitBinary(env), "rev-parse", "--git-dir"}, env, path.toFile());
 
-      String gitDir = new CommandUtil(cmd)
+      String gitDir = new CommandRunner(cmd)
           .withVerbose(verbose)
           .execute()
           .getStdout()

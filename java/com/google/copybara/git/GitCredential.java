@@ -95,7 +95,7 @@ public final class GitCredential {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     ByteArrayOutputStream err = new ByteArrayOutputStream();
     try {
-      // DON'T REPLACE THIS WITH CommandUtil.executeCommand. WE DON'T WANT TO ACCIDENTALLY LOG THE
+      // DON'T REPLACE THIS WITH CommandRunner.execute(). WE DON'T WANT TO ACCIDENTALLY LOG THE
       // PASSWORD!
       CommandResult result = cmd.execute(
           new ByteArrayInputStream(request.getBytes(UTF_8)),
