@@ -217,7 +217,7 @@ public final class GeneralOptions implements Option {
 
   @Parameters(separators = "=")
   public static final class Args {
-    @Parameter(names = "-v", description = "Verbose output.")
+    @Parameter(names ={"-v", "--verbose"}, description = "Verbose output.")
     boolean verbose;
 
     // We don't use JCommander for parsing this flag but we do it manually since
