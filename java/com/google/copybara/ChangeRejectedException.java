@@ -16,9 +16,7 @@
 
 package com.google.copybara;
 
-/**
- * User rejected the change and aborted execution.
- */
+/** User rejected the change and aborted execution. */
 public class ChangeRejectedException extends ValidationException {
 
   public ChangeRejectedException(String message) {
