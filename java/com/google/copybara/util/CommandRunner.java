@@ -94,8 +94,8 @@ public final class CommandRunner {
     ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
     ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();
 
-    OutputStream stdoutStream = commandOutputStream(verbose, stdoutCollector);
-    OutputStream stderrStream = commandOutputStream(verbose, stderrCollector);
+    OutputStream stdoutStream = commandOutputStream(stdoutCollector);
+    OutputStream stderrStream = commandOutputStream(stderrCollector);
     TerminationStatus exitStatus = null;
     try {
       CommandResult cmdResult =
@@ -134,7 +134,7 @@ public final class CommandRunner {
   /**
    * Creates the necessary OutputStream to be passed to the {@link Command#execute()}.
    */
-  private static OutputStream commandOutputStream(boolean verbose, OutputStream outputStream) {
+  private OutputStream commandOutputStream(OutputStream outputStream) {
     // If verbose we stream to the user console too
     return verbose ? new DemultiplexOutputStream(System.err, outputStream) : outputStream;
   }
