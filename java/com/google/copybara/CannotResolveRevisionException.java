@@ -16,9 +16,7 @@
 
 package com.google.copybara;
 
-/**
- * Indicates that a revision could not be resolved in a repository.
- */
+/** Indicates that a revision could not be resolved in a repository. */
 public class CannotResolveRevisionException extends ValidationException {
   public CannotResolveRevisionException(String message) {
     super(message);
