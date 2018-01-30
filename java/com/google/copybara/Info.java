@@ -52,7 +52,7 @@ public abstract class Info<O extends Revision> {
   }
 
   @AutoValue
-  public static abstract class MigrationReference<O extends Revision> {
+  public abstract static class MigrationReference<O extends Revision> {
 
     public static <O extends Revision> MigrationReference<O> create(
         String label,
