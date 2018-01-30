@@ -275,6 +275,11 @@ public final class GerritDestination implements Destination<GitRevision> {
   }
 
   @Override
+  public String getType() {
+    return "gerrit.destination";
+  }
+
+  @Override
   public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<>();
@@ -285,7 +290,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       builder.put(entry);
     }
     return builder
-        .put("type", "gerrit.destination")
+        .put("type", getType())
         .build();
   }
 }
