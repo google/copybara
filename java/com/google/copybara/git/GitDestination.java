@@ -465,21 +465,26 @@ public final class GitDestination implements Destination<GitRevision> {
               "User aborted execution: did not confirm diff changes.");
         }
       }
-      if (!skipPush) {
-        console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, remotePush));
-        checkCondition(!nonFastForwardPush
-            || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
-            + " allowed when fetch != push");
-
-        String serverResponse = generalOptions.repoTask(
-            "push",
-            () -> scratchClone.push()
-                .withRefspecs(repoUrl, ImmutableList.of(scratchClone.createRefSpec(
-                    (nonFastForwardPush ? "+" : "") + "HEAD:" + getCompleteRef(remotePush))))
-                .run()
-        );
-        processPushOutput.process(serverResponse, messageInfo.newPush, alternate);
+      if (skipPush) {
+        console.infoFmt(
+            "Git Destination: skipped push to remote. Check the local commits at %s",
+            scratchClone.getGitDir());
+        return WriterResult.OK;
       }
+
+      console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, remotePush));
+      checkCondition(!nonFastForwardPush
+          || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
+          + " allowed when fetch != push");
+
+      String serverResponse = generalOptions.repoTask(
+          "push",
+          () -> scratchClone.push()
+              .withRefspecs(repoUrl, ImmutableList.of(scratchClone.createRefSpec(
+                  (nonFastForwardPush ? "+" : "") + "HEAD:" + getCompleteRef(remotePush))))
+              .run()
+      );
+      processPushOutput.process(serverResponse, messageInfo.newPush, alternate);
       return WriterResult.OK;
     }
 
