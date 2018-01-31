@@ -130,7 +130,7 @@ public class WorkflowOptions implements Option {
    */
   public void reportNoop(Console console, String message) throws VoidOperationException {
     if (ignoreNoop) {
-      console.warn(message);
+      console.warn("NOOP: " + message);
     } else {
       throw new VoidOperationException(message);
     }
