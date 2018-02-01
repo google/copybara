@@ -17,6 +17,7 @@
 package com.google.copybara.util;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
@@ -52,15 +53,17 @@ public final class CommandRunner {
   private final Command cmd;
   private final boolean verbose;
   private final byte[] input;
+  private final int maxOutLogLines;
 
-  private CommandRunner(Command cmd, boolean verbose, byte[] input) {
+  private CommandRunner(Command cmd, boolean verbose, byte[] input, int maxOutLogLines) {
     this.cmd = Preconditions.checkNotNull(cmd);
     this.verbose = verbose;
     this.input = Preconditions.checkNotNull(input);
+    this.maxOutLogLines = maxOutLogLines;
   }
 
   public CommandRunner(Command cmd) {
-    this(cmd, false, NO_INPUT);
+    this(cmd, false, NO_INPUT, -1);
   }
 
   /**
@@ -68,7 +71,7 @@ public final class CommandRunner {
    */
   @CheckReturnValue
   public CommandRunner withVerbose(boolean verbose) {
-    return new CommandRunner(this.cmd, verbose, this.input);
+    return new CommandRunner(this.cmd, verbose, this.input, this.maxOutLogLines);
   }
 
   /**
@@ -76,7 +79,15 @@ public final class CommandRunner {
    */
   @CheckReturnValue
   public CommandRunner withInput(byte[] input) {
-    return new CommandRunner(this.cmd, this.verbose, input);
+    return new CommandRunner(this.cmd, this.verbose, input, this.maxOutLogLines);
+  }
+
+  /**
+   * Sets the maximum number of output lines logged per stream
+   */
+  @CheckReturnValue
+  public CommandRunner withMaxStdOutLogLines(int lines) {
+    return new CommandRunner(this.cmd, this.verbose, this.input, lines);
   }
 
   /**
@@ -116,8 +127,16 @@ public final class CommandRunner {
     } finally {
       String commandName = cmd.getCommandLineElements()[0];
 
-      logOutput(Level.INFO, String.format("'%s' STDOUT: ", commandName), stdoutCollector);
-      logOutput(Level.INFO, String.format("'%s' STDERR: ", commandName), stderrCollector);
+      logOutput(
+          Level.INFO,
+          String.format("'%s' STDOUT: ", commandName),
+          stdoutCollector,
+          maxOutLogLines);
+      logOutput(
+          Level.INFO,
+          String.format("'%s' STDERR: ", commandName),
+          stderrCollector,
+          maxOutLogLines);
 
       String finishMsg =
           String.format(
@@ -142,13 +161,20 @@ public final class CommandRunner {
   /**
    * Log to the appropiate log level the output of the command
    */
-  private static void logOutput(Level level, String prefix, ByteArrayOutputStream outputBytes) {
+  private static void logOutput(
+      Level level, String prefix, ByteArrayOutputStream outputBytes, int maxLogLines) {
     String string = asString(outputBytes).trim();
     if (string.isEmpty()) {
       return;
     }
-    for (String line : string.split(System.lineSeparator())) {
+    int lines = 0;
+    for (String line : Splitter.on(System.lineSeparator()).split(string)) {
       logger.log(level, prefix + line);
+      lines++;
+      if (maxLogLines >= 0 && lines >= maxLogLines) {
+        logger.log(level, prefix + "... truncated after " + maxLogLines + " line(s)");
+        break;
+      }
     }
   }
 

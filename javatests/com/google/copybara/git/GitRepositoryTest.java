@@ -496,7 +496,7 @@ public class GitRepositoryTest {
 
     Map<String, String> refsToShas =
         GitRepository.lsRemote("file://" + repository.getGitDir(), Collections.emptyList(),
-            System.getenv());
+            System.getenv(), /*maxLogLines*/-1);
     assertThat(refsToShas.size()).isEqualTo(3);
     String headSha = refsToShas.get("HEAD");
     assertThat(refsToShas.get("refs/heads/b1")).isEqualTo(headSha);
@@ -508,7 +508,7 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "boo.txt", "-m", "message");
     refsToShas =
         GitRepository.lsRemote("file://" + repository.getGitDir(), Collections.emptyList(),
-            System.getenv());
+            System.getenv(), /*maxLogLines*/-1);
     assertThat(refsToShas.size()).isEqualTo(3);
     assertThat(refsToShas.get("refs/heads/b1")).isNotEqualTo(headSha);
   }

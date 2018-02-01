@@ -328,10 +328,11 @@ public class GitRepository {
    * @param url - see <repository> in git help ls-remote
    * @param refs - see <refs> in git help ls-remote
    * @param env - determines where the Git binaries are
+   * @param maxLogLines - Limit log lines to the number specified. -1 for unlimited
    * @return - a map of refs to sha1 from the git ls-remote output.
    */
   public static Map<String, String> lsRemote(
-      String url, Collection<String> refs, Map<String, String> env)
+      String url, Collection<String> refs, Map<String, String> env, int maxLogLines)
       throws RepoException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
@@ -340,7 +341,7 @@ public class GitRepository {
 
     CommandOutputWithStatus output;
     try {
-      output = executeGit(FileSystems.getDefault().getPath("."), args, env, false);
+      output = executeGit(FileSystems.getDefault().getPath("."), args, env, false, maxLogLines);
     } catch (BadExitStatusWithOutputException e) {
       throw new RepoException(
           String.format("Error running ls-remote for '%s' and refs '%s': Exit code %s, Output:\n%s",
@@ -366,10 +367,10 @@ public class GitRepository {
   }
 
   /**
-   * Same as {@link #lsRemote(String, Collection, Map)} but using this repository environment
+   * Same as {@link #lsRemote(String, Collection, Map, int)} but using this repository environment
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs) throws RepoException {
-    return lsRemote(url, refs, environment);
+    return lsRemote(url, refs, environment, /*maxlogLines*/ -1);
   }
 
   static String validateUrl(String url) throws RepoException {
@@ -958,14 +959,19 @@ public class GitRepository {
 
   private static CommandOutputWithStatus executeGit(Path cwd, Iterable<String> params,
       Map<String, String> env, boolean verbose) throws CommandException {
+    return executeGit(cwd, params, env, verbose, /*maxLogLines*/-1);
+  }
+
+  private static CommandOutputWithStatus executeGit(Path cwd, Iterable<String> params,
+      Map<String, String> env, boolean verbose, int maxLogLines) throws CommandException {
     List<String> allParams = new ArrayList<>(Iterables.size(params) + 1);
     allParams.add(resolveGitBinary(env));
     Iterables.addAll(allParams, params);
     Command cmd = new Command(
         Iterables.toArray(allParams, String.class), env, cwd.toFile());
-    return new CommandRunner(cmd)
-        .withVerbose(verbose)
-        .execute();
+    CommandRunner runner = new CommandRunner(cmd).withVerbose(verbose);
+    return
+        maxLogLines >= 0 ? runner.withMaxStdOutLogLines(maxLogLines).execute() : runner.execute();
   }
 
   @Override

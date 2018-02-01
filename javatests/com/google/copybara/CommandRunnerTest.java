@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.beust.jcommander.internal.Lists;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.CommandOutputWithStatus;
@@ -25,6 +26,10 @@ import com.google.copybara.util.CommandRunner;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.StreamHandler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,5 +79,34 @@ public class CommandRunnerTest {
     String stderr = new String(errContent.toByteArray(), StandardCharsets.UTF_8);
     // Using contains() because stderr also gets all the logs
     assertThat(stderr).contains("hello world\n");
+  }
+
+  @Test
+  public void testCommandWithMaxLogLines() throws CommandException {
+    Logger logger = Logger.getLogger(CommandRunner.class.getName());
+    List<String> logLines = Lists.newLinkedList();
+    StreamHandler handler = new StreamHandler() {
+      @Override
+      public synchronized void publish(LogRecord record) {
+        logLines.add(record.getMessage());
+      }
+    };
+    logger.addHandler(handler);
+    try {
+      Command command = new Command(new String[]{"echo", "hello\n", "world"});
+      CommandOutputWithStatus result = new CommandRunner(command)
+          .withMaxStdOutLogLines(1)
+          .execute();
+      assertThat(result.getTerminationStatus().success()).isTrue();
+      assertThat(result.getStdout()).isEqualTo("hello\n world\n");
+      assertThat(outContent.toByteArray()).isEmpty();
+      assertThat(logLines).hasSize(4);
+
+      assertThat(logLines).containsAllOf("Executing [echo 'hello\n' world]",
+          "'echo' STDOUT: hello",
+          "'echo' STDOUT: ... truncated after 1 line(s)");
+    } finally {
+      logger.removeHandler(handler);
+    }
   }
 }
