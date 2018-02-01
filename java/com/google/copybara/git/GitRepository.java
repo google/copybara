@@ -112,6 +112,8 @@ public class GitRepository {
           + "(fatal: Couldn't find remote ref"
           // When fetching a SHA-1 ref
           + "|no such remote ref"
+          // Local fetch for a SHA-1 fails
+          + "|upload-pack: not our ref"
           // Gerrit when fetching
           + "|ERR want .+ not valid)");
   private static final Pattern NO_GIT_REPOSITORY =
@@ -246,7 +248,7 @@ public class GitRepository {
       fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of());
       try {
         return resolveReferenceWithContext(ref, /*contextRef=*/ref, url);
-      } catch (RepoException ignore) {
+      } catch (RepoException | CannotResolveRevisionException ignore) {
         // Ignore, the fetch below will attempt using the SHA-1.
       }
     }
@@ -290,9 +292,13 @@ public class GitRepository {
     if (output.getStderr().isEmpty()
         || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
       throw new CannotResolveRevisionException("Cannot find references: " + refspecs);
-    } else if (NO_GIT_REPOSITORY.matcher(output.getStderr()).find()){
+    } else if (NO_GIT_REPOSITORY.matcher(output.getStderr()).find()) {
       throw new CannotResolveRevisionException(
           String.format("Invalid Git repository: %s. Error: %s", url, output.getStderr()));
+    } else if (output.getStderr().contains(
+        "Server does not allow request for unadvertised object")) {
+      throw new CannotResolveRevisionException(
+          String.format("%s: %s", url, output.getStderr().trim()));
     } else {
       throw throwUnknownGitError(output, args);
     }

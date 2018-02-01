@@ -26,6 +26,7 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -38,7 +39,6 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
-import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -435,6 +435,39 @@ public class GitRepositoryTest {
     assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
     assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/master");
     assertThat(result.getInserted()).isEmpty();
+  }
+
+  @Test
+  public void testFetchNonHeadSHA1() throws Exception {
+    List<Iterable<String>> requestedFetches = new ArrayList<>();
+
+    GitRepository dest = new GitRepository(Files.createTempDirectory("destDir"), /*workTree=*/null,
+        true, getGitEnv()) {
+
+      @Override
+      public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
+          throws RepoException, CannotResolveRevisionException {
+        requestedFetches.add(refspecs);
+        return super.fetch(url, prune, force, refspecs);
+      }
+    }.init();
+
+    Files.write(workdir.resolve("foo.txt"), "aaa".getBytes(UTF_8));
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "foo.txt", "-m", "message 1");
+
+    try {
+      dest.fetchSingleRef("file://" + repository.getGitDir(),
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      fail();
+    } catch (CannotResolveRevisionException ignore) {
+    }
+
+    // This is the important part of the test: We do two fetches, the first ones for the default
+    // head and if it fails we do one for the ref
+    assertThat(requestedFetches).isEqualTo(ImmutableList.of(
+        ImmutableList.of(),
+        ImmutableList.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
   }
 
   @Test
