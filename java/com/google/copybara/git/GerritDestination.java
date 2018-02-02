@@ -34,13 +34,11 @@ import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.git.GerritChangeFinder.GerritChange;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
-import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
@@ -50,7 +48,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -97,47 +94,13 @@ public final class GerritDestination implements Destination<GitRevision> {
         return createMessageInfo(result, /*newPush=*/false, gerritOptions.gerritChangeId);
       }
 
-      // TODO(malcon): Inline and remove the rest of the method
-      if (gerritOptions.newGerritApi) {
-        return newGerritApiFinder(gerritOptions.newGerritApi(repoUrl), result);
-      }
-
-      String workflowId = result.getChangeIdentity();
-      GerritChangeFinder changeFinder = gerritOptions.getChangeFinder().get();
-      if (changeFinder == null || gerritOptions.newChange) {
-        return defaultMessageInfo(result, workflowId);
-      } else if (!changeFinder.canQuery(repoUrl)) {
-        console.warnFmt("Url '%s' is not eligible for Gerrit review reuse"
-                            + " - new reviews will be created for each patch set.", repoUrl);
-        return defaultMessageInfo(result, workflowId);
-      }
-      int attempt = 0;
-      while (attempt <= MAX_FIND_ATTEMPTS) {
-        String changeId = computeChangeId(workflowId, committer.getEmail(), attempt);
-        console.progressFmt("Querying Gerrit ('%s') for change '%s'", repoUrl, changeId);
-        Optional<GerritChange> change = changeFinder.query(repoUrl, changeId);
-        if (!change.isPresent()) {
-          return createMessageInfo(result, /*newPush=*/true, changeId);
-        }
-        if (change.get().getStatus().equals("NEW")) {
-          return createMessageInfo(result, /*newPush=*/false, change.get().getChangeId());
-        }
-        attempt++;
-      }
-      throw new RepoException(
-          String.format("Unable to find unmerged change for '%s', committer '%s'.",
-                        workflowId, committer));
-    }
-
-    private MessageInfo newGerritApiFinder(GerritApi gerritApi,
-        TransformResult result) throws RepoException, ValidationException {
       String workflowId = result.getChangeIdentity();
 
       int attempt = 0;
       while (attempt <= MAX_FIND_ATTEMPTS) {
         String changeId = computeChangeId(workflowId, committer.getEmail(), attempt);
         console.progressFmt("Querying Gerrit ('%s') for change '%s'", repoUrl, changeId);
-        List<ChangeInfo> changes = gerritApi.getChanges(new ChangesQuery(
+        List<ChangeInfo> changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
             "change: " + changeId + " AND project:" + gerritOptions.getProject(repoUrl)));
         if (changes.isEmpty()) {
           return createMessageInfo(result, /*newPush=*/true, changeId);
@@ -152,15 +115,6 @@ public final class GerritDestination implements Destination<GitRevision> {
                         workflowId, committer));
     }
 
-    private MessageInfo defaultMessageInfo(TransformResult result, String workflowId) {
-      // Default implementation: hash with the time to avoid collisions - will never find a change
-      return createMessageInfo(
-          result,
-          /*newPush=*/true,
-          computeChangeId(workflowId, committer.getEmail(),
-                          (int) (System.currentTimeMillis() / 1000)));
-    }
-
     private MessageInfo createMessageInfo(TransformResult result, boolean newPush,
         String gerritChangeId) {
       Revision rev = result.getCurrentRevision();
@@ -173,6 +127,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       return new MessageInfo(labels.build(), newPush);
     }
 
+    @SuppressWarnings("deprecation")
     static String computeChangeId(String workflowId, String committerEmail, int attempt) {
       return "I"
           + Hashing.sha1()

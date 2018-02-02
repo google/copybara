@@ -26,7 +26,6 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
-import com.google.common.base.Suppliers;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.RepoException;
@@ -38,7 +37,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
 
 /** Arguments for {@link GerritDestination}. */
 @Parameters(separators = "=")
@@ -77,9 +75,10 @@ public class GerritOptions implements Option {
   protected boolean newChange = false;
 
   // TODO(malcon): Remove this
-  @Parameter(names = "--gerrit-use-new-api", description = "Use the new Gerrit API code",
+  @Parameter(names = "--gerrit-use-new-api", description = "DON'T USE",
       hidden = true)
-  protected boolean newGerritApi = false;
+  @Deprecated
+  protected boolean newGerritApiDontUse = true;
 
   @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
   protected String gerritTopic = "";
@@ -90,19 +89,6 @@ public class GerritOptions implements Option {
 
   public boolean addRevId() {
     return !noRevId;
-  }
-
-  synchronized Supplier<GerritChangeFinder> getChangeFinder() {
-    return Suppliers.memoize(this::newChangeFinder);
-  }
-
-  /**
-   * TODO(malcon): Remove this
-   */
-  @Nullable
-  @Deprecated
-  protected GerritChangeFinder newChangeFinder() {
-    return null;
   }
 
   /**

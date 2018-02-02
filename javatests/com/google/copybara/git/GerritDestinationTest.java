@@ -56,7 +56,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -98,9 +97,7 @@ public class GerritDestinationTest {
 
   @Before
   public void setup() throws Exception {
-    repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
-    repo().init();
 
     console = new TestingConsole();
     options = new OptionsBuilder()
@@ -119,8 +116,35 @@ public class GerritDestinationTest {
     options.gitDestination.committerName = "Bara Kopi";
     excludedDestinationPaths = ImmutableList.of();
 
-    url = "file://" + repoGitDir;
+    repoGitDir = localGerritRepo("localhost:33333/foo/bar").getGitDir();
+    url = "https://localhost:33333/foo/bar";
+    repo().init();
+
     skylark = new SkylarkTestExecutor(options, GitModule.class);
+
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+              throws IOException {
+            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
+              String result =
+                  "["
+                      + "{"
+                      + "  change_id : \""
+                      + changeIdFromRequest(url)
+                      + "\","
+                      + "  status : \"NEW\""
+                      + "}]";
+              return result.getBytes(UTF_8);
+            }
+            throw new IllegalArgumentException(method + " " + url);
+          }
+        };
+  }
+
+  private String changeIdFromRequest(String url) {
+    return url.replaceAll(".*(I[a-z0-9]{40}).*", "$1");
   }
 
   private GitRepository repo() {
@@ -218,7 +242,6 @@ public class GerritDestinationTest {
     Files.write(workdir.resolve("file"), "some content".getBytes());
 
     options.setForce(true);
-    options.gerrit.newGerritApi = true;
     options.gerrit.gerritChangeId = null;
 
     url = "https://localhost:33333/foo/bar";
@@ -284,65 +307,9 @@ public class GerritDestinationTest {
         .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
         .putInt(0)
         .hash();
-    options.gerrit =
-        new GerritOptions(() -> options.general, options.git) {
-          @Override
-          protected GerritChangeFinder newChangeFinder() {
-            return new GerritChangeFinder() {
-              @Override
-              public Optional<GerritChange> query(String repoUrl, String changeId) {
-                assertThat(changeId).isEqualTo(expectedChangeId);
-                return Optional.of(new GerritChange(changeId, "NEW"));
-              }
-
-              @Override
-              public boolean canQuery(String repoUrl) {
-                return true;
-              }
-            };
-          }
-        };
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + expectedChangeId);
-  }
-
-  @Test
-  public void finderCannotQuery() throws Exception {
-    fetch = "master";
-
-    Files.write(workdir.resolve("file"), "some content".getBytes());
-
-    options.setForce(true);
-    String expectedChangeId = "I" + Hashing.sha1()
-        .newHasher()
-        .putString("origin_ref", StandardCharsets.UTF_8)
-        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
-        .putInt(0)
-        .hash();
-    options.gerrit =
-        new GerritOptions(() -> options.general, options.git) {
-          @Override
-          protected GerritChangeFinder newChangeFinder() {
-            return new GerritChangeFinder() {
-              @Override
-              public Optional<GerritChange> query(String repoUrl, String changeId) {
-                fail("Shouldn't be called when canQuery is false");
-                throw new IllegalStateException();
-              }
-
-              @Override
-              public boolean canQuery(String repoUrl) {
-                return false;
-              }
-            };
-          }
-        };
-    process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref", repo())).contains(
-        GerritDestination.CHANGE_ID_LABEL);
-    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
-        .isNotEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + expectedChangeId);
   }
 
   @Test
@@ -362,25 +329,30 @@ public class GerritDestinationTest {
         .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
         .putInt(1)
         .hash();
-    options.gerrit =
-        new GerritOptions(() -> options.general, options.git) {
-          @Override
-          protected GerritChangeFinder newChangeFinder() {
-            return new GerritChangeFinder() {
-              @Override
-              public Optional<GerritChange> query(String repoUrl, String changeId) {
-                return changeId.equals(firstChangeId)
-                    ? Optional.of(new GerritChange(changeId, "MERGED"))
-                    : Optional.empty();
-              }
 
-              @Override
-              public boolean canQuery(String repoUrl) {
-                return true;
-              }
-            };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+              throws IOException {
+            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
+              String change = changeIdFromRequest(url);
+              String result =
+                  "["
+                      + "{"
+                      + "  change_id : \""
+                      + change
+                      + "\","
+                      + "  status : \""
+                      + (change.equals(firstChangeId) ? "MERGED" : "NEW")
+                      + "\""
+                      + "}]";
+              return result.getBytes(UTF_8);
+            }
+            throw new IllegalArgumentException(method + " " + url);
           }
         };
+
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + secondChangeId);
@@ -403,23 +375,27 @@ public class GerritDestinationTest {
         .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
         .putInt(1)
         .hash();
-    options.gerrit =
-        new GerritOptions(() -> options.general, options.git) {
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
           @Override
-          protected GerritChangeFinder newChangeFinder() {
-            return new GerritChangeFinder() {
-              @Override
-              public Optional<GerritChange> query(String repoUrl, String changeId) {
-                return Optional.of(new GerritChange(changeId, "MERGED"));
-              }
-
-              @Override
-              public boolean canQuery(String repoUrl) {
-                return true;
-              }
-            };
+          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+              throws IOException {
+            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
+              String change = changeIdFromRequest(url);
+              String result =
+                  "["
+                      + "{"
+                      + "  change_id : \""
+                      + change
+                      + "\","
+                      + "  status : \"MERGED\""
+                      + "}]";
+              return result.getBytes(UTF_8);
+            }
+            throw new IllegalArgumentException(method + " " + url);
           }
         };
+
     try {
       process(new DummyRevision("origin_ref"));
       fail("Should have thrown RepoException");
