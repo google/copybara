@@ -99,13 +99,6 @@ public enum GitRepoType {
 
     private GitRevision fetchFromUrl(GitRepository repository, String repoUrl, String ref)
         throws RepoException, CannotResolveRevisionException {
-      // The internal implementation of our GH code requires full references.
-      if (!GitRepository.SHA1_PATTERN.matches(ref)
-          && !ref.startsWith("refs/")
-          && !ref.equals("HEAD")
-          && GithubUtil.isGitHubUrl(repoUrl)) {
-        ref = "refs/heads/" + ref;
-      }
       return repository.fetchSingleRef(repoUrl, ref);
     }
   },

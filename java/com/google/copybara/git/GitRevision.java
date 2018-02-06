@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 /** A Git repository reference */
 public final class GitRevision implements Revision {
 
-  static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
+  public static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
 
   private final GitRepository repository;
   private final String sha1;
