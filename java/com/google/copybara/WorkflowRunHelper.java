@@ -90,9 +90,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   protected WorkflowRunHelper<O, D> withDryRun()
       throws RepoException, ValidationException, IOException {
-    return new WorkflowRunHelper<>(workflow, workdir, resolvedRef, originReader,
-                                   workflow.getDestination().newWriter(workflow.getDestinationFiles(), /*dryRun=*/true,
-            groupId, /*oldWriter=*/null), groupId, rawSourceRef);
+    return new WorkflowRunHelper<>(
+        workflow,
+        workdir,
+        resolvedRef,
+        originReader,
+        workflow
+            .getDestination()
+            .newWriter(
+                workflow.getDestinationFiles(), /*dryRun=*/ true, groupId, /*oldWriter=*/ null),
+        groupId,
+        rawSourceRef);
   }
 
   protected Path getWorkdir() {
