@@ -150,6 +150,10 @@ public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
     }
   }
 
+  public Path getPath() {
+    return path;
+  }
+
   @Override
   public String toString() {
     return path.toString();

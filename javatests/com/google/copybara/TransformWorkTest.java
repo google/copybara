@@ -40,7 +40,9 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -240,6 +242,22 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testDateFormat() throws Exception {
+    checkLabelWithSkylark("", "ctx.set_message(ctx.now_as_string())",
+        DateTimeFormatter.ofPattern("yyyy-MM-dd").format(ZonedDateTime.now(ZoneOffset.UTC)));
+
+    checkLabelWithSkylark("",
+        "ctx.set_message(ctx.now_as_string('yyyy MM dd XXX', 'Europe/Madrid'))",
+        DateTimeFormatter.ofPattern("yyyy MM dd").format(
+            ZonedDateTime.now(ZoneId.of("Europe/Madrid"))) + " +01:00");
+
+    checkLabelWithSkylark("",
+        "ctx.set_message(ctx.now_as_string('yyyy MM dd VV', 'Europe/Madrid'))",
+        DateTimeFormatter.ofPattern("yyyy MM dd").format(
+            ZonedDateTime.now(ZoneId.of("Europe/Madrid"))) + " Europe/Madrid");
+  }
+
+  @Test
   public void testGetLabel() {
     TransformWork work = create("Foo\n\nSOME=TEST\n").withChanges(
         new Changes(ImmutableList.of(
@@ -360,6 +378,28 @@ public class TransformWorkTest {
         "other/folder/prefix_file1.txt",
         "other/folder/prefix_file2.txt",
         "other/folder/prefix_file3.txt");
+  }
+
+  @Test
+  public void testReadAndWrite() throws IOException, ValidationException, RepoException {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base = fileSystem.getPath("testRunDynamicTransforms");
+    writeFile(base, "folder/file.txt", "foo");
+
+    Files.createDirectories(workdir.resolve("folder"));
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
+
+    String now = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        .format(ZonedDateTime.now(ZoneOffset.UTC));
+
+    runWorkflow("test", ""
+        + "def test(ctx):\n"
+        + "    path = ctx.new_path('folder/file.txt')\n"
+        + "    ctx.read_path(path)\n"
+        + "    ctx.write_path(path, ctx.read_path(path) + ctx.now_as_string())");
+
+    assertThat(destination.processed.get(0).getWorkdir())
+        .containsEntry("folder/file.txt", "foo" + now);
   }
 
   @Test

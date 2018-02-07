@@ -35,9 +35,13 @@ import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -174,6 +178,36 @@ public final class TransformWork {
         checkoutDir);
   }
 
+  @SkylarkCallable(
+      name = "write_path", doc = "Write an arbitrary string to a path (UTF-8 will be used)",
+      parameters = {
+          @Param(name = "path", type = CheckoutPath.class,
+              doc = "The string representing the path"),
+          @Param(name = "content", type = String.class, doc = "The content of the file"),
+      })
+  public void writePath(CheckoutPath path, String content)
+      throws FuncallException, IOException {
+      Files.write(asCheckoutPath(path), content.getBytes(StandardCharsets.UTF_8));
+  }
+
+  @SkylarkCallable(
+      name = "read_path", doc = "Read the content of path as UTF-8",
+      parameters = {
+          @Param(name = "path", type = CheckoutPath.class,
+              doc = "The string representing the path"),
+      })
+  public String readPath(CheckoutPath path) throws FuncallException, IOException {
+    return new String(Files.readAllBytes(asCheckoutPath(path)));
+  }
+
+  private Path asCheckoutPath(CheckoutPath path) throws FuncallException {
+    Path normalized = checkoutDir.resolve(path.getPath()).normalize();
+    if (!normalized.startsWith(normalized)) {
+      throw new FuncallException(path + " is not inside the checkout directory");
+    }
+    return normalized;
+  }
+
   @SkylarkCallable(name = "add_label",
       doc = "Add a label to the end of the description",
       parameters = {
@@ -236,6 +270,21 @@ public final class TransformWork {
   )
   public void removeLabel(String label, Boolean wholeMessage) {
     setMessage(parseMessage(wholeMessage).removeLabelByName(label).toString());
+  }
+
+  @SkylarkCallable(name = "now_as_string", doc = "Get current date as a string",
+      parameters = {
+          @Param(name = "format", type = String.class, doc = "The format to use. See:"
+              + " https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html"
+              + " for details.",
+              defaultValue = "\"yyyy-MM-dd\""),
+          @Param(name = "zone", doc = "The timezone id to use. "
+              + "See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default"
+              + " UTC ", defaultValue = "\"UTC\"")
+      }
+  )
+  public String formatDate(String format, String zone) {
+    return DateTimeFormatter.ofPattern(format).format(ZonedDateTime.now(ZoneId.of(zone)));
   }
 
   private ChangeMessage parseMessage(Boolean wholeMessage) {
