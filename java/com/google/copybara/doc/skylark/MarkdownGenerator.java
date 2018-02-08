@@ -103,7 +103,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       if (!skyModule.documented()) {
         continue;
       }
-      sb.append("# ").append(skyModule.name()).append("\n\n");
+      sb.append("## ").append(skyModule.name()).append("\n\n");
       sb.append(skyModule.doc());
       sb.append("\n\n");
 
@@ -150,7 +150,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     }
 
     sb.append("<a id=\"").append(functionName).append("\" aria-hidden=\"true\"></a>\n");
-    sb.append("## ").append(functionName).append("\n\n");
+    sb.append("### ").append(functionName).append("\n\n");
     sb.append(signature.ann.doc());
     sb.append("\n\n");
 
@@ -194,7 +194,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     sb.append(")`\n\n");
 
     if (longDescription.length() > 0) {
-      sb.append("### Parameters:\n\n");
+      sb.append("#### Parameters:\n\n");
       sb.append("Parameter | Description\n");
       sb.append("--------- | -----------\n");
       sb.append(longDescription);
@@ -208,12 +208,12 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     AnnotationHelper<Example> singleExample = annotationHelper(member, Example.class);
 
     if (examples != null) {
-      sb.append("### Examples:\n\n");
+      sb.append("#### Examples:\n\n");
       for (Example example : examples.ann.value()) {
         printExample(sb, example);
       }
     } else if (singleExample != null) {
-      sb.append("### Example:\n\n");
+      sb.append("#### Example:\n\n");
       printExample(sb, singleExample.ann);
     }
 
@@ -221,7 +221,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
   }
 
   private void printExample(StringBuilder sb, Example example) {
-    sb.append("#### ").append(example.title()).append(":\n\n");
+    sb.append("##### ").append(example.title()).append(":\n\n");
     sb.append(example.before()).append("\n\n");
     sb.append("```python\n").append(example.code()).append("\n```\n\n");
     if (!example.after().equals("")) {

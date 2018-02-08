@@ -1,80 +1,80 @@
 # Table of Contents
 
 
-  - [author](#author)
-  - [authoring](#authoring)
-    - [authoring.overwrite](#authoring.overwrite)
-    - [new_author](#new_author)
-    - [authoring.pass_thru](#authoring.pass_thru)
-    - [authoring.whitelisted](#authoring.whitelisted)
-  - [authoring_class](#authoring_class)
-  - [Console](#console)
-  - [metadata](#metadata)
-    - [metadata.squash_notes](#metadata.squash_notes)
-    - [metadata.save_author](#metadata.save_author)
-    - [metadata.map_author](#metadata.map_author)
-    - [metadata.use_last_change](#metadata.use_last_change)
-    - [metadata.expose_label](#metadata.expose_label)
-    - [metadata.restore_author](#metadata.restore_author)
-    - [metadata.add_header](#metadata.add_header)
-    - [metadata.replace_message](#metadata.replace_message)
-    - [metadata.scrubber](#metadata.scrubber)
-    - [metadata.verify_match](#metadata.verify_match)
-    - [metadata.map_references](#metadata.map_references)
-  - [core](#core)
-    - [glob](#glob)
-    - [core.reverse](#core.reverse)
-    - [core.workflow](#core.workflow)
-    - [core.move](#core.move)
-    - [core.copy](#core.copy)
-    - [core.remove](#core.remove)
-    - [core.replace](#core.replace)
-    - [core.todo_replace](#core.todo_replace)
-    - [core.verify_match](#core.verify_match)
-    - [core.transform](#core.transform)
-  - [folder](#folder)
-    - [folder.destination](#folder.destination)
-    - [folder.origin](#folder.origin)
-  - [git](#git)
-    - [git.origin](#git.origin)
-    - [git.integrate](#git.integrate)
-    - [git.mirror](#git.mirror)
-    - [git.gerrit_origin](#git.gerrit_origin)
-    - [git.github_origin](#git.github_origin)
-    - [git.github_pr_origin](#git.github_pr_origin)
-    - [git.destination](#git.destination)
-    - [git.github_pr_destination](#git.github_pr_destination)
-    - [git.gerrit_destination](#git.gerrit_destination)
-  - [patch](#patch)
-    - [patch.apply](#patch.apply)
+    - [author](#author)
+    - [authoring](#authoring)
+      - [authoring.overwrite](#authoring.overwrite)
+      - [new_author](#new_author)
+      - [authoring.pass_thru](#authoring.pass_thru)
+      - [authoring.whitelisted](#authoring.whitelisted)
+    - [authoring_class](#authoring_class)
+    - [Console](#console)
+    - [metadata](#metadata)
+      - [metadata.squash_notes](#metadata.squash_notes)
+      - [metadata.save_author](#metadata.save_author)
+      - [metadata.map_author](#metadata.map_author)
+      - [metadata.use_last_change](#metadata.use_last_change)
+      - [metadata.expose_label](#metadata.expose_label)
+      - [metadata.restore_author](#metadata.restore_author)
+      - [metadata.add_header](#metadata.add_header)
+      - [metadata.replace_message](#metadata.replace_message)
+      - [metadata.scrubber](#metadata.scrubber)
+      - [metadata.verify_match](#metadata.verify_match)
+      - [metadata.map_references](#metadata.map_references)
+    - [core](#core)
+      - [glob](#glob)
+      - [core.reverse](#core.reverse)
+      - [core.workflow](#core.workflow)
+      - [core.move](#core.move)
+      - [core.copy](#core.copy)
+      - [core.remove](#core.remove)
+      - [core.replace](#core.replace)
+      - [core.todo_replace](#core.todo_replace)
+      - [core.verify_match](#core.verify_match)
+      - [core.transform](#core.transform)
+    - [folder](#folder)
+      - [folder.destination](#folder.destination)
+      - [folder.origin](#folder.origin)
+    - [git](#git)
+      - [git.origin](#git.origin)
+      - [git.integrate](#git.integrate)
+      - [git.mirror](#git.mirror)
+      - [git.gerrit_origin](#git.gerrit_origin)
+      - [git.github_origin](#git.github_origin)
+      - [git.github_pr_origin](#git.github_pr_origin)
+      - [git.destination](#git.destination)
+      - [git.github_pr_destination](#git.github_pr_destination)
+      - [git.gerrit_destination](#git.gerrit_destination)
+    - [patch](#patch)
+      - [patch.apply](#patch.apply)
 
 
-# author
+## author
 
 Represents the author of a change
 
 
-# authoring
+## authoring
 
 The authors mapping between an origin and a destination
 
 <a id="authoring.overwrite" aria-hidden="true"></a>
-## authoring.overwrite
+### authoring.overwrite
 
 Use the default author for all the submits in the destination. Note that some destinations might choose to ignore this author and use the current user running the tool (In other words they don't allow impersonation).
 
 `authoring_class authoring.overwrite(default)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
 default|`string`<br><p>The default author for commits in the destination</p>
 
 
-### Example:
+#### Example:
 
-#### Overwrite usage example:
+##### Overwrite usage example:
 
 Create an authoring object that will overwrite any origin author with noreply@foobar.com mail.
 
@@ -83,22 +83,22 @@ authoring.overwrite("Foo Bar <noreply@foobar.com>")
 ```
 
 <a id="new_author" aria-hidden="true"></a>
-## new_author
+### new_author
 
 Create a new author from a string with the form 'name <foo@bar.com>'
 
 `author new_author(author_string)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
 author_string|`string`<br><p>A string representation of the author with the form 'name <foo@bar.com>'</p>
 
 
-### Example:
+#### Example:
 
-#### Create a new author:
+##### Create a new author:
 
 
 
@@ -107,22 +107,22 @@ new_author('Foo Bar <foobar@myorg.com>')
 ```
 
 <a id="authoring.pass_thru" aria-hidden="true"></a>
-## authoring.pass_thru
+### authoring.pass_thru
 
 Use the origin author as the author in the destination, no whitelisting.
 
 `authoring_class authoring.pass_thru(default)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
 default|`string`<br><p>The default author for commits in the destination. This is used in squash mode workflows or if author cannot be determined.</p>
 
 
-### Example:
+#### Example:
 
-#### Pass thru usage example:
+##### Pass thru usage example:
 
 
 
@@ -131,13 +131,13 @@ authoring.pass_thru(default = "Foo Bar <noreply@foobar.com>")
 ```
 
 <a id="authoring.whitelisted" aria-hidden="true"></a>
-## authoring.whitelisted
+### authoring.whitelisted
 
 Create an individual or team that contributes code.
 
 `authoring_class authoring.whitelisted(default, whitelist)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -145,9 +145,9 @@ default|`string`<br><p>The default author for commits in the destination. This i
 whitelist|`sequence of string`<br><p>List of white listed authors in the origin. The authors must be unique</p>
 
 
-### Examples:
+#### Examples:
 
-#### Only pass thru whitelisted users:
+##### Only pass thru whitelisted users:
 
 
 
@@ -162,7 +162,7 @@ authoring.whitelisted(
 )
 ```
 
-#### Only pass thru whitelisted LDAPs/usernames:
+##### Only pass thru whitelisted LDAPs/usernames:
 
 Some repositories are not based on email but use LDAPs/usernames. This is also supported since it is up to the origin how to check whether two authors are the same.
 
@@ -178,28 +178,28 @@ authoring.whitelisted(
 ```
 
 
-# authoring_class
+## authoring_class
 
 The authors mapping between an origin and a destination
 
 
-# Console
+## Console
 
 A console that can be used in skylark transformations to print info, warning or error messages.
 
 
-# metadata
+## metadata
 
 Core transformations for the change metadata
 
 <a id="metadata.squash_notes" aria-hidden="true"></a>
-## metadata.squash_notes
+### metadata.squash_notes
 
 Generate a message that includes a constant prefix text and a list of changes included in the squash change.
 
-`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, show_description=True, oldest_first=False, use_merge=False)`
+`transformation metadata.squash_notes(prefix='Copybara import of the project:\n\n', max=100, compact=True, show_ref=True, show_author=True, show_description=True, oldest_first=False, use_merge=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -213,9 +213,9 @@ oldest_first|`boolean`<br><p>If set to true, the list shows the oldest changes f
 use_merge|`boolean`<br><p>If true then merge changes are included in the squash notes</p>
 
 
-### Examples:
+#### Examples:
 
-#### Simple usage:
+##### Simple usage:
 
 'Squash notes' default is to print one line per change with information about the author
 
@@ -233,7 +233,7 @@ Changes for Project Foo:
 ```
 
 
-#### Removing authors and reversing the order:
+##### Removing authors and reversing the order:
 
 
 
@@ -254,7 +254,7 @@ Changes for Project Foo:
 ```
 
 
-#### Removing description:
+##### Removing description:
 
 
 
@@ -274,7 +274,7 @@ Changes for Project Foo:
 ```
 
 
-#### Showing the full message:
+##### Showing the full message:
 
 
 
@@ -305,13 +305,13 @@ Extended text
 
 
 <a id="metadata.save_author" aria-hidden="true"></a>
-## metadata.save_author
+### metadata.save_author
 
 For a given change, store a copy of the author as a label with the name ORIGINAL_AUTHOR.
 
 `transformation metadata.save_author(label='ORIGINAL_AUTHOR')`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -319,13 +319,13 @@ label|`string`<br><p>The label to use for storing the author</p>
 
 
 <a id="metadata.map_author" aria-hidden="true"></a>
-## metadata.map_author
+### metadata.map_author
 
 Map the author name and mail to another author. The mapping can be done by both name and mail or only using any of the two.
 
 `transformation metadata.map_author(authors, reversible=False, noop_reverse=False, fail_if_not_found=False, reverse_fail_if_not_found=False, map_all_changes=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -337,9 +337,9 @@ reverse_fail_if_not_found|`boolean`<br><p>Same as fail_if_not_found but when the
 map_all_changes|`boolean`<br><p>If all changes being migrated should be mapped. Useful for getting a mapped metadata.squash_notes. By default we only map the current author.</p>
 
 
-### Example:
+#### Example:
 
-#### Map some names, emails and complete authors:
+##### Map some names, emails and complete authors:
 
 Here we show how to map authors using different options:
 
@@ -352,13 +352,13 @@ metadata.map_author({
 ```
 
 <a id="metadata.use_last_change" aria-hidden="true"></a>
-## metadata.use_last_change
+### metadata.use_last_change
 
 Use metadata (message or/and author) from the last change being migrated. Useful when using 'SQUASH' mode but user only cares about the last change.
 
-`transformation metadata.use_last_change(author=True, message=True, default_message=None, use_merge=False)`
+`transformation metadata.use_last_change(author=True, message=True, default_message=None, use_merge=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -369,13 +369,13 @@ use_merge|`boolean`<br><p>If true then merge changes are taken into account for 
 
 
 <a id="metadata.expose_label" aria-hidden="true"></a>
-## metadata.expose_label
+### metadata.expose_label
 
 Certain labels are present in the internal metadata but are not exposed in the message by default. This transformations find a label in the internal metadata and exposes it in the message. If the label is already present in the message it will update it to use the new name and separator.
 
 `transformation metadata.expose_label(name, new_name=label, separator="=", ignore_label_not_found=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -385,9 +385,9 @@ separator|`string`<br><p>The separator to use when adding the label to the messa
 ignore_label_not_found|`boolean`<br><p>If a label is not found, ignore the error and continue.</p>
 
 
-### Examples:
+#### Examples:
 
-#### Simple usage:
+##### Simple usage:
 
 Expose a hidden label called 'REVIEW_URL':
 
@@ -397,7 +397,7 @@ metadata.expose_label('REVIEW_URL')
 
 This would add it as `REVIEW_URL=the_value`.
 
-#### New label name:
+##### New label name:
 
 Expose a hidden label called 'REVIEW_URL' as GIT_REVIEW_URL:
 
@@ -407,7 +407,7 @@ metadata.expose_label('REVIEW_URL', 'GIT_REVIEW_URL')
 
 This would add it as `GIT_REVIEW_URL=the_value`.
 
-#### Custom separator:
+##### Custom separator:
 
 Expose the label with a custom separator
 
@@ -418,13 +418,13 @@ metadata.expose_label('REVIEW_URL', separator = ': ')
 This would add it as `REVIEW_URL: the_value`.
 
 <a id="metadata.restore_author" aria-hidden="true"></a>
-## metadata.restore_author
+### metadata.restore_author
 
 For a given change, restore the author present in the ORIGINAL_AUTHOR label as the author of the change.
 
 `transformation metadata.restore_author(label='ORIGINAL_AUTHOR', search_all_changes=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -433,14 +433,14 @@ search_all_changes|`boolean`<br><p>By default Copybara only looks in the last cu
 
 
 <a id="metadata.add_header" aria-hidden="true"></a>
-## metadata.add_header
+### metadata.add_header
 
 Adds a header line to the commit message. Any variable present in the message in the form of ${LABEL_NAME} will be replaced by the corresponding label in the message. Note that this requires that the label is already in the message or in any of the changes being imported. The label in the message takes priority over the ones in the list of original messages of changes imported.
 
 
 `transformation metadata.add_header(text, ignore_label_not_found=False, new_line=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -449,9 +449,9 @@ ignore_label_not_found|`boolean`<br><p>If a label used in the template is not fo
 new_line|`boolean`<br><p>If a new line should be added between the header and the original message. This allows to create messages like `HEADER: ORIGINAL_MESSAGE`</p>
 
 
-### Examples:
+#### Examples:
 
-#### Add a header always:
+##### Add a header always:
 
 Adds a header to any message
 
@@ -480,7 +480,7 @@ documentation
 
 
 
-#### Add a header that uses a label:
+##### Add a header that uses a label:
 
 Adds a header to messages that contain a label. Otherwise it skips the message manipulation.
 
@@ -511,7 +511,7 @@ GIT_URL=http://foo.com/1234```
 
 Assuming the PR number is 1234. But any change without that label will not be transformed.
 
-#### Add a header without new line:
+##### Add a header without new line:
 
 Adds a header without adding a new line before the original message:
 
@@ -540,14 +540,14 @@ documentation
 
 
 <a id="metadata.replace_message" aria-hidden="true"></a>
-## metadata.replace_message
+### metadata.replace_message
 
 Replace the change message with a template text. Any variable present in the message in the form of ${LABEL_NAME} will be replaced by the corresponding label in the message. Note that this requires that the label is already in the message or in any of the changes being imported. The label in the message takes priority over the ones in the list of original messages of changes imported.
 
 
 `transformation metadata.replace_message(text, ignore_label_not_found=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -555,9 +555,9 @@ text|`string`<br><p>The template text to use for the message. For example '[Impo
 ignore_label_not_found|`boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
 
 
-### Example:
+#### Example:
 
-#### Replace the message:
+##### Replace the message:
 
 Replace the original message with a text:
 
@@ -575,13 +575,13 @@ Body from Github Pull Request
 
 
 <a id="metadata.scrubber" aria-hidden="true"></a>
-## metadata.scrubber
+### metadata.scrubber
 
 Removes part of the change message using a regex
 
 `transformation metadata.scrubber(regex, replacement='')`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -589,9 +589,9 @@ regex|`string`<br><p>Any text matching the regex will be removed. Note that the 
 replacement|`string`<br><p>Text replacement for the matching substrings. References to regex group numbers can be used in the form of $1, $2, etc.</p>
 
 
-### Examples:
+#### Examples:
 
-#### Remove from a keyword to the end of the message:
+##### Remove from a keyword to the end of the message:
 
 When change messages are in the following format:
 
@@ -621,7 +621,7 @@ This is a public description for a commit
 
 
 
-#### Keep only message enclosed in tags:
+##### Keep only message enclosed in tags:
 
 The previous example is prone to leak confidential information since a developer could easily forget to include the CONFIDENTIAL label. A different approach for this is to scrub everything by default except what is explicitly allowed. For example, the following scrubber would remove anything not enclosed in <public></public> tags:
 
@@ -651,13 +651,13 @@ very public
 
 
 <a id="metadata.verify_match" aria-hidden="true"></a>
-## metadata.verify_match
+### metadata.verify_match
 
 Verifies that a RegEx matches (or not matches) the change message. Does not transform anything, but will stop the workflow if it fails.
 
 `transformation metadata.verify_match(regex, verify_no_match=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -665,9 +665,9 @@ regex|`string`<br><p>The regex pattern to verify. The re2j pattern will be appli
 verify_no_match|`boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
 
 
-### Example:
+#### Example:
 
-#### Check that a text is present in the change description:
+##### Check that a text is present in the change description:
 
 Check that the change message contains a text enclosed in <public></public>:
 
@@ -676,13 +676,13 @@ metadata.verify_match("<public>(.|\n)*</public>")
 ```
 
 <a id="metadata.map_references" aria-hidden="true"></a>
-## metadata.map_references
+### metadata.map_references
 
 Allows updating links to references in commit messages to match the destination's format. Note that this will only consider the 5000 latest commits.
 
 `referenceMigrator metadata.map_references(before, after, regex_groups={}, additional_import_labels=[])`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -692,9 +692,9 @@ regex_groups|`dict`<br><p>Regexes for the ${reference} token's content. Requires
 additional_import_labels|`sequence of string`<br><p>Meant to be used when migrating from another tool: Per default, copybara will only recognize the labels defined in the workflow's endpoints. The tool will use these additional labels to find labels created by other invocations and tools.</p>
 
 
-### Example:
+#### Example:
 
-#### Map references, origin source of truth:
+##### Map references, origin source of truth:
 
 Finds links to commits in change messages, searches destination to find the equivalent reference in destination. Then replaces matches of 'before' with 'after', replacing the subgroup matched with the destination reference. Assume a message like 'Fixes bug introduced in origin/abcdef', where the origin change 'abcdef' was migrated as '123456' to the destination.
 
@@ -712,18 +712,18 @@ metadata.map_references(
 This would be translated into 'Fixes bug introduced in destination/123456', provided that a change with the proper label was found - the message remains unchanged otherwise.
 
 
-# core
+## core
 
 Core functionality for creating migrations, and basic transformations.
 
 <a id="glob" aria-hidden="true"></a>
-## glob
+### glob
 
 Glob returns a list of every file in the workdir that matches at least one pattern in include and does not match any of the patterns in exclude.
 
 `glob glob(include, exclude=[])`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -731,9 +731,9 @@ include|`sequence of string`<br><p>The list of glob patterns to include</p>
 exclude|`sequence of string`<br><p>The list of glob patterns to exclude</p>
 
 
-### Examples:
+#### Examples:
 
-#### Simple usage:
+##### Simple usage:
 
 Include all the files under a folder except for `internal` folder files:
 
@@ -741,7 +741,7 @@ Include all the files under a folder except for `internal` folder files:
 glob(["foo/**"], exclude = ["foo/internal/**"])
 ```
 
-#### Multiple folders:
+##### Multiple folders:
 
 Globs can have multiple inclusive rules:
 
@@ -751,7 +751,7 @@ glob(["foo/**", "bar/**", "baz/**.java"])
 
 This will include all files inside `foo` and `bar` folders and Java files inside `baz` folder.
 
-#### Multiple excludes:
+##### Multiple excludes:
 
 Globs can have multiple exclusive rules:
 
@@ -761,7 +761,7 @@ glob(["foo/**"], exclude = ["foo/internal/**", "foo/confidential/**" ])
 
 Include all the files of `foo` except the ones in `internal` and `confidential` folders
 
-#### All BUILD files recursively:
+##### All BUILD files recursively:
 
 Copybara uses Java globbing. The globbing is very similar to Bash one. This means that recursive globbing for a filename is a bit more tricky:
 
@@ -771,7 +771,7 @@ glob(["BUILD", "**/BUILD"])
 
 This is the correct way of matching all `BUILD` files recursively, including the one in the root. `**/BUILD` would only match `BUILD` files in subdirectories.
 
-#### Matching multiple strings with one expression:
+##### Matching multiple strings with one expression:
 
 While two globs can be used for matching two directories, there is a more compact approach:
 
@@ -782,13 +782,13 @@ glob(["{java,javatests}/**"])
 This matches any file in `java` and `javatests` folders.
 
 <a id="core.reverse" aria-hidden="true"></a>
-## core.reverse
+### core.reverse
 
 Given a list of transformations, returns the list of transformations equivalent to undoing all the transformations
 
 `sequence core.reverse(transformations)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -796,17 +796,22 @@ transformations|`sequence of transformation`<br><p>The transformations to revers
 
 
 <a id="core.workflow" aria-hidden="true"></a>
-## core.workflow
+### core.workflow
 
 Defines a migration pipeline which can be invoked via the Copybara command.
 
 Implicit labels that can be used/exposed:
 
   - COPYBARA_CONTEXT_REFERENCE: Requested reference. For example if copybara is invoked as `copybara copy.bara.sky workflow master`, the value would be `master`.
+  - COPYBARA_LAST_REV: Last reference that was migrated
+  - COPYBARA_CURRENT_REV: The current reference being migrated
+  - COPYBARA_CURRENT_MESSAGE: The current message at this point of the transformations
+  - COPYBARA_CURRENT_MESSAGE_TITLE: The current message title (first line) at this point of the transformations
+
 
 `core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -845,13 +850,13 @@ Name | Type | Description
 --notransformation-join | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
 
 <a id="core.move" aria-hidden="true"></a>
-## core.move
+### core.move
 
 Moves files between directories and renames files
 
 `transformation core.move(before, after, paths=glob(["**"]), overwrite=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -861,9 +866,9 @@ paths|`glob`<br><p>A glob expression relative to 'before' if it represents a dir
 overwrite|`boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 
 
-### Examples:
+#### Examples:
 
-#### Move a directory:
+##### Move a directory:
 
 Move all the files in a directory to another directory:
 
@@ -873,7 +878,7 @@ core.move("foo/bar_internal", "bar")
 
 In this example, `foo/bar_internal/one` will be moved to `bar/one`.
 
-#### Move all the files to a subfolder:
+##### Move all the files to a subfolder:
 
 Move all the files in the checkout dir into a directory called foo:
 
@@ -883,7 +888,7 @@ core.move("", "foo")
 
 In this example, `one` and `two/bar` will be moved to `foo/one` and `foo/two/bar`.
 
-#### Move a subfolder's content to the root:
+##### Move a subfolder's content to the root:
 
 Move the contents of a folder to the checkout root directory:
 
@@ -894,13 +899,13 @@ core.move("foo", "")
 In this example, `foo/bar` would be moved to `bar`.
 
 <a id="core.copy" aria-hidden="true"></a>
-## core.copy
+### core.copy
 
 Copy files between directories and renames files
 
 `transformation core.copy(before, after, paths=glob(["**"]), overwrite=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -910,9 +915,9 @@ paths|`glob`<br><p>A glob expression relative to 'before' if it represents a dir
 overwrite|`boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 
 
-### Examples:
+#### Examples:
 
-#### Copy a directory:
+##### Copy a directory:
 
 Move all the files in a directory to another directory:
 
@@ -922,7 +927,7 @@ core.copy("foo/bar_internal", "bar")
 
 In this example, `foo/bar_internal/one` will be copied to `bar/one`.
 
-#### Copy with reversal:
+##### Copy with reversal:
 
 Copy all static files to a 'static' folder and use remove for reverting the change
 
@@ -934,22 +939,22 @@ core.transform(
 ```
 
 <a id="core.remove" aria-hidden="true"></a>
-## core.remove
+### core.remove
 
 Remove files from the workdir. **This transformation is only mean to be used inside core.transform for reversing core.copy like transforms**. For regular file filtering use origin_files exclude mechanism.
 
 `remove core.remove(paths)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
 paths|`glob`<br><p>The files to be deleted</p>
 
 
-### Examples:
+#### Examples:
 
-#### Reverse a file copy:
+##### Reverse a file copy:
 
 Move all the files in a directory to another directory:
 
@@ -961,7 +966,7 @@ core.transform(
 
 In this example, `foo/bar_internal/one` will be moved to `bar/one`.
 
-#### Copy with reversal:
+##### Copy with reversal:
 
 Copy all static files to a 'static' folder and use remove for reverting the change
 
@@ -973,13 +978,13 @@ core.transform(
 ```
 
 <a id="core.replace" aria-hidden="true"></a>
-## core.replace
+### core.replace
 
 Replace a text with another text using optional regex groups. This tranformer can be automatically reversed.
 
 `replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False, ignore=[])`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -993,9 +998,9 @@ repeated_groups|`boolean`<br><p>Allow to use a group multiple times. For example
 ignore|`sequence`<br><p>A set of regexes. Any text that matches any expression in this set, which might otherwise be transformed, will be ignored.</p>
 
 
-### Examples:
+#### Examples:
 
-#### Simple replacement:
+##### Simple replacement:
 
 Replaces the text "internal" with "external" in all java files
 
@@ -1007,7 +1012,7 @@ core.replace(
 )
 ```
 
-#### Replace using regex groups:
+##### Replace using regex groups:
 
 In this example we map some urls from the internal to the external version in all the files of the project.
 
@@ -1023,7 +1028,7 @@ core.replace(
 
 So a url like `https://some_internal/url/foo/bar.html` will be transformed to `https://example.com/foo/bar.html`.
 
-#### Remove confidential blocks:
+##### Remove confidential blocks:
 
 This example removes blocks of text/code that are confidential and thus shouldn'tbe exported to a public repository.
 
@@ -1065,13 +1070,13 @@ more public code
 
 
 <a id="core.todo_replace" aria-hidden="true"></a>
-## core.todo_replace
+### core.todo_replace
 
 Replace Google style TODOs. For example `TODO(username, othername)`.
 
 `todoReplace core.todo_replace(tags=['TODO', 'NOTE'], mapping={}, mode='MAP_OR_IGNORE', paths=glob(["**"]), default=None)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1082,9 +1087,9 @@ paths|`glob`<br><p>A glob expression relative to the workdir representing the fi
 default|`string`<br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
 
 
-### Examples:
+#### Examples:
 
-#### Simple update:
+##### Simple update:
 
 Replace TODOs and NOTES for users in the mapping:
 
@@ -1099,7 +1104,7 @@ core.todo_replace(
 
 Would replace texts like TODO(test1) or NOTE(test1, test2) with TODO(external1) or NOTE(external1, external2)
 
-#### Scrubbing:
+##### Scrubbing:
 
 Remove text from inside TODOs
 
@@ -1112,13 +1117,13 @@ core.todo_replace(
 Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo and NOTE:foo
 
 <a id="core.verify_match" aria-hidden="true"></a>
-## core.verify_match
+### core.verify_match
 
 Verifies that a RegEx matches (or not matches) the specified files. Does not transform anything, but will stop the workflow if it fails.
 
 `verifyMatch core.verify_match(regex, paths=glob(["**"]), verify_no_match=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1128,13 +1133,13 @@ verify_no_match|`boolean`<br><p>If true, the transformation will verify that the
 
 
 <a id="core.transform" aria-hidden="true"></a>
-## core.transform
+### core.transform
 
 Groups some transformations in a transformation that can contain a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.<br>If reversal is not provided, the transform will try to compute the reverse of the transformations list.
 
 `transformation core.transform(transformations, reversal=The reverse of 'transformations', ignore_noop=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1144,12 +1149,12 @@ ignore_noop|`boolean`<br><p>In case a noop error happens in the group of transfo
 
 
 
-# folder
+## folder
 
 Module for dealing with local filesytem folders
 
 <a id="folder.destination" aria-hidden="true"></a>
-## folder.destination
+### folder.destination
 
 A folder destination is a destination that puts the output in a folder. It can be used both for testing or real production migrations.Given that folder destination does not support a lot of the features of real VCS, there are some limitations on how to use it:<ul><li>It requires passing a ref as an argument, as there is no way of calculating previous migrated changes. Alternatively, --last-rev can be used, which could migrate N changes.<li>Most likely, the workflow should use 'SQUASH' mode, as history is not supported.<li>If 'ITERATIVE' mode is used, a new temp directory will be created for each change migrated.</ul>
 
@@ -1164,13 +1169,13 @@ Name | Type | Description
 --folder-dir | *string* | Local directory to write the output of the migration to. If the directory exists, all files will be deleted. By default Copybara will generate a temporary directory, so you shouldn't need this.
 
 <a id="folder.origin" aria-hidden="true"></a>
-## folder.origin
+### folder.origin
 
 A folder origin is a origin that uses a folder as input
 
 `folderOrigin folder.origin(materialize_outside_symlinks=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1187,7 +1192,7 @@ Name | Type | Description
 --folder-origin-message | *string* | Message of the change being migrated from folder.origin()
 
 
-# git
+## git
 
 Set of functions to define Git origins and destinations.
 
@@ -1201,13 +1206,13 @@ Name | Type | Description
 --nogit-credential-helper-store | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
 
 <a id="git.origin" aria-hidden="true"></a>
-## git.origin
+### git.origin
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
 `gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1219,13 +1224,13 @@ first_parent|`boolean`<br><p>If true, it only uses the first parent when looking
 
 
 <a id="git.integrate" aria-hidden="true"></a>
-## git.integrate
+### git.integrate
 
 Integrate changes from a url present in the migrated change label.
 
 `git_integrate git.integrate(label="COPYBARA_INTEGRATE_REVIEW", strategy="FAKE_MERGE_AND_INCLUDE_FILES", ignore_errors=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1234,9 +1239,9 @@ strategy|`string`<br><p>How to integrate the change:<br><ul> <li><b>'FAKE_MERGE'
 ignore_errors|`boolean`<br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
 
 
-### Example:
+#### Example:
 
-#### Integrate changes from a review url:
+##### Integrate changes from a review url:
 
 Assuming we have a git.destination defined like this:
 
@@ -1251,13 +1256,13 @@ git.destination(
 It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration. If the label is found, it will fetch the git url and add that change as an additional parent to the migration commit (merge). It will fake-merge any change from the url that matches destination_files but it will include changes not matching it.
 
 <a id="git.mirror" aria-hidden="true"></a>
-## git.mirror
+### git.mirror
 
 Mirror git references between repositories
 
 `git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1277,7 +1282,7 @@ Name | Type | Description
 --git-mirror-force | *boolean* | Force push even if it is not fast-forward
 
 <a id="git.gerrit_origin" aria-hidden="true"></a>
-## git.gerrit_origin
+### git.gerrit_origin
 
 Defines a Git origin for Gerrit reviews.
 
@@ -1291,7 +1296,7 @@ Implicit labels that can be used/exposed:
 
 `gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1302,13 +1307,13 @@ first_parent|`boolean`<br><p>If true, it only uses the first parent when looking
 
 
 <a id="git.github_origin" aria-hidden="true"></a>
-## git.github_origin
+### git.github_origin
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
 `gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1319,7 +1324,7 @@ first_parent|`boolean`<br><p>If true, it only uses the first parent when looking
 
 
 <a id="git.github_pr_origin" aria-hidden="true"></a>
-## git.github_pr_origin
+### git.github_pr_origin
 
 Defines a Git origin for Github pull requests.
 
@@ -1333,15 +1338,16 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_BODY: Body of the Pull Request.
 
 
-`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True)`
+`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
 url|`string`<br><p>Indicates the URL of the GitHub repository</p>
 use_merge|`boolean`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
 required_labels|`sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
+retryable_labels|`sequence of string`<br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 baseline_from_branch|`boolean`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
 first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
@@ -1354,16 +1360,17 @@ first_parent|`boolean`<br><p>If true, it only uses the first parent when looking
 Name | Type | Description
 ---- | ----------- | -----------
 --github-required-label | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
+--github-retryable-label | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
 --github-skip-required-labels | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 
 <a id="git.destination" aria-hidden="true"></a>
-## git.destination
+### git.destination
 
 Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
 `gitDestination git.destination(url, push=master, fetch=push reference, skip_push=False, integrates=[])`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1393,13 +1400,13 @@ Name | Type | Description
 --nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
-## git.github_pr_destination
+### git.github_pr_destination
 
 Creates changes in a new branch in the destination, that can be then used for creating a pull request. In the future the PR will be created automatically.
 
 `githubPrDestination git.github_pr_destination(url, destination_ref=master, skip_push=False)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1429,13 +1436,13 @@ Name | Type | Description
 --github-destination-pr-create | *boolean* | If the pull request should be created
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
-## git.gerrit_destination
+### git.gerrit_destination
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
 `gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for='')`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
@@ -1463,18 +1470,18 @@ Name | Type | Description
 --nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 
-# patch
+## patch
 
 Module for applying patches.
 
 <a id="patch.apply" aria-hidden="true"></a>
-## patch.apply
+### patch.apply
 
 A transformation that applies the given patch files. If a path does not exist in a patch, it will be ignored.
 
 `patchTransformation patch.apply(patches=[], excluded_patch_paths=[], series=None)`
 
-### Parameters:
+#### Parameters:
 
 Parameter | Description
 --------- | -----------
