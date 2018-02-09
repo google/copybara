@@ -19,9 +19,13 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.util.ExitCode;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -74,7 +78,7 @@ public class MainArgumentsTest {
     mainArguments.unnamed = ImmutableList.of();
     thrown.expect(CommandLineException.class);
     thrown.expectMessage("Expected at least a configuration file");
-    mainArguments.parseUnnamedArgs();
+    parseUnnamedArgs();
   }
 
   @Test
@@ -82,7 +86,7 @@ public class MainArgumentsTest {
     mainArguments.unnamed = ImmutableList.of("1", "2", "3", "4", "5");
     thrown.expect(CommandLineException.class);
     thrown.expectMessage("Expected at most four arguments");
-    mainArguments.parseUnnamedArgs();
+    parseUnnamedArgs();
   }
 
   @Test
@@ -98,26 +102,34 @@ public class MainArgumentsTest {
   public void testArgumentParsingMigrate() throws Exception {
     checkParsing(
         ImmutableList.of("copy.bara.sky"),
-        Subcommand.MIGRATE,
+        "migrate",
         "copy.bara.sky",
         "default",
         /* expectedSourceRef= */ null);
     checkParsing(
         ImmutableList.of("migrate", "copy.bara.sky"),
-        Subcommand.MIGRATE,
+        "migrate",
         "copy.bara.sky",
         "default",
         /* expectedSourceRef= */ null);
     checkParsing(
         ImmutableList.of("copy.bara.sky", "import_wf"),
-        Subcommand.MIGRATE,
+        "migrate",
         "copy.bara.sky",
         "import_wf",
         /* expectedSourceRef= */ null);
-    checkParsing(ImmutableList.of("copy.bara.sky", "import_wf", "some_ref"),
-        Subcommand.MIGRATE, "copy.bara.sky", "import_wf", "some_ref");
-    checkParsing(ImmutableList.of("migrate", "copy.bara.sky", "import_wf", "some_ref"),
-        Subcommand.MIGRATE, "copy.bara.sky", "import_wf", "some_ref");
+    checkParsing(
+        ImmutableList.of("copy.bara.sky", "import_wf", "some_ref"),
+        "migrate",
+        "copy.bara.sky",
+        "import_wf",
+        "some_ref");
+    checkParsing(
+        ImmutableList.of("migrate", "copy.bara.sky", "import_wf", "some_ref"),
+        "migrate",
+        "copy.bara.sky",
+        "import_wf",
+        "some_ref");
   }
 
   /**
@@ -127,7 +139,7 @@ public class MainArgumentsTest {
   public void testArgumentParsingValidate() throws Exception {
     checkParsing(
         ImmutableList.of("validate", "copy.bara.sky"),
-        Subcommand.VALIDATE,
+        "validate",
         "copy.bara.sky",
         "default",
         /* expectedSourceRef= */ null);
@@ -144,13 +156,13 @@ public class MainArgumentsTest {
   public void testArgumentParsingInfo() throws Exception {
     checkParsing(
         ImmutableList.of("info", "copy.bara.sky"),
-        Subcommand.INFO,
+        "info",
         "copy.bara.sky",
         "default",
         /* expectedSourceRef= */ null);
     checkParsing(
         ImmutableList.of("info", "copy.bara.sky", "import_wf"),
-        Subcommand.INFO,
+        "info",
         "copy.bara.sky",
         "import_wf",
         /* expectedSourceRef= */ null);
@@ -161,10 +173,14 @@ public class MainArgumentsTest {
   }
 
   private void checkParsing(
-      List<String> args, Subcommand expectedSubcommand, String expectedConfigPath,
-      String expectedWorkflowName, @Nullable String expectedSourceRef) throws CommandLineException {
+      List<String> args,
+      String expectedSubcommand,
+      String expectedConfigPath,
+      String expectedWorkflowName,
+      @Nullable String expectedSourceRef)
+      throws CommandLineException {
     checkParsing(args);
-    assertThat(mainArguments.getSubcommand()).isEqualTo(expectedSubcommand);
+    assertThat(mainArguments.getSubcommand().name()).isEqualTo(expectedSubcommand);
     assertThat(mainArguments.getConfigPath()).isEqualTo(expectedConfigPath);
     assertThat(mainArguments.getWorkflowName()).isEqualTo(expectedWorkflowName);
     assertThat(mainArguments.getSourceRef()).isEqualTo(expectedSourceRef);
@@ -173,6 +189,35 @@ public class MainArgumentsTest {
   private void checkParsing(List<String> args) throws CommandLineException {
     mainArguments = new MainArguments(new String[] {"one", "two"});
     mainArguments.unnamed = args;
-    mainArguments.parseUnnamedArgs();
+    parseUnnamedArgs();
+  }
+
+  private void parseUnnamedArgs() throws CommandLineException {
+    mainArguments.parseUnnamedArgs(
+        ImmutableMap.of(
+            "migrate", new MockCommand("migrate"),
+            "validate", new MockCommand("validate"),
+            "info", new MockCommand("info")),
+        new MockCommand("migrate"));
+  }
+
+  private static class MockCommand implements CopybaraCmd {
+    private String name;
+
+    public MockCommand(String name) {
+      this.name = Preconditions.checkNotNull(name);
+    }
+
+    @Override
+    public ExitCode run(
+        MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+        throws ValidationException, IOException, RepoException {
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public String name() {
+      return name;
+    }
   }
 }

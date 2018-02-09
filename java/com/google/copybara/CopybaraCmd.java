@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2018 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,24 @@
 
 package com.google.copybara;
 
+import com.google.copybara.config.ConfigLoader;
+import com.google.copybara.util.ExitCode;
+import java.io.IOException;
+
 /**
- * The task type that can be performed by Copybara for a single execution.
+ * A Copybara command like 'info' 'migrate', etc.
  */
-public enum Subcommand {
+public interface CopybaraCmd {
+
   /**
-   * Executes the migration for the given config.
+   * Run the command
    */
-  MIGRATE,
+  ExitCode run(
+      MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+      throws ValidationException, IOException, RepoException;
+
   /**
-   * Validates that the configuration is correct.
+   * Command name
    */
-  VALIDATE,
-  /**
-   * Reads the last migrated revision in the origin and destination.
-   */
-  INFO
+  String name();
 }

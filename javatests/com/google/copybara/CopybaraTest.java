@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.StructuredOutput;
@@ -62,7 +63,8 @@ public class CopybaraTest {
     Info<? extends Revision> info = Info.create(ImmutableList.of(workflow));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(info);
 
-    Copybara copybara = new Copybara();
+    Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {},
+                                     /*configLoaderProvider=*/ null);
     copybara.info(optionsBuilder.build(), config, "workflow");
 
     StructuredOutput structuredOutput = optionsBuilder.general.getStructuredOutput();
@@ -85,7 +87,8 @@ public class CopybaraTest {
     Info<? extends Revision> info = Info.create(ImmutableList.of(workflow));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(info);
 
-    Copybara copybara = new Copybara();
+    Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {},
+                                     /*configLoaderProvider=*/ null);
     copybara.info(optionsBuilder.build(), config, "workflow");
 
     StructuredOutput structuredOutput = optionsBuilder.general.getStructuredOutput();

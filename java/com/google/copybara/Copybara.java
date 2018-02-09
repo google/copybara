@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -43,17 +44,17 @@ import javax.annotation.Nullable;
  */
 public class Copybara {
 
-  protected final ConfigValidator configValidator;
+  private final ConfigValidator configValidator;
   private final Consumer<Migration> migrationRanConsumer;
+  @Nullable private Function<Revision, ConfigLoader<?>> configLoaderProvider;
 
-  public Copybara() {
-    this.configValidator = new ConfigValidator() {};
-    this.migrationRanConsumer = migration -> {};
-  }
-
-  public Copybara(ConfigValidator configValidator, Consumer<Migration> migrationRanConsumer) {
+  public Copybara(
+      ConfigValidator configValidator,
+      Consumer<Migration> migrationRanConsumer,
+      @Nullable Function<Revision, ConfigLoader<?>> configLoaderProvider) {
     this.configValidator = Preconditions.checkNotNull(configValidator);
     this.migrationRanConsumer = Preconditions.checkNotNull(migrationRanConsumer);
+    this.configLoaderProvider = configLoaderProvider;
   }
 
   /**
@@ -64,8 +65,26 @@ public class Copybara {
       throws RepoException, ValidationException, IOException {
     Config config = loadConfig(options, configLoader, migrationName);
     Migration migration = config.getMigration(migrationName);
+
+    if (configLoaderProvider == null) {
+      this.migrationRanConsumer.accept(migration);
+      migration.run(workdir, sourceRef);
+      return;
+    }
+
+    // A safeguard, mirror workflows are not supported in the service anyway
+    if (!(migration instanceof Workflow)) {
+      throw new ValidationException(
+          String.format(
+              "Flag --read-config-from-change is not supported for non-workflow migrations: %s",
+              migrationName));
+    }
     migrationRanConsumer.accept(migration);
-    migration.run(workdir, sourceRef);
+    @SuppressWarnings("unchecked")
+    Workflow<? extends Revision, ? extends Revision> workflow =
+        (Workflow<? extends Revision, ? extends Revision>) migration;
+    new ReadConfigFromChangeWorkflow<>(workflow, options, configLoaderProvider, configValidator)
+        .run(workdir, sourceRef);
   }
 
   /**

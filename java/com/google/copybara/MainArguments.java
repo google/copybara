@@ -16,13 +16,11 @@
 
 package com.google.copybara;
 
-import static com.google.copybara.Subcommand.INFO;
-import static com.google.copybara.Subcommand.VALIDATE;
-
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
@@ -89,7 +87,7 @@ public final class MainArguments {
     return originalArgs;
   }
 
-  public Subcommand getSubcommand() {
+  public CopybaraCmd getSubcommand() {
     return getArgs().subcommand;
   }
 
@@ -147,7 +145,8 @@ public final class MainArguments {
     }
   }
 
-  void parseUnnamedArgs() throws CommandLineException {
+  void parseUnnamedArgs(ImmutableMap<String, ? extends CopybaraCmd> commands,
+      CopybaraCmd defaultCmd) throws CommandLineException {
     if (unnamed.isEmpty()) {
       throw new CommandLineException("Expected at least a configuration file.");
     } else if (unnamed.size() > 4) {
@@ -156,23 +155,22 @@ public final class MainArguments {
               + "whitespaces must be between quotes: --some-flag \"Some Value\"", unnamed));
     }
 
-    Subcommand subcommand = Subcommand.MIGRATE;
+    CopybaraCmd subcommand = defaultCmd;
     int argumentId = 0;
     String firstArg = unnamed.get(argumentId);
     // This should be enough for now
     if (!firstArg.endsWith(COPYBARA_SKYLARK_CONFIG_FILENAME)) {
-      try {
-        subcommand = Subcommand.valueOf(firstArg.toUpperCase());
-        argumentId++;
-      } catch (IllegalArgumentException e) {
-        throw new CommandLineException(String.format("Invalid subcommand '%s'", firstArg));
+      if (!commands.containsKey(firstArg.toLowerCase())) {
+        throw new CommandLineException(
+            String.format("Invalid subcommand '%s'. Available commands: %s", firstArg, commands));
       }
+      subcommand = commands.get(firstArg.toLowerCase());
+      argumentId++;
     }
 
     if (argumentId >= unnamed.size()) {
       throw new CommandLineException(
-          String.format("Configuration file missing for '%s' subcommand.",
-              subcommand.toString().toLowerCase()));
+          String.format("Configuration file missing for '%s' subcommand.", subcommand.name()));
     }
     String configPath = unnamed.get(argumentId);
     argumentId++;
@@ -185,25 +183,24 @@ public final class MainArguments {
 
     String sourceRef = null;
     if (argumentId < unnamed.size()) {
-      if (subcommand == INFO || subcommand == VALIDATE) {
+      // TODO(malcon): Move this to the commands
+      if (subcommand.name().equals("info") || subcommand.name().equals("validate")) {
         throw new CommandLineException(
-            String.format(
-                "Too many arguments for subcommand '%s'", subcommand.toString().toLowerCase()));
+            String.format("Too many arguments for subcommand '%s'", subcommand.name()));
       }
       sourceRef = unnamed.get(argumentId);
-      argumentId++; // Just in case we add more arguments
     }
     argumentHolder = new ArgumentHolder(subcommand, configPath, workflowName, sourceRef);
   }
 
   private static class ArgumentHolder {
 
-    private final Subcommand subcommand;
+    private final CopybaraCmd subcommand;
     private final String configPath;
     @Nullable private final String workflowName;
     @Nullable private final String sourceRef;
 
-    private ArgumentHolder(Subcommand subcommand, String configPath,
+    private ArgumentHolder(CopybaraCmd subcommand, String configPath,
         @Nullable  String workflowName, @Nullable String sourceRef) {
       this.subcommand = subcommand;
       this.configPath = configPath;

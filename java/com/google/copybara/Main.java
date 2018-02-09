@@ -27,8 +27,11 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.ConfigLoader;
+import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.PathBasedConfigFile;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
@@ -49,6 +52,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -150,7 +155,11 @@ public class Main {
         console.info(getBinaryInfo());
         return ExitCode.SUCCESS;
       }
-      mainArgs.parseUnnamedArgs();
+
+      ImmutableMap<String, CopybaraCmd> commands =
+          Maps.uniqueIndex(getCommands(), CopybaraCmd::name);
+
+      mainArgs.parseUnnamedArgs(commands, commands.get("migrate"));
 
       GeneralOptions generalOptions = generalOptionsArgs.init(environment, fs, console);
       generalOptionsSupplier.set(generalOptions);
@@ -164,27 +173,8 @@ public class Main {
               moduleSupplier, options, mainArgs.getConfigPath(), mainArgs.getSourceRef());
 
       Copybara copybara = newCopybaraTool(moduleSupplier, options, mainArgs.getConfigPath());
-      switch (mainArgs.getSubcommand()) {
-        case VALIDATE:
-          return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
-              ? ExitCode.SUCCESS : ExitCode.CONFIGURATION_ERROR;
-        case MIGRATE:
-          copybara.run(
-              options,
-              configLoader,
-              mainArgs.getWorkflowName(),
-              mainArgs.getBaseWorkdir(generalOptions, fs),
-              mainArgs.getSourceRef());
-          return ExitCode.SUCCESS;
-        case INFO:
-          // TODO(malcon): Use the same mechanism (if possible) for the other commands.
-          Config config = configLoader.loadConfig(options);
-          copybara.info(options, config, mainArgs.getWorkflowName());
-          return ExitCode.SUCCESS;
-        default:
-          console.error(String.format("Subcommand %s not implemented.", mainArgs.getSubcommand()));
-          return ExitCode.COMMAND_LINE_ERROR;
-      }
+      return mainArgs.getSubcommand().run(mainArgs, options, configLoader, copybara);
+
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(Level.WARNING, console, args, e);
       console.error("Try 'copybara --help'.");
@@ -213,6 +203,67 @@ public class Main {
     }
   }
 
+  /** Reads the last migrated revision in the origin and destination. */
+  public static class InfoCmd implements CopybaraCmd {
+    @Override
+    public ExitCode run(
+        MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+        throws ValidationException, IOException, RepoException {
+      // TODO(malcon): Use the same load mechanism (if possible) for the other commands.
+      Config config = configLoader.loadConfig(options);
+      copybara.info(options, config, mainArgs.getWorkflowName());
+      return ExitCode.SUCCESS;
+    }
+
+    @Override
+    public String name() {
+      return "info";
+    }
+  }
+
+  /** Executes the migration for the given config. */
+  public static class MigrateCmd implements CopybaraCmd {
+    @Override
+    public ExitCode run(
+        MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+        throws RepoException, ValidationException, IOException {
+      GeneralOptions generalOptions = options.get(GeneralOptions.class);
+      copybara.run(
+          options,
+          configLoader,
+          mainArgs.getWorkflowName(),
+          mainArgs.getBaseWorkdir(generalOptions, generalOptions.getFileSystem()),
+          mainArgs.getSourceRef());
+      return ExitCode.SUCCESS;
+    }
+
+    @Override
+    public String name() {
+      return "migrate";
+    }
+  }
+
+  /** Validates that the configuration is correct. */
+  public static class ValidateCmd implements CopybaraCmd {
+    @Override
+    public ExitCode run(
+        MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+        throws RepoException, IOException {
+      return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
+          ? ExitCode.SUCCESS
+          : ExitCode.CONFIGURATION_ERROR;
+    }
+
+    @Override
+    public String name() {
+      return "validate";
+    }
+  }
+
+  public ImmutableSet<CopybaraCmd> getCommands() {
+    return ImmutableSet.of(new MigrateCmd(), new InfoCmd(), new ValidateCmd());
+  }
+
   /**
    * Returns a short String representing the version of the binary
    */
@@ -228,18 +279,36 @@ public class Main {
     return "Unknown version";
   }
 
-  /**
-   * Returns a new instance of {@link Copybara}.
-   */
-  protected Copybara newCopybaraTool(
+  /** Returns a new instance of {@link Copybara}. */
+  private Copybara newCopybaraTool(
       ModuleSupplier moduleSupplier, Options options, String configPath)
       throws ValidationException {
-    return new Copybara();
+    return new Copybara(
+        getConfigValidator(),
+        getMigrationRanConsumer(),
+        getConfigLoaderProvider(options, moduleSupplier, configPath));
   }
 
-  /**
-   * Returns a module supplier.
-   */
+  protected Consumer<Migration> getMigrationRanConsumer() {
+    return migration -> {};
+  }
+
+  protected ConfigValidator getConfigValidator() {
+    return new ConfigValidator() {};
+  }
+
+  @Nullable
+  protected Function<Revision, ConfigLoader<?>> getConfigLoaderProvider(
+      Options options, ModuleSupplier moduleSupplier, String configLocation)
+      throws ValidationException {
+    if (!options.get(WorkflowOptions.class).isReadConfigFromChange()) {
+      return null;
+    }
+    throw new ValidationException(
+        WorkflowOptions.READ_CONFIG_FROM_CHANGE
+            + " flag is not supported for any origin/destination");
+  }
+  /** Returns a module supplier. */
   protected ModuleSupplier newModuleSupplier() throws ValidationException {
     return new ModuleSupplier();
   }

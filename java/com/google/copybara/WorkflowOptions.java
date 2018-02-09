@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 public class WorkflowOptions implements Option {
 
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
+  static final String READ_CONFIG_FROM_CHANGE = "--read-config-from-change";
 
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
       description = "Commit revision to be used as parent when importing a commit using"
@@ -112,6 +113,15 @@ public class WorkflowOptions implements Option {
       description = "By default Copybara tries to join certain transformations in one so that it"
           + " is more efficient. This disables the feature.")
   public boolean noTransformationJoin = false;
+
+  @Parameter(
+      names = READ_CONFIG_FROM_CHANGE,
+      description = "For each imported origin change, load the configuration from that change.")
+  boolean readConfigFromChange = false;
+
+  public boolean isReadConfigFromChange() {
+    return readConfigFromChange;
+  }
 
   private final Supplier<LocalParallelizer> parallelizerSupplier =
       Suppliers.memoize(() -> new LocalParallelizer(threads, threadsMinSize));
