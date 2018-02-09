@@ -26,8 +26,8 @@ done
 {
   # Grep h1 (#) and h2 (##), contruct a line as '## - [foo](foo)' so that we have the
   # correct indentation, and finally replace ## or #### by spaces.
-  < detail grep "^###\\? " | awk '{ print ""$1$1"- ["$2"](#"tolower($2)")"}' \
-    | sed 's/##/  /g'
+  < detail grep "^###\\? "  | awk '{ print ""$1"- ["$2"](#"tolower($2)")"}'   \
+    | sed 's/###/    /g' | sed 's/##/  /g'
 
   printf '\n\n'
   cat detail
