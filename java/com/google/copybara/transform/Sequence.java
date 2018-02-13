@@ -28,6 +28,7 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkType;
 import java.io.IOException;
@@ -163,7 +164,7 @@ public class Sequence implements Transformation {
   private static Transformation convertToTransformation(String description, Environment env,
       Object element) throws EvalException {
     if (element instanceof BaseFunction) {
-      return new SkylarkTransformation((BaseFunction) element, env);
+      return new SkylarkTransformation((BaseFunction) element, SkylarkDict.empty(), env);
     }
     SkylarkType.checkType(element, Transformation.class, "'" + description + "' element");
     return (Transformation) element;

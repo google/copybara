@@ -33,6 +33,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
 import com.google.devtools.build.lib.syntax.Runtime;
+import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -82,18 +83,19 @@ public final class TransformWork {
   private Revision lastRev;
   @Nullable private Revision currentRev;
   private TransformWork skylarkTransformWork;
+  private SkylarkDict skylarkTransformParams;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference) {
     this(checkoutDir, metadata, changes, console, migrationInfo, resolvedReference,
         new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/ false,
-        /*lastRev=*/null, /*currentRev=*/null);
+        /*lastRev=*/null, /*currentRev=*/null, SkylarkDict.empty());
   }
 
   private TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState,
       boolean insideExplicitTransform, @Nullable Revision lastRev,
-      @Nullable Revision currentRev) {
+      @Nullable Revision currentRev, SkylarkDict skylarkTransformParams) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
@@ -105,6 +107,7 @@ public final class TransformWork {
     this.lastRev = lastRev;
     this.currentRev = currentRev;
     this.skylarkTransformWork = this;
+    this.skylarkTransformParams = skylarkTransformParams;
   }
 
   /**
@@ -126,6 +129,12 @@ public final class TransformWork {
   @SkylarkCallable(name = "author", doc = "Author to be used in the change", structField = true)
   public Author getAuthor() {
     return metadata.getAuthor();
+  }
+
+  @SkylarkCallable(name = "params", doc = "Parameters for the function if created with"
+      + " core.dynamic_transform", structField = true)
+  public SkylarkDict getParams() {
+    return skylarkTransformParams;
   }
 
   @SkylarkCallable(name = "set_message", doc = "Update the message to be used in the change")
@@ -401,7 +410,15 @@ public final class TransformWork {
   public TransformWork withUpdatedTreeState() {
     return new TransformWork(checkoutDir, metadata, changes, console,
                              migrationInfo, resolvedReference, treeState.newTreeState(),
-                             insideExplicitTransform, lastRev, currentRev);
+                             insideExplicitTransform, lastRev, currentRev, skylarkTransformParams);
+  }
+
+  @VisibleForTesting
+  public TransformWork withSkylarkParams(SkylarkDict params) {
+    Preconditions.checkNotNull(params);
+    return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
+                             resolvedReference, treeState, insideExplicitTransform, lastRev,
+                             currentRev, params);
   }
 
   @VisibleForTesting
@@ -409,14 +426,14 @@ public final class TransformWork {
     Preconditions.checkNotNull(changes);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, lastRev,
-                             currentRev);
+                             currentRev, skylarkTransformParams);
   }
 
   @VisibleForTesting
   public TransformWork withLastRev(@Nullable Revision previousRef) {
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, previousRef,
-                             currentRev);
+                             currentRev, skylarkTransformParams);
   }
 
   @VisibleForTesting
@@ -424,21 +441,21 @@ public final class TransformWork {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, lastRev,
-                             currentRev);
+                             currentRev, skylarkTransformParams);
   }
 
   public TransformWork insideExplicitTransform() {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, /*insideExplicitTransform=*/true,
-                             lastRev, currentRev);
+                             lastRev, currentRev, skylarkTransformParams);
   }
 
   public <O extends Revision> TransformWork withCurrentRev(Revision currentRev) {
     Preconditions.checkNotNull(currentRev);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, /*insideExplicitTransform=*/true,
-                             lastRev, currentRev);
+                             lastRev, currentRev, skylarkTransformParams);
   }
 
   /**

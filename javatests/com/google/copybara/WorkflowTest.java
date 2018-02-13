@@ -1429,6 +1429,37 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testSkylarkTransformParams() throws Exception {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+
+    String config = ""
+        + "def _test_impl(ctx):\n"
+        + "  ctx.set_message("
+        + "    ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\\n')\n"
+        + "\n"
+        + "def test(name, number = 2):\n"
+        + "  return core.dynamic_transform(impl = _test_impl,\n"
+        + "                           params = { 'name': name, 'number': number})\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "  name = 'default',\n"
+        + "  origin = testing.origin(),\n"
+        + "  destination = testing.destination(),\n"
+        + "  transformations = [\n"
+        + "    metadata.replace_message(''),\n"
+        + "    test('example'),\n"
+        + "    test('other', 42),\n"
+        + "  ],\n"
+        + "  authoring = " + authoring + ",\n"
+        + ")\n";
+    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+    assertThat(Iterables.getOnlyElement(destination.processed).getChangesSummary())
+        .isEqualTo("example2\n"
+            + "other42\n");
+
+  }
+
+  @Test
   public void testNonReversibleInsideGit() throws IOException, ValidationException, RepoException {
     origin.singleFileChange(0, "one commit", "foo.txt", "foo\nbar\n");
 

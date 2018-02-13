@@ -49,4 +49,10 @@ public @interface Example {
    * Description to show after the code snippet.
    */
   String after() default "";
+
+  /**
+   * If the test should check for an existing variable in {@link #code()}. Otherwise it is assumed
+   * to be an expression.
+   */
+  String testExistingVariable() default "";
 }

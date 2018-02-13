@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -62,7 +63,10 @@ public class ExamplesTest {
           Object val = null;
           String exampleRef = module.getName() + "#" + field.getName() + ": " + example.title();
           try {
-            val = executor.eval("a", "a=" + example.code());
+            val = Strings.isNullOrEmpty(example.testExistingVariable())
+                ? executor.eval("a", "a=" + example.code())
+                : executor.eval(example.testExistingVariable(),
+                    example.code());
           } catch (ValidationException e) {
             throw new ValidationException("'"+exampleRef + "' contains errors.", e);
           }

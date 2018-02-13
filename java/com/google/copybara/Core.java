@@ -34,6 +34,7 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Remove;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.Sequence;
+import com.google.copybara.transform.SkylarkTransformation;
 import com.google.copybara.transform.TodoReplace;
 import com.google.copybara.transform.TodoReplace.Mode;
 import com.google.copybara.transform.VerifyMatch;
@@ -43,6 +44,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
+import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -773,6 +775,48 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                                              reverseList, "reversal", env);
       return new ExplicitReversal(forward, reverse, ignoreNoop,
           self.generalOptions.console());
+    }
+  };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+      name = "dynamic_transform",
+      returnType = Transformation.class,
+      doc = "Create a dynamic Skylark transformation. This should only be used by libraries"
+          + " developers",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "impl",
+              type = BaseFunction.class,
+              doc = "The Skylark function to call"),
+          @Param(name = "params", type = SkylarkDict.class,
+              doc = "The parameters to the function. Will be available under ctx.params",
+              defaultValue = "{}"),
+      },
+      objectType = Core.class, useEnvironment = true)
+  @Example(title = "Create a dynamic transformation with parameter",
+      before = "If you want to create a library that uses dynamic transformations, you probably"
+          + " want to make them customizable. In order to do that, in your library.bara.sky, you"
+          + " need to hide the dynamic transformation (prefix with '_' and instead expose a"
+          + " function that creates the dynamic transformation with the param:",
+      code = ""
+          + "def _test_impl(ctx):\n"
+          + "  ctx.set_message("
+          + "ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\\n')\n"
+          + "\n"
+          + "def test(name, number = 2):\n"
+          + "  return core.dynamic_transform(impl = _test_impl,\n"
+          + "                           params = { 'name': name, 'number': number})\n"
+          + "\n"
+          + "  ",
+      testExistingVariable = "test",
+      after = "After defining this function, you can use `test('example', 42)` as a transformation"
+          + " in `core.workflow`.")
+  public static final BuiltinFunction DYNAMIC_TRANSFORM = new BuiltinFunction("dynamic_transform") {
+    @SuppressWarnings("unused")
+    public Transformation invoke(Core self, BaseFunction impl, SkylarkDict<?, ?> params,
+        Environment env) {
+      return new SkylarkTransformation(impl, SkylarkDict.<Object, Object>copyOf(env, params), env);
     }
   };
 

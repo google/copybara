@@ -31,6 +31,7 @@ import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
+import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.io.IOException;
 
 /**
@@ -39,10 +40,12 @@ import java.io.IOException;
 public class SkylarkTransformation implements Transformation {
 
   private final BaseFunction function;
+  private SkylarkDict params;
   private final Environment env;
 
-  public SkylarkTransformation(BaseFunction function, Environment env) {
+  public SkylarkTransformation(BaseFunction function, SkylarkDict params, Environment env) {
     this.function = Preconditions.checkNotNull(function);
+    this.params = Preconditions.checkNotNull(params);
     this.env = Preconditions.checkNotNull(env);
   }
 
@@ -50,7 +53,8 @@ public class SkylarkTransformation implements Transformation {
   public void transform(TransformWork work)
       throws IOException, ValidationException {
     SkylarkConsole skylarkConsole = new SkylarkConsole(work.getConsole());
-    TransformWork skylarkWork = work.withConsole(skylarkConsole);
+    TransformWork skylarkWork = work.withConsole(skylarkConsole)
+        .withSkylarkParams(params);
     try {
       Object result = function.call(
           ImmutableList.of(skylarkWork),/*kwargs=*/null,/*ast*/null, env);
