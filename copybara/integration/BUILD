@@ -18,6 +18,7 @@ sh_test(
     name = "reference_doc_test",
     srcs = ["reference_doc_test.sh"],
     data = [
+        "//docs:reference.md",
         "//java/com/google/copybara:docs.md",
         "//third_party/bazel/bashunit",
     ],

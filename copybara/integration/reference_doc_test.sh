@@ -18,6 +18,7 @@ source third_party/bazel/bashunit/unittest.bash
 
 function test_reference_doc_generated() {
    doc=${TEST_SRCDIR}/copybara/java/com/google/copybara/docs.md
+   source_doc=${TEST_SRCDIR}/copybara/docs/reference.md
 
    [[ -f $doc ]] || fail "Documentation not generated"
    # Check that we have table of contents and some basic modules
@@ -27,7 +28,10 @@ function test_reference_doc_generated() {
    grep "before.*The text before the transformation" \
 	 "$doc" > /dev/null 2>&1 || fail "core.replace field doc not found"
    grep "^### git.origin" "$doc" > /dev/null 2>&1 || fail "git.origin doc not found"
-   grep "Finds links to commits in change messages" "$doc" > /dev/null 2>&1 || fail "single example not found"
+   grep "Finds links to commits in change messages" "$doc" > /dev/null 2>&1 \
+     || fail "single example not found"
+
+   diff $doc $source_doc || fail "Generate the documentation with scripts/update_docs [-a]"
 }
 
 run_suite "Integration tests for reference documentation generation."
