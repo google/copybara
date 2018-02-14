@@ -46,6 +46,7 @@ import com.google.copybara.git.GithubUtil.GithubPrUrl;
 import com.google.copybara.git.github_api.Issue;
 import com.google.copybara.git.github_api.Issue.Label;
 import com.google.copybara.git.github_api.PullRequest;
+import com.google.copybara.git.github_api.PullRequestOrIssue;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -82,11 +83,13 @@ public class GithubPROrigin implements Origin<GitRevision> {
   private final Console console;
   private boolean baselineFromBranch;
   private Boolean firstParent;
+  private StateFilter requiredState;
 
   GithubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GithubOptions githubOptions,
       Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
-      boolean baselineFromBranch, Boolean firstParent) {
+      boolean baselineFromBranch, Boolean firstParent,
+      StateFilter requiredState) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -99,6 +102,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     console = generalOptions.console();
     this.baselineFromBranch = baselineFromBranch;
     this.firstParent = firstParent;
+    this.requiredState = Preconditions.checkNotNull(requiredState);
   }
 
   @Override
@@ -180,6 +184,15 @@ public class GithubPROrigin implements Origin<GitRevision> {
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
       prData = githubOptions.getApi(project).getPullRequest(project, prNumber);
     }
+
+    if (requiredState == StateFilter.OPEN && !prData.isOpen()) {
+      throw new EmptyChangeException(String.format("Pull Request %d is not open", prNumber));
+    }
+
+    if (requiredState == StateFilter.CLOSED && prData.isOpen()) {
+      throw new EmptyChangeException(String.format("Pull Request %d is open", prNumber));
+    }
+
     String stableRef = useMerge ? GithubUtil.asMergeRef(prNumber) : GithubUtil.asHeadRef(prNumber);
 
     // Fetch also the baseline branch. It is almost free and doing a roundtrip later would hurt
@@ -320,5 +333,14 @@ public class GithubPROrigin implements Origin<GitRevision> {
             .put("type", getType())
             .put("url", url);
     return builder.build();
+  }
+
+  /**
+   * Only migrate PR in one of the following states:
+   */
+  enum StateFilter {
+    OPEN,
+    CLOSED,
+    ALL
   }
 }

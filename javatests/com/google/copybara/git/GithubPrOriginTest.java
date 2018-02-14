@@ -36,6 +36,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
+import com.google.copybara.EmptyChangeException;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
@@ -235,7 +236,8 @@ public class GithubPrOriginTest {
             "retryable_labels = ['foo: yes', 'bar: yes']"),
         "125",
         125,
-        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes", "bar: yes")));
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes", "bar: yes"),
+            "open"));
   }
 
   @Test
@@ -249,7 +251,40 @@ public class GithubPrOriginTest {
             "required_labels = ['foo: yes']"),
         "125",
         125,
-        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes")));
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes"), "open"));
+  }
+
+  @Test
+  public void testAlreadyClosed_default() throws Exception {
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage("Pull Request 125 is not open");
+    checkResolve(
+        githubPrOrigin("url = 'https://github.com/google/example'"),
+        "125",
+        125,
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes"), "closed"));
+  }
+
+  @Test
+  public void testAlreadyClosed_only_open() throws Exception {
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage("Pull Request 125 is not open");
+    checkResolve(
+        githubPrOrigin("url = 'https://github.com/google/example', state = 'OPEN'"),
+        "125",
+        125,
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes"), "closed"));
+  }
+
+  @Test
+  public void testAlreadyClosed_only_closed() throws Exception {
+    thrown.expect(EmptyChangeException.class);
+    thrown.expectMessage("Pull Request 125 is open");
+    checkResolve(
+        githubPrOrigin("url = 'https://github.com/google/example', state = 'CLOSED'"),
+        "125",
+        125,
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes"), "open"));
   }
 
   @Test
@@ -261,7 +296,8 @@ public class GithubPrOriginTest {
             "retryable_labels = ['foo: yes']"),
         "125",
         125,
-        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes", "bar: yes")));
+        new MockPullRequest(125, ImmutableList.of(), ImmutableList.of("foo: yes", "bar: yes"),
+            "open"));
   }
 
   @Test
@@ -292,7 +328,7 @@ public class GithubPrOriginTest {
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
-    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of(), "open");
 
     GithubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
@@ -336,7 +372,7 @@ public class GithubPrOriginTest {
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
-    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of(), "open");
 
     GithubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
@@ -419,7 +455,7 @@ public class GithubPrOriginTest {
     remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), remote.parseRef("foo"));
     remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("master"));
 
-    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of(), "open");
 
     GithubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
@@ -452,7 +488,7 @@ public class GithubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
 
-    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of());
+    gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of(), "open");
 
     // Now try with merge ref
     GithubPROrigin origin = githubPrOrigin(
@@ -489,7 +525,7 @@ public class GithubPrOriginTest {
       final ImmutableList<String> presentLabels)
       throws RepoException, IOException, ValidationException {
     checkResolve(
-        origin, reference, prNumber, new MockPullRequest(prNumber, presentLabels));
+        origin, reference, prNumber, new MockPullRequest(prNumber, presentLabels, "open"));
   }
 
   private String addFiles(GitRepository remote, String msg, Map<String, String> files)
@@ -521,35 +557,35 @@ public class GithubPrOriginTest {
     private final int prNumber;
     private final ImmutableList<String> defaultPresentLabels;
     private final ImmutableList<String> lastTryPresentLabels;
+    private final String state;
     private int retryCount;
 
     MockPullRequest(
         int prNumber,
         ImmutableList<String> defaultPresentLabels,
-        ImmutableList<String> lastTryPresentLabels) {
+        ImmutableList<String> lastTryPresentLabels,
+        String state) {
       this.prNumber = prNumber;
       this.defaultPresentLabels = defaultPresentLabels;
       this.lastTryPresentLabels = lastTryPresentLabels;
       retryCount = 0;
+      this.state = state;
     }
 
-    MockPullRequest(
-        int prNumber,
-        ImmutableList<String> defaultPresentLabels) {
-      this(prNumber, defaultPresentLabels, defaultPresentLabels);
+    MockPullRequest(int prNumber, ImmutableList<String> defaultPresentLabels, String state) {
+      this(prNumber, defaultPresentLabels, defaultPresentLabels, state);
     }
 
     @Override
-    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-        throws IOException {
+    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
       if (url.equals("https://api.github.com/repos/google/example/issues/" + prNumber)) {
-        return mockIssue(Integer.toString(prNumber), defaultPresentLabels).getBytes();
+        return mockIssue(Integer.toString(prNumber), state).getBytes();
       } else if (url.startsWith(
           "https://api.github.com/repos/google/example/pulls/" + prNumber)) {
         return ("{\n"
             + "  \"id\": 1,\n"
             + "  \"number\": " + prNumber + ",\n"
-            + "  \"state\": \"open\",\n"
+            + "  \"state\": \"" + state + "\",\n"
             + "  \"title\": \"test summary\",\n"
             + "  \"body\": \"test summary\n\nMore text\",\n"
             + "  \"head\": {\n"
@@ -566,19 +602,19 @@ public class GithubPrOriginTest {
       throw new IllegalStateException();
     }
 
-    protected String mockIssue(String number, ImmutableList<String> labels) {
+    protected String mockIssue(String number, String state) {
       if (retryCount < GithubPROrigin.RETRY_COUNT - 1) {
         retryCount++;
-        return createIssue(number, defaultPresentLabels);
+        return createIssue(number, defaultPresentLabels, state);
       }
-      return createIssue(number, lastTryPresentLabels);
+      return createIssue(number, lastTryPresentLabels, state);
     }
 
-    protected String createIssue(String number, ImmutableList<String> labels) {
+    protected String createIssue(String number, ImmutableList<String> labels, final String state) {
       String result = "{\n"
           + "  \"id\": 1,\n"
           + "  \"number\": " + number + ",\n"
-          + "  \"state\": \"open\",\n"
+          + "  \"state\": \"" + state + "\",\n"
           + "  \"title\": \"test summary\",\n"
           + "  \"body\": \"test summary\"\n,"
           + "  \"labels\": [\n";

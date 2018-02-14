@@ -42,6 +42,7 @@ import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
+import com.google.copybara.git.GithubPROrigin.StateFilter;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -347,6 +348,9 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               doc = "If true, it only uses the first parent when looking for changes. Note that"
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                   + " change of the merged branch.", positional = false),
+          @Param(name = "state", type = String.class, defaultValue = "'OPEN'",
+              doc = "Only migrate Pull Request with that state."
+                  + " Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'"),
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags(GithubPrOriginOptions.class)
@@ -354,7 +358,8 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       GITHUB_PR_ORIGIN_NAME) {
     public GithubPROrigin invoke(GitModule self, String url, Boolean merge,
         SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
-        Boolean baselineFromBranch, Boolean firstParent, Location location) throws EvalException {
+        Boolean baselineFromBranch, Boolean firstParent, String state, Location location)
+        throws EvalException {
       if (!url.contains("github.com")) {
         throw new EvalException(location, "Invalid Github URL: " + url);
       }
@@ -367,7 +372,8 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           githubPrOriginOptions.getRequiredLabels(requiredLabels),
           githubPrOriginOptions.getRetryableLabels(retryableLabels),
           SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
-          baselineFromBranch, firstParent);
+          baselineFromBranch, firstParent,
+          SkylarkUtil.stringToEnum(location,"state", state, StateFilter.class));
     }
   };
 

@@ -32,6 +32,7 @@
     - [core.todo_replace](#core.todo_replace)
     - [core.verify_match](#core.verify_match)
     - [core.transform](#core.transform)
+    - [core.dynamic_transform](#core.dynamic_transform)
   - [folder](#folder)
     - [folder.destination](#folder.destination)
     - [folder.origin](#folder.origin)
@@ -848,6 +849,7 @@ Name | Type | Description
 --threads | *int* | Number of threads to use when running transformations that change lot of files
 --threads-min-size | *int* | Minimum size of the lists to process to run them in parallel
 --notransformation-join | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
+--read-config-from-change | *boolean* | For each imported origin change, load the configuration from that change.
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
@@ -1148,6 +1150,40 @@ reversal|`sequence of transformation`<br><p>The list of transformations to run a
 ignore_noop|`boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored and rest of the transformations in the group will not be executed. In general this is a bad idea and prevents Copybara for detecting important transformation errors.</p>
 
 
+<a id="core.dynamic_transform" aria-hidden="true"></a>
+### core.dynamic_transform
+
+Create a dynamic Skylark transformation. This should only be used by libraries developers
+
+`transformation core.dynamic_transform(impl, params={})`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+impl|`baseFunction`<br><p>The Skylark function to call</p>
+params|`dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
+
+
+#### Example:
+
+##### Create a dynamic transformation with parameter:
+
+If you want to create a library that uses dynamic transformations, you probably want to make them customizable. In order to do that, in your library.bara.sky, you need to hide the dynamic transformation (prefix with '_' and instead expose a function that creates the dynamic transformation with the param:
+
+```python
+def _test_impl(ctx):
+  ctx.set_message(ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\n')
+
+def test(name, number = 2):
+  return core.dynamic_transform(impl = _test_impl,
+                           params = { 'name': name, 'number': number})
+
+  
+```
+
+After defining this function, you can use `test('example', 42)` as a transformation in `core.workflow`.
+
 
 ## folder
 
@@ -1338,7 +1374,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_BODY: Body of the Pull Request.
 
 
-`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True)`
+`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN')`
 
 #### Parameters:
 
@@ -1351,6 +1387,7 @@ retryable_labels|`sequence of string`<br><p>Required labels to import the PR tha
 submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 baseline_from_branch|`boolean`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
 first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+state|`string`<br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
 
 
 
