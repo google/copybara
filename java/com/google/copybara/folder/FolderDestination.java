@@ -30,7 +30,9 @@ import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -105,6 +107,13 @@ public class FolderDestination implements Destination<Revision> {
         // This exception message is particularly bad and we don't want to treat it as unhandled
         throw new RepoException("Cannot create '" + localFolder + "' because '" + e.getFile()
             + "' already exists and is not a directory");
+      } catch (AccessDeniedException e) {
+        throw new ValidationException("Path is not accessible: " + localFolder, e);
+      } catch (FileSystemException e) {
+        if (e.getMessage().contains("Read-only file system")) {
+          throw new ValidationException("Path is not accessible: " + localFolder, e);
+        }
+        throw e;
       }
       console.progress("FolderDestination: deleting all files from " + localFolder);
       FileUtil.deleteFilesRecursively(localFolder, destinationFiles.relativeTo(localFolder));

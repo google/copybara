@@ -16,7 +16,9 @@
 
 package com.google.copybara.folder;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static org.junit.Assert.fail;
 
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
@@ -133,5 +135,16 @@ public class FolderDestinationTest {
     assertThatPath(outputPath)
         .containsFiles("test.txt", "dir/file.txt")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testAccessDenied() throws Exception {
+    options.folderDestination.localFolder = "/foo-bar-123456789";
+    try {
+      write();
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage()).isEqualTo("Path is not accessible: /foo-bar-123456789");
+    }
   }
 }
