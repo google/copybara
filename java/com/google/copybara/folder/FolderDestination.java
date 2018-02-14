@@ -110,7 +110,8 @@ public class FolderDestination implements Destination<Revision> {
       } catch (AccessDeniedException e) {
         throw new ValidationException("Path is not accessible: " + localFolder, e);
       } catch (FileSystemException e) {
-        if (e.getMessage().contains("Read-only file system")) {
+        if (e.getMessage().contains("Read-only file system")
+            || e.getMessage().contains("Operation not permitted")) {
           throw new ValidationException("Path is not accessible: " + localFolder, e);
         }
         throw e;
