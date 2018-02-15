@@ -66,15 +66,14 @@ public class SkylarkParserTest {
   @Rule public final ExpectedException thrown = ExpectedException.none();
 
   private SkylarkTestExecutor parser;
-  private OptionsBuilder options;
   private TestingConsole console;
 
   @Before
   public void setup() {
-    options = new OptionsBuilder();
-    parser = new SkylarkTestExecutor(options, Mock.class, MockLabelsAwareModule.class);
+    OptionsBuilder options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
+    parser = new SkylarkTestExecutor(options, Mock.class, MockLabelsAwareModule.class);
   }
 
   private String setUpInclusionTest() {
