@@ -16,12 +16,12 @@
 
 package com.google.copybara.git;
 
-import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 
 /**
  * Indicates that the rebase failed because of a conflict.
  */
-class RebaseConflictException extends RepoException {
+class RebaseConflictException extends ValidationException {
 
   RebaseConflictException(String message) {
     super(message);

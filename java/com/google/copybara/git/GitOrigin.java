@@ -166,7 +166,7 @@ public class GitOrigin implements Origin<GitRevision> {
      */
     @Override
     public void checkout(GitRevision ref, Path workdir)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, CannotResolveRevisionException, RebaseConflictException {
       checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref,
           /*topLevelCheckout=*/true);
       if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
@@ -205,7 +205,7 @@ public class GitOrigin implements Origin<GitRevision> {
      */
     void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
         SubmoduleStrategy submoduleStrategy, GitRevision ref, boolean topLevelCheckout)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, CannotResolveRevisionException, RebaseConflictException {
       // TODO(malcon): Remove includeBranchCommitLogs from the code after 2017-12-31
       if (includeBranchCommitLogs) {
         generalOptions.console().warnFmt("'include_branch_commit_logs' is deprecated. Use"
@@ -258,7 +258,7 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, CannotResolveRevisionException, RebaseConflictException {
       String rebaseToRef = gitOriginOptions.originRebaseRef;
       if (rebaseToRef == null) {
         return;

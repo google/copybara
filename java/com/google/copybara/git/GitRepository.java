@@ -590,7 +590,7 @@ public class GitRepository {
     }
   }
 
-  public void rebase(String newBaseline) throws RepoException {
+  public void rebase(String newBaseline) throws RepoException, RebaseConflictException {
     CommandOutputWithStatus output = gitAllowNonZeroExit(
         CommandRunner.NO_INPUT, ImmutableList.of("rebase", checkNotNull(newBaseline)));
 
@@ -864,7 +864,7 @@ public class GitRepository {
    * @param index if true we pass --index to the git command
    * @throws RebaseConflictException if it cannot apply the change.
    */
-  public void apply(byte[] stdin, boolean index) throws RepoException {
+  public void apply(byte[] stdin, boolean index) throws RepoException, RebaseConflictException {
     CommandOutputWithStatus output = gitAllowNonZeroExit(stdin,
         index ? ImmutableList.of("apply", "--index") : ImmutableList.of("apply"));
     if (output.getTerminationStatus().success()) {
