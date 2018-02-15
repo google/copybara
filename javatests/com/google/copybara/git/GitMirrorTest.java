@@ -48,7 +48,6 @@ public class GitMirrorTest {
   public final ExpectedException thrown = ExpectedException.none();
 
   private OptionsBuilder options;
-  private TestingConsole console;
   private SkylarkTestExecutor skylark;
   private GitRepository originRepo;
   private GitRepository destRepo;
@@ -57,12 +56,11 @@ public class GitMirrorTest {
   @Before
   public void setup() throws Exception {
     workdir = Files.createTempDirectory("workdir");
-    console = new TestingConsole();
     options = new OptionsBuilder()
         .setEnvironment(GitTestUtil.getGitEnv())
         .setOutputRootToTmpDir()
         .setWorkdirToRealTempDir()
-        .setConsole(console);
+        .setConsole(new TestingConsole());
     originRepo = newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(),
         /*verbose=*/true)
         .withWorkTree(Files.createTempDirectory("worktree"));
