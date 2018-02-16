@@ -219,8 +219,8 @@ public class GithubPrOriginTest {
   @Test
   public void testGitResolveRequiredLabelsNotFound() throws Exception {
     thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot migrate http://github.com/google/example/125 because it is missing"
-        + " the following labels: [foo: yes]");
+    thrown.expectMessage("Cannot migrate http://github.com/google/example/pull/125 because it is"
+        + " missing the following labels: [foo: yes]");
     checkResolve(githubPrOrigin(
         "url = 'https://github.com/google/example'",
         "required_labels = ['foo: yes', 'bar: yes']"),
@@ -243,8 +243,8 @@ public class GithubPrOriginTest {
   @Test
   public void testGitResolveRequiredLabelsNotRetryable() throws Exception {
     thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot migrate http://github.com/google/example/125 because it is missing"
-        + " the following labels: [foo: yes]");
+    thrown.expectMessage("Cannot migrate http://github.com/google/example/pull/125 because it is"
+        + " missing the following labels: [foo: yes]");
     checkResolve(
         githubPrOrigin(
             "url = 'https://github.com/google/example'",

@@ -174,7 +174,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
       // TODO(malcon): Find a better exception for this.
       checkCondition(
           requiredButNotPresent.isEmpty(),
-          "Cannot migrate http://github.com/%s/%d because it is missing the following"
+          "Cannot migrate http://github.com/%s/pull/%d because it is missing the following"
               + " labels: %s",
           project,
           prNumber,
