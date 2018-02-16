@@ -30,6 +30,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.EventMonitor;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
@@ -419,6 +420,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   public Profiler profiler() {
     return workflow.profiler();
+  }
+
+  public EventMonitor eventMonitor() {
+    return workflow.eventMonitor();
   }
 
   /**

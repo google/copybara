@@ -35,6 +35,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.util.EventMonitor;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -414,6 +415,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public Profiler profiler() {
     return generalOptions.profiler();
+  }
+
+  public EventMonitor eventMonitor() {
+    return generalOptions.eventMonitor();
   }
 
   public Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> getAllConfigFiles() {

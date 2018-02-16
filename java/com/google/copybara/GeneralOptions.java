@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DirFactory;
+import com.google.copybara.util.EventMonitor;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -63,6 +64,10 @@ public final class GeneralOptions implements Option {
   private final Path outputRoot;
 
   private Profiler profiler = new Profiler(Ticker.systemTicker());
+
+  // Default implementation does not show up in the console (unless verbose is used)
+  private EventMonitor eventMonitor =
+      event -> console().verboseFmt("Migration finished: %s", event);
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
@@ -167,6 +172,10 @@ public final class GeneralOptions implements Option {
     return profiler;
   }
 
+  public EventMonitor eventMonitor() {
+    return eventMonitor;
+  }
+
   /**
    * Run a repository task with profiling
    */
@@ -211,7 +220,12 @@ public final class GeneralOptions implements Option {
   }
 
   public GeneralOptions withProfiler(Profiler profiler) {
-    this.profiler = profiler;
+    this.profiler = Preconditions.checkNotNull(profiler);
+    return this;
+  }
+
+  public GeneralOptions withEventMonitor(EventMonitor eventMonitor) {
+    this.eventMonitor = Preconditions.checkNotNull(eventMonitor);
     return this;
   }
 
