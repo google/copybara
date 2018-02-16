@@ -435,8 +435,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
 
   @SuppressWarnings("unused")
   @SkylarkSignature(name = "github_pr_destination", returnType = GithubPrDestination.class,
-      doc = "Creates changes in a new branch in the destination, that can be then used for"
-          + " creating a pull request. In the future the PR will be created automatically.",
+      doc = "Creates changes in a new pull request in the destination.",
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "url", type = String.class,

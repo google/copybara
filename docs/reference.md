@@ -1439,7 +1439,7 @@ Name | Type | Description
 <a id="git.github_pr_destination" aria-hidden="true"></a>
 ### git.github_pr_destination
 
-Creates changes in a new branch in the destination, that can be then used for creating a pull request. In the future the PR will be created automatically.
+Creates changes in a new pull request in the destination.
 
 `githubPrDestination git.github_pr_destination(url, destination_ref=master, skip_push=False)`
 
