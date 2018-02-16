@@ -92,6 +92,13 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
      */
     WriterResult write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException;
+
+    /**
+     * Utility endpoint for accessing and adding feedback data.
+     */
+    default Endpoint getFeedbackEndPoint() {
+      return Endpoint.NOOP_ENDPOINT;
+    }
   }
 
   /**

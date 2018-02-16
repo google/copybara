@@ -81,7 +81,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.getMainConfigFile(),
         workflow.getAllConfigFiles(),
         workflow.isDryRunMode(),
-        workflow.isCheckLastRevState());
+        workflow.isCheckLastRevState(),
+        workflow.getOnFinishActions());
     this.options = checkNotNull(options, "options");
     this.configLoaderProvider = checkNotNull(configLoaderProvider, "configLoaderProvider");
     this.configValidator = checkNotNull(configValidator, "configValidator");

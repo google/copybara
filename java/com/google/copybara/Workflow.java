@@ -33,9 +33,12 @@ import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.feedback.Action;
+import com.google.copybara.feedback.FinishHookContext;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.EventMonitor;
+import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -83,6 +86,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final ConfigFile<?> mainConfigFile;
   private final Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
   private final boolean dryRunMode;
+  private final ImmutableList<Action> onFinishActions;
   private final boolean checkLastRevState;
 
   public Workflow(
@@ -102,7 +106,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean askForConfirmation,
       ConfigFile<?> mainConfigFile,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles,
-      boolean dryRunMode, boolean checkLastRevState) {
+      boolean dryRunMode, boolean checkLastRevState,
+      ImmutableList<Action> onFinishActions) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -124,6 +129,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.allConfigFiles = allConfigFiles;
     this.checkLastRevState = checkLastRevState;
     this.dryRunMode = dryRunMode;
+    this.onFinishActions = Preconditions.checkNotNull(onFinishActions);
   }
 
   @Override
@@ -198,8 +204,26 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               name, resolvedRef.asString(),
               this.toString()));
       logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
+      WorkflowRunHelper<O, D> helper = newRunHelper(workdir, resolvedRef, sourceRef);
       try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
-        mode.run(newRunHelper(workdir, resolvedRef, sourceRef));
+        mode.run(helper);
+      }
+
+      SkylarkConsole console = new SkylarkConsole(this.console);
+      try (ProfilerTask ignored = profiler().start("finish_hooks")) {
+        FinishHookContext finishHookContext = new FinishHookContext(
+            helper.getOriginReader().getFeedbackEndPoint(),
+            helper.getDestinationWriter().getFeedbackEndPoint(),
+            generalOptions.getStructuredOutput(), resolvedRef,
+            console);
+        for (Action action : onFinishActions) {
+          try (ProfilerTask ignored2 = profiler().start(action.getName())) {
+            logger.log(Level.INFO, "Running finish hook: " + action.getName());
+            action.run(finishHookContext);
+          }
+        }
+        ValidationException.checkCondition(console.getErrorCount() == 0,
+            "%d errors executing the feedback migration", console.getErrorCount());
       }
     }
   }
@@ -427,5 +451,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public GeneralOptions getGeneralOptions() {
     return generalOptions;
+  }
+
+  public ImmutableList<Action> getOnFinishActions() {
+    return onFinishActions;
   }
 }

@@ -29,6 +29,8 @@ import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.feedback.Action;
+import com.google.copybara.feedback.SkylarkAction;
 import com.google.copybara.transform.CopyOrMove;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Remove;
@@ -265,6 +267,9 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + " have some side effects (like creating a code review), but never submit to a"
                   + " main branch.",
               defaultValue = "False", positional = false),
+          @Param(name = "on_finish", type = SkylarkList.class,
+              doc = "Run a feedback workflow on finish. STILL WIP",
+              defaultValue = "[]", positional = false),
       },
       objectType = Core.class, useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -277,7 +282,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           Runtime.NONE,
           Boolean.FALSE,
           Boolean.FALSE,
-          Boolean.FALSE
+          Boolean.FALSE,
+          SkylarkList.createImmutable(ImmutableList.of())
       )) {
 
     public NoneType invoke(Core self, String workflowName,
@@ -290,6 +296,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         Boolean checkLastRevStateField,
         Boolean askForConfirmation,
         Boolean dryRunMode,
+        SkylarkList<?> onFinish,
         Location location,
         Environment env)
         throws EvalException {
@@ -313,6 +320,17 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
             "%s is not compatible with %s", CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
       }
 
+      ImmutableList.Builder<Action> onFinishActions = ImmutableList.builder();
+      for (Object finish : onFinish) {
+        if (finish instanceof BaseFunction) {
+          onFinishActions.add(new SkylarkAction((BaseFunction) finish, SkylarkDict.empty(), env));
+        } else if (finish instanceof Action) {
+          onFinishActions.add((Action) finish);
+        } else {
+          throw new EvalException(location,
+              String.format("Invalid finish action '%s 'of type: %s", finish, finish.getClass()));
+        }
+      }
       self.addMigration(location, workflowName, new Workflow<>(
           workflowName,
           origin,
@@ -331,7 +349,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           self.mainConfigFile,
           self.allConfigFiles,
           self.workflowOptions.dryRunMode || dryRunMode,
-          checkLastRevStateField || self.workflowOptions.checkLastRevState));
+          checkLastRevStateField || self.workflowOptions.checkLastRevState,
+          onFinishActions.build()));
       return Runtime.NONE;
     }
   };
@@ -786,9 +805,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           + " developers",
       parameters = {
           @Param(name = "self", type = Core.class, doc = "this object"),
-          @Param(name = "impl",
-              type = BaseFunction.class,
-              doc = "The Skylark function to call"),
+          @Param(name = "impl", type = BaseFunction.class, doc = "The Skylark function to call"),
           @Param(name = "params", type = SkylarkDict.class,
               doc = "The parameters to the function. Will be available under ctx.params",
               defaultValue = "{}"),
@@ -817,6 +834,30 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     public Transformation invoke(Core self, BaseFunction impl, SkylarkDict<?, ?> params,
         Environment env) {
       return new SkylarkTransformation(impl, SkylarkDict.<Object, Object>copyOf(env, params), env);
+    }
+  };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+      name = "dynamic_feedback",
+      returnType = Action.class,
+      doc = "Create a dynamic Skylark feedback migration. This should only be used by libraries"
+          + " developers",
+      parameters = {
+          @Param(name = "self", type = Core.class, doc = "this object"),
+          @Param(name = "impl",
+              type = BaseFunction.class,
+              doc = "The Skylark function to call"),
+          @Param(name = "params", type = SkylarkDict.class,
+              doc = "The parameters to the function. Will be available under ctx.params",
+              defaultValue = "{}"),
+      },
+      objectType = Core.class, useEnvironment = true, documented = false)
+  public static final BuiltinFunction DYNAMIC_FEEDBACK = new BuiltinFunction("dynamic_feedback") {
+    @SuppressWarnings("unused")
+    public Action invoke(Core self, BaseFunction impl, SkylarkDict<?, ?> params,
+        Environment env) {
+      return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params), env);
     }
   };
 

@@ -407,7 +407,7 @@ public class WorkflowTest {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends Exception> T checkIterativeModeWithError(final T exception)
+  private <T extends Exception> T checkIterativeModeWithError(T exception)
       throws IOException, ValidationException {
     for (int timestamp = 0; timestamp < 10; timestamp++) {
       origin.addSimpleChange(timestamp);
@@ -1496,6 +1496,46 @@ public class WorkflowTest {
     assertThat(Iterables.getOnlyElement(destination.processed).getChangesSummary())
         .isEqualTo("example2\n"
             + "other42\n");
+
+  }
+
+  @Test
+  public void testOnFinishHook() throws Exception {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+
+    String config = ""
+        + "def _test_impl(ctx):\n"
+        + "  for change in ctx.changes:\n"
+        + "    ctx.origin.message(change.origin_refs[0] + ' created ' + change.destination_ref "
+        + "+ ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
+        + "    ctx.destination.message(change.origin_refs[0] + ' created ' "
+        + "+ change.destination_ref + ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
+        + "\n"
+        + "def other(ctx):\n"
+        + "  ctx.origin.message('constant')\n"
+        + "  ctx.destination.message('constant')\n"
+        + "\n"
+        + "def test(name, number = 2):\n"
+        + "  return core.dynamic_feedback(impl = _test_impl,\n"
+        + "                               params = { 'name': name, 'number': number})\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "  name = 'default',\n"
+        + "  origin = testing.origin(),\n"
+        + "  destination = testing.destination(),\n"
+        + "  transformations = [],\n"
+        + "  authoring = " + authoring + ",\n"
+        + "  on_finish = [test('example'), test('other', 42), other]"
+        + ")\n";
+    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+    assertThat(origin.getEndpoint().getMessages())
+        .containsExactly("0 created destination/1 example2",
+            "0 created destination/1 other42",
+            "constant");
+    assertThat(destination.getEndpoint().getMessages())
+        .containsExactly("0 created destination/1 example2",
+            "0 created destination/1 other42",
+            "constant");
 
   }
 

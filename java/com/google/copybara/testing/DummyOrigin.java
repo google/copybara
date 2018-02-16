@@ -31,6 +31,7 @@ import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.Endpoint;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
@@ -62,6 +63,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   private final FileSystem fs;
   private Author author;
+  private final DummyEndpoint endpoint = new DummyEndpoint();
 
   public DummyOrigin() {
     this.fs = Jimfs.newFileSystem();
@@ -151,6 +153,11 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
     ReaderImpl(Authoring authoring) {
       this.authoring = Preconditions.checkNotNull(authoring);
+    }
+
+    @Override
+    public Endpoint getFeedbackEndPoint() {
+      return endpoint;
     }
 
     @Override
@@ -250,5 +257,9 @@ public class DummyOrigin implements Origin<DummyRevision> {
   @Override
   public String getLabelName() {
     return LABEL_NAME;
+  }
+
+  public DummyEndpoint getEndpoint() {
+    return endpoint;
   }
 }

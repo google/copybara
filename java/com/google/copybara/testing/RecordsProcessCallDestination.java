@@ -31,7 +31,9 @@ import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.Endpoint;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -55,12 +57,19 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
   private final ArrayDeque<WriterResult> programmedResults;
 
   public final List<ProcessedChange> processed = new ArrayList<>();
+  public StructuredOutput structuredOutput;
 
   public RecordsProcessCallDestination(WriterResult... results) {
     this.programmedResults = new ArrayDeque<>(Arrays.asList(results));
   }
 
+  private final DummyEndpoint endpoint = new DummyEndpoint();
+
   public boolean failOnEmptyChange = false;
+
+  public DummyEndpoint getEndpoint() {
+    return endpoint;
+  }
 
   public class WriterImpl implements Writer<Revision> {
 
@@ -109,6 +118,11 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     }
 
     @Override
+    public Endpoint getFeedbackEndPoint() {
+      return endpoint;
+    }
+
+    @Override
     public boolean supportsHistory() {
       return true;
     }
@@ -127,6 +141,8 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
                               transformResult.getBaseline(), destinationFiles,
                               dryRun, groupId, state);
       processed.add(change);
+      structuredOutput.getCurrentSummaryLineBuilder()
+          .setDestinationRef("destination/" + processed.size());
       return programmedResults.isEmpty()
           ? WriterResult.OK
           : programmedResults.removeFirst();
@@ -140,8 +156,8 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     }
   }
 
-  private ImmutableMap<String, String> copyWorkdir(final Path workdir) {
-    final ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
+  private ImmutableMap<String, String> copyWorkdir(Path workdir) {
+    ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
     try {
       Files.walkFileTree(workdir, new SimpleFileVisitor<Path>() {
 

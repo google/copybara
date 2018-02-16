@@ -63,7 +63,7 @@ import javax.annotation.Nullable;
         + "It includes information about changes like: the author to be used for commit, "
         + "change message, etc. You receive a TransformWork object as an argument to the <code>"
         + "transformations</code> functions used in <code>core.workflow</code>")
-public final class TransformWork {
+public final class TransformWork implements SkylarkContext {
 
   static final String COPYBARA_CONTEXT_REFERENCE_LABEL = "COPYBARA_CONTEXT_REFERENCE";
   static final String COPYBARA_LAST_REV = "COPYBARA_LAST_REV";
@@ -413,8 +413,8 @@ public final class TransformWork {
                              insideExplicitTransform, lastRev, currentRev, skylarkTransformParams);
   }
 
-  @VisibleForTesting
-  public TransformWork withSkylarkParams(SkylarkDict params) {
+  @Override
+  public TransformWork withParams(SkylarkDict params) {
     Preconditions.checkNotNull(params);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, lastRev,

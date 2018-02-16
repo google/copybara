@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2018 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,73 +14,53 @@
  * limitations under the License.
  */
 
-package com.google.copybara.transform;
+package com.google.copybara.feedback;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.NonReversibleValidationException;
-import com.google.copybara.TransformWork;
-import com.google.copybara.Transformation;
+import com.google.copybara.RepoException;
+import com.google.copybara.SkylarkContext;
 import com.google.copybara.ValidationException;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
-import java.io.IOException;
 
-/**
- * A transformation that uses a Skylark function to transform the code.
- */
-public class SkylarkTransformation implements Transformation {
+public class SkylarkAction implements Action {
 
   private final BaseFunction function;
   private SkylarkDict params;
   private final Environment env;
 
-  public SkylarkTransformation(BaseFunction function, SkylarkDict params, Environment env) {
+  public SkylarkAction(BaseFunction function, SkylarkDict params, Environment env) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
     this.env = Preconditions.checkNotNull(env);
   }
 
   @Override
-  public void transform(TransformWork work)
-      throws IOException, ValidationException {
-    SkylarkConsole skylarkConsole = new SkylarkConsole(work.getConsole());
-    TransformWork skylarkWork = work.withConsole(skylarkConsole)
-        .withParams(params);
+  public void run(SkylarkContext<?> context) throws ValidationException, RepoException {
     try {
-      Object result = function.call(
-          ImmutableList.of(skylarkWork),/*kwargs=*/null,/*ast*/null, env);
+      //noinspection unchecked
+      Object result = function.call(ImmutableList.of(context.withParams(params)), null,
+          /*ast*/null, env);
       if (!(result instanceof NoneType)) {
-        throw new ValidationException("Message transformer functions should not return"
+        throw new ValidationException("Finish hook functions should not return"
             + " anything, but '" + function.getName() + "' returned:" + result);
       }
     } catch (EvalException e) {
+      // TODO(malcon): Do something here for RepoException
       throw new ValidationException("Error while executing the skylark transformer "
           + function.getName() + ":" + e.getMessage(), e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);
-    } finally {
-      work.updateFrom(skylarkWork);
-    }
-
-    if (skylarkConsole.getErrorCount() > 0) {
-      throw new ValidationException(String.format(
-          "%d error(s) while executing %s", skylarkConsole.getErrorCount(), function.getName()));
     }
   }
 
   @Override
-  public Transformation reverse() throws NonReversibleValidationException {
-    return new ExplicitReversal(IntentionalNoop.INSTANCE, this);
-  }
-
-  @Override
-  public String describe() {
+  public String getName() {
     return function.getName();
   }
-
 }

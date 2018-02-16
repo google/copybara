@@ -16,6 +16,7 @@
 
 package com.google.copybara.testing;
 
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
 import com.google.copybara.config.base.OptionsAwareModule;
@@ -36,10 +37,12 @@ import com.google.devtools.build.lib.syntax.EvalException;
 public class TestingModule implements OptionsAwareModule {
 
   private TestingOptions testingOptions;
+  private GeneralOptions generalOptions;
 
   @Override
   public void setOptions(Options options) {
     testingOptions = options.get(TestingOptions.class);
+    generalOptions = options.get(GeneralOptions.class);
   }
 
   @SkylarkSignature(name = "origin", returnType = DummyOrigin.class,
@@ -63,6 +66,7 @@ public class TestingModule implements OptionsAwareModule {
       objectType = TestingModule.class)
   public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination") {
     public RecordsProcessCallDestination invoke(TestingModule self) throws EvalException {
+      self.testingOptions.destination.structuredOutput = self.generalOptions.getStructuredOutput();
       return self.testingOptions.destination;
     }
   };

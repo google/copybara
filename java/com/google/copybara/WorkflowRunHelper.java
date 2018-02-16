@@ -155,7 +155,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return originReader;
   }
 
-  ChangeVisitable<D> getDestinationVisitor() {
+  Destination.Writer<D> getDestinationWriter() {
     return writer;
   }
 
@@ -288,7 +288,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             metadata,
             changes,
             workflow.getConsole(),
-            new MigrationInfo(workflow.getOrigin().getLabelName(), getDestinationVisitor()),
+            new MigrationInfo(workflow.getOrigin().getLabelName(), writer),
             resolvedRef)
         .withLastRev(lastRev)
         .withCurrentRev(rev);
