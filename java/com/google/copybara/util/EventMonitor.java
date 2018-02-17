@@ -33,7 +33,7 @@ public interface EventMonitor {
   default void onChangeMigrationFinished(ChangeMigrationFinishedEvent event) {}
 
   /** Invoked when the migration finishes, only once at the end of the execution */
-  void onMigrationFinished(MigrationFinishedEvent event);
+  default void onMigrationFinished(MigrationFinishedEvent event) {}
 
   /** Event that happens for every migration that is started. */
   class MigrationStartedEvent {}

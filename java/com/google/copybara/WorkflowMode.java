@@ -148,7 +148,6 @@ public enum WorkflowMode {
                       // reviews in the destination. Will not work if we want to group
                       // all the changes in the same Github PR
                       runHelper.getWorkflowIdentity(change.getRevision()));
-          // TODO(danielromero): Use runHelper.eventMonitor() to update progress
           migratedChanges++;
         } catch (EmptyChangeException e) {
           runHelper.getConsole().warnFmt("Migration of origin revision '%s' resulted in an empty"

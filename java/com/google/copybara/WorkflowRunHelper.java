@@ -31,6 +31,8 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.EventMonitor;
+import com.google.copybara.util.EventMonitor.ChangeMigrationFinishedEvent;
+import com.google.copybara.util.EventMonitor.ChangeMigrationStartedEvent;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
@@ -221,6 +223,24 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    */
   WriterResult migrate(O rev, @Nullable O lastRev, Console processConsole,
       Metadata metadata, Changes changes, @Nullable String destinationBaseline,
+      @Nullable String changeIdentity)
+      throws IOException, RepoException, ValidationException {
+    try {
+      eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
+      return doMigrate(
+          rev, lastRev, processConsole, metadata, changes, destinationBaseline, changeIdentity);
+    } finally {
+      eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent());
+    }
+  }
+
+  private WriterResult doMigrate(
+      O rev,
+      @Nullable O lastRev,
+      Console processConsole,
+      Metadata metadata,
+      Changes changes,
+      @Nullable String destinationBaseline,
       @Nullable String changeIdentity)
       throws IOException, RepoException, ValidationException {
     Path checkoutDir = workdir.resolve("checkout");

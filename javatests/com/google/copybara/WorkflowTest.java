@@ -28,7 +28,6 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -49,6 +48,7 @@ import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
+import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
@@ -104,6 +104,7 @@ public class WorkflowTest {
   private boolean includeReleaseNotes;
   private String originFiles;
   private String destinationFiles;
+  private TestingEventMonitor eventMonitor;
 
   @Before
   public void setup() throws Exception {
@@ -132,6 +133,8 @@ public class WorkflowTest {
     options.setForce(true); // Force by default unless we are testing the flag.
     skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class, MetadataModule.class,
         FolderModule.class, GitModule.class));
+    eventMonitor = new TestingEventMonitor();
+    options.general.withEventMonitor(eventMonitor);
   }
 
   private TestingConsole console() {
@@ -167,8 +170,9 @@ public class WorkflowTest {
   private Workflow iterativeWorkflow(String workflowName, @Nullable String previousRef)
       throws ValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
-    options.general = new GeneralOptions(
-        options.general.getFileSystem(), options.general.isVerbose(), console());
+    options.general =
+        new GeneralOptions(options.general.getFileSystem(), options.general.isVerbose(), console())
+            .withEventMonitor(eventMonitor);
     return skylarkWorkflow(workflowName, WorkflowMode.ITERATIVE);
   }
 
@@ -202,6 +206,16 @@ public class WorkflowTest {
     workflow.run(workdir, /*sourceRef=*/"HEAD");
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getRequestedRevision().contextReference()).isEqualTo("HEAD");
+  }
+
+  @Test
+  public void squashWorkflowPublishesEvents() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
+    transformations = ImmutableList.of();
+    Workflow workflow = workflow();
+    workflow.run(workdir, /*sourceRef=*/ "HEAD");
+    assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(1);
+    assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(1);
   }
 
   @Test
@@ -259,6 +273,19 @@ public class WorkflowTest {
   }
 
   @Test
+  public void iterativeWorkflowPublishesEvents() throws Exception {
+    for (int timestamp = 0; timestamp < 10; timestamp++) {
+      origin.addSimpleChange(timestamp);
+    }
+
+    Workflow workflow = iterativeWorkflow("0");
+    workflow.run(workdir, /*sourceRef=*/ "HEAD");
+
+    assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(9);
+    assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(9);
+  }
+
+  @Test
   public void iterativeWorkflowTestRecordMigrationKey() throws Exception {
     for (int timestamp = 0; timestamp < 10; timestamp++) {
       origin.addSimpleChange(timestamp);
@@ -286,6 +313,19 @@ public class WorkflowTest {
 
     assertThat(change.getBaseline()).isEqualTo("42");
     assertThat(change.getRequestedRevision().contextReference()).isEqualTo("HEAD");
+  }
+
+  @Test
+  public void changeRequestWorkflowPublishesEvents() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change");
+
+    Workflow workflow = changeRequestWorkflow(null);
+    workflow.run(workdir, "HEAD");
+
+    assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(1);
+    assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(1);
   }
 
   @Test
@@ -1701,8 +1741,9 @@ public class WorkflowTest {
   @Test
   public void changeRequestInitHistory() throws Exception {
     options.workflowOptions.initHistory = true;
-    options.general = new GeneralOptions(
-        options.general.getFileSystem(), options.general.isVerbose(), console());
+    options.general =
+        new GeneralOptions(options.general.getFileSystem(), options.general.isVerbose(), console())
+            .withEventMonitor(eventMonitor);
     try {
       skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST).run(workdir, "");
       fail("Should fail");

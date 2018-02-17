@@ -67,7 +67,12 @@ public final class GeneralOptions implements Option {
 
   // Default implementation does not show up in the console (unless verbose is used)
   private EventMonitor eventMonitor =
-      event -> console().verboseFmt("Migration finished: %s", event);
+      new EventMonitor() {
+        @Override
+        public void onMigrationFinished(MigrationFinishedEvent event) {
+          console().verboseFmt("Migration finished: %s", event);
+        }
+      };
 
   @VisibleForTesting
   public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
