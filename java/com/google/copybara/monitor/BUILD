@@ -12,37 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-licenses(["notice"])  # Apache 2.0
-
 package(default_visibility = ["//visibility:public"])
 
+licenses(["notice"])  # Apache 2.0
+
 java_library(
-    name = "testing",
-    testonly = 1,
+    name = "monitor",
     srcs = glob(["**/*.java"]),
     javacopts = [
         "-Xlint:unchecked",
         "-source",
         "1.8",
     ],
-    visibility = [
-        "//visibility:public",
-    ],
     deps = [
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/config/base",
-        "//java/com/google/copybara/monitor",
+        "//java/com/google/copybara:git/exec_path",
         "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util/console",
-        "//java/com/google/copybara/util/console/testing",
-        "//third_party:google_http_client",
-        "//third_party:google_http_client_test",
+        "//third_party:autovalue",
         "//third_party:guava",
-        "//third_party:jimfs",
         "//third_party:jsr305",
+        "//third_party:re2j",
+        "//third_party:shell",
         "//third_party:skylark-lang",
-        "//third_party:truth",
     ],
 )

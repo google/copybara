@@ -17,18 +17,18 @@
 package com.google.copybara.feedback;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.DestinationEffect;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Revision;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.transform.SkylarkConsole;
-import com.google.copybara.util.StructuredOutput;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import java.util.stream.Collectors;
 
 /**
  * Gives access to the feedback migration information and utilities.
@@ -41,22 +41,24 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
 
   private final Endpoint origin;
   private final Endpoint destination;
-  private final StructuredOutput output;
   private final SkylarkRevision resolvedRevision;
   private final SkylarkConsole console;
   private final SkylarkDict params;
+  private ImmutableList<DestinationEffect> destinationEffects;
 
-  public FinishHookContext(Endpoint origin, Endpoint destination, StructuredOutput output,
+  public FinishHookContext(Endpoint origin, Endpoint destination,
+      ImmutableList<DestinationEffect> destinationEffects,
       Revision resolvedRevision, SkylarkConsole console) {
-    this(origin, destination, output, console, SkylarkDict.empty(),
+    this(origin, destination, destinationEffects, console, SkylarkDict.empty(),
         new SkylarkRevision(resolvedRevision));
   }
 
-  private FinishHookContext(Endpoint origin, Endpoint destination, StructuredOutput output,
+  private FinishHookContext(Endpoint origin, Endpoint destination,
+      ImmutableList<DestinationEffect> destinationEffects,
       SkylarkConsole console, SkylarkDict params, SkylarkRevision resolvedRevision) {
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
-    this.output = Preconditions.checkNotNull(output);
+    this.destinationEffects = Preconditions.checkNotNull(destinationEffects);
     this.resolvedRevision = resolvedRevision;
     this.console = Preconditions.checkNotNull(console);
     this.params = Preconditions.checkNotNull(params);
@@ -74,14 +76,10 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
     return destination;
   }
 
-  @SkylarkCallable(name = "changes",
-      doc = "The list of changes that where migrated in this execution", structField = true)
-  public SkylarkList<Migration> getChanges() {
-    return SkylarkList.createImmutable(output.getSummaryLines()
-        .stream()
-        .map(e -> new Migration(SkylarkList.createImmutable(e.getOriginRefs()),
-            e.getDestinationRef(), e.getSummary()))
-        .collect(Collectors.toList()));
+  @SkylarkCallable(name = "effects",
+      doc = "The list of effects that happened in the destination", structField = true)
+  public SkylarkList<DestinationEffect> getChanges() {
+    return SkylarkList.createImmutable(destinationEffects);
   }
 
   @SkylarkCallable(name = "revision", doc = "Get the requested/resolved revision",
@@ -105,43 +103,8 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
 
   @Override
   public FinishHookContext withParams(SkylarkDict<?, ?> params) {
-    return new FinishHookContext(origin, destination, output, console, params, resolvedRevision);
-  }
-
-  @SuppressWarnings("unused")
-  @SkylarkModule(name = "migration_context",
-      category = SkylarkModuleCategory.BUILTIN,
-      doc = "An object representing a migration from one or more origin refs to a single "
-          + "destination ref", documented = false)
-  public class Migration {
-
-    private final SkylarkList<String> originRefs;
-    private final String destinationRef;
-    private final String summary;
-
-    public Migration(SkylarkList<String> originRefs, String destinationRef, String summary) {
-      this.originRefs = originRefs;
-      this.destinationRef = destinationRef;
-      this.summary = summary;
-    }
-
-    @SkylarkCallable(name = "origin_refs", doc = "Origin references"
-        + " query about the state", structField = true)
-    public SkylarkList<String> getOriginRefs() {
-      return originRefs;
-    }
-
-    @SkylarkCallable(name = "destination_ref", doc = "Destination reference created. Can be None",
-        structField = true, allowReturnNones = true)
-    public String getDestinationRef() {
-      return destinationRef;
-    }
-
-    @SkylarkCallable(name = "summmary", doc = "Information about the outcome of the migration",
-        structField = true)
-    public String getSummary() {
-      return summary;
-    }
+    return new FinishHookContext(origin, destination, destinationEffects, console, params,
+                                 resolvedRevision);
   }
 
   @SkylarkModule(name = "revision_context",

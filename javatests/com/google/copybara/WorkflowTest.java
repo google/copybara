@@ -36,7 +36,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Destination.WriterResult;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
@@ -419,8 +418,8 @@ public class WorkflowTest {
           @Nullable Writer oldWriter) {
         return new WriterImpl(destinationFiles, dryRun) {
           @Override
-          public WriterResult write(TransformResult transformResult, Console console)
-              throws ValidationException, RepoException, IOException {
+          public ImmutableList<DestinationEffect> write(TransformResult transformResult,
+              Console console) throws ValidationException, RepoException, IOException {
             assert exception != null;
             Throwables.propagateIfPossible(exception, ValidationException.class,
                 RepoException.class);
@@ -502,7 +501,7 @@ public class WorkflowTest {
         .respondYes()
         .respondNo();
     RecordsProcessCallDestination programmableDestination = new RecordsProcessCallDestination(
-        WriterResult.OK, WriterResult.PROMPT_TO_CONTINUE, WriterResult.PROMPT_TO_CONTINUE);
+        ImmutableList.of(), ImmutableList.of("some error"), ImmutableList.of("Another error"));
 
     options.testingOptions.destination = programmableDestination;
 
@@ -1505,11 +1504,11 @@ public class WorkflowTest {
 
     String config = ""
         + "def _test_impl(ctx):\n"
-        + "  for change in ctx.changes:\n"
-        + "    ctx.origin.message(change.origin_refs[0] + ' created ' + change.destination_ref "
-        + "+ ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
-        + "    ctx.destination.message(change.origin_refs[0] + ' created ' "
-        + "+ change.destination_ref + ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
+        + "  for effect in ctx.effects:\n"
+        + "    ctx.origin.message(effect.origin_refs[0].ref + ' created ' "
+        + "+ effect.destination_ref.id + ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
+        + "    ctx.destination.message(effect.origin_refs[0].ref + ' created ' "
+        + "+ effect.destination_ref.id + ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
         + "\n"
         + "def other(ctx):\n"
         + "  ctx.origin.message('constant')\n"
@@ -1525,7 +1524,7 @@ public class WorkflowTest {
         + "  destination = testing.destination(),\n"
         + "  transformations = [],\n"
         + "  authoring = " + authoring + ",\n"
-        + "  on_finish = [test('example'), test('other', 42), other]"
+        + "  after_migration = [test('example'), test('other', 42), other]"
         + ")\n";
     loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
     assertThat(origin.getEndpoint().getMessages())

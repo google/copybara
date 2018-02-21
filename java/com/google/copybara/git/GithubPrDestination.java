@@ -21,10 +21,11 @@ import static com.google.copybara.git.LazyGitRepository.memoized;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
@@ -129,12 +130,14 @@ public class GithubPrDestination implements Destination<GitRevision> {
         destinationOptions.rebaseWhenBaseline(),
         gitOptions.visitChangePageSize) {
       @Override
-      public WriterResult write(TransformResult transformResult, Console console)
-          throws ValidationException, RepoException, IOException {
-        WriterResult result = super.write(transformResult, console);
+      public ImmutableList<DestinationEffect> write(TransformResult transformResult,
+          Console console) throws ValidationException, RepoException, IOException {
+        ImmutableList.Builder<DestinationEffect> result = ImmutableList
+            .<DestinationEffect>builder()
+            .addAll(super.write(transformResult, console));
 
         if (effectiveSkipPush || state.pullRequestNumber != null) {
-          return result;
+          return result.build();
         }
 
         if (!githubDestinationOptions.createPullRequest) {
@@ -142,7 +145,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
                   + " (Only needed once)",
               asHttpsUrl(), destinationRef, pushBranchName);
           state.pullRequestNumber = -1L;
-          return result;
+          return result.build();
         }
 
         GithubApi api = githubOptions.getApi(GithubUtil.getProjectNameFromUrl(url));
@@ -155,7 +158,15 @@ public class GithubPrDestination implements Destination<GitRevision> {
               console.warnFmt("Current base branch '%s' is different from the PR base branch '%s'",
                   destinationRef, pr.getBase().getRef());
             }
-            return result;
+            result.add(
+                new DestinationEffect(
+                    DestinationEffect.Type.UPDATED,
+                    String.format("Pull Request %s updated", pr.getHtmlUrl()),
+                    transformResult.getChanges().getCurrent(),
+                    new DestinationEffect.DestinationRef(Long.toString(pr.getNumber()),
+                                                         "pull_request", pr.getHtmlUrl()),
+                    ImmutableList.of()));
+            return result.build();
           }
         }
         ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
@@ -165,7 +176,15 @@ public class GithubPrDestination implements Destination<GitRevision> {
         console.infoFmt("Pull Request %s/pull/%s created using branch '%s'.", asHttpsUrl(),
             pr.getNumber(), pushBranchName);
         state.pullRequestNumber = pr.getNumber();
-        return result;
+        result.add(
+            new DestinationEffect(
+                DestinationEffect.Type.CREATED,
+                String.format("Pull Request %s created", pr.getHtmlUrl()),
+                transformResult.getChanges().getCurrent(),
+                new DestinationEffect.DestinationRef(Long.toString(pr.getNumber()),
+                                                     "pull_request", pr.getHtmlUrl()),
+                ImmutableList.of()));
+        return result.build();
       }
     };
   }

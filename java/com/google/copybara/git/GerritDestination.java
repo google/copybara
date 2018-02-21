@@ -25,7 +25,9 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.hash.Hashing;
+import com.google.copybara.Change;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
@@ -40,7 +42,6 @@ import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -189,8 +190,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 destinationOptions.getCommitter(),
                 generalOptions.console()),
             new GerritProcessPushOutput(
-                generalOptions.console(),
-                generalOptions.getStructuredOutput()),
+                generalOptions.console()
+            ),
             NO_GIT_DESTINATION_INTEGRATES));
   }
 
@@ -200,14 +201,20 @@ public final class GerritDestination implements Destination<GitRevision> {
         ".*: *(http(s)?://[^ ]+)( .*)?");
     private final Console console;
 
-    GerritProcessPushOutput(Console console, StructuredOutput structuredOutput) {
-      super(structuredOutput);
+    GerritProcessPushOutput(Console console) {
       this.console = Preconditions.checkNotNull(console);
     }
 
     @Override
-    public void process(String output, boolean newReview, GitRepository localRepo) {
-      super.process(output, newReview, localRepo);
+    public ImmutableList<DestinationEffect> process(
+        String output,
+        boolean newReview,
+        GitRepository localRepo,
+        List<? extends Change<?>> current) {
+      ImmutableList.Builder<DestinationEffect> result =
+          ImmutableList.<DestinationEffect>builder()
+              .addAll(super.process(output, newReview, localRepo, current));
+
       List<String> lines = Splitter.on("\n").splitToList(output);
       for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
         String line = iterator.next();
@@ -219,13 +226,22 @@ public final class GerritDestination implements Destination<GitRevision> {
             String message = newReview
                 ? "New Gerrit review created at "
                 : "Updated existing Gerrit review at ";
-            message = message + matcher.group(1);
+            String url = matcher.group(1);
+            String changeNum = url.substring(url.lastIndexOf("/") + 1);
+            message = message + url;
             console.info(message);
-            structuredOutput.getCurrentSummaryLineBuilder().setSummary(message);
-            return;
+            result.add(
+                new DestinationEffect(
+                    newReview ? DestinationEffect.Type.CREATED : DestinationEffect.Type.UPDATED,
+                    message,
+                    current,
+                    new DestinationEffect.DestinationRef(changeNum, "gerrit_review", url),
+                    ImmutableList.of()));
+            break;
           }
         }
       }
+      return result.build();
     }
   }
 

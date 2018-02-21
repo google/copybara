@@ -39,11 +39,14 @@ public class PullRequestOrIssue {
   @Key
   private String body;
 
-  @Key
-  private String created_at;
+  @Key("created_at")
+  private String createdAt;
 
-  @Key
-  private String updated_at;
+  @Key("updated_at")
+  private String updatedAt;
+
+  @Key("html_url")
+  private String htmlUrl;
 
   public long getNumber() {
     return number;
@@ -62,11 +65,15 @@ public class PullRequestOrIssue {
   }
 
   public ZonedDateTime getCreatedAt() {
-    return ZonedDateTime.parse(created_at);
+    return ZonedDateTime.parse(createdAt);
   }
 
   public ZonedDateTime getModifiedAt() {
-    return ZonedDateTime.parse(created_at);
+    return ZonedDateTime.parse(createdAt);
+  }
+
+  public String getHtmlUrl() {
+    return htmlUrl;
   }
 
   @Override
@@ -84,7 +91,7 @@ public class PullRequestOrIssue {
         .add("state", state)
         .add("title", title)
         .add("body", body)
-        .add("created_at", created_at)
-        .add("updated_at", updated_at);
+        .add("created_at", createdAt)
+        .add("updated_at", updatedAt);
   }
 }

@@ -24,15 +24,18 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
-import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.feedback.Action;
+import com.google.copybara.feedback.FinishHookContext;
+import com.google.copybara.monitor.EventMonitor;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationStartedEvent;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.DiffUtil;
-import com.google.copybara.util.EventMonitor;
-import com.google.copybara.util.EventMonitor.ChangeMigrationFinishedEvent;
-import com.google.copybara.util.EventMonitor.ChangeMigrationStartedEvent;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
@@ -44,12 +47,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
  * Runs a single migration step for a {@link Workflow}, using its configuration.
  */
 public class WorkflowRunHelper<O extends Revision, D extends Revision> {
+
+  private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   private final Workflow<O, D> workflow;
   private final Path workdir;
@@ -173,39 +180,56 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       return;
     }
 
-    workflow.getGeneralOptions().ioRepoTask("validate_last_rev", () -> {
-      O lastRev = workflow.getGeneralOptions().repoTask("get_last_rev",
-          this::maybeGetLastRev);
+    workflow
+        .getGeneralOptions()
+        .ioRepoTask(
+            "validate_last_rev",
+            () -> {
+              O lastRev =
+                  workflow.getGeneralOptions().repoTask("get_last_rev", this::maybeGetLastRev);
 
-      if (lastRev == null) {
-        // Not the job of this function to check for lastrev status.
-        return null;
-      }
-      Change<O> change = originReader.change(lastRev);
-      Changes changes = new Changes(ImmutableList.of(change), ImmutableList.of());
-      WorkflowRunHelper<O, D> helper = forChanges(changes.getCurrent()).withDryRun();
+              if (lastRev == null) {
+                // Not the job of this function to check for lastrev status.
+                return null;
+              }
+              Change<O> change = originReader.change(lastRev);
+              Changes changes = new Changes(ImmutableList.of(change), ImmutableList.of());
+              WorkflowRunHelper<O, D> helper = forChanges(changes.getCurrent()).withDryRun();
 
-      try {
-        workflow.getGeneralOptions().ioRepoTask("migrate", () ->
-            // We pass lastRev as the lastRev. This is not correct but we cannot know the previous
-            // rev of the last rev. Furthermore, this should only be used for generating messages,
-            // so users shouldn't care about the value (but they might care about its presence, so
-            // it cannot be null.
-            helper.migrate(lastRev, lastRev,
-                new ProgressPrefixConsole("Validating last migration: ", helper.getConsole()),
-                metadata == null ? new Metadata(change.getMessage(), change.getAuthor()) : metadata,
-                changes,
-                /*destinationBaseline=*/null,
-                getWorkflowIdentity(lastRev)));
-        throw new ValidationException("Migration of last-rev '" + lastRev.asString() + "' didn't"
-            + " result in an empty change. This means that the result change of that migration was"
-            + " modified ouside of Copybara or that new changes happened later in the destination"
-            + " without using Copybara. Use --force if you really want to do the migration.");
-      } catch (EmptyChangeException ignored) {
-        // EmptyChangeException ignored
-      }
-      return null;
-    });
+              try {
+                workflow
+                    .getGeneralOptions()
+                    .ioRepoTask(
+                        "migrate",
+                        () ->
+                            // We pass lastRev as the lastRev. This is not correct but we cannot
+                            // know the previous rev of the last rev. Furthermore, this should only
+                            // be used for generating messages, so users shouldn't care about the
+                            // value (but they might care about its presence, so it cannot be null.
+                            helper.doMigrate(
+                                lastRev,
+                                lastRev,
+                                new ProgressPrefixConsole(
+                                    "Validating last migration: ", helper.getConsole()),
+                                metadata == null
+                                    ? new Metadata(change.getMessage(), change.getAuthor())
+                                    : metadata,
+                                changes,
+                                /*destinationBaseline=*/ null,
+                                getWorkflowIdentity(lastRev)));
+                throw new ValidationException(
+                    "Migration of last-rev '"
+                        + lastRev.asString()
+                        + "' didn't"
+                        + " result in an empty change. This means that the result change of that"
+                        + " migration was modified ouside of Copybara or that new changes happened"
+                        + " later in the destination without using Copybara. Use --force if you"
+                        + " really want to do the migration.");
+              } catch (EmptyChangeException ignored) {
+                // EmptyChangeException ignored
+              }
+              return null;
+            });
   }
   /**
    * Performs a full migration, including checking out files from the origin, deleting excluded
@@ -214,27 +238,75 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    *
    * @param rev revision to the version which will be written to the destination
    * @param lastRev last revision that was migrated
-   *@param processConsole console to use to print progress messages
+   * @param processConsole console to use to print progress messages
    * @param metadata metadata of the change to be migrated
    * @param changes changes included in this migration
    * @param destinationBaseline it not null, use this baseline in the destination
-   * @param changeIdentity if not null, an identifier that destination can use to reuse an
-* existing destination entity (code review for example).      @return The result of this migration
+   * @param changeIdentity if not null, an identifier that destination can use to reuse an existing
+   *     destination entity (code review for example). @return The result of this migration
    */
-  WriterResult migrate(O rev, @Nullable O lastRev, Console processConsole,
-      Metadata metadata, Changes changes, @Nullable String destinationBaseline,
+  ImmutableList<DestinationEffect> migrate(
+      O rev,
+      @Nullable O lastRev,
+      Console processConsole,
+      Metadata metadata,
+      Changes changes,
+      @Nullable String destinationBaseline,
       @Nullable String changeIdentity)
       throws IOException, RepoException, ValidationException {
+    ImmutableList<DestinationEffect> effects = ImmutableList.of();
+    boolean callPerMigrationHook = true;
     try {
       eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
-      return doMigrate(
-          rev, lastRev, processConsole, metadata, changes, destinationBaseline, changeIdentity);
+      effects =
+          doMigrate(
+              rev, lastRev, processConsole, metadata, changes, destinationBaseline, changeIdentity);
+      return effects;
+    } catch (EmptyChangeException empty) {
+      effects =
+          ImmutableList.of(
+              new DestinationEffect(
+                  Type.NOOP,
+                  empty.getMessage(),
+                  changes.getCurrent(),
+                  /*destinationRef=*/ null,
+                  ImmutableList.of()));
+      throw empty;
+    } catch (ValidationException | IOException | RepoException | RuntimeException e) {
+      effects =
+          ImmutableList.of(
+              new DestinationEffect(
+                  Type.ERROR,
+                  "Errors happened during the migration",
+                  changes.getCurrent(),
+                  /*destinationRef=*/ null,
+                  ImmutableList.of(e.getMessage())));
+      callPerMigrationHook = e instanceof ValidationException;
+      throw e;
     } finally {
-      eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent());
+      eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
+      if (callPerMigrationHook) {
+        FinishHookContext finishHookContext =
+            new FinishHookContext(
+                getOriginReader().getFeedbackEndPoint(),
+                getDestinationWriter().getFeedbackEndPoint(),
+                effects,
+                resolvedRef,
+                new SkylarkConsole(getConsole()));
+        try (ProfilerTask ignored = profiler().start("finish_hooks")) {
+
+          for (Action action : workflow.getAfterMigrationActions()) {
+            try (ProfilerTask ignored2 = profiler().start(action.getName())) {
+              logger.log(Level.INFO, "Running after migration hook: " + action.getName());
+              action.run(finishHookContext);
+            }
+          }
+        }
+      }
     }
   }
 
-  private WriterResult doMigrate(
+  private ImmutableList<DestinationEffect> doMigrate(
       O rev,
       @Nullable O lastRev,
       Console processConsole,
@@ -251,10 +323,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       Files.createDirectories(checkoutDir);
     }
-    // Start new output entry and add origin refs
-    workflow.getGeneralOptions().getStructuredOutput().getCurrentSummaryLineBuilder()
-        .setOriginRefs(changes.getCurrent().stream()
-            .map(Change::refAsString).collect(ImmutableList.toImmutableList()));
     processConsole.progress("Checking out the change");
 
     try (ProfilerTask ignored = profiler().start(
@@ -357,14 +425,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         .withAskForConfirmation(workflow.isAskForConfirmation())
         .withIdentity(changeIdentity);
 
-    WriterResult result;
+    ImmutableList<DestinationEffect> result;
     try (ProfilerTask ignored = profiler().start(
         "destination.write", profiler().taskType(workflow.getDestination().getType()))) {
       result = writer.write(transformResult, processConsole);
     }
     Verify.verifyNotNull(result, "Destination returned a null result.");
-    // Close output line
-    workflow.getGeneralOptions().getStructuredOutput().appendSummaryLine();
+    Verify.verify(!result.isEmpty(), "Destination " + writer + " returned an empty set of effects");
     return result;
   }
 

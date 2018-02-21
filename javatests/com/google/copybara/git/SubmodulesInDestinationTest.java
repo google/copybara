@@ -21,7 +21,8 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
-import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.testing.GitTesting;
@@ -114,12 +115,16 @@ public final class SubmodulesInDestinationTest {
     scratchRepo.simpleCommand("commit", "-m", "commit submodule");
 
     Files.write(workdir.resolve("test42"), new byte[] {42});
-    Destination.Writer writer = destination().newWriter(destinationFiles, /*dryRun=*/false,
+    Destination.Writer<?> writer = destination().newWriter(destinationFiles, /*dryRun=*/false,
                                                         /*groupId=*/null, /*oldWriter=*/ null);
-    WriterResult result = writer.write(
+    ImmutableList<DestinationEffect> result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
         console);
-    assertThat(result).isEqualTo(WriterResult.OK);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
   }
 
   @Test
@@ -167,14 +172,18 @@ public final class SubmodulesInDestinationTest {
     Files.createDirectories(workdir.resolve("foo"));
     Files.write(workdir.resolve("foo/c"), new byte[] {1});
 
-    Destination.Writer writer =
+    Destination.Writer<?> writer =
         destination().newWriter(destinationFiles, /*dryRun=*/false,
                                 /*groupId=*/null, /*oldWriter=*/ null);
-    WriterResult result = writer.write(
+    ImmutableList<DestinationEffect> result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
         console);
-    assertThat(result).isEqualTo(WriterResult.OK);
-
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
+    
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFiles("foo/c", "foo/b")
         .containsNoFiles("foo/a");

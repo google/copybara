@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package com.google.copybara.util;
+package com.google.copybara.monitor;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.copybara.DestinationEffect;
+import com.google.copybara.util.ExitCode;
 
 /**
  * A monitor that allows triggering actions when high-level actions take place during the execution.
@@ -42,7 +45,17 @@ public interface EventMonitor {
   class ChangeMigrationStartedEvent {}
 
   /** Event that happens for every change migration that is finished. */
-  class ChangeMigrationFinishedEvent {}
+  class ChangeMigrationFinishedEvent {
+    private final ImmutableList<DestinationEffect> destinationEffects;
+
+    public ChangeMigrationFinishedEvent(ImmutableList<DestinationEffect> destinationEffects) {
+      this.destinationEffects = destinationEffects;
+    }
+
+    public ImmutableList<DestinationEffect> getDestinationEffects() {
+      return destinationEffects;
+    }
+  }
 
   /** Event that happens for every migration that is finished. */
   class MigrationFinishedEvent {

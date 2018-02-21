@@ -428,7 +428,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           generalOptions,
           skipPush,
           new DefaultCommitGenerator(),
-          new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()),
+          new ProcessPushStructuredOutput(),
           SkylarkList.castList(integrates, GitIntegrateChanges.class, "integrates"));
     }
   };
@@ -469,7 +469,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           self.options.get(GitOptions.class),
           skipPush,
           new DefaultCommitGenerator(),
-          new ProcessPushStructuredOutput(generalOptions.getStructuredOutput()),
+          new ProcessPushStructuredOutput(),
           NO_GIT_DESTINATION_INTEGRATES);
     }
   };

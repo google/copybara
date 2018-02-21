@@ -810,7 +810,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_CURRENT_MESSAGE_TITLE: The current message title (first line) at this point of the transformations
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, on_finish=[])`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[])`
 
 #### Parameters:
 
@@ -828,7 +828,7 @@ reversible_check|`boolean`<br><p>Indicates if the tool should try to to reverse 
 check_last_rev_state|`boolean`<br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
 ask_for_confirmation|`boolean`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
 dry_run|`boolean`<br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
-on_finish|`sequence`<br><p>Run a feedback workflow on finish. STILL WIP</p>
+after_migration|`sequence`<br><p>Run a feedback workflow after one migration happens. STILL WIP</p>
 
 
 

@@ -18,8 +18,10 @@ package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
@@ -97,10 +99,11 @@ public class FolderDestination implements Destination<Revision> {
     }
 
     @Override
-    public WriterResult write(TransformResult transformResult, Console console)
+    public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
       Path localFolder = getFolderPath(console);
       console.progress("FolderDestination: creating " + localFolder);
+      boolean exists = Files.exists(localFolder);
       try {
         Files.createDirectories(localFolder);
       } catch (FileAlreadyExistsException e) {
@@ -122,7 +125,14 @@ public class FolderDestination implements Destination<Revision> {
       console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);
       FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder,
           CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
-      return WriterResult.OK;
+      return ImmutableList.of(
+          new DestinationEffect(
+              exists ? DestinationEffect.Type.UPDATED : DestinationEffect.Type.CREATED,
+              String.format("Folder '%s' contains the output files of the migration", localFolder),
+              transformResult.getChanges().getCurrent(),
+              new DestinationEffect.DestinationRef(
+                  localFolder.toString(), "local_folder", localFolder.toString()),
+              ImmutableList.of()));
     }
   }
 

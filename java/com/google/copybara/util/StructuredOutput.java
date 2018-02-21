@@ -24,7 +24,10 @@ import javax.annotation.Nullable;
 
 /**
  * Simple struct to provide a sidechannel for return values.
+ *
+ * @deprecated use DestinationEffect and events.
  */
+@Deprecated
 public class StructuredOutput {
   @Nullable private SummaryLine.Builder currentLine = null;
 

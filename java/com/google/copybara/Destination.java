@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
-
 /** A repository which a source of truth can be copied to. */
 @SkylarkModule(
   name = "destination",
@@ -35,22 +34,6 @@ import javax.annotation.Nullable;
   category = SkylarkModuleCategory.TOP_LEVEL_TYPE
 )
 public interface Destination<R extends Revision> extends ConfigItemDescription {
-
-  /**
-   * The result of invoking {@link Writer#write(TransformResult, Console)}.
-   */
-  enum WriterResult {
-    /**
-     * The execution of {@link Writer#write(TransformResult, Console)} was successful. The caller
-     * should proceed with the execution.
-     */
-    OK,
-    /**
-     * The execution of {@link Writer#write(TransformResult, Console)} had errors or warnings that
-     * were logged into the console. The caller should prompt confirmation to the user to continue.
-     */
-    PROMPT_TO_CONTINUE,
-  }
 
   /**
    * An object which is capable of writing multiple revisions to the destination. This object is
@@ -85,12 +68,13 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
      * Writes the fully-transformed repository stored at {@code workdir} to this destination.
      * @param transformResult what to write to the destination
      * @param console console to be used for printing messages
+     * @return one or more destination effects
      *
      * @throws ValidationException if an user attributable error happens during the write
      * @throws RepoException if there was an issue with the destination repository
      * @throws IOException if a file access error happens during the write
      */
-    WriterResult write(TransformResult transformResult, Console console)
+    ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException;
 
     /**

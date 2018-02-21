@@ -22,7 +22,7 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -129,8 +129,9 @@ public enum WorkflowMode {
         String prefix = String.format(
             "Change %d of %d (%s): ",
             changeNumber, Math.min(changes.size(), limit), change.getRevision().asString());
-        WriterResult result;
+        ImmutableList<DestinationEffect> result;
 
+        boolean errors = false;
         try (ProfilerTask ignored = runHelper.profiler().start(change.refAsString())) {
           ImmutableList<Change<O>> current = ImmutableList.of(change);
           WorkflowRunHelper<O, D> currentHelper = runHelper.forChanges(current);
@@ -149,10 +150,14 @@ public enum WorkflowMode {
                       // all the changes in the same Github PR
                       runHelper.getWorkflowIdentity(change.getRevision()));
           migratedChanges++;
+          for (DestinationEffect effect : result) {
+            if (effect.getType() != Type.NOOP) {
+              errors |= !effect.getErrors().isEmpty();
+            }
+          }
         } catch (EmptyChangeException e) {
           runHelper.getConsole().warnFmt("Migration of origin revision '%s' resulted in an empty"
               + " change in the destination: %s", change.getRevision().asString(), e.getMessage());
-          result = WriterResult.OK;
         } catch (ValidationException | RepoException e) {
           runHelper.getConsole().errorFmt("Migration of origin revision '%s' failed with error: %s",
               change.getRevision().asString(), e.getMessage());
@@ -160,7 +165,7 @@ public enum WorkflowMode {
         }
         migrated.addFirst(change);
 
-        if (result == WriterResult.PROMPT_TO_CONTINUE && changesIterator.hasNext()) {
+        if (errors && changesIterator.hasNext()) {
           // Use the regular console to log prompt and final message, it will be easier to spot
           if (!runHelper.getConsole()
               .promptConfirmation("Continue importing next change?")) {

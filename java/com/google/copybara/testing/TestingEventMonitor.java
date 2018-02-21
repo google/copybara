@@ -16,7 +16,7 @@
 
 package com.google.copybara.testing;
 
-import com.google.copybara.util.EventMonitor;
+import com.google.copybara.monitor.EventMonitor;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -27,7 +27,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.hash.Hashing;
 import com.google.copybara.ChangeMessage;
-import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.Changes;
+import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
@@ -43,7 +45,6 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.LogConsole;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.ByteArrayOutputStream;
@@ -181,13 +182,17 @@ public class GerritDestinationTest {
 
   private void process(DummyRevision originRef)
       throws ValidationException, RepoException, IOException {
-    WriterResult result = destination()
+    ImmutableList<DestinationEffect> result = destination()
         .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
             /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
         .write(
             TransformResults.of(workdir, originRef).withIdentity(originRef.asString()),
             console);
-    assertThat(result).isEqualTo(WriterResult.OK);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
   }
 
   @Test
@@ -462,37 +467,68 @@ public class GerritDestinationTest {
   }
 
   @Test
-  public void testProcessPushOutput_new() {
+  public void testProcessPushOutput_new() throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    StructuredOutput struct = new StructuredOutput();
     GerritProcessPushOutput process =
         new GerritProcessPushOutput(
-            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
-            struct);
-
-    process.process(GERRIT_RESPONSE, /*newReview*/ true, repo());
-    struct.appendSummaryLine();
+            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false));
+    fakeOneCommitInDestination();
+    
+    ImmutableList<DestinationEffect> result = process.process(
+        GERRIT_RESPONSE, /*newReview*/ true, repo(), Changes.EMPTY.getCurrent());
 
     assertThat(out.toString())
         .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
-    assertThat(struct.toString())
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
+
+    assertThat(result.get(1).getSummary())
         .contains("New Gerrit review created at https://some.url.google.com/1234");
+    assertThat(result.get(1).getType()).isEqualTo(Type.CREATED);
+    assertThat(result.get(1).getDestinationRef().getId()).isEqualTo("1234");
+    assertThat(result.get(1).getDestinationRef().getType()).isEqualTo("gerrit_review");
+    assertThat(result.get(1).getDestinationRef().getUrl())
+        .isEqualTo("https://some.url.google.com/1234");
+  }
+
+  private void fakeOneCommitInDestination() throws IOException, RepoException, ValidationException {
+    Path scratchTree = Files.createTempDirectory("workdir");
+    GitRepository repo = repo().withWorkTree(scratchTree);
+    Files.write(scratchTree.resolve("foo"), new byte[0]);
+    repo.add().all().run();
+    repo.commit("foo <foo@foo.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
   }
 
   @Test
-  public void testProcessPushOutput_existing() {
+  public void testProcessPushOutput_existing() throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    StructuredOutput struct = new StructuredOutput();
     GerritProcessPushOutput process = new GerritProcessPushOutput(
-        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false), struct);
+        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false));
 
-    process.process(GERRIT_RESPONSE, /*newReview*/ false, repo());
-    struct.appendSummaryLine();
+    fakeOneCommitInDestination();
+
+    ImmutableList<DestinationEffect> result =
+        process.process(GERRIT_RESPONSE, /*newReview*/false, repo(), Changes.EMPTY.getCurrent());
 
     assertThat(out.toString())
         .contains("INFO: Updated existing Gerrit review at https://some.url.google.com/1234");
-    assertThat(struct.toString())
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
+
+    assertThat(result.get(1).getSummary())
         .contains("Updated existing Gerrit review at https://some.url.google.com/1234");
+    assertThat(result.get(1).getType()).isEqualTo(Type.UPDATED);
+    assertThat(result.get(1).getDestinationRef().getId()).isEqualTo("1234");
+    assertThat(result.get(1).getDestinationRef().getType()).isEqualTo("gerrit_review");
+    assertThat(result.get(1).getDestinationRef().getUrl())
+        .isEqualTo("https://some.url.google.com/1234");
   }
 
   @Test

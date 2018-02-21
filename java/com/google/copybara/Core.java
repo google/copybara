@@ -267,8 +267,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + " have some side effects (like creating a code review), but never submit to a"
                   + " main branch.",
               defaultValue = "False", positional = false),
-          @Param(name = "on_finish", type = SkylarkList.class,
-              doc = "Run a feedback workflow on finish. STILL WIP",
+          @Param(name = "after_migration", type = SkylarkList.class,
+              doc = "Run a feedback workflow after one migration happens. STILL WIP",
               defaultValue = "[]", positional = false),
       },
       objectType = Core.class, useLocation = true, useEnvironment = true)
@@ -296,7 +296,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         Boolean checkLastRevStateField,
         Boolean askForConfirmation,
         Boolean dryRunMode,
-        SkylarkList<?> onFinish,
+        SkylarkList<?> afterMigrations,
         Location location,
         Environment env)
         throws EvalException {
@@ -320,15 +320,17 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
             "%s is not compatible with %s", CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
       }
 
-      ImmutableList.Builder<Action> onFinishActions = ImmutableList.builder();
-      for (Object finish : onFinish) {
-        if (finish instanceof BaseFunction) {
-          onFinishActions.add(new SkylarkAction((BaseFunction) finish, SkylarkDict.empty(), env));
-        } else if (finish instanceof Action) {
-          onFinishActions.add((Action) finish);
+      ImmutableList.Builder<Action> afterMigrationActions = ImmutableList.builder();
+      for (Object action : afterMigrations) {
+        if (action instanceof BaseFunction) {
+          afterMigrationActions.add(
+              new SkylarkAction((BaseFunction) action, SkylarkDict.empty(), env));
+        } else if (action instanceof Action) {
+          afterMigrationActions.add((Action) action);
         } else {
           throw new EvalException(location,
-              String.format("Invalid finish action '%s 'of type: %s", finish, finish.getClass()));
+              String.format("Invalid after migration action '%s 'of type: %s",
+                            action, action.getClass()));
         }
       }
       self.addMigration(location, workflowName, new Workflow<>(
@@ -350,7 +352,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           self.allConfigFiles,
           self.workflowOptions.dryRunMode || dryRunMode,
           checkLastRevStateField || self.workflowOptions.checkLastRevState,
-          onFinishActions.build()));
+          afterMigrationActions.build()));
       return Runtime.NONE;
     }
   };

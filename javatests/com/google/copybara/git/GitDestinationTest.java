@@ -30,7 +30,8 @@ import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination.Writer;
-import com.google.copybara.Destination.WriterResult;
+import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
@@ -212,8 +213,12 @@ public class GitDestinationTest {
     if (askForConfirmation) {
       result = result.withAskForConfirmation(true);
     }
-    WriterResult destinationResult = writer.write(result, console);
-    assertThat(destinationResult).isEqualTo(WriterResult.OK);
+    ImmutableList<DestinationEffect> destinationResult = writer.write(result, console);
+    assertThat(destinationResult).hasSize(1);
+    assertThat(destinationResult.get(0).getErrors()).isEmpty();
+    assertThat(destinationResult.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(destinationResult.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(destinationResult.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
   }
 
   @Test
@@ -954,14 +959,23 @@ public class GitDestinationTest {
     Writer<GitRevision> writer = firstCommitWriter();
 
     Files.write(workdir.resolve("test42"), "42".getBytes(UTF_8));
-    WriterResult result =
+    ImmutableList<DestinationEffect> result =
         writer.write(TransformResults.of(workdir, new DummyRevision("ref1")), console);
-    assertThat(result).isEqualTo(WriterResult.OK);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
+
     String firstCommitHash = repo().parseRef("refs_for_master");
 
     Files.write(workdir.resolve("test99"), "99".getBytes(UTF_8));
     result = writer.write(TransformResults.of(workdir, new DummyRevision("ref2")), console);
-    assertThat(result).isEqualTo(WriterResult.OK);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
 
     // Make sure parent of second commit is the first commit.
     assertThat(repo().parseRef("refs_for_master~1")).isEqualTo(firstCommitHash);

@@ -66,7 +66,6 @@ public class TestingModule implements OptionsAwareModule {
       objectType = TestingModule.class)
   public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination") {
     public RecordsProcessCallDestination invoke(TestingModule self) throws EvalException {
-      self.testingOptions.destination.structuredOutput = self.generalOptions.getStructuredOutput();
       return self.testingOptions.destination;
     }
   };

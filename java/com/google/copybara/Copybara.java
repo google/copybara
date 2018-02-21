@@ -129,6 +129,7 @@ public class Copybara {
               change.firstLineMessage(),
               change.getAuthor()));
         }
+        // TODO(malcon, danielromero): Replace structuredOutput with an event or return statement.
         structuredOutput
             .getCurrentSummaryLineBuilder()
             .setAvailableToMigrate(

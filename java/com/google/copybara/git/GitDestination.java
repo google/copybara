@@ -30,9 +30,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.RepoException;
@@ -44,7 +46,6 @@ import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.PathMatcher;
@@ -364,7 +365,7 @@ public final class GitDestination implements Destination<GitRevision> {
     }
 
     @Override
-    public WriterResult write(TransformResult transformResult, Console console)
+    public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
       logger.log(Level.INFO, "Exporting from " + transformResult.getPath() + " to: " + this);
       String baseline = transformResult.getBaseline();
@@ -465,11 +466,19 @@ public final class GitDestination implements Destination<GitRevision> {
               "User aborted execution: did not confirm diff changes.");
         }
       }
+      GitRevision head = scratchClone.resolveReference("HEAD");
       if (skipPush) {
         console.infoFmt(
             "Git Destination: skipped push to remote. Check the local commits at %s",
             scratchClone.getGitDir());
-        return WriterResult.OK;
+        return ImmutableList.of(
+            new DestinationEffect(
+                DestinationEffect.Type.CREATED,
+                String.format(
+                    "Dry run commit '%s' created locally at %s", head, scratchClone.getGitDir()),
+                transformResult.getChanges().getCurrent(),
+                new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null),
+                ImmutableList.of()));
       }
 
       console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, remotePush));
@@ -484,8 +493,11 @@ public final class GitDestination implements Destination<GitRevision> {
                   (nonFastForwardPush ? "+" : "") + "HEAD:" + getCompleteRef(remotePush))))
               .run()
       );
-      processPushOutput.process(serverResponse, messageInfo.newPush, alternate);
-      return WriterResult.OK;
+      return processPushOutput.process(
+          serverResponse,
+          messageInfo.newPush,
+          alternate,
+          transformResult.getChanges().getCurrent());
     }
 
     /**
@@ -594,27 +606,37 @@ public final class GitDestination implements Destination<GitRevision> {
      * @param output - the message for the commit
      * @param newPush - true if is the first time we are pushing to the origin ref
      * @param alternateRepo - The alternate repo used for staging commits, if any
+     * @param current
      */
-    void process(String output, boolean newPush, GitRepository alternateRepo);
+    ImmutableList<DestinationEffect> process(
+        String output,
+        boolean newPush,
+        GitRepository alternateRepo,
+        List<? extends Change<?>> current);
   }
 
   static class ProcessPushStructuredOutput implements ProcessPushOutput {
 
-    protected final StructuredOutput structuredOutput;
-
-    ProcessPushStructuredOutput(StructuredOutput output) {
-      this.structuredOutput = checkNotNull(output);
-    }
-
     @Override
-    public void process(String output, boolean newPush, GitRepository alternateRepo) {
+    public ImmutableList<DestinationEffect> process(
+        String output,
+        boolean newPush,
+        GitRepository alternateRepo,
+        List<? extends Change<?>> current) {
       try {
         String sha1 = alternateRepo.parseRef("HEAD");
-        structuredOutput.getCurrentSummaryLineBuilder()
-            .setDestinationRef(sha1)
-            .setSummary(String.format("Created revision %s", sha1));
+
+        return ImmutableList.of(
+            new DestinationEffect(
+                DestinationEffect.Type.CREATED,
+                String.format("Created revision %s", sha1),
+                current,
+                new DestinationEffect.DestinationRef(sha1, "commit", /*url=*/ null),
+                ImmutableList.of()));
+
       } catch (RepoException | CannotResolveRevisionException e) {
-        logger.warning(String.format("Failed setting summary: %s", e));
+        // We should always be able to resolve HEAD. Otherwise we have something really wrong.
+        throw new RuntimeException("Internal bug. Please fill a bug", e);
       }
     }
   }

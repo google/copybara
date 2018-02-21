@@ -20,11 +20,15 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationEffect.DestinationRef;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Migration;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -66,11 +70,21 @@ public class Mirror implements Migration {
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
     mirrorOptions.mirror(origin, destination, refspec, prune);
-    generalOptions.getStructuredOutput().getCurrentSummaryLineBuilder()
-        .setSummary("Refspecs " + refspec + " mirrored successfully")
-        .setOriginRefs(ImmutableList.of(getOriginDestinationRef(origin)))
-        .setDestinationRef(getOriginDestinationRef(destination));
-    generalOptions.getStructuredOutput().appendSummaryLine();
+    // More fine grain events based on the references created/updated/deleted:
+    generalOptions
+        .eventMonitor()
+        .onChangeMigrationFinished(
+            new ChangeMigrationFinishedEvent(
+                ImmutableList.of(
+                    new DestinationEffect(
+                        Type.UPDATED,
+                        "Refspecs " + refspec + " mirrored successfully",
+                        // TODO(malcon): Allow DestinationEffect to have more generic origin
+                        // references
+                        ImmutableList.of(),
+                        new DestinationRef(
+                            getOriginDestinationRef(destination), "mirror", /*url=*/ null),
+                        ImmutableList.of()))));
   }
 
   public static String getOriginDestinationRef(String url) throws ValidationException {

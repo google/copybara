@@ -25,15 +25,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationEffect.DestinationRef;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.EmptyChangeException;
+import com.google.copybara.Endpoint;
 import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.Endpoint;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -54,13 +56,12 @@ import javax.annotation.Nullable;
  */
 public class RecordsProcessCallDestination implements Destination<Revision> {
 
-  private final ArrayDeque<WriterResult> programmedResults;
+  private final ArrayDeque<ImmutableList<String>> programmedErrors;
 
   public final List<ProcessedChange> processed = new ArrayList<>();
-  public StructuredOutput structuredOutput;
 
-  public RecordsProcessCallDestination(WriterResult... results) {
-    this.programmedResults = new ArrayDeque<>(Arrays.asList(results));
+  public RecordsProcessCallDestination(ImmutableList<String>... errors) {
+    this.programmedErrors = new ArrayDeque<>(Arrays.asList(errors));
   }
 
   private final DummyEndpoint endpoint = new DummyEndpoint();
@@ -128,7 +129,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     }
 
     @Override
-    public WriterResult write(TransformResult transformResult, Console console)
+    public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
       if (failOnEmptyChange
           && !processed.isEmpty()
@@ -141,11 +142,13 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
                               transformResult.getBaseline(), destinationFiles,
                               dryRun, groupId, state);
       processed.add(change);
-      structuredOutput.getCurrentSummaryLineBuilder()
-          .setDestinationRef("destination/" + processed.size());
-      return programmedResults.isEmpty()
-          ? WriterResult.OK
-          : programmedResults.removeFirst();
+      return ImmutableList.of(
+          new DestinationEffect(
+              Type.CREATED,
+              "Change created",
+              transformResult.getChanges().getCurrent(),
+              new DestinationRef("destination/" + processed.size(), "commit", /*url=*/ null),
+              programmedErrors.isEmpty() ? ImmutableList.of() : programmedErrors.removeFirst()));
     }
 
     @Override

@@ -25,10 +25,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DirFactory;
-import com.google.copybara.util.EventMonitor;
 import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -119,6 +119,7 @@ public final class GeneralOptions implements Option {
     return console;
   }
 
+  @Deprecated
   public StructuredOutput getStructuredOutput() {
     return structuredOutput;
   }

@@ -78,6 +78,7 @@ BASE_SRCS = [
     "CheckoutPathAttributes.java",
     "ConfigItemDescription.java",
     "Destination.java",
+    "DestinationEffect.java",
     "EmptyChangeException.java",
     "Endpoint.java",
     "LabelFinder.java",
@@ -101,7 +102,7 @@ BASE_SRCS = [
     "ValidationException.java",
     "VoidOperationException.java",
     "WorkflowOptions.java",
-    ]
+]
 
 java_library(
     name = "base",
@@ -133,6 +134,7 @@ java_library(
         "//java/com/google/copybara/config/base",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/jcommander:validators",
+        "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/util",
