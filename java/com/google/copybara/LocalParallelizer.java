@@ -76,6 +76,7 @@ public class LocalParallelizer {
     }
   }
 
+  /** Transforms a collection of K elements into T. */
   public interface TransformFunc<K, T> {
 
     /**
