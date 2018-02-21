@@ -84,8 +84,7 @@ public final class GeneralOptions implements Option {
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
       Console console, @Nullable Path configRoot, @Nullable Path outputRoot,
-      boolean noCleanup, boolean disableReversibleCheck, boolean force, int outputLimit)
-  {
+      boolean noCleanup, boolean disableReversibleCheck, boolean force, int outputLimit) {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
@@ -236,7 +235,7 @@ public final class GeneralOptions implements Option {
 
   @Parameters(separators = "=")
   public static final class Args {
-    @Parameter(names ={"-v", "--verbose"}, description = "Verbose output.")
+    @Parameter(names = {"-v", "--verbose"}, description = "Verbose output.")
     boolean verbose;
 
     // We don't use JCommander for parsing this flag but we do it manually since
@@ -288,7 +287,8 @@ public final class GeneralOptions implements Option {
     boolean noCleanup = false;
 
     /**
-     * This method should be called after the options have been set but before are used by any class.
+     * This method should be called after the options have been set but before are used by any
+     * class.
      */
     public GeneralOptions init(
         Map<String, String> environment, FileSystem fileSystem, Console console)
