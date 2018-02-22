@@ -44,7 +44,7 @@ import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
-import com.google.copybara.git.github_api.GithubApi;
+import com.google.copybara.git.githubapi.GithubApi;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;

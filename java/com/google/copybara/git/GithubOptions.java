@@ -22,8 +22,8 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.RepoException;
-import com.google.copybara.git.github_api.GitHubApiTransportImpl;
-import com.google.copybara.git.github_api.GithubApi;
+import com.google.copybara.git.githubapi.GitHubApiTransportImpl;
+import com.google.copybara.git.githubapi.GithubApi;
 import java.util.function.Supplier;
 
 /**

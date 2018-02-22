@@ -14,36 +14,42 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git.github_api;
+package com.google.copybara.git.githubapi;
 
 import com.google.api.client.util.Key;
+import com.google.common.base.MoreObjects;
 
 /**
- * Represents a pull request returned by
- * https://api.github.com/repos/REPO_ID/pulls/NUMBER
+ * Represents a revision: information about the origin of a pull request like the ref (branch) or
+ * specific SHA-1.
  */
-public class PullRequest extends PullRequestOrIssue {
+public class Revision {
 
   @Key
-  private Revision head;
-
+  private String label;
   @Key
-  private Revision base;
+  private String ref;
+  @Key
+  private String sha;
 
-
-  public Revision getHead() {
-    return head;
+  public String getLabel() {
+    return label;
   }
 
-  public Revision getBase() {
-    return base;
+  public String getRef() {
+    return ref;
+  }
+
+  public String getSha() {
+    return sha;
   }
 
   @Override
   public String toString() {
-    return getToStringHelper()
-        .add("head", head)
-        .add("base", base)
+    return MoreObjects.toStringHelper(this)
+        .add("label", label)
+        .add("ref", ref)
+        .add("sha", sha)
         .toString();
   }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git.github_api;
+package com.google.copybara.git.githubapi;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitRepository.newBareRepo;
@@ -27,7 +27,7 @@ import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.copybara.git.GitRepository;
-import com.google.copybara.git.github_api.testing.AbstractGithubApiTest;
+import com.google.copybara.git.githubapi.testing.AbstractGithubApiTest;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

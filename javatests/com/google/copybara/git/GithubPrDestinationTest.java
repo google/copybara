@@ -30,7 +30,7 @@ import com.google.copybara.Destination.Writer;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
-import com.google.copybara.git.github_api.GithubApi;
+import com.google.copybara.git.githubapi.GithubApi;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;

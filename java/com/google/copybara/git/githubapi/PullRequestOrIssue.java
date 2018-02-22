@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git.github_api;
+package com.google.copybara.git.githubapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;

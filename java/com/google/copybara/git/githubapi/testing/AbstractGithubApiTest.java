@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git.github_api.testing;
+package com.google.copybara.git.githubapi.testing;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -22,14 +22,14 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.copybara.git.github_api.CreatePullRequest;
-import com.google.copybara.git.github_api.GitHubApiTransport;
-import com.google.copybara.git.github_api.GithubApi;
-import com.google.copybara.git.github_api.Issue;
-import com.google.copybara.git.github_api.Issue.Label;
-import com.google.copybara.git.github_api.PullRequest;
-import com.google.copybara.git.github_api.Ref;
-import com.google.copybara.git.github_api.Review;
+import com.google.copybara.git.githubapi.CreatePullRequest;
+import com.google.copybara.git.githubapi.GitHubApiTransport;
+import com.google.copybara.git.githubapi.GithubApi;
+import com.google.copybara.git.githubapi.Issue;
+import com.google.copybara.git.githubapi.Issue.Label;
+import com.google.copybara.git.githubapi.PullRequest;
+import com.google.copybara.git.githubapi.Ref;
+import com.google.copybara.git.githubapi.Review;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import java.io.IOException;
@@ -186,7 +186,7 @@ public abstract class AbstractGithubApiTest {
   protected byte[] getResource(String testfile) throws IOException {
     return Files.readAllBytes(
         Paths.get(System.getenv("TEST_SRCDIR"),
-            "copybara/java/com/google/copybara/git/github_api/"
+            "copybara/java/com/google/copybara/git/githubapi/"
                 + "testing")
             .resolve(testfile));
   }

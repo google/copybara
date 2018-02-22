@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2017 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,42 +14,48 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git.github_api;
+package com.google.copybara.git.githubapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 
 /**
- * Represents a revision: information about the origin of a pull request like the ref (branch) or
- * specific SHA-1.
+ * A user object returned as a field by many GitHub API responses.
  */
-public class Revision {
+public class User {
 
   @Key
-  private String label;
+  private String login;
   @Key
-  private String ref;
+  private long id;
   @Key
-  private String sha;
+  private String type;
+  @Key("site_admin")
+  private boolean siteAdmin;
 
-  public String getLabel() {
-    return label;
+  public String getLogin() {
+    return login;
   }
 
-  public String getRef() {
-    return ref;
+  public long getId() {
+    return id;
   }
 
-  public String getSha() {
-    return sha;
+  public String getType() {
+    return type;
+  }
+
+  public boolean isSiteAdmin() {
+    return siteAdmin;
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("label", label)
-        .add("ref", ref)
-        .add("sha", sha)
+        .add("login", login)
+        .add("id", id)
+        .add("type", type)
+        .add("siteAdmin", siteAdmin)
         .toString();
   }
 }

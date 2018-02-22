@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2016 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,48 +14,36 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git.github_api;
+package com.google.copybara.git.githubapi;
 
 import com.google.api.client.util.Key;
-import com.google.common.base.MoreObjects;
 
 /**
- * A user object returned as a field by many GitHub API responses.
+ * Represents a pull request returned by
+ * https://api.github.com/repos/REPO_ID/pulls/NUMBER
  */
-public class User {
+public class PullRequest extends PullRequestOrIssue {
 
   @Key
-  private String login;
+  private Revision head;
+
   @Key
-  private long id;
-  @Key
-  private String type;
-  @Key("site_admin")
-  private boolean siteAdmin;
+  private Revision base;
 
-  public String getLogin() {
-    return login;
+
+  public Revision getHead() {
+    return head;
   }
 
-  public long getId() {
-    return id;
-  }
-
-  public String getType() {
-    return type;
-  }
-
-  public boolean isSiteAdmin() {
-    return siteAdmin;
+  public Revision getBase() {
+    return base;
   }
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("login", login)
-        .add("id", id)
-        .add("type", type)
-        .add("siteAdmin", siteAdmin)
+    return getToStringHelper()
+        .add("head", head)
+        .add("base", base)
         .toString();
   }
 }
