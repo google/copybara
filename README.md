@@ -75,11 +75,17 @@ You can build copybara using Docker like so
 docker build --rm -t copybara .
 ```
 
-Once this has finished building you can run the image like so:
+Once this has finished building you can run the image like so from the root of the code you are trying to use Copybara on:
 
 ```
-docker run -it -v .:/usr/src/app copybara:latest
+docker run -it -v "$(pwd)":/usr/src/app copybara
 
+```
+
+Optionally if your config file is not named `copy.bara.sky` you can override this by setting the environment variable like so:
+
+```
+docker run -it -e COPYBARA_CONFIG={nameofconfigfile} -v "$(pwd)":/usr/src/app copybara
 ```
 
 ## Documentation
