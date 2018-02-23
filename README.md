@@ -82,10 +82,21 @@ docker run -it -v "$(pwd)":/usr/src/app copybara
 
 ```
 
-Optionally if your config file is not named `copy.bara.sky` you can override this by setting the environment variable like so:
+Two environment variables exist to allow you to run copybara:
+* *COPYBARA_CONFIG* allows you to specify a config name that isn't `copy.bara.sky`
+* *COPYBARA_COMMANDS* allows you to send in a specific list of commands to run, such as `--last-rev`, etc...
 
 ```
-docker run -it -e COPYBARA_CONFIG={nameofconfigfile} -v "$(pwd)":/usr/src/app copybara
+docker run -it -e COPYBARA_CONFIG='{nameofconfigfile}' -e COPYBARA_COMMANDS='{listofcommands}' -v "$(pwd)":/usr/src/app copybara
+```
+
+#### Git Config and Credentials
+
+There are a number of ways by which to share your git config and ssh credentials with the docker container, an example with OS X is below:
+
+```
+docker run -it -v ~/.ssh:/root/.ssh -v ~/.gitconfig:/root/.gitconfig -v "$(pwd)":/usr/src/app copybara 
+
 ```
 
 ## Documentation

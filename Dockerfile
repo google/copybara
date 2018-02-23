@@ -19,20 +19,16 @@ RUN bazel build //java/com/google/copybara:copybara_deploy.jar \
 # RUN bazel test //...
 
 FROM openjdk:8-jre-slim
-COPY --from=build /tmp/copybara/ /opt/copybara/
-
 ENV COPYBARA_CONFIG=copy.bara.sky
+ENV COPYBARA_COMMANDS=migrate
+COPY --from=build /tmp/copybara/ /opt/copybara/
+COPY .docker/entrypoint.sh /usr/local/bin/copybara
+
+RUN chmod +x /usr/local/bin/copybara
 
 # Install git for fun times
 RUN apt-get update \
     && apt-get install -y git \
     && apt-get clean
 
-# Make a small executable for bin to execute uber jar
-RUN touch /usr/local/bin/copybara \
-    && echo "#!/usr/bin/env bash\njava -jar /opt/copybara/copybara_deploy.jar $COPYBARA_CONFIG $1" >> /usr/local/bin/copybara \
-    && chmod +x /usr/local/bin/copybara
-
 WORKDIR /usr/src/app
-
-ENTRYPOINT ["/bin/bash", "copybara"]
