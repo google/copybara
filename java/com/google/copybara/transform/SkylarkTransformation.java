@@ -72,8 +72,8 @@ public class SkylarkTransformation implements Transformation {
     }
 
     if (skylarkConsole.getErrorCount() > 0) {
-      throw new ValidationException(String.format(
-          "%d error(s) while executing %s", skylarkConsole.getErrorCount(), function.getName()));
+      throw new ValidationException(
+          "%d error(s) while executing %s", skylarkConsole.getErrorCount(), function.getName());
     }
   }
 

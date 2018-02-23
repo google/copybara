@@ -65,10 +65,10 @@ class PatchTransformation implements Transformation {
         work.getConsole().error("Error applying patch: " + ioException.getMessage());
         throw new ValidationException(ioException, "Error applying patch.");
       } catch (InsideGitDirException e) {
-        throw new ValidationException(String.format(
+        throw new ValidationException(
             "Cannot use patch.apply because Copybara temporary directory (%s) is inside a git"
                 + " directory (%s). Please remove the git repository or use %s flag.",
-            e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG));
+            e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG);
       }
     }
   }

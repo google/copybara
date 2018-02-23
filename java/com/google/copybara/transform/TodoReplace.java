@@ -139,8 +139,7 @@ public class TodoReplace implements Transformation {
       // Throw VE if the pattern doesn't match and mode is MAP_OR_FAIL
       if (!matcher.matches()) {
         if (mode == Mode.MAP_OR_FAIL) {
-          throw new ValidationException(String.format(
-              "Unexpected '%s' doesn't match expected format", rawUser));
+          throw new ValidationException("Unexpected '%s' doesn't match expected format", rawUser);
         } else {
           console.warnFmt("Skipping '%s' that doesn't match expected format", rawUser);
           continue;

@@ -16,9 +16,9 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.Joiner.on;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.Writer;
@@ -157,18 +157,15 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
               .collect(Collectors.toList());
       if (!errors.isEmpty()) {
         throw new ValidationException(
-            String.format(
-                "Invalid configuration [ref '%s': %s ]: '%s': \n%s",
-                lastChange.refAsString(), configLoader.location(), workflowName,
-                Joiner.on('\n').join(errors)));
+            "Invalid configuration [ref '%s': %s ]: '%s': \n%s",
+            lastChange.refAsString(), configLoader.location(), workflowName, on('\n').join(errors));
       }
 
       Migration migration = config.getMigration(workflowName);
       if (!(migration instanceof Workflow)) {
         throw new ValidationException(
-            String.format(
-                "Invalid configuration [ref '%s': %s ]: '%s' is not a workflow",
-                lastChange.refAsString(), configLoader.location(), workflowName));
+            "Invalid configuration [ref '%s': %s ]: '%s' is not a workflow",
+            lastChange.refAsString(), configLoader.location(), workflowName);
       }
       @SuppressWarnings("unchecked")
       Workflow<O, D> workflowForChange = (Workflow<O, D>) migration;

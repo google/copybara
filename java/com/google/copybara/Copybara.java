@@ -75,9 +75,8 @@ public class Copybara {
     // A safeguard, mirror workflows are not supported in the service anyway
     if (!(migration instanceof Workflow)) {
       throw new ValidationException(
-          String.format(
-              "Flag --read-config-from-change is not supported for non-workflow migrations: %s",
-              migrationName));
+          "Flag --read-config-from-change is not supported for non-workflow migrations: %s",
+          migrationName);
     }
     migrationRanConsumer.accept(migration);
     @SuppressWarnings("unchecked")

@@ -26,19 +26,22 @@ public class ValidationException extends Exception {
     super(message);
   }
 
-  @Deprecated
-  public ValidationException(String message, Throwable cause) {
+  public ValidationException(String message, Object... args) {
+    super(String.format(message, args));
+  }
+
+  public ValidationException(Throwable cause, String message) {
     super(message, cause);
   }
 
   public ValidationException(Throwable cause, String message, Object... args) {
-    super(String.format(message, args), cause);
+    this(cause, String.format(message, args));
   }
 
   public static void checkCondition(boolean condition, String format, Object... args)
       throws ValidationException {
     if (!condition) {
-      throw new ValidationException(String.format(format, args));
+      throw new ValidationException(format, args);
     }
   }
 }

@@ -47,8 +47,7 @@ final class VerifyDirIsEmptyVisitor extends SimpleFileVisitor<Path> {
     Files.walkFileTree(root, this);
     if (!existingFiles.isEmpty()) {
       Collections.sort(existingFiles);
-      throw new ValidationException(
-          String.format("Files already exist in %s: %s", root, existingFiles));
+      throw new ValidationException("Files already exist in %s: %s", root, existingFiles);
     }
   }
 }

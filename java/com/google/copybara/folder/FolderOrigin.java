@@ -99,21 +99,26 @@ public class FolderOrigin implements Origin<FolderRevision> {
           FileUtil.copyFilesRecursively(ref.path, workdir, copySymlinkStrategy, originFiles);
           FileUtil.addPermissionsAllRecursively(workdir, FILE_PERMISSIONS);
         } catch (AbsoluteSymlinksNotAllowed e) {
-          throw new ValidationException(String.format("Cannot copy files into the workdir: Some"
-              + " symlinks refer to locations outside of the folder and"
-              + " 'materialize_outside_symlinks' config option was not used:\n"
-              + "  %s -> %s\n", e.getSymlink(), e.getDestinationFile()));
+          throw new ValidationException(
+              "Cannot copy files into the workdir: Some"
+                  + " symlinks refer to locations outside of the folder and"
+                  + " 'materialize_outside_symlinks' config option was not used:\n"
+                  + "  %s -> %s\n",
+              e.getSymlink(), e.getDestinationFile());
         } catch (IOException e) {
-          throw new RepoException(String.format("Cannot copy files into the workdir:\n"
+          throw new RepoException(
+              String.format(
+                  "Cannot copy files into the workdir:\n"
                       + "  origin folder: %s\n"
                       + "  workdir: %s",
-                  ref.path, workdir), e);
+                  ref.path, workdir),
+              e);
         }
       }
 
       @Override
-      public ImmutableList<Change<FolderRevision>> changes(@Nullable FolderRevision fromRef,
-          FolderRevision toRef) throws RepoException {
+      public ImmutableList<Change<FolderRevision>> changes(
+          @Nullable FolderRevision fromRef, FolderRevision toRef) throws RepoException {
         // Ignore fromRef since a folder doesn't have history of changes
         return ImmutableList.of(change(toRef));
       }
@@ -129,8 +134,7 @@ public class FolderOrigin implements Origin<FolderRevision> {
       }
 
       @Override
-      public void visitChanges(FolderRevision start, ChangesVisitor visitor)
-          throws RepoException {
+      public void visitChanges(FolderRevision start, ChangesVisitor visitor) throws RepoException {
         visitor.visit(change(start));
       }
     };

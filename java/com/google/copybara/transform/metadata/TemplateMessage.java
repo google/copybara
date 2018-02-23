@@ -75,9 +75,9 @@ public class TemplateMessage implements Transformation {
       if (ignoreIfLabelNotFound) {
         return;
       }
-      throw new ValidationException(String.format(
+      throw new ValidationException(
           "Cannot find label '%s' in message:\n %s\nor any of the original commit messages",
-          label, work.getMessage()));
+          label, work.getMessage());
     }
     String msgPrefix = header;
     for (Entry<String, String> entry : labelValues.entrySet()) {

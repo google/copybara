@@ -124,8 +124,8 @@ public class CopyOrMove implements Transformation {
             new CopyMoveVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null,
                 overwrite, isCopy));
       } catch (FileAlreadyExistsException e) {
-        throw new ValidationException(
-            String.format("Cannot move file to '%s' because it already exists", e.getFile()));
+      throw new ValidationException(
+          "Cannot move file to '%s' because it already exists", e.getFile());
       }
   }
 
@@ -161,9 +161,9 @@ public class CopyOrMove implements Transformation {
       Files.createDirectories(after.getParent());
     } catch (FileAlreadyExistsException e) {
       // This exception message is particularly bad and we don't want to treat it as unhandled
-      throw new ValidationException(String.format(
+      throw new ValidationException(
           "Cannot create '%s' because '%s' already exists and is not a directory",
-          after.getParent(), e.getFile()));
+          after.getParent(), e.getFile());
     }
   }
 

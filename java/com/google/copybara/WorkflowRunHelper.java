@@ -389,16 +389,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             workflow.getGeneralOptions().getEnvironment()),
             StandardCharsets.UTF_8);
       } catch (InsideGitDirException e) {
-        throw new ValidationException(String.format(
+        throw new ValidationException(
             "Cannot use 'reversible_check = True' because Copybara temporary directory (%s) is"
                 + " inside a git directory (%s). Please remove the git repository or use %s flag.",
-            e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG));
+            e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG);
       }
       if (!diff.trim().isEmpty()) {
         workflow.getConsole().error("Non reversible transformations:\n"
             + DiffUtil.colorize(workflow.getConsole(), diff));
-        throw new ValidationException(String.format("Workflow '%s' is not reversible",
-            workflow.getName()));
+        throw new ValidationException("Workflow '%s' is not reversible", workflow.getName());
       }
     }
 

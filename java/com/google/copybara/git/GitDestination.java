@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.ChangeMessage.parseMessage;
+import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.ValidationException.checkCondition;
 import static com.google.copybara.git.LazyGitRepository.memoized;
 
@@ -535,8 +536,7 @@ public final class GitDestination implements Destination<GitRevision> {
             completeFetchRef, repoUrl);
         if (!force) {
           throw new ValidationException(
-              String.format("%s. Use %s flag if you want to push anyway", warning,
-                  GeneralOptions.FORCE));
+              "%s. Use %s flag if you want to push anyway", warning, FORCE);
         }
         console.warn(warning);
       }

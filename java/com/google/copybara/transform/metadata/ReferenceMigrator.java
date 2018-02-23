@@ -159,7 +159,7 @@ public class ReferenceMigrator implements Transformation {
         String retVal = knownChanges.get(refBeingMigrated);
         if (reversePattern != null && retVal != null && !reversePattern.matches(retVal)) {
           throw new ValidationException(
-              String.format("Reference %s does not match regex '%s'", retVal, reversePattern));
+              "Reference %s does not match regex '%s'", retVal, reversePattern);
         }
         return retVal;
       } catch (RepoException exception) {

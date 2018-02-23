@@ -45,12 +45,11 @@ public class MetadataVerifyMatch implements Transformation {
     boolean found = pattern.matcher(work.getMessage()).find();
     if (!found && !verifyNoMatch) {
       throw new ValidationException(
-          String.format("Could not find '%s' in the change message."
-              + " Message was:\n%s", pattern, work.getMessage()));
+          "Could not find '%s' in the change message. Message was:\n%s",
+          pattern, work.getMessage());
     } else if (found && verifyNoMatch) {
       throw new ValidationException(
-          String.format("'%s' found in the change message"
-          + ". Message was:\n%s", pattern, work.getMessage()));
+          "'%s' found in the change message. Message was:\n%s", pattern, work.getMessage());
     }
   }
 
