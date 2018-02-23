@@ -58,8 +58,12 @@ public class SkylarkTransformation implements Transformation {
             + " anything, but '" + function.getName() + "' returned:" + result);
       }
     } catch (EvalException e) {
-      throw new ValidationException("Error while executing the skylark transformer "
-          + function.getName() + ":" + e.getMessage(), e);
+      throw new ValidationException(
+          e,
+          "Error while executing the skylark transformer "
+              + function.getName()
+              + ":"
+              + e.getMessage());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);

@@ -27,7 +27,6 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.InsideGitDirException;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -64,7 +63,7 @@ class PatchTransformation implements Transformation {
             options.isVerbose(), reverse, options.getEnvironment());
       } catch (IOException ioException) {
         work.getConsole().error("Error applying patch: " + ioException.getMessage());
-        throw new ValidationException("Error applying patch.", ioException);
+        throw new ValidationException(ioException, "Error applying patch.");
       } catch (InsideGitDirException e) {
         throw new ValidationException(String.format(
             "Cannot use patch.apply because Copybara temporary directory (%s) is inside a git"

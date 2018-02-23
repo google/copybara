@@ -51,8 +51,8 @@ public class SkylarkAction implements Action {
       }
     } catch (EvalException e) {
       // TODO(malcon): Do something here for RepoException
-      throw new ValidationException("Error while executing the skylark transformer "
-          + function.getName() + ":" + e.getMessage(), e);
+      throw new ValidationException(e, "Error while executing the skylark transformer %s:%s",
+          function.getName(), e.getMessage());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);

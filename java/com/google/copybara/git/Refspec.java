@@ -122,7 +122,7 @@ public class Refspec {
     try {
       return create(env, cwd, refspecParam, Location.BUILTIN);
     } catch (EvalException e) {
-      throw new ValidationException("Error creating refspec", e);
+      throw new ValidationException(e, "Error creating refspec");
     }
   }
 

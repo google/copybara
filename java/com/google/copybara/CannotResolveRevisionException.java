@@ -23,6 +23,6 @@ public class CannotResolveRevisionException extends ValidationException {
   }
 
   public CannotResolveRevisionException(String message, Throwable cause) {
-    super(message, cause);
+    super(cause, message);
   }
 }

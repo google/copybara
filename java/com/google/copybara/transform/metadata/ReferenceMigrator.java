@@ -163,7 +163,7 @@ public class ReferenceMigrator implements Transformation {
         }
         return retVal;
       } catch (RepoException exception) {
-        throw new ValidationException("Exception finding reference.", exception);
+        throw new ValidationException(exception, "Exception finding reference.");
       }
     }
   }

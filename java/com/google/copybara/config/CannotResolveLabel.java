@@ -28,6 +28,6 @@ public class CannotResolveLabel extends ValidationException {
   }
 
   public CannotResolveLabel(String message, Exception exception) {
-    super(message, exception);
+    super(exception, message);
   }
 }

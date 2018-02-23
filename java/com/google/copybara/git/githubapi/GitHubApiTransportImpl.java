@@ -132,18 +132,18 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       } catch (ValidationException e1) {
         // Ugly, but helpful...
         throw new ValidationException(
+            e1,
             "Cannot get credentials for host https://api.github.com or https://github.com from"
                 + " credentials helper. Make sure either your credential helper has the username"
-                + " and password/token or if you don't use one, that file '" + storePath
-                + "' contains one of the two lines:\n"
+                + " and password/token or if you don't use one, that file '%s'"
+                + " contains one of the two lines: \nEither:\n"
                 + "https://USERNAME:TOKEN@api.github.com\n"
                 + "or:\n"
                 + "https://USERNAME:TOKEN@github.com\n"
                 + "\n"
                 + "Note that spaces or other special characters need to be escaped. For example"
-                + " ' ' should be %20 and '@' should be %40 (For example when using the email"
-                + " as username)"
-            , e1);
+                + " ' ' should be %%20 and '@' should be %%40 (For example when using the email"
+                + " as username)", storePath);
       }
     }
   }

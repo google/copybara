@@ -28,6 +28,6 @@ public class CannotIntegrateException extends ValidationException {
   }
 
   CannotIntegrateException(Throwable cause, String message, String... args) {
-    super(String.format(message, (Object[]) args), cause);
+    super(cause, message, (Object[]) args);
   }
 }

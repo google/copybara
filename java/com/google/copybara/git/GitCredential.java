@@ -77,7 +77,7 @@ public final class GitCredential {
     try {
       uri = URI.create(url);
     } catch (IllegalArgumentException e) {
-      throw new ValidationException("Cannot get credentials for " + url, e);
+      throw new ValidationException(e, "Cannot get credentials for " + url);
     }
     String protocol = uri.getScheme();
     if (Strings.isNullOrEmpty(protocol)) {

@@ -142,9 +142,9 @@ public class GerritApiTransportImpl implements GerritApiTransport {
   private UserPassword getCredentials(String url) throws ValidationException, RepoException {
     try {
       return repo.credentialFill(url);
-    } catch (ValidationException e1) {
-      throw new ValidationException(
-          "Cannot get credentials for host " + url + " from credentials helper", e1);
+    } catch (ValidationException e) {
+      throw new ValidationException(e,
+          "Cannot get credentials for host %s, from credentials helper", url);
     }
   }
 }

@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.ValidationException.checkCondition;
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 
@@ -293,13 +294,13 @@ public enum WorkflowMode {
       return runHelper.getLastRev();
     } catch (CannotResolveRevisionException e) {
       if (runHelper.isForce()) {
-        runHelper.getConsole().warn(String.format(
+        runHelper.getConsole().warnFmt(
             "Cannot find last imported revision, but proceeding because of %s flag",
-            GeneralOptions.FORCE));
+            GeneralOptions.FORCE);
       } else {
-        throw new ValidationException(String.format(
+        throw new ValidationException(e,
             "Cannot find last imported revision. Use %s if you really want to proceed with the"
-                + " migration", GeneralOptions.FORCE), e);
+                + " migration", FORCE);
       }
       return null;
     }
