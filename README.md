@@ -67,6 +67,21 @@ targets:
 Note that configuration files can be stored in any place, even in a local folder. We recommend to
 use a VCS (like git) to store them; treat them as source code.
 
+### Using Docker to build and run Copybara
+
+You can build copybara using Docker like so
+
+```
+docker build --rm -t copybara .
+```
+
+Once this has finished building you can run the image like so:
+
+```
+docker run -it -v .:/usr/src/app copybara:latest
+
+```
+
 ## Documentation
 
 We are still working on the documentation. Here are some resources:
