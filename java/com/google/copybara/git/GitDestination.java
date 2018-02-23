@@ -422,7 +422,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
       ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
       for (LabelFinder label : messageInfo.labelsToAdd) {
-        msg.addLabel(label.getName(), label.getSeparator(), label.getValue());
+        msg.addOrReplaceLabel(label.getName(), label.getSeparator(), label.getValue());
       }
 
       String commitMessage = msg.toString();

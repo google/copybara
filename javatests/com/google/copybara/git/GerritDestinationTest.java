@@ -17,12 +17,15 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.hash.Hashing;
@@ -57,6 +60,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,6 +85,16 @@ public class GerritDestinationTest {
       + "To sso://team/copybara-team/copybara\n"
       + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
       + "<o> [master] ~/dev/copybara$\n";
+  private static final String CONSTANT_CHANGE_ID = "I" + Strings.repeat("a", 40);
+  private static final GitApiMockHttpTransport NO_CHANGE_FOUND_MOCK =
+      new GitApiMockHttpTransport() {
+    @Override
+    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+      // No changes found
+      return "[]".getBytes();
+    }
+  };
+
   private String url;
   private String fetch;
   private String pushToRefsFor;
@@ -158,11 +172,12 @@ public class GerritDestinationTest {
         .getStdout();
   }
 
-  private GerritDestination destination() throws ValidationException {
+  private GerritDestination destination(String... lines) throws ValidationException {
     return skylark.eval("result", "result = "
         + "git.gerrit_destination(\n"
         + "    url = '" + url + "',\n"
         + "    fetch = '" + fetch + "',\n"
+        + (lines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(lines))
         + "    " + (pushToRefsFor == null ? "" : "push_to_refs_for = '" + pushToRefsFor + "',")
         + ")");
   }
@@ -170,14 +185,19 @@ public class GerritDestinationTest {
   private static String lastCommitChangeIdLine(String ref, GitRepository repo) throws Exception {
     GitLogEntry log = Iterables.getOnlyElement(repo.log("refs/for/master").withLimit(1).run());
     assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + ref + "\n");
+    String line = null;
     for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
       if (label.isLabel(GerritDestination.CHANGE_ID_LABEL)) {
         assertThat(label.getValue()).matches("I[0-9a-f]{40}$");
-        return label.getLine();
+        assertThat(line).isNull(); // Multiple Change-Ids are not allowed.
+        line = label.getLine();
       }
     }
-    fail("Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.getBody());
-    throw new IllegalStateException();
+    assertWithMessage(
+        "Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.getBody())
+        .that(line).isNotNull();
+
+    return line;
   }
 
   private void process(DummyRevision originRef)
@@ -251,14 +271,7 @@ public class GerritDestinationTest {
 
     url = "https://localhost:33333/foo/bar";
     GitRepository repo = localGerritRepo("localhost:33333/foo/bar");
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-          throws IOException {
-        // No changes found
-        return "[]".getBytes();
-      }
-    };
+    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
 
     process(new DummyRevision("origin_ref"));
     String changeId = lastCommitChangeIdLine("origin_ref", repo);
@@ -291,6 +304,110 @@ public class GerritDestinationTest {
     GitTesting.assertThatCheckout(repo, "refs/for/master")
         .containsFile("file", "some different content")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testChangeIdPolicyRequire() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    options.gitDestination.nonFastForwardPush = true;
+    String changeId = runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n",
+        "change_id_policy = 'REQUIRE'");
+    assertThat(changeId).isEqualTo(CONSTANT_CHANGE_ID);
+    try {
+      runChangeIdPolicy("Test message", "change_id_policy = 'REQUIRE'");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("label not found in message");
+    }
+  }
+
+  @Test
+  public void testChangeIdPolicyFailIfPresent() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    options.gitDestination.nonFastForwardPush = true;
+    String changeId = runChangeIdPolicy("Test message", "change_id_policy = 'FAIL_IF_PRESENT'");
+    assertThat(changeId).isNotNull();
+    try {
+      runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n",
+          "change_id_policy = 'FAIL_IF_PRESENT'");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("label found in message");
+    }
+  }
+
+  /**
+   * Default is FAIL_IF_PRESENT behavior
+   */
+  @Test
+  public void testChangeIdPolicyDefault() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    options.gitDestination.nonFastForwardPush = true;
+    String changeId = runChangeIdPolicy("Test message");
+    assertThat(changeId).isNotNull();
+    try {
+      runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("label found in message");
+    }
+  }
+
+  @Test
+  public void testChangeIdPolicyReplace() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    options.gitDestination.nonFastForwardPush = true;
+    String changeId = runChangeIdPolicy("Test message", "change_id_policy = 'REPLACE'");
+    assertThat(changeId).isNotNull();
+    changeId = runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n",
+        "change_id_policy = 'REPLACE'");
+    assertThat(changeId).isNotEqualTo(CONSTANT_CHANGE_ID);
+  }
+
+  @Test
+  public void testChangeIdPolicyPassFlag() throws Exception {
+    options.gerrit.gerritChangeId = CONSTANT_CHANGE_ID;
+    options.gitDestination.nonFastForwardPush = true;
+    String changeId = runChangeIdPolicy("Test message", "change_id_policy = 'REUSE'");
+    // Flag wins over anything
+    assertThat(changeId).isEqualTo(CONSTANT_CHANGE_ID);
+  }
+
+  @Test
+  public void testChangeIdPolicyReuse() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    options.gitDestination.nonFastForwardPush = true;
+    String changeId = runChangeIdPolicy("Test message", "change_id_policy = 'REUSE'");
+    assertThat(changeId).isNotNull();
+    changeId = runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n",
+        "change_id_policy = 'REUSE'");
+    assertThat(changeId).isEqualTo(CONSTANT_CHANGE_ID);
+  }
+
+  private String runChangeIdPolicy(String summary, String... config) throws Exception {
+    fetch = "master";
+
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    GitRepository repo = localGerritRepo("localhost:33333/foo/bar");
+    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    List<DestinationEffect> result = destination(config)
+        .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
+            /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
+        .write(
+            TransformResults.of(workdir, originRef)
+                .withSummary(summary)
+                .withIdentity(originRef.asString()),
+            console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+
+    return lastCommitChangeIdLine("origin_ref", repo).replace("Change-Id: ", "").trim();
   }
 
   public GitRepository localGerritRepo(String url) throws RepoException {

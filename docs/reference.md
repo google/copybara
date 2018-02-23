@@ -1478,7 +1478,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for='')`
+`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for='', change_id_policy='FAIL_IF_PRESENT')`
 
 #### Parameters:
 
@@ -1487,6 +1487,7 @@ Parameter | Description
 url|`string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
 push_to_refs_for|`string`<br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
+change_id_policy|`string`<br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
 
 
 

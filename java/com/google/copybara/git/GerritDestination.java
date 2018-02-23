@@ -23,9 +23,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.hash.Hashing;
 import com.google.copybara.Change;
+import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
@@ -57,7 +60,7 @@ import javax.annotation.Nullable;
 public final class GerritDestination implements Destination<GitRevision> {
 
   private static final int MAX_FIND_ATTEMPTS = 100;
-  
+
   static final String CHANGE_ID_LABEL = "Change-Id";
 
   private static final class CommitGenerator implements GitDestination.CommitGenerator {
@@ -66,13 +69,16 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final String repoUrl;
     private final Author committer;
     private final Console console;
+    private final ChangeIdPolicy changeIdPolicy;
 
     private CommitGenerator(
-        GerritOptions gerritOptions, String repoUrl, Author committer, Console console) {
+        GerritOptions gerritOptions, String repoUrl, Author committer, Console console,
+        ChangeIdPolicy changeIdPolicy) {
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
       this.committer = Preconditions.checkNotNull(committer);
       this.console = Preconditions.checkNotNull(console);
+      this.changeIdPolicy = Preconditions.checkNotNull(changeIdPolicy);
     }
 
     /**
@@ -92,7 +98,9 @@ public final class GerritDestination implements Destination<GitRevision> {
     @Override
     public MessageInfo message(TransformResult result) throws RepoException, ValidationException {
       if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
-        return createMessageInfo(result, /*newPush=*/false, gerritOptions.gerritChangeId);
+        return createMessageInfo(result, /*newPush=*/false, gerritOptions.gerritChangeId,
+            // CLI flag always wins.
+            ChangeIdPolicy.REPLACE);
       }
 
       String workflowId = result.getChangeIdentity();
@@ -104,10 +112,11 @@ public final class GerritDestination implements Destination<GitRevision> {
         List<ChangeInfo> changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
             "change: " + changeId + " AND project:" + gerritOptions.getProject(repoUrl)));
         if (changes.isEmpty()) {
-          return createMessageInfo(result, /*newPush=*/true, changeId);
+          return createMessageInfo(result, /*newPush=*/true, changeId, changeIdPolicy);
         }
         if (changes.get(0).getStatus().equals(ChangeStatus.NEW)) {
-          return createMessageInfo(result, /*newPush=*/false, changes.get(0).getChangeId());
+          return createMessageInfo(result, /*newPush=*/false, changes.get(0).getChangeId(),
+              changeIdPolicy);
         }
         attempt++;
       }
@@ -116,15 +125,49 @@ public final class GerritDestination implements Destination<GitRevision> {
                         workflowId, committer));
     }
 
-    private MessageInfo createMessageInfo(TransformResult result, boolean newPush,
-        String gerritChangeId) {
-      Revision rev = result.getCurrentRevision();
+    @Nullable
+    private String getExistingChangeId(String msg) {
+      ChangeMessage changeMessage = ChangeMessage.parseMessage(msg);
+      ImmutableListMultimap<String, String> labels = changeMessage.labelsAsMultimap();
+      if (labels.containsKey(CHANGE_ID_LABEL)) {
+        return Iterables.getLast(labels.get(CHANGE_ID_LABEL));
+      }
+      return null;
+    }
 
+    private MessageInfo createMessageInfo(TransformResult result, boolean newPush,
+        String gerritChangeId, ChangeIdPolicy changeIdPolicy) throws ValidationException {
+      Revision rev = result.getCurrentRevision();
       ImmutableList.Builder<LabelFinder> labels = ImmutableList.builder();
       if (gerritOptions.addRevId()) {
         labels.add(new LabelFinder(rev.getLabelName() + ": " + rev.asString()));
       }
-      labels.add(new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId));
+      String existingChangeId = getExistingChangeId(result.getSummary());
+      switch (changeIdPolicy) {
+        case REQUIRE:
+          ValidationException.checkCondition(existingChangeId != null,
+              "%s label not found in message:\n%s",
+              CHANGE_ID_LABEL, result.getSummary());
+          break;
+        case FAIL_IF_PRESENT:
+          ValidationException.checkCondition(existingChangeId == null,
+              "%s label found in message:\n%s. You can use"
+                  + " git.gerrit_destination(change_id_policy = ...) to change this behavior",
+              CHANGE_ID_LABEL, result.getSummary());
+          labels.add(new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId));
+          break;
+        case REUSE:
+          if (existingChangeId == null) {
+            labels.add(new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId));
+          }
+          break;
+        case REPLACE:
+          labels.add(new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId));
+          break;
+        default:
+          throw new UnsupportedOperationException("Unsupported policy: " + changeIdPolicy);
+      }
+
       return new MessageInfo(labels.build(), newPush);
     }
 
@@ -165,7 +208,7 @@ public final class GerritDestination implements Destination<GitRevision> {
   }
 
   static GerritDestination newGerritDestination(Options options, String url, String fetch,
-      String pushToRefsFor) {
+      String pushToRefsFor, ChangeIdPolicy changeIdPolicy) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     if (pushToRefsFor.isEmpty()) {
       pushToRefsFor = fetch;
@@ -188,7 +231,8 @@ public final class GerritDestination implements Destination<GitRevision> {
             new CommitGenerator(gerritOptions,
                 url,
                 destinationOptions.getCommitter(),
-                generalOptions.console()),
+                generalOptions.console(),
+                changeIdPolicy),
             new GerritProcessPushOutput(
                 generalOptions.console()
             ),
@@ -263,5 +307,17 @@ public final class GerritDestination implements Destination<GitRevision> {
     return builder
         .put("type", getType())
         .build();
+  }
+
+  /** What to do in the presence or absent of Change-Id in message. */
+  public enum ChangeIdPolicy {
+    /** Require that the change_id is present in the message as a valid label */
+    REQUIRE,
+    /** Fail if found in message */
+    FAIL_IF_PRESENT,
+    /** Reuse if present. Otherwise generate a new one */
+    REUSE,
+    /** Replace with a new one if found */
+    REPLACE,
   }
 }

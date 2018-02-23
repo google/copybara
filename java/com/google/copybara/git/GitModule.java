@@ -38,6 +38,7 @@ import com.google.copybara.config.base.OptionsAwareModule;
 import com.google.copybara.config.base.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
@@ -509,19 +510,31 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               doc = "Review branch to push the change to, for example setting this to 'feature_x'"
                   + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
                   + "'fetch' value."),
+          @Param(
+              name = "change_id_policy", type = String.class, defaultValue = "'FAIL_IF_PRESENT'",
+              doc = "What to do in the presence or absent of Change-Id in message:"
+                  + "<ul>"
+                  + "  <li>`'REQUIRE'`: Require that the change_id is present in the message as a"
+                  + " valid label</li>"
+                  + "  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>"
+                  + "  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>"
+                  + "  <li>`'REPLACE'`: Replace with a new one if found</li>"
+                  + "</ul>")
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public static final BuiltinFunction GERRIT_DESTINATION =
       new BuiltinFunction("gerrit_destination") {
     public GerritDestination invoke(
-        GitModule self, String url, String fetch, String pushToRefsFor,
+        GitModule self, String url, String fetch, String pushToRefsFor, String changeIdPolicy,
         Location location) throws EvalException {
       return GerritDestination.newGerritDestination(
           self.options,
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
-          pushToRefsFor);
+          pushToRefsFor,
+          SkylarkUtil.stringToEnum(location,"change_id_policy", changeIdPolicy,
+              ChangeIdPolicy.class));
     }
   };
 
