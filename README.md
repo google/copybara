@@ -78,16 +78,28 @@ docker build --rm -t copybara .
 Once this has finished building you can run the image like so from the root of the code you are trying to use Copybara on:
 
 ```
-docker run -it -v "$(pwd)":/usr/src/app copybara
+docker run -it -v "$(pwd)":/usr/src/app copybara copybara
 
 ```
 
-Two environment variables exist to allow you to run copybara:
-* *COPYBARA_CONFIG* allows you to specify a config name that isn't `copy.bara.sky`
-* *COPYBARA_COMMANDS* allows you to send in a specific list of commands to run, such as `--last-rev`, etc...
+A few environment variables exist to allow you to change how you run copybara:
+* `COPYBARA_CONFIG=copy.bara.sky`
+  * allows you to specify a config name that isn't `copy.bara.sky`, defaults to `copy.bara.sky`
+* `COPYBARA_SUBCOMMAND=migrate`
+  * allows you to change the command run, defaults to `migrate`
+* `COPYBARA_OPTIONS=''`
+  * allows you to specify options for copybara, defaults to none
+* `COPYBARA_WORKFLOW=default`
+  * allows you to specify the workflow to run, defaults to `default`
+* `COPYBARA_SOURCEREF=''`
+  * allows you to specify the sourceref, defaults to none 
 
 ```
-docker run -it -e COPYBARA_CONFIG='{nameofconfigfile}' -e COPYBARA_COMMANDS='{listofcommands}' -v "$(pwd)":/usr/src/app copybara
+docker run 
+       -e COPYBARA_CONFIG='other.config.sky' 
+       -e COPYBARA_SUBCOMMAND='validate' 
+       -v "$(pwd)":/usr/src/app 
+       -it copybara copybara
 ```
 
 #### Git Config and Credentials
@@ -95,8 +107,11 @@ docker run -it -e COPYBARA_CONFIG='{nameofconfigfile}' -e COPYBARA_COMMANDS='{li
 There are a number of ways by which to share your git config and ssh credentials with the docker container, an example with OS X is below:
 
 ```
-docker run -it -v ~/.ssh:/root/.ssh -v ~/.gitconfig:/root/.gitconfig -v "$(pwd)":/usr/src/app copybara 
-
+docker run 
+       -v ~/.ssh:/root/.ssh 
+       -v ~/.gitconfig:/root/.gitconfig 
+       -v "$(pwd)":/usr/src/app 
+       -it copybara copybara
 ```
 
 ## Documentation

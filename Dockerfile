@@ -19,8 +19,11 @@ RUN bazel build //java/com/google/copybara:copybara_deploy.jar \
 # RUN bazel test //...
 
 FROM openjdk:8-jre-slim
-ENV COPYBARA_CONFIG=copy.bara.sky
-ENV COPYBARA_COMMANDS=migrate
+ENV COPYBARA_CONFIG=copy.bara.sky \
+    COPYBARA_SUBCOMMAND=migrate \
+    COPYBARA_OPTIONS='' \
+    COPYBARA_WORKFLOW=default \
+    COPYBARA_SOURCEREF=''
 COPY --from=build /tmp/copybara/ /opt/copybara/
 COPY .docker/entrypoint.sh /usr/local/bin/copybara
 
