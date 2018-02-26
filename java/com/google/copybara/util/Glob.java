@@ -56,7 +56,7 @@ public abstract class Glob implements Concatable {
    * An implementation of {@link Concatter} for Globs so that we can create glob1 + glob2 as a
    * union glob.
    */
-  final Concatter CONCATTER = (lval, rval, loc) -> {
+  private final static Concatter CONCATTER = (lval, rval, loc) -> {
     if (lval instanceof Glob && rval instanceof Glob) {
       return new UnionGlob(((Glob) lval), ((Glob) rval));
     }
