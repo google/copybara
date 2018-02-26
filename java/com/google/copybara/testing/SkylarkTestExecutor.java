@@ -61,7 +61,7 @@ public final class SkylarkTestExecutor {
     return skylarkParser.getModules();
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
   public <T> T eval(String var, String config) throws ValidationException {
     try {
       Environment env = skylarkParser.executeSkylark(createConfigFile(config), options.build());
