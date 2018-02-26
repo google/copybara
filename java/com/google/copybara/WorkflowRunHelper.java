@@ -280,7 +280,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   "Errors happened during the migration",
                   changes.getCurrent(),
                   /*destinationRef=*/ null,
-                  ImmutableList.of(e.getMessage())));
+                  ImmutableList.of(e.getMessage() != null ? e.getMessage() : e.toString())));
       callPerMigrationHook = e instanceof ValidationException;
       throw e;
     } finally {
