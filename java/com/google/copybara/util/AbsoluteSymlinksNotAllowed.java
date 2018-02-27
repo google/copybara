@@ -16,6 +16,7 @@
 
 package com.google.copybara.util;
 
+import com.google.common.base.MoreObjects;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -29,6 +30,7 @@ public class AbsoluteSymlinksNotAllowed extends IOException {
   private final Path destinationFile;
 
   AbsoluteSymlinksNotAllowed(String msg, Path symlink, Path destinationFile) {
+    super(msg);
     this.symlink = symlink;
     this.destinationFile = destinationFile;
   }
@@ -39,5 +41,13 @@ public class AbsoluteSymlinksNotAllowed extends IOException {
 
   public Path getDestinationFile() {
     return destinationFile;
+  }
+
+  @Override
+  public String toString() {
+    return super.toString() + MoreObjects.toStringHelper(this.getClass())
+        .add("symlink", symlink)
+        .add("destinationFile", destinationFile)
+        .toString();
   }
 }

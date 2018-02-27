@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -187,8 +188,15 @@ public class FileUtilTest {
     Path absoluteTarget = folder.relativize(absolute);
     Files.createSymbolicLink(folder.resolve("absolute"), absoluteTarget);
 
-    thrown.expect(AbsoluteSymlinksNotAllowed.class);
-    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    try {
+      FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+      fail("Should have thrown");
+    } catch (AbsoluteSymlinksNotAllowed expected) {
+      assertThat(expected.getMessage()).isNotNull();
+      assertThat(expected.toString()).contains("is absolute or escaped the root:");
+      assertThat(expected.toString()).contains("folder/absolute");
+      assertThat(expected.toString()).contains("absolute/absolute");
+    }
   }
 
   private Path touch(Path path) throws IOException {
