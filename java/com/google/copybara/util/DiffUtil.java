@@ -157,7 +157,8 @@ public class DiffUtil {
               + " directory (%s).", path, gitDir),
           gitDir, path);
     } catch (BadExitStatusWithOutputException e) {
-      if (!e.getOutput().getStderr().contains("Not a git repository")) {
+      // Some git versions return "Not", others "not"
+      if (!e.getOutput().getStderr().contains(/*N*/"ot a git repository")) {
         throw new IOException("Error executing rev-parse", e);
       }
     } catch (CommandException e) {
