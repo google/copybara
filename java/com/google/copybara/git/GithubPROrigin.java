@@ -268,12 +268,18 @@ public class GithubPROrigin implements Origin<GitRevision> {
         if (!baselineFromBranch) {
           return super.findBaseline(startRevision, label);
         }
+        GitRevision gitRevision = findBaselineWithoutLabel(startRevision);
+        return Optional.of(new Baseline<>(gitRevision.getSha1(), gitRevision));
+      }
+
+      @Override
+      public GitRevision findBaselineWithoutLabel(GitRevision startRevision)
+          throws RepoException, ValidationException {
         String baseline = startRevision.associatedLabels().get(GITHUB_BASE_BRANCH_SHA1);
         Preconditions.checkNotNull(baseline, "%s label should be present in %s",
-            GITHUB_BASE_BRANCH_SHA1, startRevision);
+                                   GITHUB_BASE_BRANCH_SHA1, startRevision);
 
-        GitRevision gitRevision = getRepository().resolveReference(baseline);
-        return Optional.of(new Baseline<>(gitRevision.getSha1(), gitRevision));
+        return getRepository().resolveReference(baseline);
       }
 
       /**

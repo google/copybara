@@ -20,10 +20,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.Change;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.DestinationRef;
@@ -46,8 +48,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.ZonedDateTime;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -60,8 +63,11 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
   public final List<ProcessedChange> processed = new ArrayList<>();
 
-  public RecordsProcessCallDestination(ImmutableList<String>... errors) {
-    this.programmedErrors = new ArrayDeque<>(Arrays.asList(errors));
+  public RecordsProcessCallDestination() {
+    this(ImmutableList.of());
+  }
+  public RecordsProcessCallDestination(ImmutableList<ImmutableList<String>> errors) {
+    this.programmedErrors = new ArrayDeque<>(errors);
   }
 
   private final DummyEndpoint endpoint = new DummyEndpoint();
@@ -152,10 +158,46 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     }
 
     @Override
+    public void visitChangesWithAnyLabel(Revision start, ImmutableCollection<String> labels,
+        ChangesLabelVisitor visitor) throws RepoException, ValidationException {
+
+      for (ProcessedChange processedChange : Lists.reverse(processed)) {
+
+        VisitResult result =
+            visitor.visit(
+                new Change<>(
+                    processedChange.getOriginRef(),
+                    processedChange.getAuthor(),
+                    processedChange.getChangesSummary(),
+                    processedChange.getTimestamp(),
+                    ImmutableMap.of()),
+                ImmutableMap.copyOf(labels
+                    .stream()
+                    .collect(Collectors.toMap(
+                            Function.identity(), e -> processedChange.getOriginRef().asString()))));
+        if (result == VisitResult.TERMINATE) {
+          return;
+        }
+      }
+
+    }
+
+    @Override
     public void visitChanges(Revision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
-      // Not needed for now. The implementation should be similar to getDestinationStatus.
-      throw new UnsupportedOperationException();
+      for (ProcessedChange processedChange : Lists.reverse(processed)) {
+        VisitResult result =
+            visitor.visit(
+                new Change<>(
+                    processedChange.getOriginRef(),
+                    processedChange.getAuthor(),
+                    processedChange.getChangesSummary(),
+                    processedChange.getTimestamp(),
+                    ImmutableMap.of()));
+        if (result == VisitResult.TERMINATE) {
+          return;
+        }
+      }
     }
   }
 

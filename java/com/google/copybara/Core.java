@@ -243,8 +243,14 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               + "<li><b>'SQUASH'</b>: Create a single commit in the destination with new tree"
               + " state.</li>"
               + "<li><b>'ITERATIVE'</b>: Import each origin change individually.</li>"
-              + "<li><b>'CHANGE_REQUEST'</b>: Import an origin tree state diffed by a common parent"
-              + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.</li>"
+              + "<li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth."
+              + " This could be a GH Pull Request, a Gerrit Change, etc. The final intention should"
+              + " be to submit the change.</li>"
+              + "<li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the"
+              + " Source-of-Truth. This mode is useful when, despite the pending change being"
+              + " already in the SoT, the users want to review the code on a different system."
+              + " The final intention should never be to submit in the destination, but just"
+              + " review or test</li>"
               + "</ul>",
               defaultValue = "\"SQUASH\"", positional = false),
           @Param(name = "reversible_check", type = Boolean.class,
@@ -683,7 +689,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     public TodoReplace invoke(Core self, SkylarkList<String> skyTags,
         SkylarkDict<String, String> skyMapping, String modeStr, Glob paths, Object skyDefault,
         Location location) throws EvalException {
-      Mode mode = SkylarkUtil.stringToEnum(location, "mode", modeStr, Mode.class);
+      Mode mode = stringToEnum(location, "mode", modeStr, Mode.class);
       Map<String, String> mapping = Type.STRING_DICT.convert(skyMapping, "mapping");
       String defaultString = SkylarkUtil.convertFromNoneable(skyDefault, /*defaultValue=*/null);
       ImmutableList<String> tags = ImmutableList.copyOf(Type.STRING_LIST.convert(skyTags, "tags"));

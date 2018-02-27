@@ -336,7 +336,7 @@ public class GitOrigin implements Origin<GitRevision> {
           result = queryChanges.setSkip(skip)
               .setLimit(visitChangePageSize)
               .build()
-              .run(start.asString())
+              .run(start.getSha1())
               .reverse();
         }
         if (result.isEmpty()) {

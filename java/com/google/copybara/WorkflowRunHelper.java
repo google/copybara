@@ -356,7 +356,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             metadata,
             changes,
             workflow.getConsole(),
-            new MigrationInfo(workflow.getOrigin().getLabelName(), writer),
+            new MigrationInfo(getOriginLabelName(), writer),
             resolvedRef)
         .withLastRev(lastRev)
         .withCurrentRev(rev);
@@ -459,9 +459,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       throw new CannotResolveRevisionException(String.format(
           "Previous revision label %s could not be found in %s and --last-rev or --init-history "
               + "flags were not passed",
-          workflow.getOrigin().getLabelName(), workflow.getDestination()));
+          getOriginLabelName(), workflow.getDestination()));
     }
     return lastRev;
+  }
+
+  String getOriginLabelName() {
+    return workflow.getOrigin().getLabelName();
   }
 
   /**
@@ -479,16 +483,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private O maybeGetLastRev() throws RepoException, ValidationException {
     if (workflow.getLastRevisionFlag() != null) {
       try {
-        return workflow.getOrigin().resolve(workflow.getLastRevisionFlag());
+        return originResolve(workflow.getLastRevisionFlag());
       } catch (RepoException e) {
         throw new CannotResolveRevisionException(
             "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
                 + workflow.getLastRevisionFlag(), e);
       }
     }
-    DestinationStatus status = writer.getDestinationStatus(workflow.getOrigin().getLabelName());
+    DestinationStatus status = writer.getDestinationStatus(getOriginLabelName());
     try {
-      O lastRev = (status == null) ? null : workflow.getOrigin().resolve(status.getBaseline());
+      O lastRev = (status == null) ? null : originResolve(status.getBaseline());
       if (lastRev != null && workflow.isInitHistory()) {
         getConsole().warnFmt(
             "Ignoring %s because a previous imported revision '%s' was found in the destination.",
@@ -502,6 +506,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       throw e;
     }
+  }
+
+  /**
+   * Resolve a string representation of a revision using the origin
+   */
+   O originResolve(String revStr) throws RepoException, ValidationException {
+    return workflow.getOrigin().resolve(revStr);
   }
 
   public Profiler profiler() {

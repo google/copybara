@@ -397,6 +397,9 @@ public class GithubPrOriginTest {
     assertThat(reader.changes(baselineObj.get().getOriginRevision(), headPrRevision).size())
     .isEqualTo(2);
 
+    assertThat(reader.findBaselineWithoutLabel(headPrRevision).getSha1())
+        .isEqualTo(baseline1);
+
     reader.checkout(headPrRevision, workdir);
 
     FileSubjects.assertThatPath(workdir)
@@ -429,6 +432,9 @@ public class GithubPrOriginTest {
 
     assertThat(reader.changes(baselineObj.get().getOriginRevision(), headPrRevision).size())
         .isEqualTo(2);
+
+    assertThat(reader.findBaselineWithoutLabel(mergePrRevision).getSha1())
+        .isEqualTo(baselineMerge);
 
     reader.checkout(mergePrRevision, workdir);
 

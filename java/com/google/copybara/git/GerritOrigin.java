@@ -96,6 +96,26 @@ public class GerritOrigin extends GitOrigin {
       public String getGroupIdentity(GitRevision rev) throws RepoException {
         return rev.contextReference();
       }
+
+      @Override
+      public GitRevision findBaselineWithoutLabel(GitRevision startRevision)
+          throws RepoException, ValidationException {
+        final GitRevision[] result = { null };
+        final boolean[] first = {true};
+        visitChanges(startRevision, change -> {
+          if (first[0]) {
+            first[0] = false;
+            return VisitResult.CONTINUE;
+          }
+          result[0] = (GitRevision) change.getRevision();
+          return VisitResult.TERMINATE;
+        });
+        ValidationException.checkCondition(
+            result[0] != null,
+            "Cannot run in this workflow mode for a repository with just one commit: %s",
+            startRevision);
+        return result[0];
+      }
     };
   }
 }

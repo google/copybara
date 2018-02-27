@@ -27,11 +27,12 @@ import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
+import com.google.copybara.Endpoint;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
+import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.Endpoint;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
@@ -158,6 +159,16 @@ public class DummyOrigin implements Origin<DummyRevision> {
     @Override
     public Endpoint getFeedbackEndPoint() {
       return endpoint;
+    }
+
+    @Override
+    public DummyRevision findBaselineWithoutLabel(DummyRevision startRevision)
+        throws RepoException, ValidationException {
+      int idx = Integer.parseInt(startRevision.asString());
+      ValidationException.checkCondition(idx > 0, "%s is the first revision", startRevision);
+      ValidationException.checkCondition(
+          changes.size() > idx, "%s is newer than the latest registered revision", startRevision);
+      return changes.get(idx - 1);
     }
 
     @Override

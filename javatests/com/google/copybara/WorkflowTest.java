@@ -501,7 +501,10 @@ public class WorkflowTest {
         .respondYes()
         .respondNo();
     RecordsProcessCallDestination programmableDestination = new RecordsProcessCallDestination(
-        ImmutableList.of(), ImmutableList.of("some error"), ImmutableList.of("Another error"));
+        ImmutableList.of(
+            ImmutableList.of(), ImmutableList.of("some error"), ImmutableList.of("Another error")
+        )
+    );
 
     options.testingOptions.destination = programmableDestination;
 
@@ -1089,6 +1092,55 @@ public class WorkflowTest {
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
     console().assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
+  }
+
+  @Test
+  public void changeRequest_sot() throws Exception {
+    origin
+        .addSimpleChange(0, "Base Change")
+        .addSimpleChange(1, "First Change")
+        .addSimpleChange(2, "Second Change")
+        .addSimpleChange(3, "Third Change");
+
+    Workflow workflow = iterativeWorkflow("0");
+    workflow.run(workdir, "HEAD");
+    ProcessedChange change = destination.processed.get(2);
+
+    assertThat(change.getBaseline()).isNull();
+    assertThat(change.getChangesSummary()).isEqualTo("Third Change");
+
+    Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
+
+    w.run(workdir, "2");
+
+    change = destination.processed.get(destination.processed.size() -1);
+    assertThat(change.getChangesSummary()).isEqualTo("Second Change");
+    assertThat(change.getBaseline()).isEqualTo("1");
+  }
+
+  @Test
+  public void changeRequest_sot_ahead_sot() throws Exception {
+    origin
+        .addSimpleChange(0, "Base Change")
+        .addSimpleChange(1, "First Change")
+        .addSimpleChange(2, "Second Change")
+        .addSimpleChange(3, "Third Change");
+
+    Workflow workflow = iterativeWorkflow("0");
+    workflow.run(workdir, "1");
+    ProcessedChange change = destination.processed.get(0);
+
+    assertThat(change.getBaseline()).isNull();
+    assertThat(change.getChangesSummary()).isEqualTo("First Change");
+
+    Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
+
+    try {
+      w.run(workdir, "3");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("Make sure to sync the submitted changes");
+    }
   }
 
   @Test

@@ -72,6 +72,7 @@ public class GerritOriginTest {
   private GitRevision firstRevision;
   private GitRevision secondRevision;
   private GitRevision thirdRevision;
+  private String baseline;
 
   @Before
   public void setup() throws Exception {
@@ -97,6 +98,11 @@ public class GerritOriginTest {
             "result",
             String.format("result = " + "git.gerrit_origin(" + "    url = '%s'," + ")", url));
 
+    Files.write(remote.resolve("base.txt"), new byte[0]);
+    repo.add().files("base.txt").run();
+
+    git("commit", "-m", "baseline", "--date", commitTime);
+    baseline = repo.parseRef("HEAD");
     Files.write(remote.resolve("test.txt"), "some content".getBytes());
     repo.add().files("test.txt").run();
 
@@ -198,6 +204,9 @@ public class GerritOriginTest {
     assertThat(changes.get(0).getRevision().getUrl()).isNotNull();
     // Each ref is conceptually a rebase. Size is not really important for this test.
     assertThat(changes).hasSize(1);
+
+    assertThat(reader.findBaselineWithoutLabel(origin.resolve("12345")).getSha1())
+        .isEqualTo(baseline);
   }
 
   @Test

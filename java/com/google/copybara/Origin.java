@@ -118,6 +118,16 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
       return visitor.getBaseline();
     }
 
+    /**
+     * Find the baseline of the change without using a label. That means that it will use the
+     * specific system information to compute the parent. For example for GH PR, it will return
+     * the baseline submitted SHA-1.
+     */
+    default R findBaselineWithoutLabel(R startRevision)
+        throws RepoException, ValidationException {
+      throw new ValidationException("Origin does't support this workflow mode");
+    }
+
     class FindLatestWithLabel<R extends Revision> implements ChangesVisitor {
 
       private final R startRevision;

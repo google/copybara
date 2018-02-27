@@ -23,6 +23,7 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.doc.annotations.DocField;
@@ -204,16 +205,71 @@ public enum WorkflowMode {
       baseline = Strings.isNullOrEmpty(runHelper.workflowOptions().changeBaseline)
           ? runHelper.getOriginReader().findBaseline(runHelper.getResolvedRef(), originLabelName)
           : Optional.of(
-              new Baseline<O>(runHelper.workflowOptions().changeBaseline,/*originRevision=*/null));
+              new Baseline<O>(runHelper.workflowOptions().changeBaseline, /*originRevision=*/null));
 
+      runChangeRequest(runHelper, baseline);
+    }},
+    @DocField(
+        description = "Import **from** the Source-of-Truth. This mode is useful when, despite the"
+            + " pending change being already in the SoT, the users want to review the code on a"
+            + " different system."
+    )
+    CHANGE_REQUEST_FROM_SOT {
+      @Override
+    <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
+        throws RepoException, IOException, ValidationException {
+
+        O originBaseline = Strings.isNullOrEmpty(runHelper.workflowOptions().changeBaseline)
+            ? runHelper.getOriginReader().findBaselineWithoutLabel(runHelper.getResolvedRef())
+            : runHelper.originResolve(runHelper.workflowOptions().changeBaseline);
+
+        String originRevision = revisionWithoutReviewInfo(originBaseline.asString());
+        String destinationBaseline[] = new String[] {null};
+      runHelper
+          .getDestinationWriter()
+          .visitChangesWithAnyLabel(
+              /*start=*/ null,
+              ImmutableList.of(runHelper.getOriginLabelName()),
+              (change, matchedLabels) -> {
+                for (String value : matchedLabels.values()) {
+                  if (originRevision.equals(WorkflowMode.revisionWithoutReviewInfo(value))) {
+                    destinationBaseline[0] = change.getRevision().asString();
+                    return VisitResult.TERMINATE;
+                  }
+                }
+                return VisitResult.CONTINUE;
+              });
+
+        ValidationException.checkCondition(
+            destinationBaseline[0] != null,
+            "Couldn't find a change in the destination with %s label and %s value. Make sure"
+                + " to sync the submitted changes from the origin -> destination first or use"
+                + " SQUASH mode.",
+            runHelper.getOriginLabelName(), originBaseline.asString());
+        runChangeRequest(runHelper,
+                         Optional.of(new Baseline<>(destinationBaseline[0], originBaseline)));
+      }
+    };
+
+  /**
+   * Technically revisions can contain additional metadata in the String. For example:
+   * 'aaaabbbbccccddddeeeeffff1111222233334444 PatchSet-1'. This method return the identification
+   * part.
+   */
+  private static String revisionWithoutReviewInfo(String r) {
+    return r.replaceFirst(" .*", "");
+  }
+
+  private static <O extends Revision, D extends Revision> void runChangeRequest(
+        WorkflowRunHelper<O, D> runHelper, Optional<Baseline<O>> baseline)
+        throws ValidationException, RepoException, IOException {
       if (!baseline.isPresent()) {
         throw new ValidationException(
             "Cannot find matching parent commit in in the destination. Use '"
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
-      logger.info(String.format("Found baseline for label %s: %s", originLabelName,
-                                baseline.get().getBaseline()));
+      logger.info(String.format("Found baseline %s", baseline.get().getBaseline()));
 
       // If --change_request_parent was used, we don't have information about the origin changes
       // included in the CHANGE_REQUEST so we assume the last change is the only change
@@ -239,13 +295,12 @@ public enum WorkflowMode {
               // Use latest change as the message/author. If it contains multiple changes the user
               // can always use metadata.squash_notes or similar.
               new Metadata(Iterables.getLast(changes).getMessage(),
-                  Iterables.getLast(changes).getAuthor()),
+                           Iterables.getLast(changes).getAuthor()),
               // Squash notes an Skylark API expect last commit to be the first one.
               new Changes(changes.reverse(), ImmutableList.of()),
               baseline.get().getBaseline(),
               runHelper.getWorkflowIdentity(runHelper.getResolvedRef()));
     }
-  };
 
   private static <O extends Revision, D extends Revision> void manageNoChangesDetectedForSquash(
       WorkflowRunHelper<O, D> runHelper, O current, O lastRev)
