@@ -41,9 +41,13 @@ import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.RepoException;
 import com.google.copybara.ValidationException;
+import com.google.copybara.Workflow;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.config.MapConfigFile;
+import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.folder.FolderModule;
 import com.google.copybara.git.githubapi.GithubApi;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
@@ -73,6 +77,7 @@ public class GithubPrOriginTest {
   private OptionsBuilder options;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
+  private SkylarkParser skylarkParser;
 
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
@@ -129,6 +134,7 @@ public class GithubPrOriginTest {
     options.git.credentialHelperStorePath = credentialsFile.toString();
 
     skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylarkParser = new SkylarkParser(ImmutableSet.of(FolderModule.class, GitModule.class));
   }
 
   private GitRepository localHubRepo(String name) throws RepoException {
@@ -441,6 +447,89 @@ public class GithubPrOriginTest {
     FileSubjects.assertThatPath(workdir)
         .containsFile("other.txt", "")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testHookForGitHubPr() throws Exception {
+    GitRepository remote = localHubRepo("google/example");
+    GitRepository destination = localHubRepo("destination");
+    addFiles(remote, "base", ImmutableMap.<String, String>builder().put("test.txt", "a").build());
+    String lastRev = remote.parseRef("HEAD");
+    addFiles(remote, "one", ImmutableMap.<String, String>builder().put("test.txt", "b").build());
+    addFiles(remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").build());
+
+    String prHeadSha1 = remote.parseRef("HEAD");
+    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
+
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+          throws IOException {
+        if (url.contains("/status")) {
+          return ("{\n"
+              + "    state = 'success'\n"
+              + "}"
+          ).getBytes(UTF_8);
+        }
+        return new MockPullRequest(123, ImmutableList.of(), "open")
+            .getContent(method, url, request);
+      }
+    };
+    Path dest = Files.createTempDirectory("");
+    options.folderDestination.localFolder = dest.toString();
+    options.setWorkdirToRealTempDir();
+    options.setForce(true);
+    options.setLastRevision(lastRev);
+    options.gitDestination.committerEmail = "commiter@email";
+    options.gitDestination.committerName = "Bara Kopi";
+
+    Workflow<GitRevision, ?> workflow =
+        workflow(
+            ""
+                + "def update_commit_status(ctx):\n"
+                + "    for effect in ctx.effects:\n"
+                + "        for origin_change in effect.origin_refs:\n"
+                + "            if effect.type == 'CREATED' or effect.type == 'UPDATED':\n"
+                + "                status = ctx.origin.create_status(\n"
+                + "                    sha = origin_change.ref,\n"
+                + "                    state = 'success',\n"
+                + "                    context = 'copybara/import',\n"
+                + "                    description = 'Migration success at ' "
+                + "+ effect.destination_ref.id,\n"
+                + "                )\n"
+                + "core.workflow(\n"
+                + "    name = 'default',\n"
+                + "    origin = git.github_pr_origin(\n"
+                + "        url = 'https://github.com/google/example',\n"
+                + "    ),\n"
+                + "    authoring = authoring.pass_thru('foo <foo@foo.com>'),\n"
+                + "    destination = git.destination(\n"
+                + "        url = '" + destination.getGitDir() + "'\n"
+                + "    ),\n"
+                + "    after_migration = [\n"
+                + "        update_commit_status"
+                + "    ]"
+                + ")");
+
+    workflow.run(workdir, "123");
+
+    assertThat(gitApiMockHttpTransport.requests).hasSize(3);
+    
+    assertThat(gitApiMockHttpTransport.requests.get(1).getRequest())
+        .contains("Migration success at");
+    assertThat(gitApiMockHttpTransport.requests.get(2).getRequest())
+        .contains("Migration success at");
+  }
+
+  @SuppressWarnings("unchecked")
+  private Workflow<GitRevision, ?> workflow(String config) throws IOException, ValidationException {
+    return (Workflow<GitRevision, ?>)
+        skylarkParser
+            .loadConfig(
+                new MapConfigFile(
+                    ImmutableMap.of("copy.bara.sky", config.getBytes()), "copy.bara.sky"),
+                options.build())
+            .getMigration("default");
   }
 
   @Test

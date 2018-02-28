@@ -34,6 +34,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.EmptyChangeException;
+import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
 import com.google.copybara.RepoException;
@@ -280,6 +281,11 @@ public class GithubPROrigin implements Origin<GitRevision> {
                                    GITHUB_BASE_BRANCH_SHA1, startRevision);
 
         return getRepository().resolveReference(baseline);
+      }
+
+      @Override
+      public Endpoint getFeedbackEndPoint() {
+        return new GitHubEndPoint(githubOptions, url);
       }
 
       /**

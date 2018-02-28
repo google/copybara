@@ -16,6 +16,8 @@
 
 package com.google.copybara.testing;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.api.client.http.LowLevelHttpResponse;
@@ -23,6 +25,7 @@ import com.google.api.client.json.Json;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -46,7 +49,9 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -188,14 +193,17 @@ public class OptionsBuilder {
    * An utility class to mock http responses for Git code review tools (GitHub and Gerrit).
    */
   public abstract static class GitApiMockHttpTransport extends MockHttpTransport {
-
+    public List<RequestRecord> requests = new ArrayList<>();
     @Override
     public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
       MockLowLevelHttpRequest request = new MockLowLevelHttpRequest() {
         @Override
         public LowLevelHttpResponse execute() throws IOException {
           MockLowLevelHttpResponse response = (MockLowLevelHttpResponse) super.execute();
-          response.setContent(getContent(method, url, this));
+          byte[] content = getContent(method, url, this);
+          requests.add(new RequestRecord(method, url, this.getContentAsString(),
+                                         new String(content, UTF_8)));
+          response.setContent(content);
           return super.execute();
         }
       };
@@ -208,5 +216,45 @@ public class OptionsBuilder {
 
     protected abstract byte[] getContent(String method, String url,
         MockLowLevelHttpRequest request) throws IOException;
+
+    public static class RequestRecord {
+      private final String method;
+      private final String url;
+      private final String request;
+      private final String response;
+
+      public RequestRecord(String method, String url, String request, String response) {
+        this.method = method;
+        this.url = url;
+        this.request = request;
+        this.response = response;
+      }
+
+      public String getMethod() {
+        return method;
+      }
+
+      public String getUrl() {
+        return url;
+      }
+
+      public String getRequest() {
+        return request;
+      }
+
+      public String getResponse() {
+        return response;
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("method", method)
+            .add("url", url)
+            .add("request", request)
+            .add("response", response)
+            .toString();
+      }
+    }
   }
 }

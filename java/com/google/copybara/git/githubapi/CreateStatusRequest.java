@@ -40,9 +40,6 @@ public class CreateStatusRequest extends GenericJson {
   @Key
   private String context;
 
-  private CreateStatusRequest() {
-  }
-
   public CreateStatusRequest(State state, String targetUrl, String description,
       String context) {
     this.state = Preconditions.checkNotNull(state);

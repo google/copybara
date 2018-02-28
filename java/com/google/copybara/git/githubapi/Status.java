@@ -16,9 +16,16 @@
 
 package com.google.copybara.git.githubapi;
 
+import static com.google.common.collect.Iterables.transform;
+
 import com.google.api.client.util.Key;
 import com.google.api.client.util.Value;
+import com.google.common.collect.ImmutableSet;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.time.ZonedDateTime;
+import java.util.EnumSet;
 import javax.annotation.Nullable;
 
 /**
@@ -26,10 +33,24 @@ import javax.annotation.Nullable;
  *
  * <p>https://developer.github.com/v3/repos/statuses
  */
+@SkylarkModule(
+  name = "github_api_status_obj",
+  category = SkylarkModuleCategory.BUILTIN,
+  doc =
+      "Information about a commit status as defined in"
+          + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"
+          + " fields in GitHub"
+)
 public class Status {
 
-  @Key("target_url") private String targetUrl;
-  @Key("description") private String description;
+  @Nullable
+  @Key("target_url")
+  private String targetUrl;
+
+  @Nullable
+  @Key("description")
+  private String description;
+
   @Key("context") private String context;
   @Key private State state;
   @Key("created_at") private String createdAt;
@@ -48,14 +69,43 @@ public class Status {
     return state;
   }
 
+  @SkylarkCallable(
+    name = "state",
+    doc = "The state of the commit status: success, failure, pending or error",
+    structField = true
+  )
+  public String getStateForSkylark() {
+    return state.toString().toLowerCase();
+  }
+
+  @SkylarkCallable(
+    name = "target_url",
+    doc = "Get the target url of the commit status. Can be None.",
+    structField = true,
+    allowReturnNones = true
+  )
+  @Nullable
   public String getTargetUrl() {
     return targetUrl;
   }
 
+  @SkylarkCallable(
+    name = "description",
+    doc = "Description of the commit status. Can be None.",
+    structField = true,
+    allowReturnNones = true
+  )
+  @Nullable
   public String getDescription() {
     return description;
   }
 
+  @SkylarkCallable(
+    name = "context",
+    doc = "Context of the commit status. This is a relatively stable id",
+    structField = true,
+    allowReturnNones = true
+  )
   public String getContext() {
     return context;
   }
@@ -75,6 +125,9 @@ public class Status {
     @Value("error") ERROR,
     @Value("failure") FAILURE,
     @Value("pending") PENDING,
-    @Value("success") SUCCESS
+    @Value("success") SUCCESS;
+
+    public static final ImmutableSet<String> VALID_VALUES =
+        ImmutableSet.copyOf(transform(EnumSet.allOf(State.class), e -> e.toString().toLowerCase()));
   }
 }

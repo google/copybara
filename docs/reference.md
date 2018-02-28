@@ -46,6 +46,8 @@
     - [git.destination](#git.destination)
     - [git.github_pr_destination](#git.github_pr_destination)
     - [git.gerrit_destination](#git.gerrit_destination)
+  - [github_api_status_obj](#github_api_status_obj)
+  - [github_endpoint_obj](#github_endpoint_obj)
   - [patch](#patch)
     - [patch.apply](#patch.apply)
 
@@ -1507,6 +1509,16 @@ Name | Type | Description
 --git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 --git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 --nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+
+
+## github_api_status_obj
+
+Information about a commit status as defined in https://developer.github.com/v3/repos/statuses. This is a subset of the available fields in GitHub
+
+
+## github_endpoint_obj
+
+GitHub specific class used in feedback mechanism and migration event hooks to access GitHub
 
 
 ## patch
