@@ -67,6 +67,55 @@ targets:
 Note that configuration files can be stored in any place, even in a local folder. We recommend to
 use a VCS (like git) to store them; treat them as source code.
 
+### Using Docker to build and run Copybara
+
+*NOTE: Docker use is currently experimental, and we encourage feedback or contributions.*
+
+You can build copybara using Docker like so
+
+```
+docker build --rm -t copybara .
+```
+
+Once this has finished building you can run the image like so from the root of the code you are trying to use Copybara on:
+
+```
+docker run -it -v "$(pwd)":/usr/src/app copybara copybara
+
+```
+
+A few environment variables exist to allow you to change how you run copybara:
+* `COPYBARA_CONFIG=copy.bara.sky`
+  * allows you to specify a path to a config file, defaults to root `copy.bara.sky`
+* `COPYBARA_SUBCOMMAND=migrate`
+  * allows you to change the command run, defaults to `migrate`
+* `COPYBARA_OPTIONS=''`
+  * allows you to specify options for copybara, defaults to none
+* `COPYBARA_WORKFLOW=default`
+  * allows you to specify the workflow to run, defaults to `default`
+* `COPYBARA_SOURCEREF=''`
+  * allows you to specify the sourceref, defaults to none
+
+```
+docker run
+       -e COPYBARA_CONFIG='other.config.sky'
+       -e COPYBARA_SUBCOMMAND='validate'
+       -v "$(pwd)":/usr/src/app
+       -it copybara copybara
+```
+
+#### Git Config and Credentials
+
+There are a number of ways by which to share your git config and ssh credentials with the docker container, an example with OS X is below:
+
+```
+docker run
+       -v ~/.ssh:/root/.ssh
+       -v ~/.gitconfig:/root/.gitconfig
+       -v "$(pwd)":/usr/src/app
+       -it copybara copybara
+```
+
 ## Documentation
 
 We are still working on the documentation. Here are some resources:
