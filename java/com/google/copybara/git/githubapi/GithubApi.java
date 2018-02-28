@@ -124,4 +124,20 @@ public class GithubApi {
       return ImmutableList.copyOf(result);
     }
   }
+
+  public Status createStatus(String projectId, String sha1, CreateStatusRequest request)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_create_status")) {
+      return transport.post(String.format("repos/%s/statuses/%s", projectId, sha1), request,
+          Status.class);
+    }
+  }
+
+  public CombinedStatus getCombinedStatus(String projectId, String sha1)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_combined_status")) {
+      return transport.get(String.format("repos/%s/statuses/%s", projectId, sha1),
+          CombinedStatus.class);
+    }
+  }
 }

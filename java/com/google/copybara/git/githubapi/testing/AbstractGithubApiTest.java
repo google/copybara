@@ -22,7 +22,9 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.copybara.git.githubapi.CombinedStatus;
 import com.google.copybara.git.githubapi.CreatePullRequest;
+import com.google.copybara.git.githubapi.CreateStatusRequest;
 import com.google.copybara.git.githubapi.GitHubApiTransport;
 import com.google.copybara.git.githubapi.GithubApi;
 import com.google.copybara.git.githubapi.Issue;
@@ -30,6 +32,8 @@ import com.google.copybara.git.githubapi.Issue.Label;
 import com.google.copybara.git.githubapi.PullRequest;
 import com.google.copybara.git.githubapi.Ref;
 import com.google.copybara.git.githubapi.Review;
+import com.google.copybara.git.githubapi.Status;
+import com.google.copybara.git.githubapi.Status.State;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import java.io.IOException;
@@ -183,6 +187,51 @@ public abstract class AbstractGithubApiTest {
         .containsExactly("cla: yes");
   }
 
+
+  @Test
+  public void testCreateStatus() throws Exception {
+    trainMockPost("/repos/octocat/Hello-World/statuses/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+        createValidator(TestCreateStatusRequest.class,
+            csr -> csr.getContext().equals("continuous-integration/jenkins")
+                && csr.getState().equals(State.SUCCESS)),
+        getResource("create_status_response_testdata.json"));
+
+    Status response = api.createStatus("octocat/Hello-World",
+        "6dcb09b5b57875f334f61aebed695e2e4193db5e",
+        new CreateStatusRequest(State.SUCCESS, "https://ci.example.com/1000/output",
+            "Build has completed successfully", "continuous-integration/jenkins"));
+
+    assertThat(response.getContext()).isEqualTo("continuous-integration/jenkins");
+    assertThat(response.getTargetUrl()).isEqualTo("https://ci.example.com/1000/output");
+    assertThat(response.getDescription()).isEqualTo("Build has completed successfully");
+    assertThat(response.getState()).isEqualTo(State.SUCCESS);
+    assertThat(response.getCreator()).isNotNull();
+    assertThat(response.getCreator().getLogin()).isEqualTo("octocat");
+  }
+
+  @Test
+  public void testGetCombinedStatus() throws Exception {
+    trainMockGet("/repos/octocat/Hello-World/statuses/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+        getResource("get_combined_status_testdata.json"));
+
+    CombinedStatus response = api.getCombinedStatus("octocat/Hello-World",
+        "6dcb09b5b57875f334f61aebed695e2e4193db5e");
+
+    assertThat(response.getSha()).isEqualTo("6dcb09b5b57875f334f61aebed695e2e4193db5e");
+    assertThat(response.getStatuses()).hasSize(2);
+    assertThat(response.getState()).isEqualTo(State.SUCCESS);
+    assertThat(response.getTotalCount()).isEqualTo(2);
+
+    assertThat(response.getStatuses().get(0).getContext())
+        .isEqualTo("continuous-integration/jenkins");
+    assertThat(response.getStatuses().get(0).getTargetUrl())
+        .isEqualTo("https://ci.example.com/1000/output");
+    assertThat(response.getStatuses().get(0).getDescription())
+        .isEqualTo("Build has completed successfully");
+    assertThat(response.getStatuses().get(0).getState()).isEqualTo(State.SUCCESS);
+  }
+
+
   protected byte[] getResource(String testfile) throws IOException {
     return Files.readAllBytes(
         Paths.get(System.getenv("TEST_SRCDIR"),
@@ -206,6 +255,14 @@ public abstract class AbstractGithubApiTest {
   public static class TestCreatePullRequest extends CreatePullRequest {
     public TestCreatePullRequest() {
       super("invalid", "invalid", "invalid", "invalid");
+    }
+  }
+
+  // We don't want CreateStatusRequest to be instantiable, this subclass sidesteps the issue.
+  public static class TestCreateStatusRequest extends CreateStatusRequest {
+
+    public TestCreateStatusRequest() {
+      super(State.ERROR, "invalid", "invalid", "invalid");
     }
   }
 }
