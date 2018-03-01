@@ -38,6 +38,7 @@ import com.google.devtools.build.lib.syntax.BuildFileAST;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.Environment.Extension;
 import com.google.devtools.build.lib.syntax.Environment.Frame;
+import com.google.devtools.build.lib.syntax.Environment.GlobalFrame;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
@@ -219,7 +220,7 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      Frame globals = createGlobals(eventHandler, options, content, mainConfigFile,
+      GlobalFrame globals = createGlobals(eventHandler, options, content, mainConfigFile,
                                     configFilesSupplier);
 
       BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
@@ -257,7 +258,7 @@ public class SkylarkParser {
    * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object
    * so that the module can construct objects that require options.
    */
-  private static Environment createEnvironment(EventHandler eventHandler, Frame globals,
+  private static Environment createEnvironment(EventHandler eventHandler, GlobalFrame globals,
       Map<String, Extension> imports) {
     return Environment.builder(Mutability.create("CopybaraModules"))
         .setSemantics(SkylarkSemantics.DEFAULT_SEMANTICS
@@ -276,7 +277,7 @@ public class SkylarkParser {
    *
    * <p>The returned object can be reused for different instances of environments.
    */
-  private Environment.Frame createGlobals(
+  private GlobalFrame createGlobals(
       EventHandler eventHandler, Options options, ConfigFile<?> currentConfigFile,
       ConfigFile<?> mainConfigFile,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier) {
