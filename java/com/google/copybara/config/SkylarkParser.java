@@ -37,7 +37,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.syntax.BuildFileAST;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.Environment.Extension;
-import com.google.devtools.build.lib.syntax.Environment.Frame;
 import com.google.devtools.build.lib.syntax.Environment.GlobalFrame;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInputSource;
@@ -261,10 +260,7 @@ public class SkylarkParser {
   private static Environment createEnvironment(EventHandler eventHandler, GlobalFrame globals,
       Map<String, Extension> imports) {
     return Environment.builder(Mutability.create("CopybaraModules"))
-        .setSemantics(SkylarkSemantics.DEFAULT_SEMANTICS
-            .toBuilder()
-            .incompatibleLoadArgumentIsLabel(false)
-            .build())
+        .setSemantics(SkylarkSemantics.DEFAULT_SEMANTICS)
         .setGlobals(globals)
         .setImportedExtensions(imports)
         .setSkylark()
