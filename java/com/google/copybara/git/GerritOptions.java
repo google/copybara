@@ -74,12 +74,6 @@ public class GerritOptions implements Option {
       description = "Create a new change instead of trying to reuse an existing one.")
   protected boolean newChange = false;
 
-  // TODO(malcon): Remove this
-  @Parameter(names = "--gerrit-use-new-api", description = "DON'T USE",
-      hidden = true)
-  @Deprecated
-  protected boolean newGerritApiDontUse = true;
-
   @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
   protected String gerritTopic = "";
 
