@@ -28,8 +28,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
-import com.google.copybara.ChangeVisitable.ChangesVisitor;
-import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -40,7 +38,6 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
-import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
@@ -315,44 +312,8 @@ public class GitOrigin implements Origin<GitRevision> {
     public void visitChanges(GitRevision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
       ChangeReader.Builder queryChanges = changeReaderBuilder(repoUrl).setFirstParent(firstParent);
-
-      GitOrigin.visitChanges(start, visitor, queryChanges, generalOptions, "origin",
-                   gitOptions.visitChangePageSize);
-    }
-  }
-
-  public static void visitChanges(GitRevision start, ChangesVisitor visitor,
-      ChangeReader.Builder queryChanges, GeneralOptions generalOptions, final String type,
-      int visitChangePageSize)
-      throws RepoException, CannotResolveRevisionException {
-    Preconditions.checkNotNull(start);
-    int skip = 0;
-    boolean finished = false;
-    try (ProfilerTask ignore = generalOptions.profiler().start(type + "/visit_changes")) {
-      while (!finished) {
-        ImmutableList<GitChange> result;
-        try (ProfilerTask ignore2 = generalOptions.profiler().start(
-            "git_log_" + skip + "_" + visitChangePageSize)) {
-          result = queryChanges.setSkip(skip)
-              .setLimit(visitChangePageSize)
-              .build()
-              .run(start.getSha1())
-              .reverse();
-        }
-        if (result.isEmpty()) {
-          break;
-        }
-        skip += result.size();
-        for (GitChange current : result) {
-          if (visitor.visit(current.getChange()) == VisitResult.TERMINATE) {
-            finished = true;
-            break;
-          }
-        }
-      }
-    }
-    if (skip == 0) {
-      throw new CannotResolveRevisionException("Cannot resolve reference " + start.getSha1());
+      GitVisitorUtil.visitChanges(
+          start, visitor, queryChanges, generalOptions, "origin", gitOptions.visitChangePageSize);
     }
   }
 

@@ -449,6 +449,138 @@ public class GitDestinationTest {
         .isEqualTo(ref2.asString());
   }
 
+  /**
+   * Verify that multiple (exclusive) migrations can write to the same Git repository. This is,
+   * migrations from different origins writing to a different subpaths in the Git repo and excluding
+   * the other ones.
+   */
+  @Test
+  public void multipleMigrationsToOneDestination_separateRoots() throws Exception {
+    fetch = "master";
+    push = "master";
+
+    Files.createDirectories(workdir.resolve("foo"));
+    Files.createDirectories(workdir.resolve("bar"));
+    Files.createDirectories(workdir.resolve("baz"));
+
+    Files.write(workdir.resolve("foo/one"), "First version".getBytes(UTF_8));
+    Files.write(workdir.resolve("bar/one"), "First version".getBytes(UTF_8));
+    Files.write(workdir.resolve("baz/one"), "First version".getBytes(UTF_8));
+
+    repo().withWorkTree(workdir).add().files("foo/one").files("bar/one").files("baz/one").run();
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "Initial commit");
+
+    Glob repoAglob = Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("bar/**"));
+    Glob repoBglob = Glob.createGlob(ImmutableList.of("bar/**"), ImmutableList.of("foo/**"));
+
+    // Change on repo A
+    Files.write(workdir.resolve("foo/one"), "Second version".getBytes(UTF_8));
+    Writer<GitRevision> writer1 = newWriter(repoAglob);
+    DummyRevision repoAfirstRev = new DummyRevision("Foo first");
+    process(writer1, repoAfirstRev);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo/one", "Second version")
+        .containsFile("bar/one", "First version")
+        .containsFile("baz/one", "First version")
+        .containsNoMoreFiles();
+    verifyDestinationStatus(repoAglob, repoAfirstRev);
+
+    // Change on repo B, does not affect repo A paths
+    Files.write(workdir.resolve("bar/one"), "Second version".getBytes(UTF_8));
+    Writer<GitRevision> writer2 = newWriter(repoBglob);
+    DummyRevision repoBfirstRev = new DummyRevision("Bar first");
+    process(writer2, repoBfirstRev);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo/one", "Second version")
+        .containsFile("bar/one", "Second version")
+        .containsFile("baz/one", "First version")
+        .containsNoMoreFiles();
+    verifyDestinationStatus(repoAglob, repoAfirstRev);
+    verifyDestinationStatus(repoBglob, repoBfirstRev);
+
+    // Change on repo A does not affect repo B paths
+    Files.write(workdir.resolve("foo/one"), "Third version".getBytes(UTF_8));
+    Writer<GitRevision> writer3 = newWriter(repoAglob);
+    DummyRevision repoASecondRev = new DummyRevision("Foo second");
+    process(writer3, repoASecondRev);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo/one", "Third version")
+        .containsFile("bar/one", "Second version")
+        .containsFile("baz/one", "First version")
+        .containsNoMoreFiles();
+    verifyDestinationStatus(repoAglob, repoASecondRev);
+    verifyDestinationStatus(repoBglob, repoBfirstRev);
+  }
+
+  /**
+   * Verify that multiple (exclusive) migrations can write to the same Git repository. This is,
+   * migrations from different origins writing to a different subpaths in the Git repo and excluding
+   * the other ones.
+   */
+  @Test
+  public void multipleMigrationsToOneDestination_withComplexGlobs() throws Exception {
+    fetch = "master";
+    push = "master";
+
+    Files.createDirectories(workdir.resolve("foo"));
+    Files.createDirectories(workdir.resolve("foo/bar"));
+    Files.createDirectories(workdir.resolve("baz"));
+
+    Files.write(workdir.resolve("foo/one"), "First version".getBytes(UTF_8));
+    Files.write(workdir.resolve("foo/bar/one"), "First version".getBytes(UTF_8));
+    Files.write(workdir.resolve("baz/one"), "First version".getBytes(UTF_8));
+
+    repo().withWorkTree(workdir).add().files("foo/one").files("foo/bar/one").files("baz/one").run();
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "Initial commit");
+
+    Glob repoAglob = Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/bar/**"));
+    Glob repoBglob = Glob.createGlob(ImmutableList.of("foo/bar/**"));
+
+    // Change on repo A
+    Files.write(workdir.resolve("foo/one"), "Second version".getBytes(UTF_8));
+    Writer<GitRevision> writer1 = newWriter(repoAglob);
+    DummyRevision repoAfirstRev = new DummyRevision("Foo first");
+    process(writer1, repoAfirstRev);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo/one", "Second version")
+        .containsFile("foo/bar/one", "First version")
+        .containsFile("baz/one", "First version")
+        .containsNoMoreFiles();
+    verifyDestinationStatus(repoAglob, repoAfirstRev);
+
+    // Change on repo B, does not affect repo A paths
+    Files.write(workdir.resolve("foo/bar/one"), "Second version".getBytes(UTF_8));
+    Writer<GitRevision> writer2 = newWriter(repoBglob);
+    DummyRevision repoBfirstRev = new DummyRevision("Bar first");
+    process(writer2, repoBfirstRev);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo/one", "Second version")
+        .containsFile("foo/bar/one", "Second version")
+        .containsFile("baz/one", "First version")
+        .containsNoMoreFiles();
+    verifyDestinationStatus(repoAglob, repoAfirstRev);
+    verifyDestinationStatus(repoBglob, repoBfirstRev);
+
+    // Change on repo A does not affect repo B paths
+    Files.write(workdir.resolve("foo/one"), "Third version".getBytes(UTF_8));
+    Writer<GitRevision> writer3 = newWriter(repoAglob);
+    DummyRevision repoASecondRev = new DummyRevision("Foo second");
+    process(writer3, repoASecondRev);
+
+    GitTesting.assertThatCheckout(repo(), "master")
+        .containsFile("foo/one", "Third version")
+        .containsFile("foo/bar/one", "Second version")
+        .containsFile("baz/one", "First version")
+        .containsNoMoreFiles();
+    verifyDestinationStatus(repoAglob, repoASecondRev);
+    verifyDestinationStatus(repoBglob, repoBfirstRev);
+  }
+
   @Test
   public void previousImportReference() throws Exception {
     checkPreviousImportReference();
@@ -1276,12 +1408,21 @@ public class GitDestinationTest {
     return repository;
   }
 
+  private Writer<GitRevision> newWriter(Glob destinationFiles) throws ValidationException {
+    return newWriter(destinationFiles, /*oldWriter=*/ null);
+  }
+
   private Writer<GitRevision> newWriter() throws ValidationException {
-    return newWriter(/*oldWriter=*/null);
+    return newWriter(destinationFiles, /*oldWriter=*/ null);
   }
 
   private Writer<GitRevision> newWriter(@Nullable Writer<GitRevision> oldWriter)
       throws ValidationException {
+    return newWriter(destinationFiles, oldWriter);
+  }
+
+  private Writer<GitRevision> newWriter(
+      Glob destinationFiles, @Nullable Writer<GitRevision> oldWriter) throws ValidationException {
     return destination().newWriter(destinationFiles, /*dryRun=*/ false, /*groupId=*/null,
         oldWriter);
   }
@@ -1289,6 +1430,13 @@ public class GitDestinationTest {
   private Writer<GitRevision> firstCommitWriter() throws ValidationException {
     return destinationFirstCommit().newWriter(destinationFiles, /*dryRun=*/ false,
                                               /*groupId=*/null, /*oldWriter=*/null);
+  }
+
+  private void verifyDestinationStatus(Glob destinationFiles, DummyRevision revision)
+      throws RepoException, ValidationException {
+    assertThat(
+            newWriter(destinationFiles).getDestinationStatus(revision.getLabelName()).getBaseline())
+        .isEqualTo(revision.asString());
   }
 
   @Test

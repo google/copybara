@@ -43,13 +43,13 @@ import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
-import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -276,8 +276,13 @@ public final class GitDestination implements Destination<GitRevision> {
           ChangeReader.Builder.forDestination(repository, baseConsole)
               .setVerbose(generalOptions.isVerbose());
 
-      GitOrigin.visitChanges(start == null ? startRef : start, visitor, queryChanges,
-                             generalOptions, "destination", visitChangePageSize);
+      GitVisitorUtil.visitChanges(
+          start == null ? startRef : start,
+          visitor,
+          queryChanges,
+          generalOptions,
+          "destination",
+          visitChangePageSize);
     }
 
     /**
@@ -298,42 +303,78 @@ public final class GitDestination implements Destination<GitRevision> {
     @Override
     public DestinationStatus getDestinationStatus(String labelName)
         throws RepoException {
-      GitRepository gitRepository = getRepository(baseConsole);
+      GitRepository repo = getRepository(baseConsole);
       try {
-        fetchIfNeeded(gitRepository, baseConsole);
+        fetchIfNeeded(repo, baseConsole);
       } catch (ValidationException e) {
         return null;
       }
-      GitRevision startRef = getLocalBranchRevision(gitRepository);
+      GitRevision startRef = getLocalBranchRevision(repo);
       if (startRef == null) {
         return null;
       }
 
-      ImmutableSet<String> roots = destinationFiles.roots();
-      LogCmd logCmd = gitRepository.log(startRef.getSha1())
-          .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR)
-          .firstParent(lastRevFirstParent)
-          .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots);
-
-      // 99% of the times it will be the first match. But grep could return a false positive
-      // for a comment that contains labelName. But if entries is empty we know for sure
-      // that the label is not there.
-      ImmutableList<GitLogEntry> entries = logCmd.withLimit(1).run();
-      if (entries.isEmpty()) {
+      PathMatcher pathMatcher = destinationFiles.relativeTo(Paths.get(""));
+      DestinationStatusVisitor visitor = new DestinationStatusVisitor(pathMatcher, labelName);
+      ChangeReader.Builder changeReader =
+          ChangeReader.Builder.forDestination(repo, baseConsole)
+              .setVerbose(generalOptions.isVerbose())
+              .setFirstParent(lastRevFirstParent)
+              .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR)
+              .setRoots(destinationFiles.roots());
+      try {
+        // Using same visitChangePageSize for now
+        GitVisitorUtil.visitChanges(
+            startRef,
+            visitor,
+            changeReader,
+            generalOptions,
+            "get_destination_status",
+            visitChangePageSize);
+      } catch (CannotResolveRevisionException e) {
+        // TODO: handle
         return null;
       }
+      return visitor.getDestinationStatus();
+    }
 
-      String value = findLabelValue(labelName, entries);
-      if (value != null) {
-        return new DestinationStatus(value, ImmutableList.of());
+    /**
+     * A visitor that computes the {@link DestinationStatus} matching the actual files affected by
+     * the changes with the destination files glob.
+     */
+    private static class DestinationStatusVisitor implements ChangesVisitor {
+
+      private final PathMatcher pathMatcher;
+      private final String labelName;
+
+      private DestinationStatus destinationStatus = null;
+
+      DestinationStatusVisitor(PathMatcher pathMatcher, String labelName) {
+        this.pathMatcher = pathMatcher;
+        this.labelName = labelName;
       }
-      // Lets try with the latest matches. If we have that many false positives we give up.
-      entries = logCmd.withLimit(50).run();
-      value = findLabelValue(labelName, entries);
-      if (value != null) {
-        return new DestinationStatus(value, ImmutableList.of());
+
+      @Override
+      public VisitResult visit(Change<? extends Revision> change) {
+        ImmutableSet<String> changeFiles = change.getChangeFiles();
+        if (changeFiles != null) {
+          if (change.getLabels().containsKey(labelName)) {
+            for (String file : changeFiles) {
+              if (pathMatcher.matches(Paths.get('/' + file))) {
+                String lastRev = Iterables.getLast(change.getLabels().get(labelName));
+                destinationStatus = new DestinationStatus(lastRev, ImmutableList.of());
+                return VisitResult.TERMINATE;
+              }
+            }
+          }
+        }
+        return VisitResult.CONTINUE;
       }
-      return null;
+
+      @Nullable
+      DestinationStatus getDestinationStatus() {
+        return destinationStatus;
+      }
     }
 
     @Nullable
