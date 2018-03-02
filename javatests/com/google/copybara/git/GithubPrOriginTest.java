@@ -467,7 +467,8 @@ public class GithubPrOriginTest {
           throws IOException {
         if (url.contains("/status")) {
           return ("{\n"
-              + "    state = 'success'\n"
+              + "    state : 'success',\n"
+              + "    context : 'the_context'\n"
               + "}"
           ).getBytes(UTF_8);
         }

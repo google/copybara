@@ -27,6 +27,9 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 
+/**
+ * An implementation of {@link Action} that delegates to a Skylark function.
+ */
 public class SkylarkAction implements Action {
 
   private final BaseFunction function;
@@ -50,9 +53,20 @@ public class SkylarkAction implements Action {
             + " anything, but '" + function.getName() + "' returned:" + result);
       }
     } catch (EvalException e) {
-      // TODO(malcon): Do something here for RepoException
-      throw new ValidationException(e, "Error while executing the skylark transformer %s:%s",
-          function.getName(), e.getMessage());
+      String error =
+          String.format(
+              "Error while executing the skylark transformer %s:%s",
+              function.getName(), e.getMessage());
+      if (e.getCause() instanceof ValidationException) {
+        throw new ValidationException(e.getCause(), error);
+      } else if (e.getCause() instanceof RepoException) {
+        throw new RepoException(error, e.getCause());
+      }
+      throw new ValidationException(
+          e,
+          "Error while executing the skylark transformer %s:%s",
+          function.getName(),
+          e.getMessage());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);

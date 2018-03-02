@@ -17,6 +17,7 @@
 package com.google.copybara.git.githubapi.testing;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Ticker;
@@ -25,6 +26,8 @@ import com.google.common.collect.Lists;
 import com.google.copybara.git.githubapi.CombinedStatus;
 import com.google.copybara.git.githubapi.CreatePullRequest;
 import com.google.copybara.git.githubapi.CreateStatusRequest;
+import com.google.copybara.git.githubapi.GitHubApiException;
+import com.google.copybara.git.githubapi.GitHubApiException.ResponseCode;
 import com.google.copybara.git.githubapi.GitHubApiTransport;
 import com.google.copybara.git.githubapi.GithubApi;
 import com.google.copybara.git.githubapi.Issue;
@@ -111,6 +114,20 @@ public abstract class AbstractGithubApiTest {
     assertThat(pullRequest.getHead().getRef()).isEqualTo("example-branch");
     assertThat(pullRequest.getHead().getSha()).isEqualTo(
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+  }
+
+  @Test
+  public void testGetPullFail() throws Exception {
+    try {
+      api.getPullRequest("example/project", 12345);
+      fail();
+    } catch (GitHubApiException e) {
+      assertThat(e.getError().getMessage()).isNotEmpty();
+      assertThat(e.getError().getDocumentationUrl()).isNotEmpty();
+      assertThat(e.getRawError()).isNotEmpty();
+      assertThat(e.getHttpCode()).isEqualTo(404);
+      assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
+    }
   }
 
   @Test

@@ -21,6 +21,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
+import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonFactory;
@@ -35,6 +36,8 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.time.Duration;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -42,6 +45,8 @@ import javax.annotation.Nullable;
  * the requests.
  */
 public class GitHubApiTransportImpl implements GitHubApiTransport {
+
+  private static final Logger logger = Logger.getLogger(GitHubApiTransportImpl.class.getName());
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
   private static final String API_URL = "https://api.github.com";
@@ -68,8 +73,19 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
       return (T) response.parseAs(responseType);
+    } catch (HttpResponseException e) {
+      throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e), e.getContent());
     } catch (IOException e) {
       throw new RepoException("Error running GitHub API operation " + path, e);
+    }
+  }
+
+  private ClientError parseErrorOrIgnore(HttpResponseException e) {
+    try {
+      return JSON_FACTORY.createJsonParser(e.getContent()).parse(ClientError.class);
+    } catch (IOException ignore) {
+      logger.log(Level.WARNING, ignore, () -> "Invalid error response");
+      return new ClientError();
     }
   }
 

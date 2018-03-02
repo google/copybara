@@ -45,7 +45,7 @@ public class CreateStatusRequest extends GenericJson {
     this.state = Preconditions.checkNotNull(state);
     this.targetUrl = targetUrl;
     this.description = description;
-    this.context = context;
+    this.context = Preconditions.checkNotNull(context);
   }
 
   public State getState() {

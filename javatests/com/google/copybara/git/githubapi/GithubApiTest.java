@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -47,6 +48,12 @@ public class GithubApiTest extends AbstractGithubApiTest {
   private Map<String, Predicate<String>> requestValidators;
   private Path credentialsFile;
 
+  @Before
+  public void setUp() throws Exception {
+    requestToResponse.clear();
+    requestValidators.clear();
+  }
+
   @Override
   public GitHubApiTransport getTransport() throws Exception {
     credentialsFile = Files.createTempFile("credentials", "test");
@@ -58,27 +65,40 @@ public class GithubApiTest extends AbstractGithubApiTest {
 
     requestToResponse = new HashMap<>();
     requestValidators = new HashMap<>();
-    httpTransport = new MockHttpTransport() {
-      @Override
-      public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
-        String requestString = method + " " + url;
-        MockLowLevelHttpRequest request = new MockLowLevelHttpRequest() {
+    httpTransport =
+        new MockHttpTransport() {
           @Override
-          public LowLevelHttpResponse execute() throws IOException {
-            assertWithMessage("Request content did not match expected values.")
-                .that(requestValidators.get(method + " " + url).test(getContentAsString()))
-                .isTrue();
-            return super.execute();
+          public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
+            String requestString = method + " " + url;
+            MockLowLevelHttpRequest request =
+                new MockLowLevelHttpRequest() {
+                  @Override
+                  public LowLevelHttpResponse execute() throws IOException {
+                    Predicate<String> validator = requestValidators.get(method + " " + url);
+                    if (validator != null) {
+                      assertWithMessage("Request content did not match expected values.")
+                          .that(validator.test(getContentAsString()))
+                          .isTrue();
+                    }
+                    return super.execute();
+                  }
+                };
+            byte[] content = requestToResponse.get(requestString);
+            MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
+            if (content == null) {
+              response.setContent(
+                  String.format(
+                      "{ 'message' : 'This is not the repo you are looking for! %s %s',"
+                          + " 'documentation_url' : 'http://github.com/some_url'}",
+                      method, url));
+              response.setStatusCode(404);
+            } else {
+              response.setContent(content);
+            }
+            request.setResponse(response);
+            return request;
           }
         };
-        byte[] content = requestToResponse.get(requestString);
-        assertWithMessage("'" + method + " " + url + "'").that(content).isNotNull();
-        MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
-        response.setContent(content);
-        request.setResponse(response);
-        return request;
-      }
-    };
     return new GitHubApiTransportImpl(repo, httpTransport, "some_storage_file");
   }
 

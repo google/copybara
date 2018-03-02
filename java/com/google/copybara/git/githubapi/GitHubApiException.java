@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2018 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git.gerritapi;
+package com.google.copybara.git.githubapi;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -22,34 +22,40 @@ import com.google.copybara.RepoException;
 import java.util.EnumSet;
 
 /**
- * Exception that maps to Gerrit Http error codes
+ * Exception that contains the error object from GitHub and maps the Http error codes
  */
-public class GerritApiException extends RepoException {
+public class GitHubApiException extends RepoException {
 
-  private static final ImmutableMap<Integer, ResponseCode> CODE_MAP =
-      ImmutableMap.copyOf(
-          Maps.uniqueIndex(EnumSet.allOf(ResponseCode.class), ResponseCode::getCode));
+  private static final ImmutableMap<Integer, ResponseCode> CODE_MAP = ImmutableMap.copyOf(
+      Maps.uniqueIndex(EnumSet.allOf(ResponseCode.class), ResponseCode::getCode));
 
   private final ResponseCode responseCode;
-  private final int exitCode;
+  private final int httpCode;
+  private final ClientError error;
+  private final String rawError;
 
-  public GerritApiException(int exitCode, String message) {
-    super(message);
-    this.exitCode = exitCode;
-    this.responseCode = parseResponseCode(exitCode);
+  public GitHubApiException(int httpCode, ClientError error, String rawError) {
+    super(error.getMessage() != null ? error.getMessage() : rawError);
+    this.httpCode = httpCode;
+    this.responseCode = parseResponseCode(httpCode);
+    this.error = error;
+    this.rawError = rawError;
   }
 
   public ResponseCode getResponseCode() {
     return responseCode;
   }
 
-  public int getExitCode() {
-    return exitCode;
+  public int getHttpCode() {
+    return httpCode;
   }
 
-  private static ResponseCode parseResponseCode(int code) {
-    ResponseCode responseCode = CODE_MAP.get(code);
-    return responseCode == null ? ResponseCode.UNKNOWN : responseCode;
+  public ClientError getError() {
+    return error;
+  }
+
+  public String getRawError() {
+    return rawError;
   }
 
   /**
@@ -62,9 +68,6 @@ public class GerritApiException extends RepoException {
     BAD_REQUEST(400),
     FORBIDDEN(403),
     NOT_FOUND(404),
-    METHOD_NOT_ALLOWED(405),
-    CONFLICT(409),
-    PRECONDITION_FAILED(412),
     UNPROCESSABLE_ENTITY(422);
 
     private final int code;
@@ -76,5 +79,10 @@ public class GerritApiException extends RepoException {
     public int getCode() {
       return code;
     }
+  }
+
+  private static ResponseCode parseResponseCode(int code) {
+    ResponseCode responseCode = CODE_MAP.get(code);
+    return responseCode == null ? ResponseCode.UNKNOWN : responseCode;
   }
 }
