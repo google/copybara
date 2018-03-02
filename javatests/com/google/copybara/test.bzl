@@ -17,8 +17,8 @@ def all_tests(tests, deps, tags=[], shard_count=1, data = []):
     # TODO(malcon): Skip files not ending as *Test.java
     relative_target = file[:-5]
     suffix = relative_target.replace("/", ".")
-    pos = PACKAGE_NAME.rfind("javatests/") + len("javatests/")
-    test_class = PACKAGE_NAME[pos:].replace('/', '.',) + '.' + suffix
+    pos = native.package_name().rfind("javatests/") + len("javatests/")
+    test_class = native.package_name()[pos:].replace('/', '.',) + '.' + suffix
     native.java_test(
         name = file[:-5],
         srcs = [file],
