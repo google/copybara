@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -79,6 +80,18 @@ public class MainArgumentsTest {
     thrown.expect(CommandLineException.class);
     thrown.expectMessage("Expected at least a configuration file");
     parseUnnamedArgs();
+  }
+
+  @Test
+  public void testWrongCommand() throws Exception {
+    mainArguments.unnamed = ImmutableList.of("foooo");
+    try {
+      parseUnnamedArgs();
+      fail();
+    } catch (CommandLineException e) {
+      assertThat(e).hasMessageThat()
+          .containsMatch("Available commands: \\[info, migrate, validate\\]");
+    }
   }
 
   @Test

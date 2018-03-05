@@ -21,6 +21,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
@@ -28,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -162,7 +164,8 @@ public final class MainArguments {
     if (!firstArg.endsWith(COPYBARA_SKYLARK_CONFIG_FILENAME)) {
       if (!commands.containsKey(firstArg.toLowerCase())) {
         throw new CommandLineException(
-            String.format("Invalid subcommand '%s'. Available commands: %s", firstArg, commands));
+            String.format("Invalid subcommand '%s'. Available commands: %s", firstArg,
+                new TreeSet<>(commands.keySet())));
       }
       subcommand = commands.get(firstArg.toLowerCase());
       argumentId++;
