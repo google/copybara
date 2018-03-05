@@ -448,14 +448,20 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           @Param(name = "skip_push", type = Boolean.class, defaultValue = "False",
               doc = "If set, copybara will not actually push the result to the destination. This is"
                   + " meant for testing workflows and dry runs."),
+          @Param(name = "title", type = String.class, defaultValue = "None", noneable = true,
+              doc = "When creating a pull request, use this title. By default it uses the change"
+                  + " first line."),
+          @Param(name = "body", type = String.class, defaultValue = "None", noneable = true,
+              doc = "When creating a pull request, use this body. By default it uses the change"
+                  + " summary."),
       },
       objectType = GitModule.class, useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GithubDestinationOptions.class})
   public static final BuiltinFunction GH_PR_DESTINATION = new BuiltinFunction(
       "github_pr_destination",
-      ImmutableList.of("master", false)) {
+      ImmutableList.of("master", false, Runtime.NONE, Runtime.NONE)) {
     public GithubPrDestination invoke(GitModule self, String url, String destinationRef,
-        Boolean skipPush, Location location) throws EvalException {
+        Boolean skipPush, Object title, Object body, Location location) throws EvalException {
       GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
       // We don't restrict to github.com domain so that we can support GH Enterprise
       // in the future.
@@ -471,7 +477,9 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           skipPush,
           new DefaultCommitGenerator(),
           new ProcessPushStructuredOutput(),
-          NO_GIT_DESTINATION_INTEGRATES);
+          NO_GIT_DESTINATION_INTEGRATES,
+          SkylarkUtil.convertFromNoneable(title, null),
+          SkylarkUtil.convertFromNoneable(body, null));
     }
   };
 

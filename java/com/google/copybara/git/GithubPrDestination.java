@@ -58,6 +58,8 @@ public class GithubPrDestination implements Destination<GitRevision> {
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
   private final Iterable<GitIntegrateChanges> integrates;
+  @Nullable private String title;
+  @Nullable private String body;
   private final boolean effectiveSkipPush;
   private final LazyGitRepository localRepo;
 
@@ -66,7 +68,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
       GitDestinationOptions destinationOptions, GithubDestinationOptions githubDestinationOptions,
       GitOptions gitOptions,
       boolean skipPush, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
-      Iterable<GitIntegrateChanges> integrates) {
+      Iterable<GitIntegrateChanges> integrates, @Nullable String title, @Nullable String body) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -77,6 +79,8 @@ public class GithubPrDestination implements Destination<GitRevision> {
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
     this.integrates = Preconditions.checkNotNull(integrates);
+    this.title = title;
+    this.body = body;
     this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
   }
@@ -171,7 +175,8 @@ public class GithubPrDestination implements Destination<GitRevision> {
         }
         ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
         PullRequest pr = api.createPullRequest(getProjectName(),
-            new CreatePullRequest(msg.firstLine(), msg.getText(),
+            new CreatePullRequest(title == null ? msg.firstLine() : title,
+                body == null ? msg.getText() : body,
                 pushBranchName, destinationRef));
         console.infoFmt("Pull Request %s/pull/%s created using branch '%s'.", asHttpsUrl(),
             pr.getNumber(), pushBranchName);

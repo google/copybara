@@ -1444,7 +1444,7 @@ Name | Type | Description
 
 Creates changes in a new pull request in the destination.
 
-`githubPrDestination git.github_pr_destination(url, destination_ref=master, skip_push=False)`
+`githubPrDestination git.github_pr_destination(url, destination_ref=master, skip_push=False, title=None, body=None)`
 
 #### Parameters:
 
@@ -1453,6 +1453,8 @@ Parameter | Description
 url|`string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
 destination_ref|`string`<br><p>Destination reference for the change. By default 'master'</p>
 skip_push|`boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+title|`string`<br><p>When creating a pull request, use this title. By default it uses the change first line.</p>
+body|`string`<br><p>When creating a pull request, use this body. By default it uses the change summary.</p>
 
 
 

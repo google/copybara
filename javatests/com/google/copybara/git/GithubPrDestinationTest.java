@@ -65,7 +65,7 @@ public class GithubPrDestinationTest {
   public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private Path localHub;
-  private String expectedProject = "foo";
+  private final String expectedProject = "foo";
   private GitApiMockHttpTransport gitApiMockHttpTransport;
 
   @Before
@@ -106,6 +106,53 @@ public class GithubPrDestinationTest {
   @Test
   public void testWrite() throws ValidationException, IOException, RepoException {
     checkWrite("feature");
+  }
+
+  @Test
+  public void testCustomTitleAndBody()
+      throws ValidationException, IOException, RepoException {
+    options.githubDestination.destinationPrBranch = "feature";
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
+
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+          throws IOException {
+        boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+        if ("GET".equals(method) && isPulls) {
+          return "[]".getBytes(UTF_8);
+        } else if ("POST".equals(method) && isPulls) {
+          assertThat(request.getContentAsString())
+              .isEqualTo("{\"base\":\"master\","
+                  + "\"body\":\"custom body\","
+                  + "\"head\":\"feature\","
+                  + "\"title\":\"custom title\"}");
+          return ("{\n"
+              + "  \"id\": 1,\n"
+              + "  \"number\": 12345,\n"
+              + "  \"state\": \"open\",\n"
+              + "  \"title\": \"custom title\",\n"
+              + "  \"body\": \"custom body\""
+              + "}").getBytes();
+        }
+        fail(method + " " + url);
+        throw new IllegalStateException();
+      }
+    };
+    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo', \n"
+        + "    title = 'custom title',\n"
+        + "    body = 'custom body',\n"
+        + ")");
+
+    Writer<GitRevision> writer = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, null,
+        /*oldWriter=*/null);
+
+    GitRepository remote = localHubRepo("foo");
+    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+
+    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
   }
 
   @Test
@@ -215,7 +262,7 @@ public class GithubPrDestinationTest {
     checkFindProject("https://github.com", "foo");
   }
 
-  private void checkFindProject(String url, final String project) throws ValidationException {
+  private void checkFindProject(String url, String project) throws ValidationException {
     GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = '" + url + "',"
         + "    destination_ref = 'other',"
