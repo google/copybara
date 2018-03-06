@@ -19,6 +19,8 @@ package com.google.copybara.monitor;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.DestinationEffect;
+import com.google.copybara.Info;
+import com.google.copybara.Revision;
 import com.google.copybara.util.ExitCode;
 
 /**
@@ -37,6 +39,9 @@ public interface EventMonitor {
 
   /** Invoked when the migration finishes, only once at the end of the execution */
   default void onMigrationFinished(MigrationFinishedEvent event) {}
+
+  /** Invoked when an info subcommand finishes, only once at the end of the execution */
+  default void onInfoFinished(InfoFinishedEvent event) {};
 
   /** Event that happens for every migration that is started. */
   class MigrationStartedEvent {}
@@ -68,6 +73,20 @@ public interface EventMonitor {
 
     public ExitCode getExitCode() {
       return exitCode;
+    }
+  }
+
+  /** Event that happens for every info subcommand that is finished. */
+  class InfoFinishedEvent {
+
+    private final Info<? extends Revision> info;
+
+    public InfoFinishedEvent(Info<? extends Revision> info) {
+      this.info = Preconditions.checkNotNull(info);
+    }
+
+    public Info<? extends Revision> getInfo() {
+      return info;
     }
   }
 }

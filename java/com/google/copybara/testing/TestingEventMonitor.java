@@ -16,6 +16,7 @@
 
 package com.google.copybara.testing;
 
+import com.google.common.base.Preconditions;
 import com.google.copybara.monitor.EventMonitor;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,7 @@ public class TestingEventMonitor implements EventMonitor {
 
   public List<ChangeMigrationStartedEvent> changeMigrationStartedEvents = new ArrayList<>();
   public List<ChangeMigrationFinishedEvent> changeMigrationFinishedEvents = new ArrayList<>();
+  public InfoFinishedEvent infoFinishedEvent;
 
   @Override
   public void onChangeMigrationStarted(ChangeMigrationStartedEvent event) {
@@ -33,6 +35,12 @@ public class TestingEventMonitor implements EventMonitor {
   @Override
   public void onChangeMigrationFinished(ChangeMigrationFinishedEvent event) {
     changeMigrationFinishedEvents.add(event);
+  }
+
+  @Override
+  public void onInfoFinished(InfoFinishedEvent event) {
+    Preconditions.checkState(infoFinishedEvent == null, "onInfoFinished() called more than once.");
+    infoFinishedEvent = event;
   }
 
   public int changeMigrationStartedEventCount() {

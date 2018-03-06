@@ -21,14 +21,12 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.util.StructuredOutput;
-import com.google.copybara.util.StructuredOutput.SummaryLine;
+import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.time.ZoneId;
@@ -44,6 +42,7 @@ public class CopybaraTest {
 
   private OptionsBuilder optionsBuilder;
   private TestingConsole console;
+  private TestingEventMonitor eventMonitor;
   private Migration migration;
   private Config config;
 
@@ -51,7 +50,9 @@ public class CopybaraTest {
   public void setUp() throws Exception {
     optionsBuilder = new OptionsBuilder();
     console = new TestingConsole();
+    eventMonitor = new TestingEventMonitor();
     optionsBuilder.setConsole(console);
+    optionsBuilder.general.withEventMonitor(eventMonitor);
     migration = mock(Migration.class);
     config = new Config(ImmutableMap.of("workflow", migration), "foo/copy.bara.sky");
   }
@@ -60,18 +61,15 @@ public class CopybaraTest {
   public void testInfoUpToDate() throws Exception {
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create("workflow", new DummyRevision("1111"), ImmutableList.of());
-    Info<? extends Revision> info = Info.create(ImmutableList.of(workflow));
-    Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(info);
+    Info<? extends Revision> mockedInfo = Info.create(ImmutableList.of(workflow));
+    Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
 
     Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {},
                                      /*configLoaderProvider=*/ null);
     copybara.info(optionsBuilder.build(), config, "workflow");
 
-    StructuredOutput structuredOutput = optionsBuilder.general.getStructuredOutput();
-    assertThat(structuredOutput.getSummaryLines()).hasSize(1);
-    SummaryLine summaryLine = Iterables.getOnlyElement(structuredOutput.getSummaryLines());
-    assertThat(summaryLine.getSummary()).isEqualTo("No changes available to migrate.");
-
+    assertThat(eventMonitor.infoFinishedEvent).isNotNull();
+    assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
     console
         .assertThat()
         .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available None.*");
@@ -84,21 +82,15 @@ public class CopybaraTest {
             "workflow",
             new DummyRevision("1111"),
             ImmutableList.of(newChange("2222"), newChange("3333")));
-    Info<? extends Revision> info = Info.create(ImmutableList.of(workflow));
-    Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(info);
+    Info<? extends Revision> mockedInfo = Info.create(ImmutableList.of(workflow));
+    Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
 
     Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {},
                                      /*configLoaderProvider=*/ null);
     copybara.info(optionsBuilder.build(), config, "workflow");
 
-    StructuredOutput structuredOutput = optionsBuilder.general.getStructuredOutput();
-    assertThat(structuredOutput.getSummaryLines()).hasSize(1);
-    SummaryLine summaryLine = Iterables.getOnlyElement(structuredOutput.getSummaryLines());
-    assertThat(summaryLine.getSummary()).isEqualTo("Changes available to migrate: 2.");
-    assertThat(summaryLine.getAvailableToMigrate()).isNotNull();
-    assertThat(summaryLine.getAvailableToMigrate().getRevisions())
-        .isEqualTo(ImmutableList.of("2222", "3333"));
-
+    assertThat(eventMonitor.infoFinishedEvent).isNotNull();
+    assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
     console
         .assertThat()
         .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available 3333.*");

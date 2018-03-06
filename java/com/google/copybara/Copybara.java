@@ -22,8 +22,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.config.ConfigValidator;
-import com.google.copybara.util.StructuredOutput;
-import com.google.copybara.util.StructuredOutput.AvailableToMigrate;
+import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
@@ -86,15 +85,12 @@ public class Copybara {
         .run(workdir, sourceRef);
   }
 
-  /**
-   * Retrieves the {@link Info} of the {@code migrationName} and prints it to the console.
-   */
+  /** Retrieves the {@link Info} of the {@code migrationName} and prints it to the console. */
   public void info(Options options, Config config, String migrationName)
-      throws IOException, ValidationException, RepoException {
+      throws ValidationException, RepoException {
     @SuppressWarnings("unchecked")
     Info<? extends Revision> info = getInfo(migrationName, config);
     Console console = options.get(GeneralOptions.class).console();
-    StructuredOutput structuredOutput = options.get(GeneralOptions.class).getStructuredOutput();
     int outputSize = 0;
     for (MigrationReference<? extends Revision> migrationRef : info.migrationReferences()) {
       console.info(String.format(
@@ -108,10 +104,7 @@ public class Copybara {
       ImmutableList<? extends Change<? extends Revision>> availableToMigrate =
           migrationRef.getAvailableToMigrate();
       int outputLimit = options.get(GeneralOptions.class).getOutputLimit();
-      if (availableToMigrate.isEmpty()) {
-        structuredOutput.getCurrentSummaryLineBuilder()
-            .setSummary("No changes available to migrate.");
-      } else {
+      if (!availableToMigrate.isEmpty()) {
         console.infoFmt(
             "Available changes%s:",
             availableToMigrate.size() <= outputLimit
@@ -128,34 +121,19 @@ public class Copybara {
               change.firstLineMessage(),
               change.getAuthor()));
         }
-        // TODO(malcon, danielromero): Replace structuredOutput with an event or return statement.
-        structuredOutput
-            .getCurrentSummaryLineBuilder()
-            .setAvailableToMigrate(
-                AvailableToMigrate.create(
-                    availableToMigrate
-                        .stream()
-                        .map(change -> change.getRevision().asString())
-                        .collect(ImmutableList.toImmutableList())))
-            .setSummary(
-                String.format(
-                    "Changes available to migrate: %d.",
-                    availableToMigrate.size()));
       }
       // TODO(danielromero): Check flag usage on 2018-06 and decide if we keep it
       if (outputSize > 100) {
         console.infoFmt(
             "Use %s to limit the output of the command.", GeneralOptions.OUTPUT_LIMIT_FLAG);
       }
-      structuredOutput.appendSummaryLine();
     }
+    options.get(GeneralOptions.class).eventMonitor().onInfoFinished(new InfoFinishedEvent(info));
   }
 
-  /**
-   * Returns the {@link Info} of the {@code migrationName}.
-   */
+  /** Returns the {@link Info} of the {@code migrationName}. */
   public Info<? extends Revision> getInfo(String migrationName, Config config)
-      throws IOException, ValidationException, RepoException {
+      throws ValidationException, RepoException {
     return config.getMigration(migrationName).getInfo();
   }
 
@@ -167,7 +145,7 @@ public class Copybara {
    * validated syntactically.
    */
   public boolean validate(Options options, ConfigLoader<?> configLoader, String migrationName)
-      throws RepoException, IOException {
+      throws IOException {
     Console console = options.get(GeneralOptions.class).console();
     ArrayList<Message> messages = new ArrayList<>();
     try {
