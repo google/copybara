@@ -74,7 +74,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       HttpResponse response = httpRequest.execute();
       return (T) response.parseAs(responseType);
     } catch (HttpResponseException e) {
-      throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e), e.getContent());
+      throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
+                                   "GET", path, null, e.getContent());
     } catch (IOException e) {
       throw new RepoException("Error running GitHub API operation " + path, e);
     }
@@ -113,6 +114,15 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
           new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
       return (T) response.parseAs(responseType);
+    } catch (HttpResponseException e) {
+      try {
+        throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
+                                     "POST", path, JSON_FACTORY.toPrettyString(request), e.getContent());
+      } catch (IOException e1) {
+        logger.log(Level.SEVERE, "Error serializing request for error", e1);
+        throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
+                                     "POST", path, "unknown request", e.getContent());
+      }
     } catch (IOException e) {
       throw new RepoException("Error running GitHub API operation " + path, e);
     }

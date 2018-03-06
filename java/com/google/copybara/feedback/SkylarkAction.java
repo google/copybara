@@ -63,7 +63,7 @@ public class SkylarkAction implements Action {
         throw new RepoException(error, e.getCause());
       }
       throw new ValidationException(
-          e,
+          e.getCause(),
           "Error while executing the skylark transformer %s:%s",
           function.getName(),
           e.getMessage());

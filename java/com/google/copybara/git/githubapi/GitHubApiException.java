@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.copybara.RepoException;
 import java.util.EnumSet;
+import javax.annotation.Nullable;
 
 /**
  * Exception that contains the error object from GitHub and maps the Http error codes
@@ -32,14 +33,42 @@ public class GitHubApiException extends RepoException {
   private final ResponseCode responseCode;
   private final int httpCode;
   private final ClientError error;
-  private final String rawError;
+  private String httpMethod;
+  private String path;
+  @Nullable private String request;
+  private String response;
 
-  public GitHubApiException(int httpCode, ClientError error, String rawError) {
-    super(error.getMessage() != null ? error.getMessage() : rawError);
+  public GitHubApiException(
+      int httpCode,
+      ClientError error,
+      String httpMethod,
+      String path,
+      @Nullable String request,
+      String response) {
+    super(detailedError(httpMethod, path, request, response, httpCode));
     this.httpCode = httpCode;
     this.responseCode = parseResponseCode(httpCode);
     this.error = error;
-    this.rawError = rawError;
+    this.httpMethod = httpMethod;
+    this.path = path;
+    this.request = request;
+    this.response = response;
+  }
+
+  private static String detailedError(
+      String httpMethod, String path, @Nullable String request, String response, int httpCode) {
+    StringBuilder sb =
+        new StringBuilder("GitHub API call failed with code ")
+            .append(httpCode)
+            .append(" The request was ")
+            .append(httpMethod)
+            .append(" ")
+            .append(path);
+    if (request != null) {
+      sb.append("Request object:\n").append(request).append("\n");
+    }
+    sb.append("Response:\n").append(response).append("\n");
+    return sb.toString();
   }
 
   public ResponseCode getResponseCode() {
@@ -55,7 +84,7 @@ public class GitHubApiException extends RepoException {
   }
 
   public String getRawError() {
-    return rawError;
+    return detailedError(httpMethod, path, request, response, httpCode);
   }
 
   /**
