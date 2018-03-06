@@ -39,8 +39,7 @@ import javax.annotation.Nullable;
  */
 class ChangeReader {
 
-  @Nullable
-  private final Authoring authoring;
+  @Nullable private final Authoring authoring;
   private final GitRepository repository;
   private final int limit;
   private final ImmutableList<String> roots;
@@ -48,8 +47,7 @@ class ChangeReader {
   private String url;
   private boolean firstParent;
   private int skip;
-  @Nullable
-  private final String grepString;
+  @Nullable private final String grepString;
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, int limit,
       Iterable<String> roots, boolean includeBranchCommitLogs, @Nullable String url,
@@ -158,11 +156,11 @@ class ChangeReader {
       this.parents = ImmutableList.copyOf(parents);
     }
 
-    public Change<GitRevision> getChange() {
+    Change<GitRevision> getChange() {
       return change;
     }
 
-    public ImmutableList<GitRevision> getParents() {
+    ImmutableList<GitRevision> getParents() {
       return parents;
     }
   }
@@ -234,17 +232,24 @@ class ChangeReader {
       this.includeBranchCommitLogs = includeBranchCommitLogs;
       return this;
     }
-    public Builder setUrl(String url) {
+
+    Builder setUrl(String url) {
       this.url = url;
       return this;
     }
 
-    public Builder setRoots(Iterable<String> roots) {
+    /**
+     * Only return commits that match the given paths in the Git log command.
+     */
+    Builder setRoots(Iterable<String> roots) {
       this.roots = ImmutableList.copyOf(roots);
       return this;
     }
 
-    public Builder grep(String grepString) {
+    /**
+     * Grep for the given pattern in the Git log command.
+     */
+    Builder grep(String grepString) {
       this.grepString = grepString;
       return this;
     }
