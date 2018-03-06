@@ -48,10 +48,12 @@ class ChangeReader {
   private String url;
   private boolean firstParent;
   private int skip;
+  @Nullable
+  private final String grepString;
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, int limit,
       Iterable<String> roots, boolean includeBranchCommitLogs, @Nullable String url,
-      boolean firstParent, int skip) {
+      boolean firstParent, int skip, @Nullable String grepString) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
     this.limit = limit;
@@ -60,6 +62,7 @@ class ChangeReader {
     this.url = url;
     this.firstParent = firstParent;
     this.skip = skip;
+    this.grepString = grepString;
   }
 
   ImmutableList<GitChange> run(String refExpression) throws RepoException {
@@ -72,6 +75,9 @@ class ChangeReader {
     }
     if (skip > 0) {
       logCmd = logCmd.withSkip(skip);
+    }
+    if (grepString != null) {
+      logCmd = logCmd.grep(grepString);
     }
     return parseChanges(logCmd.includeFiles(true).includeMergeDiff(true).run());
   }
@@ -176,6 +182,7 @@ class ChangeReader {
     private String url;
     private boolean firstParent;
     private int skip;
+    private String grepString;
 
     // TODO(matvore): Consider adding destinationFiles.
     // For ALL_FILES and where roots is [""], This will skip merges that don't affect the tree
@@ -232,17 +239,21 @@ class ChangeReader {
       return this;
     }
 
-    private Builder setRoots(Iterable<String> roots) {
+    public Builder setRoots(Iterable<String> roots) {
       this.roots = ImmutableList.copyOf(roots);
+      return this;
+    }
+
+    public Builder grep(String grepString) {
+      this.grepString = grepString;
       return this;
     }
 
     ChangeReader build() {
       return new ChangeReader(
           authoring, repository, limit, roots, includeBranchCommitLogs, url,
-          firstParent, skip);
+          firstParent, skip, grepString);
     }
-
   }
 
 }
