@@ -20,7 +20,10 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.Lists;
+import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.util.console.Console;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
@@ -118,6 +121,13 @@ public class WorkflowOptions implements Option {
       names = READ_CONFIG_FROM_CHANGE,
       description = "For each imported origin change, load the configuration from that change.")
   boolean readConfigFromChange = false;
+
+  @Parameter(names = "--change-request-from-sot-retry",
+      description = "Number of retries and delay between retries when we cannot find the baseline"
+          + " in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry"
+          + " three times. The first retry will be delayed 10s, the second one 30s and the third"
+          + " one 60s", validateWith = GreaterThanZeroListValidator.class)
+  public List<Integer> changeRequestFromSotRetry= Lists.newArrayList();
 
   public boolean isReadConfigFromChange() {
     return readConfigFromChange;

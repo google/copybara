@@ -181,6 +181,11 @@ public class Main {
       return ExitCode.COMMAND_LINE_ERROR;
     } catch (RepoException e) {
       printCauseChain(Level.SEVERE, console, args, e);
+      // TODO(malcon): Expose interrupted exception from WorkflowMode to Main so that we don't
+      // have to do this hack.
+      if (e.getCause() instanceof InterruptedException) {
+        return ExitCode.INTERRUPTED;
+      }
       return ExitCode.REPOSITORY_ERROR;
     } catch (EmptyChangeException e) {
       // This is not necessarily an error. Maybe the tool was run previously and there are no new
@@ -189,7 +194,8 @@ public class Main {
       return ExitCode.NO_OP;
     } catch (ValidationException e) {
       printCauseChain(Level.WARNING, console, args, e);
-      return ExitCode.CONFIGURATION_ERROR;
+      // TODO(malcon): Think of a better way of doing this
+      return e.isRetryable()? ExitCode.REPOSITORY_ERROR : ExitCode.CONFIGURATION_ERROR;
     } catch (IOException e) {
       handleUnexpectedError(console, e.getMessage(), args, e);
       return ExitCode.ENVIRONMENT_ERROR;

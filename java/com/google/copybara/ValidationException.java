@@ -22,16 +22,27 @@ package com.google.copybara;
  */
 public class ValidationException extends Exception {
 
+  private final boolean retryable;
   public ValidationException(String message) {
     super(message);
+    retryable = false;
   }
 
   public ValidationException(String message, Object... args) {
     super(String.format(message, args));
+    retryable = false;
+  }
+
+  public ValidationException(boolean retryable, String message, Object... args) {
+    super(String.format(message, args));
+    this.retryable = retryable;
   }
 
   public ValidationException(Throwable cause, String message) {
     super(message, cause);
+    retryable = cause != null
+        && cause instanceof ValidationException
+        && ((ValidationException) cause).retryable;
   }
 
   public ValidationException(Throwable cause, String message, Object... args) {
@@ -43,5 +54,9 @@ public class ValidationException extends Exception {
     if (!condition) {
       throw new ValidationException(format, args);
     }
+  }
+
+  public boolean isRetryable() {
+    return retryable;
   }
 }

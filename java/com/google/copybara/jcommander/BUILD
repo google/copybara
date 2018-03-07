@@ -21,5 +21,6 @@ java_library(
     srcs = glob(["**/*Validator.java"]),
     deps = [
         "//third_party:jcommander",
+        "//third_party:guava",
     ],
 )

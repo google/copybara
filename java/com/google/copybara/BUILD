@@ -111,6 +111,7 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/jcommander:validators",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:autovalue",

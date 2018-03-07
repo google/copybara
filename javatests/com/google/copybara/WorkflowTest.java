@@ -1120,6 +1120,19 @@ public class WorkflowTest {
 
   @Test
   public void changeRequest_sot_ahead_sot() throws Exception {
+    checkChangeRequest_sot_ahead_sot();
+  }
+
+  @Test
+  public void changeRequest_sot_ahead_sot_retries() throws Exception {
+    options.workflowOptions.changeRequestFromSotRetry = Lists.newArrayList(1,1,1,1,1);
+    checkChangeRequest_sot_ahead_sot();
+    console().assertThat().timesInLog(5, MessageType.WARNING,
+        ".*Couldn't find a change in the destination.*Retrying in.*");
+  }
+
+  private void checkChangeRequest_sot_ahead_sot()
+      throws IOException, ValidationException, RepoException {
     origin
         .addSimpleChange(0, "Base Change")
         .addSimpleChange(1, "First Change")
@@ -1140,6 +1153,7 @@ public class WorkflowTest {
       fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains("Make sure to sync the submitted changes");
+      assertThat(e.isRetryable()).isTrue();
     }
   }
 
