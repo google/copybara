@@ -853,7 +853,7 @@ Name | Type | Description
 --threads-min-size | *int* | Minimum size of the lists to process to run them in parallel
 --notransformation-join | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
 --read-config-from-change | *boolean* | For each imported origin change, load the configuration from that change.
---change-request-from-sot-retry | *integer>* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 30s
+--change-request-from-sot-retry | *integer>* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
