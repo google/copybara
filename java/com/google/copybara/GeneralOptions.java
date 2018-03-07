@@ -29,7 +29,6 @@ import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DirFactory;
-import com.google.copybara.util.StructuredOutput;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -53,7 +52,6 @@ public final class GeneralOptions implements Option {
   private final FileSystem fileSystem;
   private final boolean verbose;
   private final Console console;
-  private final StructuredOutput structuredOutput = new StructuredOutput();
   private final boolean noCleanup;
   private final boolean disableReversibleCheck;
   private final boolean force;
@@ -117,11 +115,6 @@ public final class GeneralOptions implements Option {
 
   public Console console() {
     return console;
-  }
-
-  @Deprecated
-  public StructuredOutput getStructuredOutput() {
-    return structuredOutput;
   }
 
   public FileSystem getFileSystem() {

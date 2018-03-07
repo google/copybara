@@ -20,7 +20,7 @@ java_library(
     name = "validators",
     srcs = glob(["**/*Validator.java"]),
     deps = [
-        "//third_party:jcommander",
         "//third_party:guava",
+        "//third_party:jcommander",
     ],
 )
