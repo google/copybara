@@ -45,13 +45,13 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -186,7 +186,7 @@ public class GitRepository {
    */
   public static GitRepository newBareRepo(Path gitDir, Map<String, String> environment,
       boolean verbose) {
-    return new GitRepository(gitDir,/*workTree=*/null, verbose, environment);
+    return new GitRepository(gitDir, /*workTree=*/null, verbose, environment);
   }
 
   /**
@@ -309,7 +309,7 @@ public class GitRepository {
    */
   public Refspec createRefSpec(String ref) throws ValidationException {
     // Validate refspec
-    return Refspec.create(environment, gitDir, ref/*location=*/ );
+    return Refspec.create(environment, gitDir, ref);
   }
 
   @CheckReturnValue
@@ -452,7 +452,7 @@ public class GitRepository {
   /**
    * Can be overwriten to add custom behavior.
    */
-  protected String runPush(PushCmd pushCmd) throws RepoException {
+  protected String runPush(PushCmd pushCmd) throws RepoException, ValidationException {
     List<String> cmd = Lists.newArrayList("push");
 
     if (pushCmd.prune) {
@@ -494,7 +494,7 @@ public class GitRepository {
     @CheckReturnValue
     public AddCmd all() {
       Preconditions.checkState(Iterables.isEmpty(files), "'all' and passing files is incompatible");
-      return new AddCmd(force,/*all=*/ true, files);
+      return new AddCmd(force, /*all=*/true, files);
     }
 
     /** Configure the files to add to the index */
@@ -597,7 +597,7 @@ public class GitRepository {
     if (FAILED_REBASE.matcher(output.getStderr()).find()) {
       throw new RebaseConflictException(
           "Conflict detected while rebasing " + workTree + " to " + newBaseline
-              + ". Git ouput was:\n" + output.getStdout());
+              + ". Git output was:\n" + output.getStdout());
     }
     throw new RepoException(output.getStderr());
   }
@@ -1001,7 +1001,7 @@ public class GitRepository {
       throw new CannotResolveRevisionException(
           "Cannot find '" + reference + "' object in the repository");
     }
-    return new GitRevision(this, parseRef(reference),/*reviewReference=*/null, contextRef,
+    return new GitRevision(this, parseRef(reference), /*reviewReference=*/null, contextRef,
         ImmutableMap.of(), url);
   }
 
@@ -1294,7 +1294,7 @@ public class GitRepository {
     /**
      * Runs the push command and returns the response from the server.
      */
-    public String run() throws RepoException {
+    public String run() throws RepoException, ValidationException {
       return repo.runPush(this);
     }
 

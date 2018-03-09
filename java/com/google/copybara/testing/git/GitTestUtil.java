@@ -23,10 +23,10 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.FetchResult;
 import com.google.copybara.git.GitOptions;
@@ -197,7 +197,7 @@ public final class GitTestUtil {
     }
 
     @Override
-    protected String runPush(PushCmd pushCmd) throws RepoException {
+    protected String runPush(PushCmd pushCmd) throws RepoException, ValidationException {
       if (pushCmd.getUrl() != null) {
         pushCmd = pushCmd.withRefspecs(mapUrl(pushCmd.getUrl()),
             pushCmd.getRefspecs());

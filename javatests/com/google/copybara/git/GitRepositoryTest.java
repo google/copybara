@@ -38,14 +38,6 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -58,6 +50,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitRepositoryTest {
@@ -289,7 +287,7 @@ public class GitRepositoryTest {
     // Amend the merge
     Files.write(workdir.resolve("other"), "content".getBytes(UTF_8));
     repository.add().files("other").run();
-    repository.commit("Foo <bar@bara.com>",/*amend=*/true,
+    repository.commit("Foo <bar@bara.com>", /*amend=*/true,
         ZonedDateTime.now(ZoneId.of("-07:00")).truncatedTo(ChronoUnit.SECONDS), "Merge");
 
     result = repository.log("master")
