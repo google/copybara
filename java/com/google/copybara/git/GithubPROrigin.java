@@ -16,9 +16,9 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.ValidationException.checkCondition;
-import static com.google.copybara.git.GithubUtil.asGithubUrl;
-import static com.google.copybara.git.GithubUtil.getProjectNameFromUrl;
+import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.git.github.util.GithubUtil.asGithubUrl;
+import static com.google.copybara.git.github.util.GithubUtil.getProjectNameFromUrl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
@@ -31,31 +31,34 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
-import com.google.copybara.EmptyChangeException;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
-import com.google.copybara.git.GithubUtil.GithubPrUrl;
-import com.google.copybara.git.githubapi.Issue;
-import com.google.copybara.git.githubapi.Issue.Label;
-import com.google.copybara.git.githubapi.PullRequest;
+import com.google.copybara.git.github.api.Issue;
+import com.google.copybara.git.github.api.Issue.Label;
+import com.google.copybara.git.github.api.PullRequest;
+import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.git.github.util.GithubUtil.GithubPrUrl;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+
 import javax.annotation.Nullable;
 
 /**
@@ -115,7 +118,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
     // A whole https pull request url
     Optional<GithubPrUrl> githubPrUrl = GithubUtil.maybeParseGithubPrUrl(reference);
-    String configProjectName = GithubUtil.getProjectNameFromUrl(url);
+    String configProjectName = getProjectNameFromUrl(url);
     if (githubPrUrl.isPresent()) {
       checkCondition(
           githubPrUrl.get().getProject().equals(configProjectName),

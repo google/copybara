@@ -16,8 +16,8 @@
 
 package com.google.copybara.git.gerritapi;
 
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import java.lang.reflect.Type;
 
 /**

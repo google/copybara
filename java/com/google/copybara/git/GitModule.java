@@ -17,8 +17,8 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.copybara.config.base.SkylarkUtil.checkNotEmpty;
-import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
@@ -29,13 +29,13 @@ import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.GlobalMigrations;
 import com.google.copybara.config.LabelsAwareModule;
-import com.google.copybara.config.base.OptionsAwareModule;
-import com.google.copybara.config.base.SkylarkUtil;
+import com.google.copybara.config.OptionsAwareModule;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
@@ -44,6 +44,7 @@ import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GithubPROrigin.StateFilter;
+import com.google.copybara.git.github.util.GithubUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -56,6 +57,7 @@ import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -211,10 +213,14 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       List<Refspec> refspecs = new ArrayList<>();
 
       for (String refspec : SkylarkList.castList(strRefSpecs, String.class, "refspecs")) {
-        refspecs.add(Refspec.create(
-            generalOptions.getEnvironment(), generalOptions.getCwd(), refspec, location));
+        try {
+          refspecs.add(Refspec.create(
+              generalOptions.getEnvironment(), generalOptions.getCwd(), refspec));
+        } catch (InvalidRefspecException e) {
+          throw new EvalException(location, e);
+        }
       }
-      Core.getCore(env).addMigration(location, name,
+      GlobalMigrations.getGlobalMigrations(env).addMigration(location, name,
           new Mirror(generalOptions, self.options.get(GitOptions.class),
               name, origin, destination, refspecs,
               self.options.get(GitMirrorOptions.class), prune, self.mainConfigFile));

@@ -34,21 +34,23 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
-import com.google.copybara.EmptyChangeException;
+import com.google.copybara.Core;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
 import com.google.copybara.Workflow;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.folder.FolderModule;
-import com.google.copybara.git.githubapi.GithubApi;
+import com.google.copybara.git.github.api.GithubApi;
+import com.google.copybara.git.github.util.GithubUtil;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
@@ -57,18 +59,20 @@ import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
 
 @RunWith(JUnit4.class)
 public class GithubPrOriginTest {
@@ -134,7 +138,11 @@ public class GithubPrOriginTest {
     options.git.credentialHelperStorePath = credentialsFile.toString();
 
     skylark = new SkylarkTestExecutor(options, GitModule.class);
-    skylarkParser = new SkylarkParser(ImmutableSet.of(FolderModule.class, GitModule.class));
+    skylarkParser =
+        new SkylarkParser(
+            ImmutableSet.of(
+                Core.class, Authoring.Module.class,
+                FolderModule.class, GitModule.class));
   }
 
   private GitRepository localHubRepo(String name) throws RepoException {
@@ -529,7 +537,8 @@ public class GithubPrOriginTest {
             .loadConfig(
                 new MapConfigFile(
                     ImmutableMap.of("copy.bara.sky", config.getBytes()), "copy.bara.sky"),
-                options.build())
+                options.build(),
+                console)
             .getMigration("default");
   }
 

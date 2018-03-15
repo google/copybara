@@ -37,8 +37,18 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
+import com.google.copybara.config.Migration;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.ChangeRejectedException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.NotADestinationFileException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitRepository;
@@ -130,7 +140,9 @@ public class WorkflowTest {
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     options.setForce(true); // Force by default unless we are testing the flag.
-    skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class, MetadataModule.class,
+    skylark = new SkylarkParser(ImmutableSet.of(
+        Core.class, Authoring.Module.class,
+        TestingModule.class, MetadataModule.class,
         FolderModule.class, GitModule.class));
     eventMonitor = new TestingEventMonitor();
     options.general.withEventMonitor(eventMonitor);
@@ -1296,7 +1308,7 @@ public class WorkflowTest {
     return skylark.loadConfig(
         new MapConfigFile(
             ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
-        options.build());
+        options.build(), options.general.console());
   }
 
   @Test

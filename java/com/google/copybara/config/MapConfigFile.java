@@ -18,6 +18,7 @@ package com.google.copybara.config;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.exception.CannotResolveLabel;
 import java.io.IOException;
 
 /** A Config file implementation that uses a map for storing the internal data structure.

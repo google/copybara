@@ -37,23 +37,21 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.hash.Hashing;
 import com.google.common.net.PercentEscaper;
-import com.google.copybara.CannotResolveRevisionException;
-import com.google.copybara.EmptyChangeException;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
-import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -122,7 +120,7 @@ public class GitRepository {
   /**
    * Label to be used for marking the original revision id (Git SHA-1) for migrated commits.
    */
-  static final String GIT_ORIGIN_REV_ID = "GitOrigin-RevId";
+  public static final String GIT_ORIGIN_REV_ID = "GitOrigin-RevId";
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
 
@@ -208,10 +206,10 @@ public class GitRepository {
   /**
    * Validate that a refspec is valid.
    *
-   * @throws EvalException if the refspec is not valid
+   * @throws InvalidRefspecException if the refspec is not valid
    */
-  static void validateRefSpec(Location location, Map<String, String> env, Path cwd,
-      String refspec) throws EvalException {
+  static void validateRefSpec(Map<String, String> env, Path cwd, String refspec)
+      throws InvalidRefspecException {
     try {
       executeGit(cwd,
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
@@ -219,9 +217,11 @@ public class GitRepository {
           /*verbose=*/false);
     } catch (CommandException e) {
       Optional<String> version = version(env);
-      throw new EvalException(location, version.map(s -> "Invalid refspec: " + refspec)
-          .orElseGet(() -> String.format("Cannot find git binary at '%s'",
-              resolveGitBinary(env))));
+      throw new InvalidRefspecException(
+          version
+              .map(s -> "Invalid refspec: " + refspec)
+              .orElseGet(
+                  () -> String.format("Cannot find git binary at '%s'", resolveGitBinary(env))));
     }
   }
 
@@ -233,7 +233,7 @@ public class GitRepository {
    * "refs/foo" is allowed but not "refs/foo:remote/origin/foo". Wildcards are also not allowed.
    */
   public GitRevision fetchSingleRef(String url, String ref)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveRevisionException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
@@ -268,7 +268,7 @@ public class GitRepository {
    * updated, etc.)
    */
   public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
     args.add("--verbose");
@@ -307,13 +307,9 @@ public class GitRepository {
   /**
    * Create a refspec from a string
    */
-  public Refspec createRefSpec(String ref) throws RepoException {
-    try {
-      // Validate refspec
-      return Refspec.create(environment, gitDir, ref,/*location=*/null);
-    } catch (EvalException e) {
-      throw new RepoException("Invalid refspec: " + e);
-    }
+  public Refspec createRefSpec(String ref) throws ValidationException {
+    // Validate refspec
+    return Refspec.create(environment, gitDir, ref/*location=*/ );
   }
 
   @CheckReturnValue
@@ -715,7 +711,7 @@ public class GitRepository {
    * @param currentRemoteUrl remote url associated with the repository. It will be used to
    * resolve relative URLs (for example: url = ../foo).
    */
-  Iterable<Submodule> listSubmodules(String currentRemoteUrl) throws RepoException {
+  public Iterable<Submodule> listSubmodules(String currentRemoteUrl) throws RepoException {
     ImmutableList.Builder<Submodule> result = ImmutableList.builder();
     String rawOutput = simpleCommand("submodule--helper", "list").getStdout();
     for (String line : Splitter.on('\n').split(rawOutput)) {
@@ -756,7 +752,7 @@ public class GitRepository {
     return result.build();
   }
 
-  ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish) throws RepoException {
+  public ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish) throws RepoException {
     ImmutableList.Builder<TreeElement> result = ImmutableList.builder();
     String stdout = simpleCommand("ls-tree", reference.getSha1(), "--", treeish).getStdout();
     for (String line : Splitter.on('\n').split(stdout)) {
@@ -837,9 +833,8 @@ public class GitRepository {
   }
 
   public UserPassword credentialFill(String url) throws RepoException, ValidationException {
-    return new GitCredential(resolveGitBinary(environment),
-        Duration.ofMinutes(1),
-        environment).fill(gitDir, url);
+    return new GitCredential(resolveGitBinary(environment), Duration.ofMinutes(1), environment)
+        .fill(gitDir, url);
   }
 
   /**
@@ -994,7 +989,8 @@ public class GitRepository {
    *
    * @throws CannotResolveRevisionException if it cannot resolve the reference
    */
-  GitRevision resolveReferenceWithContext(String reference, @Nullable String contextRef, String url)
+  public GitRevision resolveReferenceWithContext(String reference, @Nullable String contextRef,
+      String url)
       throws RepoException, CannotResolveRevisionException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
     // check that the reference exists.
@@ -1014,7 +1010,7 @@ public class GitRepository {
    *
    * @throws CannotResolveRevisionException if it cannot resolve the reference
    */
-  GitRevision resolveReference(String reference)
+  public GitRevision resolveReference(String reference)
       throws RepoException, CannotResolveRevisionException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
     // check that the reference exists.
@@ -1043,7 +1039,7 @@ public class GitRepository {
     throw throwUnknownGitError(output, params);
   }
 
-  GitRevision commitTree(String message, String tree, List<GitRevision> parents)
+  public GitRevision commitTree(String message, String tree, List<GitRevision> parents)
       throws RepoException {
     ImmutableList.Builder<String> args = ImmutableList.<String>builder().add("commit-tree", tree);
     for (GitRevision parent : parents) {
@@ -1069,7 +1065,7 @@ public class GitRepository {
   /**
    * Information of a submodule of {@code this} repository.
    */
-  static class Submodule {
+  public static class Submodule {
 
     private final String url;
     private final String name;
@@ -1122,7 +1118,7 @@ public class GitRepository {
     }
   }
 
-  static class TreeElement {
+  public static class TreeElement {
 
     private final GitObjectType type;
     private final String ref;
@@ -1138,11 +1134,11 @@ public class GitRepository {
       return type;
     }
 
-    String getRef() {
+    public String getRef() {
       return ref;
     }
 
-    String getPath() {
+    public String getPath() {
       return path;
     }
 
@@ -1163,7 +1159,7 @@ public class GitRepository {
     TREE
   }
 
-  static final class StatusFile {
+  public static final class StatusFile {
 
     private final String file;
     @Nullable
@@ -1180,16 +1176,16 @@ public class GitRepository {
       this.workdirStatus = checkNotNull(workdirStatus);
     }
 
-    String getFile() {
+    public String getFile() {
       return file;
     }
 
     @Nullable
-    String getNewFileName() {
+    public String getNewFileName() {
       return newFileName;
     }
 
-    StatusCode getIndexStatus() {
+    public StatusCode getIndexStatus() {
       return indexStatus;
     }
 
@@ -1226,7 +1222,7 @@ public class GitRepository {
     }
   }
 
-  enum StatusCode {
+  public enum StatusCode {
     UNMODIFIED(' '),
     MODIFIED('M'),
     ADDED('A'),
@@ -1291,7 +1287,7 @@ public class GitRepository {
     }
 
     @CheckReturnValue
-    PushCmd prune(boolean prune) {
+    public PushCmd prune(boolean prune) {
       return new PushCmd(repo, url, this.refspecs, prune);
     }
 

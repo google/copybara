@@ -23,7 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.git.GitRepository;

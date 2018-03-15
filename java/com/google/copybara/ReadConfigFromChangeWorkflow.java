@@ -23,8 +23,11 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Origin.Reader;
-import com.google.copybara.config.ConfigLoader;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
+import com.google.copybara.config.Migration;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import java.io.IOException;
@@ -145,7 +148,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
                                 lastChange.refAsString(), lastChange.firstLineMessage()));
 
       ConfigLoader<?> configLoader = configLoaderProvider.apply(lastChange.getRevision());
-      Config config = configLoader.loadConfig(options);
+      Config config = configLoader.loadConfig(options, getConsole());
       // The service config validator already checks that the configuration matches the registry,
       // checking that the origin and destination haven't changed.
       List<String> errors =

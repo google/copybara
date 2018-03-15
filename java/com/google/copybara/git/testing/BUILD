@@ -27,8 +27,8 @@ java_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/testing",
         "//third_party:guava",
         "//third_party:truth",

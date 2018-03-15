@@ -19,6 +19,7 @@ package com.google.copybara.config;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.exception.CannotResolveLabel;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;

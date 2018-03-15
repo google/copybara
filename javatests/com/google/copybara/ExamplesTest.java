@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import java.lang.reflect.Field;

@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.RepoException;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;

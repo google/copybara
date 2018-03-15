@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import java.util.Map;
 
 /**

@@ -20,25 +20,29 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Truth;
-import com.google.copybara.config.ConfigLoader;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Message;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class ReadConfigFromChangeWorkflowTest {
@@ -55,7 +59,10 @@ public class ReadConfigFromChangeWorkflowTest {
     destination = new RecordsProcessCallDestination();
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
-    skylark = new SkylarkParser(ImmutableSet.of(TestingModule.class));
+    skylark = new SkylarkParser(ImmutableSet.of(
+        Core.class,
+        Authoring.Module.class,
+        TestingModule.class));
   }
 
   /**
@@ -76,12 +83,14 @@ public class ReadConfigFromChangeWorkflowTest {
         + ")";
     Config cfg = loadConfig(configCode);
     ConfigLoader constantConfigLoader =
-        new ConfigLoader<>(new ModuleSupplier() {
-          @Override
-          public ImmutableSet<Class<?>> getModules() {
-            return ImmutableSet.of(TestingModule.class);
-          }
-        }, getConfig(configCode));
+        new ConfigLoader<>(
+            new ModuleSupplier() {
+              @Override
+              public ImmutableSet<Class<?>> getModules() {
+                return ImmutableSet.of(Core.class, Authoring.Module.class, TestingModule.class);
+              }
+            },
+            getConfig(configCode));
     ReadConfigFromChangeWorkflow<?, ?> wf = new ReadConfigFromChangeWorkflow<>(
         (Workflow) cfg.getMigration("default"),
         options.build(),
@@ -108,9 +117,7 @@ public class ReadConfigFromChangeWorkflowTest {
   }
 
   private Config loadConfig(String content) throws IOException, ValidationException {
-    return skylark.loadConfig(
-        getConfig(content),
-        options.build());
+    return skylark.loadConfig(getConfig(content), options.build(), options.general.console());
   }
 
   private static MapConfigFile getConfig(String content) {

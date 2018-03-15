@@ -25,6 +25,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;

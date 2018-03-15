@@ -24,15 +24,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
-import com.google.copybara.RepoException;
 import com.google.copybara.doc.annotations.DocField;
-import com.google.copybara.git.GithubUtil.GithubPrUrl;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.git.github.util.GithubUtil.GithubPrUrl;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,6 +43,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.annotation.Nullable;
 
 /**
@@ -65,7 +69,7 @@ public enum GitRepoType {
     @Override
     GitRevision resolveRef(
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, ValidationException {
       logger.log(Level.INFO, "Resolving " + repoUrl + " reference: " + ref);
 
       Matcher sha1WithPatchSet = SHA_1_WITH_REVIEW_DATA.matcher(ref);
@@ -98,7 +102,7 @@ public enum GitRepoType {
     }
 
     private GitRevision fetchFromUrl(GitRepository repository, String repoUrl, String ref)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, ValidationException {
       return repository.fetchSingleRef(repoUrl, ref);
     }
   },
@@ -112,7 +116,7 @@ public enum GitRepoType {
     @Override
     GitRevision resolveRef(
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, ValidationException {
       if ((ref.startsWith("https://github.com") && ref.startsWith(repoUrl))
           || GithubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
         GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, repoUrl, ref);
@@ -131,7 +135,7 @@ public enum GitRepoType {
     @Override
     GitRevision resolveRef(
         GitRepository repository, String repoUrl, String ref, GeneralOptions options)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, ValidationException {
       if (ref == null || ref.isEmpty()) {
         return GIT.resolveRef(repository, repoUrl, ref, options);
       }
@@ -180,7 +184,7 @@ public enum GitRepoType {
 
     private GitRevision resolveLatestPatchSet(
         GitRepository repository, String repoUrl, int changeNumber, GeneralOptions options)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, ValidationException {
       Entry<Integer, GitRevision> lastPatchset =
           // Last entry is the latest patchset, since it is ordered by patchsetId.
           getGerritPatchSets(repository, repoUrl, changeNumber).lastEntry();
@@ -195,7 +199,7 @@ public enum GitRepoType {
     private GitRevision fetchWithChangeNumberAsContext(
         GitRepository repository, String repoUrl, int change, int patchSet, String ref,
         GeneralOptions generalOptions)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, ValidationException {
       String metaRef = String.format("refs/changes/%02d/%d/meta", change % 100, change);
       repository.fetch(repoUrl, /*prune=*/true, /*force=*/true,
           ImmutableList.of(ref + ":refs/gerrit/" + ref, metaRef + ":refs/gerrit/" + metaRef));
@@ -273,7 +277,7 @@ public enum GitRepoType {
   @Nullable
   protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository,
       String repoUrl, String ref)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
     Optional<GithubPrUrl> githubPrUrl = GithubUtil.maybeParseGithubPrUrl(ref);
     if (githubPrUrl.isPresent()) {
       // TODO(malcon): Support merge ref too once we have github pr origin.
@@ -323,7 +327,7 @@ public enum GitRepoType {
 
   abstract GitRevision resolveRef(
       GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
-      throws RepoException, CannotResolveRevisionException;
+      throws RepoException, ValidationException;
 
   static String gerritPatchSetAsReviewReference(int patchSet) {
     return GERRIT_PATCH_SET_REF_PREFIX + patchSet;

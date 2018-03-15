@@ -21,7 +21,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.jcommander.GreaterThanZeroValidator;
 import java.io.IOException;
 import java.nio.file.Path;

@@ -22,7 +22,7 @@ import com.google.copybara.Change;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;

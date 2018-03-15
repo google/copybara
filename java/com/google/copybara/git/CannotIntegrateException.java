@@ -16,7 +16,7 @@
 
 package com.google.copybara.git;
 
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 
 /**
  * Thrown if git destination integrate failed for some reason

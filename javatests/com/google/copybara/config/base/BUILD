@@ -19,7 +19,7 @@ licenses(["notice"])  # Apache 2.0
 all_tests(
     tests = glob(["**/*Test.java"]),
     deps = [
-        "//java/com/google/copybara/config/base",
+        "//java/com/google/copybara/config:base",
         "//third_party:skylark-lang",
         "//third_party:truth",
     ],

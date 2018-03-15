@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.exception.RepoException;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import javax.annotation.Nullable;

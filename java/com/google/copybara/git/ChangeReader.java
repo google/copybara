@@ -23,9 +23,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
-import com.google.copybara.RepoException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.Glob;
@@ -172,8 +172,6 @@ class ChangeReader {
 
     private Authoring authoring = null;
     private final GitRepository repository;
-    private final Console console;
-    private boolean verbose = false;
     private int limit = -1;
     private ImmutableList<String> roots = ImmutableList.of("");
     private boolean includeBranchCommitLogs = false;
@@ -198,7 +196,7 @@ class ChangeReader {
 
     private Builder(GitRepository repository, Console console) {
       this.repository = checkNotNull(repository, "repository");
-      this.console = checkNotNull(console, "console");
+      checkNotNull(console, "console");
     }
 
     Builder setLimit(int limit) {
@@ -219,7 +217,6 @@ class ChangeReader {
     }
 
     Builder setVerbose(boolean verbose) {
-      this.verbose = verbose;
       return this;
     }
 

@@ -22,6 +22,8 @@ import com.google.devtools.build.lib.syntax.EvalException;
 /**
  * Exception thrown when a {@link Transformation} is not reversible but the configuration asked for
  * the reverse.
+ *
+ * TODO(malcon): Move to the exception package
  */
 public class NonReversibleValidationException extends EvalException {
 

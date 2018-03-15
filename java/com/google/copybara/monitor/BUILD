@@ -26,7 +26,7 @@ java_library(
     ],
     deps = [
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara:git/exec_path",
+        "//java/com/google/copybara/git:exec_path",
         "//java/com/google/copybara/util",
         "//third_party:autovalue",
         "//third_party:guava",

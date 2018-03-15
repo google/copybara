@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.collect.Iterables;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.testing.FileSubjects;

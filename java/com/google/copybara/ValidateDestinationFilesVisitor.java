@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.copybara.exception.NotADestinationFileException;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;

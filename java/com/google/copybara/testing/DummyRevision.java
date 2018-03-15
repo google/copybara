@@ -27,7 +27,7 @@ import com.google.common.collect.Maps;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Origin;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;

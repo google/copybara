@@ -16,7 +16,7 @@
 
 package com.google.copybara;
 
-import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
@@ -33,6 +33,9 @@ import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.Migration;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Action;
 import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;

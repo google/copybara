@@ -21,7 +21,7 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.console.Message.MessageType;

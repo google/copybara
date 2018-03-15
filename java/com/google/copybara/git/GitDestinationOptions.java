@@ -23,8 +23,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.authoring.Author;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

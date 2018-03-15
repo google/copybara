@@ -17,9 +17,8 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.copybara.ChangeMessage.parseMessage;
 import static com.google.copybara.GeneralOptions.FORCE;
-import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.LazyGitRepository.memoized;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -30,19 +29,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
-import com.google.copybara.ChangeRejectedException;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
-import com.google.copybara.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
-import com.google.copybara.ValidationException;
-import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.ChangeRejectedException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
@@ -395,16 +393,6 @@ public final class GitDestination implements Destination<GitRevision> {
       return true;
     }
 
-    @Nullable
-    private String findLabelValue(String labelName, ImmutableList<GitLogEntry> entries) {
-      for (GitLogEntry entry : entries) {
-        List<String> prev = parseMessage(entry.getBody()).labelsAsMultimap().get(labelName);
-        if (!prev.isEmpty()) {
-          return Iterables.getLast(prev);
-        }
-      }
-      return null;
-    }
 
     @Override
     public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)

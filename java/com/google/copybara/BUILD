@@ -45,20 +45,14 @@ java_library(
     deps = [
         ":base",
         ":copybara_lib",
+        ":general_options",
+        "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",
         "//third_party:jcommander",
-        "//third_party:jsr305",
-    ],
-)
-
-java_library(
-    name = "git/exec_path",
-    srcs = ["git/GitExecPath.java"],
-    javacopts = JAVACOPTS,
-    deps = [
         "//third_party:jsr305",
     ],
 )
@@ -69,7 +63,6 @@ doc_generator(
 )
 
 BASE_SRCS = [
-    "CannotResolveRevisionException.java",
     "Change.java",
     "ChangeMessage.java",
     "Changes.java",
@@ -79,7 +72,6 @@ BASE_SRCS = [
     "ConfigItemDescription.java",
     "Destination.java",
     "DestinationEffect.java",
-    "EmptyChangeException.java",
     "Endpoint.java",
     "Info.java",
     "LabelFinder.java",
@@ -90,7 +82,6 @@ BASE_SRCS = [
     "Option.java",
     "Options.java",
     "Origin.java",
-    "RepoException.java",
     "Revision.java",
     "SkylarkContext.java",
     "Transformation.java",
@@ -100,10 +91,23 @@ BASE_SRCS = [
     "treestate/MapBasedTreeState.java",
     "treestate/TreeState.java",
     "treestate/TreeStateUtil.java",
-    "ValidationException.java",
-    "VoidOperationException.java",
     "WorkflowOptions.java",
 ]
+
+java_library(
+    name = "options",
+    srcs = [
+        "Option.java",
+        "Options.java",
+    ],
+    javacopts = JAVACOPTS,
+    deps = [
+        "//third_party:guava",
+        "//third_party:jsr305",
+        "//third_party:re2j",
+        "//third_party:shell",
+    ],
+)
 
 java_library(
     name = "base",
@@ -111,7 +115,28 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jcommander:validators",
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
+        "//third_party:autovalue",
+        "//third_party:guava",
+        "//third_party:jcommander",
+        "//third_party:jsr305",
+        "//third_party:re2j",
+        "//third_party:skylark-lang",
+    ],
+)
+
+java_library(
+    name = "general_options",
+    srcs = ["GeneralOptions.java"],
+    javacopts = JAVACOPTS,
+    deps = [
+        ":base",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/monitor",
+        "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:autovalue",
@@ -127,16 +152,25 @@ java_library(
     name = "copybara_lib",
     srcs = glob(
         ["**/*.java"],
-        exclude = ["Main.java"] + BASE_SRCS,
+        exclude = [
+            "Main.java",
+            "GeneralOptions.java",
+        ] + BASE_SRCS,
     ),
     javacopts = JAVACOPTS,
     deps = [
         ":base",
-        ":git/exec_path",
+        ":general_options",
         "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/config/base",
+        "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/config:global_migrations",
+        "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/doc:annotations",
-        "//java/com/google/copybara/jcommander:validators",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/git",
+        "//java/com/google/copybara/git:core",
+        "//java/com/google/copybara/git:exec_path",
+        "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/transform",

@@ -17,6 +17,7 @@
 package com.google.copybara.config;
 
 import com.google.common.base.MoreObjects;
+import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.FileUtil;
 import java.io.IOException;
 

@@ -18,12 +18,13 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+
 import javax.annotation.Nullable;
 
 /**
@@ -99,7 +100,7 @@ class GerritIntegrateLabel implements IntegrateLabel {
   }
 
   @Override
-  public GitRevision getRevision() throws RepoException, CannotResolveRevisionException {
+  public GitRevision getRevision() throws RepoException, ValidationException {
     int latestPatchSet = GitRepoType.getGerritPatchSets(repository, url, changeNumber)
         .lastEntry().getKey();
 

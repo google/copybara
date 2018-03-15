@@ -16,7 +16,7 @@
 
 package com.google.copybara.testing;
 
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.TransformResult;
 import java.nio.file.Path;
 

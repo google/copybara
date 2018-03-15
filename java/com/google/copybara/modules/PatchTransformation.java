@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.InsideGitDirException;

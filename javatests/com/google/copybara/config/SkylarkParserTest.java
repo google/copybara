@@ -22,14 +22,14 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.Config;
 import com.google.copybara.Destination;
 import com.google.copybara.Origin;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.CannotResolveLabel;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.Workflow;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.testing.OptionsBuilder;

@@ -27,7 +27,7 @@ import com.google.copybara.LocalParallelizer;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.transform.TemplateTokens.Replacer;
 import com.google.copybara.treestate.TreeState.FileState;

@@ -29,17 +29,19 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
-import com.google.copybara.Config;
+import com.google.copybara.Core;
 import com.google.copybara.NonReversibleValidationException;
-import com.google.copybara.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowMode;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -50,17 +52,19 @@ import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @RunWith(JUnit4.class)
 public class MetadataModuleTest {
@@ -94,8 +98,10 @@ public class MetadataModuleTest {
     options.setConsole(new TestingConsole());
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
-    skylark = new SkylarkParser(
-        ImmutableSet.of(TestingModule.class, MetadataModule.class));
+    skylark =
+        new SkylarkParser(
+            ImmutableSet.of(
+                Core.class, Authoring.Module.class, TestingModule.class, MetadataModule.class));
     skylarkExecutor = new SkylarkTestExecutor(options, MetadataModule.class);
 
     origin.addSimpleChange(0, "first commit\n\nExtended text")
@@ -118,7 +124,8 @@ public class MetadataModuleTest {
     return skylark.loadConfig(
         new MapConfigFile(
             ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"),
-        options.build());
+        options.build(),
+        options.general.console());
   }
 
   @Test

@@ -20,8 +20,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
-import com.google.copybara.config.ConfigLoader;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
+import com.google.copybara.config.Migration;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
@@ -149,7 +152,7 @@ public class Copybara {
     Console console = options.get(GeneralOptions.class).console();
     ArrayList<Message> messages = new ArrayList<>();
     try {
-      Config config = configLoader.loadConfig(options);
+      Config config = configLoader.loadConfig(options, console);
       messages.addAll(validateConfig(config, migrationName));
     } catch (ValidationException e) {
       // The validate subcommand should not throw Validation exceptions but log a result
@@ -177,7 +180,7 @@ public class Copybara {
       throws IOException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Console console = generalOptions.console();
-    Config config = configLoader.loadConfig(options);
+    Config config = configLoader.loadConfig(options, console);
     console.progress("Validating configuration");
     List<Message> validationMessages = validateConfig(config, migrationName);
 

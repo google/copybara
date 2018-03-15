@@ -20,14 +20,14 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static junit.framework.TestCase.fail;
 
-import com.google.devtools.build.lib.syntax.EvalException;
-import java.nio.file.FileSystems;
-import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.nio.file.FileSystems;
+import java.util.Map;
 
 @RunWith(JUnit4.class)
 public class RefspecTest {
@@ -36,25 +36,25 @@ public class RefspecTest {
   public final ExpectedException thrown = ExpectedException.none();
 
   @Test
-  public void testRefspec() throws EvalException {
+  public void testRefspec() throws Exception {
     assertRefspec(refspec("refs/heads/master"),
         "refs/heads/master", "refs/heads/master", /*expectForce=*/false);
   }
 
   @Test
-  public void testRefspecWithSemicolon() throws EvalException {
+  public void testRefspecWithSemicolon() throws Exception {
     assertRefspec(refspec("refs/heads/master:refs/heads/foo"),
         "refs/heads/master", "refs/heads/foo", /*expectForce=*/false);
   }
 
   @Test
-  public void testRefspecWithSemicolonForce() throws EvalException {
+  public void testRefspecWithSemicolonForce() throws Exception {
     assertRefspec(refspec("+refs/heads/master:refs/heads/foo"),
         "refs/heads/master", "refs/heads/foo", /*expectForce=*/true);
   }
 
   @Test
-  public void testWildcard() throws EvalException {
+  public void testWildcard() throws Exception {
     assertRefspec(refspec("refs/heads/*:refs/heads/*"),
         "refs/heads/*", "refs/heads/*", /*expectForce=*/false);
   }
@@ -63,7 +63,7 @@ public class RefspecTest {
   public void testCreateBuiltin() throws Exception {
     assertRefspec(Refspec.createBuiltin(
         getGitEnv(), FileSystems.getDefault().getPath("/"), "refs/heads/master"),
-        "refs/heads/master", "refs/heads/master", /*expectForce=*/false);
+                  "refs/heads/master", "refs/heads/master", /*expectForce=*/false);
   }
 
   @Test
@@ -94,36 +94,36 @@ public class RefspecTest {
   }
 
   @Test
-  public void testNonValid() throws EvalException {
-    thrown.expect(EvalException.class);
+  public void testNonValid() throws Exception {
+    thrown.expect(InvalidRefspecException.class);
     thrown.expectMessage("Invalid refspec: aa bb");
     refspec("aa bb");
   }
 
   @Test
-  public void testTwoWildcards() throws EvalException {
-    thrown.expect(EvalException.class);
+  public void testTwoWildcards() throws Exception {
+    thrown.expect(InvalidRefspecException.class);
     thrown.expectMessage("Invalid refspec: refs/foo/*/bar/*");
     refspec("refs/foo/*/bar/*");
   }
 
   @Test
-  public void testOnlyWildcardInOrigin() throws EvalException {
-    thrown.expect(EvalException.class);
-    thrown.expectMessage("Wilcard only used in one part of the refspec");
+  public void testOnlyWildcardInOrigin() throws Exception {
+    thrown.expect(InvalidRefspecException.class);
+    thrown.expectMessage("Wildcard only used in one part of the refspec");
     refspec("refs/*:refs/bar");
   }
 
   @Test
-  public void testMultipleSemicolons() throws EvalException {
-    thrown.expect(EvalException.class);
+  public void testMultipleSemicolons() throws Exception {
+    thrown.expect(InvalidRefspecException.class);
     thrown.expectMessage("Multiple ':' found");
     refspec("la:la:la");
   }
 
 
   @Test
-  public void convertTest() throws EvalException {
+  public void convertTest() throws Exception {
     checkConvert("refs/foo/bar", "refs/foo/bar", "refs/foo/bar");
     checkConvert("refs/foo:refs/bar", "refs/foo", "refs/bar");
     checkConvert("refs/heads/*:refs/heads/*", "refs/heads/master", "refs/heads/master");
@@ -136,19 +136,19 @@ public class RefspecTest {
   }
 
   @Test
-  public void testGitBinaryNotFound() throws EvalException {
+  public void testGitBinaryNotFound() throws Exception {
     Map<String, String> gitEnv = getGitEnv();
     gitEnv.put("GIT_EXEC_PATH", "some_non_existent_path");
     try {
-      Refspec.create(gitEnv, FileSystems.getDefault().getPath("/"), "master",
-          /*location=*/null);
+      Refspec.create(gitEnv, FileSystems.getDefault().getPath("/"), "master"
+          /*location=*/);
       fail();
-    } catch (EvalException e) {
+    } catch (InvalidRefspecException e) {
       assertThat(e.getMessage()).contains("Cannot find git binary at 'some_non_existent_path/git'");
     }
   }
 
-  private void checkConvert(String refspec, String ref, String expectedDest) throws EvalException {
+  private void checkConvert(String refspec, String ref, String expectedDest) throws Exception {
     assertThat(refspec(refspec).convert(ref)).isEqualTo(expectedDest);
   }
 
@@ -159,8 +159,8 @@ public class RefspecTest {
     assertThat(refspec.isAllowNoFastForward()).isEqualTo(expectForce);
   }
 
-  private Refspec refspec(String str) throws EvalException {
-    return Refspec.create(getGitEnv(), FileSystems.getDefault().getPath("/"), str,
-        /*location=*/null);
+  private Refspec refspec(String str) throws InvalidRefspecException {
+    return Refspec.create(getGitEnv(), FileSystems.getDefault().getPath("/"), str
+        /*location=*/);
   }
 }

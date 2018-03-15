@@ -19,7 +19,7 @@ package com.google.copybara.git;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;

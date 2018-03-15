@@ -23,8 +23,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.Iterables;
 import com.google.common.testing.TestLogHandler;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.testing.git.GitTestUtil;
 import java.io.IOException;

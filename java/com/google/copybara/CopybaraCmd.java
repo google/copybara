@@ -16,7 +16,8 @@
 
 package com.google.copybara;
 
-import com.google.copybara.config.ConfigLoader;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.ExitCode;
 import java.io.IOException;
 

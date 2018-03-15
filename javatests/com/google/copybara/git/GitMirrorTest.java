@@ -23,9 +23,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Migration;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
+import com.google.copybara.config.Migration;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;

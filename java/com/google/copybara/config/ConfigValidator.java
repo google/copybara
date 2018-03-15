@@ -17,7 +17,6 @@
 package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Config;
 import com.google.copybara.util.console.Message;
 import java.util.List;
 

@@ -21,7 +21,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import com.google.copybara.exception.CommandLineException;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;

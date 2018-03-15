@@ -16,7 +16,7 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
@@ -28,11 +28,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.GerritApiTransport;
 import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.function.Supplier;

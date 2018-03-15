@@ -17,7 +17,7 @@
 package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.console.Console;
 
 /**

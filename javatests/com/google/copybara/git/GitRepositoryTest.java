@@ -26,19 +26,26 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.copybara.CannotResolveRevisionException;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
+
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -51,12 +58,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitRepositoryTest {
@@ -416,7 +417,7 @@ public class GitRepositoryTest {
     String fetchUrl = "file://" + repository.getGitDir();
 
     FetchResult result = dest.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-        ImmutableList.of("refs/*:refs/*"));
+                                    ImmutableList.of("refs/*:refs/*"));
 
     assertThat(result.getDeleted()).isEmpty();
     assertThat(result.getUpdated()).isEmpty();
@@ -446,7 +447,7 @@ public class GitRepositoryTest {
 
       @Override
       public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
-          throws RepoException, CannotResolveRevisionException {
+          throws RepoException, ValidationException {
         requestedFetches.add(refspecs);
         return super.fetch(url, prune, force, refspecs);
       }
@@ -584,7 +585,7 @@ public class GitRepositoryTest {
   }
 
   @Test
-  public void testPush() throws IOException, RepoException {
+  public void testPush() throws Exception {
     GitRepository remote = GitRepository
         .newBareRepo(Files.createTempDirectory("remote"), getGitEnv(), /*verbose=*/true)
         .init();
@@ -640,7 +641,7 @@ public class GitRepositoryTest {
   }
 
   @Test
-  public void testPushPrune() throws IOException, RepoException {
+  public void testPushPrune() throws Exception {
     GitRepository remote = GitRepository.newBareRepo(Files.createTempDirectory("remote"),
         getGitEnv(), /*verbose=*/true);
     remote.init();

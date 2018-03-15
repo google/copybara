@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

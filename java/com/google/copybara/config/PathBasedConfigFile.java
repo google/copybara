@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.exception.CannotResolveLabel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

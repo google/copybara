@@ -16,18 +16,16 @@
 
 package com.google.copybara.git;
 
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 
-/**
- * Indicates that the rebase failed because of a conflict.
- */
-class RebaseConflictException extends ValidationException {
+/** Indicates that the rebase failed because of a conflict. */
+public class RebaseConflictException extends ValidationException {
 
-  RebaseConflictException(String message) {
+  public RebaseConflictException(String message) {
     super(message);
   }
 
-  RebaseConflictException(Throwable cause, String message) {
+  public RebaseConflictException(Throwable cause, String message) {
     super(cause, message);
   }
 }

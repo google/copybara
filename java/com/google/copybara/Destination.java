@@ -19,6 +19,8 @@ package com.google.copybara;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;

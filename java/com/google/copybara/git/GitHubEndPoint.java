@@ -16,19 +16,20 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.ValidationException.checkCondition;
-import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
-import com.google.copybara.git.githubapi.CreateStatusRequest;
-import com.google.copybara.git.githubapi.Status;
-import com.google.copybara.git.githubapi.Status.State;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.api.CreateStatusRequest;
+import com.google.copybara.git.github.api.Status;
+import com.google.copybara.git.github.api.Status.State;
+import com.google.copybara.git.github.util.GithubUtil;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;

@@ -16,13 +16,15 @@
 
 package com.google.copybara.git;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -46,7 +48,7 @@ public class GitMirrorOptions implements Option {
   boolean forcePush = false;
 
   public void mirror(String origin, String destination, List<Refspec> refspec, boolean prune)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
     GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
     List<String> fetchRefspecs = refspec.stream()
         .map(r -> r.originToOrigin().toString())

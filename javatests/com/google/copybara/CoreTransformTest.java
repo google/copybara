@@ -20,6 +20,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;

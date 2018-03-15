@@ -19,7 +19,7 @@ package com.google.copybara.transform.metadata;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 
 /**

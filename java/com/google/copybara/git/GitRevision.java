@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import java.time.ZonedDateTime;

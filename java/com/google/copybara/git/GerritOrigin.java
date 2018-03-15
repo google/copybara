@@ -16,14 +16,14 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.Glob;
 import java.util.Map;

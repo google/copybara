@@ -19,6 +19,8 @@ package com.google.copybara.config;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.exception.CannotResolveLabel;
+
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;

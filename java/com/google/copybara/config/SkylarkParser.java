@@ -16,20 +16,15 @@
 
 package com.google.copybara.config;
 
-import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Config;
-import com.google.copybara.Core;
-import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
-import com.google.copybara.ValidationException;
-import com.google.copybara.authoring.Authoring;
-import com.google.copybara.config.base.OptionsAwareModule;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.EventHandler;
@@ -70,8 +65,7 @@ public class SkylarkParser {
   private static final Set<Class<?>> initializedModules = new HashSet<>();
   public SkylarkParser(Set<Class<?>> modules) {
     this.modules = ImmutableSet.<Class<?>>builder()
-        .add(Authoring.Module.class)
-        .add(Core.class)
+        .add(GlobalMigrations.class)
         .addAll(modules).build();
 
     // Skylark initialization is not thread safe and manipulates static fields. While calling
@@ -100,32 +94,32 @@ public class SkylarkParser {
   }
 
   @SuppressWarnings("unchecked")
-  public Config loadConfig(ConfigFile config, Options options)
+  public Config loadConfig(ConfigFile config, Options options, Console console)
       throws IOException, ValidationException {
-    return getConfigWithTransitiveImports(config, options).config;
+    return getConfigWithTransitiveImports(config, options, console).config;
   }
 
   private Config loadConfigInternal(ConfigFile content, Options options,
-      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier)
+      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier, Console console)
       throws IOException, ValidationException {
-    Core core;
+    GlobalMigrations globalMigrations;
     try {
-      Environment env = new Evaluator(options, content, configFilesSupplier).eval(content);
-      core = (Core) env.getGlobals().get(Core.CORE_VAR);
+      Environment env = new Evaluator(options, content, configFilesSupplier, console).eval(content);
+      globalMigrations = GlobalMigrations.getGlobalMigrations(env);
     } catch (InterruptedException e) {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);
     }
-    return new Config(core.getMigrations(), content.path());
+    return new Config(globalMigrations.getMigrations(), content.path());
   }
 
   @VisibleForTesting
-  public <T> Environment executeSkylark(ConfigFile<T> content, Options options)
+  public <T> Environment executeSkylark(ConfigFile<T> content, Options options, Console console)
       throws IOException, ValidationException, InterruptedException {
     CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(content);
     ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
 
-    Environment eval = new Evaluator(options, content, configFilesSupplier).eval(content);
+    Environment eval = new Evaluator(options, content, configFilesSupplier, console).eval(content);
 
     ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
     configFilesSupplier.setConfigFiles(allLoadedFiles);
@@ -136,17 +130,19 @@ public class SkylarkParser {
    * Collect all ConfigFiles retrieved by the parser while loading {code config}.
    *
    * @param config Root file of the configuration.
+   * @param console the console to use for printing error/information
    * @return A map linking paths to the captured ConfigFiles and the parsed Config
    * @throws IOException If files cannot be read
    * @throws ValidationException If config is invalid, references an invalid file or contains
    *     dependency cycles.
    */
   public <T> ConfigWithDependencies<T> getConfigWithTransitiveImports(
-      ConfigFile<T> config, Options options) throws IOException, ValidationException {
+      ConfigFile<T> config, Options options, Console console) throws IOException, ValidationException {
     CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(config);
     ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
 
-    Config parsedConfig = loadConfigInternal(capturingConfigFile, options, configFilesSupplier);
+    Config parsedConfig = loadConfigInternal(capturingConfigFile, options, configFilesSupplier,
+        console);
 
     ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
 
@@ -202,12 +198,13 @@ public class SkylarkParser {
     private final EventHandler eventHandler;
 
     private Evaluator(Options options, ConfigFile<?> mainConfigFile,
-        Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier) {
+        Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier,
+        Console console) {
       this.options = Preconditions.checkNotNull(options);
-      console = options.get(GeneralOptions.class).console();
+      this.console = Preconditions.checkNotNull(console);
       this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
       this.configFilesSupplier = Preconditions.checkNotNull(configFilesSupplier);
-      eventHandler = new ConsoleEventHandler(console);
+      eventHandler = new ConsoleEventHandler(this.console);
     }
 
     private Environment eval(ConfigFile<?> content)

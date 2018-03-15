@@ -23,10 +23,11 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import com.google.copybara.CannotResolveRevisionException;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.FetchResult;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
@@ -190,7 +191,7 @@ public final class GitTestUtil {
 
     @Override
     public FetchResult fetch(String url, boolean prune, boolean force,
-        Iterable<String> refspecs) throws RepoException, CannotResolveRevisionException {
+        Iterable<String> refspecs) throws RepoException, ValidationException {
       validator.validateFetch(url, prune, force, refspecs);
       return super.fetch(mapUrl(url), prune, force, refspecs);
     }

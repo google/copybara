@@ -22,15 +22,18 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Config;
+import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.ValidationException;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Environment;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,7 +48,13 @@ public final class SkylarkTestExecutor {
   private final Map<String, byte[]> extraConfigFiles = new HashMap<>();
 
   public SkylarkTestExecutor(OptionsBuilder options, Class<?>... modules) {
-    skylarkParser = new SkylarkParser(ImmutableSet.copyOf(modules));
+    skylarkParser =
+        new SkylarkParser(
+            ImmutableSet.<Class<?>>builder()
+                .add(Core.class)
+                .add(Authoring.Module.class)
+                .add(modules)
+                .build());
     this.options = options;
   }
 
@@ -64,7 +73,9 @@ public final class SkylarkTestExecutor {
   @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
   public <T> T eval(String var, String config) throws ValidationException {
     try {
-      Environment env = skylarkParser.executeSkylark(createConfigFile(config), options.build());
+      Environment env =
+          skylarkParser.executeSkylark(
+              createConfigFile(config), options.build(), options.general.console());
       T t = (T) env.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
@@ -74,7 +85,8 @@ public final class SkylarkTestExecutor {
   }
 
   public Config loadConfig(String configContent) throws IOException, ValidationException {
-    return skylarkParser.loadConfig(createConfigFile(configContent), options.build());
+    return skylarkParser.loadConfig(
+        createConfigFile(configContent), options.build(), options.general.console());
   }
 
   public Map<String, ConfigFile<String>> getConfigMap(String configContent)
@@ -84,7 +96,9 @@ public final class SkylarkTestExecutor {
 
   public <T> Map<String, ConfigFile<T>> getConfigMap(ConfigFile<T> config)
       throws IOException, ValidationException {
-    return skylarkParser.getConfigWithTransitiveImports(config, options.build()).files;
+    return skylarkParser.getConfigWithTransitiveImports(
+            config, options.build(), options.general.console())
+        .files;
   }
 
   private ConfigFile<String> createConfigFile(String configContent) {

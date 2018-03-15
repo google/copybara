@@ -19,7 +19,7 @@ package com.google.copybara.testing;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
-import com.google.copybara.config.base.OptionsAwareModule;
+import com.google.copybara.config.OptionsAwareModule;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -37,12 +37,11 @@ import com.google.devtools.build.lib.syntax.EvalException;
 public class TestingModule implements OptionsAwareModule {
 
   private TestingOptions testingOptions;
-  private GeneralOptions generalOptions;
 
   @Override
   public void setOptions(Options options) {
     testingOptions = options.get(TestingOptions.class);
-    generalOptions = options.get(GeneralOptions.class);
+    options.get(GeneralOptions.class);
   }
 
   @SkylarkSignature(name = "origin", returnType = DummyOrigin.class,

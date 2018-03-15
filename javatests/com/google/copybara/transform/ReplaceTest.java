@@ -22,8 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
-import com.google.copybara.ValidationException;
-import com.google.copybara.VoidOperationException;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;

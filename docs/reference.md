@@ -8,6 +8,17 @@
     - [authoring.pass_thru](#authoring.pass_thru)
     - [authoring.whitelisted](#authoring.whitelisted)
   - [authoring_class](#authoring_class)
+  - [git](#git)
+    - [git.origin](#git.origin)
+    - [git.integrate](#git.integrate)
+    - [git.mirror](#git.mirror)
+    - [git.gerrit_origin](#git.gerrit_origin)
+    - [git.github_origin](#git.github_origin)
+    - [git.github_pr_origin](#git.github_pr_origin)
+    - [git.destination](#git.destination)
+    - [git.github_pr_destination](#git.github_pr_destination)
+    - [git.gerrit_destination](#git.gerrit_destination)
+  - [github_endpoint_obj](#github_endpoint_obj)
   - [Console](#console)
   - [metadata](#metadata)
     - [metadata.squash_notes](#metadata.squash_notes)
@@ -36,18 +47,6 @@
   - [folder](#folder)
     - [folder.destination](#folder.destination)
     - [folder.origin](#folder.origin)
-  - [git](#git)
-    - [git.origin](#git.origin)
-    - [git.integrate](#git.integrate)
-    - [git.mirror](#git.mirror)
-    - [git.gerrit_origin](#git.gerrit_origin)
-    - [git.github_origin](#git.github_origin)
-    - [git.github_pr_origin](#git.github_pr_origin)
-    - [git.destination](#git.destination)
-    - [git.github_pr_destination](#git.github_pr_destination)
-    - [git.gerrit_destination](#git.gerrit_destination)
-  - [github_api_status_obj](#github_api_status_obj)
-  - [github_endpoint_obj](#github_endpoint_obj)
   - [patch](#patch)
     - [patch.apply](#patch.apply)
 
@@ -184,6 +183,293 @@ authoring.whitelisted(
 ## authoring_class
 
 The authors mapping between an origin and a destination
+
+
+## git
+
+Set of functions to define Git origins and destinations.
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-credential-helper-store-file | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
+--nogit-credential-helper-store | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
+
+<a id="git.origin" aria-hidden="true"></a>
+### git.origin
+
+Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
+
+`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Indicates the URL of the git repository</p>
+ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+include_branch_commit_logs|`boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
+first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+
+
+<a id="git.integrate" aria-hidden="true"></a>
+### git.integrate
+
+Integrate changes from a url present in the migrated change label.
+
+`git_integrate git.integrate(label="COPYBARA_INTEGRATE_REVIEW", strategy="FAKE_MERGE_AND_INCLUDE_FILES", ignore_errors=True)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label|`string`<br><p>The migration label that will contain the url to the change to integrate.</p>
+strategy|`string`<br><p>How to integrate the change:<br><ul> <li><b>'FAKE_MERGE'</b>: Add the url revision/reference as parent of the migration change but ignore all the files from the url. The commit message will be a standard merge one but will include the corresponding RevId label</li> <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any change to files that doesn't match destination_files will be included as part of the merge commit. So it will be a semi fake merge: Fake for destination_files but merge for non destination files.</li> <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it it doesn't create a merge but only include changes not matching destination_files</li></ul></p>
+ignore_errors|`boolean`<br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
+
+
+#### Example:
+
+##### Integrate changes from a review url:
+
+Assuming we have a git.destination defined like this:
+
+```python
+git.destination(
+        url = "https://example.com/some_git_repo",
+        integrates = [git.integrate()],
+
+)
+```
+
+It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration. If the label is found, it will fetch the git url and add that change as an additional parent to the migration commit (merge). It will fake-merge any change from the url that matches destination_files but it will include changes not matching it.
+
+<a id="git.mirror" aria-hidden="true"></a>
+### git.mirror
+
+Mirror git references between repositories
+
+`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+name|`string`<br><p>Migration name</p>
+origin|`string`<br><p>Indicates the URL of the origin git repository</p>
+destination|`string`<br><p>Indicates the URL of the destination git repository</p>
+refspecs|`sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination.For example 'refs/heads/*:refs/remotes/origin/*' will mirror any referenceinside refs/heads to refs/remotes/origin.</p>
+prune|`boolean`<br><p>Remove remote refs that don't have a origin counterpart</p>
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-mirror-force | *boolean* | Force push even if it is not fast-forward
+
+<a id="git.gerrit_origin" aria-hidden="true"></a>
+### git.gerrit_origin
+
+Defines a Git origin for Gerrit reviews.
+
+Implicit labels that can be used/exposed:
+
+  - GERRIT_CHANGE_NUMBER: The change number for the Gerrit review.
+  - GERRIT_CHANGE_ID: The change id for the Gerrit review.
+  - GERRIT_CHANGE_DESCRIPTION: The description of the Gerrit review.
+  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
+
+
+`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Indicates the URL of the git repository</p>
+ref|`string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
+submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+
+
+<a id="git.github_origin" aria-hidden="true"></a>
+### git.github_origin
+
+Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
+
+`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Indicates the URL of the git repository</p>
+ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+
+
+<a id="git.github_pr_origin" aria-hidden="true"></a>
+### git.github_pr_origin
+
+Defines a Git origin for Github pull requests.
+
+Implicit labels that can be used/exposed:
+
+  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.
+  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
+  - GITHUB_BASE_BRANCH: The base branch name used for the Pull Request.
+  - GITHUB_BASE_BRANCH_SHA1: The base branch SHA-1 used as baseline.
+  - GITHUB_PR_TITLE: Title of the Pull Request.
+  - GITHUB_PR_BODY: Body of the Pull Request.
+
+
+`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN')`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Indicates the URL of the GitHub repository</p>
+use_merge|`boolean`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
+required_labels|`sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
+retryable_labels|`sequence of string`<br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
+submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+baseline_from_branch|`boolean`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
+first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+state|`string`<br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--github-required-label | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
+--github-retryable-label | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
+--github-skip-required-labels | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+
+<a id="git.destination" aria-hidden="true"></a>
+### git.destination
+
+Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
+
+`gitDestination git.destination(url, push=master, fetch=push reference, skip_push=False, integrates=[])`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
+push|`string`<br><p>Reference to use for pushing the change, for example 'master'</p>
+fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
+skip_push|`boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+integrates|`sequence of git_integrate`<br><p>(NOT IMPLEMENTED) Integrate changes from a url present in the migrated change label.</p>
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
+--git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+--git-destination-url | *string* | If set, overrides the git destination URL.
+--git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
+--git-destination-push | *string* | If set, overrides the git destination push reference.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+--git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
+--git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+--git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+--git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+--nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+
+<a id="git.github_pr_destination" aria-hidden="true"></a>
+### git.github_pr_destination
+
+Creates changes in a new pull request in the destination.
+
+`githubPrDestination git.github_pr_destination(url, destination_ref=master, skip_push=False, title=None, body=None)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
+destination_ref|`string`<br><p>Destination reference for the change. By default 'master'</p>
+skip_push|`boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+title|`string`<br><p>When creating a pull request, use this title. By default it uses the change first line.</p>
+body|`string`<br><p>When creating a pull request, use this body. By default it uses the change summary.</p>
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
+--git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+--git-destination-url | *string* | If set, overrides the git destination URL.
+--git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
+--git-destination-push | *string* | If set, overrides the git destination push reference.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+--git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
+--git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+--git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+--git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+--nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+--github-destination-pr-branch | *string* | If set, uses this branch for creating the pull request instead of using a generated one
+--github-destination-pr-create | *boolean* | If the pull request should be created
+
+<a id="git.gerrit_destination" aria-hidden="true"></a>
+### git.gerrit_destination
+
+Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
+
+`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for='', change_id_policy='FAIL_IF_PRESENT')`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
+fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
+push_to_refs_for|`string`<br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
+change_id_policy|`string`<br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ----------- | -----------
+--git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
+--git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+--git-destination-url | *string* | If set, overrides the git destination URL.
+--git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
+--git-destination-push | *string* | If set, overrides the git destination push reference.
+--git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+--git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
+--git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+--git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+--git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+--nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+
+
+## github_endpoint_obj
+
+GitHub specific class used in feedback mechanism and migration event hooks to access GitHub
 
 
 ## Console
@@ -1230,298 +1516,6 @@ Name | Type | Description
 ---- | ----------- | -----------
 --folder-origin-author | *string* | Author of the change being migrated from folder.origin()
 --folder-origin-message | *string* | Message of the change being migrated from folder.origin()
-
-
-## git
-
-Set of functions to define Git origins and destinations.
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ----------- | -----------
---git-credential-helper-store-file | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
---nogit-credential-helper-store | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
-
-<a id="git.origin" aria-hidden="true"></a>
-### git.origin
-
-Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
-
-`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True)`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-url|`string`<br><p>Indicates the URL of the git repository</p>
-ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
-submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-include_branch_commit_logs|`boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
-first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-
-
-<a id="git.integrate" aria-hidden="true"></a>
-### git.integrate
-
-Integrate changes from a url present in the migrated change label.
-
-`git_integrate git.integrate(label="COPYBARA_INTEGRATE_REVIEW", strategy="FAKE_MERGE_AND_INCLUDE_FILES", ignore_errors=True)`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-label|`string`<br><p>The migration label that will contain the url to the change to integrate.</p>
-strategy|`string`<br><p>How to integrate the change:<br><ul> <li><b>'FAKE_MERGE'</b>: Add the url revision/reference as parent of the migration change but ignore all the files from the url. The commit message will be a standard merge one but will include the corresponding RevId label</li> <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any change to files that doesn't match destination_files will be included as part of the merge commit. So it will be a semi fake merge: Fake for destination_files but merge for non destination files.</li> <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it it doesn't create a merge but only include changes not matching destination_files</li></ul></p>
-ignore_errors|`boolean`<br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
-
-
-#### Example:
-
-##### Integrate changes from a review url:
-
-Assuming we have a git.destination defined like this:
-
-```python
-git.destination(
-        url = "https://example.com/some_git_repo",
-        integrates = [git.integrate()],
-
-)
-```
-
-It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration. If the label is found, it will fetch the git url and add that change as an additional parent to the migration commit (merge). It will fake-merge any change from the url that matches destination_files but it will include changes not matching it.
-
-<a id="git.mirror" aria-hidden="true"></a>
-### git.mirror
-
-Mirror git references between repositories
-
-`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False)`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-name|`string`<br><p>Migration name</p>
-origin|`string`<br><p>Indicates the URL of the origin git repository</p>
-destination|`string`<br><p>Indicates the URL of the destination git repository</p>
-refspecs|`sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination.For example 'refs/heads/*:refs/remotes/origin/*' will mirror any referenceinside refs/heads to refs/remotes/origin.</p>
-prune|`boolean`<br><p>Remove remote refs that don't have a origin counterpart</p>
-
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ----------- | -----------
---git-mirror-force | *boolean* | Force push even if it is not fast-forward
-
-<a id="git.gerrit_origin" aria-hidden="true"></a>
-### git.gerrit_origin
-
-Defines a Git origin for Gerrit reviews.
-
-Implicit labels that can be used/exposed:
-
-  - GERRIT_CHANGE_NUMBER: The change number for the Gerrit review.
-  - GERRIT_CHANGE_ID: The change id for the Gerrit review.
-  - GERRIT_CHANGE_DESCRIPTION: The description of the Gerrit review.
-  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
-
-
-`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True)`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-url|`string`<br><p>Indicates the URL of the git repository</p>
-ref|`string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
-submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-
-
-<a id="git.github_origin" aria-hidden="true"></a>
-### git.github_origin
-
-Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
-
-`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True)`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-url|`string`<br><p>Indicates the URL of the git repository</p>
-ref|`string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
-submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-
-
-<a id="git.github_pr_origin" aria-hidden="true"></a>
-### git.github_pr_origin
-
-Defines a Git origin for Github pull requests.
-
-Implicit labels that can be used/exposed:
-
-  - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.
-  - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
-  - GITHUB_BASE_BRANCH: The base branch name used for the Pull Request.
-  - GITHUB_BASE_BRANCH_SHA1: The base branch SHA-1 used as baseline.
-  - GITHUB_PR_TITLE: Title of the Pull Request.
-  - GITHUB_PR_BODY: Body of the Pull Request.
-
-
-`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN')`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-url|`string`<br><p>Indicates the URL of the GitHub repository</p>
-use_merge|`boolean`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
-required_labels|`sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
-retryable_labels|`sequence of string`<br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
-submodules|`string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-baseline_from_branch|`boolean`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
-first_parent|`boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-state|`string`<br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
-
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ----------- | -----------
---github-required-label | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
---github-retryable-label | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
---github-skip-required-labels | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
-
-<a id="git.destination" aria-hidden="true"></a>
-### git.destination
-
-Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
-
-`gitDestination git.destination(url, push=master, fetch=push reference, skip_push=False, integrates=[])`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-url|`string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
-push|`string`<br><p>Reference to use for pushing the change, for example 'master'</p>
-fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
-skip_push|`boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
-integrates|`sequence of git_integrate`<br><p>(NOT IMPLEMENTED) Integrate changes from a url present in the migrated change label.</p>
-
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ----------- | -----------
---git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
---git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
---git-destination-url | *string* | If set, overrides the git destination URL.
---git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
---git-destination-push | *string* | If set, overrides the git destination push reference.
---git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
---git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
---git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
---git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
---git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
---nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
-
-<a id="git.github_pr_destination" aria-hidden="true"></a>
-### git.github_pr_destination
-
-Creates changes in a new pull request in the destination.
-
-`githubPrDestination git.github_pr_destination(url, destination_ref=master, skip_push=False, title=None, body=None)`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-url|`string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
-destination_ref|`string`<br><p>Destination reference for the change. By default 'master'</p>
-skip_push|`boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
-title|`string`<br><p>When creating a pull request, use this title. By default it uses the change first line.</p>
-body|`string`<br><p>When creating a pull request, use this body. By default it uses the change summary.</p>
-
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ----------- | -----------
---git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
---git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
---git-destination-url | *string* | If set, overrides the git destination URL.
---git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
---git-destination-push | *string* | If set, overrides the git destination push reference.
---git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
---git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
---git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
---git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
---git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
---nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
---github-destination-pr-branch | *string* | If set, uses this branch for creating the pull request instead of using a generated one
---github-destination-pr-create | *boolean* | If the pull request should be created
-
-<a id="git.gerrit_destination" aria-hidden="true"></a>
-### git.gerrit_destination
-
-Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
-
-`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for='', change_id_policy='FAIL_IF_PRESENT')`
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-url|`string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
-fetch|`string`<br><p>Indicates the ref from which to get the parent commit</p>
-push_to_refs_for|`string`<br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
-change_id_policy|`string`<br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
-
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ----------- | -----------
---git-committer-name | *string* | If set, overrides the committer name for the generated commits in git destination.
---git-committer-email | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
---git-destination-url | *string* | If set, overrides the git destination URL.
---git-destination-fetch | *string* | If set, overrides the git destination fetch reference.
---git-destination-push | *string* | If set, overrides the git destination push reference.
---git-destination-path | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
---git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
---git-destination-last-rev-first-parent | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
---git-destination-non-fast-forward | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
---git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
---nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
-
-
-## github_api_status_obj
-
-Information about a commit status as defined in https://developer.github.com/v3/repos/statuses. This is a subset of the available fields in GitHub
-
-
-## github_endpoint_obj
-
-GitHub specific class used in feedback mechanism and migration event hooks to access GitHub
 
 
 ## patch

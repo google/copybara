@@ -23,14 +23,14 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
- * Represents the information about a {@link Migration}.
+ * Represents the information about a Migration.
  *
  * <p>A migration can have one or more {@link MigrationReference}s.
  */
 @AutoValue
 public abstract class Info<O extends Revision> {
 
-  static final Info<? extends Revision> EMPTY = create(ImmutableList.of());
+  public static final Info<? extends Revision> EMPTY = create(ImmutableList.of());
 
   public static <O extends Revision> Info<O> create(
       Iterable<MigrationReference<O>> migrationReferences) {

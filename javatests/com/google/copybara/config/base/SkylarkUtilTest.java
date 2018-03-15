@@ -18,6 +18,7 @@ package com.google.copybara.config.base;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.copybara.config.SkylarkUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import org.junit.Rule;

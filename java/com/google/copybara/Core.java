@@ -16,17 +16,18 @@
 
 package com.google.copybara;
 
-import static com.google.copybara.config.base.SkylarkUtil.check;
-import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
-import static com.google.copybara.config.base.SkylarkUtil.stringToEnum;
+import static com.google.copybara.config.GlobalMigrations.getGlobalMigrations;
+import static com.google.copybara.config.SkylarkUtil.check;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
-import com.google.copybara.config.base.OptionsAwareModule;
-import com.google.copybara.config.base.SkylarkUtil;
+import com.google.copybara.config.OptionsAwareModule;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.feedback.Action;
@@ -57,7 +58,6 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
 import com.google.devtools.build.lib.syntax.SkylarkList.Tuple;
 import com.google.devtools.build.lib.syntax.Type;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -84,7 +84,6 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
 
   public static final String CORE_VAR = "core";
 
-  private final Map<String, Migration> migrations = new HashMap<>();
   private GeneralOptions generalOptions;
   private WorkflowOptions workflowOptions;
   private ConfigFile<?> mainConfigFile;
@@ -95,11 +94,6 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     generalOptions = options.get(GeneralOptions.class);
     workflowOptions = options.get(WorkflowOptions.class);
   }
-
-  public Map<String, Migration> getMigrations() {
-    return migrations;
-  }
-
 
   @SuppressWarnings("unused")
   @SkylarkSignature(
@@ -339,7 +333,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                             action, action.getClass()));
         }
       }
-      self.addMigration(location, workflowName, new Workflow<>(
+      getGlobalMigrations(env).addMigration(location, workflowName, new Workflow<>(
           workflowName,
           origin,
           destination,
@@ -362,14 +356,6 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       return Runtime.NONE;
     }
   };
-
-  public void addMigration(Location location, String name, Migration migration)
-      throws EvalException {
-    if (migrations.put(name, migration) != null) {
-      throw new EvalException(location,
-          String.format("A migration with the name '%s' is already defined", name));
-    }
-  }
 
   @SuppressWarnings("unused")
   @SkylarkSignature(
@@ -868,10 +854,6 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params), env);
     }
   };
-
-  public static Core getCore(Environment env) {
-    return (Core) env.getGlobals().get(CORE_VAR);
-  }
 
   @Override
   public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {

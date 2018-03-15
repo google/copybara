@@ -16,7 +16,7 @@
 
 package com.google.copybara.transform;
 
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;

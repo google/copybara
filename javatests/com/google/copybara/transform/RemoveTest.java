@@ -21,7 +21,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Core;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;

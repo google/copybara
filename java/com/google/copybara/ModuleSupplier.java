@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.authoring.Authoring;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
@@ -40,6 +41,8 @@ import java.util.function.Supplier;
 public class ModuleSupplier {
 
   private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
+      Core.class,
+      Authoring.Module.class,
       FolderModule.class,
       GitModule.class,
       MetadataModule.class,

@@ -16,7 +16,7 @@
 
 package com.google.copybara.transform;
 
-import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Joiner;
@@ -31,7 +31,7 @@ import com.google.copybara.LocalParallelizer;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;

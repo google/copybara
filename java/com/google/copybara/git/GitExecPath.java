@@ -38,7 +38,7 @@ public final class GitExecPath {
    * as usual.
    */
   public static String resolveGitBinary(@Nullable Map<String, String> environment) {
-    if (environment!=null && environment.containsKey("GIT_EXEC_PATH")) {
+    if (environment != null && environment.containsKey("GIT_EXEC_PATH")) {
       return FileSystems.getDefault()
           .getPath(environment.get("GIT_EXEC_PATH"))
           .resolve("git")

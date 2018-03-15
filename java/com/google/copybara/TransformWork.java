@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.FileSystemTreeState;
 import com.google.copybara.treestate.TreeState;
 import com.google.copybara.util.Glob;

@@ -18,9 +18,7 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.copybara.ValidationException;
-import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.copybara.exception.ValidationException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -119,17 +117,13 @@ public class Refspec {
    */
   public static Refspec createBuiltin(Map<String, String> env, Path cwd, String refspecParam)
       throws ValidationException {
-    try {
-      return create(env, cwd, refspecParam, Location.BUILTIN);
-    } catch (EvalException e) {
-      throw new ValidationException(e, "Error creating refspec");
-    }
+      return create(env, cwd, refspecParam);
   }
 
-  public static Refspec create(Map<String, String> env, Path cwd, String refspecParam,
-      Location location) throws EvalException {
+  public static Refspec create(Map<String, String> env, Path cwd, String refspecParam)
+      throws InvalidRefspecException {
     if (refspecParam.isEmpty()) {
-      throw new EvalException(location, "Empty refspec is not allowed");
+      throw new InvalidRefspecException("Empty refspec is not allowed");
     }
     boolean allowNoFastForward = false;
     String refspecStr = refspecParam;
@@ -139,18 +133,18 @@ public class Refspec {
     }
     List<String> elements = Splitter.on(':').splitToList(refspecStr);
     if (elements.size() > 2) {
-      throw new EvalException(location, "Invalid refspec. Multiple ':' found: '" + refspecParam);
+      throw new InvalidRefspecException("Invalid refspec. Multiple ':' found: '" + refspecParam);
     }
     String origin = elements.get(0);
     String destination = origin;
-    GitRepository.validateRefSpec(location, env, cwd, origin);
+    GitRepository.validateRefSpec(env, cwd, origin);
     if (elements.size() > 1) {
       destination = elements.get(1);
-      GitRepository.validateRefSpec(location, env, cwd, destination);
+      GitRepository.validateRefSpec(env, cwd, destination);
     }
     if (origin.contains("*") != destination.contains("*")) {
-      throw new EvalException(location,
-          "Wilcard only used in one part of the refspec: " + refspecParam);
+      throw new InvalidRefspecException(
+          "Wildcard only used in one part of the refspec: " + refspecParam);
     }
     return new Refspec(origin, destination, allowNoFastForward);
   }

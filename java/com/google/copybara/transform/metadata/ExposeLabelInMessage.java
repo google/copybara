@@ -16,7 +16,7 @@
 
 package com.google.copybara.transform.metadata;
 
-import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -25,7 +25,7 @@ import com.google.copybara.LabelFinder;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import java.io.IOException;

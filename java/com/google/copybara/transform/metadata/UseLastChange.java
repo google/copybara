@@ -20,7 +20,7 @@ import com.google.copybara.Change;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import java.io.IOException;

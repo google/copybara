@@ -16,12 +16,12 @@
 
 package com.google.copybara.transform.metadata;
 
-import static com.google.copybara.config.base.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Transformation;
-import com.google.copybara.config.base.SkylarkUtil;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;

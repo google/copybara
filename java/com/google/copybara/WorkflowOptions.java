@@ -21,6 +21,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
+import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.util.console.Console;
 import java.util.List;

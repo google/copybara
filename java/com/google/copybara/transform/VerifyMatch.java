@@ -25,7 +25,7 @@ import com.google.copybara.LocalParallelizer;
 import com.google.copybara.LocalParallelizer.TransformFunc;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;

@@ -18,10 +18,10 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.LabelFinder;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 
 /**
  * A label value that describes what to integrate.
@@ -36,7 +36,7 @@ public interface IntegrateLabel {
   /**
    * Get the revision to integrate
    */
-  GitRevision getRevision() throws RepoException, CannotResolveRevisionException;
+  GitRevision getRevision() throws RepoException, ValidationException;
 
   static IntegrateLabel genericGitRevision(GitRevision revision) {
     Preconditions.checkNotNull(revision);

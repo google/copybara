@@ -37,7 +37,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;

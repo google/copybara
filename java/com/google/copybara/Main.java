@@ -17,7 +17,7 @@
 package com.google.copybara;
 
 import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME;
-import static com.google.copybara.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
@@ -29,10 +29,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
-import com.google.copybara.config.ConfigLoader;
 import com.google.copybara.config.ConfigValidator;
+import com.google.copybara.config.Migration;
 import com.google.copybara.config.PathBasedConfigFile;
+import com.google.copybara.exception.CommandLineException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -216,7 +221,8 @@ public class Main {
         MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
         throws ValidationException, IOException, RepoException {
       // TODO(malcon): Use the same load mechanism (if possible) for the other commands.
-      Config config = configLoader.loadConfig(options);
+      Config config = configLoader.loadConfig(options,
+          options.get(GeneralOptions.class).console());
       copybara.info(options, config, mainArgs.getWorkflowName());
       return ExitCode.SUCCESS;
     }

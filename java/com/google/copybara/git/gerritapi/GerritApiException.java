@@ -18,7 +18,7 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.copybara.RepoException;
+import com.google.copybara.exception.RepoException;
 import java.util.EnumSet;
 
 /**

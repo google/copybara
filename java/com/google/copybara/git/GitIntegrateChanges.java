@@ -22,13 +22,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
-import com.google.copybara.RepoException;
 import com.google.copybara.TransformResult;
-import com.google.copybara.ValidationException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.StatusCode;
@@ -38,6 +37,7 @@ import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -112,14 +112,14 @@ public class GitIntegrateChanges {
               generalOptions);
           if (integrateLabel == null) {
             GitRevision gitRevision = GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null,
-                label.getValue(), generalOptions);
+                                                                 label.getValue(), generalOptions);
             integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
           }
         }
 
         strategy.integrate(repository, integrateLabel, externalFiles, label,
             messageInfo, generalOptions.console(), generalOptions.getDirFactory());
-      } catch (CannotResolveRevisionException e) {
+      } catch (ValidationException e) {
         throw new CannotIntegrateException(e, "Error resolving %s", label.getValue());
       }
     }
@@ -137,7 +137,7 @@ public class GitIntegrateChanges {
       void integrate(GitRepository repository, IntegrateLabel integrateLabel,
           Predicate<String> externalFiles, LabelFinder rawLabelValue,
           MessageInfo messageInfo, Console console, DirFactory dirFactory)
-          throws CannotIntegrateException, RepoException, CannotResolveRevisionException {
+          throws ValidationException, RepoException {
         GitLogEntry head = getHeadCommit(repository);
 
         String msg = integrateLabel.mergeMessage(messageInfo.labelsToAdd);
@@ -162,7 +162,7 @@ public class GitIntegrateChanges {
           Predicate<String> externalFiles,
           LabelFinder rawLabelValue, MessageInfo messageInfo, Console console,
           DirFactory dirFactory)
-          throws CannotIntegrateException, RepoException, CannotResolveRevisionException {
+          throws ValidationException, RepoException {
         // Fake merge first so that we have a commit and then amend that commit wit the external
         // files
         FAKE_MERGE.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
@@ -179,7 +179,7 @@ public class GitIntegrateChanges {
       void integrate(GitRepository repository, IntegrateLabel integrateLabel,
           Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
           Console console, DirFactory dirFactory)
-          throws CannotIntegrateException, RepoException, CannotResolveRevisionException {
+          throws ValidationException, RepoException {
         // Save HEAD commit before starting messing with the repo
         GitLogEntry head = getHeadCommit(repository);
 
@@ -249,7 +249,7 @@ public class GitIntegrateChanges {
         Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
         Console console,
         DirFactory dirFactory)
-        throws CannotIntegrateException, RepoException, CannotResolveRevisionException {
+        throws ValidationException, RepoException {
       throw new CannotIntegrateException(this + " integrate mode is still not supported");
     }
   }

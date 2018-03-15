@@ -26,15 +26,15 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.copybara.CannotResolveRevisionException;
 import com.google.copybara.Change;
-import com.google.copybara.EmptyChangeException;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
-import com.google.copybara.RepoException;
-import com.google.copybara.ValidationException;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
@@ -48,7 +48,6 @@ import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -162,8 +161,7 @@ public class GitOrigin implements Origin<GitRevision> {
      * <p>Any content in the workdir is removed/overwritten.
      */
     @Override
-    public void checkout(GitRevision ref, Path workdir)
-        throws RepoException, CannotResolveRevisionException, RebaseConflictException {
+    public void checkout(GitRevision ref, Path workdir) throws RepoException, ValidationException {
       checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref,
           /*topLevelCheckout=*/true);
       if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
@@ -202,7 +200,7 @@ public class GitOrigin implements Origin<GitRevision> {
      */
     void checkoutRepo(GitRepository repository, String currentRemoteUrl, Path workdir,
         SubmoduleStrategy submoduleStrategy, GitRevision ref, boolean topLevelCheckout)
-        throws RepoException, CannotResolveRevisionException, RebaseConflictException {
+        throws RepoException, ValidationException {
       // TODO(malcon): Remove includeBranchCommitLogs from the code after 2017-12-31
       if (includeBranchCommitLogs) {
         generalOptions.console().warnFmt("'include_branch_commit_logs' is deprecated. Use"
@@ -255,7 +253,7 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir)
-        throws RepoException, CannotResolveRevisionException, RebaseConflictException {
+        throws RepoException, ValidationException {
       String rebaseToRef = gitOriginOptions.originRebaseRef;
       if (rebaseToRef == null) {
         return;
@@ -368,7 +366,7 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent) {
-    Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
+    options.get(GeneralOptions.class).getEnvironment();
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),

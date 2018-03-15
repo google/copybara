@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.Message.MessageType;

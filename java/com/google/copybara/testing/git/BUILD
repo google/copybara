@@ -21,9 +21,11 @@ java_library(
     testonly = 1,
     srcs = ["GitTestUtil.java"],
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/git",
+        "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/testing",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",

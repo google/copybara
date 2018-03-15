@@ -17,8 +17,8 @@
 package com.google.copybara;
 
 import static com.google.copybara.GeneralOptions.FORCE;
-import static com.google.copybara.ValidationException.checkCondition;
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -27,6 +27,11 @@ import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.doc.annotations.DocField;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.ChangeRejectedException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 import java.io.IOException;
