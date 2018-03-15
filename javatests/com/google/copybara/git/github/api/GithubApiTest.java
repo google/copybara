@@ -28,6 +28,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.github.api.testing.AbstractGithubApiTest;
+import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -99,7 +100,8 @@ public class GithubApiTest extends AbstractGithubApiTest {
             return request;
           }
         };
-    return new GitHubApiTransportImpl(repo, httpTransport, "some_storage_file");
+    return new GitHubApiTransportImpl(repo, httpTransport, "some_storage_file",
+        new TestingConsole());
   }
 
   @Override

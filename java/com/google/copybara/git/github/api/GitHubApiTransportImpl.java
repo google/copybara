@@ -32,6 +32,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
@@ -55,12 +56,14 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   private final GitRepository repo;
   private final HttpTransport httpTransport;
   private final String storePath;
+  private final Console console;
 
   public GitHubApiTransportImpl(GitRepository repo, HttpTransport httpTransport,
-      String storePath) {
+      String storePath, Console console) {
     this.repo = Preconditions.checkNotNull(repo);
     this.httpTransport = Preconditions.checkNotNull(httpTransport);
     this.storePath = storePath;
+    this.console = Preconditions.checkNotNull(console);
   }
 
   @SuppressWarnings("unchecked")
@@ -98,6 +101,11 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     try {
       return getCredentials();
     } catch (ValidationException e) {
+      String msg = String
+          .format("GitHub credentials not found in %s. Assuming the repository is public.",
+              storePath);
+      logger.info(msg);
+      console.info(msg);
       return null;
     }
   }

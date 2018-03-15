@@ -24,7 +24,6 @@ import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.github.api.GitHubApiTransportImpl;
 import com.google.copybara.git.github.api.GithubApi;
-
 import java.util.function.Supplier;
 
 /**
@@ -47,7 +46,9 @@ public class GithubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    return new GithubApi(new GitHubApiTransportImpl(repo, getHttpTransport(), storePath),
+    return new GithubApi(
+        new GitHubApiTransportImpl(repo, getHttpTransport(), storePath,
+            generalOptionsSupplier.get().console()),
         generalOptionsSupplier.get().profiler());
   }
 
