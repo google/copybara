@@ -37,7 +37,6 @@ public class GlobalMigrations {
   private final Map<String, Migration> migrations = new HashMap<>();
 
   public static GlobalMigrations getGlobalMigrations(Environment env) {
-    System.err.println(env.getGlobals().getBindings().keySet());
     return (GlobalMigrations) Objects.requireNonNull(env.getGlobals().get(GLOBAL_MIGRATIONS));
   }
 
