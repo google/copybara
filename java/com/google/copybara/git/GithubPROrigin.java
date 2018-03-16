@@ -51,14 +51,12 @@ import com.google.copybara.git.github.util.GithubUtil.GithubPrUrl;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
-
 import javax.annotation.Nullable;
 
 /**
@@ -84,9 +82,9 @@ public class GithubPROrigin implements Origin<GitRevision> {
   private final Set<String> retryableLabels;
   private final SubmoduleStrategy submoduleStrategy;
   private final Console console;
-  private boolean baselineFromBranch;
-  private Boolean firstParent;
-  private StateFilter requiredState;
+  private final boolean baselineFromBranch;
+  private final Boolean firstParent;
+  private final StateFilter requiredState;
 
   GithubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GithubOptions githubOptions,
@@ -174,14 +172,14 @@ public class GithubPROrigin implements Origin<GitRevision> {
         Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
         retryCount++;
       } while (retryCount < RETRY_COUNT);
-      // TODO(malcon): Find a better exception for this.
-      checkCondition(
-          requiredButNotPresent.isEmpty(),
-          "Cannot migrate http://github.com/%s/pull/%d because it is missing the following"
-              + " labels: %s",
-          project,
-          prNumber,
-          requiredButNotPresent);
+      if (!requiredButNotPresent.isEmpty()) {
+        throw new EmptyChangeException(String.format(
+            "Cannot migrate http://github.com/%s/pull/%d because it is missing the following"
+                + " labels: %s",
+            project,
+            prNumber,
+            requiredButNotPresent));
+      }
     }
     PullRequest prData;
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {

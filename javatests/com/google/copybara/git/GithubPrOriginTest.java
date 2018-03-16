@@ -92,7 +92,7 @@ public class GithubPrOriginTest {
   private Path workdir;
   private Path localHub;
   private GitApiMockHttpTransport gitApiMockHttpTransport;
-  private String expectedProject = "google/example";
+  private final String expectedProject = "google/example";
 
   @Before
   public void setup() throws Exception {
@@ -232,7 +232,7 @@ public class GithubPrOriginTest {
 
   @Test
   public void testGitResolveRequiredLabelsNotFound() throws Exception {
-    thrown.expect(ValidationException.class);
+    thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("Cannot migrate http://github.com/google/example/pull/125 because it is"
         + " missing the following labels: [foo: yes]");
     checkResolve(githubPrOrigin(
@@ -256,7 +256,7 @@ public class GithubPrOriginTest {
 
   @Test
   public void testGitResolveRequiredLabelsNotRetryable() throws Exception {
-    thrown.expect(ValidationException.class);
+    thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("Cannot migrate http://github.com/google/example/pull/125 because it is"
         + " missing the following labels: [foo: yes]");
     checkResolve(
