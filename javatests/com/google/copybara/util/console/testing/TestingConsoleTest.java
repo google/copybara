@@ -48,7 +48,7 @@ public final class TestingConsoleTest {
     } catch (AssertionError e) {
       thrown = e;
     }
-    assertThat(thrown.getMessage()).matches(errorRegex);
+    assertThat(thrown.getMessage()).matches("(?s)" + errorRegex);
   }
 
   @Test
