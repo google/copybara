@@ -421,8 +421,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           @Param(name = "self", type = Core.class, doc = "this object"),
           @Param(name = "before", type = String.class, doc = ""
               + "The name of the file or directory to copy. If this is the empty"
-              + " string and 'after' is a directory, then all files in the workdir will be copied to"
-              + " the sub directory specified by 'after', maintaining the directory tree."),
+              + " string and 'after' is a directory, then all files in the workdir will be copied"
+              + " to the sub directory specified by 'after', maintaining the directory tree."),
           @Param(name = "after", type = String.class, doc = ""
               + "The name of the file or directory destination. If this is the empty"
               + " string and 'before' is a directory, then all files in 'before' will be copied to"
@@ -522,8 +522,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
               defaultValue = "glob([\"**\"])"),
           @Param(name = "first_only", type = Boolean.class,
               doc = "If true, only replaces the first instance rather than all. In single line"
-                  + " mode, replaces the first instance on each line. In multiline mode, replaces the"
-                  + " first instance in each file.",
+                  + " mode, replaces the first instance on each line. In multiline mode, replaces "
+                  + "the first instance in each file.",
               defaultValue = "False"),
           @Param(name = "multiline", type = Boolean.class,
               doc = "Whether to replace text that spans more than one line.",
@@ -634,7 +634,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + "</li>"
                   + "<li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found."
                   + "</li>"
-                  + "<li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'"
+                  + "<li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to "
+                  + "'TODO'"
                   + "</li>"
                   + "<li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li>"
                   + "</ul>", defaultValue = "'MAP_OR_IGNORE'"),
