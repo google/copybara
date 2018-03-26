@@ -45,6 +45,8 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.TimeZone;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -248,10 +250,11 @@ public class TransformWorkTest {
     checkLabelWithSkylark("", "ctx.set_message(ctx.now_as_string())",
         DateTimeFormatter.ofPattern("yyyy-MM-dd").format(ZonedDateTime.now(ZoneOffset.UTC)));
 
+    boolean isDst = TimeZone.getTimeZone("Europe/Madrid").inDaylightTime(new Date());
     checkLabelWithSkylark("",
         "ctx.set_message(ctx.now_as_string('yyyy MM dd XXX', 'Europe/Madrid'))",
         DateTimeFormatter.ofPattern("yyyy MM dd").format(
-            ZonedDateTime.now(ZoneId.of("Europe/Madrid"))) + " +01:00");
+            ZonedDateTime.now(ZoneId.of("Europe/Madrid"))) + (isDst ? " +02:00" : " +01:00"));
 
     checkLabelWithSkylark("",
         "ctx.set_message(ctx.now_as_string('yyyy MM dd VV', 'Europe/Madrid'))",
