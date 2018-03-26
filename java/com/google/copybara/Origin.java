@@ -123,10 +123,13 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
 
     /**
      * Find the baseline of the change without using a label. That means that it will use the
-     * specific system information to compute the parent. For example for GH PR, it will return
-     * the baseline submitted SHA-1.
+     * specific system information to compute the parent. For example for GH PR, it will return the
+     * baseline submitted SHA-1.
+     *
+     * <p>The order is chronologically reversed. First element is the most recent one. In other
+     * words, the best suitable baseline should be element 0, then 1, etc.
      */
-    default R findBaselineWithoutLabel(R startRevision)
+    default ImmutableList<R> findBaselinesWithoutLabel(R startRevision, int limit)
         throws RepoException, ValidationException {
       throw new ValidationException("Origin does't support this workflow mode");
     }

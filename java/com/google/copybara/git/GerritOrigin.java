@@ -19,19 +19,21 @@ package com.google.copybara.git;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.authoring.Authoring;
 import com.google.copybara.util.Glob;
-import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
- * A {@link Origin} that can read Gerrit reviews
- * TODO(malcon): Implement Reader/getChanges to detect already migrated patchets
+ * A {@link Origin} that can read Gerrit reviews TODO(malcon): Implement Reader/getChanges to detect
+ * already migrated patchets
  */
 public class GerritOrigin extends GitOrigin {
 
@@ -41,13 +43,25 @@ public class GerritOrigin extends GitOrigin {
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
 
-  private GerritOrigin(GeneralOptions generalOptions,
-      String repoUrl, @Nullable String configRef,
-      GitOptions gitOptions, GitOriginOptions gitOriginOptions,
-      @Nullable Map<String, String> environment,
-      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent) {
-    super(generalOptions, repoUrl, configRef, GitRepoType.GERRIT, gitOptions, gitOriginOptions,
-        submoduleStrategy, includeBranchCommitLogs, firstParent);
+  private GerritOrigin(
+      GeneralOptions generalOptions,
+      String repoUrl,
+      @Nullable String configRef,
+      GitOptions gitOptions,
+      GitOriginOptions gitOriginOptions,
+      SubmoduleStrategy submoduleStrategy,
+      boolean includeBranchCommitLogs,
+      boolean firstParent) {
+    super(
+        generalOptions,
+        repoUrl,
+        configRef,
+        GitRepoType.GERRIT,
+        gitOptions,
+        gitOriginOptions,
+        submoduleStrategy,
+        includeBranchCommitLogs,
+        firstParent);
     this.generalOptions = generalOptions;
     this.gitOptions = gitOptions;
     this.gitOriginOptions = gitOriginOptions;
@@ -63,13 +77,9 @@ public class GerritOrigin extends GitOrigin {
     return GitRepoType.GERRIT.resolveRef(getRepository(), repoUrl, reference, this.generalOptions);
   }
 
-  /**
-   * Builds a new {@link GerritOrigin}.
-   */
-  static GerritOrigin newGerritOrigin(Options options, String url,
-      SubmoduleStrategy submoduleStrategy, boolean firstParent) {
-
-    Map<String, String> environment = options.get(GeneralOptions.class).getEnvironment();
+  /** Builds a new {@link GerritOrigin}. */
+  static GerritOrigin newGerritOrigin(
+      Options options, String url, SubmoduleStrategy submoduleStrategy, boolean firstParent) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -77,7 +87,6 @@ public class GerritOrigin extends GitOrigin {
         /* configRef= */ null,
         options.get(GitOptions.class),
         options.get(GitOriginOptions.class),
-        environment,
         submoduleStrategy,
         /*includeBranchCommitLogs=*/ false,
         firstParent);
@@ -98,23 +107,15 @@ public class GerritOrigin extends GitOrigin {
       }
 
       @Override
-      public GitRevision findBaselineWithoutLabel(GitRevision startRevision)
-          throws RepoException, ValidationException {
-        final GitRevision[] result = { null };
-        final boolean[] first = {true};
-        visitChanges(startRevision, change -> {
-          if (first[0]) {
-            first[0] = false;
-            return VisitResult.CONTINUE;
-          }
-          result[0] = (GitRevision) change.getRevision();
-          return VisitResult.TERMINATE;
-        });
-        ValidationException.checkCondition(
-            result[0] != null,
-            "Cannot run in this workflow mode for a repository with just one commit: %s",
-            startRevision);
-        return result[0];
+      public ImmutableList<GitRevision> findBaselinesWithoutLabel(
+          GitRevision startRevision, int limit)
+          throws RepoException, CannotResolveRevisionException {
+
+        // Skip the first change as it is the Gerrit review change
+        BaselinesWithoutLabelVisitor<GitRevision> visitor =
+            new BaselinesWithoutLabelVisitor<>(originFiles, limit, /*skipFirst=*/ true);
+        visitChanges(startRevision, visitor);
+        return visitor.getResult();
       }
     };
   }

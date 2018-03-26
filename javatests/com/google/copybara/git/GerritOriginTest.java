@@ -205,7 +205,8 @@ public class GerritOriginTest {
     // Each ref is conceptually a rebase. Size is not really important for this test.
     assertThat(changes).hasSize(1);
 
-    assertThat(reader.findBaselineWithoutLabel(origin.resolve("12345")).getSha1())
+    assertThat(reader.findBaselinesWithoutLabel(origin.resolve("12345"), /*limit=*/ 1).get(0)
+        .getSha1())
         .isEqualTo(baseline);
   }
 

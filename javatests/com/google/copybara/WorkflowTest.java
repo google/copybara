@@ -1137,7 +1137,7 @@ public class WorkflowTest {
 
   @Test
   public void changeRequest_sot_ahead_sot_retries() throws Exception {
-    options.workflowOptions.changeRequestFromSotRetry = Lists.newArrayList(1,1,1,1,1);
+    options.workflowOptions.changeRequestFromSotRetry = Lists.newArrayList(1, 1, 1, 1, 1);
     checkChangeRequest_sot_ahead_sot();
     console().assertThat().timesInLog(5, MessageType.WARNING,
         ".*Couldn't find a change in the destination.*Retrying in.*");
@@ -1145,6 +1145,7 @@ public class WorkflowTest {
 
   private void checkChangeRequest_sot_ahead_sot()
       throws IOException, ValidationException, RepoException {
+    options.workflowOptions.changeRequestFromSotLimit = 1;
     origin
         .addSimpleChange(0, "Base Change")
         .addSimpleChange(1, "First Change")
@@ -1167,6 +1168,30 @@ public class WorkflowTest {
       assertThat(e).hasMessageThat().contains("Make sure to sync the submitted changes");
       assertThat(e.isRetryable()).isTrue();
     }
+  }
+
+  @Test
+  public void changeRequest_sot_old_baseline() throws Exception {
+    options.workflowOptions.changeRequestFromSotLimit = 2;
+    origin
+        .addSimpleChange(0, "Base Change")
+        .addSimpleChange(1, "First Change")
+        .addSimpleChange(2, "Second Change")
+        .addSimpleChange(3, "Third Change");
+
+    Workflow workflow = iterativeWorkflow("0");
+    workflow.run(workdir, "1");
+    ProcessedChange change = destination.processed.get(0);
+
+    assertThat(change.getBaseline()).isNull();
+    assertThat(change.getChangesSummary()).isEqualTo("First Change");
+
+    Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
+
+    w.run(workdir, "3");
+    change = destination.processed.get(destination.processed.size() - 1);
+    assertThat(change.getChangesSummary()).isEqualTo("Third Change");
+    assertThat(change.getBaseline()).isEqualTo("1");
   }
 
   @Test

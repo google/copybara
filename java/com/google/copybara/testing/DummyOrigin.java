@@ -25,14 +25,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.Change;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Origin;
-import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
@@ -150,9 +150,11 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   private class ReaderImpl implements Reader<DummyRevision> {
 
+    private Glob originFiles;
     final Authoring authoring;
 
-    ReaderImpl(Authoring authoring) {
+    ReaderImpl(Glob originFiles, Authoring authoring) {
+      this.originFiles = Preconditions.checkNotNull(originFiles);
       this.authoring = Preconditions.checkNotNull(authoring);
     }
 
@@ -162,13 +164,12 @@ public class DummyOrigin implements Origin<DummyRevision> {
     }
 
     @Override
-    public DummyRevision findBaselineWithoutLabel(DummyRevision startRevision)
-        throws RepoException, ValidationException {
-      int idx = Integer.parseInt(startRevision.asString());
-      ValidationException.checkCondition(idx > 0, "%s is the first revision", startRevision);
-      ValidationException.checkCondition(
-          changes.size() > idx, "%s is newer than the latest registered revision", startRevision);
-      return changes.get(idx - 1);
+    public ImmutableList<DummyRevision> findBaselinesWithoutLabel(DummyRevision startRevision,
+        int limit) throws RepoException {
+      BaselinesWithoutLabelVisitor<DummyRevision> visitor = new BaselinesWithoutLabelVisitor<>(
+          originFiles, limit, /*skipFirst=*/ true);
+      visitChanges(startRevision, visitor);
+      return visitor.getResult();
     }
 
     @Override
@@ -262,7 +263,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   @Override
   public Reader<DummyRevision> newReader(Glob originFiles, Authoring authoring) {
-    return new ReaderImpl(authoring);
+    return new ReaderImpl(originFiles, authoring);
   }
 
   @Override

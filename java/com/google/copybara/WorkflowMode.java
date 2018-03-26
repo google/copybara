@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.copybara.GeneralOptions.FORCE;
+import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG;
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
@@ -221,28 +222,42 @@ public enum WorkflowMode {
             + " different system."
     )
     CHANGE_REQUEST_FROM_SOT {
-      @Override
+    @Override
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
 
-        O originBaseline = Strings.isNullOrEmpty(runHelper.workflowOptions().changeBaseline)
-            ? runHelper.getOriginReader().findBaselineWithoutLabel(runHelper.getResolvedRef())
-            : runHelper.originResolve(runHelper.workflowOptions().changeBaseline);
+      ImmutableList<O> originBaselines =
+          Strings.isNullOrEmpty(runHelper.workflowOptions().changeBaseline)
+              ? runHelper
+                  .getOriginReader()
+                  .findBaselinesWithoutLabel(runHelper.getResolvedRef(),
+                      runHelper.workflowOptions().changeRequestFromSotLimit)
+              : ImmutableList.of(
+                  runHelper.originResolve(runHelper.workflowOptions().changeBaseline));
 
+      O originBaseline = null;
+      String destinationBaseline = null;
+      for (O current : originBaselines) {
+        originBaseline = current;
         String originRevision = revisionWithoutReviewInfo(originBaseline.asString());
-        String destinationBaseline = getDestinationBaseline(runHelper, originRevision);
-
-        if (destinationBaseline == null) {
-          throw new ValidationException(/*retryable=*/true,
-              "Couldn't find a change in the destination with %s label and %s value. Make sure"
-                  + " to sync the submitted changes from the origin -> destination first or use"
-                  + " SQUASH mode.",
-              runHelper.getOriginLabelName(), originBaseline.asString()
-          );
+        destinationBaseline = getDestinationBaseline(runHelper, originRevision);
+        if (destinationBaseline != null) {
+          break;
         }
-        runChangeRequest(runHelper,
-            Optional.of(new Baseline<>(destinationBaseline, originBaseline)));
       }
+
+      if (destinationBaseline == null) {
+        throw new ValidationException(
+            /*retryable=*/ true,
+            "Couldn't find a change in the destination with %s label and %s value. Make sure"
+                + " to sync the submitted changes from the origin -> destination first or use"
+                + " SQUASH mode or use %s",
+            runHelper.getOriginLabelName(),
+            originBaseline.asString(),
+            CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG);
+      }
+      runChangeRequest(runHelper, Optional.of(new Baseline<>(destinationBaseline, originBaseline)));
+    }
 
       @Nullable
       private <O extends Revision, D extends Revision> String getDestinationBaseline(

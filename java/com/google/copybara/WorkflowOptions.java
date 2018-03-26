@@ -37,6 +37,7 @@ public class WorkflowOptions implements Option {
 
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
   static final String READ_CONFIG_FROM_CHANGE = "--read-config-from-change";
+  protected static final String CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG = "--change-request-from-sot-limit";
 
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
       description = "Commit revision to be used as parent when importing a commit using"
@@ -108,6 +109,12 @@ public class WorkflowOptions implements Option {
   @Parameter(names = "--threads",
       description = "Number of threads to use when running transformations that change lot of files")
   public int threads = 1;
+
+  @Parameter(names = CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG,
+      description = "Number of origin baseline changes to use for trying to match one in the"
+          + " destination. It can be used if the are many parent changes in the origin that are a"
+          + " no-op in the destination")
+  public int changeRequestFromSotLimit = 10;
 
   @Parameter(names = "--threads-min-size",
       description = "Minimum size of the lists to process to run them in parallel")

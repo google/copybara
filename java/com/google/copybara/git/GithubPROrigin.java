@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.Change;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
@@ -270,18 +271,25 @@ public class GithubPROrigin implements Origin<GitRevision> {
         if (!baselineFromBranch) {
           return super.findBaseline(startRevision, label);
         }
-        GitRevision gitRevision = findBaselineWithoutLabel(startRevision);
-        return Optional.of(new Baseline<>(gitRevision.getSha1(), gitRevision));
+        return findBaselinesWithoutLabel(startRevision, /*limit=*/1).stream()
+            .map(e -> new Baseline<>(e.getSha1(), e))
+            .findFirst();
       }
 
       @Override
-      public GitRevision findBaselineWithoutLabel(GitRevision startRevision)
+      public ImmutableList<GitRevision> findBaselinesWithoutLabel(GitRevision startRevision,
+          int limit)
           throws RepoException, ValidationException {
         String baseline = startRevision.associatedLabels().get(GITHUB_BASE_BRANCH_SHA1);
         Preconditions.checkNotNull(baseline, "%s label should be present in %s",
                                    GITHUB_BASE_BRANCH_SHA1, startRevision);
 
-        return getRepository().resolveReference(baseline);
+        GitRevision baselineRev = getRepository().resolveReference(baseline);
+        // Don't skip the first change as it is already the baseline
+        BaselinesWithoutLabelVisitor<GitRevision> visitor =
+            new BaselinesWithoutLabelVisitor<>(originFiles, limit, /*skipFirst=*/ false);
+        visitChanges(baselineRev, visitor);
+        return visitor.getResult();
       }
 
       @Override

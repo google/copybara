@@ -1136,6 +1136,7 @@ Name | Type | Description
 --check-last-rev-state | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 --dry-run | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 --threads | *int* | Number of threads to use when running transformations that change lot of files
+--change-request-from-sot-limit | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
 --threads-min-size | *int* | Minimum size of the lists to process to run them in parallel
 --notransformation-join | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
 --read-config-from-change | *boolean* | For each imported origin change, load the configuration from that change.

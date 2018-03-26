@@ -411,7 +411,7 @@ public class GithubPrOriginTest {
     assertThat(reader.changes(baselineObj.get().getOriginRevision(), headPrRevision).size())
     .isEqualTo(2);
 
-    assertThat(reader.findBaselineWithoutLabel(headPrRevision).getSha1())
+    assertThat(reader.findBaselinesWithoutLabel(headPrRevision, /*limit=*/ 1).get(0).getSha1())
         .isEqualTo(baseline1);
 
     reader.checkout(headPrRevision, workdir);
@@ -447,7 +447,7 @@ public class GithubPrOriginTest {
     assertThat(reader.changes(baselineObj.get().getOriginRevision(), headPrRevision).size())
         .isEqualTo(2);
 
-    assertThat(reader.findBaselineWithoutLabel(mergePrRevision).getSha1())
+    assertThat(reader.findBaselinesWithoutLabel(mergePrRevision, /*limit=*/ 1).get(0).getSha1())
         .isEqualTo(baselineMerge);
 
     reader.checkout(mergePrRevision, workdir);
