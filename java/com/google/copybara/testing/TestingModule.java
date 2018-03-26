@@ -69,9 +69,27 @@ public class TestingModule implements OptionsAwareModule {
     }
   };
 
+  @SkylarkSignature(
+    name = "feedback_endpoint",
+    returnType = DummyEndpoint.class,
+    doc = "A dummy feedback endpoint",
+    parameters = {
+      @Param(name = "self", type = TestingModule.class, doc = "this object"),
+    },
+    objectType = TestingModule.class
+  )
+  public static final BuiltinFunction FEEDBACK_ENDPOINT =
+      new BuiltinFunction("feedback_endpoint") {
+        public DummyEndpoint invoke(TestingModule self) throws EvalException {
+          return self.testingOptions.feedbackEndpoint;
+        }
+      };
+
   public final static class TestingOptions implements Option {
 
     public DummyOrigin origin;
     public RecordsProcessCallDestination destination;
+
+    public DummyEndpoint feedbackEndpoint;
   }
 }

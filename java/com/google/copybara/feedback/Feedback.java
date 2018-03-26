@@ -17,13 +17,15 @@
 package com.google.copybara.feedback;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.config.ConfigFile;
+import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
 import java.nio.file.Path;
@@ -38,25 +40,36 @@ public class Feedback implements Migration {
   private final ConfigFile<?> configFile;
   private final Endpoint origin;
   private final Endpoint destination;
-  private final Action action;
+  private final Iterable<Action> actions;
   private final GeneralOptions generalOptions;
 
-  public Feedback(String name, ConfigFile<?> configFile, Endpoint origin, Endpoint destination,
-      Action action, GeneralOptions generalOptions) {
+  public Feedback(
+      String name,
+      ConfigFile<?> configFile,
+      Endpoint origin,
+      Endpoint destination,
+      ImmutableList<Action> actions,
+      GeneralOptions generalOptions) {
     this.name = Preconditions.checkNotNull(name);
     this.configFile = Preconditions.checkNotNull(configFile);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
-    this.action = Preconditions.checkNotNull(action);
+    this.actions = Preconditions.checkNotNull(actions);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
   @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, ValidationException {
+    // TODO(danielromero): Handle correctly null sourceRefs
     SkylarkConsole console = new SkylarkConsole(generalOptions.console());
-    try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
-      action.run(new FeedbackContext(origin, destination, sourceRef, console));
+    Profiler profiler = generalOptions.profiler();
+    try (ProfilerTask ignore = profiler.start("run/" + name)) {
+      for (Action action : actions) {
+        try (ProfilerTask ignore2 = profiler.start(action.getName())) {
+          action.run(new FeedbackContext(origin, destination, sourceRef, console));
+        }
+      }
     }
     ValidationException.checkCondition(console.getErrorCount() == 0,
         "%d errors executing the feedback migration", console.getErrorCount());

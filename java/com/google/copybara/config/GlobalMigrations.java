@@ -27,9 +27,10 @@ import java.util.Objects;
 
 @SkylarkModule(
   name = GlobalMigrations.GLOBAL_MIGRATIONS,
-  doc = "Global variable that holds the registered migrations in the " + "config files",
+  doc = "Global variable that holds the registered migrations in the config files",
   category = SkylarkModuleCategory.BUILTIN,
-  documented = false)
+  documented = false
+)
 public class GlobalMigrations {
 
   static final String GLOBAL_MIGRATIONS = "global_migrations";

@@ -26,8 +26,8 @@ import java.nio.file.Path;
 import javax.annotation.Nullable;
 
 /**
- * A migration is a process that moves files at a particular revision from one/many systems to
- * one/many destinations.
+ * A migration is a process that moves files and/or metadata (comments, labels...) at a particular
+ * revision from one/many systems to one/many destinations.
  *
  * <p>For helping with the migration a working directory is provided to do any temporary file
  * operations.

@@ -31,6 +31,7 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.feedback.Action;
+import com.google.copybara.feedback.Feedback;
 import com.google.copybara.feedback.SkylarkAction;
 import com.google.copybara.transform.CopyOrMove;
 import com.google.copybara.transform.ExplicitReversal;
@@ -320,19 +321,6 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
             "%s is not compatible with %s", CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
       }
 
-      ImmutableList.Builder<Action> afterMigrationActions = ImmutableList.builder();
-      for (Object action : afterMigrations) {
-        if (action instanceof BaseFunction) {
-          afterMigrationActions.add(
-              new SkylarkAction((BaseFunction) action, SkylarkDict.empty(), env));
-        } else if (action instanceof Action) {
-          afterMigrationActions.add((Action) action);
-        } else {
-          throw new EvalException(location,
-              String.format("Invalid after migration action '%s 'of type: %s",
-                            action, action.getClass()));
-        }
-      }
       getGlobalMigrations(env).addMigration(location, workflowName, new Workflow<>(
           workflowName,
           origin,
@@ -352,7 +340,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           self.allConfigFiles,
           self.workflowOptions.dryRunMode || dryRunMode,
           checkLastRevStateField || self.workflowOptions.checkLastRevState,
-          afterMigrationActions.build()));
+          convertFeedbackActions(afterMigrations, location, env)));
       return Runtime.NONE;
     }
   };
@@ -855,6 +843,115 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params), env);
     }
   };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+    name = "feedback",
+    returnType = NoneType.class,
+    documented = false,
+    doc =
+        ""
+            + "WIP: This is not implemented yet.\n"
+            + "\n"
+            + "Defines a migration of changes' metadata, that can be invoked via the Copybara "
+            + "command in the same way as a regular workflow migrates the change itself.\n"
+            + "\n"
+            + "It is considered change metadata any information associated with a change (pending or "
+            + "submitted) that is not core to the change itself. A few examples:"
+            + "  - Comments: Present in any code review system. Examples: Github PRs or Gerrit code "
+            + "    reviews.\n"
+            + "  - Labels: Used in code review systems for approvals and/or CI results. Examples: "
+            + "    Github labels, Gerrit code review labels.\n"
+            + "\n"
+            + "For the purpose of this workflow, it is not considered metadata the commit message in "
+            + "Git, or any of the contents of the file tree.\n"
+            + "\n",
+    parameters = {
+      @Param(name = "self", type = Core.class, doc = "this object", positional = false),
+      @Param(
+        name = "name",
+        type = String.class,
+        doc = "The name of the feedback workflow.",
+        positional = false
+      ),
+      @Param(
+        name = "origin",
+        type = Endpoint.class,
+        doc =
+            "Where to read change metadata from. This is usually a code review system like "
+                + "Gerrit or Github PR.",
+        positional = false
+      ),
+      @Param(
+        name = "destination",
+        type = Endpoint.class,
+        doc =
+            "Where to write change metadata to. This is usually a code review system like "
+                + "Gerrit or Github PR.",
+        positional = false
+      ),
+      @Param(
+        name = "actions",
+        type = SkylarkList.class,
+        doc =
+            ""
+                + "A list of feedback actions to perform, with the following semantics:\n"
+                + "  - There is no guarantee of the order of execution.\n"
+                + "  - Actions need to be independent from each other.\n"
+                + "  - Failure in one action might prevent other actions from executing.\n",
+        defaultValue = "[]",
+        positional = false
+      ),
+    },
+    objectType = Core.class,
+    useLocation = true,
+    useEnvironment = true
+  )
+  @UsesFlags({FeedbackOptions.class})
+  /*TODO(danielromero): Add default values*/
+  public static final BuiltinFunction FEEDBACK =
+      new BuiltinFunction("feedback") {
+        public NoneType invoke(
+            Core self,
+            String workflowName,
+            Endpoint origin,
+            Endpoint destination,
+            SkylarkList<?> feedbackActions,
+            Location location,
+            Environment env)
+            throws EvalException {
+          ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, location, env);
+          getGlobalMigrations(env)
+              .addMigration(
+                  location,
+                  workflowName,
+                  new Feedback(
+                      workflowName,
+                      self.mainConfigFile,
+                      origin,
+                      destination,
+                      actions,
+                      self.generalOptions));
+          return Runtime.NONE;
+        }
+      };
+
+  private static ImmutableList<Action> convertFeedbackActions(
+      SkylarkList<?> feedbackActions, Location location, Environment env) throws EvalException {
+    ImmutableList.Builder<Action> actions = ImmutableList.builder();
+    for (Object action : feedbackActions) {
+      if (action instanceof BaseFunction) {
+        actions.add(new SkylarkAction((BaseFunction) action, SkylarkDict.empty(), env));
+      } else if (action instanceof Action) {
+        actions.add((Action) action);
+      } else {
+        throw new EvalException(
+            location,
+            String.format("Invalid feedback action '%s 'of type: %s", action, action.getClass()));
+      }
+    }
+    return actions.build();
+  }
 
   @Override
   public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
