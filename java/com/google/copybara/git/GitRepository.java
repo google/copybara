@@ -88,7 +88,7 @@ public class GitRepository {
 
   // TODO(malcon): Make this generic (Using URIish.java)
   private static final Pattern FULL_URI = Pattern.compile(
-      "([a-z][a-z0-9+-]+@github.com.*|^[a-z][a-z0-9+-]+://.*)$");
+      "([a-z][a-z0-9+-]+@.*\\.com.*|^[a-z][a-z0-9+-]+://.*)$");
 
   private static final Pattern LS_TREE_ELEMENT = Pattern.compile(
       "([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40})\t(.*)");
