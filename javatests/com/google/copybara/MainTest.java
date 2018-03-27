@@ -24,6 +24,7 @@ import com.google.copybara.util.ExitCode;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,11 +43,13 @@ public class MainTest {
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
+  private Path userHomeDir;
 
   @Before
   public void setUp() throws Exception {
     called = false;
-    System.setProperty("user.home", "/tmp/foo/bar");
+    userHomeDir = Files.createTempDirectory("MainTest");
+    System.setProperty("user.home", userHomeDir.toString());
   }
 
   @Test
