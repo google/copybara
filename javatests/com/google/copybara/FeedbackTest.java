@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.testing.DummyEndpoint;
@@ -33,7 +32,6 @@ import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -63,9 +61,9 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testParsing() throws IOException, ValidationException {
-    Feedback feedback = skylarFeedback("sync_comments", "[]");
-    assertThat(feedback.getName()).isEqualTo("sync_comments");
+  public void testParsing() throws Exception {
+    Feedback feedback = loggingFeedback();
+    assertThat(feedback.getName()).isEqualTo("default");
     assertThat(feedback.getModeString()).isEqualTo("feedback");
     assertThat(feedback.getMainConfigFile()).isNotNull();
     assertThat(feedback.getOriginDescription()).isEqualTo(dummyEndpoint.describe());
@@ -73,35 +71,45 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testAction() throws IOException, ValidationException, RepoException {
-    Feedback feedback = skylarFeedback("sync_comments", "[dummy_action]\n");
-
-    feedback.run(workdir, /*sourceRef*/ "ref");
-    console.assertThat().onceInLog(MessageType.INFO, "Foo");
-
-    // TODO(danielromero): Make feedback workflow write into dummyEndpoint
+  public void testAction() throws Exception {
+    Feedback feedback = loggingFeedback();
+    feedback.run(workdir, /*sourceRef*/ "12345");
+    console.assertThat().onceInLog(MessageType.INFO, "Action for ref 12345");
   }
 
-  private Feedback skylarFeedback(String name, String actions)
+  @Test
+  public void testNullSourceRef() throws Exception {
+    Feedback feedback = loggingFeedback();
+    feedback.run(workdir, /*sourceRef*/ null);
+    console.assertThat().onceInLog(MessageType.INFO, "Action for ref None");
+  }
+
+  private Feedback loggingFeedback() throws IOException, ValidationException {
+    return skylarFeedback(
+        ""
+            + "def test_action(ctx):\n"
+            + "    ref = 'None'\n"
+            + "    if ctx.ref:\n"
+            + "      ref = ctx.ref\n"
+            + "    ctx.console.info('Action for ref ' + ref)\n"
+            + "\n"
+    );
+  }
+
+  private Feedback skylarFeedback(String actionFunction)
       throws IOException, ValidationException {
     String config =
-        ""
-            + "def dummy_action(ctx):\n"
-            + "    ctx.console.info('Foo')\n"
+        actionFunction
             + "\n"
             + "core.feedback(\n"
-            + "    name = '"
-            + name
-            + "',\n"
+            + "    name = 'default',\n"
             + "    origin = testing.feedback_endpoint(),\n"
             + "    destination = testing.feedback_endpoint(),\n"
-            + "    actions = "
-            + actions
-            + ",\n"
+            + "    actions = [test_action,],\n"
             + ")\n"
             + "\n";
     System.err.println(config);
-    return (Feedback) loadConfig(config).getMigration(name);
+    return (Feedback) loadConfig(config).getMigration("default");
   }
 
   private Config loadConfig(String content) throws IOException, ValidationException {

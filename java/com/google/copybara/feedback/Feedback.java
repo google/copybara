@@ -61,7 +61,6 @@ public class Feedback implements Migration {
   @Override
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, ValidationException {
-    // TODO(danielromero): Handle correctly null sourceRefs
     SkylarkConsole console = new SkylarkConsole(generalOptions.console());
     Profiler profiler = generalOptions.profiler();
     try (ProfilerTask ignore = profiler.start("run/" + name)) {

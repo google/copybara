@@ -24,6 +24,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
+import javax.annotation.Nullable;
 
 /**
  * Gives access to the feedback migration information and utilities.
@@ -36,19 +37,19 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
 
   private final Endpoint origin;
   private final Endpoint destination;
-  private final String ref;
+  @Nullable private final String ref;
   private final Console console;
   private final SkylarkDict params;
 
-  FeedbackContext(Endpoint origin, Endpoint destination, String ref, Console console) {
+  FeedbackContext(Endpoint origin, Endpoint destination, @Nullable String ref, Console console) {
     this(origin, destination, ref, console, SkylarkDict.empty());
   }
 
-  private FeedbackContext(Endpoint origin, Endpoint destination, String ref, Console console,
-      SkylarkDict params) {
+  private FeedbackContext(Endpoint origin, Endpoint destination, @Nullable String ref,
+      Console console, SkylarkDict params) {
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
-    this.ref = Preconditions.checkNotNull(ref);
+    this.ref = ref;
     this.console = Preconditions.checkNotNull(console);
     this.params = Preconditions.checkNotNull(params);
   }
@@ -66,7 +67,7 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
   }
 
   @SkylarkCallable(name = "ref", doc = "A string representation of the entity that triggered the"
-      + " event", structField = true)
+      + " event", structField = true, allowReturnNones = true)
   public String getRef() {
     return ref;
   }
