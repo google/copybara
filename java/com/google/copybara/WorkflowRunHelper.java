@@ -174,10 +174,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return writer.supportsHistory();
   }
 
-  String getWorkflowIdentity(O reference) {
-    return workflow.getMigrationIdentity(reference);
-  }
-
   void maybeValidateRepoInLastRevState(@Nullable Metadata metadata) throws RepoException,
       ValidationException, IOException {
     if (!workflow.isCheckLastRevState() || isForce()) {
@@ -220,7 +216,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                                     : metadata,
                                 changes,
                                 /*destinationBaseline=*/ null,
-                                getWorkflowIdentity(lastRev)));
+                                lastRev));
                 throw new ValidationException(
                     "Migration of last-rev '"
                         + lastRev.asString()
@@ -246,8 +242,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * @param metadata metadata of the change to be migrated
    * @param changes changes included in this migration
    * @param destinationBaseline it not null, use this baseline in the destination
-   * @param changeIdentity if not null, an identifier that destination can use to reuse an existing
-   *     destination entity (code review for example). @return The result of this migration
+   * @param changeIdentityRevision the revision to be used for computing the change identity
    */
   ImmutableList<DestinationEffect> migrate(
       O rev,
@@ -256,7 +251,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Metadata metadata,
       Changes changes,
       @Nullable String destinationBaseline,
-      @Nullable String changeIdentity)
+      @Nullable O changeIdentityRevision)
       throws IOException, RepoException, ValidationException {
     ImmutableList<DestinationEffect> effects = ImmutableList.of();
     boolean callPerMigrationHook = true;
@@ -264,7 +259,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
       effects =
           doMigrate(
-              rev, lastRev, processConsole, metadata, changes, destinationBaseline, changeIdentity);
+              rev, lastRev, processConsole, metadata, changes, destinationBaseline,
+              changeIdentityRevision);
       return effects;
     } catch (EmptyChangeException empty) {
       effects =
@@ -317,7 +313,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Metadata metadata,
       Changes changes,
       @Nullable String destinationBaseline,
-      @Nullable String changeIdentity)
+      @Nullable O changeIdentityRevision)
       throws IOException, RepoException, ValidationException {
     Path checkoutDir = workdir.resolve("checkout");
     try (ProfilerTask ignored = profiler().start("prepare_workdir")) {
@@ -426,7 +422,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
     transformResult = transformResult
         .withAskForConfirmation(workflow.isAskForConfirmation())
-        .withIdentity(changeIdentity);
+        .withIdentity(workflow.getMigrationIdentity(changeIdentityRevision, transformWork));
 
     ImmutableList<DestinationEffect> result;
     try (ProfilerTask ignored = profiler().start(

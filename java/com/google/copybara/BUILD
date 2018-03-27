@@ -174,6 +174,7 @@ java_library(
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
+        "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",

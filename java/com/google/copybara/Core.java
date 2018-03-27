@@ -33,6 +33,9 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.feedback.Action;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.feedback.SkylarkAction;
+import com.google.copybara.templatetoken.Parser;
+import com.google.copybara.templatetoken.Token;
+import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.copybara.transform.CopyOrMove;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.Remove;
@@ -271,6 +274,27 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           @Param(name = "after_migration", type = SkylarkList.class,
               doc = "Run a feedback workflow after one migration happens. STILL WIP",
               defaultValue = "[]", positional = false),
+          @Param(name = "change_identity", type = String.class,
+              doc = "By default, Copybara hashes several fields so that each change has an"
+                  + " unique identifier that at the same time reuses the generated destination"
+                  + " change. This allows to customize the identity hash generation so that"
+                  + " the same identity is used in several workflows. At least"
+                  + " ${copybara_config_path} has to be present. Current user is added to the"
+                  + " hash automatically.<br><br>"
+                  + "Available variables:"
+                  + "<ul>"
+                  + "  <li>${copybara_config_path}: Main config file path</li>"
+                  + "  <li>${copybara_workflow_name}: Main config file path</li>"
+                  + "  <li>${copybara_reference}: The requested reference. In general Copybara"
+                  + " tries its best to give a repetable reference. For example Gerrit"
+                  + " change number or change-id or GitHub Pull Request number. If it cannot"
+                  + " find a context reference it uses the resolved revision.</li>"
+                  + "  <li>${label:label_name}: A label present for the current change. Exposed in"
+                  + " the message or not.</li>"
+                  + "</ul>"
+                  + "If any of the labels cannot be found it defaults to the default identity"
+                  + " (The effect would be no reuse of destination change between workflows)",
+              defaultValue = "None", noneable = true, positional = false),
       },
       objectType = Core.class, useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -284,7 +308,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           Boolean.FALSE,
           Boolean.FALSE,
           Boolean.FALSE,
-          SkylarkList.createImmutable(ImmutableList.of())
+          SkylarkList.createImmutable(ImmutableList.of()),
+          Runtime.NONE
       )) {
 
     public NoneType invoke(Core self, String workflowName,
@@ -298,6 +323,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         Boolean askForConfirmation,
         Boolean dryRunMode,
         SkylarkList<?> afterMigrations,
+        Object changeIdentityObj,
         Location location,
         Environment env)
         throws EvalException {
@@ -315,6 +341,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           throw new EvalException(location, e.getMessage());
         }
       }
+
+      ImmutableList<Token> changeIdentity = getChangeIdentity(changeIdentityObj, location);
 
       if (checkLastRevStateField) {
         check(location, mode != WorkflowMode.CHANGE_REQUEST,
@@ -340,10 +368,43 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           self.allConfigFiles,
           self.workflowOptions.dryRunMode || dryRunMode,
           checkLastRevStateField || self.workflowOptions.checkLastRevState,
-          convertFeedbackActions(afterMigrations, location, env)));
+          convertFeedbackActions(afterMigrations, location, env),
+          changeIdentity));
       return Runtime.NONE;
     }
   };
+
+  private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj, Location location)
+      throws EvalException {
+    String changeIdentity = SkylarkUtil.convertFromNoneable(changeIdentityObj, null);
+
+    if (changeIdentity == null) {
+      return ImmutableList.of();
+    }
+    ImmutableList<Token> result = new Parser(location).parse(changeIdentity);
+    boolean configVarFound = false;
+    for (Token token : result) {
+      if (token.getType() != TokenType.INTERPOLATION) {
+        continue;
+      }
+      if (token.getValue().equals(Workflow.COPYBARA_CONFIG_PATH_IDENTITY_VAR)) {
+        configVarFound = true;
+        continue;
+      }
+      if (token.getValue().equals(Workflow.COPYBARA_WORKFLOW_NAME_IDENTITY_VAR)
+          || token.getValue().equals(Workflow.COPYBARA_REFERENCE_IDENTITY_VAR)
+          || token.getValue().startsWith(Workflow.COPYBARA_REFERENCE_LABEL_VAR)) {
+        continue;
+      }
+      throw new EvalException(location,
+          String.format("Unrecognized variable: %s", token.getValue()));
+    }
+    if (!configVarFound) {
+      throw new EvalException(location,
+          String.format("${%s} variable is required", Workflow.COPYBARA_CONFIG_PATH_IDENTITY_VAR));
+    }
+    return result;
+  }
 
   @SuppressWarnings("unused")
   @SkylarkSignature(

@@ -1098,7 +1098,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_CURRENT_MESSAGE_TITLE: The current message title (first line) at this point of the transformations
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[])`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], change_identity=None)`
 
 #### Parameters:
 
@@ -1117,6 +1117,7 @@ check_last_rev_state|`boolean`<br><p>If set to true, Copybara will validate that
 ask_for_confirmation|`boolean`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
 dry_run|`boolean`<br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
 after_migration|`sequence`<br><p>Run a feedback workflow after one migration happens. STILL WIP</p>
+change_identity|`string`<br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: Main config file path</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
 
 
 

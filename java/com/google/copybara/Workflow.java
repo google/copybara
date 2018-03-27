@@ -40,6 +40,8 @@ import com.google.copybara.feedback.Action;
 import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.templatetoken.Token;
+import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -62,6 +64,11 @@ import javax.annotation.Nullable;
 public class Workflow<O extends Revision, D extends Revision> implements Migration {
 
   private final Logger logger = Logger.getLogger(this.getClass().getName());
+
+  static final String COPYBARA_CONFIG_PATH_IDENTITY_VAR = "copybara_config_path";
+  static final String COPYBARA_WORKFLOW_NAME_IDENTITY_VAR = "copybara_workflow_name";
+  static final String COPYBARA_REFERENCE_IDENTITY_VAR = "copybara_reference";
+  static final String COPYBARA_REFERENCE_LABEL_VAR = "label:";
 
   private final String name;
   private final Origin<O> origin;
@@ -88,6 +95,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
   private final boolean dryRunMode;
   private final ImmutableList<Action> afterMigrationActions;
+  private final ImmutableList<Token> changeIdentity;
   private final boolean checkLastRevState;
 
   public Workflow(
@@ -108,7 +116,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       ConfigFile<?> mainConfigFile,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles,
       boolean dryRunMode, boolean checkLastRevState,
-      ImmutableList<Action> afterMigrationActions) {
+      ImmutableList<Action> afterMigrationActions,
+      ImmutableList<Token> changeIdentity) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -131,6 +140,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.checkLastRevState = checkLastRevState;
     this.dryRunMode = dryRunMode;
     this.afterMigrationActions = Preconditions.checkNotNull(afterMigrationActions);
+    this.changeIdentity = Preconditions.checkNotNull(changeIdentity);
   }
 
   @Override
@@ -380,12 +390,37 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
    *
    * <p>This identifier can be used by destinations to reuse code reviews, etc.
    */
-  String getMigrationIdentity(Revision requestedRevision) {
+  String getMigrationIdentity(Revision requestedRevision, TransformWork transformWork) {
     boolean contextRefDefined = requestedRevision.contextReference() != null;
     String ctxRef =
         contextRefDefined ? requestedRevision.contextReference() : requestedRevision.asString();
-
-    return computeIdentity("ChangeIdentity", ctxRef);
+    if (changeIdentity.isEmpty()) {
+      return computeIdentity("ChangeIdentity", ctxRef);
+    }
+    StringBuilder sb = new StringBuilder();
+    for (Token token : changeIdentity) {
+      if (token.getType().equals(TokenType.LITERAL)) {
+        sb.append(token.getValue());
+      } else if (token.getValue().equals(COPYBARA_REFERENCE_IDENTITY_VAR)) {
+        sb.append(mainConfigFile.relativeToRoot());
+      } else if (token.getValue().equals(COPYBARA_WORKFLOW_NAME_IDENTITY_VAR)) {
+        sb.append(this.name);
+      } else if (token.getValue().equals(COPYBARA_WORKFLOW_NAME_IDENTITY_VAR)) {
+        sb.append(this.name);
+      } else if (token.getValue().equals(COPYBARA_REFERENCE_IDENTITY_VAR)) {
+        sb.append(ctxRef);
+      } else if (token.getValue().startsWith(COPYBARA_REFERENCE_LABEL_VAR)) {
+        String label = token.getValue().substring(COPYBARA_REFERENCE_LABEL_VAR.length());
+        String labelValue = transformWork.getLabel(label);
+        if (labelValue == null) {
+          console.warn(String.format(
+              "Couldn't find label '%s'. Using the default identity algorithm", label));
+          return computeIdentity("ChangeIdentity", ctxRef);
+        }
+        sb.append(labelValue);
+      }
+    }
+    return hashIdentity(MoreObjects.toStringHelper("custom_identity").add("text", sb.toString()));
   }
 
   /**
@@ -402,14 +437,18 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         .add("config_path", mainConfigFile.relativeToRoot())
         .add("workflow_name", this.name)
         .add("context_ref", ref);
+    return hashIdentity(helper);
+  }
+
+  private String hashIdentity(ToStringHelper helper) {
     helper.add("user", workflowOptions.workflowIdentityUser != null
         ? workflowOptions.workflowIdentityUser
         : StandardSystemProperty.USER_NAME.value());
     String identity = helper.toString();
     String hash = BaseEncoding.base16().encode(
         Hashing.md5()
-                    .hashString(identity, StandardCharsets.UTF_8)
-                    .asBytes());
+            .hashString(identity, StandardCharsets.UTF_8)
+            .asBytes());
 
     // Important to log the source of the hash and the hash for debugging purposes.
     logger.info("Computed migration identity hash for " + identity + " as " + hash);
@@ -439,5 +478,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public ImmutableList<Action> getAfterMigrationActions() {
     return afterMigrationActions;
+  }
+
+  protected ImmutableList<Token> getChangeIdentity() {
+    return changeIdentity;
   }
 }

@@ -101,7 +101,7 @@ public enum WorkflowMode {
               // Squash notes an Skylark API expect last commit to be the first one.
               new Changes(detectedChanges.reverse(), ImmutableList.of()),
               /*destinationBaseline=*/null,
-              runHelper.getWorkflowIdentity(runHelper.getResolvedRef()));
+              runHelper.getResolvedRef());
     }
   },
 
@@ -157,7 +157,7 @@ public enum WorkflowMode {
                       // Use the current change since we might want to create different
                       // reviews in the destination. Will not work if we want to group
                       // all the changes in the same Github PR
-                      runHelper.getWorkflowIdentity(change.getRevision()));
+                      change.getRevision());
           migratedChanges++;
           for (DestinationEffect effect : result) {
             if (effect.getType() != Type.NOOP) {
@@ -359,7 +359,7 @@ public enum WorkflowMode {
               // Squash notes an Skylark API expect last commit to be the first one.
               new Changes(changes.reverse(), ImmutableList.of()),
               baseline.get().getBaseline(),
-              runHelper.getWorkflowIdentity(runHelper.getResolvedRef()));
+              runHelper.getResolvedRef());
     }
 
   private static <O extends Revision, D extends Revision> void manageNoChangesDetectedForSquash(

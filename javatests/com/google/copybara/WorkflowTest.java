@@ -114,6 +114,7 @@ public class WorkflowTest {
   private String originFiles;
   private String destinationFiles;
   private TestingEventMonitor eventMonitor;
+  private TransformWork transformWork;
 
   @Before
   public void setup() throws Exception {
@@ -136,7 +137,8 @@ public class WorkflowTest {
         + "             },\n"
         + "             multiline = True,"
         + "        )");
-    options.setConsole(new TestingConsole());
+    TestingConsole console = new TestingConsole();
+    options.setConsole(console);
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     options.setForce(true); // Force by default unless we are testing the flag.
@@ -146,6 +148,7 @@ public class WorkflowTest {
         FolderModule.class, GitModule.class));
     eventMonitor = new TestingEventMonitor();
     options.general.withEventMonitor(eventMonitor);
+    transformWork = TransformWorks.of(workdir,"example", console);
   }
 
   private TestingConsole console() {
@@ -738,15 +741,15 @@ public class WorkflowTest {
   public void migrationIdentityConstant() throws Exception {
     // Squash always sets the default author for the commit but not in the release notes
     origin.addSimpleChange(/*timestamp*/ 1);
-    String before = workflow().getMigrationIdentity(origin.resolve(HEAD));
+    String before = workflow().getMigrationIdentity(origin.resolve(HEAD), transformWork);
     origin.addSimpleChange(/*timestamp*/ 2);
     origin.addSimpleChange(/*timestamp*/ 3);
-    String after = workflow().getMigrationIdentity(origin.resolve(HEAD));
+    String after = workflow().getMigrationIdentity(origin.resolve(HEAD), transformWork);
 
     // If we use 'HEAD' as reference it is constant
     assertThat(before).isEqualTo(after);
 
-    String nonConstant = workflow().getMigrationIdentity(origin.resolve("3"));
+    String nonConstant = workflow().getMigrationIdentity(origin.resolve("3"), transformWork);
 
     // But if we use direct reference (3 instead of 'HEAD') it changes since we cannot
     // find the context reference.
@@ -757,15 +760,16 @@ public class WorkflowTest {
   public void migrationIdentityWithUser() throws Exception {
     // Squash always sets the default author for the commit but not in the release notes
     origin.addSimpleChange(/*timestamp*/ 1);
-    String withUser = workflow().getMigrationIdentity(origin.resolve(HEAD));
+    String withUser = workflow().getMigrationIdentity(origin.resolve(HEAD), transformWork);
 
     options.workflowOptions.workflowIdentityUser = StandardSystemProperty.USER_NAME.value();
 
-    assertThat(withUser).isEqualTo(workflow().getMigrationIdentity(origin.resolve(HEAD)));
+    assertThat(withUser).isEqualTo(workflow().getMigrationIdentity(origin.resolve(HEAD),
+        transformWork));
 
     options.workflowOptions.workflowIdentityUser = "TEST";
 
-    String withOtherUser = workflow().getMigrationIdentity(origin.resolve(HEAD));
+    String withOtherUser = workflow().getMigrationIdentity(origin.resolve(HEAD), transformWork);
 
     assertThat(withOtherUser).isNotEqualTo(withUser);
   }
@@ -1301,6 +1305,68 @@ public class WorkflowTest {
         "doesn't include any change for origin_files = glob(include = [\"included/**\"])");
     workflow.run(workdir,/*sourceRef=*/null);
 
+  }
+
+  @Test
+  public void customIdentityTest() throws Exception {
+    options.workflowOptions.initHistory = true;
+    Config config = loadConfig(""
+        + "core.workflow(\n"
+        + "    name = 'one',\n"
+        + "    authoring = " + authoring + "\n,"
+        + "    origin = testing.origin(),\n"
+        + "    destination = testing.destination(),\n"
+        + "    transformations = [metadata.expose_label('some_label', 'new_label')],\n"
+        + "    change_identity = '${copybara_config_path}foo${label:new_label}',\n"
+        + "    mode = 'ITERATIVE',\n"
+        + ")\n\n"
+        + "core.workflow(\n"
+        + "    name = 'two',\n"
+        + "    authoring = " + authoring + "\n,"
+        + "    origin = testing.origin(),\n"
+        + "    destination = testing.destination(),\n"
+        + "    change_identity = '${copybara_config_path}foo${label:some_label}',\n"
+        + "    mode = 'ITERATIVE',\n"
+        + ")\n\n"
+        + "core.workflow(\n"
+        + "    name = 'three',\n"
+        + "    authoring = " + authoring + "\n,"
+        + "    origin = testing.origin(),\n"
+        + "    destination = testing.destination(),\n"
+        + "    change_identity = '${copybara_config_path}foo${label:not_found}',\n"
+        + "    mode = 'ITERATIVE',\n"
+        + ")\n\n"
+        + "");
+
+    origin.addSimpleChange(1,"change\n\nsome_label=a");
+    origin.addSimpleChange(2,"change\n\nsome_label=b");
+    origin.addSimpleChange(3,"change\n\nsome_label=c");
+
+    config.getMigration("one").run(workdir, null);
+
+    assertThat(destination.processed).hasSize(3);
+    ImmutableList<String> oneResult = destination.processed.stream().map(
+        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+
+    // Different identities
+    assertThat(ImmutableSet.copyOf(oneResult)).hasSize(3);
+
+    destination.processed.clear();
+
+    config.getMigration("two").run(workdir, null);
+
+    ImmutableList<String> twoResult = destination.processed.stream().map(
+        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+
+    assertThat(oneResult).isEqualTo(twoResult);
+
+    destination.processed.clear();
+    config.getMigration("three").run(workdir, null);
+
+    ImmutableList<String> threeResult = destination.processed.stream().map(
+        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+
+    assertThat(oneResult).isNotEqualTo(threeResult);
   }
 
   @Test
