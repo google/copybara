@@ -30,8 +30,8 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.copybara.transform.TemplateTokens;
-import com.google.copybara.transform.TemplateTokens.Replacer;
+import com.google.copybara.transform.RegexTemplateTokens;
+import com.google.copybara.transform.RegexTemplateTokens.Replacer;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Pattern;
@@ -50,8 +50,8 @@ public class ReferenceMigrator implements Transformation {
 
   static final int MAX_CHANGES_TO_VISIT = 5000;
 
-  private final TemplateTokens before;
-  private final TemplateTokens after;
+  private final RegexTemplateTokens before;
+  private final RegexTemplateTokens after;
   private final ImmutableList<String> additionalLabels;
 
   @Nullable private final Pattern reversePattern;
@@ -59,8 +59,8 @@ public class ReferenceMigrator implements Transformation {
   private final Map<String, String> knownChanges = new HashMap<>();
 
   ReferenceMigrator(
-      TemplateTokens before,
-      TemplateTokens after,
+      RegexTemplateTokens before,
+      RegexTemplateTokens after,
       Pattern reversePattern,
       ImmutableList<String> additionalLabels) {
     this.before = checkNotNull(before, "before");
@@ -73,11 +73,11 @@ public class ReferenceMigrator implements Transformation {
       String before, String after, Pattern forward, @Nullable Pattern backward,
       ImmutableList<String> additionalLabels, Location location) throws EvalException {
     Map<String, Pattern> patterns = ImmutableMap.of("reference", forward);
-    TemplateTokens beforeTokens =
-        new TemplateTokens(location, before, patterns, /* repeatedGroups= */ false);
+    RegexTemplateTokens beforeTokens =
+        new RegexTemplateTokens(location, before, patterns, /* repeatedGroups= */ false);
     beforeTokens.validateUnused();
-    TemplateTokens afterTokens =
-        new TemplateTokens(location, after, patterns, /* repeatedGroups= */ false);
+    RegexTemplateTokens afterTokens =
+        new RegexTemplateTokens(location, after, patterns, /* repeatedGroups= */ false);
     afterTokens.validateUnused();
     if (after.lastIndexOf("$1") != -1) {
       // TODO: Handle escaping

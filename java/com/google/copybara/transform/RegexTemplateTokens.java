@@ -24,8 +24,9 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
+import com.google.copybara.templatetoken.Parser;
+import com.google.copybara.templatetoken.Token;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
@@ -43,42 +44,23 @@ import javax.annotation.Nullable;
  * A string which is interpolated with named variables. The string is composed of interpolated and
  * non-interpolated (literal) pieces called tokens.
  */
-public final class TemplateTokens {
-  private enum TokenType {
-    LITERAL, INTERPOLATION
-  }
-
-  /**
-   * Either a string literal or interpolated value.
-   */
-  private static final class Token {
-    final String value;
-    final TokenType type;
-
-    Token(String value, TokenType type) {
-      this.value = Preconditions.checkNotNull(value);
-      this.type = Preconditions.checkNotNull(type);
-    }
-  }
+public final class RegexTemplateTokens {
 
   private final Location location;
   private final String template;
   private final Pattern before;
-  private final Multimap<String, Integer> groupIndexes;
+  private final ArrayListMultimap<String, Integer> groupIndexes = ArrayListMultimap.create();
   private final ImmutableList<Token> tokens;
   private final Set<String> unusedGroups;
 
-  public TemplateTokens(Location location, String template, Map<String, Pattern> regexGroups,
+  public RegexTemplateTokens(Location location, String template, Map<String, Pattern> regexGroups,
       boolean repeatedGroups) throws EvalException {
     this.location = location;
     this.template = Preconditions.checkNotNull(template);
 
-    Builder builder = new Builder();
-    builder.location = location;
-    builder.parse(template);
-    this.before = builder.buildBefore(regexGroups, repeatedGroups);
-    this.groupIndexes = MultimapBuilder.hashKeys().arrayListValues().build(builder.groupIndexes);
-    this.tokens = ImmutableList.copyOf(builder.tokens);
+    this.tokens = ImmutableList.copyOf(new Parser(location).parse(template));
+    this.before = buildBefore(regexGroups, repeatedGroups);
+
     this.unusedGroups = Sets.difference(regexGroups.keySet(), groupIndexes.keySet());
   }
 
@@ -91,14 +73,16 @@ public final class TemplateTokens {
   }
 
   public Replacer replacer(
-      TemplateTokens after, boolean firstOnly, boolean multiline, List<Pattern> patternsToIgnore) {
+      RegexTemplateTokens after, boolean firstOnly, boolean multiline,
+      List<Pattern> patternsToIgnore) {
     // TODO(malcon): Remove reconstructing pattern once RE2J doesn't synchronize on matching.
     return new Replacer(Pattern.compile(before.pattern(), before.flags()), after, null, firstOnly,
                         multiline, patternsToIgnore);
   }
 
   public Replacer callbackReplacer(
-      TemplateTokens after, AlterAfterTemplate callback, boolean firstOnly, boolean multiline,
+      RegexTemplateTokens after, AlterAfterTemplate callback, boolean firstOnly,
+      boolean multiline,
       @Nullable List<Pattern> patternsToIgnore) {
     return new Replacer(Pattern.compile(before.pattern()), after, callback, firstOnly, multiline,
                         patternsToIgnore);
@@ -107,7 +91,7 @@ public final class TemplateTokens {
   public class Replacer {
 
     private final Pattern before;
-    private final TemplateTokens after;
+    private final RegexTemplateTokens after;
     private final boolean firstOnly;
     private final boolean multiline;
     private final String afterReplaceTemplate;
@@ -120,12 +104,12 @@ public final class TemplateTokens {
     private final AlterAfterTemplate callback;
 
 
-    private Replacer(Pattern before, TemplateTokens after, AlterAfterTemplate callback,
-        boolean firstOnly, boolean multiline,
-        @Nullable List<Pattern> patternsToIgnore) {
+    private Replacer(Pattern before, RegexTemplateTokens after,
+        @Nullable AlterAfterTemplate callback,
+        boolean firstOnly, boolean multiline, @Nullable List<Pattern> patternsToIgnore) {
       this.before = before;
       this.after = after;
-      afterReplaceTemplate = this.after.after(TemplateTokens.this);
+      afterReplaceTemplate = this.after.after(RegexTemplateTokens.this);
       // Precomputed the repeated groups as this should be used only on rare occasions and we
       // don't want to iterate over the map for every line.
       for (Entry<String, Collection<Integer>> e : groupIndexes.asMap().entrySet()) {
@@ -196,7 +180,7 @@ public final class TemplateTokens {
 
     @Override
     public String toString() {
-      return String.format("s/%s/%s/%s", TemplateTokens.this, after, firstOnly ? "" : "g");
+      return String.format("s/%s/%s/%s", RegexTemplateTokens.this, after, firstOnly ? "" : "g");
     }
   }
 
@@ -207,16 +191,16 @@ public final class TemplateTokens {
    * <p>Returns a template in which the literals are escaped (if they are a $ or {) and the
    * interpolations appear as $N, where N is the group's index as given by {@code groupIndexes}.
    */
-  String after(TemplateTokens before) {
+  private String after(RegexTemplateTokens before) {
     StringBuilder template = new StringBuilder();
     for (Token token : tokens) {
-      switch (token.type) {
+      switch (token.getType()) {
         case INTERPOLATION:
-          template.append("$").append(before.groupIndexes.get(token.value).iterator().next());
+          template.append("$").append(before.groupIndexes.get(token.getValue()).iterator().next());
           break;
         case LITERAL:
-          for (int c = 0; c < token.value.length(); c++) {
-            char thisChar = token.value.charAt(c);
+          for (int c = 0; c < token.getValue().length(); c++) {
+            char thisChar = token.getValue().charAt(c);
             if (thisChar == '$' || thisChar == '\\') {
               template.append('\\');
             }
@@ -224,7 +208,7 @@ public final class TemplateTokens {
           }
           break;
         default:
-          throw new IllegalStateException(token.type.toString());
+          throw new IllegalStateException(token.getType().toString());
       }
     }
     return template.toString();
@@ -232,24 +216,16 @@ public final class TemplateTokens {
 
   @Override
   public String toString() {
-    return getTemplate()
-        .replace("\n","\\n")
-        .replace("\r","\\r")
-        .replace("\t","\\t");
-  }
-
-  public ImmutableList<String> getGroupNames()  {
-    return ImmutableList.copyOf(groupIndexes.keySet());
-  }
-
-  public String getTemplate() {
-    return template;
+    return template
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t");
   }
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof TemplateTokens) {
-      TemplateTokens comp = (TemplateTokens) other;
+    if (other instanceof RegexTemplateTokens) {
+      RegexTemplateTokens comp = (RegexTemplateTokens) other;
       return before.equals(comp.before)
           && tokens.equals(comp.tokens);
     } else {
@@ -262,95 +238,44 @@ public final class TemplateTokens {
     return Objects.hashCode(before, tokens);
   }
 
-  private static class Builder {
-    final List<Token> tokens = new ArrayList<>();
-    final Multimap<String, Integer> groupIndexes = ArrayListMultimap.create();
-    Location location;
-
-    /**
-     * Parses a template. In the raw string representation, interpolation is
-     * done with {@code ${var_name}}. Literal dollar signs can be represented with {@code $$}.
-     *
-     * @throws EvalException if the template is malformed
-     */
-    void parse(String template) throws EvalException {
-      StringBuilder currentLiteral = new StringBuilder();
-      int c = 0;
-      while (c < template.length()) {
-        char thisChar = template.charAt(c);
-        c++;
-        if (thisChar != '$') {
-          currentLiteral.append(thisChar);
-          continue;
-        }
-        if (c >= template.length()) {
-          throw new EvalException(location, "Expect $ or { after every $ in string: " + template);
-        }
-        thisChar = template.charAt(c);
-        c++;
-        switch (thisChar) {
-          case '$':
-            currentLiteral.append('$');
-            break;
-          case '{':
-            tokens.add(new Token(currentLiteral.toString(), TokenType.LITERAL));
-            currentLiteral = new StringBuilder();
-            int terminating = template.indexOf('}', c);
-            if (terminating == -1) {
-              throw new EvalException(location, "Unterminated '${'. Expected '}': " + template);
-            }
-            if (c == terminating) {
-              throw new EvalException(
-                  location, "Expect non-empty interpolated value name: " + template);
-            }
-            tokens.add(
-                new Token(template.substring(c, terminating), TokenType.INTERPOLATION));
-            c = terminating + 1;
-            break;
-          default:
-            throw new EvalException(location, "Expect $ or { after every $ in string: " + template);
-        }
+  /**
+   * Converts this sequence of tokens into a regex which can be used to search a string. It
+   * automatically quotes literals and represents interpolations as named groups.
+   *
+   * <p>It also fills groupIndexes with all the interpolation locations.
+   *
+   * @param regexesByInterpolationName map from group name to the regex to interpolate when the
+   * group is mentioned
+   * @param repeatedGroups true if a regex group is allowed to be used multiple times
+   */
+  private Pattern buildBefore(Map<String, Pattern> regexesByInterpolationName,
+      boolean repeatedGroups) throws EvalException {
+    int groupCount = 1;
+    StringBuilder fullPattern = new StringBuilder();
+    for (Token token : tokens) {
+      switch (token.getType()) {
+        case INTERPOLATION:
+          Pattern subPattern = regexesByInterpolationName.get(token.getValue());
+          if (subPattern == null) {
+            throw new EvalException(
+                location, "Interpolation is used but not defined: " + token.getValue());
+          }
+          fullPattern.append(String.format("(%s)", subPattern.pattern()));
+          if (groupIndexes.get(token.getValue()).size() > 0 && !repeatedGroups) {
+            throw new EvalException(
+                location, "Regex group is used in template multiple times: " + token.getValue());
+          }
+          groupIndexes.put(token.getValue(), groupCount);
+          groupCount += subPattern.groupCount() + 1;
+          break;
+        case LITERAL:
+          fullPattern.append(Pattern.quote(token.getValue()));
+          break;
+        default:
+          throw new IllegalStateException(token.getType().toString());
       }
-      tokens.add(new Token(currentLiteral.toString(), TokenType.LITERAL));
     }
-
-    /**
-     * Converts this sequence of tokens into a regex which can be used to search a string. It
-     * automatically quotes literals and represents interpolations as named groups.
-     *
-     * @param regexesByInterpolationName map from group name to the regex to interpolate when the
-     * group is mentioned
-     * @param repeatedGroups true if a regex group is allowed to be used multiple times
-     */
-    Pattern buildBefore(Map<String, Pattern> regexesByInterpolationName, boolean repeatedGroups)
-        throws EvalException {
-      int groupCount = 1;
-      StringBuilder fullPattern = new StringBuilder();
-      for (Token token : tokens) {
-        switch (token.type) {
-          case INTERPOLATION:
-            Pattern subPattern = regexesByInterpolationName.get(token.value);
-            if (subPattern == null) {
-              throw new EvalException(
-                  location, "Interpolation is used but not defined: " + token.value);
-            }
-            fullPattern.append(String.format("(%s)", subPattern.pattern()));
-            if (groupIndexes.get(token.value).size() > 0 && !repeatedGroups) {
-              throw new EvalException(
-                  location, "Regex group is used in template multiple times: " + token.value);
-            }
-            groupIndexes.put(token.value, groupCount);
-            groupCount += subPattern.groupCount() + 1;
-            break;
-          case LITERAL:
-            fullPattern.append(Pattern.quote(token.value));
-            break;
-          default:
-            throw new IllegalStateException(token.type.toString());
-        }
-      }
-      return Pattern.compile(fullPattern.toString(), Pattern.MULTILINE);
-    }
+    return Pattern.compile(fullPattern.toString(), Pattern.MULTILINE);
   }
 
   /**

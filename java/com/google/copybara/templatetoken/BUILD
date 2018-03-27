@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2018 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package(default_visibility = ["//visibility:public"])
-
 licenses(["notice"])  # Apache 2.0
 
+package(default_visibility = ["//visibility:public"])
+
 java_library(
-    name = "transform",
+    name = "templatetoken",
     srcs = glob(["**/*.java"]),
     javacopts = [
         "-Xlint:unchecked",
@@ -25,18 +25,8 @@ java_library(
         "1.8",
     ],
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/doc:annotations",
-        "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/profiler",
-        "//java/com/google/copybara/templatetoken",
-        "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util/console",
         "//third_party:guava",
         "//third_party:jsr305",
-        "//third_party:re2j",
         "//third_party:skylark-lang",
     ],
 )

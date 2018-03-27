@@ -29,7 +29,7 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.WorkflowOptions;
-import com.google.copybara.transform.TemplateTokens.Replacer;
+import com.google.copybara.transform.RegexTemplateTokens.Replacer;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
@@ -69,8 +69,8 @@ public final class Replace implements Transformation {
 
   private static final Logger logger = Logger.getLogger(Replace.class.getName());
 
-  private final TemplateTokens before;
-  private final TemplateTokens after;
+  private final RegexTemplateTokens before;
+  private final RegexTemplateTokens after;
   private final ImmutableMap<String, Pattern> regexGroups;
   private final boolean firstOnly;
   private final boolean multiline;
@@ -79,7 +79,7 @@ public final class Replace implements Transformation {
   private final ImmutableList<Pattern> patternsToIgnore;
   private final WorkflowOptions workflowOptions;
 
-  private Replace(TemplateTokens before, TemplateTokens after,
+  private Replace(RegexTemplateTokens before, RegexTemplateTokens after,
       Map<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
       boolean repeatedGroups,
       Glob fileMatcherBuilder,
@@ -171,10 +171,10 @@ public final class Replace implements Transformation {
       }
     }
 
-    TemplateTokens beforeTokens =
-        new TemplateTokens(location, before, parsedGroups, repeatedGroups);
-    TemplateTokens afterTokens =
-        new TemplateTokens(location, after, parsedGroups, repeatedGroups);
+    RegexTemplateTokens beforeTokens =
+        new RegexTemplateTokens(location, before, parsedGroups, repeatedGroups);
+    RegexTemplateTokens afterTokens =
+        new RegexTemplateTokens(location, after, parsedGroups, repeatedGroups);
 
     beforeTokens.validateUnused();
 
@@ -202,8 +202,8 @@ public final class Replace implements Transformation {
       implements LocalParallelizer.TransformFunc<FileState, Boolean> {
 
 
-    private final TemplateTokens before;
-    private final TemplateTokens after;
+    private final RegexTemplateTokens before;
+    private final RegexTemplateTokens after;
     private final boolean firstOnly;
     private final boolean multiline;
     private final ImmutableList<Pattern> patternsToIgnore;
@@ -211,7 +211,7 @@ public final class Replace implements Transformation {
     private final List<FileState> changed = new ArrayList<>();
     private boolean matchedFile = false;
 
-    BatchReplace(TemplateTokens before, TemplateTokens after, boolean firstOnly,
+    BatchReplace(RegexTemplateTokens before, RegexTemplateTokens after, boolean firstOnly,
         boolean multiline, ImmutableList<Pattern> patternsToIgnore) {
       this.before = before;
       this.after = after;
