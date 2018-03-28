@@ -34,11 +34,11 @@ import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.git.gerritapi.ChangeInfo;
@@ -184,9 +184,11 @@ public final class GerritDestination implements Destination<GitRevision> {
   }
 
   private final GitDestination gitDestination;
+  private final boolean submit;
 
-  private GerritDestination(GitDestination gitDestination) {
+  private GerritDestination(GitDestination gitDestination, boolean submit) {
     this.gitDestination = Preconditions.checkNotNull(gitDestination);
+    this.submit = submit;
   }
 
   @Override
@@ -207,17 +209,27 @@ public final class GerritDestination implements Destination<GitRevision> {
     return GitRepository.GIT_ORIGIN_REV_ID;
   }
 
-  static GerritDestination newGerritDestination(Options options, String url, String fetch,
-      String pushToRefsFor, ChangeIdPolicy changeIdPolicy) {
+  static GerritDestination newGerritDestination(
+      Options options,
+      String url,
+      String fetch,
+      String pushToRefsFor,
+      boolean submit,
+      ChangeIdPolicy changeIdPolicy) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     if (pushToRefsFor.isEmpty()) {
       pushToRefsFor = fetch;
     }
     GerritOptions gerritOptions = options.get(GerritOptions.class);
-    String push =
-        Strings.isNullOrEmpty(gerritOptions.gerritTopic)
-            ? String.format("refs/for/%s", pushToRefsFor)
-            : String.format("refs/for/%s%%topic=%s", pushToRefsFor, gerritOptions.gerritTopic);
+    String push;
+    if (submit) {
+      push = pushToRefsFor;
+    } else {
+      push =
+          Strings.isNullOrEmpty(gerritOptions.gerritTopic)
+              ? String.format("refs/for/%s", pushToRefsFor)
+              : String.format("refs/for/%s%%topic=%s", pushToRefsFor, gerritOptions.gerritTopic);
+    }
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     return new GerritDestination(
         new GitDestination(
@@ -228,15 +240,15 @@ public final class GerritDestination implements Destination<GitRevision> {
             options.get(GitOptions.class),
             generalOptions,
             /*skipPush=*/ false,
-            new CommitGenerator(gerritOptions,
+            new CommitGenerator(
+                gerritOptions,
                 url,
                 destinationOptions.getCommitter(),
                 generalOptions.console(),
                 changeIdPolicy),
-            new GerritProcessPushOutput(
-                generalOptions.console()
-            ),
-            NO_GIT_DESTINATION_INTEGRATES));
+            new GerritProcessPushOutput(generalOptions.console()),
+            NO_GIT_DESTINATION_INTEGRATES),
+        submit);
   }
 
   static class GerritProcessPushOutput extends ProcessPushStructuredOutput {
@@ -291,13 +303,16 @@ public final class GerritDestination implements Destination<GitRevision> {
 
   @Override
   public String getType() {
-    return "gerrit.destination";
+    return submit ? gitDestination.getType() : "gerrit.destination";
   }
 
   @Override
   public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<>();
+    if (submit) {
+      return gitDestination.describe(originFiles);
+    }
     for (Entry<String, String> entry : gitDestination.describe(originFiles).entries()) {
       if (entry.getKey().equals("type")) {
         continue;

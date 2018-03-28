@@ -27,6 +27,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.hash.Hashing;
 import com.google.copybara.ChangeMessage;
@@ -177,14 +178,19 @@ public class GerritDestinationTest {
         + "git.gerrit_destination(\n"
         + "    url = '" + url + "',\n"
         + "    fetch = '" + fetch + "',\n"
-        + (lines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(lines))
+        + (lines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(lines) + ",\n")
         + "    " + (pushToRefsFor == null ? "" : "push_to_refs_for = '" + pushToRefsFor + "',")
         + ")");
   }
 
   private static String lastCommitChangeIdLine(String ref, GitRepository repo) throws Exception {
-    GitLogEntry log = Iterables.getOnlyElement(repo.log("refs/for/master").withLimit(1).run());
-    assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + ref + "\n");
+    return lastCommitChangeIdLineForRef("refs/for/master", ref, repo);
+  }
+
+  private static String lastCommitChangeIdLineForRef(String gitRef, String originRef,
+      GitRepository repo) throws RepoException {
+    GitLogEntry log = Iterables.getOnlyElement(repo.log(gitRef).withLimit(1).run());
+    assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
     String line = null;
     for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
       if (label.isLabel(GerritDestination.CHANGE_ID_LABEL)) {
@@ -414,6 +420,41 @@ public class GerritDestinationTest {
     return GitRepository
         .newBareRepo(urlMapper.resolve(url), getGitEnv(), options.general.isVerbose())
         .init();
+  }
+
+  @Test
+  public void testGerritSubmit() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    pushToRefsFor = "master";
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    GitRepository repo = localGerritRepo("localhost:33333/foo/bar");
+    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    List<DestinationEffect> result = destination
+        .newWriter(glob,/*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
+        .write(
+            TransformResults.of(workdir, originRef)
+                .withSummary("Test message")
+                .withIdentity(originRef.asString()),
+            console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+
+    String changeId = lastCommitChangeIdLineForRef("master", "origin_ref", repo)
+        .replace("Change-Id: ", "").trim();
+    
+    assertThat(changeId).isNotNull();
+    assertThat(destination.getType()).isEqualTo("git.destination");
+    assertThat(destination.describe(glob).get("fetch")).isEqualTo(ImmutableSet.of("master"));
+    assertThat(destination.describe(glob).get("push")).isEqualTo(ImmutableSet.of("master"));
   }
 
   @Test

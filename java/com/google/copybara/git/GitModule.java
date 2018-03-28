@@ -524,6 +524,11 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               doc = "Review branch to push the change to, for example setting this to 'feature_x'"
                   + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
                   + "'fetch' value."),
+          @Param(name = "submit", type = Boolean.class,
+              doc =
+                  "If true, skip the push thru Gerrit refs/for/branch and directly push to branch."
+                      + " This is effectively a git.destination that sets a Change-Id",
+              defaultValue = "False"),
           @Param(
               name = "change_id_policy", type = String.class, defaultValue = "'FAIL_IF_PRESENT'",
               doc = "What to do in the presence or absent of Change-Id in message:"
@@ -540,14 +545,15 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   public static final BuiltinFunction GERRIT_DESTINATION =
       new BuiltinFunction("gerrit_destination") {
     public GerritDestination invoke(
-        GitModule self, String url, String fetch, String pushToRefsFor, String changeIdPolicy,
-        Location location) throws EvalException {
+        GitModule self, String url, String fetch, String pushToRefsFor, Boolean submit,
+        String changeIdPolicy, Location location) throws EvalException {
       return GerritDestination.newGerritDestination(
           self.options,
           checkNotEmpty(url, "url", location),
           checkNotEmpty(fetch, "fetch", location),
           pushToRefsFor,
-          SkylarkUtil.stringToEnum(location,"change_id_policy", changeIdPolicy,
+          submit,
+          SkylarkUtil.stringToEnum(location, "change_id_policy", changeIdPolicy,
               ChangeIdPolicy.class));
     }
   };
