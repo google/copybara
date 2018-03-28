@@ -117,10 +117,10 @@ public class FolderOrigin implements Origin<FolderRevision> {
       }
 
       @Override
-      public ImmutableList<Change<FolderRevision>> changes(
+      public ChangesResponse<FolderRevision> changes(
           @Nullable FolderRevision fromRef, FolderRevision toRef) throws RepoException {
         // Ignore fromRef since a folder doesn't have history of changes
-        return ImmutableList.of(change(toRef));
+        return ChangesResponse.forChanges(ImmutableList.of(change(toRef)));
       }
 
       @Override

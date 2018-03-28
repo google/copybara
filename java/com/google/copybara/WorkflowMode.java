@@ -27,6 +27,8 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
+import com.google.copybara.Origin.Reader.ChangesResponse;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
@@ -62,9 +64,11 @@ public enum WorkflowMode {
       O lastRev = null;
       if (isHistorySupported(runHelper)) {
         lastRev = maybeGetLastRev(runHelper);
-        detectedChanges = runHelper.getChanges(lastRev, current);
-        if (detectedChanges.isEmpty()) {
-          manageNoChangesDetectedForSquash(runHelper, current, lastRev);
+        ChangesResponse<O> response = runHelper.getChanges(lastRev, current);
+        if (response.isEmpty()) {
+          manageNoChangesDetectedForSquash(runHelper, current, lastRev, response.getEmptyReason());
+        } else {
+          detectedChanges = response.getChanges();
         }
       }
 
@@ -114,13 +118,19 @@ public enum WorkflowMode {
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
       O lastRev = runHelper.getLastRev();
-      ImmutableList<Change<O>> changes = runHelper.getChanges(lastRev, runHelper.getResolvedRef());
-      if (changes.isEmpty()) {
+      ChangesResponse<O> changesResponse =
+          runHelper.getChanges(lastRev, runHelper.getResolvedRef());
+      if (changesResponse.isEmpty()) {
+        ValidationException.checkCondition(
+            !changesResponse.getEmptyReason().equals(EmptyReason.UNRELATED_REVISIONS),
+            "last imported revision %s is not ancestor of requested revision %s",
+            lastRev, runHelper.getResolvedRef());
         throw new EmptyChangeException(
             "No new changes to import for resolved ref: " + runHelper.getResolvedRef().asString());
       }
       int changeNumber = 1;
 
+      ImmutableList<Change<O>> changes = changesResponse.getChanges();
       Iterator<Change<O>> changesIterator = changes.iterator();
       int limit = changes.size();
       if (runHelper.workflowOptions().iterativeLimitChanges < changes.size()) {
@@ -337,13 +347,15 @@ public enum WorkflowMode {
       if (baseline.get().getOriginRevision() == null) {
         changes = ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()));
       } else {
-        changes = runHelper.getOriginReader().changes(baseline.get().getOriginRevision(),
-                                                      runHelper.getResolvedRef());
-        if (changes.isEmpty()) {
+        ChangesResponse<O> changesResponse = runHelper.getOriginReader()
+            .changes(baseline.get().getOriginRevision(),
+                runHelper.getResolvedRef());
+        if (changesResponse.isEmpty()) {
           throw new EmptyChangeException(String
               .format("Change '%s' doesn't include any change for origin_files = %s",
                   runHelper.getResolvedRef(), runHelper.getOriginFiles()));
         }
+        changes = changesResponse.getChanges();
       }
 
       runHelper
@@ -363,36 +375,53 @@ public enum WorkflowMode {
     }
 
   private static <O extends Revision, D extends Revision> void manageNoChangesDetectedForSquash(
-      WorkflowRunHelper<O, D> runHelper, O current, O lastRev)
-      throws ValidationException, RepoException {
-    checkCondition(
-        lastRev != null || runHelper.isForce(), String.format(
-            "Cannot find any change in history up to '%s'. Use %s if you really want to migrate to"
-                + " the revision.", current.asString(), GeneralOptions.FORCE));
-    runHelper.getConsole().warnFmt(
-        "Cannot find any change in history up to '%s'. Trying the migration anyway", current);
-    // Check the reverse changes to see if there is a change from current...lastRev.
-    if (lastRev == null
-        || !current.asString().equals(lastRev.asString())
-        && runHelper.getChanges(current, lastRev).isEmpty()) {
-      checkCondition(runHelper.isForce(), String.format(
-          "Last imported revision '%s' is not an ancestor of the revision currently being"
-              + " migrated ('%s'). Use %s if you really want to migrate the reference.",
-          lastRev, current.asString(), GeneralOptions.FORCE));
-      runHelper.getConsole().warnFmt(
-          "Last imported revision '%s' is not an ancestor of the revision currently being"
-              + " migrated ('%s')", lastRev, current.asString());
-      return;
+      WorkflowRunHelper<O, D> runHelper, O current, O lastRev, EmptyReason emptyReason)
+      throws ValidationException {
+    switch (emptyReason) {
+      case NO_CHANGES:
+        String noChangesMsg =
+            String.format(
+                "No changes%s up to %s match any origin_files",
+                lastRev == null ? "" : " from " + lastRev.asString(), current.asString());
+        if (!runHelper.isForce()) {
+          throw new EmptyChangeException(
+              String.format(
+                  "%s. Use %s if you really want to run the migration anyway.",
+                  noChangesMsg, GeneralOptions.FORCE));
+        }
+        runHelper
+            .getConsole()
+            .warnFmt("%s. Migrating anyway because of %s", noChangesMsg, GeneralOptions.FORCE);
+        break;
+      case TO_IS_ANCESTOR:
+        if (!runHelper.isForce()) {
+          throw new EmptyChangeException(
+              String.format(
+                  "'%s' has been already migrated. Use %s if you really want to run the migration"
+                      + " again (For example if the copy.bara.sky file has changed).",
+                  current.asString(), GeneralOptions.FORCE));
+        }
+        runHelper
+            .getConsole()
+            .warnFmt(
+                "'%s' has been already migrated. Migrating anyway" + " because of %s",
+                lastRev.asString(), GeneralOptions.FORCE);
+        break;
+      case UNRELATED_REVISIONS:
+        checkCondition(
+            runHelper.isForce(),
+            String.format(
+                "Last imported revision '%s' is not an ancestor of the revision currently being"
+                    + " migrated ('%s'). Use %s if you really want to migrate the reference.",
+                lastRev, current.asString(), GeneralOptions.FORCE));
+        runHelper
+            .getConsole()
+            .warnFmt(
+                "Last imported revision '%s' is not an ancestor of the revision currently being"
+                    + " migrated ('%s')",
+                lastRev, current.asString());
+        break;
     }
-    if (!runHelper.isForce()) {
-      throw new EmptyChangeException(String.format(
-          "'%s' has been already migrated. Use %s if you really want to run the migration"
-              + " again (For example if the copy.bara.sky file has changed).",
-          current.asString(), GeneralOptions.FORCE));
-    }
-    runHelper.getConsole().warnFmt("'%s' has been already migrated. Migrating anyway"
-                                       + " because of %s", lastRev.asString(),
-                                   GeneralOptions.FORCE);
   }
 
   private static boolean isHistorySupported(WorkflowRunHelper<?, ?> helper) {

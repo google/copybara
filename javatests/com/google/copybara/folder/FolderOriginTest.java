@@ -30,11 +30,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
-import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
@@ -180,7 +180,8 @@ public class FolderOriginTest {
     FolderRevision ref = origin.resolve(localFolder.toString());
     Change<FolderRevision> change = reader.change(ref);
 
-    assertThat(Iterables.getOnlyElement(reader.changes(/*fromRef=*/null, ref))).isEqualTo(change);
+    assertThat(Iterables.getOnlyElement(reader.changes(/*fromRef=*/ null, ref).getChanges()))
+        .isEqualTo(change);
     return change;
   }
 

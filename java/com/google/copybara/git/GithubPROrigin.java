@@ -302,7 +302,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
        * commit doesn't work for this case.
        */
       @Override
-      public ImmutableList<Change<GitRevision>> changes(@Nullable GitRevision fromRef,
+      public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef,
           GitRevision toRef) throws RepoException {
         if (!useMerge) {
           return super.changes(fromRef, toRef);
@@ -317,12 +317,17 @@ public class GithubPROrigin implements Origin<GitRevision> {
         }
         // HEAD of the Pull Request
         GitRevision gitRevision = merge.getParents().get(1);
-        ImmutableList<Change<GitRevision>> prChanges = super.changes(fromRef, gitRevision);
+        ChangesResponse<GitRevision> prChanges = super.changes(fromRef, gitRevision);
+        // Merge might have an effect, but we are not interested on it if the PR doesn't touch
+        // origin_files
+        if (prChanges.isEmpty()){
+            return prChanges;
+        }
         try {
-          return ImmutableList.<Change<GitRevision>>builder()
-              .addAll(prChanges)
+          return ChangesResponse.forChanges(ImmutableList.<Change<GitRevision>>builder()
+              .addAll(prChanges.getChanges())
               .add(change(merge.getCommit()))
-              .build();
+              .build());
         } catch (EmptyChangeException e) {
           throw new RepoException("Error getting the merge commit information: " + merge, e);
         }

@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.console.Consoles.logLines;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -30,6 +31,7 @@ import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
@@ -48,6 +50,7 @@ import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import javax.annotation.Nullable;
 
 /**
@@ -110,6 +113,32 @@ public class GitOrigin implements Origin<GitRevision> {
   @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
     return gitOptions.cachedBareRepoForUrl(repoUrl);
+  }
+
+  static ImmutableList<Change<GitRevision>> asChanges(Collection<GitChange> gitChanges) {
+    return gitChanges.stream().map(GitChange::getChange).collect(ImmutableList.toImmutableList());
+  }
+
+  @Override
+  public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
+    return new ReaderImpl(repoUrl, originFiles, authoring,
+        gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy,
+        firstParent);
+  }
+
+  @Override
+  public GitRevision resolve(@Nullable String reference)
+      throws RepoException, ValidationException {
+    console.progress("Git Origin: Initializing local repo");
+    String ref;
+    if (Strings.isNullOrEmpty(reference)) {
+      checkCondition(configRef != null, "No reference was passed as an command line argument for"
+              + " %s and no default reference was configured in the config file", repoUrl);
+      ref = configRef;
+    } else {
+      ref = reference;
+    }
+    return repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions);
   }
 
   static class ReaderImpl implements Reader<GitRevision> {
@@ -265,8 +294,8 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     @Override
-    public ImmutableList<Change<GitRevision>> changes(@Nullable GitRevision fromRef,
-        GitRevision toRef) throws RepoException {
+    public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef, GitRevision toRef)
+        throws RepoException {
 
       String refRange = fromRef == null
           ? toRef.getSha1()
@@ -274,7 +303,21 @@ public class GitOrigin implements Origin<GitRevision> {
       ChangeReader changeReader = changeReaderBuilder(repoUrl)
           .setFirstParent(firstParent)
           .build();
-      return asChanges(changeReader.run(refRange));
+      ImmutableList<GitChange> gitChanges = changeReader.run(refRange);
+      if (!gitChanges.isEmpty()) {
+        return ChangesResponse.forChanges(asChanges(gitChanges));
+      }
+      if (fromRef == null) {
+        return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
+      }
+      if (fromRef.getSha1().equals(toRef.getSha1())
+          || getRepository().isAncestor(toRef.getSha1(), fromRef.getSha1())) {
+        return ChangesResponse.noChanges(EmptyReason.TO_IS_ANCESTOR);
+      }
+      if (getRepository().isAncestor(fromRef.getSha1(), toRef.getSha1())) {
+        return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
+      }
+      return ChangesResponse.noChanges(EmptyReason.UNRELATED_REVISIONS);
     }
 
     @Override
@@ -313,38 +356,6 @@ public class GitOrigin implements Origin<GitRevision> {
       GitVisitorUtil.visitChanges(
           start, visitor, queryChanges, generalOptions, "origin", gitOptions.visitChangePageSize);
     }
-  }
-
-  @Override
-  public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
-    return new ReaderImpl(repoUrl, originFiles, authoring,
-        gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy,
-        firstParent);
-  }
-
-  @Override
-  public GitRevision resolve(@Nullable String reference)
-      throws RepoException, ValidationException {
-    console.progress("Git Origin: Initializing local repo");
-    String ref;
-    if (Strings.isNullOrEmpty(reference)) {
-      if (configRef == null) {
-        throw new ValidationException("No reference was passed as an command line argument for "
-            + repoUrl + " and no default reference was configured in the config file");
-      }
-      ref = configRef;
-    } else {
-      ref = reference;
-    }
-    return repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions);
-  }
-
-  static ImmutableList<Change<GitRevision>> asChanges(ImmutableList<GitChange> gitChanges) {
-    ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
-    for (GitChange gitChange : gitChanges) {
-      result.add(gitChange.getChange());
-    }
-    return result.build();
   }
 
   @Override

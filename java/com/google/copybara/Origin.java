@@ -73,13 +73,58 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
      * <p>If {@code fromRef} is null, returns all the changes from the first commit of the parent
      * branch to {@code toRef}, both included.
      *
-     * @param fromRef the revision used in the latest invocation. If null it means that no
-     * previous ref could be found or that the destination didn't store the ref.
+     * @param fromRef the revision used in the latest invocation. If null it means that no previous
+     *     ref could be found or that the destination didn't store the ref.
      * @param toRef current revision to transform.
      * @throws RepoException if any error happens during the computation of the diff.
      */
-    ImmutableList<Change<R>> changes(@Nullable R fromRef, R toRef) throws RepoException;
+    ChangesResponse<R> changes(@Nullable R fromRef, R toRef) throws RepoException;
 
+    class ChangesResponse<R extends Revision> {
+      private final ImmutableList<Change<R>> changes;
+      @Nullable private final EmptyReason emptyReason;
+
+      private ChangesResponse(ImmutableList<Change<R>> changes, @Nullable EmptyReason emptyReason) {
+        this.changes = changes;
+        this.emptyReason = emptyReason;
+      }
+
+      public static <T extends Revision> ChangesResponse<T> forChanges(
+          Iterable<Change<T>> changes) {
+        Preconditions.checkArgument(!Iterables.isEmpty(changes));
+        return new ChangesResponse<>(ImmutableList.copyOf(changes), null);
+      }
+
+      public static <T extends Revision> ChangesResponse<T> noChanges(EmptyReason emptyReason) {
+        Preconditions.checkNotNull(emptyReason);
+        return new ChangesResponse<>(ImmutableList.of(), emptyReason);
+      }
+
+      public boolean isEmpty() {
+        return emptyReason != null;
+      }
+
+      public EmptyReason getEmptyReason() {
+        Preconditions.checkNotNull(emptyReason, "Use isEmpty() first");
+        return emptyReason;
+      }
+
+      /** The changes that happen in the interval (fromRef, toRef] */
+      public ImmutableList<Change<R>> getChanges() {
+        Preconditions.checkState(!changes.isEmpty(), "Use isEmpty() first");
+        return changes;
+      }
+
+      /** Reason why {@link Origin.Reader#changes(Revision, Revision)} didn't return any change */
+      public enum EmptyReason {
+        /** 'from' is ancestor of 'to' but all changes are for irrelevant files */
+        NO_CHANGES,
+        /** There is no parent/child relationship between 'from' and 'to' */
+        UNRELATED_REVISIONS,
+        /* 'to' is equal or ancestor of 'from' */
+        TO_IS_ANCESTOR,
+      }
+    }
     /**
      * Returns true if the origin repository supports maintaining a history of changes. Generally
      * this should be true

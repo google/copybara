@@ -26,6 +26,7 @@ import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Reader;
+import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
@@ -435,8 +436,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   }
 
 
-  ImmutableList<Change<O>> getChanges(@Nullable O from, O to)
-      throws RepoException, ValidationException {
+  ChangesResponse<O> getChanges(@Nullable O from, O to) throws RepoException {
     try (ProfilerTask ignore = profiler().start("get_changes")) {
       return originReader.changes(from, to);
     }

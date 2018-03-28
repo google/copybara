@@ -28,6 +28,8 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.copybara.Origin.Reader.ChangesResponse;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
@@ -277,7 +279,7 @@ public class GitOriginTest {
     repo.simpleCommand("merge", "foo");
 
     ImmutableList<Change<GitRevision>> changes = newReader().changes(/*fromRef=*/null,
-        origin.resolve("master"));
+        origin.resolve("master")).getChanges();
 
     assertThat(changes.get(2).firstLineMessage()).contains("Merge");
     assertThat(changes.get(2).getChangeFiles()).containsExactly("bar.txt");
@@ -458,7 +460,7 @@ public class GitOriginTest {
     singleFileCommit(author, "change4", "test.txt", "some content4");
 
     ImmutableList<Change<GitRevision>> changes = newReader()
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
 
     assertThat(changes).hasSize(3);
     assertThat(changes.stream()
@@ -478,10 +480,11 @@ public class GitOriginTest {
 
   @Test
   public void testNoChanges() throws Exception {
-    ImmutableList<Change<GitRevision>> changes = newReader()
+    ChangesResponse<GitRevision> changes = newReader()
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
 
-    assertThat(changes).isEmpty();
+    assertThat(changes.isEmpty()).isTrue();
+    assertThat(changes.getEmptyReason()).isEqualTo(EmptyReason.TO_IS_ANCESTOR);
   }
 
   @Test
@@ -614,7 +617,8 @@ public class GitOriginTest {
     assertThat(visited.get(2).firstLineMessage()).isEqualTo("master1");
     assertThat(visited.get(3).firstLineMessage()).isEqualTo("first file");
 
-    ImmutableList<Change<GitRevision>> changes = reader.changes(/*fromRef=*/null, lastCommitRef);
+    ImmutableList<Change<GitRevision>> changes = reader.changes(/*fromRef=*/null, lastCommitRef)
+        .getChanges();
     assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
         Lists.transform(visited, Change::getRevision));
     assertThat(changes.reverse().get(0).isMerge()).isTrue();
@@ -638,7 +642,7 @@ public class GitOriginTest {
     assertThat(Lists.transform(visited, Change::firstLineMessage)).containsExactly(
         "Merge branch 'feature'", "master2", "change3", "master1", "change2", "first file");
 
-    changes = reader.changes(/*fromRef=*/null, lastCommitRef);
+    changes = reader.changes(/*fromRef=*/null, lastCommitRef).getChanges();
     assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
         Lists.transform(visited, Change::getRevision));
     assertThat(changes.reverse().get(0).isMerge()).isTrue();
@@ -686,7 +690,7 @@ public class GitOriginTest {
     createBranchMerge(author);
 
     ImmutableList<Change<GitRevision>> changes = newReader()
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD"));
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
@@ -737,8 +741,8 @@ public class GitOriginTest {
 
     Reader<GitRevision> reader = newReader();
     assertThat(reader.change(firstRef).getMessage()).contains("first file");
-    assertThat(reader.changes(null, secondRef)).hasSize(2);
-    assertThat(reader.changes(firstRef, secondRef)).hasSize(1);
+    assertThat(reader.changes(null, secondRef).getChanges()).hasSize(2);
+    assertThat(reader.changes(firstRef, secondRef).getChanges()).hasSize(1);
   }
 
   @Test
@@ -760,8 +764,9 @@ public class GitOriginTest {
 
     // No files are in the included roots - make sure we can get an empty list of changes.
     GitRevision firstRef = origin.resolve(firstCommitRef);
-    assertThat(newReader().changes(firstRef, origin.resolve("HEAD")))
-        .isEmpty();
+    ChangesResponse<GitRevision> resp = newReader().changes(firstRef, origin.resolve("HEAD"));
+    assertThat(resp.isEmpty()).isTrue();
+    assertThat(resp.getEmptyReason()).isEqualTo(EmptyReason.NO_CHANGES);
 
     // Now add a file in an included root and make sure we get that change from the Reader.
     Files.createDirectories(remote.resolve("--parents"));
@@ -770,7 +775,7 @@ public class GitOriginTest {
     git("commit", "-m", "included_file", "--date", commitTime);
     GitRevision firstIncludedRef =
         Iterables.getOnlyElement(
-            newReader().changes(firstRef, origin.resolve("HEAD")))
+            newReader().changes(firstRef, origin.resolve("HEAD")).getChanges())
         .getRevision();
 
     // Add an excluded file, and make sure the commit is skipped.
@@ -778,7 +783,8 @@ public class GitOriginTest {
     repo.add().files("excluded_file_2.txt").run();
     git("commit", "-m", "excluded_file_2", "--date", commitTime);
 
-    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
+        .getChanges();
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getRevision().asString())
         .isEqualTo(firstIncludedRef.asString());
@@ -788,7 +794,7 @@ public class GitOriginTest {
     Files.write(remote.resolve("--parents/included_file_2.txt"), "some content".getBytes(UTF_8));
     repo.add().files("--parents/included_file_2.txt").run();
     git("commit", "-m", "included_file_2", "--date", commitTime);
-    changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    changes = newReader().changes(firstRef, origin.resolve("HEAD")).getChanges();
     assertThat(changes).hasSize(2);
     assertThat(changes.get(0).getRevision().asString())
         .isEqualTo(firstIncludedRef.asString());
@@ -803,7 +809,8 @@ public class GitOriginTest {
     // limited.
     git("commit", "-m", "empty_commit", "--date", commitTime, "--allow-empty");
     GitRevision firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
+        .getChanges();
     assertThat(Iterables.getOnlyElement(changes).getMessage()).contains("empty_commit");
   }
 
@@ -825,7 +832,8 @@ public class GitOriginTest {
     origin = origin();
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
+        .getChanges();
     assertThat(changes).hasSize(2);
 
     assertThat(changes.get(0).getMessage())
@@ -866,7 +874,8 @@ public class GitOriginTest {
     origin = origin();
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
+        .getChanges();
     assertThat(changes).hasSize(2);
     assertThat(changes.get(0).getMessage()).contains("mainline message!");
     assertThat(changes.get(1).getMessage()).doesNotContain(excludedMessage);
@@ -882,7 +891,8 @@ public class GitOriginTest {
     origin = origin();
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"));
+    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
+        .getChanges();
     String message = Iterables.getOnlyElement(changes).getMessage();
     assertThat(message).doesNotContain(ChangeReader.BRANCH_COMMIT_LOG_HEADING);
     assertThat(message).contains("i hope this is included in the migrated message!");

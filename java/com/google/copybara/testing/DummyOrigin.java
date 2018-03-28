@@ -29,6 +29,7 @@ import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.Change;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Origin;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -191,12 +192,12 @@ public class DummyOrigin implements Origin<DummyRevision> {
     }
 
     @Override
-    public ImmutableList<Change<DummyRevision>> changes(
-        @Nullable DummyRevision oldRev, DummyRevision newRev) throws RepoException {
+    public ChangesResponse<DummyRevision> changes(
+        @Nullable DummyRevision oldRev, DummyRevision newRev) {
 
       if (oldRev != null
           && Integer.parseInt(oldRev.asString()) >= Integer.parseInt(newRev.asString())) {
-        return ImmutableList.of();
+        return ChangesResponse.noChanges(EmptyReason.TO_IS_ANCESTOR);
       }
       int current = (oldRev == null) ? 0 : Integer.parseInt(oldRev.asString()) + 1;
 
@@ -212,7 +213,11 @@ public class DummyOrigin implements Origin<DummyRevision> {
         }
         current++;
       }
-      return result.build();
+      ImmutableList<Change<DummyRevision>> changes = result.build();
+      if (changes.isEmpty()) {
+        return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
+      }
+      return ChangesResponse.forChanges(changes);
     }
 
     @Override

@@ -31,6 +31,7 @@ import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.Origin.Reader;
+import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
@@ -284,7 +285,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
               ImmutableList<Change<O>> allChanges =
                   generalOptions.repoTask(
-                      "origin.changes", () -> oReader.changes(lastMigrated, lastResolved));
+                      "origin.changes",
+                      () -> {
+                        ChangesResponse<O> changes = oReader.changes(lastMigrated, lastResolved);
+                        return changes.isEmpty() ? ImmutableList.of() : changes.getChanges();
+                      });
 
               ImmutableList<Change<O>> changes =
                   allChanges

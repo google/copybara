@@ -59,20 +59,18 @@ import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GithubPrOriginTest {
@@ -351,12 +349,13 @@ public class GithubPrOriginTest {
 
     GitRevision prHead = origin.resolve("123");
     assertThat(prHead.getSha1()).isEqualTo(prHeadSha1);
-    ImmutableList<Change<GitRevision>> changes = reader.changes(origin.resolve(base), prHead);
+    ImmutableList<Change<GitRevision>> changes =
+        reader.changes(origin.resolve(base), prHead).getChanges();
 
     assertThat(Lists.transform(changes, Change::getMessage))
         .isEqualTo(Lists.newArrayList("one\n", "two\n"));
     // Non-found baseline. We return all the changes between baseline and PR head.
-    changes = reader.changes(origin.resolve(remote.parseRef("HEAD")), prHead);
+    changes = reader.changes(origin.resolve(remote.parseRef("HEAD")), prHead).getChanges();
 
     // Even if the PR is outdated it should return only the changes in the PR by finding the
     // common ancestor.
@@ -408,8 +407,12 @@ public class GithubPrOriginTest {
 
     assertThat(baselineObj.get().getBaseline()).isEqualTo(baseline1);
 
-    assertThat(reader.changes(baselineObj.get().getOriginRevision(), headPrRevision).size())
-    .isEqualTo(2);
+    assertThat(
+            reader
+                .changes(baselineObj.get().getOriginRevision(), headPrRevision)
+                .getChanges()
+                .size())
+        .isEqualTo(2);
 
     assertThat(reader.findBaselinesWithoutLabel(headPrRevision, /*limit=*/ 1).get(0).getSha1())
         .isEqualTo(baseline1);
@@ -444,7 +447,11 @@ public class GithubPrOriginTest {
 
     assertThat(baselineObj.get().getBaseline()).isEqualTo(baselineMerge);
 
-    assertThat(reader.changes(baselineObj.get().getOriginRevision(), headPrRevision).size())
+    assertThat(
+            reader
+                .changes(baselineObj.get().getOriginRevision(), headPrRevision)
+                .getChanges()
+                .size())
         .isEqualTo(2);
 
     assertThat(reader.findBaselinesWithoutLabel(mergePrRevision, /*limit=*/ 1).get(0).getSha1())
@@ -574,14 +581,16 @@ public class GithubPrOriginTest {
 
     GitRevision mergeRevision = origin.resolve("123");
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
-    assertThat(Lists.transform(reader.changes(/*fromRef=*/null, mergeRevision), Change::getMessage))
+    assertThat(
+            Lists.transform(
+                reader.changes(/*fromRef=*/ null, mergeRevision).getChanges(), Change::getMessage))
         .isEqualTo(Lists.newArrayList("base\n", "one\n", "two\n", "Merge branch 'foo'\n"));
 
     // Simulate fast-forward
     remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("foo"));
 
     assertThat(Lists.transform(
-        reader.changes(/*fromRef=*/null, origin.resolve("123")), Change::getMessage))
+        reader.changes(/*fromRef=*/null, origin.resolve("123")).getChanges(), Change::getMessage))
         .isEqualTo(Lists.newArrayList("base\n", "one\n", "two\n"));
   }
 
