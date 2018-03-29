@@ -1368,6 +1368,39 @@ public class WorkflowTest {
 
     assertThat(oneResult).isNotEqualTo(threeResult);
   }
+  @Test
+  public void customIdentity_customPathIncluded() throws Exception {
+    options.workflowOptions.initHistory = true;
+    byte[] cfgContent = (""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    authoring = " + authoring + "\n,"
+        + "    origin = testing.origin(),\n"
+        + "    destination = testing.destination(),\n"
+        + "    change_identity = '${copybara_config_path}foo${label:some_label}',\n"
+        + "    mode = 'ITERATIVE',\n"
+        + ")\n\n"
+        + "").getBytes();
+    Config config1 = skylark.loadConfig(
+        new MapConfigFile(ImmutableMap.of("foo/copy.bara.sky", cfgContent), "foo/copy.bara.sky"),
+        options.build(), options.general.console());
+
+    Config config2 = skylark.loadConfig(
+        new MapConfigFile(ImmutableMap.of("bar/copy.bara.sky", cfgContent), "bar/copy.bara.sky"),
+        options.build(), options.general.console());
+
+    origin.addSimpleChange(1,"change\n\nsome_label=a");
+
+    config1.getMigration("default").run(workdir, null);
+    ImmutableList<String> oneResult = destination.processed.stream().map(
+        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+    destination.processed.clear();
+    config2.getMigration("default").run(workdir, null);
+    ImmutableList<String> twoResult = destination.processed.stream().map(
+        ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
+
+    assertThat(oneResult).isNotEqualTo(twoResult);
+  }
 
   @Test
   public void changeRequest_findParentBaseline() throws Exception {

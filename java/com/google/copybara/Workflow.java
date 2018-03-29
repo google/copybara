@@ -406,10 +406,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     for (Token token : changeIdentity) {
       if (token.getType().equals(TokenType.LITERAL)) {
         sb.append(token.getValue());
-      } else if (token.getValue().equals(COPYBARA_REFERENCE_IDENTITY_VAR)) {
+      } else if (token.getValue().equals(COPYBARA_CONFIG_PATH_IDENTITY_VAR)) {
         sb.append(mainConfigFile.relativeToRoot());
-      } else if (token.getValue().equals(COPYBARA_WORKFLOW_NAME_IDENTITY_VAR)) {
-        sb.append(this.name);
       } else if (token.getValue().equals(COPYBARA_WORKFLOW_NAME_IDENTITY_VAR)) {
         sb.append(this.name);
       } else if (token.getValue().equals(COPYBARA_REFERENCE_IDENTITY_VAR)) {
