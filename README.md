@@ -30,9 +30,39 @@ Examples uses of Copybara include:
 Currently, the only supported type of repository is Git. Support for other repositories types (such
 as Hg) will be added in the future.
 
-Copybara is similar to MOE, which is a tool to synchronize between source code repositories.
-Copybara’s design has learned much from MOE, and will have ongoing support. MOE will not be
-deprecated until Copybara is able to provide satisfactory services to MOE customers.
+## Example
+
+```python
+core.workflow(
+    name = "default",
+    origin = git.github_origin(
+      url = "https://github.com/google/copybara.git",
+      ref = "master",
+    ),
+    destination = git.destination(
+        url = "file:///tmp/foo",
+    ),
+
+    # Copy everything but don't remove a README_INTERNAL.txt file if it exists.
+    destination_files = glob(["third_party/copybara/**"], exclude = ["README_INTERNAL.txt"]),
+
+    authoring = authoring.pass_thru("Default email <default@default.com>"),
+    transformations = [
+        core.replace(
+                before = "//third_party/bazel/bashunit",
+                after = "//another/path:bashunit",
+                paths = glob(["**/BUILD"])),
+        core.move("", "third_party/copybara")
+    ],
+)
+```
+
+Run:
+
+```shell
+$ (mkdir /tmp/foo ; cd /tmp/foo ; git init --bare)
+$ copybara copy.bara.sky
+```
 
 ## Getting Started using Copybara
 
