@@ -299,6 +299,8 @@ public class GitRepository {
         "Server does not allow request for unadvertised object")) {
       throw new CannotResolveRevisionException(
           String.format("%s: %s", url, output.getStderr().trim()));
+    } else if (output.getStderr().contains("Repository not found")) {
+      throw new ValidationException(String.format("%s: %s", url, output.getStderr()));
     } else {
       throw throwUnknownGitError(output, args);
     }
