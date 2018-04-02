@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.CannotResolveLabel;
 import java.io.IOException;
@@ -40,9 +41,17 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
   @Nullable
   private final Path rootPath;
   private final boolean logFileContent;
+  @Nullable
+  private String identifierPrefix;
 
-  public PathBasedConfigFile(Path path, @Nullable Path rootPath) {
+  public PathBasedConfigFile(
+      Path path, @Nullable Path rootPath, @Nullable String identifierPrefix) {
     this(path, rootPath, /*logFileContent=*/false);
+    this.identifierPrefix = identifierPrefix;
+    if (identifierPrefix != null) {
+      // So that we don't generate weird identifers like identifierPrefix + "/absolute/path"
+      Preconditions.checkNotNull(rootPath, "identifierPrefix requires a non null root");
+    }
   }
 
   private PathBasedConfigFile(Path path, @Nullable Path rootPath, boolean logFileContent) {
@@ -63,8 +72,13 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
   }
 
   @Override
-  public String relativeToRoot(){
-    return rootPath == null ? path() : rootPath.relativize(path).toString();
+  public String getIdentifier() {
+    if (rootPath == null) {
+      return path();
+    }
+
+    return (Strings.isNullOrEmpty(identifierPrefix) ? "" : identifierPrefix + "/")
+        + rootPath.relativize(path).toString();
   }
 
   @Override
@@ -83,7 +97,7 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
       throw new CannotResolveLabel(
           String.format("Cannot find '%s'. '%s' is not a file.", label, resolved));
     }
-    return new PathBasedConfigFile(resolved, rootPath);
+    return new PathBasedConfigFile(resolved, rootPath, identifierPrefix);
   }
 
   public PathBasedConfigFile withContentLogging() {

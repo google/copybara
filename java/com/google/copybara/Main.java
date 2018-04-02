@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.copybara.config.Config;
-import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.config.PathBasedConfigFile;
@@ -329,14 +328,19 @@ public class Main {
       ModuleSupplier moduleSupplier, Options options, String configLocation,
       @Nullable String sourceRef) throws ValidationException, IOException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    return new ConfigLoader<>(moduleSupplier, resolveLocalConfig(generalOptions, configLocation));
+    return new ConfigLoader<>(moduleSupplier, createConfigFileWithHeuristic(
+        validateLocalConfig(generalOptions, configLocation),
+        generalOptions.getConfigRoot()));
   }
 
   /**
-   * Returns a {@link ConfigFile} resolving the {@code configLocation} in the local filesystem.
+   * Validate that the passed config file is correct (exists, follows the correct format, parent
+   * if passed is a real parent, etc.).
+   *
+   * <p>Returns the absolute {@link Path} of the config file.
    */
-  protected ConfigFile<Path> resolveLocalConfig(
-      GeneralOptions generalOptions, String configLocation) throws ValidationException {
+  protected Path validateLocalConfig(GeneralOptions generalOptions, String configLocation)
+      throws ValidationException {
     Path configPath = generalOptions.getFileSystem().getPath(configLocation);
     String fileName = configPath.getFileName().toString();
     checkCondition(
@@ -348,28 +352,33 @@ public class Main {
     if (!Files.exists(configPath)) {
       throw new CommandLineException("Configuration file not found: " + configPath);
     }
-    Path root = generalOptions.getConfigRoot() != null
-        ? generalOptions.getConfigRoot()
-        : findConfigRootHeuristic(configPath.toAbsolutePath());
-    return new PathBasedConfigFile(configPath.toAbsolutePath(), root).withContentLogging();
+    ValidationException.checkCondition(
+        generalOptions.getConfigRoot() == null
+            || configPath.toAbsolutePath()
+            .startsWith(generalOptions.getConfigRoot().toAbsolutePath()),
+        "%s is not a parent folder of %s", generalOptions.getConfigRoot(), configPath);
+    return configPath.toAbsolutePath();
   }
 
   /**
-   * Find the root path for resolving configuration file paths and resources. This method
-   * assumes that the .git containing directory is the root path.
+   * Find the root path for resolving configuration file paths and resources. This method assumes
+   * that the .git containing directory is the root path.
    *
    * <p>This could be extended to other kind of source control systems.
    */
-  @Nullable
-  protected Path findConfigRootHeuristic(Path configPath) {
+  protected PathBasedConfigFile createConfigFileWithHeuristic(
+      Path configPath, @Nullable Path commandLineRoot) {
+    if (commandLineRoot != null) {
+      return new PathBasedConfigFile(configPath, commandLineRoot, /*identifierPrefix=*/ null);
+    }
     Path parent = configPath.getParent();
     while (parent != null) {
       if (Files.isDirectory(parent.resolve(".git"))) {
-        return parent;
+        return new PathBasedConfigFile(configPath, parent, /*identifierPrefix=*/ null);
       }
       parent = parent.getParent();
     }
-    return null;
+    return new PathBasedConfigFile(configPath, /*rootPath=*/ null, /*identifierPrefix=*/ null);
   }
 
   protected Console getConsole(String[] args) {

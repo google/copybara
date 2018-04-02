@@ -142,9 +142,12 @@ public final class GeneralOptions implements Option {
     return fileSystem.getPath(environment.get("PWD"));
   }
 
+  /**
+   * Returns the root absolute path to use for config.
+   */
   @Nullable
   public Path getConfigRoot() {
-    return configRoot;
+    return configRoot == null ? null : configRoot.toAbsolutePath();
   }
 
   /**

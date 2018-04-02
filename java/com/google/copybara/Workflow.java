@@ -255,7 +255,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
    */
   Set<String> configPaths() {
     return allConfigFiles.get().values().stream()
-        .map(ConfigFile::relativeToRoot)
+        .map(ConfigFile::getIdentifier)
         .collect(Collectors.toSet());
   }
 
@@ -407,7 +407,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       if (token.getType().equals(TokenType.LITERAL)) {
         sb.append(token.getValue());
       } else if (token.getValue().equals(COPYBARA_CONFIG_PATH_IDENTITY_VAR)) {
-        sb.append(mainConfigFile.relativeToRoot());
+        sb.append(mainConfigFile.getIdentifier());
       } else if (token.getValue().equals(COPYBARA_WORKFLOW_NAME_IDENTITY_VAR)) {
         sb.append(this.name);
       } else if (token.getValue().equals(COPYBARA_REFERENCE_IDENTITY_VAR)) {
@@ -437,7 +437,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private String computeIdentity(String type, String ref) {
     ToStringHelper helper = MoreObjects.toStringHelper(type)
         .add("type", "workflow")
-        .add("config_path", mainConfigFile.relativeToRoot())
+        .add("config_path", mainConfigFile.getIdentifier())
         .add("workflow_name", this.name)
         .add("context_ref", ref);
     return hashIdentity(helper);

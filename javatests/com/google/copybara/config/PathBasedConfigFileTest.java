@@ -17,10 +17,10 @@
 package com.google.copybara.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.exception.CannotResolveLabel;
-
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -47,47 +47,58 @@ public class PathBasedConfigFileTest {
 
   @Test
   public void testResolve() throws IOException, CannotResolveLabel {
-    Path foo = Files.write(fs.getPath("/foo"), "foo".getBytes());
-    Files.write(fs.getPath("/bar"), "bar".getBytes());
+    Path foo = Files.write(fs.getPath("/foo"), "foo".getBytes(UTF_8));
+    Files.write(fs.getPath("/bar"), "bar".getBytes(UTF_8));
     Files.createDirectories(fs.getPath("/baz"));
-    Files.write(fs.getPath("/baz/foo"), "bazfoo".getBytes());
-    Files.write(fs.getPath("/baz/bar"), "bazbar".getBytes());
+    Files.write(fs.getPath("/baz/foo"), "bazfoo".getBytes(UTF_8));
+    Files.write(fs.getPath("/baz/bar"), "bazbar".getBytes(UTF_8));
 
-    ConfigFile fooConfig = new PathBasedConfigFile(foo, /*rootPath=*/null);
-    assertThat(fooConfig.content()).isEqualTo("foo".getBytes());
+    ConfigFile<Path> fooConfig = new PathBasedConfigFile(foo, /*rootPath=*/null,
+        /*identifierPrefix=*/null);
+    assertThat(fooConfig.content()).isEqualTo("foo".getBytes(UTF_8));
     assertThat(fooConfig.path()).isEqualTo("/foo");
-    assertThat(fooConfig.relativeToRoot()).isEqualTo(fooConfig.path());
-    assertThat(fooConfig.resolve("bar").content()).isEqualTo("bar".getBytes());
+    assertThat(fooConfig.getIdentifier()).isEqualTo(fooConfig.path());
+    assertThat(fooConfig.resolve("bar").content()).isEqualTo("bar".getBytes(UTF_8));
 
     ConfigFile bazFooConfig = fooConfig.resolve("baz/foo");
-    assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes());
+    assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes(UTF_8));
     // Checks that the correct bar is resolved.
-    assertThat(bazFooConfig.resolve("bar").content()).isEqualTo("bazbar".getBytes());
+    assertThat(bazFooConfig.resolve("bar").content()).isEqualTo("bazbar".getBytes(UTF_8));
+  }
+
+  @Test
+  public void testResolveWithIdentity() throws IOException, CannotResolveLabel {
+    Path root = fs.getPath("foo/bar/baz").toAbsolutePath();
+    Files.createDirectories(root);
+    Path foo = Files.write(root.resolve("file.txt"), "foo".getBytes(UTF_8));
+
+    ConfigFile<Path> fooConfig = new PathBasedConfigFile(foo, root, "PREFIX");
+    assertThat(fooConfig.getIdentifier()).isEqualTo("PREFIX/file.txt");
   }
 
   @Test
   public void testResolveAbsolute() throws IOException, CannotResolveLabel {
-    Files.write(fs.getPath("/foo"), "foo".getBytes());
+    Files.write(fs.getPath("/foo"), "foo".getBytes(UTF_8));
     Files.createDirectories(fs.getPath("/baz"));
-    Files.write(fs.getPath("/baz/foo"), "bazfoo".getBytes());
-    Files.write(fs.getPath("/baz/bar"), "bazbar".getBytes());
+    Files.write(fs.getPath("/baz/foo"), "bazfoo".getBytes(UTF_8));
+    Files.write(fs.getPath("/baz/bar"), "bazbar".getBytes(UTF_8));
 
     ConfigFile fooConfig = new PathBasedConfigFile(fs.getPath("/foo"),
-        /*rootPath=*/fs.getPath("/"));
-    assertThat(fooConfig.relativeToRoot()).isEqualTo("foo");
-    assertThat(fooConfig.content()).isEqualTo("foo".getBytes());
+        /*rootPath=*/fs.getPath("/"), /*identifierPrefix=*/null);
+    assertThat(fooConfig.getIdentifier()).isEqualTo("foo");
+    assertThat(fooConfig.content()).isEqualTo("foo".getBytes(UTF_8));
     assertThat(fooConfig.path()).isEqualTo("/foo");
 
     ConfigFile bazFooConfig = fooConfig.resolve("//baz/foo");
-    assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes());
-    assertThat(bazFooConfig.resolve("//baz/bar").content()).isEqualTo("bazbar".getBytes());
+    assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes(UTF_8));
+    assertThat(bazFooConfig.resolve("//baz/bar").content()).isEqualTo("bazbar".getBytes(UTF_8));
   }
 
   @Test
   public void testResolveFailure() throws IOException, CannotResolveLabel {
     ConfigFile fooConfig = new PathBasedConfigFile(
-        Files.write(fs.getPath("/foo"), "foo".getBytes()),
-        /*rootPath=*/null);
+        Files.write(fs.getPath("/foo"), "foo".getBytes(UTF_8)),
+        /*rootPath=*/null, /*identifierPrefix=*/null);
     thrown.expect(CannotResolveLabel.class);
     thrown.expectMessage("Cannot find 'bar'. '/bar' does not exist.");
     fooConfig.resolve("bar");
@@ -96,7 +107,7 @@ public class PathBasedConfigFileTest {
   @Test
   public void testAbsoluteResolveFailsIfNoRoot() throws IOException, CannotResolveLabel {
     ConfigFile fooConfig = new PathBasedConfigFile(Files.write(fs.getPath("/foo"),
-        "foo".getBytes()),/*rootPath=*/null);
+        "foo".getBytes(UTF_8)),/*rootPath=*/null, /*identifierPrefix=*/null);
     thrown.expect(CannotResolveLabel.class);
     thrown.expectMessage("Absolute paths are not allowed because the root config path"
         + " couldn't be automatically detected");

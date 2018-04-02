@@ -81,12 +81,14 @@ public abstract class ConfigFile<T> {
   protected abstract T relativeToCurrentPath(String label) throws CannotResolveLabel;
 
   /**
-   * Return a {@code String} representing the current config file relative to the root. If root is
-   * not defined it will return {@link #path()}.
+   * Return a {@code String} representing a stable identifier that works between different
+   * {@link ConfigFile} implementations. Note that this is best effort based on several heuristics.
+   *
+   * <p>If root is not defined or cannot be computed, it will return the absolute path.
    *
    * <p>Users of this method should not try to parse the string, since it is subject to change.
    */
-  public abstract String relativeToRoot();
+  public abstract String getIdentifier();
 
   /**
    * Perform additional validations and construct a ConfigFile object

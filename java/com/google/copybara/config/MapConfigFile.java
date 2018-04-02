@@ -49,7 +49,7 @@ public class MapConfigFile extends ConfigFile<String> {
   }
 
   @Override
-  public String relativeToRoot() {
+  public String getIdentifier() {
     return path();
   }
 

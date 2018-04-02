@@ -55,8 +55,8 @@ class CapturingConfigFile<T> extends ConfigFile<T> {
   }
 
   @Override
-  public String relativeToRoot() {
-    return wrapped.relativeToRoot();
+  public String getIdentifier() {
+    return wrapped.getIdentifier();
   }
 
   /**
