@@ -22,7 +22,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.Environment;
 import java.util.Map;
 import java.util.Objects;
 
@@ -34,12 +33,12 @@ import java.util.Objects;
 public final class Config {
   private final ImmutableMap<String, Migration> migrations;
   private final String location;
-  private final Environment env;
+  private final Map<String, Object> globals;
 
-  public Config(Map<String, Migration> migrations, String location, Environment env) {
+  public Config(Map<String, Migration> migrations, String location, Map<String, Object> globals) {
     this.migrations = ImmutableMap.copyOf(migrations);
     this.location = Preconditions.checkNotNull(location);
-    this.env = Preconditions.checkNotNull(env);
+    this.globals = ImmutableMap.copyOf(Preconditions.checkNotNull(globals));
   }
 
   /**
@@ -64,7 +63,7 @@ public final class Config {
    * Reads values from the global frame of the skylark environment, i.e. global variables.
    */
   public <T> T getGlobalEnvironmentVariable(String name, Class<T> clazz) {
-    return clazz.cast(env.getGlobals().get(name));
+    return clazz.cast(globals.get(name));
   }
 
   /**

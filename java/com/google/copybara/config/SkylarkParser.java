@@ -111,7 +111,8 @@ public class SkylarkParser {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);
     }
-    return new Config(globalMigrations.getMigrations(), content.path(), env);
+    return new Config(
+        globalMigrations.getMigrations(), content.path(), env.getGlobals().getTransitiveBindings());
   }
 
   @VisibleForTesting
