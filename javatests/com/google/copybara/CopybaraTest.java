@@ -31,6 +31,8 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.Environment;
+import com.google.devtools.build.lib.syntax.Mutability;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.Before;
@@ -56,7 +58,8 @@ public class CopybaraTest {
     optionsBuilder.setConsole(console);
     optionsBuilder.general.withEventMonitor(eventMonitor);
     migration = mock(Migration.class);
-    config = new Config(ImmutableMap.of("workflow", migration), "foo/copy.bara.sky");
+    config = new Config(ImmutableMap.of("workflow", migration), "foo/copy.bara.sky",
+        Environment.builder(Mutability.create("CopybaraTest")).useDefaultSemantics().build());
   }
 
   @Test

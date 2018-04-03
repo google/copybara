@@ -103,14 +103,15 @@ public class SkylarkParser {
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier, Console console)
       throws IOException, ValidationException {
     GlobalMigrations globalMigrations;
+    Environment env;
     try {
-      Environment env = new Evaluator(options, content, configFilesSupplier, console).eval(content);
+      env = new Evaluator(options, content, configFilesSupplier, console).eval(content);
       globalMigrations = GlobalMigrations.getGlobalMigrations(env);
     } catch (InterruptedException e) {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);
     }
-    return new Config(globalMigrations.getMigrations(), content.path());
+    return new Config(globalMigrations.getMigrations(), content.path(), env);
   }
 
   @VisibleForTesting
