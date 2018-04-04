@@ -412,49 +412,70 @@ public class MetadataModuleTest {
 
   @Test
   public void testExposeLabel() throws Exception {
-    checkExposeLabel("some message\n",
+    checkLabelChange("some message\n",
         "metadata.expose_label('SOME')",
         "some message\n\nSOME=value\n");
 
-    checkExposeLabel("some message\n",
+    checkLabelChange("some message\n",
         "metadata.expose_label('NOT_FOUND')",
         "some message\n");
 
-    checkExposeLabel("some message\n",
+    checkLabelChange("some message\n",
         "metadata.expose_label('SOME', new_name = 'OTHER')",
         "some message\n\nOTHER=value\n");
 
-    checkExposeLabel("some message\n",
+    checkLabelChange("some message\n",
         "metadata.expose_label('SOME', separator = ': ')",
         "some message\n\nSOME: value\n");
 
-    checkExposeLabel("some message\n\nSOME: oldvalue\n",
+    checkLabelChange("some message\n\nSOME: oldvalue\n",
         "metadata.expose_label('SOME')",
         "some message\n\nSOME=oldvalue\n");
 
-    checkExposeLabel("some message\n\nSOME: oldvalue\n",
+    checkLabelChange("some message\n\nSOME: oldvalue\n",
         "metadata.expose_label('SOME', new_name = 'OTHER')",
         "some message\n\nSOME: oldvalue\nOTHER=oldvalue\n");
 
-    checkExposeLabel("some message\n\nSOME=oldvalue\n",
+    checkLabelChange("some message\n\nSOME=oldvalue\n",
         "metadata.expose_label('SOME', separator = ': ')",
         "some message\n\nSOME: oldvalue\n");
 
-    checkExposeLabel("some message\n\nFROM_CHANGE: message_value\n",
+    checkLabelChange("some message\n\nFROM_CHANGE: message_value\n",
         "metadata.expose_label('FROM_CHANGE', separator = ': ')",
         "some message\n\nFROM_CHANGE: message_value\n");
 
-    checkExposeLabel("some message\n",
+    checkLabelChange("some message\n",
         "metadata.expose_label('FROM_CHANGE', separator = ': ')",
         "some message\n\nFROM_CHANGE: from_change_value\n");
 
-    checkExposeLabel("some message\n\nTEST=1\nTEST=2\n",
+    checkLabelChange("some message\n\nTEST=1\nTEST=2\n",
         "metadata.expose_label('TEST', separator = ': ')",
         "some message\n\nTEST=1\nTEST: 2\n");
 
-    checkExposeLabel("some message\n\nTEST=1\nTEST=2\n",
+    checkLabelChange("some message\n\nTEST=1\nTEST=2\n",
         "metadata.expose_label('TEST', separator = ': ', all = True)",
         "some message\n\nTEST: 1\nTEST: 2\n");
+  }
+
+  @Test
+  public void testRemoveLabel() throws Exception {
+    String msg = "some message\n"
+        + "\n"
+        + "TEST=1\n"
+        + "TEST=2\n";
+
+    checkLabelChange(msg, "metadata.remove_label('TEST')", "some message\n");
+    checkLabelChange(msg, "metadata.remove_label('TEST2')", msg);
+
+    // TEST=1 is not a label...
+    checkLabelChange("some message\nTEST=1\n\nTEST=2\n",
+        "metadata.remove_label('TEST')",
+        "some message\nTEST=1\n");
+
+    // ...but if we cannot find it as a label we look in the message:
+    checkLabelChange("some message\nTEST=1\n\nTEST2=2\n",
+        "metadata.remove_label('TEST')",
+        "some message\n\nTEST2=2\n");
   }
 
   @Test
@@ -491,12 +512,12 @@ public class MetadataModuleTest {
   public void testExposeLabel_no_ignore_if_not_found() throws Exception {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot find label NOT_FOUND");
-    checkExposeLabel("some message\n",
+    checkLabelChange("some message\n",
         "metadata.expose_label('NOT_FOUND', ignore_label_not_found = False)",
         "DOES NOT MATTER");
   }
 
-  private void checkExposeLabel(String msg, String transform, String expectedOutput)
+  private void checkLabelChange(String msg, String transform, String expectedOutput)
       throws ValidationException, IOException {
     TransformWork tw = TransformWorks.of(workdir, msg, testingConsole)
         .withChanges(new Changes(ImmutableList.of(

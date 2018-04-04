@@ -26,6 +26,7 @@
     - [metadata.map_author](#metadata.map_author)
     - [metadata.use_last_change](#metadata.use_last_change)
     - [metadata.expose_label](#metadata.expose_label)
+    - [metadata.remove_label](#metadata.remove_label)
     - [metadata.restore_author](#metadata.restore_author)
     - [metadata.add_header](#metadata.add_header)
     - [metadata.replace_message](#metadata.replace_message)
@@ -717,6 +718,30 @@ metadata.expose_label('REVIEW_URL', all = True)
 ```
 
 This would add 0 or more `REVIEW_URL: the_value` labels to the message.
+
+<a id="metadata.remove_label" aria-hidden="true"></a>
+### metadata.remove_label
+
+Remove a label from the message
+
+`transformation metadata.remove_label(name)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+name|`string`<br><p>The label name</p>
+
+
+#### Example:
+
+##### Remove a label:
+
+Remove Change-Id label from the message:
+
+```python
+metadata.remove_label('Change-Id')
+```
 
 <a id="metadata.restore_author" aria-hidden="true"></a>
 ### metadata.restore_author

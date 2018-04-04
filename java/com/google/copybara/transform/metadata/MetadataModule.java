@@ -316,6 +316,26 @@ public class MetadataModule {
   };
 
   @SuppressWarnings("unused")
+  @SkylarkSignature(name = "remove_label", returnType = Transformation.class,
+      doc = "Remove a label from the message",
+      parameters = {
+          @Param(name = "self", type = MetadataModule.class, doc = "this object"),
+          @Param(name = "name", type = String.class, doc = "The label name"),
+      }, objectType = MetadataModule.class, useLocation = true)
+  @Example(title = "Remove a label",
+      before = "Remove Change-Id label from the message:",
+      code = "metadata.remove_label('Change-Id')")
+  static final BuiltinFunction REMOVE_LABEL = new BuiltinFunction("remove_label") {
+    public Transformation invoke(MetadataModule self, String label, Location location)
+        throws EvalException {
+      SkylarkUtil.check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
+          "'name': Invalid label name'%s'", label);
+
+      return new RemoveLabelInMessage(label);
+    }
+  };
+
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "restore_author", returnType = Transformation.class,
       doc = "For a given change, restore the author present in the ORIGINAL_AUTHOR label as the"
           + " author of the change.",
