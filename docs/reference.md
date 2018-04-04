@@ -663,7 +663,7 @@ use_merge|`boolean`<br><p>If true then merge changes are taken into account for 
 
 Certain labels are present in the internal metadata but are not exposed in the message by default. This transformations find a label in the internal metadata and exposes it in the message. If the label is already present in the message it will update it to use the new name and separator.
 
-`transformation metadata.expose_label(name, new_name=label, separator="=", ignore_label_not_found=True)`
+`transformation metadata.expose_label(name, new_name=label, separator="=", ignore_label_not_found=True, all=False)`
 
 #### Parameters:
 
@@ -673,6 +673,7 @@ name|`string`<br><p>The label to search</p>
 new_name|`string`<br><p>The name to use in the message</p>
 separator|`string`<br><p>The separator to use when adding the label to the message</p>
 ignore_label_not_found|`boolean`<br><p>If a label is not found, ignore the error and continue.</p>
+all|`boolean`<br><p>By default Copybara tries to find the most relevant instance of the label. First looking into the message and then looking into the changes in order. If this field is true it exposes all the matches instead.</p>
 
 
 #### Examples:
@@ -706,6 +707,16 @@ metadata.expose_label('REVIEW_URL', separator = ': ')
 ```
 
 This would add it as `REVIEW_URL: the_value`.
+
+##### Expose multiple labels:
+
+Expose all instances of a label in all the changes (SQUASH for example)
+
+```python
+metadata.expose_label('REVIEW_URL', all = True)
+```
+
+This would add 0 or more `REVIEW_URL: the_value` labels to the message.
 
 <a id="metadata.restore_author" aria-hidden="true"></a>
 ### metadata.restore_author

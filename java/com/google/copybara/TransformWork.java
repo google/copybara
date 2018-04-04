@@ -282,6 +282,10 @@ public final class TransformWork implements SkylarkContext {
     setMessage(parseMessage(wholeMessage).removeLabelByName(label).toString());
   }
 
+  public void removeLabelWithValue(String label, String value, Boolean wholeMessage) {
+    setMessage(parseMessage(wholeMessage).removeLabelByNameAndValue(label, value).toString());
+  }
+
   @SkylarkCallable(name = "now_as_string", doc = "Get current date as a string",
       parameters = {
           @Param(name = "format", type = String.class, doc = "The format to use. See:"
@@ -319,7 +323,6 @@ public final class TransformWork implements SkylarkContext {
       + " labels that might have been added by previous steps), then looks in all the commit"
       + " messages being imported and finally in the resolved reference passed in the CLI."
       , allowReturnNones = true)
-  @Nullable
   public SkylarkList<String> getAllLabels(String label) {
     return findLabelValues(label, /*all=*/true);
   }

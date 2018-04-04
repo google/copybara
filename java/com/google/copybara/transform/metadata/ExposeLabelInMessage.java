@@ -19,16 +19,13 @@ package com.google.copybara.transform.metadata;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.copybara.LabelFinder;
-import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import java.io.IOException;
+import java.util.LinkedHashSet;
 
 /**
  * Given a label that is not present in the change message but it is in the changes
@@ -40,40 +37,55 @@ public class ExposeLabelInMessage implements Transformation {
   private final String newLabelName;
   private final String separator;
   private final boolean ignoreNotFound;
+  private final boolean all;
 
   ExposeLabelInMessage(String label, String newLabelName, String separator,
-      boolean ignoreNotFound) {
+      boolean ignoreNotFound, boolean all) {
     this.label = Preconditions.checkNotNull(label);
     this.newLabelName = Preconditions.checkNotNull(newLabelName);
     this.separator = Preconditions.checkNotNull(separator);
     this.ignoreNotFound = ignoreNotFound;
+    this.all = all;
   }
 
   @Override
   public void transform(TransformWork work) throws IOException, ValidationException {
-    ImmutableList<LabelFinder> labelInMessage = work.getLabelInMessage(label);
-    String value;
-    if (!labelInMessage.isEmpty()) {
-      LabelFinder last = Iterables.getLast(labelInMessage);
-      value = last.getValue();
-      if (!label.equals(newLabelName) || !separator.equals(last.getSeparator())) {
-        // Remove the old label since we want it with different name/separator.
-        work.removeLabel(label,/*wholeMessage=*/true);
-      }
-    } else  {
-      value = work.getLabel(label);
-    }
-
-    if (value == null) {
-      checkCondition(ignoreNotFound, "Cannot find label %s", label);
+    if (all) {
+      exposeAllLabels(work);
       return;
     }
 
-    work.addOrReplaceLabel(newLabelName, value, separator);
+    String value = work.getLabel(this.label);
+    if (value == null) {
+      checkCondition(ignoreNotFound, "Cannot find label %s", this.label);
+      return;
+    }
+    if (label.equals(newLabelName)) {
+      work.removeLabelWithValue(this.label, value, /*wholeMessage=*/true);
+    }
+    work.addLabel(newLabelName, value, separator);
+  }
+
+  private void exposeAllLabels(TransformWork work) throws ValidationException {
+    LinkedHashSet<String> values = new LinkedHashSet<>(work.getAllLabels(label));
+
+    if (values.isEmpty()) {
+      checkCondition(ignoreNotFound, "Cannot find label %s", label);
+      return;
+    }
+    //If the label name is the same, we remove it and add it at the end, since the format
+    //of the message will be more consistent.
+    if (label.equals(newLabelName)) {
+      // Remove the old label since we want it with different name/separator.
+      work.removeLabel(label, /*wholeMessage=*/true);
+    }
+    for (String value : values) {
+      work.addLabel(newLabelName, value, separator);
+    }
   }
 
   @Override
-  public Transformation reverse() throws NonReversibleValidationException {
+  public Transformation reverse() {
     return new ExplicitReversal(IntentionalNoop.INSTANCE, this);
   }
 

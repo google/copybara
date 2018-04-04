@@ -278,6 +278,11 @@ public class MetadataModule {
           @Param(name = "ignore_label_not_found", type = Boolean.class,
               doc = "If a label is not found, ignore the error and continue.",
               defaultValue = "True"),
+          @Param(name = "all", type = Boolean.class,
+              doc = "By default Copybara tries to find the most relevant instance of the label."
+                  + " First looking into the message and then looking into the changes in order."
+                  + " If this field is true it exposes all the matches instead.",
+              defaultValue = "False"),
       }, objectType = MetadataModule.class, useLocation = true)
   @Example(title = "Simple usage", before = "Expose a hidden label called 'REVIEW_URL':",
       code = "metadata.expose_label('REVIEW_URL')",
@@ -289,10 +294,14 @@ public class MetadataModule {
   @Example(title = "Custom separator", before = "Expose the label with a custom separator",
       code = "metadata.expose_label('REVIEW_URL', separator = ': ')",
       after = "This would add it as `REVIEW_URL: the_value`.")
+  @Example(title = "Expose multiple labels",
+      before = "Expose all instances of a label in all the changes (SQUASH for example)",
+      code = "metadata.expose_label('REVIEW_URL', all = True)",
+      after = "This would add 0 or more `REVIEW_URL: the_value` labels to the message.")
   static final BuiltinFunction EXPOSE_LABEL = new BuiltinFunction("expose_label",
-      ImmutableList.of(Runtime.NONE, "=", Boolean.TRUE)) {
+      ImmutableList.of(Runtime.NONE, "=", Boolean.TRUE, Boolean.FALSE)) {
     public Transformation invoke(MetadataModule self, String label, Object newName,
-        String separator, Boolean ignoreIfLabelNotFound, Location location)
+        String separator, Boolean ignoreIfLabelNotFound, Boolean all, Location location)
         throws EvalException {
       SkylarkUtil.check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
           "'name': Invalid label name'%s'", label);
@@ -302,7 +311,7 @@ public class MetadataModule {
       SkylarkUtil.check(location, LabelFinder.VALID_LABEL.matcher(newLabelName).matches(),
           "'new_name': Invalid label name '%s'", newLabelName);
 
-      return new ExposeLabelInMessage(label, newLabelName, separator, ignoreIfLabelNotFound);
+      return new ExposeLabelInMessage(label, newLabelName, separator, ignoreIfLabelNotFound, all);
     }
   };
 
@@ -541,6 +550,7 @@ public class MetadataModule {
     }
   };
 
+  @SuppressWarnings("unused")
   @SkylarkSignature(name = "map_references", returnType = ReferenceMigrator.class,
       doc = "Allows updating links to references in commit messages to match the destination's "
           + "format. Note that this will only consider the 5000 latest commits.",

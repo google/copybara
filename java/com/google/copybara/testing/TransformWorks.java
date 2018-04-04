@@ -15,6 +15,7 @@
  */
 package com.google.copybara.testing;
 
+import com.google.copybara.Change;
 import com.google.copybara.Changes;
 import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
@@ -22,6 +23,8 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.util.console.Console;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 /**
  * Utility methods related to {@link TransformWork}.
@@ -46,4 +49,13 @@ public class TransformWorks {
         new DummyRevision("1234567890"));
   }
 
+  public static Change<DummyRevision> toChange(DummyRevision dummyRevision, Author author) {
+    return new Change<>(
+        dummyRevision,
+        author,
+        dummyRevision.getMessage(),
+        ZonedDateTime.now(ZoneId.systemDefault()),
+        dummyRevision.getLabels(),
+        /*changeFiles=*/ null);
+  }
 }

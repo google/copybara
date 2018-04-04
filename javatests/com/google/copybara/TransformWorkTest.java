@@ -236,13 +236,7 @@ public class TransformWorkTest {
   }
 
   private Change<DummyRevision> toChange(DummyRevision dummyRevision) {
-    return new Change<>(
-        dummyRevision,
-        ORIGINAL_AUTHOR,
-        dummyRevision.getMessage(),
-        ZonedDateTime.now(ZoneId.systemDefault()),
-        dummyRevision.getLabels(),
-        /*changeFiles=*/ null);
+    return TransformWorks.toChange(dummyRevision, ORIGINAL_AUTHOR);
   }
 
   @Test

@@ -17,7 +17,7 @@
 package com.google.copybara.transform.metadata;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.testing.TransformWorks.EMPTY_CHANGES;
+import static com.google.copybara.testing.TransformWorks.toChange;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -52,19 +52,17 @@ import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 @RunWith(JUnit4.class)
 public class MetadataModuleTest {
@@ -431,12 +429,62 @@ public class MetadataModuleTest {
         "some message\n\nSOME: value\n");
 
     checkExposeLabel("some message\n\nSOME: oldvalue\n",
+        "metadata.expose_label('SOME')",
+        "some message\n\nSOME=oldvalue\n");
+
+    checkExposeLabel("some message\n\nSOME: oldvalue\n",
         "metadata.expose_label('SOME', new_name = 'OTHER')",
-        "some message\n\nOTHER=oldvalue\n");
+        "some message\n\nSOME: oldvalue\nOTHER=oldvalue\n");
 
     checkExposeLabel("some message\n\nSOME=oldvalue\n",
         "metadata.expose_label('SOME', separator = ': ')",
         "some message\n\nSOME: oldvalue\n");
+
+    checkExposeLabel("some message\n\nFROM_CHANGE: message_value\n",
+        "metadata.expose_label('FROM_CHANGE', separator = ': ')",
+        "some message\n\nFROM_CHANGE: message_value\n");
+
+    checkExposeLabel("some message\n",
+        "metadata.expose_label('FROM_CHANGE', separator = ': ')",
+        "some message\n\nFROM_CHANGE: from_change_value\n");
+
+    checkExposeLabel("some message\n\nTEST=1\nTEST=2\n",
+        "metadata.expose_label('TEST', separator = ': ')",
+        "some message\n\nTEST=1\nTEST: 2\n");
+
+    checkExposeLabel("some message\n\nTEST=1\nTEST=2\n",
+        "metadata.expose_label('TEST', separator = ': ', all = True)",
+        "some message\n\nTEST: 1\nTEST: 2\n");
+  }
+
+  @Test
+  public void testExposeLabelAll() throws Exception {
+    TransformWork tw = TransformWorks.of(workdir, "some message\n\n"
+        + "LABEL=aaa", testingConsole)
+        .withChanges(
+            new Changes(ImmutableList.of(
+                toChange(
+                    new DummyRevision("1")
+                        .withLabels(ImmutableMap.of("LABEL", "bbb")), ORIGINAL_AUTHOR),
+                toChange(
+                    new DummyRevision("2")
+                        .withLabels(ImmutableMap.of("LABEL", "bbb")), ORIGINAL_AUTHOR),
+                toChange(
+                    new DummyRevision("2")
+                        .withLabels(ImmutableMap.of("LABEL", "ccc")), ORIGINAL_AUTHOR)
+            ), ImmutableList.of()))
+        .withResolvedReference(new DummyRevision("123")
+            .withLabels(ImmutableMap.of("LABEL", "ddd")));
+    Transformation t = skylarkExecutor.eval("t", "t = "
+        + "metadata.expose_label('LABEL', 'NEW_VALUE', all = True)");
+    t.transform(tw);
+    assertThat(tw.getMessage()).isEqualTo("some message\n"
+        + "\n"
+        + "LABEL=aaa\n"
+        + "NEW_VALUE=aaa\n"
+        + "NEW_VALUE=bbb\n"
+        + "NEW_VALUE=ccc\n"
+        + "NEW_VALUE=ddd\n");
   }
 
   @Test
@@ -451,7 +499,12 @@ public class MetadataModuleTest {
   private void checkExposeLabel(String msg, String transform, String expectedOutput)
       throws ValidationException, IOException {
     TransformWork tw = TransformWorks.of(workdir, msg, testingConsole)
-        .withChanges(EMPTY_CHANGES)
+        .withChanges(new Changes(ImmutableList.of(
+            toChange(
+                new DummyRevision("1")
+                    .withLabels(ImmutableMap.of("FROM_CHANGE", "from_change_value")),
+                ORIGINAL_AUTHOR)
+        ), ImmutableList.of()))
         .withResolvedReference(new DummyRevision("123")
             .withLabels(ImmutableMap.of("SOME", "value")));
     Transformation t = skylarkExecutor.eval("t", "t = " + transform);
