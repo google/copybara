@@ -340,7 +340,7 @@ public class Main {
    * <p>Returns the absolute {@link Path} of the config file.
    */
   protected Path validateLocalConfig(GeneralOptions generalOptions, String configLocation)
-      throws ValidationException {
+      throws ValidationException, IOException {
     Path configPath = generalOptions.getFileSystem().getPath(configLocation);
     String fileName = configPath.getFileName().toString();
     checkCondition(
@@ -354,8 +354,7 @@ public class Main {
     }
     ValidationException.checkCondition(
         generalOptions.getConfigRoot() == null
-            || configPath.toAbsolutePath()
-            .startsWith(generalOptions.getConfigRoot().toAbsolutePath()),
+            || configPath.toAbsolutePath().toRealPath().startsWith(generalOptions.getConfigRoot()),
         "%s is not a parent folder of %s", generalOptions.getConfigRoot(), configPath);
     return configPath.toAbsolutePath();
   }

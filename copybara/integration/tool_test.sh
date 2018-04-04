@@ -994,6 +994,14 @@ function test_multifile_root_cfg_flag() {
   run_multifile $config_folder --config-root $config_folder
 }
 
+# Regression test: config roots that are symlinks work
+function test_multifile_root_cfg_flag_symlink() {
+  config_folder=$(temp_dir config)
+  mkdir "${config_folder}/test"
+  ln -s "${config_folder}/test" "${config_folder}/link"
+  run_multifile "${config_folder}/link" --config-root "${config_folder}/link"
+}
+
 function test_verify_match() {
   prepare_glob_tree
 

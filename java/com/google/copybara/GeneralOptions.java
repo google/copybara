@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
@@ -34,6 +35,7 @@ import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -147,7 +149,7 @@ public final class GeneralOptions implements Option {
    */
   @Nullable
   public Path getConfigRoot() {
-    return configRoot == null ? null : configRoot.toAbsolutePath();
+    return configRoot;
   }
 
   /**
@@ -291,8 +293,16 @@ public final class GeneralOptions implements Option {
      */
     public GeneralOptions init(
         Map<String, String> environment, FileSystem fileSystem, Console console)
-        throws IOException {
-      Path configRoot = this.configRoot != null ? fileSystem.getPath(this.configRoot) : null;
+        throws IOException, ValidationException {
+      Path configRoot = null;
+      if (this.configRoot != null) {
+        configRoot = fileSystem.getPath(this.configRoot).toAbsolutePath();
+        checkCondition(Files.exists(configRoot), "%s doesn't exist", configRoot);
+        checkCondition(Files.isDirectory(configRoot), "%s isn't a directory", configRoot);
+        // Resolve symlinks for config roots.
+        configRoot = configRoot.toRealPath();
+      }
+
       Path outputRoot = this.outputRoot != null ? fileSystem.getPath(this.outputRoot) : null;
       return new GeneralOptions(
           environment, fileSystem, verbose, console, configRoot, outputRoot, noCleanup,
