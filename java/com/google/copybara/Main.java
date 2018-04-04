@@ -340,7 +340,7 @@ public class Main {
    * <p>Returns the absolute {@link Path} of the config file.
    */
   protected Path validateLocalConfig(GeneralOptions generalOptions, String configLocation)
-      throws ValidationException, IOException {
+      throws ValidationException {
     Path configPath = generalOptions.getFileSystem().getPath(configLocation);
     String fileName = configPath.getFileName().toString();
     checkCondition(
@@ -352,10 +352,6 @@ public class Main {
     if (!Files.exists(configPath)) {
       throw new CommandLineException("Configuration file not found: " + configPath);
     }
-    ValidationException.checkCondition(
-        generalOptions.getConfigRoot() == null
-            || configPath.toAbsolutePath().toRealPath().startsWith(generalOptions.getConfigRoot()),
-        "%s is not a parent folder of %s", generalOptions.getConfigRoot(), configPath);
     return configPath.toAbsolutePath();
   }
 

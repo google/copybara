@@ -299,8 +299,6 @@ public final class GeneralOptions implements Option {
         configRoot = fileSystem.getPath(this.configRoot).toAbsolutePath();
         checkCondition(Files.exists(configRoot), "%s doesn't exist", configRoot);
         checkCondition(Files.isDirectory(configRoot), "%s isn't a directory", configRoot);
-        // Resolve symlinks for config roots.
-        configRoot = configRoot.toRealPath();
       }
 
       Path outputRoot = this.outputRoot != null ? fileSystem.getPath(this.outputRoot) : null;
