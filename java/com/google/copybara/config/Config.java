@@ -85,6 +85,7 @@ public final class Config {
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("migrations", migrations)
+        .add("location", location)
         .toString();
   }
 }
