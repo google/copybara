@@ -92,6 +92,8 @@ public class CopyOrMove implements Transformation {
       return MoreObjects.toStringHelper(this)
           .add("before", before)
           .add("after", after)
+          .add("paths", paths)
+          .add("overwrite", overwrite)
           .toString();
     }
 
