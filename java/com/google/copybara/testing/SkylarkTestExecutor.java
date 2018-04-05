@@ -33,7 +33,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Environment;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +42,7 @@ import java.util.Map;
  */
 public final class SkylarkTestExecutor {
 
+  private static final String DEFAULT_FILE = "copy.bara.sky";
   private final OptionsBuilder options;
   private final SkylarkParser skylarkParser;
   private final Map<String, byte[]> extraConfigFiles = new HashMap<>();
@@ -75,7 +75,7 @@ public final class SkylarkTestExecutor {
     try {
       Environment env =
           skylarkParser.executeSkylark(
-              createConfigFile(config), options.build(), options.general.console());
+              createConfigFile(DEFAULT_FILE, config), options.build(), options.general.console());
       T t = (T) env.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
@@ -84,14 +84,22 @@ public final class SkylarkTestExecutor {
     }
   }
 
+  public Config loadConfig(String filename, String configContent)
+      throws IOException, ValidationException {
+    return skylarkParser.loadConfig(
+        createConfigFile(filename, configContent),
+        options.build(), options.general.console());
+  }
+
   public Config loadConfig(String configContent) throws IOException, ValidationException {
     return skylarkParser.loadConfig(
-        createConfigFile(configContent), options.build(), options.general.console());
+        createConfigFile(DEFAULT_FILE, configContent),
+        options.build(), options.general.console());
   }
 
   public Map<String, ConfigFile<String>> getConfigMap(String configContent)
       throws IOException, ValidationException {
-    return getConfigMap(createConfigFile(configContent));
+    return getConfigMap(createConfigFile(DEFAULT_FILE, configContent));
   }
 
   public <T> Map<String, ConfigFile<T>> getConfigMap(ConfigFile<T> config)
@@ -101,13 +109,13 @@ public final class SkylarkTestExecutor {
         .files;
   }
 
-  private ConfigFile<String> createConfigFile(String configContent) {
+  private ConfigFile<String> createConfigFile(String filename, String configContent) {
     return new MapConfigFile(
         new ImmutableMap.Builder<String, byte[]>()
             .putAll(extraConfigFiles)
-            .put("copy.bara.sky", configContent.getBytes(UTF_8))
+            .put(filename, configContent.getBytes(UTF_8))
             .build(),
-        "copy.bara.sky");
+        filename);
   }
 
   public void evalFails(String config, String expectedMsg) {
