@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -27,12 +28,12 @@ import java.io.IOException;
 /**
  * Loads the configuration from a given config file.
  */
-public class ConfigLoader<T> {
+public class ConfigLoader {
 
   private final SkylarkParser skylarkParser;
-  private final ConfigFile<T> configFile;
+  private final ConfigFile<?> configFile;
 
-  public ConfigLoader(ModuleSupplier moduleSupplier, ConfigFile<T> configFile) {
+  public ConfigLoader(ModuleSupplier moduleSupplier, ConfigFile<?> configFile) {
     this.skylarkParser = new SkylarkParser(moduleSupplier.getModules());
     this.configFile = Preconditions.checkNotNull(configFile);
   }
@@ -47,9 +48,24 @@ public class ConfigLoader<T> {
   /**
    * Loads the configuration using this loader.
    * @param options Parsed command line options
-   * @param console
+   * @param console the console to use for reporting progress/errors
    */
-  public Config loadConfig(Options options, Console console) throws ValidationException, IOException {
+  public Config load(Options options, Console console) throws ValidationException, IOException {
+    return loadForConfigFile(options, console, configFile);
+  }
+
+  protected Config loadForConfigFile(Options options, Console console, ConfigFile<?> configFile)
+      throws IOException, ValidationException {
     return skylarkParser.loadConfig(configFile, options, console);
+  }
+
+  public Config loadForRevision(Options options, Console console, Revision revision)
+      throws ValidationException, RepoException{
+    throw new RuntimeException("This origin/configuration doesn't allow loading configs from"
+        + " specific revisions");
+  }
+
+  public boolean supportsLoadForRevision() {
+    return false;
   }
 }

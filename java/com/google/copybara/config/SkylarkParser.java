@@ -94,7 +94,7 @@ public class SkylarkParser {
   }
 
   @SuppressWarnings("unchecked")
-  public Config loadConfig(ConfigFile config, Options options, Console console)
+  public Config loadConfig(ConfigFile<?> config, Options options, Console console)
       throws IOException, ValidationException {
     return getConfigWithTransitiveImports(config, options, console).config;
   }

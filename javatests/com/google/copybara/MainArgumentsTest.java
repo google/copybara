@@ -225,7 +225,7 @@ public class MainArgumentsTest {
 
     @Override
     public ExitCode run(
-        MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+        MainArguments mainArgs, Options options, ConfigLoader configLoader, Copybara copybara)
         throws ValidationException, IOException, RepoException {
       throw new IllegalStateException();
     }

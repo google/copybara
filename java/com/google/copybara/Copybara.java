@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -34,7 +36,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -48,31 +49,32 @@ public class Copybara {
 
   private final ConfigValidator configValidator;
   private final Consumer<Migration> migrationRanConsumer;
-  @Nullable private Function<Revision, ConfigLoader<?>> configLoaderProvider;
 
   public Copybara(
       ConfigValidator configValidator,
-      Consumer<Migration> migrationRanConsumer,
-      @Nullable Function<Revision, ConfigLoader<?>> configLoaderProvider) {
+      Consumer<Migration> migrationRanConsumer) {
     this.configValidator = Preconditions.checkNotNull(configValidator);
     this.migrationRanConsumer = Preconditions.checkNotNull(migrationRanConsumer);
-    this.configLoaderProvider = configLoaderProvider;
   }
 
   /**
    * Runs the migration specified by {@code migrationName}.
    */
-  public void run(Options options, ConfigLoader<?> configLoader, String migrationName,
+  public void run(Options options, ConfigLoader configLoader, String migrationName,
       Path workdir, @Nullable String sourceRef)
       throws RepoException, ValidationException, IOException {
     Config config = loadConfig(options, configLoader, migrationName);
     Migration migration = config.getMigration(migrationName);
 
-    if (configLoaderProvider == null) {
+    if (!options.get(WorkflowOptions.class).isReadConfigFromChange()) {
       this.migrationRanConsumer.accept(migration);
       migration.run(workdir, sourceRef);
       return;
     }
+
+    checkCondition(configLoader.supportsLoadForRevision(),
+        "%s flag is not supported for the origin/config file path",
+        WorkflowOptions.READ_CONFIG_FROM_CHANGE);
 
     // A safeguard, mirror workflows are not supported in the service anyway
     if (!(migration instanceof Workflow)) {
@@ -84,7 +86,7 @@ public class Copybara {
     @SuppressWarnings("unchecked")
     Workflow<? extends Revision, ? extends Revision> workflow =
         (Workflow<? extends Revision, ? extends Revision>) migration;
-    new ReadConfigFromChangeWorkflow<>(workflow, options, configLoaderProvider, configValidator)
+    new ReadConfigFromChangeWorkflow<>(workflow, options, configLoader, configValidator)
         .run(workdir, sourceRef);
   }
 
@@ -147,12 +149,12 @@ public class Copybara {
    * <p>Note that, besides validating the specific migration, all the configuration will be
    * validated syntactically.
    */
-  public boolean validate(Options options, ConfigLoader<?> configLoader, String migrationName)
+  public boolean validate(Options options, ConfigLoader configLoader, String migrationName)
       throws IOException {
     Console console = options.get(GeneralOptions.class).console();
     ArrayList<Message> messages = new ArrayList<>();
     try {
-      Config config = configLoader.loadConfig(options, console);
+      Config config = configLoader.load(options, console);
       messages.addAll(validateConfig(config, migrationName));
     } catch (ValidationException e) {
       // The validate subcommand should not throw Validation exceptions but log a result
@@ -176,11 +178,11 @@ public class Copybara {
     return hasNoErrors;
   }
 
-  protected Config loadConfig(Options options, ConfigLoader<?> configLoader, String migrationName)
+  protected Config loadConfig(Options options, ConfigLoader configLoader, String migrationName)
       throws IOException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Console console = generalOptions.console();
-    Config config = configLoader.loadConfig(options, console);
+    Config config = configLoader.load(options, console);
     console.progress("Validating configuration");
     List<Message> validationMessages = validateConfig(config, migrationName);
 

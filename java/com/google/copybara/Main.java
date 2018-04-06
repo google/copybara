@@ -57,7 +57,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -172,11 +171,10 @@ public class Main {
 
       initEnvironment(options, mainArgs, jcommander);
 
-      ConfigLoader<?> configLoader =
-          newConfigLoader(
+      ConfigLoader configLoader = newConfigLoader(
               moduleSupplier, options, mainArgs.getConfigPath(), mainArgs.getSourceRef());
 
-      Copybara copybara = newCopybaraTool(moduleSupplier, options, mainArgs.getConfigPath());
+      Copybara copybara = new Copybara(getConfigValidator(), getMigrationRanConsumer());
       return mainArgs.getSubcommand().run(mainArgs, options, configLoader, copybara);
 
     } catch (CommandLineException | ParameterException e) {
@@ -199,7 +197,7 @@ public class Main {
     } catch (ValidationException e) {
       printCauseChain(Level.WARNING, console, args, e);
       // TODO(malcon): Think of a better way of doing this
-      return e.isRetryable()? ExitCode.REPOSITORY_ERROR : ExitCode.CONFIGURATION_ERROR;
+      return e.isRetryable() ? ExitCode.REPOSITORY_ERROR : ExitCode.CONFIGURATION_ERROR;
     } catch (IOException e) {
       handleUnexpectedError(console, e.getMessage(), args, e);
       return ExitCode.ENVIRONMENT_ERROR;
@@ -217,10 +215,10 @@ public class Main {
   public static class InfoCmd implements CopybaraCmd {
     @Override
     public ExitCode run(
-        MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+        MainArguments mainArgs, Options options, ConfigLoader configLoader, Copybara copybara)
         throws ValidationException, IOException, RepoException {
       // TODO(malcon): Use the same load mechanism (if possible) for the other commands.
-      Config config = configLoader.loadConfig(options,
+      Config config = configLoader.load(options,
           options.get(GeneralOptions.class).console());
       copybara.info(options, config, mainArgs.getWorkflowName());
       return ExitCode.SUCCESS;
@@ -236,7 +234,7 @@ public class Main {
   public static class MigrateCmd implements CopybaraCmd {
     @Override
     public ExitCode run(
-        MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+        MainArguments mainArgs, Options options, ConfigLoader configLoader, Copybara copybara)
         throws RepoException, ValidationException, IOException {
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       copybara.run(
@@ -258,7 +256,7 @@ public class Main {
   public static class ValidateCmd implements CopybaraCmd {
     @Override
     public ExitCode run(
-        MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+        MainArguments mainArgs, Options options, ConfigLoader configLoader, Copybara copybara)
         throws RepoException, IOException {
       return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
           ? ExitCode.SUCCESS
@@ -290,16 +288,6 @@ public class Main {
     return "Unknown version";
   }
 
-  /** Returns a new instance of {@link Copybara}. */
-  private Copybara newCopybaraTool(
-      ModuleSupplier moduleSupplier, Options options, String configPath)
-      throws ValidationException {
-    return new Copybara(
-        getConfigValidator(),
-        getMigrationRanConsumer(),
-        getConfigLoaderProvider(options, moduleSupplier, configPath));
-  }
-
   protected Consumer<Migration> getMigrationRanConsumer() {
     return migration -> {};
   }
@@ -308,27 +296,16 @@ public class Main {
     return new ConfigValidator() {};
   }
 
-  @Nullable
-  protected Function<Revision, ConfigLoader<?>> getConfigLoaderProvider(
-      Options options, ModuleSupplier moduleSupplier, String configLocation)
-      throws ValidationException {
-    if (!options.get(WorkflowOptions.class).isReadConfigFromChange()) {
-      return null;
-    }
-    throw new ValidationException(
-        WorkflowOptions.READ_CONFIG_FROM_CHANGE
-            + " flag is not supported for any origin/destination");
-  }
   /** Returns a module supplier. */
-  protected ModuleSupplier newModuleSupplier() throws ValidationException {
+  protected ModuleSupplier newModuleSupplier() {
     return new ModuleSupplier();
   }
 
-  protected ConfigLoader<?> newConfigLoader(
+  protected ConfigLoader newConfigLoader(
       ModuleSupplier moduleSupplier, Options options, String configLocation,
       @Nullable String sourceRef) throws ValidationException, IOException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    return new ConfigLoader<>(moduleSupplier, createConfigFileWithHeuristic(
+    return new ConfigLoader(moduleSupplier, createConfigFileWithHeuristic(
         validateLocalConfig(generalOptions, configLocation),
         generalOptions.getConfigRoot()));
   }

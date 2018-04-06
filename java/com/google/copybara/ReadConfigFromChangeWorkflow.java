@@ -33,7 +33,6 @@ import com.google.copybara.util.console.Message.MessageType;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -56,7 +55,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   private final Options options;
-  private final Function<Revision, ConfigLoader<?>> configLoaderProvider;
+  private final ConfigLoader configLoader;
   private final ConfigValidator configValidator;
   /**
    * Last writer returned by the workflow so that we can maintain state in ITERATIVE mode.
@@ -65,7 +64,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
   private Writer<D> lastWriter;
 
   public ReadConfigFromChangeWorkflow(Workflow<O, D> workflow, Options options,
-      Function<Revision, ConfigLoader<?>> configLoaderProvider, ConfigValidator configValidator) {
+      ConfigLoader configLoader, ConfigValidator configValidator) {
     super(
         workflow.getName(),
         workflow.getOrigin(),
@@ -88,7 +87,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.getAfterMigrationActions(),
         workflow.getChangeIdentity());
     this.options = checkNotNull(options, "options");
-    this.configLoaderProvider = checkNotNull(configLoaderProvider, "configLoaderProvider");
+    this.configLoader = checkNotNull(configLoader, "configLoaderProvider");
     this.configValidator = checkNotNull(configValidator, "configValidator");
   }
 
@@ -148,8 +147,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       logger.info(String.format("Loading configuration for change '%s %s'",
                                 lastChange.refAsString(), lastChange.firstLineMessage()));
 
-      ConfigLoader<?> configLoader = configLoaderProvider.apply(lastChange.getRevision());
-      Config config = configLoader.loadConfig(options, getConsole());
+      Config config = ReadConfigFromChangeWorkflow.this.configLoader.
+          loadForRevision(options, getConsole(), lastChange.getRevision());
       // The service config validator already checks that the configuration matches the registry,
       // checking that the origin and destination haven't changed.
       List<String> errors =

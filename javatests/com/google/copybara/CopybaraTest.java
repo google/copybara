@@ -67,8 +67,7 @@ public class CopybaraTest {
     Info<? extends Revision> mockedInfo = Info.create(ImmutableList.of(workflow));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
 
-    Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {},
-                                     /*configLoaderProvider=*/ null);
+    Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {});
     copybara.info(optionsBuilder.build(), config, "workflow");
 
     assertThat(eventMonitor.infoFinishedEvent).isNotNull();
@@ -88,8 +87,7 @@ public class CopybaraTest {
     Info<? extends Revision> mockedInfo = Info.create(ImmutableList.of(workflow));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
 
-    Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {},
-                                     /*configLoaderProvider=*/ null);
+    Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {});
     copybara.info(optionsBuilder.build(), config, "workflow");
 
     assertThat(eventMonitor.infoFinishedEvent).isNotNull();

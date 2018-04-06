@@ -30,7 +30,7 @@ public interface CopybaraCmd {
    * Run the command
    */
   ExitCode run(
-      MainArguments mainArgs, Options options, ConfigLoader<?> configLoader, Copybara copybara)
+      MainArguments mainArgs, Options options, ConfigLoader configLoader, Copybara copybara)
       throws ValidationException, IOException, RepoException;
 
   /**

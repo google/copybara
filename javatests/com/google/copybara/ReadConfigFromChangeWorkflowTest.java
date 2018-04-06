@@ -31,18 +31,17 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
+import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class ReadConfigFromChangeWorkflowTest {
@@ -83,18 +82,28 @@ public class ReadConfigFromChangeWorkflowTest {
         + ")";
     Config cfg = loadConfig(configCode);
     ConfigLoader constantConfigLoader =
-        new ConfigLoader<>(
+        new ConfigLoader(
             new ModuleSupplier() {
               @Override
               public ImmutableSet<Class<?>> getModules() {
                 return ImmutableSet.of(Core.class, Authoring.Module.class, TestingModule.class);
               }
             },
-            getConfig(configCode));
+            getConfig(configCode)) {
+          @Override
+          public Config loadForRevision(Options options, Console console, Revision revision)
+              throws ValidationException {
+            try {
+              return super.load(options, console);
+            } catch (IOException e) {
+              throw new AssertionError("Should not fail", e);
+            }
+          }
+        };
     ReadConfigFromChangeWorkflow<?, ?> wf = new ReadConfigFromChangeWorkflow<>(
         (Workflow) cfg.getMigration("default"),
         options.build(),
-        revision -> constantConfigLoader, new ConfigValidator() {
+        constantConfigLoader, new ConfigValidator() {
       @Override
       public List<Message> validate(Config config, String migrationName) {
         return ImmutableList.of();
