@@ -85,7 +85,7 @@ public class FeedbackTest {
   }
 
   private Feedback loggingFeedback() throws IOException, ValidationException {
-    return skylarFeedback(
+    return feedback(
         ""
             + "def test_action(ctx):\n"
             + "    ref = 'None'\n"
@@ -96,8 +96,7 @@ public class FeedbackTest {
     );
   }
 
-  private Feedback skylarFeedback(String actionFunction)
-      throws IOException, ValidationException {
+  private Feedback feedback(String actionFunction) throws IOException, ValidationException {
     String config =
         actionFunction
             + "\n"

@@ -18,7 +18,7 @@
     - [git.destination](#git.destination)
     - [git.github_pr_destination](#git.github_pr_destination)
     - [git.gerrit_destination](#git.gerrit_destination)
-  - [github_endpoint_obj](#github_endpoint_obj)
+    - [git.github_api](#git.github_api)
   - [Console](#console)
   - [metadata](#metadata)
     - [metadata.squash_notes](#metadata.squash_notes)
@@ -468,10 +468,19 @@ Name | Type | Description
 --git-destination-ignore-integration-errors | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 --nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
+<a id="git.github_api" aria-hidden="true"></a>
+### git.github_api
 
-## github_endpoint_obj
+Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
 
-GitHub specific class used in feedback mechanism and migration event hooks to access GitHub
+`github_api_obj git.github_api(url)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url|`string`<br><p>Indicates the GitHub repo URL.</p>
+
 
 
 ## Console

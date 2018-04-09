@@ -16,8 +16,8 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -34,15 +34,15 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.syntax.EvalException;
 
 /** GitHub specific class used in feedback mechanism and migration event hooks to access GitHub */
 @SkylarkModule(
-  name = "github_endpoint_obj",
+  name = "github_api_obj",
   category = SkylarkModuleCategory.BUILTIN,
-  doc = "GitHub specific class used in feedback mechanism and migration event hooks to access"
-          + " GitHub"
+  documented = false,
+  doc =
+      "GitHub specific class used in feedback mechanism and migration event hooks to access GitHub"
 )
 public class GitHubEndPoint implements Endpoint {
 
@@ -92,12 +92,7 @@ public class GitHubEndPoint implements Endpoint {
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
-    return ImmutableSetMultimap.of("type", "github_feedback", "url", url);
-  }
-
-  @Override
-  public void repr(SkylarkPrinter printer) {
-    printer.append(toString());
+    return ImmutableSetMultimap.of("type", "github_api", "url", url);
   }
 
   @Override

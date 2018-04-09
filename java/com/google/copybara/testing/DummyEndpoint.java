@@ -22,7 +22,9 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -31,10 +33,11 @@ import java.util.List;
 @SkylarkModule(
     name = "dummy_endpoint",
     doc = "A dummy endpoint for feedback mechanism",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
+    category = SkylarkModuleCategory.BUILTIN)
 public class DummyEndpoint implements Endpoint {
 
   private final List<String> messages = new ArrayList<>();
+
   @Override
   public ImmutableSetMultimap<String, String> describe() {
     return ImmutableSetMultimap.<String, String>builder().build();
@@ -45,12 +48,17 @@ public class DummyEndpoint implements Endpoint {
     messages.add(msg);
   }
 
+  public void addAll(String... msg) {
+    messages.addAll(Arrays.asList(msg));
+  }
+
   @Override
   public void repr(SkylarkPrinter printer) {
     printer.append("dummy");
   }
 
-  public List<String> getMessages() {
-    return messages;
+  @SkylarkCallable(name = "get_messages", doc = "Get the messages", structField = true)
+  public SkylarkList<String> getMessages() {
+    return SkylarkList.createImmutable(messages);
   }
 }

@@ -558,6 +558,29 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     }
   };
 
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+    name = "github_api",
+    returnType = GitHubEndPoint.class,
+    doc = "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API "
+        + "operations.",
+    parameters = {
+      @Param(name = "self", type = GitModule.class, doc = "this object"),
+      @Param(name = "url", type = String.class, doc = "Indicates the GitHub repo URL."),
+    },
+    objectType = GitModule.class,
+    useLocation = true
+  )
+  @UsesFlags(GithubOptions.class)
+  public static final BuiltinFunction GITHUB_ENDPOINT =
+      new BuiltinFunction("github_api") {
+        public GitHubEndPoint invoke(GitModule self, String url, Location location)
+            throws EvalException {
+          return new GitHubEndPoint(
+              self.options.get(GithubOptions.class), checkNotEmpty(url, "url", location));
+        }
+      };
+
   @Override
   public void setOptions(Options options) {
     this.options = checkNotNull(options);

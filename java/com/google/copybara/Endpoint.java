@@ -17,9 +17,23 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 
+/**
+ * A feedback API endpoint of an origin or destination.
+ *
+ * <p>Endpoints are symmetric, that is, they need to be able to act both as an origin and
+ * destination of a feedback migration, which means that they need to support both read and write
+ * operations on the API.
+ */
+@SkylarkModule(
+    name = "api",
+    doc = "A feedback API endpoint of an origin or destination.",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    documented = false)
 public interface Endpoint extends SkylarkValue {
 
   /**
@@ -37,6 +51,11 @@ public interface Endpoint extends SkylarkValue {
       printer.append("noop_endpoint");
     }
   };
+
+  @Override
+  default void repr(SkylarkPrinter printer) {
+    printer.append(toString());
+  }
 
   /** Returns a key-value ist of the options the endpoint was instantiated with. */
   ImmutableSetMultimap<String, String> describe();
