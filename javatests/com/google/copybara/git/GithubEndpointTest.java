@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
@@ -108,11 +107,7 @@ public class GithubEndpointTest {
 
   @Test
   public void testParsingEmptyUrl() {
-    try {
-      skylarkTestExecutor.eval("e", "e = git.github_api(url = '')))");
-      fail();
-    } catch (ValidationException ignored) {
-    }
+    skylarkTestExecutor.evalFails("git.github_api(url = '')))", "Invalid empty field 'url'");
   }
 
   @Test

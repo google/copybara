@@ -581,6 +581,30 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
         }
       };
 
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+      name = "gerrit_api",
+      returnType = GerritEndpoint.class,
+      documented = false,
+      doc = "Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API "
+          + "operations.",
+      parameters = {
+          @Param(name = "self", type = GitModule.class, doc = "this object"),
+          @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL."),
+      },
+      objectType = GitModule.class,
+      useLocation = true
+  )
+  @UsesFlags(GerritOptions.class)
+  public static final BuiltinFunction GERRIT_ENDPOINT =
+      new BuiltinFunction("gerrit_api") {
+        public GerritEndpoint invoke(GitModule self, String url, Location location)
+            throws EvalException {
+          return new GerritEndpoint(
+              self.options.get(GerritOptions.class), checkNotEmpty(url, "url", location));
+        }
+      };
+
   @Override
   public void setOptions(Options options) {
     this.options = checkNotNull(options);
