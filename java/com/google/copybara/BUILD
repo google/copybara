@@ -88,6 +88,7 @@ BASE_SRCS = [
     "Transformation.java",
     "TransformResult.java",
     "TransformWork.java",
+    "Trigger.java",
     "treestate/FileSystemTreeState.java",
     "treestate/MapBasedTreeState.java",
     "treestate/TreeState.java",

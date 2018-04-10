@@ -938,10 +938,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       ),
       @Param(
         name = "origin",
-        type = Endpoint.class,
-        doc =
-            "Where to read change metadata from. This is usually a code review system like "
-                + "Gerrit or Github PR.",
+        type = Trigger.class,
+        doc = "The trigger of a feedback migration.",
         positional = false
       ),
       @Param(
@@ -976,7 +974,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         public NoneType invoke(
             Core self,
             String workflowName,
-            Endpoint origin,
+            Trigger trigger,
             Endpoint destination,
             SkylarkList<?> feedbackActions,
             Location location,
@@ -990,7 +988,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   new Feedback(
                       workflowName,
                       self.mainConfigFile,
-                      origin,
+                      trigger,
                       destination,
                       actions,
                       self.generalOptions));

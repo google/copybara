@@ -26,7 +26,7 @@ import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
-import com.google.copybara.testing.DummyEndpoint;
+import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Message.MessageType;
@@ -45,7 +45,7 @@ public class FeedbackTest {
   private SkylarkParser skylark;
   private TestingConsole console;
   private OptionsBuilder options;
-  private DummyEndpoint dummyEndpoint;
+  private DummyTrigger dummyTrigger;
   private Path workdir;
 
   @Before
@@ -54,9 +54,9 @@ public class FeedbackTest {
     Files.createDirectories(workdir);
     console = new TestingConsole();
     options = new OptionsBuilder();
-    dummyEndpoint = new DummyEndpoint();
     options.setConsole(console);
-    options.testingOptions.feedbackEndpoint = dummyEndpoint;
+    dummyTrigger = new DummyTrigger();
+    options.testingOptions.feedbackTrigger = dummyTrigger;
     skylark = new SkylarkParser(ImmutableSet.of(Core.class, TestingModule.class));
   }
 
@@ -66,8 +66,8 @@ public class FeedbackTest {
     assertThat(feedback.getName()).isEqualTo("default");
     assertThat(feedback.getModeString()).isEqualTo("feedback");
     assertThat(feedback.getMainConfigFile()).isNotNull();
-    assertThat(feedback.getOriginDescription()).isEqualTo(dummyEndpoint.describe());
-    assertThat(feedback.getDestinationDescription()).isEqualTo(dummyEndpoint.describe());
+    assertThat(feedback.getOriginDescription()).isEqualTo(dummyTrigger.describe());
+    assertThat(feedback.getDestinationDescription()).isEqualTo(dummyTrigger.describe());
   }
 
   @Test
@@ -102,8 +102,8 @@ public class FeedbackTest {
             + "\n"
             + "core.feedback(\n"
             + "    name = 'default',\n"
-            + "    origin = testing.feedback_endpoint(),\n"
-            + "    destination = testing.feedback_endpoint(),\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    destination = testing.dummy_endpoint(),\n"
             + "    actions = [test_action,],\n"
             + ")\n"
             + "\n";

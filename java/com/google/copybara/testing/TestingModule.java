@@ -70,7 +70,7 @@ public class TestingModule implements OptionsAwareModule {
   };
 
   @SkylarkSignature(
-    name = "feedback_endpoint",
+    name = "dummy_endpoint",
     returnType = DummyEndpoint.class,
     doc = "A dummy feedback endpoint",
     parameters = {
@@ -79,9 +79,24 @@ public class TestingModule implements OptionsAwareModule {
     objectType = TestingModule.class
   )
   public static final BuiltinFunction FEEDBACK_ENDPOINT =
-      new BuiltinFunction("feedback_endpoint") {
+      new BuiltinFunction("dummy_endpoint") {
         public DummyEndpoint invoke(TestingModule self) throws EvalException {
-          return self.testingOptions.feedbackEndpoint;
+          return self.testingOptions.feedbackTrigger;
+        }
+      };
+
+  @SkylarkSignature(
+      name = "dummy_trigger",
+      returnType = DummyTrigger.class,
+      doc = "A dummy feedback trigger",
+      parameters = {
+        @Param(name = "self", type = TestingModule.class, doc = "this object"),
+      },
+      objectType = TestingModule.class)
+  public static final BuiltinFunction FEEDBACK_TRIGGER =
+      new BuiltinFunction("dummy_trigger") {
+        public DummyTrigger invoke(TestingModule self) throws EvalException {
+          return self.testingOptions.feedbackTrigger;
         }
       };
 
@@ -90,6 +105,6 @@ public class TestingModule implements OptionsAwareModule {
     public DummyOrigin origin;
     public RecordsProcessCallDestination destination;
 
-    public DummyEndpoint feedbackEndpoint;
+    public DummyTrigger feedbackTrigger;
   }
 }

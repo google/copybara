@@ -31,7 +31,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.git.github.api.GithubApi;
-import com.google.copybara.testing.DummyEndpoint;
+import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport.RequestRecord;
@@ -59,7 +59,7 @@ public class GithubEndpointTest {
   private SkylarkParser skylarkParser;
   private TestingConsole console;
   private OptionsBuilder options;
-  private DummyEndpoint dummyEndpoint;
+  private DummyTrigger dummyTrigger;
   private Path workdir;
   private GitApiMockHttpTransport gitApiMockHttpTransport;
 
@@ -71,8 +71,8 @@ public class GithubEndpointTest {
     options = new OptionsBuilder();
     options.setConsole(console)
         .setOutputRootToTmpDir();
-    dummyEndpoint = new DummyEndpoint();
-    options.testingOptions.feedbackEndpoint = dummyEndpoint;
+    dummyTrigger = new DummyTrigger();
+    options.testingOptions.feedbackTrigger = dummyTrigger;
     options.github = new GithubOptions(() -> options.general, options.git) {
       @Override
       public GithubApi getApi(String project) throws RepoException {
@@ -126,7 +126,7 @@ public class GithubEndpointTest {
       }
     };
 
-    dummyEndpoint.addAll("Foo", "Bar");
+    dummyTrigger.addAll("Foo", "Bar");
     Feedback feedback =
         feedback(
             ""
@@ -159,7 +159,7 @@ public class GithubEndpointTest {
             + "\n"
             + "core.feedback(\n"
             + "    name = 'default',\n"
-            + "    origin = testing.feedback_endpoint(),\n"
+            + "    origin = testing.dummy_trigger(),\n"
             + "    destination = git.github_api(\n"
             + "      url = 'https://github.com/google/example',\n"
             + "    ),\n"
