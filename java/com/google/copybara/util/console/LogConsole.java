@@ -46,7 +46,8 @@ public class LogConsole implements Console {
   /**
    * Creates a new instance of {@link LogConsole} with read and write capabilities.
    */
-  public static LogConsole readWriteConsole(InputStream input, PrintStream output, boolean verbose) {
+  public static LogConsole readWriteConsole(
+      InputStream input, PrintStream output, boolean verbose) {
     return new LogConsole(
         Preconditions.checkNotNull(input), Preconditions.checkNotNull(output), verbose);
   }
