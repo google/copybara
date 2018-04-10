@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -47,6 +46,7 @@ public final class MainArguments {
 
   @Parameter(description =
       ""
+           // Not true for some commands. But most used commands use this format:
           + "[subcommand] config_path [workflow_name [source_ref]]\n"
           + "\n"
           + (""
@@ -67,55 +67,17 @@ public final class MainArguments {
   )
   List<String> unnamed = new ArrayList<>();
 
-  @Parameter(names = "--help", help = true, description = "Shows this help text")
-  boolean help;
+  @Parameter(names = "--help", help = true, description = "DEPRECATED. Use copybara help")
+  @Deprecated
+  boolean helpDontUse;
 
-  @Parameter(names = "--version", description = "Shows the version of the binary")
-  boolean version;
+  @Parameter(names = "--version", description = "DEPRECATED. USe copybara version")
+  @Deprecated
+  boolean versionDontUse;
 
   @Parameter(names = "--work-dir", description = "Directory where all the transformations"
       + " will be performed. By default a temporary directory.")
   String baseWorkdir;
-
-  @Nullable
-  private ArgumentHolder argumentHolder;
-
-  private final ImmutableList<String> originalArgs;
-
-  /**
-   * A list containing the original invocation arguments. Solely meant for debugging/logging.
-   */
-  public ImmutableList<String> getOriginalArgsForLogging() {
-    return originalArgs;
-  }
-
-  public CopybaraCmd getSubcommand() {
-    return getArgs().subcommand;
-  }
-
-  public String getConfigPath() {
-    return getArgs().configPath;
-  }
-
-  @Nullable
-  public String getWorkflowName() {
-    return getArgs().workflowName;
-  }
-
-  @Nullable
-  public String getSourceRef() {
-    return getArgs().sourceRef;
-  }
-
-  private ArgumentHolder getArgs() {
-    Preconditions.checkNotNull(argumentHolder, "parseUnnamedArgs() should be invoked first. "
-        + "This is probably a bug.");
-    return argumentHolder;
-  }
-
-  public MainArguments(String[] args) {
-    this.originalArgs = ImmutableList.copyOf(Preconditions.checkNotNull(args));
-  }
 
   /**
    * Returns the base working directory. This method should not be accessed directly by any other
@@ -147,68 +109,42 @@ public final class MainArguments {
     }
   }
 
-  void parseUnnamedArgs(ImmutableMap<String, ? extends CopybaraCmd> commands,
+  CommandWithArgs parseCommand(ImmutableMap<String, ? extends CopybaraCmd> commands,
       CopybaraCmd defaultCmd) throws CommandLineException {
     if (unnamed.isEmpty()) {
-      throw new CommandLineException("Expected at least a configuration file.");
-    } else if (unnamed.size() > 4) {
+      return new CommandWithArgs(defaultCmd, ImmutableList.of());
+    }
+    String firstArg = unnamed.get(0);
+    // Default command might take a config file as param.
+    if (firstArg.endsWith(COPYBARA_SKYLARK_CONFIG_FILENAME)) {
+      return new CommandWithArgs(defaultCmd, ImmutableList.copyOf(unnamed));
+    }
+
+    if (!commands.containsKey(firstArg.toLowerCase())) {
       throw new CommandLineException(
-          String.format("Expected at most four arguments: %s. Note that flag values that contain "
-              + "whitespaces must be between quotes: --some-flag \"Some Value\"", unnamed));
+          String.format("Invalid subcommand '%s'. Available commands: %s", firstArg,
+              new TreeSet<>(commands.keySet())));
     }
-
-    CopybaraCmd subcommand = defaultCmd;
-    int argumentId = 0;
-    String firstArg = unnamed.get(argumentId);
-    // This should be enough for now
-    if (!firstArg.endsWith(COPYBARA_SKYLARK_CONFIG_FILENAME)) {
-      if (!commands.containsKey(firstArg.toLowerCase())) {
-        throw new CommandLineException(
-            String.format("Invalid subcommand '%s'. Available commands: %s", firstArg,
-                new TreeSet<>(commands.keySet())));
-      }
-      subcommand = commands.get(firstArg.toLowerCase());
-      argumentId++;
-    }
-
-    if (argumentId >= unnamed.size()) {
-      throw new CommandLineException(
-          String.format("Configuration file missing for '%s' subcommand.", subcommand.name()));
-    }
-    String configPath = unnamed.get(argumentId);
-    argumentId++;
-
-    String workflowName = "default";
-    if (argumentId < unnamed.size()) {
-      workflowName = unnamed.get(argumentId);
-      argumentId++;
-    }
-
-    String sourceRef = null;
-    if (argumentId < unnamed.size()) {
-      // TODO(malcon): Move this to the commands
-      if (subcommand.name().equals("info") || subcommand.name().equals("validate")) {
-        throw new CommandLineException(
-            String.format("Too many arguments for subcommand '%s'", subcommand.name()));
-      }
-      sourceRef = unnamed.get(argumentId);
-    }
-    argumentHolder = new ArgumentHolder(subcommand, configPath, workflowName, sourceRef);
+    return new CommandWithArgs(commands.get(firstArg.toLowerCase()),
+        ImmutableList.copyOf(unnamed.subList(1, unnamed.size())));
   }
 
-  private static class ArgumentHolder {
+  static class CommandWithArgs {
 
     private final CopybaraCmd subcommand;
-    private final String configPath;
-    @Nullable private final String workflowName;
-    @Nullable private final String sourceRef;
+    private final ImmutableList<String> args;
 
-    private ArgumentHolder(CopybaraCmd subcommand, String configPath,
-        @Nullable  String workflowName, @Nullable String sourceRef) {
-      this.subcommand = subcommand;
-      this.configPath = configPath;
-      this.workflowName = workflowName;
-      this.sourceRef = sourceRef;
+    private CommandWithArgs(CopybaraCmd subcommand, ImmutableList<String> args) {
+      this.subcommand = Preconditions.checkNotNull(subcommand);
+      this.args = Preconditions.checkNotNull(args);
+    }
+
+    CopybaraCmd getSubcommand() {
+      return subcommand;
+    }
+
+    ImmutableList<String> getArgs() {
+      return args;
     }
   }
 }

@@ -293,7 +293,7 @@ public final class GeneralOptions implements Option {
      */
     public GeneralOptions init(
         Map<String, String> environment, FileSystem fileSystem, Console console)
-        throws IOException, ValidationException {
+        throws ValidationException {
       Path configRoot = null;
       if (this.configRoot != null) {
         configRoot = fileSystem.getPath(this.configRoot).toAbsolutePath();

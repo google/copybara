@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-  $ ${TEST_SRCDIR}/java/com/google/copybara/copybara --help
+  $ ${TEST_SRCDIR}/java/com/google/copybara/copybara help
   Usage: copybara [options] CONFIG_PATH [SOURCE_REF]
     Options:
       --folder-dir

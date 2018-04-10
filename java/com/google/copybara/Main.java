@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.copybara.config.Config;
+import com.google.copybara.MainArguments.CommandWithArgs;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.config.PathBasedConfigFile;
@@ -81,6 +81,7 @@ public class Main {
    */
   protected final ImmutableMap<String, String> environment;
   protected Profiler profiler;
+  protected JCommander jCommander;
 
   public Main() {
     this(System.getenv());
@@ -112,14 +113,14 @@ public class Main {
 
     console.startupMessage(getVersion());
 
-    ExitCode exitCode = runInternal(args, console, fs);
+    CommandResult result = runInternal(args, console, fs);
     try {
-      shutdown(exitCode);
+      shutdown(result);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       handleUnexpectedError(console, "Execution was interrupted.", args, e);
     }
-    return exitCode;
+    return result.exitCode;
   }
 
   /** Helper to find out about verbose output before JCommander has been initialized .*/
@@ -127,150 +128,141 @@ public class Main {
     return Arrays.stream(args).anyMatch(Predicate.isEqual("-v"));
   }
 
+   /** A wrapper of the exit code and the command executed */
+   protected static class CommandResult {
+
+     private final ExitCode exitCode;
+     @Nullable
+     private final CommandEnv commandEnv;
+     @Nullable
+     private final CopybaraCmd command;
+
+     CommandResult(ExitCode exitCode, @Nullable CopybaraCmd command,
+         @Nullable CommandEnv commandEnv) {
+       this.exitCode = Preconditions.checkNotNull(exitCode);
+       this.command = command;
+       this.commandEnv = commandEnv;
+     }
+
+     public ExitCode getExitCode() {
+       return exitCode;
+     }
+
+     /**
+      * The command environment passed to the command. Can be null for executions that failed before
+      * executing the command, like bad options.
+      */
+     @Nullable
+     public CommandEnv getCommandEnv() {
+       return commandEnv;
+     }
+
+     /**
+      * The command that was executed. Can be null for executions that failed before executing the
+      * command, like bad options.
+      */
+     @Nullable
+     public CopybaraCmd getCommand() {
+       return command;
+     }
+   }
   /**
    * Runs the command and returns the {@link ExitCode}.
    *
    * <p>This method is also responsible for the exception handling/logging.
    */
-  private ExitCode runInternal(String[] args, Console console, FileSystem fs) {
+  private CommandResult runInternal(String[] args, Console console, FileSystem fs) {
+    CommandEnv commandEnv = null;
+    CopybaraCmd subcommand = null;
+
     try {
       ModuleSupplier moduleSupplier = newModuleSupplier();
 
-      final MainArguments mainArgs = new MainArguments(args);
+      final MainArguments mainArgs = new MainArguments();
       GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
       SettableSupplier<GeneralOptions> generalOptionsSupplier = new SettableSupplier<>();
       List<Option> allOptions = new ArrayList<>(moduleSupplier.newOptions(generalOptionsSupplier));
-      JCommander jcommander = new JCommander(ImmutableList.builder()
+      jCommander = new JCommander(ImmutableList.builder()
           .addAll(allOptions)
           .add(mainArgs)
           .add(generalOptionsArgs)
           .build());
-      jcommander.setProgramName("copybara");
+      jCommander.setProgramName("copybara");
 
       String version = getVersion();
       logger.log(Level.INFO, "Copybara version: " + version);
-      jcommander.parse(args);
-      if (mainArgs.help) {
-        console.info(usage(jcommander, version));
-        return ExitCode.SUCCESS;
-      }
-      if (mainArgs.version) {
-        console.info(getBinaryInfo());
-        return ExitCode.SUCCESS;
-      }
-
-      ImmutableMap<String, CopybaraCmd> commands =
-          Maps.uniqueIndex(getCommands(), CopybaraCmd::name);
-
-      mainArgs.parseUnnamedArgs(commands, commands.get("migrate"));
+      jCommander.parse(args);
 
       GeneralOptions generalOptions = generalOptionsArgs.init(environment, fs, console);
       generalOptionsSupplier.set(generalOptions);
       allOptions.add(generalOptions);
       Options options = new Options(allOptions);
 
-      initEnvironment(options, mainArgs, jcommander);
+      ConfigLoaderProvider configLoaderProvider = newConfigLoaderProvider(moduleSupplier, options);
 
-      ConfigLoader configLoader = newConfigLoader(
-              moduleSupplier, options, mainArgs.getConfigPath(), mainArgs.getSourceRef());
+      ImmutableMap<String, CopybaraCmd> commands =
+          Maps.uniqueIndex(getCommands(options, moduleSupplier, configLoaderProvider, jCommander),
+              CopybaraCmd::name);
 
-      Copybara copybara = new Copybara(getConfigValidator(), getMigrationRanConsumer());
-      return mainArgs.getSubcommand().run(mainArgs, options, configLoader, copybara);
+      CommandWithArgs cmdToRun = mainArgs.parseCommand(commands, commands.get("migrate"));
+      subcommand = cmdToRun.getSubcommand();
+
+      initEnvironment(options, cmdToRun.getSubcommand(), ImmutableList.copyOf(args));
+
+      Path baseWorkdir = mainArgs.getBaseWorkdir(generalOptions, generalOptions.getFileSystem());
+
+      commandEnv = new CommandEnv(baseWorkdir, options, cmdToRun.getArgs());
+      ExitCode exitCode = subcommand.run(commandEnv);
+      return new CommandResult(exitCode, subcommand, commandEnv);
 
     } catch (CommandLineException | ParameterException e) {
       printCauseChain(Level.WARNING, console, args, e);
-      console.error("Try 'copybara --help'.");
-      return ExitCode.COMMAND_LINE_ERROR;
+      console.error("Try 'copybara help'.");
+      return new CommandResult(ExitCode.COMMAND_LINE_ERROR, subcommand, commandEnv);
     } catch (RepoException e) {
       printCauseChain(Level.SEVERE, console, args, e);
       // TODO(malcon): Expose interrupted exception from WorkflowMode to Main so that we don't
       // have to do this hack.
       if (e.getCause() instanceof InterruptedException) {
-        return ExitCode.INTERRUPTED;
+        return new CommandResult(ExitCode.INTERRUPTED, subcommand, commandEnv);
       }
-      return ExitCode.REPOSITORY_ERROR;
+      return new CommandResult(ExitCode.REPOSITORY_ERROR, subcommand, commandEnv);
     } catch (EmptyChangeException e) {
       // This is not necessarily an error. Maybe the tool was run previously and there are no new
       // changes to import.
       console.warn(e.getMessage());
-      return ExitCode.NO_OP;
+      return new CommandResult(ExitCode.NO_OP, subcommand, commandEnv);
     } catch (ValidationException e) {
       printCauseChain(Level.WARNING, console, args, e);
       // TODO(malcon): Think of a better way of doing this
-      return e.isRetryable() ? ExitCode.REPOSITORY_ERROR : ExitCode.CONFIGURATION_ERROR;
+      return new CommandResult(e.isRetryable()
+          ? ExitCode.REPOSITORY_ERROR
+          : ExitCode.CONFIGURATION_ERROR,
+          subcommand, commandEnv);
     } catch (IOException e) {
       handleUnexpectedError(console, e.getMessage(), args, e);
-      return ExitCode.ENVIRONMENT_ERROR;
+      return new CommandResult(ExitCode.ENVIRONMENT_ERROR, subcommand, commandEnv);
     } catch (RuntimeException e) {
       // This usually indicates a serious programming error that will require Copybara team
       // intervention. Print stack trace without concern for presentation.
       e.printStackTrace();
       handleUnexpectedError(console, "Unexpected error (please file a bug): " + e.getMessage(),
           args, e);
-      return ExitCode.INTERNAL_ERROR;
+      return new CommandResult(ExitCode.INTERNAL_ERROR, subcommand, commandEnv);
     }
   }
 
-  /** Reads the last migrated revision in the origin and destination. */
-  public static class InfoCmd implements CopybaraCmd {
-    @Override
-    public ExitCode run(
-        MainArguments mainArgs, Options options, ConfigLoader configLoader, Copybara copybara)
-        throws ValidationException, IOException, RepoException {
-      // TODO(malcon): Use the same load mechanism (if possible) for the other commands.
-      Config config = configLoader.load(options,
-          options.get(GeneralOptions.class).console());
-      copybara.info(options, config, mainArgs.getWorkflowName());
-      return ExitCode.SUCCESS;
-    }
-
-    @Override
-    public String name() {
-      return "info";
-    }
-  }
-
-  /** Executes the migration for the given config. */
-  public static class MigrateCmd implements CopybaraCmd {
-    @Override
-    public ExitCode run(
-        MainArguments mainArgs, Options options, ConfigLoader configLoader, Copybara copybara)
-        throws RepoException, ValidationException, IOException {
-      GeneralOptions generalOptions = options.get(GeneralOptions.class);
-      copybara.run(
-          options,
-          configLoader,
-          mainArgs.getWorkflowName(),
-          mainArgs.getBaseWorkdir(generalOptions, generalOptions.getFileSystem()),
-          mainArgs.getSourceRef());
-      return ExitCode.SUCCESS;
-    }
-
-    @Override
-    public String name() {
-      return "migrate";
-    }
-  }
-
-  /** Validates that the configuration is correct. */
-  public static class ValidateCmd implements CopybaraCmd {
-    @Override
-    public ExitCode run(
-        MainArguments mainArgs, Options options, ConfigLoader configLoader, Copybara copybara)
-        throws RepoException, IOException {
-      return copybara.validate(options, configLoader, mainArgs.getWorkflowName())
-          ? ExitCode.SUCCESS
-          : ExitCode.CONFIGURATION_ERROR;
-    }
-
-    @Override
-    public String name() {
-      return "validate";
-    }
-  }
-
-  public ImmutableSet<CopybaraCmd> getCommands() {
-    return ImmutableSet.of(new MigrateCmd(), new InfoCmd(), new ValidateCmd());
+  public ImmutableSet<CopybaraCmd> getCommands(Options options, ModuleSupplier moduleSupplier,
+      ConfigLoaderProvider configLoaderProvider, JCommander jcommander)
+      throws CommandLineException {
+    ConfigValidator validator = getConfigValidator(options);
+    Consumer<Migration> consumer = getMigrationRanConsumer();
+    return ImmutableSet.of(
+        new MigrateCmd(validator, consumer, configLoaderProvider),
+        new InfoCmd(validator, consumer, configLoaderProvider),
+        new ValidateCmd(validator, consumer, configLoaderProvider),
+        new HelpCmd(jcommander),
+        new VersionCmd());
   }
 
   /**
@@ -292,7 +284,7 @@ public class Main {
     return migration -> {};
   }
 
-  protected ConfigValidator getConfigValidator() {
+  protected ConfigValidator getConfigValidator(Options options) throws CommandLineException {
     return new ConfigValidator() {};
   }
 
@@ -301,13 +293,12 @@ public class Main {
     return new ModuleSupplier();
   }
 
-  protected ConfigLoader newConfigLoader(
-      ModuleSupplier moduleSupplier, Options options, String configLocation,
-      @Nullable String sourceRef) throws ValidationException, IOException {
+  protected ConfigLoaderProvider newConfigLoaderProvider(
+      ModuleSupplier moduleSupplier, Options options) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    return new ConfigLoader(moduleSupplier, createConfigFileWithHeuristic(
-        validateLocalConfig(generalOptions, configLocation),
-        generalOptions.getConfigRoot()));
+    return (configPath, sourceRef) -> new ConfigLoader(moduleSupplier,
+        createConfigFileWithHeuristic(validateLocalConfig(generalOptions, configPath),
+            generalOptions.getConfigRoot()));
   }
 
   /**
@@ -391,7 +382,8 @@ public class Main {
    * Sample use case are remote logging, test harnesses and others. Called after command line
    * options are parsed, but before a file is read or a run started.
    */
-  protected void initEnvironment(Options options, MainArguments mainArgs, JCommander jcommander)
+  protected void initEnvironment(Options options, CopybaraCmd copybaraCmd,
+      ImmutableList<String> rawArgs)
       throws ValidationException, IOException, RepoException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     profiler = generalOptions.profiler();
@@ -417,8 +409,9 @@ public class Main {
   }
   /**
    * Performs cleanup tasks after executing Copybara.
+   * @param result
    */
-  protected void shutdown(ExitCode exitCode) throws InterruptedException {
+  protected void shutdown(CommandResult result) throws InterruptedException {
     if (profiler != null) {
       profiler.stop();
     }
@@ -476,5 +469,47 @@ public class Main {
 
   private static String formatLogError(String message, String[] args) {
     return String.format("%s (command args: %s)", message, Arrays.toString(args));
+  }
+
+  /** Prints the Copybara version */
+  private class VersionCmd implements CopybaraCmd {
+
+    @Override
+    public ExitCode run(CommandEnv commandEnv)
+        throws ValidationException, IOException, RepoException {
+      commandEnv.getOptions().get(GeneralOptions.class).console().info(getBinaryInfo());
+      return ExitCode.SUCCESS;
+    }
+
+    @Override
+    public String name() {
+      return "version";
+    }
+  }
+
+  /**
+   * Prints the help message
+   * TODO(malcon): Implement help per command
+   */
+  private class HelpCmd implements CopybaraCmd {
+
+    private JCommander jCommander;
+
+    HelpCmd(JCommander jCommander) {
+      this.jCommander = Preconditions.checkNotNull(jCommander);
+    }
+
+    @Override
+    public ExitCode run(CommandEnv commandEnv)
+        throws ValidationException, IOException, RepoException {
+      String version = getVersion();
+      commandEnv.getOptions().get(GeneralOptions.class).console().info(usage(jCommander, version));
+      return ExitCode.SUCCESS;
+    }
+
+    @Override
+    public String name() {
+      return "help";
+    }
   }
 }

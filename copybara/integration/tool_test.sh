@@ -811,7 +811,7 @@ EOF
 }
 
 function test_command_help_flag() {
-  copybara --help
+  copybara help
   expect_log 'Usage: copybara \[options\]'
   expect_log 'Example:'
 }
@@ -828,16 +828,22 @@ function test_command_copybara_filename_no_correct_name() {
   expect_log "Copybara config file filename should be 'copy.bara.sky'"
 }
 
+function test_command_copybara_wrong_command() {
+  copybara_with_exit_code COMMAND_LINE_ERROR foooo
+  expect_log "Invalid subcommand 'foooo'. Available commands: "
+  expect_log "Try 'copybara help'"
+}
+
 function test_command_too_few_args() {
   copybara_with_exit_code $COMMAND_LINE_ERROR
-  expect_log 'Expected at least a configuration file.'
-  expect_log "Try 'copybara --help'"
+  expect_log "Configuration file missing for 'migrate' subcommand."
+  expect_log "Try 'copybara help'"
 }
 
 function test_command_too_many_args() {
   copybara_with_exit_code $COMMAND_LINE_ERROR migrate config workflow_name origin/master unexpected
-  expect_log "Expected at most four arguments: \[migrate, config, workflow_name, origin/master, unexpected\]. Note that flag values that contain whitespaces must be between quotes: --some-flag \"Some Value\""
-  expect_log "Try 'copybara --help'"
+  expect_log "Expected at most three arguments: \[config, workflow_name, origin/master, unexpected\]. Note that flag values that contain whitespaces must be between quotes: --some-flag \"Some Value\""
+  expect_log "Try 'copybara help'"
 }
 
 function setup_reversible_check_workflow() {
@@ -1045,7 +1051,7 @@ function test_migrate_missing_config() {
 function test_migrate_too_many_arguments() {
   copybara_with_exit_code $COMMAND_LINE_ERROR migrate copy.bara.sky default foo bar
 
-  expect_log "Expected at most four arguments"
+  expect_log "Expected at most three arguments"
 }
 
 function test_info_missing_config() {

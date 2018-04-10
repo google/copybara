@@ -18,7 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.beust.jcommander.JCommander;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.util.ExitCode;
 import java.io.IOException;
@@ -53,8 +53,10 @@ public class MainTest {
   }
 
   @Test
-  public void testNoArguments() {
-    assertThat(new Main().run(/*no arguments*/ new String[]{}))
+  public void testNoArguments() throws IOException {
+    ImmutableMap<String, String> envWithHome = ImmutableMap.of("HOME",
+        Files.createTempDirectory("foo").toString());
+    assertThat(new Main(envWithHome).run(/*no arguments*/ new String[]{}))
         .isEqualTo(ExitCode.COMMAND_LINE_ERROR);
   }
 
@@ -74,14 +76,18 @@ public class MainTest {
   }
 
   @Test
-  public void testInitEnvironmentCalled() {
+  public void testInitEnvironmentCalled() throws IOException {
+    ImmutableMap<String, String> envWithHome = ImmutableMap.of("HOME",
+        Files.createTempDirectory("foo").toString());
+
     Main main =
-        new Main() {
+        new Main(envWithHome) {
           @Override
           protected void configureLog(FileSystem fs) {}
 
           @Override
-          protected void initEnvironment(Options o, MainArguments args, JCommander jcommander) {
+          protected void initEnvironment(Options options, CopybaraCmd copybaraCmd,
+              ImmutableList<String> rawArgs) {
             called = true;
           }
         };
@@ -97,7 +103,7 @@ public class MainTest {
           protected void configureLog(FileSystem fs) {}
 
           @Override
-          protected void shutdown(ExitCode exitCode) {
+          protected void shutdown(CommandResult result) {
             called = true;
           }
         };

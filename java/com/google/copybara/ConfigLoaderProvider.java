@@ -16,26 +16,15 @@
 
 package com.google.copybara;
 
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.util.ExitCode;
 import java.io.IOException;
+import javax.annotation.Nullable;
 
-/**
- * A Copybara command like 'info' 'migrate', etc.
- */
-public interface CopybaraCmd {
+/** A class that given a main config path (copy.bara.sky file) returns a ConfigLoader. */
+public interface ConfigLoaderProvider {
 
-  /**
-   * Run the command
-   * @param commandEnv Command environment: Params, workdir, etc.
-   * @return Result exit code
-   */
-  ExitCode run(CommandEnv commandEnv) throws ValidationException, IOException, RepoException;
-
-  /**
-   * Command name
-   */
-  String name();
+  /** Create a new loader for {@code configPath} */
+  ConfigLoader newLoader(String configPath, @Nullable String sourceRef)
+      throws ValidationException, IOException;
 
 }
