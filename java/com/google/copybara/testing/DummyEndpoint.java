@@ -36,7 +36,7 @@ import java.util.List;
     category = SkylarkModuleCategory.BUILTIN)
 public class DummyEndpoint implements Endpoint {
 
-  private final List<String> messages = new ArrayList<>();
+  public final List<String> messages = new ArrayList<>();
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
