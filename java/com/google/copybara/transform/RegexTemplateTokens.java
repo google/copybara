@@ -207,8 +207,6 @@ public final class RegexTemplateTokens {
             template.append(thisChar);
           }
           break;
-        default:
-          throw new IllegalStateException(token.getType().toString());
       }
     }
     return template.toString();
@@ -271,8 +269,6 @@ public final class RegexTemplateTokens {
         case LITERAL:
           fullPattern.append(Pattern.quote(token.getValue()));
           break;
-        default:
-          throw new IllegalStateException(token.getType().toString());
       }
     }
     return Pattern.compile(fullPattern.toString(), Pattern.MULTILINE);
