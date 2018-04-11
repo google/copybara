@@ -44,7 +44,6 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         ":core",
-        ":exec_path",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
