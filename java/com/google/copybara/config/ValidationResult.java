@@ -21,7 +21,6 @@ import static com.google.copybara.config.ValidationResult.Level.WARNING;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.util.console.Console;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
