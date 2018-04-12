@@ -156,8 +156,9 @@ public class WorkflowOptions implements Option {
    * Reports that some operation is a no-op. This will either throw an exception or report the
    * incident to the console, depending on the options.
    */
-  public void reportNoop(Console console, String message) throws VoidOperationException {
-    if (ignoreNoop) {
+  public void reportNoop(Console console, String message, boolean currentIgnoreNoop)
+      throws VoidOperationException {
+    if (ignoreNoop || currentIgnoreNoop) {
       console.warn("NOOP: " + message);
     } else {
       throw new VoidOperationException(message);

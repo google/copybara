@@ -92,7 +92,7 @@ public class RevisionMigratorTest {
   private TransformWork getTransformWork(String msg) {
     return new TransformWork(checkoutDir, new Metadata(msg, new Author("foo", "foo@foo.com")),
         Changes.EMPTY, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader),
-        new DummyRevision("1234567890"));
+        new DummyRevision("1234567890"), false);
   }
 
   @Test

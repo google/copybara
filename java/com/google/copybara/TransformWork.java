@@ -80,23 +80,25 @@ public final class TransformWork implements SkylarkContext {
   private final Revision resolvedReference;
   private final TreeState treeState;
   private final boolean insideExplicitTransform;
+  private final boolean ignoreNoop;
   @Nullable
   private Revision lastRev;
   @Nullable private Revision currentRev;
   private TransformWork skylarkTransformWork;
   private SkylarkDict skylarkTransformParams;
 
+
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
-      MigrationInfo migrationInfo, Revision resolvedReference) {
+      MigrationInfo migrationInfo, Revision resolvedReference, boolean ignoreNoop) {
     this(checkoutDir, metadata, changes, console, migrationInfo, resolvedReference,
         new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/ false,
-        /*lastRev=*/null, /*currentRev=*/null, SkylarkDict.empty());
+        /*lastRev=*/null, /*currentRev=*/null, SkylarkDict.empty(), ignoreNoop);
   }
 
   private TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState,
       boolean insideExplicitTransform, @Nullable Revision lastRev,
-      @Nullable Revision currentRev, SkylarkDict skylarkTransformParams) {
+      @Nullable Revision currentRev, SkylarkDict skylarkTransformParams, boolean ignoreNoop) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
@@ -109,6 +111,7 @@ public final class TransformWork implements SkylarkContext {
     this.currentRev = currentRev;
     this.skylarkTransformWork = this;
     this.skylarkTransformParams = skylarkTransformParams;
+    this.ignoreNoop = ignoreNoop;
   }
 
   /**
@@ -405,7 +408,7 @@ public final class TransformWork implements SkylarkContext {
   public TransformWork withConsole(Console newConsole) {
     return new TransformWork(checkoutDir, metadata, changes, Preconditions.checkNotNull(newConsole),
         migrationInfo, resolvedReference, treeState, insideExplicitTransform, lastRev,
-        currentRev, skylarkTransformParams);
+        currentRev, skylarkTransformParams, ignoreNoop);
   }
 
   /**
@@ -415,7 +418,7 @@ public final class TransformWork implements SkylarkContext {
   public TransformWork withUpdatedTreeState() {
     return new TransformWork(checkoutDir, metadata, changes, console,
                              migrationInfo, resolvedReference, treeState.newTreeState(),
-                             insideExplicitTransform, lastRev, currentRev, skylarkTransformParams);
+                             insideExplicitTransform, lastRev, currentRev, skylarkTransformParams, ignoreNoop);
   }
 
   @Override
@@ -423,7 +426,7 @@ public final class TransformWork implements SkylarkContext {
     Preconditions.checkNotNull(params);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, lastRev,
-                             currentRev, params);
+                             currentRev, params, ignoreNoop);
   }
 
   @VisibleForTesting
@@ -431,14 +434,14 @@ public final class TransformWork implements SkylarkContext {
     Preconditions.checkNotNull(changes);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, lastRev,
-                             currentRev, skylarkTransformParams);
+                             currentRev, skylarkTransformParams, ignoreNoop);
   }
 
   @VisibleForTesting
   public TransformWork withLastRev(@Nullable Revision previousRef) {
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, previousRef,
-                             currentRev, skylarkTransformParams);
+                             currentRev, skylarkTransformParams, ignoreNoop);
   }
 
   @VisibleForTesting
@@ -446,21 +449,21 @@ public final class TransformWork implements SkylarkContext {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, lastRev,
-                             currentRev, skylarkTransformParams);
+                             currentRev, skylarkTransformParams, ignoreNoop);
   }
 
-  public TransformWork insideExplicitTransform() {
+  public TransformWork insideExplicitTransform(boolean ignoreNoop) {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, /*insideExplicitTransform=*/true,
-                             lastRev, currentRev, skylarkTransformParams);
+                             lastRev, currentRev, skylarkTransformParams, ignoreNoop);
   }
 
   public <O extends Revision> TransformWork withCurrentRev(Revision currentRev) {
     Preconditions.checkNotNull(currentRev);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform,
-                             lastRev, currentRev, skylarkTransformParams);
+                             lastRev, currentRev, skylarkTransformParams, ignoreNoop);
   }
 
   /**
@@ -472,6 +475,10 @@ public final class TransformWork implements SkylarkContext {
 
   public TreeState getTreeState() {
     return treeState;
+  }
+
+  public boolean getIgnoreNoop() {
+    return ignoreNoop;
   }
 
   /**

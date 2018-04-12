@@ -46,7 +46,8 @@ public class TransformWorks {
         Changes.EMPTY,
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
-        new DummyRevision("1234567890"));
+        new DummyRevision("1234567890"),
+        /*ignoreNoop=*/ false);
   }
 
   public static Change<DummyRevision> toChange(DummyRevision dummyRevision, Author author) {

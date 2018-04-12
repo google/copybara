@@ -802,58 +802,88 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       name = "transform",
       returnType = Transformation.class,
       doc = "Groups some transformations in a transformation that can contain a particular,"
-          + " manually-specified, reversal, where the forward version and reversed version"
-          + " of the transform are represented as lists of transforms. The is useful if a"
-          + " transformation does not automatically reverse, or if the automatic reversal"
-          + " does not work for some reason."
-          + "<br>"
-          + "If reversal is not provided, the transform will try to compute the reverse of"
-          + " the transformations list.",
+              + " manually-specified, reversal, where the forward version and reversed version"
+              + " of the transform are represented as lists of transforms. The is useful if a"
+              + " transformation does not automatically reverse, or if the automatic reversal"
+              + " does not work for some reason."
+              + "<br>"
+              + "If reversal is not provided, the transform will try to compute the reverse of"
+              + " the transformations list.",
       parameters = {
-          @Param(name = "self", type = Core.class, doc = "this object"),
-          @Param(name = "transformations",
-              type = SkylarkList.class, generic1 = Transformation.class,
-              doc = "The list of transformations to run as a result of running this"
-                  + " transformation."),
-          @Param(name = "reversal", type = SkylarkList.class, generic1 = Transformation.class,
-              doc = "The list of transformations to run as a result of running this"
-                  + " transformation in reverse.", named = true, positional = false,
-              noneable = true, defaultValue = "The reverse of 'transformations'"),
-          @Param(name = "ignore_noop", type = Boolean.class,
-              doc = "In case a noop error happens in the group of transformations (Both forward and"
-                  + " reverse), it will be ignored and rest of the transformations in the group"
-                  + " will not be executed. In general this is a bad idea and prevents"
-                  + " Copybara for detecting important transformation errors.",
-              named = true, positional = false,
-              defaultValue = "False"),
+        @Param(name = "self", type = Core.class, doc = "this object"),
+        @Param(
+            name = "transformations",
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            doc =
+                "The list of transformations to run as a result of running this"
+                    + " transformation."),
+        @Param(
+            name = "reversal",
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            doc =
+                "The list of transformations to run as a result of running this"
+                    + " transformation in reverse.",
+            named = true,
+            positional = false,
+            noneable = true,
+            defaultValue = "The reverse of 'transformations'"),
+        @Param(
+            name = "ignore_noop",
+            type = Boolean.class,
+            doc = "In case a noop error happens in the group of transformations (Both forward and"
+                  + " reverse), it will be ignored, but the rest of the transformations in the group"
+                  + " will still be executed. If ignore_noop is not set,"
+                  + " we will apply the closest parent's ignore_noop.",
+            named = true,
+            positional = false,
+            noneable = true,
+            defaultValue = "None"),
       },
-      objectType = Core.class, useEnvironment = true)
-  public static final BuiltinFunction TRANSFORM = new BuiltinFunction("transform",
-      ImmutableList.of(Runtime.NONE, Boolean.FALSE)) {
-    @SuppressWarnings("unused")
-    public Transformation invoke(Core self,
-        SkylarkList<Transformation> transformations,
-        Object reversal, Boolean ignoreNoop, Environment env) throws EvalException {
-      Sequence forward = Sequence.fromConfig(self.generalOptions.profiler(),
-                                             self.workflowOptions.joinTransformations(),
-                                             transformations,
-                                             "transformations", env);
-      SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
-      if (reverseList == null) {
-        try {
-          reverseList = SkylarkList.createImmutable(ImmutableList.of(forward.reverse()));
-        } catch (NonReversibleValidationException e) {
-          throw new EvalException(location, "transformations are not automatically reversible."
-              + " Use 'reversal' field to explicitly configure the reversal of the transform", e);
+      objectType = Core.class,
+      useEnvironment = true)
+  public static final BuiltinFunction TRANSFORM =
+      new BuiltinFunction("transform", ImmutableList.of(Runtime.NONE, Runtime.NONE)) {
+        @SuppressWarnings("unused")
+        public Transformation invoke(
+            Core self,
+            SkylarkList<Transformation> transformations,
+            Object reversal,
+            Object ignoreNoop,
+            Environment env)
+            throws EvalException {
+          Sequence forward =
+              Sequence.fromConfig(
+                  self.generalOptions.profiler(),
+                  self.workflowOptions.joinTransformations(),
+                  transformations,
+                  "transformations",
+                  env);
+          SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
+          Boolean updatedIgnoreNoop = convertFromNoneable(ignoreNoop, null);
+          if (reverseList == null) {
+            try {
+              reverseList = SkylarkList.createImmutable(ImmutableList.of(forward.reverse()));
+            } catch (NonReversibleValidationException e) {
+              throw new EvalException(
+                  location,
+                  "transformations are not automatically reversible."
+                      + " Use 'reversal' field to explicitly configure the reversal of the transform",
+                  e);
+            }
+          }
+          Sequence reverse =
+              Sequence.fromConfig(
+                  self.generalOptions.profiler(),
+                  self.workflowOptions.joinTransformations(),
+                  reverseList,
+                  "reversal",
+                  env);
+          return new ExplicitReversal(
+              forward, reverse, updatedIgnoreNoop);
         }
-      }
-      Sequence reverse = Sequence.fromConfig(self.generalOptions.profiler(),
-                                             self.workflowOptions.joinTransformations(),
-                                             reverseList, "reversal", env);
-      return new ExplicitReversal(forward, reverse, ignoreNoop,
-          self.generalOptions.console());
-    }
-  };
+      };
 
   @SuppressWarnings("unused")
   @SkylarkSignature(

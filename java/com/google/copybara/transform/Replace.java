@@ -27,8 +27,8 @@ import com.google.copybara.LocalParallelizer;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.WorkflowOptions;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.RegexTemplateTokens.Replacer;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
@@ -131,9 +131,8 @@ public final class Replace implements Transformation {
       workflowOptions.reportNoop(
           work.getConsole(),
           "Transformation '" + toString() + "' was a no-op because it didn't "
-              + (matchedFile
-                 ? "change any of the matching files."
-                 : "match any file."));
+              + (matchedFile ? "change any of the matching files." : "match any file."),
+          work.getIgnoreNoop());
     }
   }
 

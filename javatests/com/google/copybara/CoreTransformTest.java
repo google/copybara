@@ -16,11 +16,14 @@
 
 package com.google.copybara;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
@@ -103,6 +106,156 @@ public final class CoreTransformTest {
   }
 
   @Test
+  public void testOneLayerTransformWithNoop() throws ValidationException, IOException {
+    ExplicitReversal t = skylark.eval("x","x="
+                + "core.transform([\n"
+                + "    core.replace(\n"
+                + "        before = 'not found',\n"
+                + "        after = 'not important',\n"
+                + "    ),\n"
+                + "    core.replace(\n"
+                + "        before = 'foo',\n"
+                + "        after = 'bar',\n"
+                + "    ),\n"
+                + "], ignore_noop = True)");
+
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+    t.transform(TransformWorks.of(checkoutDir, "msg", console));
+    console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
+    assertThatPath(checkoutDir)
+        .containsFile("file.txt","bar")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testOneLayerTransformWithNoNoop() throws ValidationException, IOException {
+    ExplicitReversal t = skylark.eval("x","x="
+                + "core.transform([\n"
+                + "    core.replace(\n"
+                + "        before = 'not found',\n"
+                + "        after = 'not important',\n"
+                + "    ),\n"
+                + "    core.replace(\n"
+                + "        before = 'foo',\n"
+                + "        after = 'bar',\n"
+                + "    ),\n"
+                + "], ignore_noop = False)");
+
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+
+    try{
+      t.transform(TransformWorks.of(checkoutDir, "msg", console));
+      fail("Expected VoidOperationException");
+    } catch(VoidOperationException e) {
+      assertThat(e.getMessage()).containsMatch(".*was a no-op because it didn't "
+          + "change any of the matching files.*");
+    }
+
+    assertThatPath(checkoutDir)
+        .containsFile("file.txt","foo")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testSecondLayerWithInnerNoop() throws ValidationException, IOException {
+    String secondLayerTransform =
+                "core.transform([\n"
+                + "    core.replace(\n"
+                + "        before = 'not found',\n"
+                + "        after = 'not important',\n"
+                + "    ),\n"
+                + "],"
+                + "ignore_noop=True),";
+
+    ExplicitReversal t = skylark.eval("x","x="
+                + "core.transform([\n"
+                + "    core.replace(\n"
+                + "        before = 'foo',\n"
+                + "        after = 'bar',\n"
+                + "    ),\n"
+                + secondLayerTransform
+                + "    core.replace(\n"
+                + "        before = 'bar',\n"
+                + "        after = 'baz',\n"
+                + "    )\n"
+                + "], ignore_noop=False)");
+
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+    t.transform(TransformWorks.of(checkoutDir, "msg", console));
+    assertThatPath(checkoutDir)
+        .containsFile("file.txt","baz")
+        .containsNoMoreFiles();
+    console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
+  }
+
+  @Test
+  public void testSecondLayerTransformWithOuterNoop() throws ValidationException, IOException {
+    String secondLayerTransform =
+        "core.transform([\n"
+          + "    core.replace(\n"
+          + "        before = 'not found',\n"
+          + "        after = 'not important',\n"
+          + "    ),\n"
+          + "]),\n";
+
+    ExplicitReversal t =
+        skylark.eval("x","x="
+                + "core.transform([\n"
+                + "    core.replace(\n"
+                + "        before = 'foo',\n"
+                + "        after = 'bar',\n"
+                + "     ),"
+                + secondLayerTransform
+                + "    core.replace(\n"
+                + "        before = 'bar',\n"
+                + "        after = 'baz',\n"
+                + "    )\n"
+                + "], ignore_noop=True)");
+
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+    t.transform(TransformWorks.of(checkoutDir, "msg", console));
+    assertThatPath(checkoutDir)
+        .containsFile("file.txt","baz")
+        .containsNoMoreFiles();
+    console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
+  }
+
+  @Test
+  public void testSecondLayerTransformWithInnerAndOuterNoop() throws ValidationException, IOException {
+    String secondLayerTransform =
+        "core.transform([\n"
+            + "    core.replace(\n"
+            + "        before = 'not found',\n"
+            + "        after = 'not important',\n"
+            + "    ),\n"
+            + "], ignore_noop=False),\n";
+
+    ExplicitReversal t =
+        skylark.eval("x","x="
+            + "core.transform([\n"
+            + "    core.replace(\n"
+            + "        before = 'foo',\n"
+            + "        after = 'bar',\n"
+            + "     ),"
+            + secondLayerTransform
+            + "    core.replace(\n"
+            + "        before = 'bar',\n"
+            + "        after = 'baz',\n"
+            + "    )\n"
+            + "], ignore_noop=True)");
+
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+
+    try{
+      t.transform(TransformWorks.of(checkoutDir, "msg", console));
+      fail("Expected VoidOperationException");
+    } catch(VoidOperationException e) {
+      assertThat(e.getMessage()).containsMatch(".*was a no-op because it didn't "
+          + "change any of the matching files.*");
+    }
+  }
+
+  @Test
   public void errorForMissingForwardArgument() {
     skylark.evalFails("core.transform(reversal = [core.move('foo', 'bar')])",
         "missing mandatory positional argument 'transformations' while calling transform");
@@ -164,4 +317,5 @@ public final class CoreTransformTest {
     skylark.evalFails("core.transform([core.move('foo', 'bar')], reversal = [42])",
         "expected type '?transformation'? for 'reversal' .* type '?int'? instead");
   }
+
 }

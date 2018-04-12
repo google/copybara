@@ -22,10 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.exception.VoidOperationException;
-import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import javax.annotation.Nullable;
 
 /**
  * A transformation which delegates to some arbitrary transformation and reverses to some arbitrary
@@ -35,40 +32,33 @@ public final class ExplicitReversal implements Transformation {
 
   private final Transformation forward;
   private final Transformation reverse;
-  private final boolean ignoreNoop;
-  @Nullable
-  private final Console console;
+  private final Boolean ignoreNoop;
 
   public ExplicitReversal(Transformation forward, Transformation reverse) {
-    this(forward, reverse, /*ignoreNoop=*/false, /*console=*/null);
+    this(forward, reverse, /*ignoreNoop=*/null);
   }
 
-  public ExplicitReversal(Transformation forward, Transformation reverse, boolean ignoreNoop,
-      @Nullable Console console) {
+  public ExplicitReversal(
+      Transformation forward,
+      Transformation reverse,
+      Boolean ignoreNoop) {
     this.forward = checkNotNull(forward);
     this.reverse = checkNotNull(reverse);
     this.ignoreNoop = ignoreNoop;
-    this.console = console;
-    if (ignoreNoop) {
-      checkNotNull(console, "A console is needed if ignore_noop is used");
-    }
   }
 
   @Override
   public void transform(TransformWork work)
       throws IOException, ValidationException {
-    try {
-      TransformWork newWork = work.insideExplicitTransform();
-      forward.transform(newWork);
-      work.updateFrom(newWork);
-    } catch (VoidOperationException e) {
-      if (ignoreNoop) {
-        checkNotNull(console).warn("Ignored noop because of 'ignore_noop' field: "
-            + e.getMessage());
-      } else {
-        throw e;
-      }
+    TransformWork newWork;
+    if(ignoreNoop == null){
+      // use parent ignoreNoop if current ignoreNoop is null
+      newWork = work.insideExplicitTransform(work.getIgnoreNoop());
+    } else {
+      newWork = work.insideExplicitTransform(ignoreNoop);
     }
+    forward.transform(newWork);
+    work.updateFrom(newWork);
   }
 
   /**
@@ -87,7 +77,7 @@ public final class ExplicitReversal implements Transformation {
 
   @Override
   public Transformation reverse() {
-    return new ExplicitReversal(reverse, forward, ignoreNoop, console);
+    return new ExplicitReversal(reverse, forward, ignoreNoop);
   }
 
   @Override

@@ -1478,7 +1478,7 @@ verify_no_match|`boolean`<br><p>If true, the transformation will verify that the
 
 Groups some transformations in a transformation that can contain a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.<br>If reversal is not provided, the transform will try to compute the reverse of the transformations list.
 
-`transformation core.transform(transformations, reversal=The reverse of 'transformations', ignore_noop=False)`
+`transformation core.transform(transformations, reversal=The reverse of 'transformations', ignore_noop=None)`
 
 #### Parameters:
 
@@ -1486,7 +1486,7 @@ Parameter | Description
 --------- | -----------
 transformations|`sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation.</p>
 reversal|`sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
-ignore_noop|`boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored and rest of the transformations in the group will not be executed. In general this is a bad idea and prevents Copybara for detecting important transformation errors.</p>
+ignore_noop|`boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
 
 
 <a id="core.dynamic_transform" aria-hidden="true"></a>

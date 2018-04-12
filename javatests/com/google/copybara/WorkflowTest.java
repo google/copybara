@@ -927,7 +927,7 @@ public class WorkflowTest {
     );
     workflow().run(workdir, HEAD);
     console().assertThat().onceInLog(MessageType.WARNING,
-        ".*Ignored noop because of 'ignore_noop' field.*");
+        ".*NOOP: Transformation.*");
   }
 
   @Test

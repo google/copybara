@@ -358,7 +358,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             changes,
             workflow.getConsole(),
             new MigrationInfo(getOriginLabelName(), writer),
-            resolvedRef)
+            resolvedRef,
+            /*ignoreNoop=*/ false)
         .withLastRev(lastRev)
         .withCurrentRev(rev);
     try (ProfilerTask ignored = profiler().start("transforms")) {
@@ -382,7 +383,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                     changes,
                     workflow.getConsole(),
                     new MigrationInfo(/*originLabel=*/ null, null),
-                    resolvedRef));
+                    resolvedRef,
+                    /*ignoreNoop=*/ false));
       }
       String diff;
       try {

@@ -22,8 +22,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.WorkflowOptions;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
@@ -102,9 +102,10 @@ public class CopyOrMove implements Transformation {
       work.getConsole().progress("Moving " + this.before);
     Path before = work.getCheckoutDir().resolve(this.before).normalize();
       if (!Files.exists(before)) {
-        workflowOptions.reportNoop(
-            work.getConsole(),
-            String.format("Error moving '%s'. It doesn't exist in the workdir", this.before));
+      workflowOptions.reportNoop(
+          work.getConsole(),
+          String.format("Error moving '%s'. It doesn't exist in the workdir", this.before),
+          work.getIgnoreNoop());
         return;
       }
     Path after = work.getCheckoutDir().resolve(this.after).normalize();

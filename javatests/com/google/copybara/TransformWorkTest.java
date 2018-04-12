@@ -340,7 +340,7 @@ public class TransformWorkTest {
   @Test
   public void testWithConsole() {
     assertThat(TransformWorks.of(workdir, "test", console)
-        .insideExplicitTransform()
+        .insideExplicitTransform(false)
         .withConsole(console)
         .isInsideExplicitTransform()).isTrue();
   }

@@ -22,8 +22,8 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.WorkflowOptions;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
@@ -60,7 +60,8 @@ public class Remove implements Transformation {
         glob.relativeTo(work.getCheckoutDir()));
     logger.info(String.format("Deleted %d files for glob: %s", numDeletes, glob));
     if (numDeletes  == 0) {
-      workflowOptions.reportNoop(work.getConsole(), glob + " didn't delete any file");
+      workflowOptions.reportNoop(
+          work.getConsole(), glob + " didn't delete any file", work.getIgnoreNoop());
     }
   }
 
