@@ -16,22 +16,18 @@
 
 package com.google.copybara.config;
 
-import com.google.common.collect.ImmutableList;
-import com.google.copybara.util.console.Message;
-import java.util.List;
-
 /**
- * Validates Copybara {@link Config}s and returns a list of {@link Message}s.
+ * Validates Copybara {@link Config}s and returns a {@link ValidationResult}.
  *
  * <p>Implementations of this interface should not throw exceptions for validation errors.
  */
 public interface ConfigValidator {
 
-  default List<Message> validate(Config config, String migrationName) {
-    ImmutableList.Builder<Message> messages = ImmutableList.builder();
+  default ValidationResult validate(Config config, String migrationName) {
+    ValidationResult.Builder resultBuilder = new ValidationResult.Builder();
     if (config.getMigrations().isEmpty()) {
-      messages.add(Message.error("At least one migration is required."));
+      resultBuilder.error("At least one migration is required.");
     }
-    return messages.build();
+    return resultBuilder.build();
   }
 }

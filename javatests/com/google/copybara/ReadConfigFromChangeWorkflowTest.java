@@ -16,7 +16,6 @@
 
 package com.google.copybara;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Truth;
@@ -25,6 +24,7 @@ import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
@@ -32,11 +32,9 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.util.console.Message;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
@@ -105,8 +103,8 @@ public class ReadConfigFromChangeWorkflowTest {
         options.build(),
         constantConfigLoader, new ConfigValidator() {
       @Override
-      public List<Message> validate(Config config, String migrationName) {
-        return ImmutableList.of();
+      public ValidationResult validate(Config config, String migrationName) {
+        return ValidationResult.EMPTY;
       }
     });
 

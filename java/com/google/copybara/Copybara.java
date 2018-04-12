@@ -25,18 +25,14 @@ import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
+import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.util.console.Message;
-import com.google.copybara.util.console.Message.MessageType;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -148,14 +144,16 @@ public class Copybara {
    *
    * <p>Note that, besides validating the specific migration, all the configuration will be
    * validated syntactically.
+   *
+   * Returns true iff this configuration is valid.
    */
-  public boolean validate(Options options, ConfigLoader configLoader, String migrationName)
+  public ValidationResult validate(Options options, ConfigLoader configLoader, String migrationName)
       throws IOException {
     Console console = options.get(GeneralOptions.class).console();
-    ArrayList<Message> messages = new ArrayList<>();
+    ValidationResult.Builder resultBuilder = new ValidationResult.Builder();
     try {
       Config config = configLoader.load(options, console);
-      messages.addAll(validateConfig(config, migrationName));
+      resultBuilder.append(validateConfig(config, migrationName));
     } catch (ValidationException e) {
       // The validate subcommand should not throw Validation exceptions but log a result
       StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
@@ -164,18 +162,9 @@ public class Copybara {
         error.append("  CAUSED BY: ").append(cause.getMessage()).append("\n");
         cause = cause.getCause();
       }
-      messages.add(Message.error(error.toString()));
+      resultBuilder.error(error.toString());
     }
-
-    messages.forEach(message -> message.printTo(console));
-    boolean hasNoErrors =
-        messages.stream().noneMatch(message -> message.getType() == MessageType.ERROR);
-    if (hasNoErrors) {
-      console.info(String.format("Configuration '%s' is valid.", configLoader.location()));
-    } else {
-      console.error(String.format("Configuration '%s' is invalid.", configLoader.location()));
-    }
-    return hasNoErrors;
+    return resultBuilder.build();
   }
 
   protected Config loadConfig(Options options, ConfigLoader configLoader, String migrationName)
@@ -184,15 +173,11 @@ public class Copybara {
     Console console = generalOptions.console();
     Config config = configLoader.load(options, console);
     console.progress("Validating configuration");
-    List<Message> validationMessages = validateConfig(config, migrationName);
-
-    List<Message> errors = validationMessages.stream()
-        .filter(message -> message.getType() == MessageType.ERROR)
-        .collect(Collectors.toList());
-    if (errors.isEmpty()) {
+    ValidationResult result = validateConfig(config, migrationName);
+    if (!result.hasErrors()) {
       return config;
     }
-    errors.forEach(error -> error.printTo(console));
+    result.getErrors().forEach(console::error);
     console.error("Configuration is invalid.");
     throw new ValidationException("Error validating configuration: Configuration is invalid.");
   }
@@ -200,7 +185,7 @@ public class Copybara {
   /**
    * Returns a list of validation error messages, if any, for the given configuration.
    */
-  private List<Message> validateConfig(Config config, String migrationName) {
+  private ValidationResult validateConfig(Config config, String migrationName) {
     return configValidator.validate(config, migrationName);
   }
 }

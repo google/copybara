@@ -20,9 +20,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
+import com.google.copybara.config.ValidationResult;
+import com.google.copybara.config.ValidationResult.ValidationMessage;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.ExitCode;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.function.Consumer;
 
@@ -49,13 +52,31 @@ public class ValidateCmd implements CopybaraCmd {
         /*useSourceRef*/false);
     Copybara copybara = new Copybara(configValidator, migrationRanConsumer);
 
-    return copybara.validate(
-        commandEnv.getOptions(),
-        configLoaderProvider.newLoader(
-            configFileArgs.getConfigPath(),
-            configFileArgs.getSourceRef()),
-        configFileArgs.getWorkflowName())
-        ? ExitCode.SUCCESS : ExitCode.CONFIGURATION_ERROR;
+    ConfigLoader configLoader = configLoaderProvider.newLoader(
+        configFileArgs.getConfigPath(), configFileArgs.getSourceRef());
+    ValidationResult result =
+        copybara.validate(
+            commandEnv.getOptions(),
+            configLoader,
+            configFileArgs.getWorkflowName());
+
+    Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
+    for (ValidationMessage message : result.getAllMessages()) {
+      switch (message.getLevel()) {
+        case WARNING:
+          console.warn(message.getMessage());
+          break;
+        case ERROR:
+          console.error(message.getMessage());
+          break;
+      }
+    }
+    if (result.hasErrors()) {
+      console.errorFmt("Configuration '%s' is invalid.", configLoader.location());
+      return ExitCode.CONFIGURATION_ERROR;
+    }
+    console.infoFmt("Configuration '%s' is valid.", configLoader.location());
+    return ExitCode.SUCCESS;
   }
 
   @Override

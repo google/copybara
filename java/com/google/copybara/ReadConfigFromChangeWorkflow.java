@@ -28,13 +28,10 @@ import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.util.console.Message;
-import com.google.copybara.util.console.Message.MessageType;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -154,10 +151,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       List<String> errors =
           configValidator
               .validate(config, workflowName)
-              .stream()
-              .filter(message -> message.getType() == MessageType.ERROR)
-              .map(Message::getText)
-              .collect(Collectors.toList());
+              .getErrors();
       if (!errors.isEmpty()) {
         throw new ValidationException(
             "Invalid configuration [ref '%s': %s ]: '%s': \n%s",

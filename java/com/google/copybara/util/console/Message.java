@@ -51,28 +51,6 @@ public final class Message {
     this.text = Preconditions.checkNotNull(text);
   }
 
-  /**
-   * Prints this message into the console using the message type.
-   */
-  public void printTo(Console console) {
-    switch (type) {
-      case ERROR:
-        console.error(text);
-        break;
-      case WARNING:
-        console.warn(text);
-        break;
-      case INFO:
-        console.info(text);
-        break;
-      case PROGRESS:
-        console.progress(text);
-        break;
-      default:
-        throw new IllegalArgumentException(String.format("Type %s printing not supported.", type));
-    }
-  }
-
   public MessageType getType() {
     return type;
   }

@@ -28,6 +28,7 @@ java_library(
         "OptionsAwareModule.java",
         "PathBasedConfigFile.java",
         "SkylarkUtil.java",
+        "ValidationResult.java",
     ],
     deps = [
         "//java/com/google/copybara:base",
