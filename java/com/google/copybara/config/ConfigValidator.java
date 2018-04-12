@@ -25,9 +25,13 @@ public interface ConfigValidator {
 
   default ValidationResult validate(Config config, String migrationName) {
     ValidationResult.Builder resultBuilder = new ValidationResult.Builder();
+    checkAtLeastOneMigration(resultBuilder, config);
+    return resultBuilder.build();
+  }
+
+  default void checkAtLeastOneMigration(ValidationResult.Builder resultBuilder, Config config) {
     if (config.getMigrations().isEmpty()) {
       resultBuilder.error("At least one migration is required.");
     }
-    return resultBuilder.build();
   }
 }

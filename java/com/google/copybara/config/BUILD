@@ -42,6 +42,18 @@ java_library(
 )
 
 java_library(
+    name = "migration_validator",
+    srcs = [
+        "MigrationValidator.java",
+    ],
+    deps = [
+        ":base",
+        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/git",
+    ],
+)
+
+java_library(
     name = "global_migrations",
     srcs = ["GlobalMigrations.java"],
     deps = [

@@ -102,24 +102,29 @@ public class ValidationResult {
 
     private final List<ValidationMessage> messages = new ArrayList<>();
 
-    public void warning(String message) {
+    public Builder warning(String message) {
       messages.add(new ValidationMessage(WARNING, message));
+      return this;
     }
 
-    public void warningFmt(String message, Object... args) {
+    public Builder warningFmt(String message, Object... args) {
       messages.add(new ValidationMessage(WARNING, String.format(message, args)));
+      return this;
     }
 
-    public void error(String message) {
+    public Builder error(String message) {
       messages.add(new ValidationMessage(ERROR, message));
+      return this;
     }
 
-    public void errorFmt(String message, Object... args) {
+    public Builder errorFmt(String message, Object... args) {
       messages.add(new ValidationMessage(ERROR, String.format(message, args)));
+      return this;
     }
 
-    public void append(ValidationResult result) {
+    public Builder append(ValidationResult result) {
       messages.addAll(result.messages);
+      return this;
     }
 
     public ValidationResult build() {
