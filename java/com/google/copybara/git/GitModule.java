@@ -57,7 +57,6 @@ import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -601,6 +600,28 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
         public GerritEndpoint invoke(GitModule self, String url, Location location)
             throws EvalException {
           return new GerritEndpoint(
+              self.options.get(GerritOptions.class), checkNotEmpty(url, "url", location));
+        }
+      };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+      name = "gerrit_trigger",
+      returnType = GerritTrigger.class,
+      documented = false,
+      doc = "Defines a feedback trigger based on updates on a Gerrit change.",
+      parameters = {
+        @Param(name = "self", type = GitModule.class, doc = "this object"),
+        @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL."),
+      },
+      objectType = GitModule.class,
+      useLocation = true)
+  @UsesFlags(GerritOptions.class)
+  public static final BuiltinFunction GERRIT_LABELS_TRIGGER =
+      new BuiltinFunction("gerrit_trigger") {
+        public GerritTrigger invoke(GitModule self, String url, Location location)
+            throws EvalException {
+          return new GerritTrigger(
               self.options.get(GerritOptions.class), checkNotEmpty(url, "url", location));
         }
       };
