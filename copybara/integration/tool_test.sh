@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source third_party/bazel/bashunit/unittest.bash
+source "${TEST_SRCDIR}/copybara/third_party/bazel/bashunit/unittest.bash"
 
 # This should be kept in sync with ExitCode
 readonly SUCCESS=0

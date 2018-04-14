@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source third_party/bazel/bashunit/unittest.bash
+source "${TEST_SRCDIR}/copybara/third_party/bazel/bashunit/unittest.bash"
 
 function test_reference_doc_generated() {
    doc=${TEST_SRCDIR}/copybara/java/com/google/copybara/docs.md
