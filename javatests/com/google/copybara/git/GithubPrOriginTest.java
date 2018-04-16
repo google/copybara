@@ -478,8 +478,7 @@ public class GithubPrOriginTest {
 
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
       @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-          throws IOException {
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
         if (url.contains("/status")) {
           return ("{\n"
               + "    state : 'success',\n"

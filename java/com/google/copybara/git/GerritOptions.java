@@ -87,7 +87,7 @@ public class GerritOptions implements Option {
    * Override this method in a class for a specific Gerrit implementation.
    */
   @VisibleForTesting
-  public final GerritApi newGerritApi(String url) throws RepoException, ValidationException {
+  public GerritApi newGerritApi(String url) throws RepoException, ValidationException {
     return new GerritApi(getGerritApiTransport(hostUrl(url)),
                          generalOptionsSupplier.get().profiler());
   }

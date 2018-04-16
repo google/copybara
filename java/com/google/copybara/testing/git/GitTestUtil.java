@@ -52,8 +52,7 @@ public final class GitTestUtil {
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
   public static final GitApiMockHttpTransport NO_GITHUB_API_CALLS = new GitApiMockHttpTransport() {
     @Override
-    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-        throws IOException {
+    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
       fail();
       throw new IllegalStateException();
     }

@@ -195,7 +195,7 @@ public class OptionsBuilder {
   public abstract static class GitApiMockHttpTransport extends MockHttpTransport {
     public List<RequestRecord> requests = new ArrayList<>();
     @Override
-    public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
+    public LowLevelHttpRequest buildRequest(String method, String url) {
       MockLowLevelHttpRequest request = new MockLowLevelHttpRequest() {
         @Override
         public LowLevelHttpResponse execute() throws IOException {
@@ -223,7 +223,7 @@ public class OptionsBuilder {
       private final String request;
       private final String response;
 
-      public RequestRecord(String method, String url, String request, String response) {
+      private RequestRecord(String method, String url, String request, String response) {
         this.method = method;
         this.url = url;
         this.request = request;

@@ -37,6 +37,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 
 /** GitHub specific class used in feedback mechanism and migration event hooks to access GitHub */
+@SuppressWarnings("unused")
 @SkylarkModule(
   name = "github_api_obj",
   category = SkylarkModuleCategory.BUILTIN,

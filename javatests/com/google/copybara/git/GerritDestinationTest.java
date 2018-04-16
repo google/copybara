@@ -141,8 +141,7 @@ public class GerritDestinationTest {
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
           @Override
-          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-              throws IOException {
+          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
             if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
               String result =
                   "["
@@ -288,8 +287,7 @@ public class GerritDestinationTest {
 
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
       @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-          throws IOException {
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
         String expected = "https://localhost:33333/changes/?q=change:%20" + labelFinder.getValue()
             + "%20AND%20project:foo/bar";
         if (method.equals("GET") && url.equals(expected)) {
@@ -496,8 +494,7 @@ public class GerritDestinationTest {
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
           @Override
-          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-              throws IOException {
+          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
             if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
               String change = changeIdFromRequest(url);
               String result =
@@ -541,8 +538,7 @@ public class GerritDestinationTest {
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
           @Override
-          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-              throws IOException {
+          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
             if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
               String change = changeIdFromRequest(url);
               String result =

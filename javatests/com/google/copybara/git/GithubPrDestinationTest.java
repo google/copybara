@@ -113,7 +113,6 @@ public class GithubPrDestinationTest {
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-
       @Override
       protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
           throws IOException {
@@ -173,7 +172,6 @@ public class GithubPrDestinationTest {
   private void checkWrite(String groupId)
       throws ValidationException, RepoException, IOException {
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-
       @Override
       protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
           throws IOException {
@@ -274,7 +272,6 @@ public class GithubPrDestinationTest {
   @Test
   public void testWriteNoMaster() throws ValidationException, IOException, RepoException {
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-
       @Override
       protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
           throws IOException {

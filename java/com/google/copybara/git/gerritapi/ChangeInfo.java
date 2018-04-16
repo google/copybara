@@ -22,6 +22,11 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +34,14 @@ import java.util.Map;
 /**
  * https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#change-info
  */
-public class ChangeInfo {
+/** A Gerrit change that can be read from a feedback migration. */
+@SkylarkModule(
+    name = "change",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    doc = "Gerrit change that can be read from a feedback migration.",
+    documented = false
+)
+public class ChangeInfo implements SkylarkValue {
 
   @Key private String id;
   @Key private String project;
@@ -49,6 +61,8 @@ public class ChangeInfo {
   @Key("revisions") private Map<String, RevisionInfo> allRevisions;
   @Key("_more_changes") private boolean moreChanges;
 
+  @SkylarkCallable(
+      name = "id", doc = "The id of this change.", structField = true, allowReturnNones = true)
   public String getId() {
     return id;
   }
@@ -115,6 +129,11 @@ public class ChangeInfo {
 
   public boolean isMoreChanges() {
     return moreChanges;
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
   }
 
   @Override
