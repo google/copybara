@@ -115,6 +115,7 @@ public class WorkflowTest {
   private String destinationFiles;
   private TestingEventMonitor eventMonitor;
   private TransformWork transformWork;
+  private boolean setRevId;
 
   @Before
   public void setup() throws Exception {
@@ -148,7 +149,8 @@ public class WorkflowTest {
         FolderModule.class, GitModule.class));
     eventMonitor = new TestingEventMonitor();
     options.general.withEventMonitor(eventMonitor);
-    transformWork = TransformWorks.of(workdir,"example", console);
+    transformWork = TransformWorks.of(workdir, "example", console);
+    setRevId = true;
   }
 
   private TestingConsole console() {
@@ -175,6 +177,7 @@ public class WorkflowTest {
         + "    destination_files = " + destinationFiles + ",\n"
         + "    transformations = " + transformations + ",\n"
         + "    authoring = " + authoring + ",\n"
+        + "    set_rev_id = " + (setRevId ? "True" : "False") + ",\n"
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
@@ -1253,6 +1256,22 @@ public class WorkflowTest {
         + "\n"
         + "  - 2 Third Change by Copybara <no-reply@google.com>\n"
         + "  - 1 Second Change by Copybara <no-reply@google.com>\n");
+    console().assertThat()
+        .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
+  }
+
+  @Test
+  public void changeRequestSetRevIdDisabled() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change")
+        .addSimpleChange(2, "Third Change");
+    setRevId = false;
+    Workflow workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
+    workflow.run(workdir, "HEAD");
+    assertThat(destination.processed).hasSize(1);
+    assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
+    assertThat(destination.processed.get(0).isSetRevId()).isFalse();
     console().assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
   }

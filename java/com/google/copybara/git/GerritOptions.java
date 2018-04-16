@@ -78,13 +78,10 @@ public class GerritOptions implements Option {
   @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
   protected String gerritTopic = "";
 
-  @Parameter(names = "--nogerrit-rev-id-label", description = "Don't add origin rev-id to the"
-      + " created/updated review.", hidden = true)
-  public boolean noRevId = false;
-
-  public boolean addRevId() {
-    return !noRevId;
-  }
+  @Parameter(names = "--nogerrit-rev-id-label", description = "DEPRECATED. Use workflow set_rev_id"
+      + " field instead.", hidden = true)
+  @Deprecated
+  protected boolean noRevIdDEPRECATED = false;
 
   /**
    * Override this method in a class for a specific Gerrit implementation.

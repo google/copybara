@@ -295,6 +295,12 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + "If any of the labels cannot be found it defaults to the default identity"
                   + " (The effect would be no reuse of destination change between workflows)",
               defaultValue = "None", noneable = true, positional = false),
+          @Param(name = "set_rev_id", type = Boolean.class,
+              doc = "Copybara adds labels like 'GitOrigin-RevId' in the destination in order to"
+                  + " track what was the latest change imported. For certain workflows like"
+                  + " `CHANGE_REQUEST` it not used and is purely informational. This field allows"
+                  + " to disable it for that mode. Destinations might ignore the flag.",
+              defaultValue = "True", positional = false),
       },
       objectType = Core.class, useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -309,7 +315,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           Boolean.FALSE,
           Boolean.FALSE,
           SkylarkList.createImmutable(ImmutableList.of()),
-          Runtime.NONE
+          Runtime.NONE,
+          Boolean.TRUE
       )) {
 
     public NoneType invoke(Core self, String workflowName,
@@ -324,6 +331,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         Boolean dryRunMode,
         SkylarkList<?> afterMigrations,
         Object changeIdentityObj,
+        Boolean setRevId,
         Location location,
         Environment env)
         throws EvalException {
@@ -343,6 +351,11 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
       }
 
       ImmutableList<Token> changeIdentity = getChangeIdentity(changeIdentityObj, location);
+
+      if (!setRevId) {
+        check(location, mode == WorkflowMode.CHANGE_REQUEST, "Disabling RevId is only supported"
+            + " for CHANGE_REQUEST mode.");
+      }
 
       if (checkLastRevStateField) {
         check(location, mode != WorkflowMode.CHANGE_REQUEST,
@@ -369,7 +382,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           self.workflowOptions.dryRunMode || dryRunMode,
           checkLastRevStateField || self.workflowOptions.checkLastRevState,
           convertFeedbackActions(afterMigrations, location, env),
-          changeIdentity));
+          changeIdentity,
+          setRevId));
       return Runtime.NONE;
     }
   };

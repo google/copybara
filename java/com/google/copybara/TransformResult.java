@@ -44,6 +44,7 @@ public final class TransformResult {
   private final String workflowName;
   @Nullable private final String rawSourceRef;
   private final Changes changes;
+  private final boolean setRevId;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -52,7 +53,7 @@ public final class TransformResult {
 
   public TransformResult(Path path, Revision currentRevision, Author author, String summary,
       Revision requestedRevision, String workflowName, Changes changes,
-      @Nullable String rawSourceRef)
+      @Nullable String rawSourceRef, boolean setRevId)
       throws RepoException {
     this(
         path,
@@ -66,7 +67,8 @@ public final class TransformResult {
         /*changeIdentity=*/ null,
         workflowName,
         changes,
-        rawSourceRef);
+        rawSourceRef,
+        setRevId);
   }
 
   private TransformResult(
@@ -81,7 +83,8 @@ public final class TransformResult {
       @Nullable String changeIdentity,
       String workflowName,
       Changes changes,
-      @Nullable String rawSourceRef) {
+      @Nullable String rawSourceRef,
+      boolean setRevId) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -94,6 +97,7 @@ public final class TransformResult {
     this.workflowName = Preconditions.checkNotNull(workflowName);
     this.changes = Preconditions.checkNotNull(changes);
     this.rawSourceRef = rawSourceRef;
+    this.setRevId = setRevId;
   }
 
   public TransformResult withBaseline(String newBaseline) {
@@ -109,7 +113,9 @@ public final class TransformResult {
         this.requestedRevision,
         this.changeIdentity,
         this.workflowName,
-        this.changes, rawSourceRef);
+        this.changes,
+        this.rawSourceRef,
+        this.setRevId);
   }
 
   /**
@@ -130,7 +136,8 @@ public final class TransformResult {
         this.changeIdentity,
         this.workflowName,
         this.changes,
-        this.rawSourceRef);
+        this.rawSourceRef,
+        this.setRevId);
   }
 
   public TransformResult withIdentity(String changeIdentity) {
@@ -146,7 +153,7 @@ public final class TransformResult {
         changeIdentity,
         this.workflowName,
         this.changes,
-        this.rawSourceRef);
+        this.rawSourceRef, setRevId);
   }
 
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
@@ -162,7 +169,8 @@ public final class TransformResult {
         this.changeIdentity,
         this.workflowName,
         this.changes,
-        this.rawSourceRef);
+        this.rawSourceRef,
+        this.setRevId);
   }
 
   @SuppressWarnings("unused")
@@ -179,7 +187,25 @@ public final class TransformResult {
         this.changeIdentity,
         this.workflowName,
         changes,
-        this.rawSourceRef);
+        this.rawSourceRef,
+        this.setRevId);
+  }
+
+  public TransformResult withSetRevId(boolean setRevId) {
+    return new TransformResult(
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        this.baseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName,
+        this.changes,
+        this.rawSourceRef,
+        setRevId);
   }
 
   /**
@@ -295,5 +321,12 @@ public final class TransformResult {
   @Nullable
   public String getRawSourceRef() {
     return rawSourceRef;
+  }
+
+  /**
+   * If RevId should be recorded in the destination
+   */
+  public boolean isSetRevId() {
+    return setRevId;
   }
 }

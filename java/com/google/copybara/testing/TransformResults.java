@@ -35,7 +35,7 @@ public class TransformResults {
       throws RepoException {
     return new TransformResult(
         path, originRef, originRef.getAuthor(), "test summary\n", originRef, workflowName,
-        TransformWorks.EMPTY_CHANGES, originRef.contextReference())
+        TransformWorks.EMPTY_CHANGES, originRef.contextReference(),  /*setRevId=*/ true)
         .withIdentity(originRef.asString());
   }
 }

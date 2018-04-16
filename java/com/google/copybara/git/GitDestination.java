@@ -84,9 +84,11 @@ public final class GitDestination implements Destination<GitRevision> {
     @Override
     public MessageInfo message(TransformResult transformResult) {
       Revision rev = transformResult.getCurrentRevision();
-      return new MessageInfo(ImmutableList.of(
-          new LabelFinder(rev.getLabelName() + ORIGIN_LABEL_SEPARATOR + rev.asString())),
-          /*newPush*/true);
+      ImmutableList<LabelFinder> labels = transformResult.isSetRevId()
+          ? ImmutableList.of(
+              new LabelFinder(rev.getLabelName() + ORIGIN_LABEL_SEPARATOR + rev.asString()))
+          : ImmutableList.of();
+      return new MessageInfo(labels, /*newPush*/ true);
     }
   }
 

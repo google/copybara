@@ -24,19 +24,19 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.Type;
-import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.Endpoint;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -278,6 +278,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
     public String getChangeIdentity() {
       return transformResult.getChangeIdentity();
+    }
+
+    public boolean isSetRevId() {
+      return transformResult.isSetRevId();
     }
 
     public int numFiles() {

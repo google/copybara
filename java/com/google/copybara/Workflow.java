@@ -97,6 +97,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean dryRunMode;
   private final ImmutableList<Action> afterMigrationActions;
   private final ImmutableList<Token> changeIdentity;
+  private final boolean setRevId;
   private final boolean checkLastRevState;
 
   public Workflow(
@@ -118,7 +119,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles,
       boolean dryRunMode, boolean checkLastRevState,
       ImmutableList<Action> afterMigrationActions,
-      ImmutableList<Token> changeIdentity) {
+      ImmutableList<Token> changeIdentity,
+      boolean setRevId) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -142,6 +144,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.dryRunMode = dryRunMode;
     this.afterMigrationActions = Preconditions.checkNotNull(afterMigrationActions);
     this.changeIdentity = Preconditions.checkNotNull(changeIdentity);
+    this.setRevId = setRevId;
   }
 
   @Override
@@ -485,5 +488,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   protected ImmutableList<Token> getChangeIdentity() {
     return changeIdentity;
+  }
+
+  public boolean isSetRevId() {
+    return setRevId;
   }
 }

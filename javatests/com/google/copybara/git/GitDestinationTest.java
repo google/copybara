@@ -241,6 +241,28 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testNoSetRevId() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    TransformResult result = TransformResults.of(workdir, new DummyRevision("origin_ref"))
+        .withSetRevId(false);
+    
+    ImmutableList<DestinationEffect> destinationResult = firstCommitWriter().write(result, console);
+    assertThat(destinationResult).hasSize(1);
+
+    // Make sure commit adds new text
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    assertThat(showResult).contains("some content");
+
+    assertFilesInDir(1, "master", ".");
+    assertCommitCount(1, "master");
+
+    assertThat(parseMessage(lastCommit("master").getBody())
+        .labelsAsMultimap()).doesNotContainKey(DummyOrigin.LABEL_NAME);
+  }
+
+  @Test
   public void processUserAborts() throws Exception {
     console = new TestingConsole()
         .respondNo();
@@ -1304,7 +1326,7 @@ public class GitDestinationTest {
         + "THE_LABEL: value\n";
     writer.write(
         new TransformResult(workdir, rev, rev.getAuthor(), msg, rev, /*workflowName*/ "default",
-                            TransformWorks.EMPTY_CHANGES, "first_commit"),
+                            TransformWorks.EMPTY_CHANGES, "first_commit", /*setRevId=*/ true),
         console);
 
     String body = lastCommit("HEAD").getBody();

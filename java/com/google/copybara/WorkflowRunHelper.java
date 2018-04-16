@@ -417,7 +417,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             resolvedRef,
             workflow.getName(),
             changes,
-            rawSourceRef);
+            rawSourceRef,
+            workflow.isSetRevId());
     if (destinationBaseline != null) {
       transformResult = transformResult.withBaseline(destinationBaseline);
     }

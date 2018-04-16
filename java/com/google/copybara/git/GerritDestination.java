@@ -139,7 +139,7 @@ public final class GerritDestination implements Destination<GitRevision> {
         String gerritChangeId, ChangeIdPolicy changeIdPolicy) throws ValidationException {
       Revision rev = result.getCurrentRevision();
       ImmutableList.Builder<LabelFinder> labels = ImmutableList.builder();
-      if (gerritOptions.addRevId()) {
+      if (result.isSetRevId()) {
         labels.add(new LabelFinder(rev.getLabelName() + ": " + rev.asString()));
       }
       String existingChangeId = getExistingChangeId(result.getSummary());
