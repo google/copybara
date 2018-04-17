@@ -169,7 +169,7 @@ public class GerritEndpointTest {
             + "  created : '2018-01-01T10:15:30+01:00',"
             + "  updated : '2018-01-02T10:15:30+01:00',"
             + "  submitted : '2018-01-03T10:15:30+01:00',"
-            + "  current_revision : '05daab2c5bc80523748f9d45bae615bf38fe47f7',"
+            + "  current_revision : '05daab2c5bc80523748f9d45bae615bf38fe47f7'"
             + "}";
       }
     };
