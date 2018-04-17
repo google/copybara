@@ -36,6 +36,7 @@ import com.google.devtools.build.lib.syntax.Environment;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Utility class for running a simple skylark code and getting back a declared variable.
@@ -81,6 +82,30 @@ public final class SkylarkTestExecutor {
       return t;
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Should not happen: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Evaluates the given {@code config} and invokes the {@code fieldName}, verifying that the
+   * returned value is equal to the expected one.
+   */
+  public void verifyField(String var, String fieldName, Object expectedValue)
+      throws ValidationException {
+    Object result = eval("e", String.format("e = %s.%s", var, fieldName));
+    if (!result.equals(expectedValue)) {
+      throw new RuntimeException(
+          String.format("Invalid field %s. Got: %s. Want: %s", fieldName, result, expectedValue));
+    }
+  }
+
+  /**
+   * Evaluates the given {@code config}. invoking each of the fields and verifying that the
+   * returned value is equal to the expected one.
+   */
+  public void verifyFields(String var, ImmutableMap<String, Object> fieldNameToExpectedValue)
+      throws ValidationException {
+    for (Entry<String, Object> entry : fieldNameToExpectedValue.entrySet()) {
+      verifyField(var, entry.getKey(), entry.getValue());
     }
   }
 

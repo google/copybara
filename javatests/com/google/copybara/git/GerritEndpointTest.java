@@ -116,15 +116,20 @@ public class GerritEndpointTest {
     skylarkTestExecutor.evalFails("git.gerrit_api(url = '')))", "Invalid empty field 'url'");
   }
 
+  /**
+   * A test that uses feedback.
+   *
+   * <p>Does not verify all the fields, see {@link #testGetChangeExhaustive()} ()} for that.
+   */
   @Test
-  public void testGetChange() throws Exception {
+  public void testFeedbackGetChange() throws Exception {
     Feedback feedback = notifyChangeToOriginFeedback();
     feedback.run(workdir, /*sourceRef*/ "12345");
     assertThat(dummyTrigger.messages).containsAllIn(ImmutableList.of("Change number 12345"));
   }
 
   @Test
-  public void testGetChange_malformedJson() throws Exception {
+  public void testFeedbackGetChange_malformedJson() throws Exception {
     gitApiMockHttpTransport = new TestingGitApiHttpTransport() {
       @Override
       String getChange(String url) {
@@ -141,6 +146,70 @@ public class GerritEndpointTest {
       Throwable cause = expected.getCause();
       assertThat(cause).isInstanceOf(IllegalArgumentException.class);
     }
+    assertThat(dummyTrigger.messages).isEmpty();
+  }
+
+  /**
+   * An exhaustive test that evaluates each field of the change object.
+   */
+  @Test
+  public void testGetChangeExhaustive() throws Exception {
+    gitApiMockHttpTransport = new TestingGitApiHttpTransport() {
+      @Override
+      String getChange(String url) {
+        return ""
+            + "{"
+            + "  id : '12345',"
+            + "  project : 'test_project',"
+            + "  branch : 'test_branch',"
+            + "  topic : 'test_topic',"
+            + "  change_id : 'I7ad5b1ab6a3859d49df71e34e8a2a373fe6e59c6',"
+            + "  subject : 'test_subject',"
+            + "  status : 'NEW',"
+            + "  created : '2018-01-01T10:15:30+01:00',"
+            + "  updated : '2018-01-02T10:15:30+01:00',"
+            + "  submitted : '2018-01-03T10:15:30+01:00',"
+            + "  current_revision : '05daab2c5bc80523748f9d45bae615bf38fe47f7',"
+            + "}";
+      }
+    };
+    String var =
+        String.format(
+            "git.gerrit_api(url = '%s').get_change('12345', include_results = ['LABELS'])", url);
+
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("id", "12345")
+            .put("project", "test_project")
+            .put("branch", "test_branch")
+            .put("topic", "test_topic")
+            .put("change_id", "I7ad5b1ab6a3859d49df71e34e8a2a373fe6e59c6")
+            .put("subject", "test_subject")
+            .put("status", "NEW")
+            .put("created", "2018-01-01T10:15:30+01:00")
+            .put("updated", "2018-01-02T10:15:30+01:00")
+            .put("submitted", "2018-01-03T10:15:30+01:00")
+            .put("current_revision", "05daab2c5bc80523748f9d45bae615bf38fe47f7")
+            .build();
+    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testGetChangePaginationNotSupported() {
+    gitApiMockHttpTransport = new TestingGitApiHttpTransport() {
+      @Override
+      String getChange(String url) {
+        return ""
+            + "{"
+            + "  id : '12345',"
+            + "  _more_changes : true"
+            + "}";
+      }
+    };
+    String config =
+        String.format(
+            "git.gerrit_api(url = '%s').get_change('12345', include_results = ['LABELS'])", url);
+    skylarkTestExecutor.evalFails(config, "Pagination is not supported yet.");
   }
 
   private Feedback notifyChangeToOriginFeedback() throws IOException, ValidationException {

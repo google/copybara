@@ -61,28 +61,48 @@ public class ChangeInfo implements SkylarkValue {
   @Key("revisions") private Map<String, RevisionInfo> allRevisions;
   @Key("_more_changes") private boolean moreChanges;
 
-  @SkylarkCallable(
-      name = "id", doc = "The id of this change.", structField = true, allowReturnNones = true)
+  @SkylarkCallable(name = "id", doc = "The id of this change", structField = true, allowReturnNones = true)
   public String getId() {
     return id;
   }
 
+  @SkylarkCallable(name = "project", doc = "The change project", structField = true, allowReturnNones = true)
   public String getProject() {
     return project;
   }
 
+  @SkylarkCallable(
+      name = "branch",
+      doc = "The change branch",
+      structField = true,
+      allowReturnNones = true)
   public String getBranch() {
     return branch;
   }
 
+  @SkylarkCallable(
+      name = "topic",
+      doc = "The change topic",
+      structField = true,
+      allowReturnNones = true)
   public String getTopic() {
     return topic;
   }
 
+  @SkylarkCallable(
+      name = "change_id",
+      doc = "The change 'ChangeId'",
+      structField = true,
+      allowReturnNones = true)
   public String getChangeId() {
     return changeId;
   }
 
+  @SkylarkCallable(
+      name = "subject",
+      doc = "The change subject",
+      structField = true,
+      allowReturnNones = true)
   public String getSubject() {
     return subject;
   }
@@ -91,20 +111,59 @@ public class ChangeInfo implements SkylarkValue {
     return ChangeStatus.valueOf(status);
   }
 
+  @SkylarkCallable(
+      name = "status",
+      doc = "The change status",
+      structField = true,
+      allowReturnNones = true)
+  public String getStatusAsString() {
+    return status;
+  }
+
   public ZonedDateTime getCreated() {
     return parseTimestamp(created);
+  }
+
+  @SkylarkCallable(name = "created",
+      doc = "The created date time. Example: 2011-12-03T10:15:30+01:00",
+      structField = true, allowReturnNones = true)
+  public String getCreatedFmt() {
+    return created;
   }
 
   public ZonedDateTime getUpdated() {
     return parseTimestamp(updated);
   }
 
+  @SkylarkCallable(name = "updated",
+      doc = "The updated date time. Example: 2011-12-03T10:15:30+01:00",
+      structField = true, allowReturnNones = true)
+  public String getUpdatedFmt() {
+    return updated;
+  }
+
   public ZonedDateTime getSubmitted() {
     return parseTimestamp(submitted);
   }
 
+  @SkylarkCallable(name = "submitted",
+      doc = "The submitted date time. Example: 2011-12-03T10:15:30+01:00",
+      structField = true, allowReturnNones = true)
+  public String getSubmittedFmt() {
+    return submitted;
+  }
+
   public long getNumber() {
     return number;
+  }
+
+  @SkylarkCallable(
+      name = "number",
+      doc = "The change number",
+      structField = true,
+      allowReturnNones = true)
+  public String getNumberAsString() {
+    return Long.toString(number);
   }
 
   public AccountInfo getOwner() {
@@ -119,6 +178,11 @@ public class ChangeInfo implements SkylarkValue {
     return ImmutableList.copyOf(messages);
   }
 
+  @SkylarkCallable(
+      name = "current_revision",
+      doc = "The change current revision",
+      structField = true,
+      allowReturnNones = true)
   public String getCurrentRevision() {
     return currentRevision;
   }

@@ -73,6 +73,23 @@ public class GithubEndpointTest {
         .setOutputRootToTmpDir();
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
+
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+        if (url.contains("/status")) {
+          return ("{\n"
+              + "    state : 'success',\n"
+              + "    target_url : 'https://github.com/google/example',\n"
+              + "    description : 'Observed foo',\n"
+              + "    context : 'test'\n"
+              + "}"
+          ).getBytes(UTF_8);
+        }
+        throw new RuntimeException("Unexpected url: " + url);
+      }
+    };
+
     options.github = new GithubOptions(() -> options.general, options.git) {
       @Override
       public GithubApi getApi(String project) throws RepoException {
@@ -100,31 +117,23 @@ public class GithubEndpointTest {
     GitHubEndPoint gitHubEndPoint =
         skylarkTestExecutor.eval(
             "e",
-            "e = git.github_api(url = 'https://github.com/google/example'))");
+            "e = git.github_api(url = 'https://github.com/google/example')");
     assertThat(gitHubEndPoint.describe())
         .containsExactly("type", "github_api", "url", "https://github.com/google/example");
   }
 
   @Test
   public void testParsingEmptyUrl() {
-    skylarkTestExecutor.evalFails("git.github_api(url = '')))", "Invalid empty field 'url'");
+    skylarkTestExecutor.evalFails("git.github_api(url = '')", "Invalid empty field 'url'");
   }
 
+  /**
+   * A test that uses feedback.
+   *
+   * <p>Does not verify all the fields, see {@link #testCreateStatusExhaustive()} for that.
+   */
   @Test
-  public void testFeedbackCallsGithubEndpoint() throws Exception{
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
-        if (url.contains("/status")) {
-          return ("{\n"
-              + "    state : 'success',\n"
-              + "    context : 'the_context'\n"
-              + "}"
-          ).getBytes(UTF_8);
-        }
-        throw new RuntimeException("Unexpected url: " + url);
-      }
-    };
+  public void testFeedbackCreateStatus() throws Exception{
 
     dummyTrigger.addAll("Foo", "Bar");
     Feedback feedback =
@@ -151,6 +160,27 @@ public class GithubEndpointTest {
     assertThat(requests).hasSize(2);
     assertThat(requests.get(0).getRequest()).contains("Observed Foo");
     assertThat(requests.get(1).getRequest()).contains("Observed Bar");
+  }
+
+  @Test
+  public void testCreateStatusExhaustive() throws Exception {
+    String var =
+        ""
+            + "git.github_api(url = 'https://github.com/google/example')"
+            + "  .create_status("
+            + "    sha = 'e597746de9c1704e648ddc3ffa0d2096b146d600', "
+            + "    state = 'success', "
+            + "    context = 'test', "
+            + "    description = 'Observed foo'"
+            + "  )";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("state", "success")
+            .put("target_url", "https://github.com/google/example")
+            .put("description", "Observed foo")
+            .put("context", "test")
+            .build();
+    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
   }
 
   private Feedback feedback(String actionFunction) throws IOException, ValidationException {

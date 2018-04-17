@@ -84,7 +84,10 @@ public class GerritEndpoint implements Endpoint {
             SkylarkUtil.stringToEnum(
                 null, "include_results", (String) result, IncludeResult.class));
       }
-      return doGetChange(id, enumResults.build());
+      ChangeInfo changeInfo = doGetChange(id, enumResults.build());
+      ValidationException.checkCondition(
+          !changeInfo.isMoreChanges(), "Pagination is not supported yet.");
+      return changeInfo;
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(/*location=*/ null, e);
     }
