@@ -332,6 +332,20 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testWithCurrentRev() {
+    assertThat(TransformWorks.of(workdir, "test", console).withCurrentRev(new DummyRevision("a"))
+        .isInsideExplicitTransform()).isFalse();
+  }
+
+  @Test
+  public void testWithConsole() {
+    assertThat(TransformWorks.of(workdir, "test", console)
+        .insideExplicitTransform()
+        .withConsole(console)
+        .isInsideExplicitTransform()).isTrue();
+  }
+
+  @Test
   public void testRunGlob() throws IOException, ValidationException, RepoException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("testRunGlob");

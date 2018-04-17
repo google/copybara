@@ -404,7 +404,8 @@ public final class TransformWork implements SkylarkContext {
    */
   public TransformWork withConsole(Console newConsole) {
     return new TransformWork(checkoutDir, metadata, changes, Preconditions.checkNotNull(newConsole),
-        migrationInfo, resolvedReference);
+        migrationInfo, resolvedReference, treeState, insideExplicitTransform, lastRev,
+        currentRev, skylarkTransformParams);
   }
 
   /**
@@ -458,7 +459,7 @@ public final class TransformWork implements SkylarkContext {
   public <O extends Revision> TransformWork withCurrentRev(Revision currentRev) {
     Preconditions.checkNotNull(currentRev);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-                             resolvedReference, treeState, /*insideExplicitTransform=*/true,
+                             resolvedReference, treeState, insideExplicitTransform,
                              lastRev, currentRev, skylarkTransformParams);
   }
 
