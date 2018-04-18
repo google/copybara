@@ -56,7 +56,7 @@ public class RemoveTest {
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class, CopyOrMove.class);
+    skylark = new SkylarkTestExecutor(options, Core.class);
   }
 
   @Test

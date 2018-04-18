@@ -61,7 +61,7 @@ public class CopyOrMoveTest {
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class, CopyOrMove.class);
+    skylark = new SkylarkTestExecutor(options, Core.class);
   }
 
   private void transform(Transformation t) throws IOException, ValidationException {
