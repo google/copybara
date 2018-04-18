@@ -21,11 +21,18 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.util.List;
 
-/**
- * https://gerrit-review.googlesource.com/Documentation/rest-api-accounts.html#account-info
- */
+/** https://gerrit-review.googlesource.com/Documentation/rest-api-accounts.html#account-info */
+@SuppressWarnings("unused")
+@SkylarkModule(
+    name = "gerritapi.AccountInfo",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    doc = "Gerrit account information.",
+    documented = false)
 public class AccountInfo {
   @Key("_account_id") long accountId;
   @Key String name;
@@ -33,8 +40,7 @@ public class AccountInfo {
   @Key("secondary_emails") List<String> secondaryEmails;
   @Key String username;
 
-  public AccountInfo() {
-  }
+  public AccountInfo() {}
 
   @VisibleForTesting
   public AccountInfo(long accountId, String email) {
@@ -46,18 +52,64 @@ public class AccountInfo {
     return accountId;
   }
 
+  @SkylarkCallable(
+      name = "account_id",
+      doc = "The numeric ID of the account.",
+      structField = true,
+      allowReturnNones = true)
+  public String getAccountIdAsString() {
+    return Long.toString(accountId);
+  }
+
+  @SkylarkCallable(
+      name = "name",
+      doc =
+          "The full name of the user.\n"
+              + "Only set if detailed account information is requested.\n"
+              + "See option DETAILED_ACCOUNTS for change queries\n"
+              + "and option DETAILS for account queries.",
+      structField = true,
+      allowReturnNones = true)
   public String getName() {
     return name;
   }
 
+  @SkylarkCallable(
+      name = "email",
+      doc =
+          "The email address the user prefers to be contacted through.\n"
+              + "Only set if detailed account information is requested.\n"
+              + "See option DETAILED_ACCOUNTS for change queries\n"
+              + "and options DETAILS and ALL_EMAILS for account queries.",
+      structField = true,
+      allowReturnNones = true)
   public String getEmail() {
     return email;
   }
 
+  @SkylarkCallable(
+      name = "secondary_emails",
+      doc =
+          "A list of the secondary email addresses of the user.\n"
+              + "Only set for account queries when the ALL_EMAILS option or the suggest "
+              + "parameter is set.\n"
+              + "Secondary emails are only included if the calling user has the Modify Account, "
+              + "and hence is allowed to see secondary emails of other users.",
+      structField = true,
+      allowReturnNones = true)
   public ImmutableList<String> getSecondaryEmails() {
     return ImmutableList.copyOf(secondaryEmails);
   }
 
+  @SkylarkCallable(
+      name = "username",
+      doc =
+          "The username of the user.\n"
+              + "Only set if detailed account information is requested.\n"
+              + "See option DETAILED_ACCOUNTS for change queries\n"
+              + "and option DETAILS for account queries.",
+      structField = true,
+      allowReturnNones = true)
   public String getUsername() {
     return username;
   }

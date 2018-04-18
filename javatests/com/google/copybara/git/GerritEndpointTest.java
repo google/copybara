@@ -40,6 +40,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -154,42 +155,173 @@ public class GerritEndpointTest {
    */
   @Test
   public void testGetChangeExhaustive() throws Exception {
-    gitApiMockHttpTransport = new TestingGitApiHttpTransport() {
-      @Override
-      String getChange(String url) {
-        return ""
-            + "{"
-            + "  id : '12345',"
-            + "  project : 'test_project',"
-            + "  branch : 'test_branch',"
-            + "  topic : 'test_topic',"
-            + "  change_id : 'I7ad5b1ab6a3859d49df71e34e8a2a373fe6e59c6',"
-            + "  subject : 'test_subject',"
-            + "  status : 'NEW',"
-            + "  created : '2018-01-01T10:15:30+01:00',"
-            + "  updated : '2018-01-02T10:15:30+01:00',"
-            + "  submitted : '2018-01-03T10:15:30+01:00',"
-            + "  current_revision : '05daab2c5bc80523748f9d45bae615bf38fe47f7'"
-            + "}";
-      }
-    };
+    gitApiMockHttpTransport =
+        new TestingGitApiHttpTransport() {
+          @Override
+          String getChange(String url) {
+            return "{\n"
+                + "  'id': 'copybara-project~Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd',\n"
+                + "  'project': 'copybara-project',\n"
+                + "  'branch': 'master',\n"
+                + "  'topic': 'test_topic',\n"
+                + "  'hashtags': [],\n"
+                + "  'change_id': 'Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd',\n"
+                + "  'subject': 'JUST A TEST',\n"
+                + "  'status': 'NEW',\n"
+                + "  'created': '2017-12-01 17:33:30.000000000',\n"
+                + "  'updated': '2017-12-02 17:33:30.000000000',\n"
+                + "  'submitted': '2017-12-03 17:33:30.000000000',\n"
+                + "  'submit_type': 'MERGE_IF_NECESSARY',\n"
+                + "  'mergeable': true,\n"
+                + "  'insertions': 2,\n"
+                + "  'deletions': 10,\n"
+                + "  'unresolved_comment_count': 0,\n"
+                + "  'has_review_started': true,\n"
+                + "  '_number': 1082,\n"
+                + "  'owner': {\n"
+                + "    '_account_id': 12345,\n"
+                + "    'name': 'Glorious Copybara',\n"
+                + "    'email': 'no-reply@glorious-copybara.com',\n"
+                + "    'secondary_emails': ['foo@bar.com'],\n"
+                + "    'username': 'glorious.copybara'\n"
+                + "  },\n"
+                + "  'labels': {\n"
+                + "    'Code-Review': {\n"
+                + "      'all': [\n"
+                + "        {\n"
+                + "          'value': 2,\n"
+                + "          'date': '2017-01-01 12:00:00.000000000',\n"
+                + "          'permitted_voting_range': {\n"
+                + "            'min': 2,\n"
+                + "            'max': 2\n"
+                + "          },\n"
+                + "          '_account_id': 123456\n"
+                + "        },\n"
+                + "        {\n"
+                + "          'value': 0,\n"
+                + "          '_account_id': 123456\n"
+                + "        },\n"
+                + "        {\n"
+                + "          'value': 0,\n"
+                + "          '_account_id': 123456\n"
+                + "        }\n"
+                + "      ],\n"
+                + "      'values': {\n"
+                + "        '-2': 'Do not submit',\n"
+                + "        '-1': 'I would prefer that you didn\\u0027t submit this',\n"
+                + "        ' 0': 'No score',\n"
+                + "        '+1': 'Looks good to me, but someone else must approve',\n"
+                + "        '+2': 'Looks good to me, approved'\n"
+                + "      },\n"
+                + "      'default_value': 0\n"
+                + "    }\n"
+                + "},\n"
+                + "  'current_revision': 'f33bd8687ae27c25254a21012b3c9b4a546db779',\n"
+                + "  'revisions': {\n"
+                + "    'f33bd8687ae27c25254a21012b3c9b4a546db779': {\n"
+                + "      'kind': 'REWORK',\n"
+                + "      '_number': 1,\n"
+                + "      'created': '2017-12-07 19:11:59.000000000',\n"
+                + "      'uploader': {\n"
+                + "        '_account_id': 12345\n"
+                + "      },\n"
+                + "      'ref': 'refs/changes/11/11111/1',\n"
+                + "      'fetch': {\n"
+                + "        'https': {\n"
+                + "          'url': 'https://foo.bar/copybara/test',\n"
+                + "          'ref': 'refs/changes/11/11111/1'\n"
+                + "        }\n"
+                + "      },\n"
+                + "      'commit': {\n"
+                + "        'parents': [\n"
+                + "          {\n"
+                + "            'commit': 'e6b7772add9d2137fd5f879192bd249dfc4d0a00',\n"
+                + "            'subject': 'Parent commit description.'\n"
+                + "          }\n"
+                + "        ],\n"
+                + "        'author': {\n"
+                + "          'name': 'Glorious Copybara',\n"
+                + "          'email': 'no-reply@glorious-copybara.com',\n"
+                + "          'date': '2017-12-01 00:00:00.000000000',\n"
+                + "          'tz': -480\n"
+                + "        },\n"
+                + "        'committer': {\n"
+                + "          'name': 'Glorious Copybara',\n"
+                + "          'email': 'no-reply@glorious-copybara.com',\n"
+                + "          'date': '2017-12-01 00:00:00.000000000',\n"
+                + "          'tz': -480\n"
+                + "        },\n"
+                + "        'subject': 'JUST A TEST',\n"
+                + "        'message': 'JUST A TEST\\n\\nSecond line of description.\n'\n"
+                + "      }\n"
+                + "    }\n"
+                + "  },\n"
+                + "  'messages': [\n"
+                + "      {\n"
+                + "        'id': 'e6aa8a323fd948cc9986dd4d8b4c253487bab253',\n"
+                + "        'tag': 'autogenerated:gerrit:newPatchSet',\n"
+                + "        'author': {\n"
+                + "          '_account_id': 12345,\n"
+                + "          'name': 'Glorious Copybara',\n"
+                + "          'email': 'no-reply@glorious-copybara.com'\n"
+                + "        },\n"
+                + "        'real_author': {\n"
+                + "          '_account_id': 12345,\n"
+                + "          'name': 'Glorious Copybara',\n"
+                + "          'email': 'no-reply@glorious-copybara.com'\n"
+                + "        },\n"
+                + "        'date': '2017-12-01 00:00:00.000000000',\n"
+                + "        'message': 'Uploaded patch set 1.',\n"
+                + "        '_revision_number': 1\n"
+                + "      }\n"
+                + "  ]\n"
+                + "}\n";
+          }
+        };
     String var =
         String.format(
             "git.gerrit_api(url = '%s').get_change('12345', include_results = ['LABELS'])", url);
 
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.<String, Object>builder()
-            .put("id", "12345")
-            .put("project", "test_project")
-            .put("branch", "test_branch")
+            .put("id", "copybara-project~Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd")
+            .put("project", "copybara-project")
+            .put("branch", "master")
             .put("topic", "test_topic")
-            .put("change_id", "I7ad5b1ab6a3859d49df71e34e8a2a373fe6e59c6")
-            .put("subject", "test_subject")
+            .put("change_id", "Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd")
+            .put("subject", "JUST A TEST")
             .put("status", "NEW")
-            .put("created", "2018-01-01T10:15:30+01:00")
-            .put("updated", "2018-01-02T10:15:30+01:00")
-            .put("submitted", "2018-01-03T10:15:30+01:00")
-            .put("current_revision", "05daab2c5bc80523748f9d45bae615bf38fe47f7")
+            .put("created", "2017-12-01 17:33:30.000000000")
+            .put("updated", "2017-12-02 17:33:30.000000000")
+            .put("submitted", "2017-12-03 17:33:30.000000000")
+            .put("current_revision", "f33bd8687ae27c25254a21012b3c9b4a546db779")
+            .put("owner.account_id", "12345")
+            .put("owner.name", "Glorious Copybara")
+            .put("owner.email", "no-reply@glorious-copybara.com")
+            .put("owner.secondary_emails[0]", "foo@bar.com")
+            .put("owner.username", "glorious.copybara")
+            .put("labels['Code-Review'].approved", Runtime.NONE)
+            .put("labels['Code-Review'].recommended", Runtime.NONE)
+            .put("labels['Code-Review'].disliked", Runtime.NONE)
+            .put("labels['Code-Review'].blocking", false)
+            .put("labels['Code-Review'].value", 0)
+            .put("labels['Code-Review'].default_value", 0)
+            .put("labels['Code-Review'].values['-2']", "Do not submit")
+            .put("labels['Code-Review'].values['-1']", "I would prefer that you didn't submit this")
+            .put("labels['Code-Review'].values[' 0']", "No score")
+            .put(
+                "labels['Code-Review'].values['+1']",
+                "Looks good to me, but someone else must approve")
+            .put("labels['Code-Review'].values['+2']", "Looks good to me, approved")
+            .put("labels['Code-Review'].all[0].value", 2)
+            .put("labels['Code-Review'].all[0].date", "2017-01-01 12:00:00.000000000")
+            .put("labels['Code-Review'].all[0].account_id", "123456")
+            .put("labels['Code-Review'].all[1].value", 0)
+            .put("labels['Code-Review'].all[1].account_id", "123456")
+            .put("labels['Code-Review'].all[2].value", 0)
+            .put("labels['Code-Review'].all[2].account_id", "123456")
+            // TODO(danielromero): Verify messages
+            // TODO(danielromero): Verify revisions
             .build();
     skylarkTestExecutor.verifyFields(var, expectedFieldValues);
   }

@@ -31,16 +31,13 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 
-/**
- * https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#change-info
- */
-/** A Gerrit change that can be read from a feedback migration. */
+/** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#change-info */
+@SuppressWarnings("unused")
 @SkylarkModule(
-    name = "change",
+    name = "gerritapi.ChangeInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit change that can be read from a feedback migration.",
-    documented = false
-)
+    doc = "Gerrit change information.",
+    documented = false)
 public class ChangeInfo implements SkylarkValue {
 
   @Key private String id;
@@ -61,19 +58,30 @@ public class ChangeInfo implements SkylarkValue {
   @Key("revisions") private Map<String, RevisionInfo> allRevisions;
   @Key("_more_changes") private boolean moreChanges;
 
-  @SkylarkCallable(name = "id", doc = "The id of this change", structField = true, allowReturnNones = true)
+  @SkylarkCallable(
+      name = "id",
+      doc =
+          "The ID of the change in the format \"'<project>~<branch>~<Change-Id>'\", where "
+              + "'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the "
+              + "refs/heads/ prefix is omitted.",
+      structField = true,
+      allowReturnNones = true)
   public String getId() {
     return id;
   }
 
-  @SkylarkCallable(name = "project", doc = "The change project", structField = true, allowReturnNones = true)
+  @SkylarkCallable(
+      name = "project",
+      doc = "The name of the project.",
+      structField = true,
+      allowReturnNones = true)
   public String getProject() {
     return project;
   }
 
   @SkylarkCallable(
       name = "branch",
-      doc = "The change branch",
+      doc = "The name of the target branch.\n" + "The refs/heads/ prefix is omitted.",
       structField = true,
       allowReturnNones = true)
   public String getBranch() {
@@ -82,7 +90,7 @@ public class ChangeInfo implements SkylarkValue {
 
   @SkylarkCallable(
       name = "topic",
-      doc = "The change topic",
+      doc = "The topic to which this change belongs.",
       structField = true,
       allowReturnNones = true)
   public String getTopic() {
@@ -91,7 +99,7 @@ public class ChangeInfo implements SkylarkValue {
 
   @SkylarkCallable(
       name = "change_id",
-      doc = "The change 'ChangeId'",
+      doc = "The Change-Id of the change.",
       structField = true,
       allowReturnNones = true)
   public String getChangeId() {
@@ -100,7 +108,7 @@ public class ChangeInfo implements SkylarkValue {
 
   @SkylarkCallable(
       name = "subject",
-      doc = "The change subject",
+      doc = "The subject of the change (header line of the commit message).",
       structField = true,
       allowReturnNones = true)
   public String getSubject() {
@@ -113,7 +121,7 @@ public class ChangeInfo implements SkylarkValue {
 
   @SkylarkCallable(
       name = "status",
-      doc = "The change status",
+      doc = "The status of the change (NEW, MERGED, ABANDONED).",
       structField = true,
       allowReturnNones = true)
   public String getStatusAsString() {
@@ -124,9 +132,11 @@ public class ChangeInfo implements SkylarkValue {
     return parseTimestamp(created);
   }
 
-  @SkylarkCallable(name = "created",
-      doc = "The created date time. Example: 2011-12-03T10:15:30+01:00",
-      structField = true, allowReturnNones = true)
+  @SkylarkCallable(
+      name = "created",
+      doc = "The timestamp of when the change was created.",
+      structField = true,
+      allowReturnNones = true)
   public String getCreatedFmt() {
     return created;
   }
@@ -135,9 +145,11 @@ public class ChangeInfo implements SkylarkValue {
     return parseTimestamp(updated);
   }
 
-  @SkylarkCallable(name = "updated",
-      doc = "The updated date time. Example: 2011-12-03T10:15:30+01:00",
-      structField = true, allowReturnNones = true)
+  @SkylarkCallable(
+      name = "updated",
+      doc = "The timestamp of when the change was last updated.",
+      structField = true,
+      allowReturnNones = true)
   public String getUpdatedFmt() {
     return updated;
   }
@@ -146,9 +158,11 @@ public class ChangeInfo implements SkylarkValue {
     return parseTimestamp(submitted);
   }
 
-  @SkylarkCallable(name = "submitted",
-      doc = "The submitted date time. Example: 2011-12-03T10:15:30+01:00",
-      structField = true, allowReturnNones = true)
+  @SkylarkCallable(
+      name = "submitted",
+      doc = "The timestamp of when the change was submitted.",
+      structField = true,
+      allowReturnNones = true)
   public String getSubmittedFmt() {
     return submitted;
   }
@@ -159,34 +173,64 @@ public class ChangeInfo implements SkylarkValue {
 
   @SkylarkCallable(
       name = "number",
-      doc = "The change number",
+      doc = "The legacy numeric ID of the change.",
       structField = true,
       allowReturnNones = true)
   public String getNumberAsString() {
     return Long.toString(number);
   }
 
+  @SkylarkCallable(
+      name = "owner",
+      doc = "The owner of the change as an AccountInfo entity.",
+      structField = true,
+      allowReturnNones = true)
   public AccountInfo getOwner() {
     return owner;
   }
 
+  @SkylarkCallable(
+      name = "labels",
+      doc =
+          "The labels of the change as a map that maps the label names to LabelInfo entries.\n"
+              + "Only set if labels or detailed labels are requested.",
+      structField = true,
+      allowReturnNones = true)
   public ImmutableMap<String, LabelInfo> getLabels() {
     return ImmutableMap.copyOf(labels);
   }
 
+  @SkylarkCallable(
+      name = "messages",
+      doc =
+          "Messages associated with the change as a list of ChangeMessageInfo entities.\n"
+              + "Only set if messages are requested.",
+      structField = true,
+      allowReturnNones = true)
   public List<ChangeMessageInfo> getMessages() {
     return ImmutableList.copyOf(messages);
   }
 
   @SkylarkCallable(
       name = "current_revision",
-      doc = "The change current revision",
+      doc =
+          "The commit ID of the current patch set of this change.\n"
+              + "Only set if the current revision is requested or if all revisions are requested.",
       structField = true,
       allowReturnNones = true)
   public String getCurrentRevision() {
     return currentRevision;
   }
 
+  @SkylarkCallable(
+      name = "revisions",
+      doc =
+          "All patch sets of this change as a map that maps the commit ID of the patch set to a "
+              + "RevisionInfo entity.\n"
+              + "Only set if the current revision is requested (in which case it will only contain "
+              + "a key for the current revision) or if all revisions are requested.",
+      structField = true,
+      allowReturnNones = true)
   public ImmutableMap<String, RevisionInfo> getAllRevisions() {
     return ImmutableMap.copyOf(allRevisions);
   }
