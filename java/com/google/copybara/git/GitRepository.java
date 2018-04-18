@@ -802,7 +802,7 @@ public class GitRepository {
     return currentRemoteUrl.substring(0, idx) + "/" + relativeUrl;
   }
 
-  private String getSubmoduleField(String submoduleName, final String field) throws RepoException {
+  private String getSubmoduleField(String submoduleName, String field) throws RepoException {
     return getConfigField("submodule." + submoduleName + "." + field, ".gitmodules");
   }
 

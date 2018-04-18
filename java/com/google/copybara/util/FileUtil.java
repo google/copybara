@@ -110,7 +110,7 @@ public final class FileUtil {
    * <p>Symlinks that escape the {@code from} directory or that target absolute paths are treated
    * according to {@code symlinkStrategy}.
    */
-  public static void copyFilesRecursively(final Path from, final Path to,
+  public static void copyFilesRecursively(Path from, Path to,
       CopySymlinkStrategy symlinkStrategy, Glob glob) throws IOException {
     checkArgument(Files.isDirectory(from), "%s (from) is not a directory");
     checkArgument(Files.isDirectory(to), "%s (to) is not a directory");
@@ -136,7 +136,7 @@ public final class FileUtil {
    * Adds the given permissions to the matching files under the given path.
    */
   public static void addPermissionsRecursively(
-      Path path, Set<PosixFilePermission> permissionsToAdd, final PathMatcher pathMatcher)
+      Path path, Set<PosixFilePermission> permissionsToAdd, PathMatcher pathMatcher)
       throws IOException {
     Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
       @Override
@@ -166,9 +166,9 @@ public final class FileUtil {
    *
    * @throws IOException If it fails traversing or deleting the tree.
    */
-  public static int deleteFilesRecursively(Path path, final PathMatcher pathMatcher)
+  public static int deleteFilesRecursively(Path path, PathMatcher pathMatcher)
       throws IOException {
-    final AtomicInteger counter = new AtomicInteger();
+    AtomicInteger counter = new AtomicInteger();
     Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
 
       @Override
@@ -203,14 +203,14 @@ public final class FileUtil {
    * A {@link PathMatcher} that returns true if any of the delegate {@code pathMatchers} returns
    * true.
    */
-  static PathMatcher anyPathMatcher(final ImmutableList<PathMatcher> pathMatchers) {
+  static PathMatcher anyPathMatcher(ImmutableList<PathMatcher> pathMatchers) {
     return new AnyPathMatcher(pathMatchers);
   }
 
   /**
    * Returns {@link PathMatcher} that negates {@code pathMatcher}
    */
-  public static PathMatcher notPathMatcher(final PathMatcher pathMatcher) {
+  public static PathMatcher notPathMatcher(PathMatcher pathMatcher) {
     return new PathMatcher() {
       @Override
       public boolean matches(Path path) {

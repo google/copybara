@@ -37,7 +37,7 @@ public class GitVisitorUtil {
       ChangesVisitor visitor,
       ChangeReader.Builder queryChanges,
       GeneralOptions generalOptions,
-      final String type,
+      String type,
       int visitChangePageSize)
       throws RepoException, CannotResolveRevisionException {
     Preconditions.checkNotNull(start);

@@ -635,7 +635,7 @@ public class GithubPrOriginTest {
   }
 
   private void checkResolve(GithubPROrigin origin, String reference, int prNumber,
-      final ImmutableList<String> presentLabels)
+      ImmutableList<String> presentLabels)
       throws RepoException, IOException, ValidationException {
     checkResolve(
         origin, reference, prNumber, new MockPullRequest(prNumber, presentLabels, "open"));
@@ -723,7 +723,7 @@ public class GithubPrOriginTest {
       return createIssue(number, lastTryPresentLabels, state);
     }
 
-    protected String createIssue(String number, ImmutableList<String> labels, final String state) {
+    protected String createIssue(String number, ImmutableList<String> labels, String state) {
       String result = "{\n"
           + "  \"id\": 1,\n"
           + "  \"number\": " + number + ",\n"

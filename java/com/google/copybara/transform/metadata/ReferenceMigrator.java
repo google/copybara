@@ -89,7 +89,7 @@ public class ReferenceMigrator implements Transformation {
 
   @Override
   public void transform(TransformWork work) throws ValidationException {
-    final AtomicReference<ValidationException> thrown = new AtomicReference<>();
+    AtomicReference<ValidationException> thrown = new AtomicReference<>();
     Replacer replacer = before.callbackReplacer(after, (groupValues, template) -> {
         if (groupValues.get(0) != null) {
           try {
@@ -130,10 +130,10 @@ public class ReferenceMigrator implements Transformation {
   }
 
   @Nullable
-  private String findChange(final String refBeingMigrated,
-      final String originLabel,
-      final ChangeVisitable<?> destinationReader) throws  ValidationException {
-    final AtomicInteger changesVisited = new AtomicInteger(0);
+  private String findChange(String refBeingMigrated,
+      String originLabel,
+      ChangeVisitable<?> destinationReader) throws  ValidationException {
+    AtomicInteger changesVisited = new AtomicInteger(0);
     ImmutableList<String> originLabels =
         ImmutableList.<String>builder().add(originLabel).addAll(additionalLabels).build();
     if (destinationReader == null) {

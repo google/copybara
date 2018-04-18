@@ -54,7 +54,7 @@ public final class TestingConsoleTest {
   @Test
   public void assertFailsForPartialMatch() {
     console.error("jjj_asdf_mmm");
-    final LogSubject logSubject = console.assertThat();
+    LogSubject logSubject = console.assertThat();
     expectAssertion(".*jjj_asdf_mmm.*",
         () -> logSubject.matchesNext(MessageType.ERROR, "asdf"));
   }
@@ -62,8 +62,7 @@ public final class TestingConsoleTest {
   @Test
   public void assertFailsWhenNoMoreMessagesRemain() {
     console.error("foo");
-    final LogSubject logSubject = console.assertThat()
-        .matchesNext(MessageType.ERROR, "foo");
+    LogSubject logSubject = console.assertThat().matchesNext(MessageType.ERROR, "foo");
     expectAssertion("no more log messages.*",
         () -> logSubject.matchesNext(MessageType.ERROR, "foo"));
   }
@@ -121,7 +120,7 @@ public final class TestingConsoleTest {
   @Test
   public void assertMessageTypeWrong2() {
     console.info("bar");
-    final LogSubject logSubject = console.assertThat();
+    LogSubject logSubject = console.assertThat();
     expectAssertion(".*bar.*",
         () -> logSubject.matchesNext(MessageType.PROGRESS, "bar"));
   }

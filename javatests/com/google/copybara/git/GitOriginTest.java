@@ -564,7 +564,7 @@ public class GitOriginTest {
     singleFileCommit(author, "two", "test.txt", "some content2");
     singleFileCommit(author, "three", "test.txt", "some content3");
     GitRevision lastCommitRef = getLastCommitRef();
-    final List<Change<?>> visited = new ArrayList<>();
+    List<Change<?>> visited = new ArrayList<>();
     newReader().visitChanges(lastCommitRef,
         input -> {
           visited.add(input);
@@ -602,7 +602,7 @@ public class GitOriginTest {
     options.git.visitChangePageSize = 3;
     createBranchMerge("John Name <john@name.com>");
     GitRevision lastCommitRef = getLastCommitRef();
-    final List<Change<?>> visited = new ArrayList<>();
+    List<Change<?>> visited = new ArrayList<>();
     Reader<GitRevision> reader = origin().newReader(originFiles, authoring);
     reader.visitChanges(lastCommitRef,
         input -> {

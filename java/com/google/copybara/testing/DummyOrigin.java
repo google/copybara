@@ -126,7 +126,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
   }
 
   @Override
-  public DummyRevision resolve(@Nullable final String reference)
+  public DummyRevision resolve(@Nullable String reference)
       throws RepoException, CannotResolveRevisionException {
     if (HEAD.equals(reference)) {
       if (changes.isEmpty()) {
@@ -174,7 +174,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
     }
 
     @Override
-    public void checkout(final DummyRevision rev, final Path workdir) throws RepoException {
+    public void checkout(DummyRevision rev, Path workdir) throws RepoException {
       try {
         Files.walkFileTree(rev.changesBase, new SimpleFileVisitor<Path>() {
             @Override

@@ -65,7 +65,7 @@ public class GitCredentialTest {
   public void testSuccess() throws IOException, RepoException, ValidationException {
     Files.write(credentialsFile, "https://user:SECRET@somehost.com".getBytes(UTF_8));
 
-    final TestLogHandler handler = new TestLogHandler();
+    TestLogHandler handler = new TestLogHandler();
     Logger.getGlobal().getParent().addHandler(handler);
     UserPassword result;
     try {

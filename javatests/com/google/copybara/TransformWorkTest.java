@@ -463,7 +463,7 @@ public class TransformWorkTest {
         + "parent parent parent: \n");
   }
 
-  private void checkPathOperations(final String filePath, String output)
+  private void checkPathOperations(String filePath, String output)
       throws IOException, RepoException, ValidationException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("foo");
@@ -537,7 +537,7 @@ public class TransformWorkTest {
     return TransformWorks.of(FileSystems.getDefault().getPath("/"), msg, console);
   }
 
-  private void checkLabelWithSkylark(String originalMsg, final String transform,
+  private void checkLabelWithSkylark(String originalMsg, String transform,
       String expectedOutputMsg)
       throws Exception {
     TransformWork work = create(originalMsg);

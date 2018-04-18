@@ -224,7 +224,7 @@ public class GlobTest {
     assertThat(matcher.matches(workdir.resolve("foo/bar"))).isTrue();
   }
 
-  private PathMatcher createPathMatcher(final String expression)
+  private PathMatcher createPathMatcher(String expression)
       throws ValidationException {
     return parseGlob(expression).relativeTo(workdir);
   }
