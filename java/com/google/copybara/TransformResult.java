@@ -72,7 +72,7 @@ public final class TransformResult {
         changes,
         rawSourceRef,
         setRevId,
-        /*affectedFiles=*/null);
+        /*affectedFilesForSmartPrune=*/ null);
   }
 
   private TransformResult(
