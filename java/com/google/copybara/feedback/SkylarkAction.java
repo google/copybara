@@ -16,6 +16,7 @@
 
 package com.google.copybara.feedback;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
@@ -76,5 +77,13 @@ public class SkylarkAction implements Action {
   @Override
   public String getName() {
     return function.getName();
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("name", function.getName())
+        .toString();
+
   }
 }

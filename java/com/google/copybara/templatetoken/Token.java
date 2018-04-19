@@ -16,6 +16,7 @@
 
 package com.google.copybara.templatetoken;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 
 /**
@@ -43,5 +44,13 @@ public final class Token {
    */
   public enum TokenType {
     LITERAL, INTERPOLATION
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("value", value)
+        .add("type", type)
+        .toString();
   }
 }

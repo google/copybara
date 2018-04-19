@@ -117,7 +117,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean askForConfirmation,
       ConfigFile<?> mainConfigFile,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles,
-      boolean dryRunMode, boolean checkLastRevState,
+      boolean dryRunMode,
+      boolean checkLastRevState,
       ImmutableList<Action> afterMigrationActions,
       ImmutableList<Token> changeIdentity,
       boolean setRevId) {
@@ -201,6 +202,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         .add("mode", mode)
         .add("reverseTransformForCheck", reverseTransformForCheck)
         .add("askForConfirmation", askForConfirmation)
+        .add("checkLastRevState", checkLastRevState)
+        .add("afterMigrationActions", afterMigrationActions)
+        .add("changeIdentity", changeIdentity)
+        .add("setRevId", setRevId)
         .toString();
   }
 

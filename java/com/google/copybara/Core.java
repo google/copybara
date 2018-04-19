@@ -284,7 +284,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + "Available variables:"
                   + "<ul>"
                   + "  <li>${copybara_config_path}: Main config file path</li>"
-                  + "  <li>${copybara_workflow_name}: Main config file path</li>"
+                  + "  <li>${copybara_workflow_name}: The name of the workflow being run</li>"
                   + "  <li>${copybara_reference}: The requested reference. In general Copybara"
                   + " tries its best to give a repetable reference. For example Gerrit"
                   + " change number or change-id or GitHub Pull Request number. If it cannot"

@@ -16,6 +16,7 @@
 
 package com.google.copybara.feedback;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -98,5 +99,15 @@ public class Feedback implements Migration {
   @Override
   public ImmutableSetMultimap<String, String> getDestinationDescription() {
     return destination.describe();
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("name", name)
+        .add("trigger", trigger)
+        .add("destination", destination)
+        .add("actions", actions)
+        .toString();
   }
 }
