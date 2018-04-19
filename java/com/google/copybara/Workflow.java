@@ -98,6 +98,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final ImmutableList<Action> afterMigrationActions;
   private final ImmutableList<Token> changeIdentity;
   private final boolean setRevId;
+  private final boolean smartPrune;
   private final boolean checkLastRevState;
 
   public Workflow(
@@ -121,7 +122,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean checkLastRevState,
       ImmutableList<Action> afterMigrationActions,
       ImmutableList<Token> changeIdentity,
-      boolean setRevId) {
+      boolean setRevId,
+      boolean smartPrune) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -146,6 +148,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.afterMigrationActions = Preconditions.checkNotNull(afterMigrationActions);
     this.changeIdentity = Preconditions.checkNotNull(changeIdentity);
     this.setRevId = setRevId;
+    this.smartPrune = smartPrune;
   }
 
   @Override
@@ -497,5 +500,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public boolean isSetRevId() {
     return setRevId;
+  }
+
+  public boolean isSmartPrune() {
+    return smartPrune;
   }
 }

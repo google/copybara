@@ -130,6 +130,14 @@ public class WorkflowOptions implements Option {
       description = "For each imported origin change, load the configuration from that change.")
   boolean readConfigFromChange = false;
 
+  @Parameter(names = "--nosmart-prune",
+      description = "Disable smart prunning")
+  boolean noSmartPrune = false;
+
+  public boolean canUseSmartPrune() {
+    return !noSmartPrune;
+  }
+
   @Parameter(names = "--change-request-from-sot-retry",
       description = "Number of retries and delay between retries when we cannot find the baseline"
           + " in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry"

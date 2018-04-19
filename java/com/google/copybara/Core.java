@@ -301,6 +301,12 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   + " `CHANGE_REQUEST` it not used and is purely informational. This field allows"
                   + " to disable it for that mode. Destinations might ignore the flag.",
               defaultValue = "True", positional = false),
+          @Param(name = "smart_prune", type = Boolean.class,
+              doc = "By default CHANGE_REQUEST workflows cannot restore scrubbed files. This"
+                  + " flag does a best-effort approach in restoring the non-affected snippets. For"
+                  + " now we only revert the non-affected files. This only works for CHANGE_REQUEST"
+                  + " mode.",
+              defaultValue = "False", positional = false),
       },
       objectType = Core.class, useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -316,7 +322,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           Boolean.FALSE,
           SkylarkList.createImmutable(ImmutableList.of()),
           Runtime.NONE,
-          Boolean.TRUE
+          Boolean.TRUE,
+          Boolean.FALSE
       )) {
 
     public NoneType invoke(Core self, String workflowName,
@@ -332,6 +339,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         SkylarkList<?> afterMigrations,
         Object changeIdentityObj,
         Boolean setRevId,
+        Boolean smartPrune,
         Location location,
         Environment env)
         throws EvalException {
@@ -354,6 +362,10 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
 
       if (!setRevId) {
         check(location, mode == WorkflowMode.CHANGE_REQUEST, "Disabling RevId is only supported"
+            + " for CHANGE_REQUEST mode.");
+      }
+      if (smartPrune) {
+        check(location, mode == WorkflowMode.CHANGE_REQUEST, "smart_prune is only supported"
             + " for CHANGE_REQUEST mode.");
       }
 
@@ -383,7 +395,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           checkLastRevStateField || self.workflowOptions.checkLastRevState,
           convertFeedbackActions(afterMigrations, location, env),
           changeIdentity,
-          setRevId));
+          setRevId,
+          smartPrune));
       return Runtime.NONE;
     }
   };

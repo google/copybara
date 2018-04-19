@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect.Type;
+import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Authoring;
@@ -41,6 +42,7 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
@@ -236,8 +238,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * Performs a full migration, including checking out files from the origin, deleting excluded
    * files, transforming the code, and writing to the destination. This writes to the destination
    * exactly once.
-   *
-   * @param rev revision to the version which will be written to the destination
+   *  @param rev revision to the version which will be written to the destination
    * @param lastRev last revision that was migrated
    * @param processConsole console to use to print progress messages
    * @param metadata metadata of the change to be migrated
@@ -251,7 +252,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Console processConsole,
       Metadata metadata,
       Changes changes,
-      @Nullable String destinationBaseline,
+      @Nullable Baseline<O> destinationBaseline,
       @Nullable O changeIdentityRevision)
       throws IOException, RepoException, ValidationException {
     ImmutableList<DestinationEffect> effects = ImmutableList.of();
@@ -313,7 +314,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Console processConsole,
       Metadata metadata,
       Changes changes,
-      @Nullable String destinationBaseline,
+      @Nullable Baseline<O> destinationBaseline,
       @Nullable O changeIdentityRevision)
       throws IOException, RepoException, ValidationException {
     Path checkoutDir = workdir.resolve("checkout");
@@ -421,8 +422,45 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             changes,
             rawSourceRef,
             workflow.isSetRevId());
+
     if (destinationBaseline != null) {
-      transformResult = transformResult.withBaseline(destinationBaseline);
+      transformResult = transformResult.withBaseline(destinationBaseline.getBaseline());
+      if (workflow.isSmartPrune() && workflowOptions().canUseSmartPrune()) {
+        ValidationException.checkCondition(destinationBaseline.getOriginRevision() != null,
+            "smart_prune is not compatible with %s flag for now",
+            WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG);
+        Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
+        originReader.checkout(destinationBaseline.getOriginRevision(), baselineWorkdir);
+        TransformWork baselineTransformWork =
+            new TransformWork(
+                baselineWorkdir,
+                // We don't care about the message or author and this guarantees that it will
+                // work with the transformations
+                metadata,
+                // We don't care about the changes that are imported.
+                changes,
+                new ProgressPrefixConsole("Migrating baseline for diff: ", workflow.getConsole()),
+                new MigrationInfo(getOriginLabelName(), writer),
+                resolvedRef,
+                // Doesn't guarantee that we will not run a ignore_noop = False core.transform but
+                // reduces the chances.
+                /*ignoreNoop=*/true)
+                // Again, we don't care about this
+                .withLastRev(lastRev)
+                .withCurrentRev(destinationBaseline.getOriginRevision());
+        try (ProfilerTask ignored = profiler().start("baseline_transforms")) {
+          workflow.getTransformation().transform(baselineTransformWork);
+        }
+        try {
+          ImmutableList<DiffFile> affectedFiles = DiffUtil
+              .diffFiles(baselineWorkdir, checkoutDir, workflow.getGeneralOptions().isVerbose(),
+                  workflow.getGeneralOptions().getEnvironment());
+          transformResult = transformResult.withAffectedFilesForSmartPrune(affectedFiles);
+        } catch (InsideGitDirException e) {
+          throw new ValidationException("Error computing diff for smart_prune: " + e.getMessage(),
+              e.getCause());
+        }
+      }
     }
     transformResult = transformResult
         .withAskForConfirmation(workflow.isAskForConfirmation())

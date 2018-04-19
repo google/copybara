@@ -25,6 +25,9 @@ import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.DiffUtil.DiffFile.Operation.ADD;
+import static com.google.copybara.util.DiffUtil.DiffFile.Operation.DELETE;
+import static com.google.copybara.util.DiffUtil.DiffFile.Operation.MODIFIED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -35,6 +38,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -62,6 +66,9 @@ import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.transform.metadata.MetadataModule;
+import com.google.copybara.util.DiffUtil.DiffFile;
+import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
@@ -116,6 +123,7 @@ public class WorkflowTest {
   private TestingEventMonitor eventMonitor;
   private TransformWork transformWork;
   private boolean setRevId;
+  private boolean smartPrune;
 
   @Before
   public void setup() throws Exception {
@@ -151,6 +159,7 @@ public class WorkflowTest {
     options.general.withEventMonitor(eventMonitor);
     transformWork = TransformWorks.of(workdir, "example", console);
     setRevId = true;
+    smartPrune = false;
   }
 
   private TestingConsole console() {
@@ -178,6 +187,7 @@ public class WorkflowTest {
         + "    transformations = " + transformations + ",\n"
         + "    authoring = " + authoring + ",\n"
         + "    set_rev_id = " + (setRevId ? "True" : "False") + ",\n"
+        + "    smart_prune = " + (smartPrune ? "True" : "False") + ",\n"
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
@@ -1291,6 +1301,97 @@ public class WorkflowTest {
   }
 
   @Test
+  public void changeRequestSmartPrune() throws Exception {
+    smartPrune = true;
+    ImmutableList<DiffFile> diffFiles = checkChangeRequestSmartPrune();
+    ImmutableMap<String, DiffFile> byName = Maps.uniqueIndex(diffFiles, DiffFile::getName);
+    assertThat(byName.size()).isEqualTo(3);
+    assertThat(byName.get("folder/deleted.txt").getOperation()).isEqualTo(DELETE);
+    assertThat(byName.get("folder/modified.txt").getOperation()).isEqualTo(MODIFIED);
+    assertThat(byName.get("folder/added.txt").getOperation()).isEqualTo(ADD);
+    assertThat(byName.get("folder/unmodified.txt")).isNull();
+  }
+
+  @Test
+  public void changeRequestSmartPrune_disabledFlag() throws Exception {
+    smartPrune = true;
+    // This flag wins
+    options.workflowOptions.noSmartPrune = true;
+    ImmutableList<DiffFile> diffFiles = checkChangeRequestSmartPrune();
+    assertThat(diffFiles).isNull();
+  }
+
+  @Test
+  public void changeRequestSmartPrune_disabled() throws Exception {
+    ImmutableList<DiffFile> diffFiles = checkChangeRequestSmartPrune();
+    assertThat(diffFiles).isNull();
+  }
+
+  @Test
+  public void smartPruneForDifferentWorkflowMode() throws Exception {
+    smartPrune = true;
+    try {
+      skylarkWorkflow("default", WorkflowMode.SQUASH);
+      fail();
+    } catch (ValidationException e) {
+      console().assertThat().onceInLog(MessageType.ERROR,
+          ".*smart_prune is only supported for CHANGE_REQUEST mode.*");
+    }
+  }
+
+  @Test
+  public void changeRequestSmartPrune_manualBaseline() throws Exception {
+    smartPrune = true;
+    // For now we don't support smart_prune with the flag since the flag refers to the destination
+    // baseline and for smart_prune we need the origin revision. We might revisit this if it
+    // if requested by users
+    options.workflowOptions.changeBaseline = "42";
+    try {
+      checkChangeRequestSmartPrune();
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains(
+          "smart_prune is not compatible with --change_request_parent");
+    }
+  }
+
+  private ImmutableList<DiffFile> checkChangeRequestSmartPrune()
+      throws IOException, ValidationException, RepoException {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+
+    writeFile(base1, "folder/deleted.txt", "");
+    writeFile(base1, "folder/unmodified.txt", "");
+    writeFile(base1, "folder/modified.txt", "foo");
+    origin.addChange(0, base1,
+        String.format("One Change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /*matchesGlob=*/ true);
+    Path base2 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+
+    Files.delete(base2.resolve("folder/deleted.txt"));
+    origin.addChange(1, base2, "change 1", /*matchesGlob=*/ true);
+    Path base3 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+    FileUtil.copyFilesRecursively(base2, base3, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+
+    writeFile(base3, "folder/modified.txt", "bar");
+    writeFile(base3, "folder/added.txt", "only_in_change");
+    origin.addChange(2, base3, "change 2", /*matchesGlob=*/ true);
+
+    options.workflowOptions.ignoreNoop = false;
+    transformations = ImmutableList.of(""
+        + "        core.replace(\n"
+        + "             before = 'only_in_change',\n"
+        + "             after = 'foo',\n"
+        + "        )");
+    Workflow workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
+    workflow.run(workdir, "HEAD");
+    assertThat(destination.processed).hasSize(1);
+    assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
+    return destination.processed.get(0).getAffectedFilesForSmartPrune();
+  }
+
+  @Test
   public void changeRequestEmptyChanges() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
@@ -2086,6 +2187,11 @@ public class WorkflowTest {
   private void touchFile(Path base, String path, String content) throws IOException {
     Files.createDirectories(base.resolve(path).getParent());
     Files.write(base.resolve(path), content.getBytes(UTF_8));
+  }
+
+  private Path writeFile(Path base, String path, String content) throws IOException {
+    Files.createDirectories(base.resolve(path).getParent());
+    return Files.write(base.resolve(path), content.getBytes(UTF_8));
   }
 
   private void verifyInfo(Info<Revision> info, String... expectedChanges) {

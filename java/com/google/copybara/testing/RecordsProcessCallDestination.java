@@ -37,6 +37,7 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -282,6 +283,11 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
     public boolean isSetRevId() {
       return transformResult.isSetRevId();
+    }
+
+    @Nullable
+    public ImmutableList<DiffFile> getAffectedFilesForSmartPrune() {
+      return transformResult.getAffectedFilesForSmartPrune();
     }
 
     public int numFiles() {

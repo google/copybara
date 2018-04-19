@@ -370,7 +370,7 @@ public enum WorkflowMode {
                            Iterables.getLast(changes).getAuthor()),
               // Squash notes an Skylark API expect last commit to be the first one.
               new Changes(changes.reverse(), ImmutableList.of()),
-              baseline.get().getBaseline(),
+              baseline.get(),
               runHelper.getResolvedRef());
     }
 

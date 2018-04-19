@@ -20,9 +20,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.util.DiffUtil.DiffFile;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
 /**
@@ -45,6 +47,7 @@ public final class TransformResult {
   @Nullable private final String rawSourceRef;
   private final Changes changes;
   private final boolean setRevId;
+  @Nullable private final ImmutableList<DiffFile> affectedFilesForSmartPrune;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -68,7 +71,8 @@ public final class TransformResult {
         workflowName,
         changes,
         rawSourceRef,
-        setRevId);
+        setRevId,
+        /*affectedFiles=*/null);
   }
 
   private TransformResult(
@@ -84,7 +88,8 @@ public final class TransformResult {
       String workflowName,
       Changes changes,
       @Nullable String rawSourceRef,
-      boolean setRevId) {
+      boolean setRevId,
+      @Nullable ImmutableList<DiffFile> affectedFilesForSmartPrune) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -98,8 +103,10 @@ public final class TransformResult {
     this.changes = Preconditions.checkNotNull(changes);
     this.rawSourceRef = rawSourceRef;
     this.setRevId = setRevId;
+    this.affectedFilesForSmartPrune = affectedFilesForSmartPrune;
   }
 
+  @CheckReturnValue
   public TransformResult withBaseline(String newBaseline) {
     Preconditions.checkNotNull(newBaseline);
     return new TransformResult(
@@ -115,13 +122,15 @@ public final class TransformResult {
         this.workflowName,
         this.changes,
         this.rawSourceRef,
-        this.setRevId);
+        this.setRevId,
+        this.affectedFilesForSmartPrune);
   }
 
   /**
    * Used internally
    */
   @SuppressWarnings("unused")
+  @CheckReturnValue
   public TransformResult withSummary(String summary) {
     Preconditions.checkNotNull(summary);
     return new TransformResult(
@@ -137,9 +146,11 @@ public final class TransformResult {
         this.workflowName,
         this.changes,
         this.rawSourceRef,
-        this.setRevId);
+        this.setRevId,
+        this.affectedFilesForSmartPrune);
   }
 
+  @CheckReturnValue
   public TransformResult withIdentity(String changeIdentity) {
     return new TransformResult(
         this.path,
@@ -153,9 +164,12 @@ public final class TransformResult {
         changeIdentity,
         this.workflowName,
         this.changes,
-        this.rawSourceRef, setRevId);
+        this.rawSourceRef,
+        setRevId,
+        this.affectedFilesForSmartPrune);
   }
 
+  @CheckReturnValue
   public TransformResult withAskForConfirmation(boolean askForConfirmation) {
     return new TransformResult(
         this.path,
@@ -170,10 +184,11 @@ public final class TransformResult {
         this.workflowName,
         this.changes,
         this.rawSourceRef,
-        this.setRevId);
+        this.setRevId,
+        this.affectedFilesForSmartPrune);
   }
 
-  @SuppressWarnings("unused")
+  @CheckReturnValue
   public TransformResult withChanges(Changes changes) {
     return new TransformResult(
         this.path,
@@ -188,9 +203,11 @@ public final class TransformResult {
         this.workflowName,
         changes,
         this.rawSourceRef,
-        this.setRevId);
+        this.setRevId,
+        this.affectedFilesForSmartPrune);
   }
 
+  @CheckReturnValue
   public TransformResult withSetRevId(boolean setRevId) {
     return new TransformResult(
         this.path,
@@ -205,7 +222,29 @@ public final class TransformResult {
         this.workflowName,
         this.changes,
         this.rawSourceRef,
-        setRevId);
+        setRevId,
+        this.affectedFilesForSmartPrune);
+  }
+
+  @CheckReturnValue
+  public TransformResult withAffectedFilesForSmartPrune(
+      ImmutableList<DiffFile> affectedFilesForSmartPrune) {
+    Preconditions.checkNotNull(affectedFilesForSmartPrune);
+    return new TransformResult(
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        this.baseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName,
+        this.changes,
+        this.rawSourceRef,
+        this.setRevId,
+        affectedFilesForSmartPrune);
   }
 
   /**
@@ -328,5 +367,16 @@ public final class TransformResult {
    */
   public boolean isSetRevId() {
     return setRevId;
+  }
+
+  /**
+   * It not null, the subset of files that Workflow smart_prune detected as really changed.
+   *
+   * <p>Destinations might ignore this field if they don't want to prune the list of affected
+   * files.
+   */
+  @Nullable
+  public ImmutableList<DiffFile> getAffectedFilesForSmartPrune() {
+    return affectedFilesForSmartPrune;
   }
 }
