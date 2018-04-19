@@ -24,25 +24,28 @@ import com.google.common.collect.ImmutableListMultimap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.annotation.CheckReturnValue;
 
 /**
  * An object that represents a well formed message: No superfluous new lines, a group of labels,
  * etc.
+ *
+ * <p>This class is immutable.
  */
-public class ChangeMessage {
+public final class ChangeMessage {
 
   private static final String DOUBLE_NEWLINE = "\n\n";
   private static final String DASH_DASH_SEPARATOR = "\n--\n";
   private static final CharMatcher TRIM = CharMatcher.is('\n');
 
-  private String text;
+  private final String text;
   private final String groupSeparator;
-  private List<LabelFinder> labels;
+  private final ImmutableList<LabelFinder> labels;
 
   private ChangeMessage(String text, String groupSeparator, List<LabelFinder> labels) {
     this.text = TRIM.trimFrom(text);
     this.groupSeparator = Preconditions.checkNotNull(groupSeparator);
-    this.labels = Preconditions.checkNotNull(labels);
+    this.labels = ImmutableList.copyOf(Preconditions.checkNotNull(labels));
   }
 
   /**
@@ -95,7 +98,7 @@ public class ChangeMessage {
   }
 
   public ImmutableList<LabelFinder> getLabels() {
-    return ImmutableList.copyOf(labels);
+    return labels;
   }
 
   /**
@@ -113,26 +116,30 @@ public class ChangeMessage {
     return result.build();
   }
 
-  public ChangeMessage addLabel(String name, String separator, String value) {
+  @CheckReturnValue
+  public ChangeMessage withLabel(String name, String separator, String value) {
+    List<LabelFinder> newLabels = new ArrayList<>(labels);
     // Add an additional line if none of the previous elements are labels
-    if (!labels.isEmpty() && labels.stream().noneMatch(LabelFinder::isLabel)) {
-      labels.add(new LabelFinder(""));
+    if (!newLabels.isEmpty() && newLabels.stream().noneMatch(LabelFinder::isLabel)) {
+      newLabels.add(new LabelFinder(""));
     }
-    labels.add(new LabelFinder(validateLabelName(name) + Preconditions
+    newLabels.add(new LabelFinder(validateLabelName(name) + Preconditions
         .checkNotNull(separator) + Preconditions.checkNotNull(value)));
-    return this;
+    return new ChangeMessage(this.text, this.groupSeparator, newLabels);
   }
 
-  public ChangeMessage replaceLabel(String labelName, String separator , String value) {
+  @CheckReturnValue
+  public ChangeMessage withReplacedLabel(String labelName, String separator , String value) {
     validateLabelName(labelName);
-    labels = labels.stream().map(label -> label.isLabel(labelName)
+    List<LabelFinder> newLabels = labels.stream().map(label -> label.isLabel(labelName)
         ? new LabelFinder(labelName + separator + value)
         : label)
         .collect(Collectors.toList());
-    return this;
+    return new ChangeMessage(this.text, this.groupSeparator, newLabels);
   }
 
-  public ChangeMessage addOrReplaceLabel(String labelName, String separator, String value) {
+  @CheckReturnValue
+  public ChangeMessage withNewOrReplacedLabel(String labelName, String separator, String value) {
     validateLabelName(labelName);
     List<LabelFinder> newLabels = new ArrayList<>();
     boolean wasReplaced = false;
@@ -146,30 +153,39 @@ public class ChangeMessage {
       }
     }
 
-    labels = newLabels;
-
+    ChangeMessage newChangeMessage = new ChangeMessage(this.text, this.groupSeparator, newLabels);
     if (!wasReplaced) {
-      addLabel(labelName, separator, value);
+      return newChangeMessage.withLabel(labelName, separator, value);
     }
-    return this;
+    return newChangeMessage;
   }
 
   /**
    * Remove a label by name if it exist.
    */
-  public ChangeMessage removeLabelByName(String name) {
+  @CheckReturnValue
+  public ChangeMessage withRemovedLabelByName(String name) {
     validateLabelName(name);
-    labels.removeIf(label -> label.isLabel(name));
-    return this;
+    ImmutableList<LabelFinder> filteredLabels =
+        labels
+            .stream()
+            .filter(label -> !label.isLabel(name))
+            .collect(ImmutableList.toImmutableList());
+    return new ChangeMessage(this.text, this.groupSeparator, filteredLabels);
   }
 
   /**
    * Remove a label by name and value if it exist.
    */
-  public ChangeMessage removeLabelByNameAndValue(String name, String value) {
+  @CheckReturnValue
+  public ChangeMessage withRemovedLabelByNameAndValue(String name, String value) {
     validateLabelName(name);
-    labels.removeIf(label -> label.isLabel(name) && label.getValue().equals(value));
-    return this;
+    ImmutableList<LabelFinder> filteredLabels =
+        labels
+            .stream()
+            .filter(label -> !label.isLabel(name) || !label.getValue().equals(value))
+            .collect(ImmutableList.toImmutableList());
+    return new ChangeMessage(this.text, this.groupSeparator, filteredLabels);
   }
 
   private static String validateLabelName(String label) {
@@ -181,8 +197,9 @@ public class ChangeMessage {
   /**
    * Set the text part of the message, leaving the labels untouched.L
    */
-  public void setText(String text) {
-    this.text = TRIM.trimFrom(text);
+  @CheckReturnValue
+  public ChangeMessage withText(String text) {
+    return new ChangeMessage(TRIM.trimFrom(text), this.groupSeparator, this.labels);
   }
 
   @Override

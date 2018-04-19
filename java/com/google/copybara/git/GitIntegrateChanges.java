@@ -219,8 +219,8 @@ public class GitIntegrateChanges {
           params.addAll(revertBatch);
           repository.simpleCommand(params.build().toArray(new String[0]));
         }
-        ChangeMessage msg = ChangeMessage.parseAllAsLabels(head.getBody());
-        msg.removeLabelByNameAndValue(rawLabelValue.getName(), rawLabelValue.getValue());
+        ChangeMessage msg = ChangeMessage.parseAllAsLabels(head.getBody())
+            .withRemovedLabelByNameAndValue(rawLabelValue.getName(), rawLabelValue.getValue());
 
         // Amend last commit with the external files and remove the integration label
         try {

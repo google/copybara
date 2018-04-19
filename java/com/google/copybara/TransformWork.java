@@ -58,6 +58,7 @@ import javax.annotation.Nullable;
  * This object is passed to the user defined functions in Skylark so that they can personalize the
  * commit message, change the author or in the future run custom transformations.
  */
+@SuppressWarnings("unused")
 @SkylarkModule(name = "TransformWork",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Data about the set of changes that are being migrated. "
@@ -231,7 +232,7 @@ public final class TransformWork implements SkylarkContext {
       })
   public void addLabel(String label, String value, String separator) {
     setMessage(ChangeMessage.parseMessage(getMessage())
-        .addLabel(label, separator, value)
+        .withLabel(label, separator, value)
         .toString());
   }
 
@@ -245,7 +246,7 @@ public final class TransformWork implements SkylarkContext {
       })
   public void addOrReplaceLabel(String label, String value, String separator) {
     setMessage(ChangeMessage.parseMessage(getMessage())
-        .addOrReplaceLabel(label, separator, value)
+        .withNewOrReplacedLabel(label, separator, value)
         .toString());
   }
 
@@ -253,7 +254,7 @@ public final class TransformWork implements SkylarkContext {
       doc = "Add a text to the description before the labels paragraph")
   public void addTextBeforeLabels(String text) {
     ChangeMessage message = ChangeMessage.parseMessage(getMessage());
-    message.setText(message.getText() + '\n' + text);
+    message = message.withText(message.getText() + '\n' + text);
     setMessage(message.toString());
   }
 
@@ -269,7 +270,7 @@ public final class TransformWork implements SkylarkContext {
       })
   public void replaceLabel(String labelName, String value, String separator, Boolean wholeMessage) {
     setMessage(parseMessage(wholeMessage)
-        .replaceLabel(labelName, separator, value)
+        .withReplacedLabel(labelName, separator, value)
         .toString());
   }
 
@@ -282,11 +283,11 @@ public final class TransformWork implements SkylarkContext {
       }
   )
   public void removeLabel(String label, Boolean wholeMessage) {
-    setMessage(parseMessage(wholeMessage).removeLabelByName(label).toString());
+    setMessage(parseMessage(wholeMessage).withRemovedLabelByName(label).toString());
   }
 
   public void removeLabelWithValue(String label, String value, Boolean wholeMessage) {
-    setMessage(parseMessage(wholeMessage).removeLabelByNameAndValue(label, value).toString());
+    setMessage(parseMessage(wholeMessage).withRemovedLabelByNameAndValue(label, value).toString());
   }
 
   @SkylarkCallable(name = "now_as_string", doc = "Get current date as a string",

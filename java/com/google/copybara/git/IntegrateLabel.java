@@ -56,7 +56,8 @@ public interface IntegrateLabel {
   static String withLabels(String msg, ImmutableList<LabelFinder> labelsToAdd) {
     ChangeMessage result = ChangeMessage.parseMessage(msg);
     for (LabelFinder labelFinder : labelsToAdd) {
-      result.addLabel(labelFinder.getName(), labelFinder.getSeparator(), labelFinder.getValue());
+      result = result.withLabel(
+          labelFinder.getName(), labelFinder.getSeparator(), labelFinder.getValue());
     }
     return result.toString();
   }
