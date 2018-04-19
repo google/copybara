@@ -1053,6 +1053,26 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
         }
       };
 
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+      name = "parse_message",
+      returnType = ChangeMessage.class,
+      doc = "Returns a ChangeMessage parsed from a well formed string.",
+      parameters = {
+          @Param(name = "message", type = String.class, doc = "The contents of the change message"),
+      }, useLocation = true)
+  public static final BuiltinFunction PARSE_MESSAGE = new BuiltinFunction("parse_message") {
+    public ChangeMessage invoke(String changeMessage, Location location)
+        throws EvalException {
+      try {
+        return ChangeMessage.parseMessage(changeMessage);
+      } catch (RuntimeException e) {
+        throw new EvalException(location, String.format(
+            "Cannot parse change message '%s': %s", changeMessage, e.getMessage()), e);
+      }
+    }
+  };
+
   private static ImmutableList<Action> convertFeedbackActions(
       SkylarkList<?> feedbackActions, Location location, Environment env) throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();

@@ -45,6 +45,7 @@
     - [core.verify_match](#core.verify_match)
     - [core.transform](#core.transform)
     - [core.dynamic_transform](#core.dynamic_transform)
+    - [parse_message](#parse_message)
   - [folder](#folder)
     - [folder.destination](#folder.destination)
     - [folder.origin](#folder.origin)
@@ -1524,6 +1525,20 @@ def test(name, number = 2):
 ```
 
 After defining this function, you can use `test('example', 42)` as a transformation in `core.workflow`.
+
+<a id="parse_message" aria-hidden="true"></a>
+### parse_message
+
+Returns a ChangeMessage parsed from a well formed string.
+
+`ChangeMessage parse_message(message)`
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+message|`string`<br><p>The contents of the change message</p>
+
 
 
 ## folder

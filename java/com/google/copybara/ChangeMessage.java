@@ -21,6 +21,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,6 +37,10 @@ import javax.annotation.CheckReturnValue;
  *
  * <p>This class is immutable.
  */
+@SuppressWarnings("unused")
+@SkylarkModule(name = "ChangeMessage",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc = "Represents a well formed parsed change message with its associated labels.")
 public final class ChangeMessage {
 
   private static final String DOUBLE_NEWLINE = "\n\n";
@@ -88,11 +97,16 @@ public final class ChangeMessage {
         .collect(Collectors.toList());
   }
 
+  @SkylarkCallable(name = "first_line", doc = "First line of this message", structField = true)
   public String firstLine() {
     int idx = text.indexOf('\n');
     return idx == -1 ? text : text.substring(0, idx);
   }
 
+  @SkylarkCallable(
+      name = "text",
+      doc = "The text description this message, not including the labels.",
+      structField = true)
   public String getText() {
     return text;
   }
@@ -115,6 +129,21 @@ public final class ChangeMessage {
     }
     return result.build();
   }
+
+  @SkylarkCallable(
+      name = "label_values",
+      doc = "Returns a list of values associated with the label name.",
+      parameters = {
+          @Param(name = "label_name", type = String.class, named = true, doc = "The label name."),
+      })
+  public List<String> getLabelValues(String labelName) {
+    ImmutableListMultimap<String, String> localLabels = labelsAsMultimap();
+    if (localLabels.containsKey(labelName)) {
+      return SkylarkList.createImmutable(localLabels.get(labelName));
+    }
+    return SkylarkList.createImmutable(ImmutableList.of());
+  }
+
 
   @CheckReturnValue
   public ChangeMessage withLabel(String name, String separator, String value) {

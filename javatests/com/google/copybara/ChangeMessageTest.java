@@ -18,6 +18,10 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -25,11 +29,44 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class ChangeMessageTest {
 
+  private SkylarkTestExecutor skylarkTestExecutor;
+  private OptionsBuilder options;
+
+  @Before
+  public void setUp() throws Exception {
+    options = new OptionsBuilder();
+    skylarkTestExecutor = new SkylarkTestExecutor(options, Core.class);
+  }
+
   @Test
   public void testEmptyMessageParser() {
     ChangeMessage msg = ChangeMessage.parseMessage("\n\nGitOrigin-RevId: 12345\n");
     assertThat(msg.getText()).isEqualTo("");
     assertThat(msg.getLabels()).hasSize(1);
     assertThat(msg.getLabels().get(0).getName()).isEqualTo("GitOrigin-RevId");
+  }
+
+  private static final String CHANGE_MESSAGE_SKYLARK =
+      ""
+          + "First line\\n"
+          + "Second line\\n"
+          + "\\n"
+          + "GitOrigin-RevId: 12345\\n"
+          + "Other-label: AA\\n"
+          + "Other-label: BB\\n";
+
+  @Test
+  public void testParseMessageSkylark() throws Exception {
+    String var = String.format("parse_message('%s')", CHANGE_MESSAGE_SKYLARK);
+
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("first_line", "First line")
+            .put("text", "First line\nSecond line")
+            .put("label_values('GitOrigin-RevId')[0]", "12345")
+            .put("label_values('Other-label')[0]", "AA")
+            .put("label_values('Other-label')[1]", "BB")
+            .build();
+    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
   }
 }
