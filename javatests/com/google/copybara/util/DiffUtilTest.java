@@ -18,8 +18,14 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static junit.framework.TestCase.fail;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.copybara.util.DiffUtil.DiffFile;
+import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -57,12 +63,27 @@ public class DiffUtilTest {
   }
 
   @Test
-  public void pathsAreNotSiblings() throws Exception {
-    thrown.expect(IllegalArgumentException.class);
-    thrown.expectMessage("Paths 'one' and 'other' must be sibling directories");
-
+  public void pathsAreNotSiblings_diff() throws Exception {
     Path foo = createDir(left, "foo");
-    DiffUtil.diff(left, foo, VERBOSE, /*environment=*/ null);
+    try {
+      DiffUtil.diff(left, foo, VERBOSE, /*environment=*/ null);
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e).hasMessageThat().contains(
+          "Paths 'one' and 'other' must be sibling directories");
+    }
+  }
+
+  @Test
+  public void pathsAreNotSiblings_diffFiles() throws Exception {
+    Path foo = createDir(left, "foo");
+    try {
+      DiffUtil.diffFiles(left, foo, VERBOSE, /*environment=*/ null);
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e).hasMessageThat().contains(
+          "Paths 'one' and 'other' must be sibling directories");
+    }
   }
 
   @Test
@@ -75,8 +96,37 @@ public class DiffUtilTest {
     byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
 
     assertThat(diffContents).isEmpty();
+
+    assertThat(DiffUtil.diffFiles(left, right, VERBOSE, /*environment=*/ null)).isEmpty();
   }
 
+  @Test
+  public void testDiffFiles() throws Exception {
+    writeFile(left, "deleted.txt", "");
+    writeFile(left, "modified.txt", "");
+    writeFile(left, "unchanged.txt", "");
+    writeFile(left, "copied.txt", Strings.repeat("a", 100));
+    writeFile(left, "moved_old_name.txt", Strings.repeat("b", 100));
+    writeFile(right, "copied.txt", Strings.repeat("a", 100));
+    writeFile(right, "unchanged.txt", "");
+    writeFile(right, "copied2.txt", Strings.repeat("a", 100));
+    writeFile(right, "moved_new_name.txt", Strings.repeat("b", 100));
+    writeFile(right, "modified.txt", "foo");
+    writeFile(right, "added.txt", "");
+
+    ImmutableList<DiffFile> result = DiffUtil.diffFiles(left, right, VERBOSE,
+        /*environment=*/ null);
+    ImmutableMap<String, DiffFile> byName = Maps.uniqueIndex(result, DiffFile::getName);
+
+    assertThat(byName.get("deleted.txt").getOperation()).isEqualTo(Operation.DELETE);
+    assertThat(byName.get("modified.txt").getOperation()).isEqualTo(Operation.MODIFIED);
+    assertThat(byName.get("unchanged.txt")).isNull();
+    assertThat(byName.get("copied.txt")).isNull();
+    assertThat(byName.get("copied2.txt").getOperation()).isEqualTo(Operation.ADD);
+    assertThat(byName.get("moved_old_name.txt").getOperation()).isEqualTo(Operation.DELETE);
+    assertThat(byName.get("moved_new_name.txt").getOperation()).isEqualTo(Operation.ADD);
+    assertThat(byName.get("added.txt").getOperation()).isEqualTo(Operation.ADD);
+  }
   /**
    * Don't treat origin/destination folders as flags or other special argument. This means that
    * we run 'git options -- origin dest' instead of 'git options origin dest' that is
