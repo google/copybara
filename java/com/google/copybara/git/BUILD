@@ -16,9 +16,6 @@ licenses(["notice"])  # Apache 2.0
 
 package(default_visibility = ["//visibility:public"])
 
-# TODO(malcon): This package should be moved to the parent directory.
-# But the refactor would be too big for the current change.
-
 JAVACOPTS = [
     "-Xlint:unchecked",
     "-source",
