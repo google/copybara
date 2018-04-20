@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.git.GitExecPath.resolveGitBinary;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -99,7 +100,8 @@ public class DiffUtil {
     private static final ImmutableMap<String, Operation> OP_BY_CHAR =
         Maps.uniqueIndex(Iterators.forArray(Operation.values()), e -> e.charType);
 
-    private DiffFile(String name, Operation operation) {
+    @VisibleForTesting
+    public DiffFile(String name, Operation operation) {
       this.name = checkNotNull(name);
       this.operation = checkNotNull(operation);
     }
