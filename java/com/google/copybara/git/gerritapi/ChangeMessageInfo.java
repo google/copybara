@@ -20,11 +20,20 @@ import static com.google.copybara.git.gerritapi.GerritApiUtil.parseTimestamp;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.time.ZonedDateTime;
 
 /**
  * https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#change-message-info
  */
+@SuppressWarnings("unused")
+@SkylarkModule(
+    name = "gerritapi.ChangeMessageInfo",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    doc = "Gerrit change message information.",
+    documented = false)
 public class ChangeMessageInfo {
 
   @Key private String id;
@@ -35,14 +44,33 @@ public class ChangeMessageInfo {
   @Key private String tag;
   @Key("_revision_number") private int revisionNumber;
 
+  @SkylarkCallable(
+      name = "id",
+      doc = "The ID of the message.",
+      structField = true,
+      allowReturnNones = true)
   public String getId() {
     return id;
   }
 
+  @SkylarkCallable(
+      name = "author",
+      doc =
+          "Author of the message as an AccountInfo entity.\n"
+              + "Unset if written by the Gerrit system.",
+      structField = true,
+      allowReturnNones = true)
   public AccountInfo getAuthor() {
     return author;
   }
 
+  @SkylarkCallable(
+      name = "real_author",
+      doc =
+          "Real author of the message as an AccountInfo entity.\n"
+              + "Set if the message was posted on behalf of another user.",
+      structField = true,
+      allowReturnNones = true)
   public AccountInfo getRealAuthor() {
     return realAuthor;
   }
@@ -51,14 +79,40 @@ public class ChangeMessageInfo {
     return parseTimestamp(date);
   }
 
+  @SkylarkCallable(
+      name = "date",
+      doc = "The timestamp of when this identity was constructed.",
+      structField = true,
+      allowReturnNones = true)
+  public String getDateForSkylark() {
+    return date;
+  }
+
+  @SkylarkCallable(
+      name = "message",
+      doc = "The text left by the user.",
+      structField = true,
+      allowReturnNones = true)
   public String getMessage() {
     return message;
   }
 
+  @SkylarkCallable(
+      name = "tag",
+      doc = "Value of the tag field from ReviewInput set while posting the review. "
+          + "NOTE: To apply different tags on on different votes/comments multiple "
+          + "invocations of the REST call are required.",
+      structField = true,
+      allowReturnNones = true)
   public String getTag() {
     return tag;
   }
 
+  @SkylarkCallable(
+      name = "revision_number",
+      doc = "Which patchset (if any) generated this message.",
+      structField = true,
+      allowReturnNones = true)
   public int getRevisionNumber() {
     return revisionNumber;
   }

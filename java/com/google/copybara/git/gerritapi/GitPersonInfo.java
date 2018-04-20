@@ -20,13 +20,20 @@ import static com.google.copybara.git.gerritapi.GerritApiUtil.parseTimestamp;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
-/**
- * https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#git-person-info
- */
+/** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#git-person-info */
+@SuppressWarnings("unused")
+@SkylarkModule(
+    name = "gerritapi.GitPersonInfo",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    doc = "Git person information.",
+    documented = false)
 public class GitPersonInfo {
 
   @Key private String name;
@@ -34,10 +41,20 @@ public class GitPersonInfo {
   @Key private String date;
   @Key private int tz;
 
+  @SkylarkCallable(
+      name = "name",
+      doc = "The name of the author/committer.",
+      structField = true,
+      allowReturnNones = true)
   public String getName() {
     return name;
   }
 
+  @SkylarkCallable(
+      name = "email",
+      doc = "The email address of the author/committer.",
+      structField = true,
+      allowReturnNones = true)
   public String getEmail() {
     return email;
   }
@@ -45,6 +62,15 @@ public class GitPersonInfo {
   public ZonedDateTime getDate() {
     return parseTimestamp(date).withZoneSameInstant(
         ZoneId.from(ZoneOffset.ofTotalSeconds(tz * 60)));
+  }
+
+  @SkylarkCallable(
+      name = "date",
+      doc = "The timestamp of when this identity was constructed.",
+      structField = true,
+      allowReturnNones = true)
+  public String getDateForSkylark() {
+    return date;
   }
 
   @Override

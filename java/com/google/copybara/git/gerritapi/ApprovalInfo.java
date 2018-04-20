@@ -55,7 +55,7 @@ public class ApprovalInfo extends AccountInfo {
       doc = "The time and date describing when the approval was made.",
       structField = true,
       allowReturnNones = true)
-  public String getDateFmt() {
+  public String getDateForSkylark() {
     return date;
   }
 

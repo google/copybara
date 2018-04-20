@@ -18,12 +18,23 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.List;
 
-/**
- * https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#commit-info
- */
-public class CommitInfo {
+/** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#commit-info */
+@SuppressWarnings("unused")
+@SkylarkModule(
+    name = "gerritapi.CommitInfo",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    doc = "Gerrit commit information.",
+    documented = false)
+public class CommitInfo implements SkylarkValue {
   @Key private String commit;
   @Key private List<ParentCommitInfo> parents;
   @Key private GitPersonInfo author;
@@ -31,28 +42,70 @@ public class CommitInfo {
   @Key private String subject;
   @Key private String message;
 
+  @SkylarkCallable(
+      name = "commit",
+      doc =
+          "The commit ID. Not set if included in a RevisionInfo entity that is contained "
+              + "in a map which has the commit ID as key.",
+      structField = true,
+      allowReturnNones = true)
   public String getCommit() {
     return commit;
   }
 
   public List<ParentCommitInfo> getParents() {
-    return parents;
+    return parents == null ? ImmutableList.of() : ImmutableList.copyOf(parents);
   }
 
+  @SkylarkCallable(
+      name = "parents",
+      doc =
+          "The parent commits of this commit as a list of CommitInfo entities. "
+              + "In each parent only the commit and subject fields are populated.",
+      structField = true)
+  public SkylarkList<ParentCommitInfo> getMessagesForSkylark() {
+    return SkylarkList.createImmutable(getParents());
+  }
+
+  @SkylarkCallable(
+      name = "author",
+      doc = "The author of the commit as a GitPersonInfo entity.",
+      structField = true,
+      allowReturnNones = true)
   public GitPersonInfo getAuthor() {
     return author;
   }
 
+  @SkylarkCallable(
+      name = "committer",
+      doc = "The committer of the commit as a GitPersonInfo entity.",
+      structField = true,
+      allowReturnNones = true)
   public GitPersonInfo getCommitter() {
     return committer;
   }
 
+  @SkylarkCallable(
+      name = "subject",
+      doc = "The subject of the commit (header line of the commit message).",
+      structField = true,
+      allowReturnNones = true)
   public String getSubject() {
     return subject;
   }
 
+  @SkylarkCallable(
+      name = "message",
+      doc = "The commit message.",
+      structField = true,
+      allowReturnNones = true)
   public String getMessage() {
     return message;
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
   }
 
   @Override

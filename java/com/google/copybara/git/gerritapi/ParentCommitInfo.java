@@ -18,18 +18,37 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 
-/**
- * Restricted version of {@link CommitInfo} for describing parents
- */
+/** Restricted version of {@link CommitInfo} for describing parents */
+@SuppressWarnings("unused")
+@SkylarkModule(
+    name = "gerritapi.ParentCommitInfo",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    doc = "Gerrit parent commit information.",
+    documented = false)
 public class ParentCommitInfo {
   @Key private String commit;
   @Key private String subject;
 
+  @SkylarkCallable(
+      name = "commit",
+      doc =
+          "The commit ID. Not set if included in a RevisionInfo entity that is contained "
+              + "in a map which has the commit ID as key.",
+      structField = true,
+      allowReturnNones = true)
   public String getCommit() {
     return commit;
   }
 
+  @SkylarkCallable(
+      name = "subject",
+      doc = "The subject of the commit (header line of the commit message).",
+      structField = true,
+      allowReturnNones = true)
   public String getSubject() {
     return subject;
   }
