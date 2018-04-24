@@ -143,4 +143,7 @@ java_library(
     exports = [
         "@flogger//jar",
     ],
+    runtime_deps = [
+        "@flogger_system_backend//jar"
+    ]
 )

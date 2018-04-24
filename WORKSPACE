@@ -120,6 +120,13 @@ maven_jar(
     sha1 = "e02b7e9c66921e31b506416ef690c72774e1ed65",
 )
 
+# LICENSE: The Apache Software License, Version 2.0
+maven_jar(
+    name = "flogger_system_backend",
+    artifact = "com.google.flogger:flogger-system-backend:0.1",
+    sha1 = "051278e0c81e2eaf5e275e4275a8fb9ca5967695",
+)
+
 new_http_archive(
     name = "cram",
     build_file = "BUILD.cram",
