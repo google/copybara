@@ -29,6 +29,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.LowLevelHttpRequest;
+import com.google.api.client.json.JsonGenerator;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
@@ -43,11 +45,14 @@ import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.gson.JsonObject;
+import com.google.gson.Gson;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,6 +67,7 @@ import org.junit.runners.JUnit4;
 public class GerritApiTest {
 
   private static final String CHANGE_ID = "Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd";
+  private static final String REVISION_ID = "674ac754f91e64a0efb8087e59a176484bd534d1";
 
   protected Map<Predicate<String>, byte[]> requestToResponse = Maps.newHashMap();
 
@@ -241,6 +247,32 @@ public class GerritApiTest {
     assertThat(projects.get("external/bison").getDescription()).isEqualTo("GNU parser generator");
     assertThat(projects.get("external/gcc").getId()).isEqualTo("external%2Fgcc");
     assertThat(projects.get("external/openssl").getId()).isEqualTo("external%2Fopenssl");
+  }
+
+  @Test
+  public void testSetReview() throws Exception {
+    mockResponse(new CheckRequest("POST", ".*/changes/.*/revisions/.*"), ""
+        + ")]}'\n" + mockReviewResult());
+
+    ReviewResult reviewResult =
+        gerritApi.setReview(CHANGE_ID, REVISION_ID, SetReviewInput.create(ImmutableMap.of()));
+    assertThat(reviewResult.getLabels()).isEqualTo(ImmutableMap.of("Code-Review", (short)-1));
+  }
+
+  private static String mockReviewResult() throws IOException {
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("labels", ImmutableMap.of("Code-Review", (short) -1));
+    return GsonFactory.getDefaultInstance().toPrettyString(result);
+  }
+
+  @Test
+  public void testSetReviewInputSerialization() {
+    SetReviewInput setReviewInput =
+        SetReviewInput.create(ImmutableMap.of("Code Review", (short) 1));
+    Gson gson = new Gson();
+    String text = gson.toJson(setReviewInput);
+    SetReviewInput deserialized = gson.fromJson(text, SetReviewInput.class);
+    assertThat(deserialized.labels).isEqualTo(setReviewInput.labels);
   }
 
   private static String mockChangeInfo(ChangeStatus status) {

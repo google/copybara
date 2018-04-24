@@ -83,4 +83,12 @@ public class GerritApi {
       return transport.get("/projects/" + project + "/access", ProjectAccessInfo.class);
     }
   }
+
+  public ReviewResult setReview(String changeId, String revisionId, SetReviewInput setReviewInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_set_review")) {
+      return transport.post(
+          "/changes/" + changeId + "/revisions/" + revisionId, setReviewInput, ReviewResult.class);
+    }
+  }
 }
