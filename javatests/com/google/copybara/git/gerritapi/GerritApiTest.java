@@ -42,6 +42,7 @@ import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -360,6 +361,15 @@ public class GerritApiTest {
         + "      }\n"
         + "  ]\n"
         + "}\n";
+  }
+
+  @Test
+  public void testGetAccessInfo() throws Exception {
+    JsonObject response = new JsonObject();
+    response.addProperty("is_owner", true);
+    mockResponse(new CheckRequest("GET", ".*projects/copybara/access.*"), response.toString());
+    ProjectAccessInfo info =  gerritApi.getAccessInfo("copybara");
+    assertThat(info.isOwner).isTrue();
   }
 
   public void mockResponse(Predicate<String> filter, String response) throws Exception {

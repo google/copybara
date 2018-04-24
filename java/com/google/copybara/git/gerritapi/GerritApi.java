@@ -76,4 +76,11 @@ public class GerritApi {
           new TypeToken<Map<String, ProjectInfo>>() {}.getType());
     }
   }
+
+  public ProjectAccessInfo getAccessInfo(String project)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_access")) {
+      return transport.get("/projects/" + project + "/access", ProjectAccessInfo.class);
+    }
+  }
 }
