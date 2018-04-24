@@ -23,5 +23,9 @@ import com.google.api.client.util.Key;
  * https://gerrit-review.googlesource.com/Documentation/rest-api-access.html#project-access-info
  */
 public class ProjectAccessInfo {
-  @Key("is_owner") public boolean isOwner;
+  @Key("is_owner") boolean isOwner;
+
+  public boolean isOwner() {
+    return isOwner;
+  }
 }
