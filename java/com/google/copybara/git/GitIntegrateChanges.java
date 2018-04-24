@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
@@ -41,8 +42,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Integrate changes from a url present in the migrated change label.
@@ -52,7 +51,7 @@ import java.util.logging.Logger;
     category = SkylarkModuleCategory.BUILTIN, documented = false, doc = "")
 public class GitIntegrateChanges {
 
-  private static final Logger logger = Logger.getLogger(GitDestination.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final String label;
   private final Strategy strategy;
@@ -77,14 +76,14 @@ public class GitIntegrateChanges {
       doIntegrate(repository, generalOptions, externalFileMatcher, result, messageInfo);
     } catch (CannotIntegrateException e) {
       if (ignoreIntegrationErrors || ignoreErrors) {
-        logger.log(Level.WARNING, "Cannot integrate changes", e);
+        logger.atWarning().withCause(e).log("Cannot integrate changes");
         generalOptions.console().warnFmt("Cannot integrate changes: %s", e.getMessage());
       } else {
         throw e;
       }
     } catch (RepoException e) {
       if (ignoreIntegrationErrors || ignoreErrors) {
-        logger.log(Level.SEVERE, "Cannot integrate changes", e);
+        logger.atSevere().withCause(e).log("Cannot integrate changes");
       } else {
         throw e;
       }

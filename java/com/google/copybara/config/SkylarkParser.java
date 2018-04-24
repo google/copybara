@@ -23,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Options;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
@@ -47,15 +48,13 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Loads Copybara configs out of Skylark files.
  */
 public class SkylarkParser {
 
-  private static final Logger logger = Logger.getLogger(SkylarkParser.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
   private static final String BARA_SKY = ".bara.sky";
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
@@ -280,7 +279,7 @@ public class SkylarkParser {
         ImmutableMap.of());
 
     for (Class<?> module : modules) {
-      logger.log(Level.INFO, "Creating variable for " + module.getName());
+      logger.atInfo().log("Creating variable for %s", module.getName());
       // Create the module object and associate it with the functions
       Runtime.registerModuleGlobals(env, module);
       // Add the options to the module that require them

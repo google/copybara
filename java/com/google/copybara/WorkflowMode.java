@@ -24,6 +24,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
@@ -43,8 +44,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -90,8 +89,8 @@ public enum WorkflowMode {
       // Try to use the latest change that affected the origin_files roots instead of the
       // current revision, that could be an unrelated change.
       current = detectedChanges.isEmpty()
-          ?current
-          :Iterables.getLast(detectedChanges).getRevision();
+          ? current
+          : Iterables.getLast(detectedChanges).getRevision();
 
       if (runHelper.isSquashWithoutHistory()) {
         detectedChanges = ImmutableList.of();
@@ -109,9 +108,7 @@ public enum WorkflowMode {
     }
   },
 
-  /**
-   * Import each origin change individually.
-   */
+  /** Import each origin change individually. */
   @DocField(description = "Import each origin change individually.")
   ITERATIVE {
     @Override
@@ -201,8 +198,7 @@ public enum WorkflowMode {
                 "Iterative workflow produced no changes in the destination for resolved ref: %s",
                 runHelper.getResolvedRef().asString()));
       }
-      logger.log(Level.INFO,
-          String.format("Imported %d change(s) out of %d", migratedChanges, changes.size()));
+      logger.atInfo().log("Imported %d change(s) out of %d", migratedChanges, changes.size());
     }
   },
   @DocField(description = "Import an origin tree state diffed by a common parent"
@@ -339,7 +335,7 @@ public enum WorkflowMode {
                 + CHANGE_REQUEST_PARENT_FLAG
                 + "' flag to force a parent commit to use as baseline in the destination.");
       }
-      logger.info(String.format("Found baseline %s", baseline.get().getBaseline()));
+      logger.atInfo().log("Found baseline %s", baseline.get().getBaseline());
 
       // If --change_request_parent was used, we don't have information about the origin changes
       // included in the CHANGE_REQUEST so we assume the last change is the only change
@@ -450,7 +446,7 @@ public enum WorkflowMode {
     }
   }
 
-  private static final Logger logger = Logger.getLogger(WorkflowMode.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   abstract <O extends Revision, D extends Revision> void run(
       WorkflowRunHelper<O, D> runHelper) throws RepoException, IOException, ValidationException;

@@ -19,6 +19,7 @@ package com.google.copybara.transform;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -28,7 +29,6 @@ import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
-import java.util.logging.Logger;
 
 /**
  * We might promote this to a Skylark transform. But because we already have origin_files,
@@ -36,7 +36,7 @@ import java.util.logging.Logger;
  * of core.copy.
  */
 public class Remove implements Transformation {
-  private static final Logger logger = Logger.getLogger(Remove.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final Glob glob;
   private final WorkflowOptions workflowOptions;
@@ -58,7 +58,7 @@ public class Remove implements Transformation {
 
     int numDeletes = FileUtil.deleteFilesRecursively(work.getCheckoutDir(),
         glob.relativeTo(work.getCheckoutDir()));
-    logger.info(String.format("Deleted %d files for glob: %s", numDeletes, glob));
+    logger.atInfo().log("Deleted %d files for glob: %s", numDeletes, glob);
     if (numDeletes  == 0) {
       workflowOptions.reportNoop(
           work.getConsole(), glob + " didn't delete any file", work.getIgnoreNoop());

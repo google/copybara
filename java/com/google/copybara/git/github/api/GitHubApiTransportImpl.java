@@ -28,6 +28,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Preconditions;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
@@ -37,8 +38,6 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.time.Duration;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -47,7 +46,7 @@ import javax.annotation.Nullable;
  */
 public class GitHubApiTransportImpl implements GitHubApiTransport {
 
-  private static final Logger logger = Logger.getLogger(GitHubApiTransportImpl.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
   private static final String API_URL = "https://api.github.com";
@@ -88,7 +87,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     try {
       return JSON_FACTORY.createJsonParser(e.getContent()).parse(ClientError.class);
     } catch (IOException ignore) {
-      logger.log(Level.WARNING, ignore, () -> "Invalid error response");
+      logger.atWarning().withCause(ignore).log("Invalid error response");
       return new ClientError();
     }
   }
@@ -104,7 +103,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       String msg = String
           .format("GitHub credentials not found in %s. Assuming the repository is public.",
               storePath);
-      logger.info(msg);
+      logger.atInfo().log(msg);
       console.info(msg);
       return null;
     }
@@ -125,9 +124,9 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     } catch (HttpResponseException e) {
       try {
         throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
-                                     "POST", path, JSON_FACTORY.toPrettyString(request), e.getContent());
-      } catch (IOException e1) {
-        logger.log(Level.SEVERE, "Error serializing request for error", e1);
+            "POST", path, JSON_FACTORY.toPrettyString(request), e.getContent());
+      } catch (IOException ioE) {
+        logger.atSevere().withCause(ioE).log("Error serializing request for error");
         throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
                                      "POST", path, "unknown request", e.getContent());
       }

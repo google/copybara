@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
@@ -43,7 +44,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * A source code transformation which replaces a regular expression with some other string.
@@ -67,7 +67,7 @@ import java.util.logging.Logger;
  */
 public final class Replace implements Transformation {
 
-  private static final Logger logger = Logger.getLogger(Replace.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final RegexTemplateTokens before;
   private final RegexTemplateTokens after;
@@ -121,10 +121,8 @@ public final class Replace implements Transformation {
     workflowOptions.parallelizer().run(files, batchReplace);
     List<FileState> changed = batchReplace.getChanged();
     boolean matchedFile = batchReplace.isMatchedFile();
-    logger.info(String.format("Applied %s to %s files. %s changed.",
-                              this,
-                              Iterables.size(files),
-                              changed.size()));
+    logger.atInfo().log( "Applied %s to %d files. %d changed.",
+        this, Iterables.size(files), changed.size());
 
     work.getTreeState().notifyModify(changed);
     if (changed.isEmpty()) {

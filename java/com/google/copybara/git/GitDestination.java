@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
@@ -51,8 +52,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -92,7 +91,7 @@ public final class GitDestination implements Destination<GitRevision> {
     }
   }
 
-  private static final Logger logger = Logger.getLogger(GitDestination.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final String repoUrl;
   private final String fetch;
@@ -399,7 +398,7 @@ public final class GitDestination implements Destination<GitRevision> {
     @Override
     public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
-      logger.log(Level.INFO, "Exporting from " + transformResult.getPath() + " to: " + this);
+      logger.atInfo().log("Exporting from %s to: %s", transformResult.getPath(), this);
       String baseline = transformResult.getBaseline();
 
       GitRepository scratchClone = getRepository(console);
@@ -600,7 +599,6 @@ public final class GitDestination implements Destination<GitRevision> {
 
       return repo;
     }
-
   }
 
   @VisibleForTesting

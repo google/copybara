@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
+import com.google.common.flogger.FluentLogger;
 import com.google.common.hash.Hashing;
 import com.google.common.net.PercentEscaper;
 import com.google.copybara.authoring.Author;
@@ -72,7 +73,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -82,7 +82,7 @@ import javax.annotation.Nullable;
  */
 public class GitRepository {
 
-  private static final Logger logger = Logger.getLogger(GitRepository.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final java.util.regex.Pattern SPACES = java.util.regex.Pattern.compile("( |\t)+");
 
@@ -677,7 +677,7 @@ public class GitRepository {
           Files.deleteIfExists(descriptionFile);
         }
       } catch (IOException e) {
-        logger.warning("Could not delete description file: " + descriptionFile);
+        logger.atWarning().log("Could not delete description file: %s", descriptionFile);
       }
     }
   }

@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.MainArguments.CommandWithArgs;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
@@ -60,7 +61,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -73,7 +73,7 @@ public class Main {
 
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
-  private static final Logger logger = Logger.getLogger(Main.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
   /**
    * Represents the environment, typically {@code System.getEnv()}. Injected to make easier tests.
    *
@@ -109,7 +109,7 @@ public class Main {
       return ExitCode.ENVIRONMENT_ERROR;
     }
     // This is useful when debugging user issues
-    logger.info("Running: " + Joiner.on(' ').join(args));
+    logger.atInfo().log("Running: %s", Joiner.on(' ').join(args));
 
     console.startupMessage(getVersion());
 
@@ -128,44 +128,42 @@ public class Main {
     return Arrays.stream(args).anyMatch(Predicate.isEqual("-v"));
   }
 
-   /** A wrapper of the exit code and the command executed */
-   protected static class CommandResult {
+  /** A wrapper of the exit code and the command executed */
+  protected static class CommandResult {
 
-     private final ExitCode exitCode;
-     @Nullable
-     private final CommandEnv commandEnv;
-     @Nullable
-     private final CopybaraCmd command;
+    private final ExitCode exitCode;
+    @Nullable private final CommandEnv commandEnv;
+    @Nullable private final CopybaraCmd command;
 
-     CommandResult(ExitCode exitCode, @Nullable CopybaraCmd command,
-         @Nullable CommandEnv commandEnv) {
+    CommandResult(
+        ExitCode exitCode, @Nullable CopybaraCmd command, @Nullable CommandEnv commandEnv) {
        this.exitCode = Preconditions.checkNotNull(exitCode);
        this.command = command;
        this.commandEnv = commandEnv;
-     }
+    }
 
-     public ExitCode getExitCode() {
-       return exitCode;
-     }
+    public ExitCode getExitCode() {
+      return exitCode;
+    }
 
-     /**
-      * The command environment passed to the command. Can be null for executions that failed before
-      * executing the command, like bad options.
-      */
-     @Nullable
-     public CommandEnv getCommandEnv() {
-       return commandEnv;
-     }
+    /**
+     * The command environment passed to the command. Can be null for executions that failed before
+     * executing the command, like bad options.
+     */
+    @Nullable
+    public CommandEnv getCommandEnv() {
+      return commandEnv;
+    }
 
-     /**
-      * The command that was executed. Can be null for executions that failed before executing the
-      * command, like bad options.
-      */
-     @Nullable
-     public CopybaraCmd getCommand() {
-       return command;
-     }
-   }
+    /**
+     * The command that was executed. Can be null for executions that failed before executing the
+     * command, like bad options.
+     */
+    @Nullable
+    public CopybaraCmd getCommand() {
+      return command;
+    }
+  }
   /**
    * Runs the command and returns the {@link ExitCode}.
    *
@@ -190,7 +188,7 @@ public class Main {
       jCommander.setProgramName("copybara");
 
       String version = getVersion();
-      logger.log(Level.INFO, "Copybara version: " + version);
+      logger.atInfo().log("Copybara version: %s", version);
       jCommander.parse(args);
 
       GeneralOptions generalOptions = generalOptionsArgs.init(environment, fs, console);
@@ -448,11 +446,11 @@ public class Main {
       cause = cause.getCause();
     }
     console.error(error.toString());
-    logger.log(level, formatLogError(e.getMessage(), args), e);
+    logger.at(level).withCause(e).log(formatLogError(e.getMessage(), args));
   }
 
   private void handleUnexpectedError(Console console, String msg, String[] args, Throwable e) {
-    logger.log(Level.SEVERE, formatLogError(msg, args), e);
+    logger.atSevere().withCause(e).log(formatLogError(msg, args));
     console.error(msg + " (" + e + ")");
   }
 

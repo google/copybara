@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
@@ -33,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.CheckReturnValue;
 
 /**
@@ -41,7 +41,8 @@ import javax.annotation.CheckReturnValue;
  */
 public final class CommandRunner {
 
-  private static final Logger logger = Logger.getLogger(CommandRunner.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+
   /**
    * No input for the command.
    */
@@ -98,7 +99,7 @@ public final class CommandRunner {
     Stopwatch stopwatch = Stopwatch.createStarted();
     String startMsg = "Executing ["
         + ShellUtils.prettyPrintArgv(Arrays.asList(cmd.getCommandLineElements())) + "]";
-    logger.log(Level.INFO, startMsg);
+    logger.atInfo().log(startMsg);
     if (verbose) {
       System.err.println(startMsg);
     }
@@ -143,7 +144,7 @@ public final class CommandRunner {
               "Command '%s' finished in %s. %s",
               commandName, stopwatch,
               exitStatus != null ? exitStatus.toString() : "(No exit status)");
-      logger.log(Level.INFO, finishMsg);
+      logger.atInfo().log(finishMsg);
       if (verbose) {
         System.err.println(finishMsg);
       }
@@ -169,10 +170,10 @@ public final class CommandRunner {
     }
     int lines = 0;
     for (String line : Splitter.on(System.lineSeparator()).split(string)) {
-      logger.log(level, prefix + line);
+      logger.at(level).log(prefix + line);
       lines++;
       if (maxLogLines >= 0 && lines >= maxLogLines) {
-        logger.log(level, prefix + "... truncated after " + maxLogLines + " line(s)");
+        logger.at(level).log( "%s... truncated after %d line(s)", prefix, maxLogLines);
         break;
       }
     }

@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
@@ -41,8 +42,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
@@ -70,7 +69,7 @@ public enum GitRepoType {
     GitRevision resolveRef(
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
         throws RepoException, ValidationException {
-      logger.log(Level.INFO, "Resolving " + repoUrl + " reference: " + ref);
+      logger.atInfo().log("Resolving %s reference: %s", repoUrl, ref);
 
       Matcher sha1WithPatchSet = SHA_1_WITH_REVIEW_DATA.matcher(ref);
       if (sha1WithPatchSet.matches()) {
@@ -86,7 +85,7 @@ public enum GitRepoType {
       }
       String msg = "Git origin URL overwritten in the command line as " + ref;
       generalOptions.console().warn(msg);
-      logger.warning(msg + ". Config value was: " + repoUrl);
+      logger.atWarning().log("%s. Config value was: %s", msg, repoUrl);
       generalOptions.console().progress("Fetching HEAD for " + ref);
       GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, repoUrl, ref);
       if (ghPullRequest != null) {
@@ -309,7 +308,7 @@ public enum GitRepoType {
   public static final String GERRIT_CHANGE_URL_LABEL = "GERRIT_CHANGE_URL";
   public static final String GERRIT_CHANGE_DESCRIPTION_LABEL = "GERRIT_CHANGE_DESCRIPTION";
 
-  private static final Logger logger = Logger.getLogger(GitRepoType.class.getCanonicalName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final Pattern GIT_URL =
       Pattern.compile("(\\w+://)(.+@)*([\\w.]+)(:[\\d]+)?/*(.*)");

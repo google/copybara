@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.common.flogger.FluentLogger;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -29,8 +30,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Represents a file that is exposed to Skylark.
@@ -43,7 +42,7 @@ import java.util.logging.Logger;
     doc = "Represents a path in the checkout directory")
 public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
 
-  private static final Logger logger = Logger.getLogger(CheckoutPath.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final Path path;
   private final Path checkoutDir;
@@ -145,7 +144,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
           Files.readAttributes(checkoutDir.resolve(path), BasicFileAttributes.class));
     } catch (IOException e) {
       String msg = "Error getting attributes for " + path + ":" + e;
-      logger.log(Level.SEVERE, msg, e);
+      logger.atSevere().withCause(e).log(msg);
       throw new FuncallException(msg);
     }
   }

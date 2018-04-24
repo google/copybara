@@ -31,8 +31,8 @@ import java.util.Map;
  */
 public class GerritApi {
 
-  private final GerritApiTransport transport;
-  private final Profiler profiler;
+  protected final GerritApiTransport transport;
+  protected final Profiler profiler;
 
   public GerritApi(GerritApiTransport transport, Profiler profiler) {
     this.transport = Preconditions.checkNotNull(transport);

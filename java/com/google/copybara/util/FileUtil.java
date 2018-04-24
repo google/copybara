@@ -23,6 +23,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.flogger.FluentLogger;
 import com.google.common.io.InsecureRecursiveDeleteException;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
@@ -40,8 +41,6 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
@@ -49,7 +48,7 @@ import java.util.regex.Pattern;
  */
 public final class FileUtil {
 
-  private static final Logger logger = Logger.getLogger(FileUtil.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final PathMatcher ALL_FILES = new PathMatcher() {
     @Override
@@ -193,8 +192,7 @@ public final class FileUtil {
     try {
       MoreFiles.deleteRecursively(path);
     } catch (InsecureRecursiveDeleteException ignore) {
-      logger.warning(String.format("Secure delete not supported. Deleting '%s' insecurely.",
-          path));
+      logger.atWarning().log("Secure delete not supported. Deleting '%s' insecurely.", path);
       MoreFiles.deleteRecursively(path, RecursiveDeleteOption.ALLOW_INSECURE);
     }
   }
@@ -278,7 +276,7 @@ public final class FileUtil {
           if (symlinkStrategy == CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS) {
             throw new AbsoluteSymlinksNotAllowed(msg, file, resolvedSymlink.regularFile);
           }
-          logger.log(Level.INFO, msg + " Materializing the symlink.");
+          logger.atInfo().log("%s Materializing the symlink.", msg);
         }
 
         if (symlinkStrategy == CopySymlinkStrategy.MATERIALIZE_ALL || escapedRoot) {

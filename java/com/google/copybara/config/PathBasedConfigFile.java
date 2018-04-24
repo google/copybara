@@ -21,12 +21,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.CannotResolveLabel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
  */
 public class PathBasedConfigFile extends ConfigFile<Path> {
 
-  private static final Logger logger = Logger.getLogger(PathBasedConfigFile.class.getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final Path path;
   @Nullable
@@ -108,7 +108,7 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
   public byte[] content() throws IOException {
     byte[] bytes = Files.readAllBytes(path);
     if (logFileContent) {
-      logger.info(String.format("Content of '%s':\n%s", path, new String(bytes, UTF_8)));
+      logger.atInfo().log("Content of '%s':\n%s", path, new String(bytes, UTF_8));
     }
     return bytes;
   }
