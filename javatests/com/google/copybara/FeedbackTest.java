@@ -74,14 +74,16 @@ public class FeedbackTest {
   public void testAction() throws Exception {
     Feedback feedback = loggingFeedback();
     feedback.run(workdir, /*sourceRef*/ "12345");
-    console.assertThat().onceInLog(MessageType.INFO, "Action for ref 12345");
+    console.assertThat().onceInLog(MessageType.INFO, "Ref: 12345");
+    console.assertThat().onceInLog(MessageType.INFO, "Feedback name: default");
+    console.assertThat().onceInLog(MessageType.INFO, "Action name: test_action");
   }
 
   @Test
   public void testNullSourceRef() throws Exception {
     Feedback feedback = loggingFeedback();
     feedback.run(workdir, /*sourceRef*/ null);
-    console.assertThat().onceInLog(MessageType.INFO, "Action for ref None");
+    console.assertThat().onceInLog(MessageType.INFO, "Ref: None");
   }
 
   private Feedback loggingFeedback() throws IOException, ValidationException {
@@ -91,7 +93,9 @@ public class FeedbackTest {
             + "    ref = 'None'\n"
             + "    if ctx.ref:\n"
             + "      ref = ctx.ref\n"
-            + "    ctx.console.info('Action for ref ' + ref)\n"
+            + "    ctx.console.info('Ref: ' + ref)\n"
+            + "    ctx.console.info('Feedback name: ' + ctx.feedback_name)\n"
+            + "    ctx.console.info('Action name: ' + ctx.action_name)\n"
             + "\n"
     );
   }

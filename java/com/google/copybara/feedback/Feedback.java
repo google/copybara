@@ -68,7 +68,7 @@ public class Feedback implements Migration {
     try (ProfilerTask ignore = profiler.start("run/" + name)) {
       for (Action action : actions) {
         try (ProfilerTask ignore2 = profiler.start(action.getName())) {
-          action.run(new FeedbackContext(trigger.getEndpoint(), destination, sourceRef, console));
+          action.run(new FeedbackContext(this, action, sourceRef, console));
         }
       }
     }
@@ -99,6 +99,14 @@ public class Feedback implements Migration {
   @Override
   public ImmutableSetMultimap<String, String> getDestinationDescription() {
     return destination.describe();
+  }
+
+  Trigger getTrigger() {
+    return trigger;
+  }
+
+  Endpoint getDestination() {
+    return destination;
   }
 
   @Override

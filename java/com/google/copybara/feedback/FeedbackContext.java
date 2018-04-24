@@ -29,26 +29,28 @@ import javax.annotation.Nullable;
 /**
  * Gives access to the feedback migration information and utilities.
  */
+@SuppressWarnings("unused")
 @SkylarkModule(name = "feedback_context",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Gives access to the feedback migration information and utilities.",
     documented = false)
 public class FeedbackContext implements SkylarkContext<FeedbackContext> {
 
-  private final Endpoint origin;
-  private final Endpoint destination;
+  private final Feedback feedback;
+  private final Action currentAction;
   @Nullable private final String ref;
   private final Console console;
   private final SkylarkDict params;
 
-  FeedbackContext(Endpoint origin, Endpoint destination, @Nullable String ref, Console console) {
-    this(origin, destination, ref, console, SkylarkDict.empty());
+  FeedbackContext(Feedback feedback, Action currentAction, @Nullable String ref, Console console) {
+    this(feedback, currentAction, ref, console, SkylarkDict.empty());
   }
 
-  private FeedbackContext(Endpoint origin, Endpoint destination, @Nullable String ref,
-      Console console, SkylarkDict params) {
-    this.origin = Preconditions.checkNotNull(origin);
-    this.destination = Preconditions.checkNotNull(destination);
+  private FeedbackContext(
+      Feedback feedback, Action currentAction, @Nullable String ref, Console console,
+      SkylarkDict params) {
+    this.feedback = Preconditions.checkNotNull(feedback);
+    this.currentAction = Preconditions.checkNotNull(currentAction);
     this.ref = ref;
     this.console = Preconditions.checkNotNull(console);
     this.params = Preconditions.checkNotNull(params);
@@ -57,13 +59,29 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
   @SkylarkCallable(name = "origin", doc = "An object representing the origin. Can be used to"
       + " query about the ref or modifying the origin state", structField = true)
   public Endpoint getOrigin() {
-    return origin;
+    return feedback.getTrigger().getEndpoint();
   }
 
   @SkylarkCallable(name = "destination", doc = "An object representing the destination. Can be used"
       + " to query or modify the destination state", structField = true)
   public Endpoint getDestination() {
-    return destination;
+    return feedback.getDestination();
+  }
+
+  @SkylarkCallable(
+      name = "feedback_name",
+      doc = "The name of the Feedback migration calling this action.",
+      structField = true)
+  public String getFeedbackName() {
+    return feedback.getName();
+  }
+
+  @SkylarkCallable(
+      name = "action_name",
+      doc = "The name of the current action.",
+      structField = true)
+  public String getActionName() {
+    return currentAction.getName();
   }
 
   @SkylarkCallable(name = "ref", doc = "A string representation of the entity that triggered the"
@@ -86,6 +104,6 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
 
   @Override
   public FeedbackContext withParams(SkylarkDict params) {
-    return new FeedbackContext(origin, destination, ref, console, params);
+    return new FeedbackContext(feedback, currentAction, ref, console, params);
   }
 }
