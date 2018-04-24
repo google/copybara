@@ -137,3 +137,10 @@ java_library(
         "@io_bazel//src/main/java/com/google/devtools/build/lib:skylark-lang",
     ],
 )
+
+java_library(
+    name = "flogger",
+    exports = [
+        "@flogger//jar",
+    ],
+)

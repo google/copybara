@@ -117,7 +117,7 @@ maven_jar(
 maven_jar(
     name = "flogger",
     artifact = "com.google.flogger:flogger:0.1",
-    sha1 = "019f11bbff810665c778ad5c2ca3b66722fdc4f6",
+    sha1 = "e02b7e9c66921e31b506416ef690c72774e1ed65",
 )
 
 new_http_archive(
