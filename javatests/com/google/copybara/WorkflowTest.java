@@ -1753,6 +1753,29 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testWorkflowDefinedInParentConfig() throws Exception {
+    Workflow<?, ?> wf = ((Workflow<?, ?>) skylark.loadConfig(
+        new MapConfigFile(
+            ImmutableMap.of(
+                "foo.bara.sky", (""
+                    + "def foo_wf(name):\n"
+                    + "  core.workflow(\n"
+                    + "      name = 'default',\n"
+                    + "      authoring = " + authoring + "\n,"
+                    + "      origin = testing.origin(),\n"
+                    + "      destination = testing.destination(),\n"
+                    + ")\n"
+                    + "").getBytes(UTF_8),
+                "copy.bara.sky", (""
+                    + "load('foo', 'foo_wf')\n"
+                    + "foo_wf('default')\n"
+                    + "").getBytes(UTF_8)), "copy.bara.sky"),
+        options.build(), options.general.console()).getMigration("default"));
+
+    assertThat(wf.getName()).isEqualTo("default");
+  }
+
+  @Test
   public void nonReversibleButCheckReverseSet() throws Exception {
     origin
         .singleFileChange(0, "one commit", "foo.txt", "1")

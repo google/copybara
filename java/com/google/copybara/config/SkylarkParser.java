@@ -138,7 +138,8 @@ public class SkylarkParser {
    *     dependency cycles.
    */
   public <T> ConfigWithDependencies<T> getConfigWithTransitiveImports(
-      ConfigFile<T> config, Options options, Console console) throws IOException, ValidationException {
+      ConfigFile<T> config, Options options, Console console)
+      throws IOException, ValidationException {
     CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(config);
     ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
 
@@ -150,7 +151,7 @@ public class SkylarkParser {
     configFilesSupplier.setConfigFiles(allLoadedFiles);
 
     return new ConfigWithDependencies<>(allLoadedFiles, parsedConfig);
-  };
+  }
 
   private static class ConfigFilesSupplier<T>
       implements Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> {
@@ -192,20 +193,19 @@ public class SkylarkParser {
 
     private final LinkedHashSet<String> pending = new LinkedHashSet<>();
     private final Map<String, Environment> loaded = new HashMap<>();
-    private final Options options;
     private final Console console;
     private final ConfigFile<?> mainConfigFile;
-    private final Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier;
     private final EventHandler eventHandler;
+    // Globals shared by all the files loaded
+    private final GlobalFrame moduleGlobals;
 
     private Evaluator(Options options, ConfigFile<?> mainConfigFile,
         Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier,
         Console console) {
-      this.options = Preconditions.checkNotNull(options);
       this.console = Preconditions.checkNotNull(console);
       this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
-      this.configFilesSupplier = Preconditions.checkNotNull(configFilesSupplier);
       eventHandler = new ConsoleEventHandler(this.console);
+      moduleGlobals = createModuleGlobals(eventHandler, options, configFilesSupplier);
     }
 
     private Environment eval(ConfigFile<?> content)
@@ -217,8 +217,8 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      GlobalFrame globals = createGlobals(eventHandler, options, content, mainConfigFile,
-                                    configFilesSupplier);
+      GlobalFrame globals = createGlobalsForConfigFile(eventHandler, content, mainConfigFile,
+          moduleGlobals);
 
       BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
           new InputSourceForConfigFile(content), eventHandler);
@@ -267,13 +267,32 @@ public class SkylarkParser {
   }
 
   /**
-   * Create native global variables from the modules
-   *
-   * <p>The returned object can be reused for different instances of environments.
+   * Create a global enviroment to be used per file loaded. As a side effect it mutates the
+   * module globals with information about the current file loaded.
    */
-  private GlobalFrame createGlobals(
-      EventHandler eventHandler, Options options, ConfigFile<?> currentConfigFile,
-      ConfigFile<?> mainConfigFile,
+  private GlobalFrame createGlobalsForConfigFile(
+      EventHandler eventHandler, ConfigFile<?> currentConfigFile, ConfigFile<?> mainConfigFile,
+      GlobalFrame moduleGlobals) {
+    Environment env = createEnvironment(eventHandler, moduleGlobals,
+        ImmutableMap.of());
+
+    for (Class<?> module : modules) {
+      logger.log(Level.INFO, "Creating variable for " + module.getName());
+      // We mutate the module per file loaded. Not ideal but it is the best we can do.
+      if (LabelsAwareModule.class.isAssignableFrom(module)) {
+        ((LabelsAwareModule) getModuleGlobal(env, module))
+            .setConfigFile(mainConfigFile, currentConfigFile);
+      }
+    }
+    env.mutability().close();
+    return env.getGlobals();
+  }
+
+  /**
+   * Create a global enviroment for one evaluation (will be shared between all the dependant
+   * files loaded).
+   */
+  private GlobalFrame createModuleGlobals(EventHandler eventHandler, Options options,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK,
         ImmutableMap.of());
@@ -281,14 +300,12 @@ public class SkylarkParser {
     for (Class<?> module : modules) {
       logger.atInfo().log("Creating variable for %s", module.getName());
       // Create the module object and associate it with the functions
-      Runtime.registerModuleGlobals(env, module);
+      Runtime.setupModuleGlobals(env, module);
       // Add the options to the module that require them
       if (OptionsAwareModule.class.isAssignableFrom(module)) {
         ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(options);
       }
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
-        ((LabelsAwareModule) getModuleGlobal(env, module))
-            .setConfigFile(mainConfigFile, currentConfigFile);
         ((LabelsAwareModule) getModuleGlobal(env, module))
             .setAllConfigResources(configFilesSupplier);
       }
