@@ -277,7 +277,7 @@ public class SkylarkParser {
         ImmutableMap.of());
 
     for (Class<?> module : modules) {
-      logger.log(Level.INFO, "Creating variable for " + module.getName());
+      logger.atInfo().log("Creating variable for %s", module.getName());
       // We mutate the module per file loaded. Not ideal but it is the best we can do.
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
         ((LabelsAwareModule) getModuleGlobal(env, module))
