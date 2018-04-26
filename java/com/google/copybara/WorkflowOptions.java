@@ -150,7 +150,7 @@ public class WorkflowOptions implements Option {
 
   @Parameter(names = "--default-author",
       description = "Use this author as default instead of the one in the config file."
-          + "Format should be 'Foo Bar <foobar@example.com>")
+          + "Format should be 'Foo Bar <foobar@example.com>'")
   String defaultAuthor = null;
 
   @Nullable

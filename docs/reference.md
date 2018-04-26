@@ -1192,7 +1192,7 @@ Name | Type | Description
 --read-config-from-change | *boolean* | For each imported origin change, load the configuration from that change.
 --nosmart-prune | *boolean* | Disable smart prunning
 --change-request-from-sot-retry | *integer>* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
---default-author | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>
+--default-author | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
