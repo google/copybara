@@ -21,9 +21,11 @@ import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -144,6 +146,20 @@ public class WorkflowOptions implements Option {
           + " three times. The first retry will be delayed 10s, the second one 30s and the third"
           + " one 60s", validateWith = GreaterThanZeroListValidator.class)
   public List<Integer> changeRequestFromSotRetry= Lists.newArrayList();
+
+
+  @Parameter(names = "--default-author",
+      description = "Use this author as default instead of the one in the config file."
+          + "Format should be 'Foo Bar <foobar@example.com>")
+  String defaultAuthor = null;
+
+  @Nullable
+  public Author getDefaultAuthorFlag() throws EvalException {
+    if (defaultAuthor == null) {
+      return null;
+    }
+    return Author.parse(/*location=*/ null, defaultAuthor);
+  }
 
   public boolean isReadConfigFromChange() {
     return readConfigFromChange;

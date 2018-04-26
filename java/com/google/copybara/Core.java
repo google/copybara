@@ -23,6 +23,7 @@ import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
@@ -374,11 +375,18 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
             "%s is not compatible with %s", CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
       }
 
+      Authoring resolvedAuthoring = authoring;
+      Author defaultAuthorFlag = self.workflowOptions.getDefaultAuthorFlag();
+      if (defaultAuthorFlag != null) {
+        resolvedAuthoring = new Authoring(defaultAuthorFlag, authoring.getMode(),
+            authoring.getWhitelist());
+      }
+
       getGlobalMigrations(env).addMigration(location, workflowName, new Workflow<>(
           workflowName,
           origin,
           destination,
-          authoring,
+          resolvedAuthoring,
           sequenceTransform,
           self.workflowOptions.getLastRevision(),
           self.workflowOptions.isInitHistory(),

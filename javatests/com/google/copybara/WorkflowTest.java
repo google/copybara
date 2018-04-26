@@ -41,6 +41,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
@@ -486,6 +487,28 @@ public class WorkflowTest {
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
     assertThat(destination.processed.get(1).getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
+  public void testDefaultAuthorFlag() throws Exception {
+    origin
+        .addSimpleChange(0)
+        .setAuthor(ORIGINAL_AUTHOR)
+        .addSimpleChange(1)
+        .setAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
+        .addSimpleChange(2);
+
+    options.workflowOptions.defaultAuthor = "From Flag <fromflag@google.com>";
+    whiteListAuthoring();
+
+    Workflow workflow = iterativeWorkflow("0");
+
+    workflow.run(workdir, /*sourceRef=*/HEAD);
+    assertThat(destination.processed).hasSize(2);
+
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
+    assertThat(destination.processed.get(1).getAuthor()).isEqualTo(
+        AuthorParser.parse("From Flag <fromflag@google.com>"));
   }
 
   private void whiteListAuthoring() {

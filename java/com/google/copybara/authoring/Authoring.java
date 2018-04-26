@@ -51,7 +51,6 @@ public final class Authoring {
   private final AuthoringMappingMode mode;
   private final ImmutableSet<String> whitelist;
 
-  @VisibleForTesting
   public Authoring(
       Author defaultAuthor, AuthoringMappingMode mode, ImmutableSet<String> whitelist) {
     this.defaultAuthor = Preconditions.checkNotNull(defaultAuthor);
