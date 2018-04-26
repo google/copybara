@@ -302,6 +302,37 @@ public class SkylarkParserTest {
     parser.loadConfig(prepareResolveLabelTest());
   }
 
+  /**
+   * Test that the modules get the correct currentConfigFile when evaluating multi-file configs.
+   */
+  @Test
+  public void testCurrentConfigFileWithLoad() throws Exception {
+    parser.addExtraConfigFile("subfolder/foo.bara.sky",
+        "subfolder_val = mock_labels_aware_module.read_foo()\n");
+    parser.addExtraConfigFile("subfolder/foo", "subfolder_foo");
+    parser.addExtraConfigFile("foo", "main_foo");
+
+    String content = ""
+        + "load('subfolder/foo', 'subfolder_val')\n"
+        + "val = mock_labels_aware_module.read_foo()\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "   name = \"not_used\",\n"
+        + "   origin = mock.origin(\n"
+        + "      url = 'not_used',\n"
+        + "      branch = \"not_used\",\n"
+        + "   ),\n"
+        + "   destination = mock.destination(\n"
+        + "      folder = \"not_used\"\n"
+        + "   ),\n"
+        + "   authoring = authoring.overwrite('Copybara <not_used@google.com>'),\n"
+        + ")\n";
+    String val = parser.eval("val", content);
+    String subfolderVal = parser.eval("subfolder_val", content);
+    assertThat(subfolderVal).isEqualTo("subfolder_foo");
+    assertThat(val).isEqualTo("main_foo");
+  }
+
   @SkylarkModule(
       name = "mock_labels_aware_module",
       doc = "LabelsAwareModule for testing purposes",

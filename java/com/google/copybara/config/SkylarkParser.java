@@ -217,9 +217,6 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      GlobalFrame globals = createGlobalsForConfigFile(eventHandler, content, mainConfigFile,
-          moduleGlobals);
-
       BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
           new InputSourceForConfigFile(content), eventHandler);
 
@@ -228,7 +225,10 @@ public class SkylarkParser {
         imports.put(anImport.getValue(),
             new Extension(eval(content.resolve(anImport.getValue() + BARA_SKY))));
       }
-      Environment env = createEnvironment(eventHandler, globals, imports);
+      Environment env = createEnvironment(
+          eventHandler,
+          createGlobalsForConfigFile(eventHandler, content, mainConfigFile, moduleGlobals),
+          imports);
 
       checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
       pending.remove(content.path());
