@@ -81,8 +81,19 @@ public final class SkylarkTestExecutor {
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
     } catch (IOException | InterruptedException e) {
-      throw new RuntimeException("Should not happen: " + e.getMessage(), e);
+      throw new RuntimeException(
+          String.format("Should not happen: %s.\n %s", e.getMessage(), getLogErrors()), e);
+    } catch (ValidationException ve) {
+      throw new ValidationException(ve, ve.getMessage() + getLogErrors());
     }
+  }
+
+  String getLogErrors() {
+    return "\nLogged errors:\n" +
+        getConsole().getMessages().stream()
+        .filter(m -> m.getType().equals(MessageType.ERROR))
+        .map(m -> m.getText()).reduce((a,b) -> a + "\n" + b)
+        .orElse("No log errors");
   }
 
   /**
@@ -111,15 +122,23 @@ public final class SkylarkTestExecutor {
 
   public Config loadConfig(String filename, String configContent)
       throws IOException, ValidationException {
-    return skylarkParser.loadConfig(
-        createConfigFile(filename, configContent),
-        options.build(), options.general.console());
+    try {
+      return skylarkParser.loadConfig(
+          createConfigFile(filename, configContent),
+          options.build(), options.general.console());
+    } catch (ValidationException ve) {
+      throw new ValidationException(ve, ve.getMessage() + getLogErrors());
+    }
   }
 
   public Config loadConfig(String configContent) throws IOException, ValidationException {
-    return skylarkParser.loadConfig(
-        createConfigFile(DEFAULT_FILE, configContent),
-        options.build(), options.general.console());
+    try {
+      return skylarkParser.loadConfig(
+          createConfigFile(DEFAULT_FILE, configContent),
+          options.build(), options.general.console());
+    } catch (ValidationException ve) {
+      throw new ValidationException(ve, ve.getMessage() + getLogErrors());
+    }
   }
 
   public Map<String, ConfigFile<String>> getConfigMap(String configContent)
