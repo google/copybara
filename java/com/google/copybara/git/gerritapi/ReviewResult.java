@@ -18,23 +18,43 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.collect.ImmutableMap;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.util.Map;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-result */
 @SuppressWarnings("unused")
+@SkylarkModule(
+    name = "gerritapi.ReviewResult",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    doc = "Gerrit review result.",
+    documented = false)
 public class ReviewResult {
-  @Key private Map<String, Short> labels;
+  @Key private Map<String, Integer> labels;
   @Key private boolean ready;
 
-  public SkylarkDict<String, Short> getLabelsForSkylark() {
+  @SkylarkCallable(
+      name = "labels",
+      doc = "Map of labels to values after the review was posted.",
+      structField = true,
+      allowReturnNones = true)
+  public SkylarkDict<String, Integer> getLabelsForSkylark() {
     return SkylarkDict.copyOf(/*environment*/ null, getLabels());
   }
 
-  public ImmutableMap<String, Short> getLabels() {
+  public ImmutableMap<String, Integer> getLabels() {
     return labels == null ? ImmutableMap.of() : ImmutableMap.copyOf(labels);
   }
 
+  @SkylarkCallable(
+    name = "ready",
+    doc =
+        "If true, the change was moved from WIP to ready for review as a result of this action."
+            + " Not set if false.",
+      structField = true
+  )
   public boolean isReady() {
     return ready;
   }

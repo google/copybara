@@ -19,28 +19,38 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.util.Collections;
 import java.util.Map;
 
 /**
  * See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input.
  */
+@SkylarkModule(
+    name = "SetReviewInput",
+    doc =
+        "Input for posting a review to Gerrit. See "
+            + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input",
+    documented = false,
+    category = SkylarkModuleCategory.BUILTIN
+)
 public class SetReviewInput {
 
   @VisibleForTesting
   @Key
-  Map<String, Short> labels;
+  Map<String, Integer> labels;
 
   @SuppressWarnings("unused")
   public SetReviewInput() {
     this.labels = Collections.emptyMap();
   }
 
-  public SetReviewInput(Map<String, Short> labels) {
+  public SetReviewInput(Map<String, Integer> labels) {
     this.labels = labels;
   }
 
-  public static SetReviewInput create(Map<String, Short> labels) {
+  public static SetReviewInput create(Map<String, Integer> labels) {
     return new SetReviewInput(labels);
   }
 }

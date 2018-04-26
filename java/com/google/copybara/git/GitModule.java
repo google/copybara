@@ -44,6 +44,7 @@ import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GithubPROrigin.StateFilter;
+import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.util.GithubUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -55,6 +56,7 @@ import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
+import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import java.net.URI;
@@ -623,6 +625,34 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
             throws EvalException {
           return new GerritTrigger(
               self.options.get(GerritOptions.class), checkNotEmpty(url, "url", location));
+        }
+      };
+
+  @SuppressWarnings("unused")
+  @SkylarkSignature(
+      name = "review_input",
+      returnType = SetReviewInput.class,
+      documented = false,
+      doc = "Creates a review to be posted on Gerrit.",
+      parameters = {
+        @Param(name = "self", type = GitModule.class, doc = "this object"),
+        @Param(
+            name = "labels",
+            type = SkylarkDict.class,
+            doc = "The labels to post.",
+            defaultValue = "{}"),
+      },
+      objectType = GitModule.class,
+      useLocation = true)
+  @UsesFlags(GerritOptions.class)
+  public static final BuiltinFunction CREATE_REVIEW_INPUT =
+      new BuiltinFunction("review_input") {
+        public SetReviewInput invoke(
+            GitModule self, SkylarkDict<String, Integer> labels, Location location)
+            throws EvalException {
+          return SetReviewInput.create(
+              SkylarkDict.castSkylarkDictOrNoneToDict(
+                  labels, String.class, Integer.class, "Gerrit review  labels"));
         }
       };
 

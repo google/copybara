@@ -17,10 +17,13 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,10 +32,9 @@ import com.google.copybara.Core;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
-import com.google.copybara.git.gerritapi.GerritApiTransport;
-import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
@@ -42,9 +44,10 @@ import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,6 +58,7 @@ public class GerritEndpointTest {
 
   private static final ImmutableSet<Class<?>> MODULES =
       ImmutableSet.of(Core.class, TestingModule.class, GitModule.class);
+  public static final String BASE_URL = "https://user:SECRET@copybara-not-real.com";
 
   private SkylarkTestExecutor skylarkTestExecutor;
   private SkylarkParser skylarkParser;
@@ -66,6 +70,7 @@ public class GerritEndpointTest {
   private String url;
   private  GitApiMockHttpTransport gitApiMockHttpTransport;
   private Path repoGitDir;
+  private Path credentialsFile;
 
   @Before
   public void setup() throws Exception {
@@ -80,12 +85,24 @@ public class GerritEndpointTest {
     options.testingOptions.feedbackTrigger = dummyTrigger;
     urlMapper = Files.createTempDirectory("url_mapper");
     options.git = new TestGitOptions(urlMapper, () -> options.general);
-    url = "https://localhost:33333/foo/bar";
+    url = BASE_URL + "/foo/bar";
     gitApiMockHttpTransport = new TestingGitApiHttpTransport();
+    credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, BASE_URL.getBytes(UTF_8));
+    GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
+        getGitEnv(), /*verbose=*/true)
+        .init()
+        .withCredentialHelper("store --file=" + credentialsFile);
     options.gerrit =
         new GerritOptions(() -> options.general, options.git) {
-          protected GerritApiTransport getGerritApiTransport(URI uri) {
-            return new GerritApiTransportImpl(repo(), uri, gitApiMockHttpTransport);
+          @Override
+          protected HttpTransport getHttpTransport() {
+            return gitApiMockHttpTransport;
+          }
+
+          @Override
+          protected GitRepository getCredentialsRepo() throws RepoException {
+            return repo;
           }
         };
 
@@ -363,6 +380,19 @@ public class GerritEndpointTest {
     skylarkTestExecutor.evalFails(config, "Pagination is not supported yet.");
   }
 
+  @Test
+  public void testPostLabel() throws ValidationException {
+    gitApiMockHttpTransport = new TestingGitApiHttpTransport();
+    String config =
+        String.format(
+            "git.gerrit_api(url = '%s')."
+                + "post_review('12345', 'sha1', git.review_input({'Code-Review', 1}))",
+            url);
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.of("labels", ImmutableMap.of("Code-Review", 1));
+    skylarkTestExecutor.verifyFields(config, expectedFieldValues);
+  }
+
   private Feedback notifyChangeToOriginFeedback() throws IOException, ValidationException {
     return feedback(
         ""
@@ -400,9 +430,13 @@ public class GerritEndpointTest {
 
     @Override
     protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
-      if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
+      if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/")) {
         return getChange(url).getBytes(UTF_8);
+      } else if (method.equals("POST")
+          && url.matches(BASE_URL + "/changes/.*/revisions/.*/review")) {
+        return postLabel().getBytes(UTF_8);
       }
+
       throw new IllegalArgumentException(method + " " + url);
     }
 
@@ -412,6 +446,16 @@ public class GerritEndpointTest {
           + "  id : \"" + changeNumberFromRequest(url) + "\","
           + "  status : \"NEW\""
           + "}";
+    }
+
+    String postLabel() {
+      Map<String, Object> result = new LinkedHashMap<>();
+      result.put("labels", ImmutableMap.of("Code-Review",  1));
+      try {
+        return GsonFactory.getDefaultInstance().toPrettyString(result);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

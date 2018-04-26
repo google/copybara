@@ -88,7 +88,9 @@ public class GerritApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_set_review")) {
       return transport.post(
-          "/changes/" + changeId + "/revisions/" + revisionId, setReviewInput, ReviewResult.class);
+          "/changes/" + changeId + "/revisions/" + revisionId + "/review",
+          setReviewInput,
+          ReviewResult.class);
     }
   }
 }

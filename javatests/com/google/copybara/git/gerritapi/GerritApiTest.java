@@ -29,7 +29,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.LowLevelHttpRequest;
-import com.google.api.client.json.JsonGenerator;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
@@ -44,10 +43,9 @@ import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
-import com.google.gson.JsonObject;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -106,7 +104,7 @@ public class GerritApiTest {
           }
         }
         response.setStatusCode(404);
-        response.setContent(("NO URL MATCHED! (Returning 404) REQUEST: " + requestString));
+        response.setContent(("NO BASE_URL MATCHED! (Returning 404) REQUEST: " + requestString));
         return request;
       }
     };
@@ -256,7 +254,7 @@ public class GerritApiTest {
 
     ReviewResult reviewResult =
         gerritApi.setReview(CHANGE_ID, REVISION_ID, SetReviewInput.create(ImmutableMap.of()));
-    assertThat(reviewResult.getLabels()).isEqualTo(ImmutableMap.of("Code-Review", (short)-1));
+    assertThat(reviewResult.getLabels()).isEqualTo(ImmutableMap.of("Code-Review", -1));
   }
 
   private static String mockReviewResult() throws IOException {
@@ -268,7 +266,7 @@ public class GerritApiTest {
   @Test
   public void testSetReviewInputSerialization() {
     SetReviewInput setReviewInput =
-        SetReviewInput.create(ImmutableMap.of("Code Review", (short) 1));
+        SetReviewInput.create(ImmutableMap.of("Code Review", 1));
     Gson gson = new Gson();
     String text = gson.toJson(setReviewInput);
     SetReviewInput deserialized = gson.fromJson(text, SetReviewInput.class);

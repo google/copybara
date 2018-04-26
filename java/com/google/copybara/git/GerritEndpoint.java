@@ -28,6 +28,8 @@ import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.GetChangeInput;
 import com.google.copybara.git.gerritapi.IncludeResult;
+import com.google.copybara.git.gerritapi.ReviewResult;
+import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -97,6 +99,44 @@ public class GerritEndpoint implements Endpoint {
       throws RepoException, ValidationException {
     GerritApi gerritApi = gerritOptions.newGerritApi(url);
     return gerritApi.getChange(changeId, new GetChangeInput(includeResults));
+  }
+
+  @SkylarkCallable(
+      name = "post_review",
+      doc =
+          "Post a label to a Gerrit change for a particular revision. The label will be authored by"
+              + " the user running the tool, or the role account if running in the service.\n",
+      parameters = {
+        @Param(
+            name = "change_id",
+            type = String.class,
+            named = true,
+            doc = "The Gerrit change id."),
+        @Param(
+            name = "revision_id",
+            type = String.class,
+            named = true,
+            doc = "The revision for which the comment will be posted."),
+        @Param(
+            name = "review_input",
+            type = SetReviewInput.class,
+            doc = "The review to post to Gerrit.",
+            named = true),
+      })
+  public ReviewResult postLabel(String changeId, String revisionId, SetReviewInput reviewInput)
+      throws EvalException {
+    try {
+      return doSetReview(changeId, revisionId, reviewInput);
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(/*location=*/ null, e);
+    }
+  }
+
+  private ReviewResult doSetReview(
+      String changeId, String revisionId, SetReviewInput setReviewInput)
+      throws RepoException, ValidationException {
+    GerritApi gerritApi = gerritOptions.newGerritApi(url);
+    return gerritApi.setReview(changeId, revisionId, setReviewInput);
   }
 
   @Override
