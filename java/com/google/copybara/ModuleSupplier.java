@@ -71,6 +71,7 @@ public class ModuleSupplier {
         new GithubDestinationOptions(),
         new GerritOptions(generalOptionsSupplier, gitOptions),
         new GitMirrorOptions(generalOptionsSupplier, gitOptions),
+        new PatchingOptions(generalOptionsSupplier),
         new WorkflowOptions());
   }
 }

@@ -19,12 +19,11 @@ package com.google.copybara.modules;
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.GeneralOptions;
+import com.google.copybara.PatchingOptions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.config.ConfigFile;
-import com.google.copybara.util.DiffUtil;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.InsideGitDirException;
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -37,14 +36,14 @@ class PatchTransformation implements Transformation {
   private final ImmutableList<ConfigFile<?>> patches;
   private final ImmutableList<String> excludedPaths;
   private final boolean reverse;
-  private final GeneralOptions options;
+  private final PatchingOptions options;
 
   private static final int SLASHES_TO_STRIP = 1;
 
 
   PatchTransformation(
       ImmutableList<ConfigFile<?>> patches, ImmutableList<String> excludedPaths,
-      GeneralOptions options, boolean reverse) {
+      PatchingOptions options, boolean reverse) {
     this.patches = patches;
     this.excludedPaths = excludedPaths;
     this.reverse = reverse;
@@ -58,9 +57,8 @@ class PatchTransformation implements Transformation {
       work.getConsole().info(
           String.format("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path()));
       try {
-        DiffUtil.patch(
-            work.getCheckoutDir(), patch.content(), excludedPaths, SLASHES_TO_STRIP,
-            options.isVerbose(), reverse, options.getEnvironment());
+        options.patch(work.getCheckoutDir(), patch.content(), excludedPaths, SLASHES_TO_STRIP,
+            reverse);
       } catch (IOException ioException) {
         work.getConsole().error("Error applying patch: " + ioException.getMessage());
         throw new ValidationException(ioException, "Error applying patch.");

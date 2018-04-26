@@ -22,10 +22,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.GeneralOptions;
-import com.google.copybara.exception.ValidationException;
+import com.google.copybara.PatchingOptions;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -68,13 +68,13 @@ public class PatchTransformationTest {
           + "\\ No newline at end of file";
 
   private OptionsBuilder options;
-  private GeneralOptions general;
+  private PatchingOptions patchingOptions;
   private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
   private ConfigFile<String> patchFile;
   private ConfigFile<String> seriesFile;
-  private ImmutableList<String> excludedFromPatch = ImmutableList.of("excluded/*");
+  private final ImmutableList<String> excludedFromPatch = ImmutableList.of("excluded/*");
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -85,7 +85,7 @@ public class PatchTransformationTest {
     Files.createDirectories(checkoutDir);
     console = new TestingConsole();
     options = new OptionsBuilder().setConsole(console);
-    general = options.build().get(GeneralOptions.class);
+    patchingOptions = options.build().get(PatchingOptions.class);
     skylark = new SkylarkTestExecutor(options, PatchModule.class);
     ImmutableMap<String, byte[]> configFiles =
         ImmutableMap.of(
@@ -94,13 +94,17 @@ public class PatchTransformationTest {
     patchFile = new MapConfigFile(configFiles , "diff.patch");
     seriesFile = new MapConfigFile(configFiles, "series");
     options.setEnvironment(GitTestUtil.getGitEnv());
+    // In preparation to switch to the new default. PatchingOptionsTest has more coverage on this.
+    options.patch.useGitApply = false;
+    options.patch.skipVersionCheck = false;
   }
 
   @Test
   public void applyTransformationTest() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
-        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, general, false);
+        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
+            /*reverse=*/ false);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
@@ -114,7 +118,8 @@ public class PatchTransformationTest {
     Path foo = Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
-        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, general, false);
+        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
+            /*reverse=*/ false);
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot use patch.apply because Copybara temporary directory");
     transform.transform(TransformWorks.of(foo, "testmsg", console));
@@ -124,7 +129,8 @@ public class PatchTransformationTest {
   public void reverseTransformationTest() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "bar\n".getBytes(UTF_8));
     PatchTransformation transform =
-        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, general, true);
+        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
+            /*reverse=*/ true);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "foo\n")
@@ -165,9 +171,10 @@ public class PatchTransformationTest {
   }
 
   @Test
-  public void testDescribe() throws Exception {
+  public void testDescribe() {
     PatchTransformation transform = new PatchTransformation(
-        ImmutableList.of(patchFile, patchFile), excludedFromPatch, general, false);
+        ImmutableList.of(patchFile, patchFile), excludedFromPatch, patchingOptions,
+        /*reverse=*/ false);
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
   }
 }

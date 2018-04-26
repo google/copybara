@@ -17,7 +17,6 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static junit.framework.TestCase.fail;
 
 import com.google.common.base.Strings;
@@ -41,9 +40,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class DiffUtilTest {
 
-  private static final int STRIP_SLASHES = 2;
   private static final boolean VERBOSE = true;
-  private static final ImmutableList<String> NO_EXCLUDED = ImmutableList.of();
 
   // Command requires the working dir as a File, and Jimfs does not support Path.toFile()
   @Rule public final TemporaryFolder tmpFolder = new TemporaryFolder();
@@ -52,14 +49,12 @@ public class DiffUtilTest {
 
   private Path left;
   private Path right;
-  private Path destination;
 
   @Before
   public void setUp() throws Exception {
     Path rootPath = tmpFolder.getRoot().toPath();
     left = createDir(rootPath, "left");
     right = createDir(rootPath, "right");
-    destination = createDir(rootPath, "destination");
   }
 
   @Test
@@ -143,185 +138,6 @@ public class DiffUtilTest {
     assertThat(DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null)).isEmpty();
   }
 
-  @Test
-  public void apply() throws Exception {
-    writeFile(left, "file1.txt", "foo");
-    writeFile(left, "b/file2.txt", "bar");
-    writeFile(right, "file1.txt", "new foo");
-    writeFile(right, "c/file3.txt", "bar");
-    writeFile(destination, "file1.txt", "foo");
-    writeFile(destination, "b/file2.txt", "bar");
-
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
-
-    DiffUtil.patch(destination, diffContents, NO_EXCLUDED, STRIP_SLASHES, VERBOSE,
-        /*reverse=*/ false, /*environment=*/ null);
-
-    assertThatPath(left)
-        .containsFile("file1.txt", "foo")
-        .containsFile("b/file2.txt", "bar")
-        .containsNoMoreFiles();
-    assertThatPath(right)
-        .containsFile("file1.txt", "new foo")
-        .containsFile("c/file3.txt", "bar")
-        .containsNoMoreFiles();
-    assertThatPath(destination)
-        .containsFile("file1.txt", "new foo")
-        .containsFile("c/file3.txt", "bar")
-        .containsNoMoreFiles();
-
-    DiffUtil.patch(destination, diffContents, NO_EXCLUDED, STRIP_SLASHES, VERBOSE,
-        /*reverse=*/ true, /*environment=*/ null);
-    assertThatPath(destination)
-        .containsFile("file1.txt", "foo")
-        .containsFile("b/file2.txt", "bar")
-        .containsNoMoreFiles();
-  }
-
-  @Test
-  public void applyExcluded() throws Exception {
-    writeFile(left, "file1.txt", "foo");
-    writeFile(left, "excluded/file2.txt", "bar");
-    writeFile(left, "other_excluded/file3.txt", "bar");
-    writeFile(right, "file1.txt", "new foo");
-    writeFile(right, "excluded/file2.txt", "new bar");
-    writeFile(right, "other_excluded/file3.txt", "new bar");
-    writeFile(destination, "file1.txt", "foo");
-    writeFile(destination, "excluded/file2.txt", "bar");
-    writeFile(destination, "other_excluded/file3.txt", "bar");
-    ImmutableList<String> excludedPaths = ImmutableList.of("excluded/*", "other_excluded/*");
-
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
-
-    DiffUtil.patch(
-        destination, diffContents, excludedPaths, STRIP_SLASHES, VERBOSE, /*reverse=*/ false,
-        /*environment=*/ null);
-
-    assertThatPath(left)
-        .containsFile("file1.txt", "foo")
-        .containsFile("excluded/file2.txt", "bar")
-        .containsFile("other_excluded/file3.txt", "bar")
-        .containsNoMoreFiles();
-    assertThatPath(right)
-        .containsFile("file1.txt", "new foo")
-        .containsFile("excluded/file2.txt", "new bar")
-        .containsFile("other_excluded/file3.txt", "new bar")
-        .containsNoMoreFiles();
-    assertThatPath(destination)
-        .containsFile("file1.txt", "new foo")
-        .containsFile("excluded/file2.txt", "bar")
-        .containsFile("other_excluded/file3.txt", "bar")
-        .containsNoMoreFiles();
-
-    DiffUtil.patch(
-        destination, diffContents, excludedPaths, STRIP_SLASHES, VERBOSE, /*reverse=*/ true,
-        /*environment=*/ null);
-    assertThatPath(destination)
-        .containsFile("file1.txt", "foo")
-        .containsFile("excluded/file2.txt", "bar")
-        .containsFile("other_excluded/file3.txt", "bar")
-        .containsNoMoreFiles();
-  }
-
-  /**
-   * Tests the situation where the destination is ahead of the baseline, and the diff between the
-   * baseline and the destination can be applied without conflicts to the destination.
-   */
-  @Test
-  public void applyDifferentBaseline() throws Exception {
-    writeFile(left, "file1.txt", "foo\n"
-        + "more foo\n");
-    writeFile(left, "b/file2.txt", "bar");
-    writeFile(left, "file5.txt", "mmm\n"
-        + "zzzzzzzzz\n"
-        + "zzzzzzzzzzzzzz\n"
-        + "zzzzzzzzzzzzzzzzzzzz\n"
-        + "bar\n"
-        + "foo\n"
-        + "bar");
-    writeFile(right, "file1.txt", "new foo\n"
-        + "more foo\n");
-    writeFile(right, "c/file3.txt", "bar");
-    writeFile(right, "file5.txt", "mmm\n"
-        + "zzzzzzzzz\n"
-        + "zzzzzzzzzzzzzz\n"
-        + "zzzzzzzzzzzzzzzzzzzz\n"
-        + "bar\n"
-        + "xxx\n"
-        + "bar");
-    writeFile(destination, "file1.txt", "foo\n"
-        + "more foo\n"
-        + "added foo\n");
-    writeFile(destination, "b/file2.txt", "bar");
-    writeFile(destination, "c/file4.txt", "bar");
-    writeFile(destination, "file5.txt", "vvv\n"
-        + "zzzzzzzzz\n"
-        + "zzzzzzzzzzzzzz\n"
-        + "zzzzzzzzzzzzzzzzzzzz\n"
-        + "bar\n"
-        + "foo\n"
-        + "bar");
-
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
-
-    DiffUtil.patch(
-        destination, diffContents, NO_EXCLUDED, STRIP_SLASHES, VERBOSE, /*reverse=*/ false,
-        /*environment=*/ null);
-
-    assertThatPath(destination)
-        .containsFile("file1.txt", "new foo\n"
-            + "more foo\n"
-            + "added foo\n")
-        .containsFile("c/file3.txt", "bar")
-        .containsFile("c/file4.txt", "bar")
-        .containsFile("file5.txt", "vvv\n"
-            + "zzzzzzzzz\n"
-            + "zzzzzzzzzzzzzz\n"
-            + "zzzzzzzzzzzzzzzzzzzz\n"
-            + "bar\n"
-            + "xxx\n"
-            + "bar")
-        .containsNoMoreFiles();
-  }
-
-  @Test
-  public void applyEmptyDiff() throws Exception {
-    writeFile(left, "file1.txt", "foo");
-    writeFile(left, "b/file2.txt", "bar");
-    DiffUtil.patch(
-        left, /*empty diff*/ new byte[]{}, NO_EXCLUDED, STRIP_SLASHES, VERBOSE, /*reverse=*/ false,
-        /*environment=*/ null);
-
-    assertThatPath(left)
-        .containsFile("file1.txt", "foo")
-        .containsFile("b/file2.txt", "bar")
-        .containsNoMoreFiles();
-  }
-
-  @Test
-  public void applyFails() throws Exception {
-    writeFile(left, "file1.txt", "foo");
-    writeFile(right, "file1.txt", "new foo\n");
-    writeFile(destination, "file1.txt", "foo\nmore foo\n");
-
-    thrown.expect(IOException.class);
-    thrown.expectMessage("error: patch failed: file1.txt:1\n"
-        + "error: file1.txt: patch does not apply");
-
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
-    DiffUtil.patch(
-        destination, diffContents, NO_EXCLUDED, STRIP_SLASHES, VERBOSE, /*reverse=*/ false,
-        /*environment=*/ null);
-  }
-
-  @Test
-  public void negativeSlashesFail() throws Exception {
-    thrown.expect(IllegalArgumentException.class);
-    thrown.expectMessage("stripSlashes must be >= 0");
-    DiffUtil.patch(
-        destination, new byte[1], NO_EXCLUDED, /*stripSlashes=*/ -1, VERBOSE, /*reverse=*/ false,
-        /*environment=*/ null);
-  }
 
   private Path createDir(Path parent, String name) throws IOException {
     Path path = parent.resolve(name);

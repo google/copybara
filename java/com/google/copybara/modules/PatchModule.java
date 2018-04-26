@@ -22,6 +22,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.PatchingOptions;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
@@ -51,7 +52,7 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
       Splitter.onPattern("\\r?\\n").omitEmptyStrings().trimResults();
 
   private ConfigFile<?> configFile;
-  private GeneralOptions generalOptions;
+  private PatchingOptions patchingOptions;
 
   @Override
   public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
@@ -74,7 +75,8 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
               type = SkylarkList.class, generic1 = String.class, defaultValue = "[]",
               doc = "The list of paths to exclude from each of the patches. Each of the paths will "
                   + "be excluded from all the patches. Note that these are not workdir paths, but "
-                  + "paths relative to the patch itself."),
+                  + "paths relative to the patch itself. If not empty, the patch will be applied "
+                  + "using 'git apply' instead of GNU Patch."),
           @Param(name = "series", named = true, noneable = true,
               type = String.class, defaultValue = "None", positional = false,
               doc = "The config file that contains a list of patches to apply. "
@@ -120,7 +122,7 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
       return new PatchTransformation(
           builder.build(),
           ImmutableList.copyOf(Type.STRING_LIST.convert(excludedPaths, "excludedPaths")),
-          self.generalOptions, /*reverse=*/ false);
+          self.patchingOptions, /*reverse=*/ false);
     }
   };
 
@@ -134,6 +136,6 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
 
   @Override
   public void setOptions(Options options) {
-    generalOptions = options.get(GeneralOptions.class);
+    patchingOptions = options.get(PatchingOptions.class);
   }
 }

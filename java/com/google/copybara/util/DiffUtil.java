@@ -232,49 +232,6 @@ public class DiffUtil {
   }
 
   /**
-   * Applies the diff into a directory tree.
-   *
-   * <p>{@code diffContents} is the result of invoking {@link DiffUtil#diff}.
-   */
-  public static void patch(
-      Path rootDir, byte[] diffContents, ImmutableList<String> excludedPaths, int stripSlashes,
-      boolean verbose, boolean reverse, Map<String, String> environment)
-      throws IOException, InsideGitDirException {
-    if (diffContents.length == 0) {
-      return;
-    }
-    Preconditions.checkArgument(stripSlashes >= 0, "stripSlashes must be >= 0.");
-    checkNotInsideGitRepo(rootDir, verbose, environment);
-    ImmutableList.Builder<String> params = ImmutableList.builder();
-
-    // Show verbose output unconditionally since it is helpful for debugging issues with patches.
-    params.add(resolveGitBinary(environment),
-        "apply", "-v","--stat","--apply", "-p" + stripSlashes);
-    for (String excludedPath : excludedPaths) {
-      params.add("--exclude", excludedPath);
-    }
-    if (reverse) {
-      params.add("-R");
-    }
-    params.add("-");
-    Command cmd =
-        new Command(params.build().toArray(new String[0]), environment, rootDir.toFile());
-    try {
-      new CommandRunner(cmd)
-          .withVerbose(verbose)
-          .withInput(diffContents)
-          .execute();
-    } catch (BadExitStatusWithOutputException e) {
-      throw new IOException(
-          "Error executing 'git apply': " + e.getMessage()
-              + ". Stderr: \n" + e.getOutput().getStderr(),
-          e);
-    } catch (CommandException e) {
-      throw new IOException("Error executing 'git apply'", e);
-    }
-  }
-
-  /**
    * Given a git compatible diff, returns the diff colorized if the console allows it.
    */
   public static String colorize(Console console, String diffText) {
@@ -297,7 +254,7 @@ public class DiffUtil {
    * their configurations. Unfortunately this fails for the default output directory (inside
    * $HOME).
    */
-  private static void checkNotInsideGitRepo(Path path, boolean verbose, Map<String, String> env)
+  public static void checkNotInsideGitRepo(Path path, boolean verbose, Map<String, String> env)
       throws IOException, InsideGitDirException {
     try {
       Command cmd = new Command(new String[]{
