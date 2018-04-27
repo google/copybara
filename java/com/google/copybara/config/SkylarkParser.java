@@ -37,6 +37,7 @@ import com.google.devtools.build.lib.syntax.Environment.GlobalFrame;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
+import com.google.devtools.build.lib.syntax.SkylarkMutable;
 import com.google.devtools.build.lib.syntax.SkylarkSemantics;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
 import com.google.devtools.build.lib.syntax.StringLiteral;
@@ -233,7 +234,29 @@ public class SkylarkParser {
       checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
       pending.remove(content.path());
       loaded.put(content.path(), env);
+      freezeGlobals(env);
       return env;
+    }
+
+    /**
+     * Freeze globals so that users of these libraries cannot modify them. For example something
+     * like this would be forbidden:
+     *
+     * <code>
+     *   foo = [1, 2, 3]
+     *   def dynamic_transform(ctx):
+     *      foo += [4, 5]
+     * </code>
+     *
+     * Note that this is less strict than {@code env.mutability().freeze()}. Since that would
+     * prevent us from even calling dynamic_transformation once the config is loaded.
+     */
+    private void freezeGlobals(Environment env) {
+      for (Object var : env.getGlobals().getBindings().values()) {
+        if (var instanceof SkylarkMutable) {
+          ((SkylarkMutable) var).mutability().freeze();
+        }
+      }
     }
 
     private ValidationException throwCycleError(String cycleElement)

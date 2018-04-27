@@ -171,6 +171,15 @@ public final class SkylarkTestExecutor {
     }
   }
 
+  public void evalProgramFails(String config, String expectedMsg) {
+    try {
+      eval("not_used", config);
+      throw new RuntimeException("Eval should fail: " + config);
+    } catch (ValidationException e) {
+      getConsole().assertThat().onceInLog(MessageType.ERROR, "(.|\n)*" + expectedMsg + "(.|\n)*");
+    }
+  }
+
   private TestingConsole getConsole() {
     return (TestingConsole) options.build().get(GeneralOptions.class).console();
   }

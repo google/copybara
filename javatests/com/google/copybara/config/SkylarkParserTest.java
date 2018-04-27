@@ -24,14 +24,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Destination;
 import com.google.copybara.Origin;
-import com.google.copybara.exception.CannotResolveLabel;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.Workflow;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.CannotResolveLabel;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.transform.Sequence;
@@ -63,6 +63,17 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SkylarkParserTest {
 
+  public static final String NON_IMPORTANT_WORKFLOW = "core.workflow(\n"
+      + "   name = \"not_used\",\n"
+      + "   origin = mock.origin(\n"
+      + "      url = 'not_used',\n"
+      + "      branch = \"not_used\",\n"
+      + "   ),\n"
+      + "   destination = mock.destination(\n"
+      + "      folder = \"not_used\"\n"
+      + "   ),\n"
+      + "   authoring = authoring.overwrite('Copybara <not_used@google.com>'),\n"
+      + ")\n";
   @Rule public final ExpectedException thrown = ExpectedException.none();
 
   private SkylarkTestExecutor parser;
@@ -316,21 +327,25 @@ public class SkylarkParserTest {
         + "load('subfolder/foo', 'subfolder_val')\n"
         + "val = mock_labels_aware_module.read_foo()\n"
         + "\n"
-        + "core.workflow(\n"
-        + "   name = \"not_used\",\n"
-        + "   origin = mock.origin(\n"
-        + "      url = 'not_used',\n"
-        + "      branch = \"not_used\",\n"
-        + "   ),\n"
-        + "   destination = mock.destination(\n"
-        + "      folder = \"not_used\"\n"
-        + "   ),\n"
-        + "   authoring = authoring.overwrite('Copybara <not_used@google.com>'),\n"
-        + ")\n";
+        + NON_IMPORTANT_WORKFLOW;
     String val = parser.eval("val", content);
     String subfolderVal = parser.eval("subfolder_val", content);
     assertThat(subfolderVal).isEqualTo("subfolder_foo");
     assertThat(val).isEqualTo("main_foo");
+  }
+
+  @Test
+  public void testParentEnvInmutable() throws Exception {
+    parser.addExtraConfigFile("foo.bara.sky", "my_list = [1, 2, 3]\n");
+
+    String content = ""
+        + "load('foo', 'my_list')\n"
+        + "other = my_list\n"
+        + "other += [4, 5]\n"
+        + "\n"
+        + NON_IMPORTANT_WORKFLOW
+        + "";
+    parser.evalProgramFails(content, ".*trying to mutate a frozen object.*");
   }
 
   @SkylarkModule(
