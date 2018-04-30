@@ -1903,6 +1903,34 @@ public class WorkflowTest {
         .containsExactly("0 created destination/1 example2",
             "0 created destination/1 other42",
             "constant");
+  }
+
+  @Test
+  public void testOnFinishHookDoesNotReturnResult() throws Exception {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+
+    String config = ""
+        + "def _test_impl(ctx):\n"
+        + "  return 'foo'\n"
+        + "\n"
+        + "def test(name, number = 2):\n"
+        + "  return core.dynamic_feedback(impl = _test_impl,\n"
+        + "                               params = { 'name': name, 'number': number})\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "  name = 'default',\n"
+        + "  origin = testing.origin(),\n"
+        + "  destination = testing.destination(),\n"
+        + "  transformations = [],\n"
+        + "  authoring = " + authoring + ",\n"
+        + "  after_migration = [test('example'), test('other', 42), other]"
+        + ")\n";
+    try {
+      loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage()).contains("Error loading config file");
+    }
 
   }
 

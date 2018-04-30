@@ -18,16 +18,19 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -41,7 +44,10 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class FeedbackTest {
+  private static final ImmutableSet<Class<?>> MODULES =
+      ImmutableSet.of(Core.class, TestingModule.class);
 
+  private SkylarkTestExecutor skylarkTestExecutor;
   private SkylarkParser skylark;
   private TestingConsole console;
   private OptionsBuilder options;
@@ -57,7 +63,8 @@ public class FeedbackTest {
     options.setConsole(console);
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
-    skylark = new SkylarkParser(ImmutableSet.of(Core.class, TestingModule.class));
+    skylarkTestExecutor = new SkylarkTestExecutor(options, MODULES.toArray(new Class<?>[0]));
+    skylark = new SkylarkParser(MODULES);
   }
 
   @Test
@@ -86,6 +93,87 @@ public class FeedbackTest {
     console.assertThat().onceInLog(MessageType.INFO, "Ref: None");
   }
 
+  @Test
+  public void testActionsMustReturnResult() throws IOException, ValidationException, RepoException {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action(ctx):\n"
+            + "    ctx.console.info('Bad action')\n"
+            + "\n"
+    );
+    try {
+      feedback.run(workdir, /*sourceRef*/ null);
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage())
+          .contains("Feedback actions must return a result via built-in functions: success(), "
+              + "error(), noop() return, but 'test_action' returned: None");
+    }
+
+  }
+
+  @Test
+  public void testSuccessResult() throws ValidationException, IOException, RepoException {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action(ctx):\n"
+            + "    result = ctx.success()\n"
+            + "    ctx.console.info('Result: ' + str(result))\n"
+            + "    return result\n"
+            + "\n"
+    );
+    feedback.run(workdir, /*sourceRef*/ null);
+    console.assertThat()
+        .equalsNext(MessageType.INFO, "Result: ActionResult{result=SUCCESS, msg=null}");
+  }
+
+  @Test
+  public void testNoopResult() throws ValidationException, IOException, RepoException {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action(ctx):\n"
+            + "    result = ctx.noop('No effect')\n"
+            + "    ctx.console.info('Result: ' + str(result))\n"
+            + "    return result\n"
+            + "\n"
+    );
+    feedback.run(workdir, /*sourceRef*/ null);
+    console.assertThat()
+        .equalsNext(MessageType.INFO, "Result: ActionResult{result=NO_OP, msg=No effect}");
+  }
+
+  @Test
+  public void testErrorResult() throws ValidationException, IOException, RepoException {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action(ctx):\n"
+            + "    result = ctx.error('This is an error')\n"
+            + "    ctx.console.info('Result: ' + str(result))\n"
+            + "    return result\n"
+            + "\n"
+    );
+    feedback.run(workdir, /*sourceRef*/ null);
+    console.assertThat()
+        .equalsNext(MessageType.INFO, "Result: ActionResult{result=ERROR, msg=This is an error}");
+  }
+
+  @Test
+  public void testErrorResultEmptyMsg() throws Exception {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action(ctx):\n"
+            + "    result = ctx.error()\n"
+            + "\n"
+    );
+    try {
+      feedback.run(workdir, /*sourceRef*/ null);
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage())
+          .matches(".*parameter 'msg' has no default value, in method.*error\\(\\).*");
+    }
+  }
+
   private Feedback loggingFeedback() throws IOException, ValidationException {
     return feedback(
         ""
@@ -96,6 +184,7 @@ public class FeedbackTest {
             + "    ctx.console.info('Ref: ' + ref)\n"
             + "    ctx.console.info('Feedback name: ' + ctx.feedback_name)\n"
             + "    ctx.console.info('Action name: ' + ctx.action_name)\n"
+            + "    return ctx.success()\n"
             + "\n"
     );
   }

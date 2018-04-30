@@ -152,6 +152,7 @@ public class GithubEndpointTest {
                 + "        description = 'Observed ' + m,\n"
                 + "      )\n"
                 + "      ctx.console.info('Created status')\n"
+                + "    return ctx.success()\n"
                 + "\n");
     feedback.run(workdir, /*sourceRef*/ "e597746de9c1704e648ddc3ffa0d2096b146d600");
     console.assertThat().timesInLog(2, MessageType.INFO, "Created status");

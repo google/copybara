@@ -19,13 +19,12 @@ package com.google.copybara.feedback;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.SkylarkContext;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 
 /**
@@ -49,10 +48,7 @@ public class SkylarkAction implements Action {
       //noinspection unchecked
       Object result = function.call(ImmutableList.of(context.withParams(params)), null,
           /*ast*/null, env);
-      if (!(result instanceof NoneType)) {
-        throw new ValidationException("Finish hook functions should not return"
-            + " anything, but '" + function.getName() + "' returned:" + result);
-      }
+      context.validateResult(result, function);
     } catch (EvalException e) {
       String error =
           String.format(

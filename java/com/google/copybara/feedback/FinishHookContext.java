@@ -33,7 +33,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 /**
  * Gives access to the feedback migration information and utilities.
  */
-@SkylarkModule(name = "feedback_context",
+@SkylarkModule(name = "feedback.finish_hook_context",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Gives access to the feedback migration information and utilities.",
     documented = false)
@@ -107,7 +107,7 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
                                  resolvedRevision);
   }
 
-  @SkylarkModule(name = "revision_context",
+  @SkylarkModule(name = "feedback.revision_context",
       category = SkylarkModuleCategory.BUILTIN,
       doc = "Information about the revision request/resolved for the migration",
       documented = false)

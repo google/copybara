@@ -16,13 +16,19 @@
 
 package com.google.copybara.feedback;
 
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.copybara.Endpoint;
 import com.google.copybara.SkylarkContext;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import javax.annotation.Nullable;
 
@@ -30,7 +36,7 @@ import javax.annotation.Nullable;
  * Gives access to the feedback migration information and utilities.
  */
 @SuppressWarnings("unused")
-@SkylarkModule(name = "feedback_context",
+@SkylarkModule(name = "feedback.context",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Gives access to the feedback migration information and utilities.",
     documented = false)
@@ -105,5 +111,47 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
   @Override
   public FeedbackContext withParams(SkylarkDict params) {
     return new FeedbackContext(feedback, currentAction, ref, console, params);
+  }
+
+  @Override
+  public void validateResult(Object result, BaseFunction function) throws ValidationException {
+    checkCondition(
+        result != null,
+        "Feedback actions must return a result via built-in functions: success(), "
+            + "error(), noop() return, but '%s' returned: None", function.getName());
+    checkCondition(result instanceof ActionResult,
+        "Feedback actions must return a result via built-in functions: success(), "
+            + "error(), noop() return, but '%s' returned: %s", function.getName(), result);
+    // TODO(danielromero): Populate effects
+  }
+
+  @SkylarkCallable(name = "success", doc = "Returns a successful action result.")
+  public ActionResult success() {
+    return ActionResult.success();
+  }
+
+  @SkylarkCallable(name = "noop", doc = "Returns a no op action result with an optional message.",
+      parameters = {
+          @Param(
+              name = "msg",
+              type = String.class,
+              doc = "The no op message",
+              defaultValue = "None",
+              noneable = true),
+      })
+  public ActionResult noop(Object noopMsg) {
+    return ActionResult.noop(convertFromNoneable(noopMsg, /*defaultMsg*/ null));
+  }
+
+  @SkylarkCallable(name = "error", doc = "Returns an error action result.",
+      parameters = {
+          @Param(
+              name = "msg",
+              type = String.class,
+              doc = "The error message"
+          ),
+      })
+  public ActionResult noop(String errorMsg) {
+    return ActionResult.error(errorMsg);
   }
 }
