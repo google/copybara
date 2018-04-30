@@ -288,19 +288,20 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     } finally {
       eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
       if (callPerMigrationHook) {
-        FinishHookContext finishHookContext =
-            new FinishHookContext(
-                getOriginReader().getFeedbackEndPoint(),
-                getDestinationWriter().getFeedbackEndPoint(),
-                effects,
-                resolvedRef,
-                new SkylarkConsole(getConsole()));
+        SkylarkConsole console = new SkylarkConsole(getConsole());
         try (ProfilerTask ignored = profiler().start("finish_hooks")) {
 
           for (Action action : workflow.getAfterMigrationActions()) {
             try (ProfilerTask ignored2 = profiler().start(action.getName())) {
               logger.log(Level.INFO, "Running after migration hook: " + action.getName());
-              action.run(finishHookContext);
+              action.run(
+                  new FinishHookContext(
+                      action,
+                      getOriginReader().getFeedbackEndPoint(),
+                      getDestinationWriter().getFeedbackEndPoint(),
+                      effects,
+                      resolvedRef,
+                      console));
             }
           }
         }

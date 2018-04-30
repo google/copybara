@@ -28,7 +28,6 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import javax.annotation.Nullable;
 
@@ -114,14 +113,28 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
   }
 
   @Override
-  public void validateResult(Object result, BaseFunction function) throws ValidationException {
+  public void validateResult(Object result) throws ValidationException {
     checkCondition(
         result != null,
         "Feedback actions must return a result via built-in functions: success(), "
-            + "error(), noop() return, but '%s' returned: None", function.getName());
+            + "error(), noop() return, but '%s' returned: None", currentAction.getName());
     checkCondition(result instanceof ActionResult,
         "Feedback actions must return a result via built-in functions: success(), "
-            + "error(), noop() return, but '%s' returned: %s", function.getName(), result);
+            + "error(), noop() return, but '%s' returned: %s", currentAction.getName(), result);
+    ActionResult actionResult = (ActionResult) result;
+    switch (actionResult.getResult()) {
+      case ERROR:
+        console.errorFmt(
+            "Action '%s' returned error: %s", currentAction.getName(), actionResult.getMsg());
+        break;
+      case NO_OP:
+        console.infoFmt(
+            "Action '%s' returned noop: %s", currentAction.getName(), actionResult.getMsg());
+        break;
+      case SUCCESS:
+        console.infoFmt("Action '%s' returned success", currentAction.getName());
+        break;
+    }
     // TODO(danielromero): Populate effects
   }
 

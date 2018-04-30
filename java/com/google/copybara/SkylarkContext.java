@@ -16,11 +16,7 @@
 
 package com.google.copybara;
 
-import static com.google.copybara.exception.ValidationException.checkCondition;
-
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.BaseFunction;
-import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 
 /**
@@ -36,9 +32,5 @@ public interface SkylarkContext<T> {
   /**
    * Validates the result returned by an {@link com.google.copybara.feedback.Action}.
    */
-  default void validateResult(Object result, BaseFunction function) throws ValidationException {
-      checkCondition(
-          result == null || result.equals(Runtime.NONE),
-          "Function '%s' cannot return any result but returned: %s", function.getName(), result);
-  }
+  void validateResult(Object result) throws ValidationException;
 }

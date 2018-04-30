@@ -16,6 +16,8 @@
 
 package com.google.copybara.feedback;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -23,10 +25,12 @@ import com.google.copybara.DestinationEffect;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Revision;
 import com.google.copybara.SkylarkContext;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 
@@ -39,6 +43,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
     documented = false)
 public class FinishHookContext implements SkylarkContext<FinishHookContext> {
 
+  private final Action action;
   private final Endpoint origin;
   private final Endpoint destination;
   private final SkylarkRevision resolvedRevision;
@@ -46,16 +51,18 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
   private final SkylarkDict params;
   private ImmutableList<DestinationEffect> destinationEffects;
 
-  public FinishHookContext(Endpoint origin, Endpoint destination,
+  public FinishHookContext(Action action, Endpoint origin, Endpoint destination,
       ImmutableList<DestinationEffect> destinationEffects,
       Revision resolvedRevision, SkylarkConsole console) {
-    this(origin, destination, destinationEffects, console, SkylarkDict.empty(),
+    this(action, origin, destination, destinationEffects, console, SkylarkDict.empty(),
         new SkylarkRevision(resolvedRevision));
   }
 
-  private FinishHookContext(Endpoint origin, Endpoint destination,
+  private FinishHookContext(Action action, Endpoint origin,
+      Endpoint destination,
       ImmutableList<DestinationEffect> destinationEffects,
       SkylarkConsole console, SkylarkDict params, SkylarkRevision resolvedRevision) {
+    this.action = Preconditions.checkNotNull(action);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.destinationEffects = Preconditions.checkNotNull(destinationEffects);
@@ -103,8 +110,15 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
 
   @Override
   public FinishHookContext withParams(SkylarkDict<?, ?> params) {
-    return new FinishHookContext(origin, destination, destinationEffects, console, params,
-                                 resolvedRevision);
+    return new FinishHookContext(
+        action, origin, destination, destinationEffects, console, params, resolvedRevision);
+  }
+
+  @Override
+  public void validateResult(Object result) throws ValidationException {
+    checkCondition(
+        result == null || result.equals(Runtime.NONE),
+        "Finish hook '%s' cannot return any result but returned: %s", action.getName(), result);
   }
 
   @SkylarkModule(name = "feedback.revision_context",

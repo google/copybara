@@ -30,7 +30,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -44,10 +43,7 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class FeedbackTest {
-  private static final ImmutableSet<Class<?>> MODULES =
-      ImmutableSet.of(Core.class, TestingModule.class);
 
-  private SkylarkTestExecutor skylarkTestExecutor;
   private SkylarkParser skylark;
   private TestingConsole console;
   private OptionsBuilder options;
@@ -63,8 +59,7 @@ public class FeedbackTest {
     options.setConsole(console);
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
-    skylarkTestExecutor = new SkylarkTestExecutor(options, MODULES.toArray(new Class<?>[0]));
-    skylark = new SkylarkParser(MODULES);
+    skylark = new SkylarkParser(ImmutableSet.of(Core.class, TestingModule.class));
   }
 
   @Test
@@ -117,14 +112,11 @@ public class FeedbackTest {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
-            + "    result = ctx.success()\n"
-            + "    ctx.console.info('Result: ' + str(result))\n"
-            + "    return result\n"
+            + "    return ctx.success()\n"
             + "\n"
     );
     feedback.run(workdir, /*sourceRef*/ null);
-    console.assertThat()
-        .equalsNext(MessageType.INFO, "Result: ActionResult{result=SUCCESS, msg=null}");
+    console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
   }
 
   @Test
@@ -132,14 +124,13 @@ public class FeedbackTest {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
-            + "    result = ctx.noop('No effect')\n"
-            + "    ctx.console.info('Result: ' + str(result))\n"
-            + "    return result\n"
+            + "    return ctx.noop('No effect')\n"
             + "\n"
     );
     feedback.run(workdir, /*sourceRef*/ null);
-    console.assertThat()
-        .equalsNext(MessageType.INFO, "Result: ActionResult{result=NO_OP, msg=No effect}");
+    console
+        .assertThat()
+        .equalsNext(MessageType.INFO, "Action 'test_action' returned noop: No effect");
   }
 
   @Test
@@ -147,14 +138,16 @@ public class FeedbackTest {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
-            + "    result = ctx.error('This is an error')\n"
-            + "    ctx.console.info('Result: ' + str(result))\n"
-            + "    return result\n"
+            + "    return ctx.error('This is an error')\n"
             + "\n"
     );
-    feedback.run(workdir, /*sourceRef*/ null);
-    console.assertThat()
-        .equalsNext(MessageType.INFO, "Result: ActionResult{result=ERROR, msg=This is an error}");
+    try {
+      feedback.run(workdir, /*sourceRef*/ null);
+      fail();
+    } catch (ValidationException expected) {
+      console.assertThat()
+          .equalsNext(MessageType.ERROR, "Action 'test_action' returned error: This is an error");
+    }
   }
 
   @Test

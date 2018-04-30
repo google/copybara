@@ -49,7 +49,7 @@ public class SkylarkAction implements Action {
       //noinspection unchecked
       Object result = function.call(ImmutableList.of(context.withParams(params)), null,
           /*ast*/null, env.get());
-      context.validateResult(result, function);
+      context.validateResult(result);
     } catch (EvalException e) {
       String error =
           String.format(

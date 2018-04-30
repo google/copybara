@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -512,5 +514,12 @@ public final class TransformWork implements SkylarkContext {
     labels.put(COPYBARA_CURRENT_MESSAGE_TITLE,
         ImmutableList.of(Change.extractFirstLine(metadata.getMessage())));
     return labels;
+  }
+
+  @Override
+  public void validateResult(Object result) throws ValidationException {
+    checkCondition(
+        result == null || result.equals(Runtime.NONE),
+        "Transform work cannot return any result but returned: %s", result);
   }
 }
