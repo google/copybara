@@ -93,6 +93,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   private WorkflowOptions workflowOptions;
   private ConfigFile<?> mainConfigFile;
   private Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
+  private Supplier<Environment> dynamicEnvironment;
 
   @Override
   public void setOptions(Options options) {
@@ -348,7 +349,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
 
       Sequence sequenceTransform = Sequence.fromConfig(self.generalOptions.profiler(),
           self.workflowOptions.joinTransformations(),
-          transformations, "transformations", env);
+          transformations, "transformations", self.dynamicEnvironment);
       Transformation reverseTransform = null;
       if (!self.generalOptions.isDisableReversibleCheck()
           && convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
@@ -401,7 +402,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
           self.allConfigFiles,
           self.workflowOptions.dryRunMode || dryRunMode,
           checkLastRevStateField || self.workflowOptions.checkLastRevState,
-          convertFeedbackActions(afterMigrations, location, env),
+          convertFeedbackActions(afterMigrations, location, self.dynamicEnvironment),
           changeIdentity,
           setRevId,
           smartPrune));
@@ -880,7 +881,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   self.workflowOptions.joinTransformations(),
                   transformations,
                   "transformations",
-                  env);
+                  self.dynamicEnvironment);
           SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
           Boolean updatedIgnoreNoop = convertFromNoneable(ignoreNoop, null);
           if (reverseList == null) {
@@ -900,7 +901,7 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
                   self.workflowOptions.joinTransformations(),
                   reverseList,
                   "reversal",
-                  env);
+                  self.dynamicEnvironment);
           return new ExplicitReversal(
               forward, reverse, updatedIgnoreNoop);
         }
@@ -942,7 +943,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     @SuppressWarnings("unused")
     public Transformation invoke(Core self, BaseFunction impl, SkylarkDict<?, ?> params,
         Environment env) {
-      return new SkylarkTransformation(impl, SkylarkDict.<Object, Object>copyOf(env, params), env);
+      return new SkylarkTransformation(impl, SkylarkDict.<Object, Object>copyOf(env, params),
+          self.dynamicEnvironment);
     }
   };
 
@@ -966,7 +968,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     @SuppressWarnings("unused")
     public Action invoke(Core self, BaseFunction impl, SkylarkDict<?, ?> params,
         Environment env) {
-      return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params), env);
+      return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params),
+          self.dynamicEnvironment);
     }
   };
 
@@ -1045,7 +1048,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
             Location location,
             Environment env)
             throws EvalException {
-          ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, location, env);
+          ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, location,
+              self.dynamicEnvironment);
           getGlobalMigrations(env)
               .addMigration(
                   location,
@@ -1082,7 +1086,8 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   };
 
   private static ImmutableList<Action> convertFeedbackActions(
-      SkylarkList<?> feedbackActions, Location location, Environment env) throws EvalException {
+      SkylarkList<?> feedbackActions, Location location, Supplier<Environment> env)
+      throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
       if (action instanceof BaseFunction) {
@@ -1107,5 +1112,10 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
   public void setAllConfigResources(
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles) {
     this.allConfigFiles = allConfigFiles;
+  }
+
+  @Override
+  public void setDynamicEnvironment(Supplier<Environment> dynamicEnvironment) {
+    this.dynamicEnvironment = dynamicEnvironment;
   }
 }

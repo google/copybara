@@ -34,6 +34,7 @@ import com.google.devtools.build.lib.syntax.SkylarkType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -152,7 +153,7 @@ public class Sequence implements Transformation {
    * @param env skylark environment for user defined transformations
    */
   public static Sequence fromConfig(Profiler profiler, boolean joinTransformations,
-      SkylarkList<?> elements, String description, Environment env)
+      SkylarkList<?> elements, String description, Supplier<Environment> env)
       throws EvalException {
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
     for (Object element : elements) {
@@ -161,8 +162,8 @@ public class Sequence implements Transformation {
     return new Sequence(profiler, joinTransformations, transformations.build());
   }
 
-  private static Transformation convertToTransformation(String description, Environment env,
-      Object element) throws EvalException {
+  private static Transformation convertToTransformation(String description,
+      Supplier<Environment> env, Object element) throws EvalException {
     if (element instanceof BaseFunction) {
       return new SkylarkTransformation((BaseFunction) element, SkylarkDict.empty(), env);
     }

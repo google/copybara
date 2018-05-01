@@ -28,6 +28,7 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 /**
  * A transformation that uses a Skylark function to transform the code.
@@ -35,13 +36,14 @@ import java.io.IOException;
 public class SkylarkTransformation implements Transformation {
 
   private final BaseFunction function;
-  private SkylarkDict params;
-  private final Environment env;
+  private final SkylarkDict params;
+  private final Supplier<Environment> dynamicEnv;
 
-  public SkylarkTransformation(BaseFunction function, SkylarkDict params, Environment env) {
+  public SkylarkTransformation(BaseFunction function, SkylarkDict params,
+      Supplier<Environment> dynamicEnv) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
-    this.env = Preconditions.checkNotNull(env);
+    this.dynamicEnv = Preconditions.checkNotNull(dynamicEnv);
   }
 
   @Override
@@ -52,7 +54,7 @@ public class SkylarkTransformation implements Transformation {
         .withParams(params);
     try {
       Object result = function.call(
-          ImmutableList.of(skylarkWork),/*kwargs=*/null,/*ast*/null, env);
+          ImmutableList.of(skylarkWork),/*kwargs=*/null,/*ast*/null, dynamicEnv.get());
       if (!(result instanceof NoneType)) {
         throw new ValidationException("Message transformer functions should not return"
             + " anything, but '" + function.getName() + "' returned:" + result);

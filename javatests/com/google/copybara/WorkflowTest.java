@@ -1799,6 +1799,37 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testNonFreezeParentDynamicFunction() throws Exception {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+    Workflow<?, ?> wf = ((Workflow<?, ?>) skylark.loadConfig(
+        new MapConfigFile(
+            ImmutableMap.of(
+                "foo.bara.sky", (""
+                    + "def _dynamic_foo(ctx):\n"
+                    + "  for f in ctx.run(glob(['**'])):\n"
+                    + "    if f.attr.size > 10:\n"
+                    + "      ctx.console.info('Hello! this is function!')\n"
+                    + "\n"
+                    + "def dynamic_foo():\n"
+                    + "  return [_dynamic_foo]\n"
+                    + "").getBytes(UTF_8),
+                "copy.bara.sky", (""
+                    + "load('foo', 'dynamic_foo')\n"
+                    + "transformations = dynamic_foo()\n"
+                    + "core.workflow(\n"
+                    + "    name = 'default',\n"
+                    + "    authoring = " + authoring + "\n,"
+                    + "    origin = testing.origin(),\n"
+                    + "    destination = testing.destination(),\n"
+                    + "    transformations = transformations,\n"
+                    + ")\n"
+                    + "").getBytes(UTF_8)), "copy.bara.sky"),
+        options.build(), options.general.console()).getMigration("default"));
+
+    wf.run(workdir, "HEAD");
+  }
+
+  @Test
   public void nonReversibleButCheckReverseSet() throws Exception {
     origin
         .singleFileChange(0, "one commit", "foo.txt", "1")

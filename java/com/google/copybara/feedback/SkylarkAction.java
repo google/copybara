@@ -26,6 +26,7 @@ import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
+import java.util.function.Supplier;
 
 /**
  * An implementation of {@link Action} that delegates to a Skylark function.
@@ -33,10 +34,10 @@ import com.google.devtools.build.lib.syntax.SkylarkDict;
 public class SkylarkAction implements Action {
 
   private final BaseFunction function;
-  private SkylarkDict params;
-  private final Environment env;
+  private final SkylarkDict params;
+  private final Supplier<Environment> env;
 
-  public SkylarkAction(BaseFunction function, SkylarkDict params, Environment env) {
+  public SkylarkAction(BaseFunction function, SkylarkDict params, Supplier<Environment> env) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
     this.env = Preconditions.checkNotNull(env);
@@ -47,7 +48,7 @@ public class SkylarkAction implements Action {
     try {
       //noinspection unchecked
       Object result = function.call(ImmutableList.of(context.withParams(params)), null,
-          /*ast*/null, env);
+          /*ast*/null, env.get());
       context.validateResult(result, function);
     } catch (EvalException e) {
       String error =
