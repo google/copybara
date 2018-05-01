@@ -20,6 +20,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import javax.annotation.Nullable;
@@ -29,6 +31,14 @@ import javax.annotation.Nullable;
  *
  * https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes
  */
+@SkylarkModule(
+    name = "gerritapi.ChangesQuery",
+    doc =
+        "Input for listing Gerrit changes. See "
+            + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes",
+    documented = false,
+    category = SkylarkModuleCategory.BUILTIN
+)
 public class ChangesQuery {
 
   private final String query;

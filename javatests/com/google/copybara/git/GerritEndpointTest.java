@@ -393,6 +393,20 @@ public class GerritEndpointTest {
     skylarkTestExecutor.verifyFields(config, expectedFieldValues);
   }
 
+  @Test
+  public void testListChanges() throws ValidationException {
+    gitApiMockHttpTransport = new TestingGitApiHttpTransport();
+    String config =
+        String.format(
+            "git.gerrit_api(url = '%s')."
+                + "list_changes_by_commit('7956f527ec8a23ebba9c3ebbcf88787aa3411425')",
+            url);
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.of(
+            "id", "copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61");
+    skylarkTestExecutor.verifyFields(config + "[0]", expectedFieldValues);
+  }
+
   private Feedback notifyChangeToOriginFeedback() throws IOException, ValidationException {
     return feedback(
         ""
@@ -431,7 +445,9 @@ public class GerritEndpointTest {
 
     @Override
     protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
-      if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/")) {
+      if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/?q=")) {
+        return listChanges().getBytes(UTF_8);
+      } else if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/")) {
         return getChange(url).getBytes(UTF_8);
       } else if (method.equals("POST")
           && url.matches(BASE_URL + "/changes/.*/revisions/.*/review")) {
@@ -439,6 +455,12 @@ public class GerritEndpointTest {
       }
 
       throw new IllegalArgumentException(method + " " + url);
+    }
+
+    private String listChanges() {
+      return "[{"
+          + "\"id\": \"copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61\""
+          + "}]";
     }
 
     String getChange(String url) {

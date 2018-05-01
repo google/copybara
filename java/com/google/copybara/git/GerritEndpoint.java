@@ -25,6 +25,7 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gerritapi.ChangeInfo;
+import com.google.copybara.git.gerritapi.ChangesQuery;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.GetChangeInput;
 import com.google.copybara.git.gerritapi.IncludeResult;
@@ -36,6 +37,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import java.util.List;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings("unused")
@@ -137,6 +139,30 @@ public class GerritEndpoint implements Endpoint {
       throws RepoException, ValidationException {
     GerritApi gerritApi = gerritOptions.newGerritApi(url);
     return gerritApi.setReview(changeId, revisionId, setReviewInput);
+  }
+
+  @SkylarkCallable(
+      name = "list_changes_by_commit",
+      doc =
+          "Get changes from Gerrit based on a query."
+              + " See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.\n",
+      parameters = {
+        @Param(
+            name = "commit",
+            type = String.class,
+            named = true,
+            doc =
+                "The commit sha to list changes by."
+                    + " See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search."),
+      })
+  public SkylarkList<ChangeInfo> listChanges(String commit) throws EvalException {
+    try {
+      GerritApi gerritApi = gerritOptions.newGerritApi(url);
+      return SkylarkList.createImmutable(
+          gerritApi.getChanges(new ChangesQuery(String.format("commit:'%s'", commit))));
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(/*location=*/ null, e);
+    }
   }
 
   @Override
