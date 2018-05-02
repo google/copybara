@@ -20,6 +20,11 @@ import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationEffect.DestinationRef;
+import com.google.copybara.DestinationEffect.OriginRef;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Endpoint;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.ValidationException;
@@ -29,6 +34,9 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
+import com.google.devtools.build.lib.syntax.SkylarkList;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 
 /**
@@ -46,6 +54,7 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
   @Nullable private final String ref;
   private final Console console;
   private final SkylarkDict params;
+  private final List<DestinationEffect> effects = new ArrayList<>();
 
   FeedbackContext(Feedback feedback, Action currentAction, @Nullable String ref, Console console) {
     this(feedback, currentAction, ref, console, SkylarkDict.empty());
@@ -113,7 +122,8 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
   }
 
   @Override
-  public void validateResult(Object result) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext actionContext)
+      throws ValidationException {
     checkCondition(
         result != null,
         "Feedback actions must return a result via built-in functions: success(), "
@@ -135,7 +145,11 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
         console.infoFmt("Action '%s' returned success", currentAction.getName());
         break;
     }
-    // TODO(danielromero): Populate effects
+    // Populate effects registered in the action context. This is required because SkylarkAction
+    // makes a copy of the context to inject the parameters, but that instance is not visible from
+    // the caller
+    FeedbackContext context = (FeedbackContext) actionContext;
+    this.effects.addAll(((FeedbackContext) actionContext).effects);
   }
 
   @SkylarkCallable(name = "success", doc = "Returns a successful action result.")
@@ -166,5 +180,28 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
       })
   public ActionResult noop(String errorMsg) {
     return ActionResult.error(errorMsg);
+  }
+
+  @SkylarkCallable(
+      name = "record_effect",
+      doc = "Records an effect of the current action.",
+      parameters = {
+        @Param(name = "summary", type = String.class, doc = "The summary of this effect"),
+        @Param(
+            name = "origin_refs",
+            type = SkylarkList.class,
+            generic1 = OriginRef.class,
+            doc = "The origin refs"),
+        @Param(name = "destination_ref", type = DestinationRef.class, doc = "The destination ref"),
+      })
+  public void recordEffect(
+      String summary, List<OriginRef> originRefs, DestinationRef destinationRef) {
+    effects.add(
+        new DestinationEffect(
+            Type.UPDATED, summary, originRefs, destinationRef, ImmutableList.of()));
+  }
+
+  public ImmutableList<DestinationEffect> getEffects() {
+    return ImmutableList.copyOf(effects);
   }
 }

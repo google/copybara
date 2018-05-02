@@ -20,6 +20,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.copybara.DestinationEffect;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Trigger;
@@ -27,6 +28,9 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.monitor.EventMonitor;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationStartedEvent;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
@@ -64,11 +68,16 @@ public class Feedback implements Migration {
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, ValidationException {
     SkylarkConsole console = new SkylarkConsole(generalOptions.console());
-    Profiler profiler = generalOptions.profiler();
-    try (ProfilerTask ignore = profiler.start("run/" + name)) {
+    try (ProfilerTask ignore = profiler().start("run/" + name)) {
       for (Action action : actions) {
-        try (ProfilerTask ignore2 = profiler.start(action.getName())) {
-          action.run(new FeedbackContext(this, action, sourceRef, console));
+        ImmutableList<DestinationEffect> effects = ImmutableList.of();
+        try (ProfilerTask ignore2 = profiler().start(action.getName())) {
+          eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
+          FeedbackContext context = new FeedbackContext(this, action, sourceRef, console);
+          action.run(context);
+          effects = context.getEffects();
+        } finally {
+          eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
         }
       }
     }
@@ -117,5 +126,13 @@ public class Feedback implements Migration {
         .add("destination", destination)
         .add("actions", actions)
         .toString();
+  }
+
+  private Profiler profiler() {
+    return generalOptions.profiler();
+  }
+
+  private EventMonitor eventMonitor() {
+    return generalOptions.eventMonitor();
   }
 }

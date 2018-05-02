@@ -148,7 +148,7 @@ public enum WorkflowMode {
         ImmutableList<DestinationEffect> result;
 
         boolean errors = false;
-        try (ProfilerTask ignored = runHelper.profiler().start(change.refAsString())) {
+        try (ProfilerTask ignored = runHelper.profiler().start(change.getRef())) {
           ImmutableList<Change<O>> current = ImmutableList.of(change);
           WorkflowRunHelper<O, D> currentHelper = runHelper.forChanges(current);
           if (currentHelper.skipChange(change)) {

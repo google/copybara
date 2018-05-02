@@ -127,6 +127,30 @@ public class GithubEndpointTest {
     skylarkTestExecutor.evalFails("git.github_api(url = '')", "Invalid empty field 'url'");
   }
 
+  @Test
+  public void testOriginRef() throws ValidationException {
+    String var =
+        "git.github_api(url = 'https://github.com/google/example').new_origin_ref('12345')";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("ref", "12345")
+            .build();
+    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testDestinationRef() throws ValidationException {
+    String var =
+        "git.github_api(url = 'https://github.com/google/example').new_destination_ref('abcd')";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("id", "abcd")
+            .put("type", "github_api")
+            .put("url", "https://github.com/google/example")
+            .build();
+    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+  }
+
   /**
    * A test that uses feedback.
    *
@@ -134,7 +158,6 @@ public class GithubEndpointTest {
    */
   @Test
   public void testFeedbackCreateStatus() throws Exception{
-
     dummyTrigger.addAll("Foo", "Bar");
     Feedback feedback =
         feedback(

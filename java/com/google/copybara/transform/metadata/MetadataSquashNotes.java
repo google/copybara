@@ -82,7 +82,7 @@ public class MetadataSquashNotes implements Transformation {
       if (compact) {
         sb.append("  - ");
         if (showRef) {
-          summary.add(c.refAsString());
+          summary.add(c.getRef());
         }
         if (showDescription) {
           summary.add(cutIfLong(c.firstLineMessage()));
@@ -96,7 +96,7 @@ public class MetadataSquashNotes implements Transformation {
       } else {
         sb.append("--\n");
         if (showRef) {
-          summary.add(c.refAsString());
+          summary.add(c.getRef());
         } else {
           summary.add(String.format("Change %s of %s", i + 1, changes.size()));
         }

@@ -71,6 +71,7 @@ public class Mirror implements Migration {
   public void run(Path workdir, @Nullable String sourceRef)
       throws RepoException, IOException, ValidationException {
     mirrorOptions.mirror(origin, destination, refspec, prune);
+
     // More fine grain events based on the references created/updated/deleted:
     generalOptions
         .eventMonitor()
@@ -80,8 +81,7 @@ public class Mirror implements Migration {
                     new DestinationEffect(
                         Type.UPDATED,
                         "Refspecs " + refspec + " mirrored successfully",
-                        // TODO(malcon): Allow DestinationEffect to have more generic origin
-                        // references
+                        // TODO(danielromero): Populate OriginRef here
                         ImmutableList.of(),
                         new DestinationRef(
                             getOriginDestinationRef(destination), "mirror", /*url=*/ null),

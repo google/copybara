@@ -17,6 +17,11 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.copybara.DestinationEffect.DestinationRef;
+import com.google.copybara.DestinationEffect.OriginRef;
+import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
@@ -29,6 +34,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
  * destination of a feedback migration, which means that they need to support both read and write
  * operations on the API.
  */
+@SuppressWarnings("unused")
 @SkylarkModule(
     name = "api",
     doc = "A feedback API endpoint of an origin or destination.",
@@ -59,4 +65,29 @@ public interface Endpoint extends SkylarkValue {
 
   /** Returns a key-value ist of the options the endpoint was instantiated with. */
   ImmutableSetMultimap<String, String> describe();
+
+  @SkylarkCallable(
+      name = "new_origin_ref",
+      doc = "Creates a new origin reference out of this endpoint.",
+      parameters = {
+          @Param(name = "ref", type = String.class, named = true, doc = "The reference."),
+      })
+  default OriginRef newOriginRef(String ref) {
+    return new OriginRef(ref);
+  }
+
+
+  @SkylarkCallable(
+      name = "new_destination_ref",
+      doc = "Creates a new destination reference out of this endpoint.",
+      parameters = {
+          @Param(name = "ref", type = String.class, named = true, doc = "The reference."),
+      })
+  default DestinationRef newDestinationRef(String ref) {
+    ImmutableSetMultimap<String, String> describe = describe();
+    String type = Iterables.getOnlyElement(describe.get("type"));
+    String url =
+        describe.containsKey("url") ? Iterables.getOnlyElement(describe.get("url"), null) : null;
+    return new DestinationRef(ref, type, url);
+  }
 }

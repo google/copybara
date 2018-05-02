@@ -47,13 +47,14 @@ public class SkylarkAction implements Action {
   public void run(SkylarkContext<?> context) throws ValidationException, RepoException {
     try {
       //noinspection unchecked
-      Object result = function.call(ImmutableList.of(context.withParams(params)), null,
+      SkylarkContext<?> actionContext = (SkylarkContext<?>) context.withParams(params);
+      Object result = function.call(ImmutableList.of(actionContext), null,
           /*ast*/null, env.get());
-      context.validateResult(result);
+      context.onFinish(result, actionContext);
     } catch (EvalException e) {
       String error =
           String.format(
-              "Error while executing the skylark transformer %s:%s",
+              "Error while executing the skylark transformer %s: %s",
               function.getName(), e.getMessage());
       if (e.getCause() instanceof ValidationException) {
         throw new ValidationException(e.getCause(), error);
@@ -62,7 +63,7 @@ public class SkylarkAction implements Action {
       }
       throw new ValidationException(
           e.getCause(),
-          "Error while executing the skylark transformer %s:%s",
+          "Error while executing the skylark transformer %s: %s",
           function.getName(),
           e.getMessage());
     } catch (InterruptedException e) {

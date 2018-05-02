@@ -144,7 +144,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       @SuppressWarnings("unchecked")
       Change<O> lastChange = (Change<O>) Iterables.getLast(currentChanges);
       logger.info(String.format("Loading configuration for change '%s %s'",
-                                lastChange.refAsString(), lastChange.firstLineMessage()));
+                                lastChange.getRef(), lastChange.firstLineMessage()));
 
       Config config = ReadConfigFromChangeWorkflow.this.configLoader.
           loadForRevision(options, getConsole(), lastChange.getRevision());
@@ -157,14 +157,14 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       if (!errors.isEmpty()) {
         throw new ValidationException(
             "Invalid configuration [ref '%s': %s ]: '%s': \n%s",
-            lastChange.refAsString(), configLoader.location(), workflowName, on('\n').join(errors));
+            lastChange.getRef(), configLoader.location(), workflowName, on('\n').join(errors));
       }
 
       Migration migration = config.getMigration(workflowName);
       if (!(migration instanceof Workflow)) {
         throw new ValidationException(
             "Invalid configuration [ref '%s': %s ]: '%s' is not a workflow",
-            lastChange.refAsString(), configLoader.location(), workflowName);
+            lastChange.getRef(), configLoader.location(), workflowName);
       }
       @SuppressWarnings("unchecked")
       Workflow<O, D> workflowForChange = (Workflow<O, D>) migration;

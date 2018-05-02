@@ -67,7 +67,7 @@ import javax.annotation.Nullable;
         + "It includes information about changes like: the author to be used for commit, "
         + "change message, etc. You receive a TransformWork object as an argument to the <code>"
         + "transformations</code> functions used in <code>core.workflow</code>")
-public final class TransformWork implements SkylarkContext {
+public final class TransformWork implements SkylarkContext<TransformWork> {
 
   static final String COPYBARA_CONTEXT_REFERENCE_LABEL = "COPYBARA_CONTEXT_REFERENCE";
   static final String COPYBARA_LAST_REV = "COPYBARA_LAST_REV";
@@ -517,7 +517,7 @@ public final class TransformWork implements SkylarkContext {
   }
 
   @Override
-  public void validateResult(Object result) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext actionContext) throws ValidationException {
     checkCondition(
         result == null || result.equals(Runtime.NONE),
         "Transform work cannot return any result but returned: %s", result);

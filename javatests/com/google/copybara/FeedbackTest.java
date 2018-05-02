@@ -22,14 +22,17 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -46,6 +49,7 @@ public class FeedbackTest {
 
   private SkylarkParser skylark;
   private TestingConsole console;
+  private TestingEventMonitor eventMonitor;
   private OptionsBuilder options;
   private DummyTrigger dummyTrigger;
   private Path workdir;
@@ -55,8 +59,10 @@ public class FeedbackTest {
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
     console = new TestingConsole();
+    eventMonitor = new TestingEventMonitor();
     options = new OptionsBuilder();
     options.setConsole(console);
+    options.general.withEventMonitor(eventMonitor);
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
     skylark = new SkylarkParser(ImmutableSet.of(Core.class, TestingModule.class));
@@ -89,7 +95,7 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testActionsMustReturnResult() throws IOException, ValidationException, RepoException {
+  public void testActionsMustReturnResult() throws Exception {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
@@ -108,7 +114,7 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testSuccessResult() throws ValidationException, IOException, RepoException {
+  public void testSuccessResult() throws Exception {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
@@ -120,7 +126,7 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testNoopResult() throws ValidationException, IOException, RepoException {
+  public void testNoopResult() throws Exception {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
@@ -134,7 +140,7 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testErrorResult() throws ValidationException, IOException, RepoException {
+  public void testErrorResult() throws Exception {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
@@ -165,6 +171,36 @@ public class FeedbackTest {
       assertThat(expected.getMessage())
           .matches(".*parameter 'msg' has no default value, in method.*error\\(\\).*");
     }
+  }
+
+  @Test
+  public void testDestinationEffects() throws Exception {
+    Feedback feedback = feedback(
+          ""
+              + "def test_action(ctx):\n"
+              + "    ctx.record_effect("
+              + "      'Some effect',\n"
+              + "      [ctx.origin.new_origin_ref('foo')],\n"
+              + "      ctx.destination.new_destination_ref('bar'))\n"
+              + "    return ctx.success()\n"
+              + "\n");
+    feedback.run(workdir, /*sourceRef*/ null);
+    console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
+
+    assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(1);
+    assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(1);
+
+    ChangeMigrationFinishedEvent event =
+        Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents);
+    DestinationEffect effect = Iterables.getOnlyElement(event.getDestinationEffects());
+    assertThat(effect.getSummary()).isEqualTo("Some effect");
+    assertThat(effect.getOriginRefs()).hasSize(1);
+    assertThat(effect.getOriginRefs().get(0).getRef()).isEqualTo("foo");
+    DestinationRef destinationRef = effect.getDestinationRef();
+    assertThat(destinationRef.getId()).isEqualTo("bar");
+    assertThat(destinationRef.getType()).isEqualTo("dummy_endpoint");
+    assertThat(destinationRef.getUrl()).isNull();
+    assertThat(effect.getErrors()).isEmpty();
   }
 
   private Feedback loggingFeedback() throws IOException, ValidationException {

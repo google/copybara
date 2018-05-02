@@ -30,7 +30,7 @@ public interface SkylarkContext<T> {
   T withParams(SkylarkDict<?, ?> params);
 
   /**
-   * Validates the result returned by an {@link com.google.copybara.feedback.Action}.
+   * Performs tasks after an {@link com.google.copybara.feedback.Action} finishes.
    */
-  void validateResult(Object result) throws ValidationException;
+  void onFinish(Object result, SkylarkContext actionContext) throws ValidationException;
 }

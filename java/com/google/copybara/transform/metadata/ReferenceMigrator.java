@@ -145,7 +145,7 @@ public class ReferenceMigrator implements Transformation {
       try {
         destinationReader.visitChangesWithAnyLabel(null, originLabels, (input, labels) -> {
           for (String labelValue : labels.values()) {
-              knownChanges.putIfAbsent(labelValue, input.refAsString());
+              knownChanges.putIfAbsent(labelValue, input.getRef());
               if (labelValue.equals(refBeingMigrated)) {
                 return VisitResult.TERMINATE;
               }

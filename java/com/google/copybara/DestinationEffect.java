@@ -22,6 +22,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -30,23 +32,21 @@ import javax.annotation.Nullable;
 @SkylarkModule(
   name = "destination_effect",
   category = SkylarkModuleCategory.BUILTIN,
-  doc =
-      "An object representing an effect that happened in the destination dues to a single"
-          + " migration",
+  doc = "Represents an effect that happened in the destination due to a single migration",
   documented = false
 )
 @SuppressWarnings("unused")
-public class DestinationEffect {
+public class DestinationEffect implements SkylarkValue {
   private final Type type;
   private final String summary;
-  private final ImmutableList<Change<?>> originRefs;
+  private final ImmutableList<OriginRef> originRefs;
   @Nullable private final DestinationRef destinationRef;
   private final ImmutableList<String> errors;
 
   public DestinationEffect(
       Type type,
       String summary,
-      Iterable<? extends Change<?>> originRefs,
+      Iterable<? extends OriginRef> originRefs,
       @Nullable DestinationRef destinationRef,
       Iterable<String> errors) {
     this.type = Preconditions.checkNotNull(type);
@@ -57,7 +57,7 @@ public class DestinationEffect {
   }
 
   /** Returns the origin references included in this effect. */
-  public ImmutableList<Change<?>> getOriginRefs() {
+  public ImmutableList<OriginRef> getOriginRefs() {
     return originRefs;
   }
 
@@ -66,7 +66,7 @@ public class DestinationEffect {
     doc = "List of origin changes that were included in" + " this migration",
     structField = true
   )
-  public final SkylarkList<? extends Change<?>> getOriginRefsSkylark() {
+  public final SkylarkList<? extends OriginRef> getOriginRefsSkylark() {
     return SkylarkList.createImmutable(originRefs);
   }
 
@@ -151,6 +151,11 @@ public class DestinationEffect {
   }
 
   @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
+  }
+
+  @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("type", type)
@@ -186,6 +191,57 @@ public class DestinationEffect {
     ERROR,
   }
 
+  /** Reference to the change/review read from the origin. */
+  @SkylarkModule(
+      name = "origin_ref",
+      category = SkylarkModuleCategory.BUILTIN,
+      doc = "Reference to the change/review in the origin.",
+      documented = false
+  )
+  public static class OriginRef implements SkylarkValue {
+    private final String ref;
+
+    OriginRef(String id) {
+      this.ref = Preconditions.checkNotNull(id);
+    }
+
+    /** Origin reference*/
+    @SkylarkCallable(name = "ref", doc = "Origin reference ref", structField = true)
+    public String getRef() {
+      return ref;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      OriginRef originRef = (OriginRef) o;
+      return Objects.equals(ref, originRef.ref);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(ref);
+    }
+
+    @Override
+    public void repr(SkylarkPrinter printer) {
+      printer.append(toString());
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("ref", ref)
+          .toString();
+    }
+  }
+
+
   /** Reference to the change/review created/updated on the destination. */
   @SkylarkModule(
     name = "destination_ref",
@@ -193,7 +249,7 @@ public class DestinationEffect {
     doc = "Reference to the change/review created/updated on the destination.",
     documented = false
   )
-  public static class DestinationRef {
+  public static class DestinationRef implements SkylarkValue {
     @Nullable private final String url;
     private final String id;
     private final String type;
@@ -254,6 +310,11 @@ public class DestinationEffect {
     @Override
     public int hashCode() {
       return Objects.hash(url, id, type);
+    }
+
+    @Override
+    public void repr(SkylarkPrinter printer) {
+      printer.append(toString());
     }
 
     @Override

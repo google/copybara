@@ -40,7 +40,9 @@ public class DummyEndpoint implements Endpoint {
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
-    return ImmutableSetMultimap.<String, String>builder().build();
+    return ImmutableSetMultimap.<String, String>builder()
+        .put("type", "dummy_endpoint")
+        .build();
   }
 
   @SkylarkCallable(name = "message", doc = "Add a new message")

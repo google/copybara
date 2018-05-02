@@ -115,7 +115,7 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
   }
 
   @Override
-  public void validateResult(Object result) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext actionContext) throws ValidationException {
     checkCondition(
         result == null || result.equals(Runtime.NONE),
         "Finish hook '%s' cannot return any result but returned: %s", action.getName(), result);

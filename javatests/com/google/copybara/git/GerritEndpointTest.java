@@ -124,7 +124,7 @@ public class GerritEndpointTest {
     GerritEndpoint gerritEndpoint =
         skylarkTestExecutor.eval(
             "e",
-            "e = git.gerrit_api(url = 'https://test.googlesource.com/example'))");
+            "e = git.gerrit_api(url = 'https://test.googlesource.com/example')");
     assertThat(gerritEndpoint.describe())
         .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
   }
@@ -132,6 +132,30 @@ public class GerritEndpointTest {
   @Test
   public void testParsingEmptyUrl() {
     skylarkTestExecutor.evalFails("git.gerrit_api(url = '')))", "Invalid empty field 'url'");
+  }
+
+  @Test
+  public void testOriginRef() throws ValidationException {
+    String var =
+        "git.gerrit_api(url = 'https://test.googlesource.com/example').new_origin_ref('12345')";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("ref", "12345")
+            .build();
+    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testDestinationRef() throws ValidationException {
+    String var =
+        "git.gerrit_api(url = 'https://test.googlesource.com/example').new_destination_ref('abcd')";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("id", "abcd")
+            .put("type", "gerrit_api")
+            .put("url", "https://test.googlesource.com/example")
+            .build();
+    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
   }
 
   /**

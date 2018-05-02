@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
+import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -43,7 +44,7 @@ import javax.annotation.Nullable;
 @SkylarkModule(name = "change",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "A change metadata. Contains information like author, change message or detected labels")
-public final class Change<R extends Revision> {
+public final class Change<R extends Revision> extends OriginRef {
 
   private final R revision;
   private final Author author;
@@ -69,6 +70,7 @@ public final class Change<R extends Revision> {
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
       ImmutableMultimap<String, String> labels, @Nullable Set<String> changeFiles, boolean merge) {
+    super(revision.asString());
     this.revision = Preconditions.checkNotNull(revision);
     this.author = Preconditions.checkNotNull(author);
     this.message = Preconditions.checkNotNull(message);
@@ -83,11 +85,6 @@ public final class Change<R extends Revision> {
    */
   public R getRevision() {
     return revision;
-  }
-
-  @SkylarkCallable(name = "ref", doc = "A string identifier of the change.", structField = true)
-  public String refAsString() {
-    return revision.asString();
   }
 
   @SkylarkCallable(name = "original_author", doc = "The author of the change before any"
