@@ -18,6 +18,8 @@ package com.google.copybara.git;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.util.GithubUtil.asGithubUrl;
+import static com.google.copybara.git.github.util.GithubUtil.asHeadRef;
+import static com.google.copybara.git.github.util.GithubUtil.asMergeRef;
 import static com.google.copybara.git.github.util.GithubUtil.getProjectNameFromUrl;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -65,13 +67,16 @@ import javax.annotation.Nullable;
  */
 public class GithubPROrigin implements Origin<GitRevision> {
 
+  static final int RETRY_COUNT = 3;
 
   public static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
   public static final String GITHUB_BASE_BRANCH = "GITHUB_BASE_BRANCH";
   public static final String GITHUB_BASE_BRANCH_SHA1 = "GITHUB_BASE_BRANCH_SHA1";
   public static final String GITHUB_PR_TITLE = "GITHUB_PR_TITLE";
   public static final String GITHUB_PR_BODY = "GITHUB_PR_BODY";
-  static final int RETRY_COUNT = 3;
+  private static final String LOCAL_PR_HEAD_REF = "refs/PR_HEAD";
+  private static final String LOCAL_PR_MERGE_REF = "refs/PR_MERGE";
+  private static final String LOCAL_PR_BASE_BRANCH = "refs/PR_BASE_BRANCH";
 
   private final String url;
   private final boolean useMerge;
@@ -195,18 +200,21 @@ public class GithubPROrigin implements Origin<GitRevision> {
       throw new EmptyChangeException(String.format("Pull Request %d is open", prNumber));
     }
 
-    String stableRef = useMerge ? GithubUtil.asMergeRef(prNumber) : GithubUtil.asHeadRef(prNumber);
-
     // Fetch also the baseline branch. It is almost free and doing a roundtrip later would hurt
     // latency.
     console.progressFmt("Fetching Pull Request %d and branch '%s'",
         prNumber, prData.getBase().getRef());
     try {
-      getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true,
-          ImmutableList.of(stableRef + ":refs/PR_HEAD",
-              // Prefix the branch name with 'refs/heads/' since some implementations of
-              // GitRepository need the whole reference name.
-              "refs/heads/" + prData.getBase().getRef() + ":refs/PR_BASE_BRANCH"));
+      ImmutableList.Builder<String> refSpecBuilder = ImmutableList.<String>builder()
+          .add(String.format("%s:%s", asHeadRef(prNumber), LOCAL_PR_HEAD_REF))
+          // Prefix the branch name with 'refs/heads/' since some implementations of
+          // GitRepository need the whole reference name.
+          .add(String.format("refs/heads/%s:" + LOCAL_PR_BASE_BRANCH, prData.getBase().getRef()));
+      if (useMerge) {
+        refSpecBuilder.add(String.format("%s:%s", asMergeRef(prNumber), LOCAL_PR_MERGE_REF));
+      }
+      ImmutableList<String> refspec = refSpecBuilder.build();
+      getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true, refspec);
     } catch (CannotResolveRevisionException e) {
       if (useMerge) {
         throw new CannotResolveRevisionException(
@@ -218,11 +226,15 @@ public class GithubPROrigin implements Origin<GitRevision> {
       }
     }
 
-    GitRevision gitRevision = getRepository().resolveReference("PR_HEAD");
+    String refForMigration = useMerge ? LOCAL_PR_MERGE_REF : LOCAL_PR_HEAD_REF;
+    GitRevision gitRevision = getRepository().resolveReference(refForMigration);
 
     String integrateLabel = new GithubPRIntegrateLabel(getRepository(), generalOptions,
         project, prNumber,
-        prData.getHead().getLabel(), gitRevision.getSha1()).toString();
+        prData.getHead().getLabel(),
+        // The integrate SHA has to be HEAD of the PR not the merge ref, even if use_merge = True
+        getRepository().resolveReference(LOCAL_PR_HEAD_REF).getSha1())
+        .toString();
 
 
     ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
@@ -230,7 +242,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     labels.put(GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel);
     labels.put(GITHUB_BASE_BRANCH, prData.getBase().getRef());
 
-    String mergeBase = getRepository().mergeBase("refs/PR_HEAD", "refs/PR_BASE_BRANCH");
+    String mergeBase = getRepository().mergeBase(refForMigration, LOCAL_PR_BASE_BRANCH);
     labels.put(GITHUB_BASE_BRANCH_SHA1, mergeBase);
 
     labels.put(GITHUB_PR_TITLE, prData.getTitle());
@@ -241,7 +253,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
         gitRevision.getSha1(),
         // TODO(malcon): Decide the format to use here:
         /*reviewReference=*/null,
-        stableRef,
+        useMerge ? asMergeRef(prNumber) : asHeadRef(prNumber),
         labels.build(),
         url);
   }

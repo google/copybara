@@ -579,6 +579,14 @@ public class GithubPrOriginTest {
         .containsNoMoreFiles();
 
     GitRevision mergeRevision = origin.resolve("123");
+
+    // integrate SHA needs to be  HEAD ref of the PR, not the (moving) merge sha-1. This is
+    // going to be used for doing a merge later, so at best it would do a double-merge and
+    // in the worse case it wouldn't find the merge sha-1 since baseline branch could have
+    // already moved.
+    assertThat(mergeRevision.associatedLabels().get(GitModule.DEFAULT_INTEGRATE_LABEL))
+        .contains(remote.resolveReference(GithubUtil.asHeadRef(123)).getSha1());
+
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     assertThat(
             Lists.transform(
