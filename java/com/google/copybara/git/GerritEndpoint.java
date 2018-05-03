@@ -37,7 +37,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import java.util.List;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings("unused")
@@ -159,7 +158,7 @@ public class GerritEndpoint implements Endpoint {
     try {
       GerritApi gerritApi = gerritOptions.newGerritApi(url);
       return SkylarkList.createImmutable(
-          gerritApi.getChanges(new ChangesQuery(String.format("commit:'%s'", commit))));
+          gerritApi.getChanges(new ChangesQuery(String.format("commit:%s", commit))));
     } catch (RepoException | ValidationException e) {
       throw new EvalException(/*location=*/ null, e);
     }
