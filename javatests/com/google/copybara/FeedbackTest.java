@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -27,6 +28,7 @@ import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
@@ -100,8 +102,8 @@ public class FeedbackTest {
         ""
             + "def test_action(ctx):\n"
             + "    ctx.console.info('Bad action')\n"
-            + "\n"
-    );
+            + "\n",
+        "test_action");
     try {
       feedback.run(workdir, /*sourceRef*/ null);
       fail();
@@ -110,7 +112,6 @@ public class FeedbackTest {
           .contains("Feedback actions must return a result via built-in functions: success(), "
               + "error(), noop() return, but 'test_action' returned: None");
     }
-
   }
 
   @Test
@@ -119,41 +120,112 @@ public class FeedbackTest {
         ""
             + "def test_action(ctx):\n"
             + "    return ctx.success()\n"
-            + "\n"
-    );
+            + "\n",
+        "test_action");
     feedback.run(workdir, /*sourceRef*/ null);
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
   }
 
   @Test
-  public void testNoopResult() throws Exception {
-    Feedback feedback = feedback(
-        ""
-            + "def test_action(ctx):\n"
-            + "    return ctx.noop('No effect')\n"
-            + "\n"
-    );
-    feedback.run(workdir, /*sourceRef*/ null);
-    console
-        .assertThat()
-        .equalsNext(MessageType.INFO, "Action 'test_action' returned noop: No effect");
+  public void testNoActionsThrowsEmptyChangeException() throws Exception {
+    Feedback feedback = feedback("");
+    try {
+      feedback.run(workdir, /*sourceRef*/ null);
+      fail();
+    } catch (EmptyChangeException expected) {
+      assertThat(expected).hasMessageThat()
+          .contains(
+              "Feedback migration 'default' was noop. Detailed messages: actions field is empty");
+    }
   }
 
   @Test
-  public void testErrorResult() throws Exception {
+  public void testNoopResultThrowsEmptyChangeException() throws Exception {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action_1(ctx):\n"
+            + "    return ctx.noop('No effect 1')\n"
+            + "\n"
+            + "def test_action_2(ctx):\n"
+            + "    return ctx.noop('No effect 2')\n"
+            + "\n",
+        "test_action_1", "test_action_2");
+    try {
+      feedback.run(workdir, /*sourceRef*/ null);
+      fail();
+    } catch (EmptyChangeException expected) {
+      assertThat(expected).hasMessageThat()
+          .contains(
+              "Feedback migration 'default' was noop. "
+                  + "Detailed messages: [No effect 1, No effect 2]");
+    }
+    console
+        .assertThat()
+        .equalsNext(MessageType.INFO, "Action 'test_action_1' returned noop: No effect 1")
+        .equalsNext(MessageType.INFO, "Action 'test_action_2' returned noop: No effect 2");
+  }
+
+  @Test
+  public void testErrorResultThrowsValidationException() throws Exception {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
             + "    return ctx.error('This is an error')\n"
-            + "\n"
-    );
+            + "\n",
+        "test_action");
     try {
       feedback.run(workdir, /*sourceRef*/ null);
       fail();
     } catch (ValidationException expected) {
-      console.assertThat()
-          .equalsNext(MessageType.ERROR, "Action 'test_action' returned error: This is an error");
+      assertThat(expected).hasMessageThat()
+          .contains(
+              "Feedback migration 'default' action 'test_action' returned error: "
+                  + "This is an error. Aborting execution.");
     }
+    console.assertThat()
+        .equalsNext(MessageType.ERROR, "Action 'test_action' returned error: This is an error");
+  }
+
+  @Test
+  public void testErrorResultAbortsExecution() throws Exception {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action_1(ctx):\n"
+            + "    return ctx.error('This is an error')\n"
+            + "\n"
+            + "def test_action_2(ctx):\n"
+            + "    return ctx.success()\n"
+            + "\n", "test_action_1", "test_action_2");
+    try {
+      feedback.run(workdir, /*sourceRef*/ null);
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected).hasMessageThat()
+          .contains(
+              "Feedback migration 'default' action 'test_action_1' returned error: "
+                  + "This is an error. Aborting execution.");
+    }
+    console.assertThat()
+        .equalsNext(MessageType.ERROR, "Action 'test_action_1' returned error: This is an error")
+        .containsNoMoreMessages();
+  }
+
+  @Test
+  public void testNoopSuccesReturnsSuccess() throws Exception {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action_1(ctx):\n"
+            + "    return ctx.noop('No effect')\n"
+            + "\n"
+            + "def test_action_2(ctx):\n"
+            + "    return ctx.success()\n"
+            + "\n", "test_action_1", "test_action_2");
+    feedback.run(workdir, /*sourceRef*/ null);
+    console
+        .assertThat()
+        .equalsNext(MessageType.INFO, "Action 'test_action_1' returned noop: No effect")
+        .equalsNext(MessageType.INFO, "Action 'test_action_2' returned success")
+        .containsNoMoreMessages();
   }
 
   @Test
@@ -162,8 +234,8 @@ public class FeedbackTest {
         ""
             + "def test_action(ctx):\n"
             + "    result = ctx.error()\n"
-            + "\n"
-    );
+            + "\n",
+        "test_action");
     try {
       feedback.run(workdir, /*sourceRef*/ null);
       fail();
@@ -183,7 +255,8 @@ public class FeedbackTest {
               + "      [ctx.origin.new_origin_ref('foo')],\n"
               + "      ctx.destination.new_destination_ref('bar'))\n"
               + "    return ctx.success()\n"
-              + "\n");
+              + "\n",
+        "test_action");
     feedback.run(workdir, /*sourceRef*/ null);
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
 
@@ -214,19 +287,20 @@ public class FeedbackTest {
             + "    ctx.console.info('Feedback name: ' + ctx.feedback_name)\n"
             + "    ctx.console.info('Action name: ' + ctx.action_name)\n"
             + "    return ctx.success()\n"
-            + "\n"
-    );
+            + "\n",
+        "test_action");
   }
 
-  private Feedback feedback(String actionFunction) throws IOException, ValidationException {
+  private Feedback feedback(String actionsCode, String... actionNames)
+      throws IOException, ValidationException {
     String config =
-        actionFunction
+        actionsCode
             + "\n"
             + "core.feedback(\n"
             + "    name = 'default',\n"
             + "    origin = testing.dummy_trigger(),\n"
             + "    destination = testing.dummy_endpoint(),\n"
-            + "    actions = [test_action,],\n"
+            + "    actions = [" + Joiner.on(',').join(actionNames) +"],\n"
             + ")\n"
             + "\n";
     System.err.println(config);

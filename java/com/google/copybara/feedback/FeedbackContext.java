@@ -54,6 +54,7 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
   @Nullable private final String ref;
   private final Console console;
   private final SkylarkDict params;
+  @Nullable private ActionResult actionResult;
   private final List<DestinationEffect> effects = new ArrayList<>();
 
   FeedbackContext(Feedback feedback, Action currentAction, @Nullable String ref, Console console) {
@@ -131,7 +132,7 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
     checkCondition(result instanceof ActionResult,
         "Feedback actions must return a result via built-in functions: success(), "
             + "error(), noop() return, but '%s' returned: %s", currentAction.getName(), result);
-    ActionResult actionResult = (ActionResult) result;
+    this.actionResult = (ActionResult) result;
     switch (actionResult.getResult()) {
       case ERROR:
         console.errorFmt(
@@ -203,5 +204,10 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
 
   public ImmutableList<DestinationEffect> getEffects() {
     return ImmutableList.copyOf(effects);
+  }
+
+  public ActionResult getActionResult() {
+    Preconditions.checkNotNull(actionResult, "Action result should be set. This is a bug.");
+    return actionResult;
   }
 }
