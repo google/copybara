@@ -27,8 +27,10 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CreateStatusRequest;
+import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
+import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.git.github.util.GithubUtil;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -86,6 +88,34 @@ public class GitHubEndPoint implements Endpoint {
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
                                                  convertFromNoneable(targetUrl, null),
                                                  description, context));
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(/*location=*/null, e);
+    }
+  }
+
+  @SkylarkCallable(name = "update_reference",
+      doc = "Update a reference to point to a new commit. Returns the info of the reference.",
+      parameters = {
+          @Param(name = "ref", type = String.class, named =  true,
+              doc = "The name of the reference."),
+          @Param(name = "sha", type = String.class, doc = "The id for the commit"
+              + " status.",
+              named =  true),
+          @Param(name = "force", type = Boolean.class, named =  true,
+              doc = "Indicates whether to force the update or to "
+                  + "make sure the update is a fast-forward update. Leaving this out or "
+                  + "setting it to false will make sure you're not overwriting work. Default: false")
+
+      })
+  public Ref updateReference(String sha, String ref, boolean force) throws EvalException {
+    try {
+      checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
+          "Not a valid complete SHA-1: %s", sha);
+      checkCondition(!Strings.isNullOrEmpty(ref), "ref cannot be empty");
+
+      String project = GithubUtil.getProjectNameFromUrl(url);
+      return githubOptions.getApi(project).updateReference(
+          project, ref, new UpdateReferenceRequest(sha, force));
     } catch (RepoException | ValidationException e) {
       throw new EvalException(/*location=*/null, e);
     }

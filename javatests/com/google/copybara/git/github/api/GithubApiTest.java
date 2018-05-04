@@ -124,4 +124,12 @@ public class GithubApiTest extends AbstractGithubApiTest {
     requestToResponse.put(path, response);
     requestValidators.put(path, requestValidator);
   }
+
+  @Override
+  public void trainMockPatch(String apiPath, Predicate<String> requestValidator, byte[] response)
+      throws Exception {
+    String path = String.format("PATCH https://api.github.com%s", apiPath);
+    requestToResponse.put(path, response);
+    requestValidators.put(path, requestValidator);
+  }
 }

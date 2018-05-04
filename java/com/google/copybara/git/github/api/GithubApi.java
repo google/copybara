@@ -141,6 +141,22 @@ public class GithubApi {
     }
   }
 
+  public Ref updateReference(String projectId, String branchName, UpdateReferenceRequest request)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_update_reference")) {
+      Ref result = transport.patch(
+          String.format("repos/%s/git/refs/heads/%s", projectId, branchName), request, Ref.class);
+      if (result.getRef() == null || result.getSha() == null || result.getUrl() == null) {
+        throw new RepoException(
+            String.format(
+                "Something went wrong at the GitHub API transport level."
+                    + " ref: %s sha: %s, url: %s",
+                result.getRef(), result.getSha(), result.getUrl()));
+      }
+      return result;
+    }
+  }
+
   public CombinedStatus getCombinedStatus(String projectId, String sha1)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_combined_status")) {

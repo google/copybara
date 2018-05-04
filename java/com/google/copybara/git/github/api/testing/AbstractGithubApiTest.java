@@ -37,6 +37,7 @@ import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
+import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import java.io.IOException;
@@ -65,6 +66,8 @@ public abstract class AbstractGithubApiTest {
 
   public abstract void trainMockGet(String apiPath, byte[] response) throws Exception;
   public abstract void trainMockPost(String apiPath, Predicate<String> validator, byte[] response)
+      throws Exception;
+  public abstract void trainMockPatch(String apiPath, Predicate<String> validator, byte[] response)
       throws Exception;
 
   @Test
@@ -235,6 +238,27 @@ public abstract class AbstractGithubApiTest {
   }
 
   @Test
+  public void testUpdateReference() throws Exception {
+    trainMockPatch(
+        "/repos/octocat/Hello-World/git/refs/heads/test",
+        createValidator(
+            TestUpdateReferenceRequest.class,
+            urr ->
+                urr.getSha1().equals("6dcb09b5b57875f334f61aebed695e2e4193db5e") &&
+                urr.getForce()),
+        getResource("update_reference_response_testdata.json"));
+
+    Ref response = api.updateReference("octocat/Hello-World",
+        "test",
+        new UpdateReferenceRequest("6dcb09b5b57875f334f61aebed695e2e4193db5e",true));
+
+    assertThat(response.getRef()).isEqualTo("refs/heads/test");
+    assertThat(response.getSha()).isEqualTo("6dcb09b5b57875f334f61aebed695e2e4193db5e");
+    assertThat(response.getUrl()).isEqualTo(
+        "https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test");
+  }
+
+  @Test
   public void testGetCombinedStatus() throws Exception {
     trainMockGet("/repos/octocat/Hello-World/statuses/6dcb09b5b57875f334f61aebed695e2e4193db5e",
         getResource("get_combined_status_testdata.json"));
@@ -288,6 +312,14 @@ public abstract class AbstractGithubApiTest {
 
     public TestCreateStatusRequest() {
       super(State.ERROR, "invalid", "invalid", "invalid");
+    }
+  }
+
+  // We don't want UpdateReferenceRequest to be instantiable, this subclass sidesteps the issue.
+  public static class TestUpdateReferenceRequest extends UpdateReferenceRequest {
+
+    public TestUpdateReferenceRequest() {
+      super("6dcb09b5b57875f334f61aebed695e2e4193db5e", true);
     }
   }
 }

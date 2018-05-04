@@ -33,4 +33,9 @@ public interface GitHubApiTransport {
    */
   <T> T post(String path, Object request, Type responseType)
       throws RepoException, ValidationException;
+  /**
+   * Do a http PATCH call
+   */
+  <T> T patch(String path, Object request, Type responseType)
+      throws RepoException, ValidationException;
 }

@@ -19,10 +19,22 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 
 /**
  * Represents the current status of a ref, as returned by the git/refs API call
  */
+
+@SkylarkModule(
+    name = "github_api_ref_obj",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc =
+        "Information about a commit status as defined in"
+            + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"
+            + " fields in GitHub"
+)
 public class Ref {
 
   @Key private String ref;
@@ -38,14 +50,29 @@ public class Ref {
     @Key private String url;
   }
 
+  @SkylarkCallable(
+      name = "ref",
+      doc = "The name of the reference",
+      structField = true
+  )
   public String getRef() {
     return ref;
   }
 
+  @SkylarkCallable(
+      name = "url",
+      doc = "The url of the reference",
+      structField = true
+  )
   public String getUrl() {
     return url;
   }
 
+  @SkylarkCallable(
+      name = "sha",
+      doc = "The sha of the reference",
+      structField = true
+  )
   public String getSha() {
     return object.sha;
   }

@@ -135,6 +135,31 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T patch(String path, Object request, Type responseType)
+      throws RepoException, ValidationException {
+    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials());
+
+    GenericUrl url = new GenericUrl(URI.create(API_URL + "/" + path));
+    try {
+      HttpRequest httpRequest = requestFactory.buildPatchRequest(url,
+          new JsonHttpContent(JSON_FACTORY, request));
+      HttpResponse response = httpRequest.execute();
+      return (T) response.parseAs(responseType);
+    } catch (HttpResponseException e) {
+      try {
+        throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
+            "PATCH", path, JSON_FACTORY.toPrettyString(request), e.getContent());
+      } catch (IOException ioE) {
+        throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
+            "PATCH", path, "unknown request", e.getContent());
+      }
+    } catch (IOException e) {
+      throw new RepoException("Error running GitHub API operation " + path, e);
+    }
+  }
+
   private HttpRequestFactory getHttpRequestFactory(@Nullable UserPassword userPassword)
       throws RepoException, ValidationException {
     return httpTransport.createRequestFactory(

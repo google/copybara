@@ -87,6 +87,18 @@ public class GithubEndpointTest {
               + "}"
           ).getBytes(UTF_8);
         }
+        if (url.contains("/git/refs/heads")) {
+          return ("{\n"
+              + "    ref : 'refs/heads/test',\n"
+              + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+              + "    object : { \n"
+              + "       type : 'commit',\n"
+              + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+              + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+              + "   } \n"
+              + "}"
+          ).getBytes(UTF_8);
+        }
         throw new RuntimeException("Unexpected url: " + url);
       }
     };
@@ -204,6 +216,24 @@ public class GithubEndpointTest {
             .put("target_url", "https://github.com/google/example")
             .put("description", "Observed foo")
             .put("context", "test")
+            .build();
+    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+  }
+
+  /**
+   * A test that uses update_reference.
+   *
+   */
+  @Test
+  public void testFeedbackUpdateReference() throws Exception{
+    String var =
+        "git.github_api(url = 'https://github.com/google/example')"
+            + ".update_reference('e597746de9c1704e648ddc3ffa0d2096b146d600', 'test', True)";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("ref", "refs/heads/test")
+            .put("url", "https://github.com/google/example/git/refs/heads/test")
+            .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
             .build();
     skylarkTestExecutor.verifyFields(var, expectedFieldValues);
   }
