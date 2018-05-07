@@ -101,4 +101,13 @@ public class GerritApi {
           ReviewResult.class);
     }
   }
+  public void deleteReviewer(String changeId, long accountId,
+      DeleteReviewerInput deleteReviewerInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_delete_reviewer")) {
+      transport.post(
+          "/changes/" + changeId + "/reviewers/" + accountId + "/delete",
+          deleteReviewerInput, Empty.class);
+    }
+  }
 }

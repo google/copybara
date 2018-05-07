@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2018 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,25 +20,15 @@ import com.google.api.client.util.Key;
 import javax.annotation.Nullable;
 
 /**
- * See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#abandon-input
+ * See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#delete-reviewer-input
  *
  * <p> NotifyInfo (notify_details) not included for now
  */
-public class AbandonInput {
+public class DeleteReviewerInput {
 
-  @Key String message;
   @Key String notify;
 
-  private AbandonInput(@Nullable String message, @Nullable NotifyType notify) {
-    this.message = message;
+  public DeleteReviewerInput(@Nullable NotifyType notify) {
     this.notify = notify == null ? null : notify.toString();
-  }
-
-  public static AbandonInput create(@Nullable String message, @Nullable NotifyType notify) {
-    return new AbandonInput(message, notify);
-  }
-
-  public static AbandonInput createWithoutComment() {
-    return new AbandonInput(/*message=*/null, /*notify=*/null);
   }
 }

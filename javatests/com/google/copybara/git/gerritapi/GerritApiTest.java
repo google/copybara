@@ -39,8 +39,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.gerritapi.GerritApiException.ResponseCode;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.gson.Gson;
@@ -100,6 +102,11 @@ public class GerritApiTest {
           if (entry.getKey().test(requestString)) {
             byte[] content = entry.getValue();
             assertWithMessage("'" + method + " " + url + "'").that(content).isNotNull();
+            if (content.length == 0) {
+              // No content
+              response.setStatusCode(204);
+              return request;
+            }
             response.setContent(content);
             return request;
           }
@@ -188,6 +195,21 @@ public class GerritApiTest {
     assertThat(change.getReviewers().get("CC").stream()
         .map(AccountInfo::getAccountId).collect(Collectors.toList()))
         .containsExactly(1000097L);
+  }
+
+  @Test
+  public void testDeleteReviewer() throws Exception {
+    mockResponse(new CheckRequest("POST", "/changes/" + CHANGE_ID + "/reviewers/12345/delete"), "");
+    gerritApi.deleteReviewer(CHANGE_ID, 12345, new DeleteReviewerInput(NotifyType.ALL));
+  }
+
+  @Test
+  public void testDeleteReviewerNotFound() throws Exception {
+    try {
+      gerritApi.deleteReviewer(CHANGE_ID, 12345, new DeleteReviewerInput(NotifyType.ALL));
+    } catch (GerritApiException e) {
+      assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
+    }
   }
 
   private void validateChangeInfoCommon(ChangeInfo change) {
