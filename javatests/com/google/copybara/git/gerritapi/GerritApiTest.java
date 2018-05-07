@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -167,6 +168,29 @@ public class GerritApiTest {
         + ")]}'\n" + mockChangeInfo(NEW));
     ChangeInfo change = gerritApi.getChange(CHANGE_ID,
         new GetChangeInput(ImmutableSet.of(CURRENT_REVISION, CURRENT_COMMIT, DETAILED_LABELS)));
+
+    validateChangeInfoCommon(change);
+  }
+
+  @Test
+  public void testGetChangeDetail() throws Exception {
+    mockResponse(new CheckRequest("GET", "/changes/" + CHANGE_ID + "/detail\\?o="), ""
+        + ")]}'\n" + mockChangeInfo(NEW, /*detail=*/ true));
+    ChangeInfo change = gerritApi.getChangeDetail(CHANGE_ID,
+        new GetChangeInput(ImmutableSet.of(CURRENT_REVISION, CURRENT_COMMIT, DETAILED_LABELS)));
+
+    validateChangeInfoCommon(change);
+
+    assertThat(change.getReviewers().keySet()).containsExactly("REVIEWER", "CC");
+    assertThat(change.getReviewers().get("REVIEWER").stream()
+        .map(AccountInfo::getAccountId).collect(Collectors.toList()))
+        .containsExactly(1000096L);
+    assertThat(change.getReviewers().get("CC").stream()
+        .map(AccountInfo::getAccountId).collect(Collectors.toList()))
+        .containsExactly(1000097L);
+  }
+
+  private void validateChangeInfoCommon(ChangeInfo change) {
     assertThat(change.getChangeId()).isEqualTo(CHANGE_ID);
     assertThat(change.getNumber()).isEqualTo(1082);
     assertThat(change.getUpdated().format(DateTimeFormatter.ISO_DATE_TIME))
@@ -274,7 +298,11 @@ public class GerritApiTest {
   }
 
   private static String mockChangeInfo(ChangeStatus status) {
-    return "{\n"
+    return mockChangeInfo(status, /*detail=*/false);
+  }
+
+  private static String mockChangeInfo(ChangeStatus status, boolean detail) {
+    String change = "{\n"
         + "  'id': 'copybara-project~"
         + CHANGE_ID
         + "',\n"
@@ -389,8 +417,32 @@ public class GerritApiTest {
         + "        'message': 'Uploaded patch set 1.',\n"
         + "        '_revision_number': 1\n"
         + "      }\n"
-        + "  ]\n"
-        + "}\n";
+        + "  ]";
+    if (detail) {
+      return change
+          + ",\n"
+          + "\"reviewers\": {\n"
+          + "      \"REVIEWER\": [\n"
+          + "        {\n"
+          + "          \"_account_id\": 1000096,\n"
+          + "          \"name\": \"John Doe\",\n"
+          + "          \"email\": \"john.doe@example.com\",\n"
+          + "          \"username\": \"jdoe\"\n"
+          + "        }"
+          + "      ],\n"
+          + "      \"CC\": [\n"
+          + "        {\n"
+          + "          \"_account_id\": 1000097,\n"
+          + "          \"name\": \"Jane Roe\",\n"
+          + "          \"email\": \"jane.roe@example.com\",\n"
+          + "          \"username\": \"jroe\"\n"
+          + "        }\n"
+          + "      ]\n"
+          + "    }"
+          + "}\n";
+    } else {
+      return change + "\n}\n";
+    }
   }
 
   @Test

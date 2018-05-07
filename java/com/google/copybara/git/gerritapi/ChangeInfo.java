@@ -59,6 +59,7 @@ public class ChangeInfo implements SkylarkValue {
   @Key("current_revision") private String currentRevision;
   @Key("revisions") private Map<String, RevisionInfo> allRevisions;
   @Key("_more_changes") private boolean moreChanges;
+  @Key private Map<String, List<AccountInfo>> reviewers;
 
   @SkylarkCallable(
       name = "id",
@@ -244,6 +245,10 @@ public class ChangeInfo implements SkylarkValue {
       structField = true)
   public SkylarkDict<String, RevisionInfo> getAllRevisionsForSkylark() {
     return SkylarkDict.copyOf(/*environment*/ null, getAllRevisions());
+  }
+
+  public ImmutableMap<String, List<AccountInfo>> getReviewers() {
+    return reviewers == null? ImmutableMap.of(): ImmutableMap.copyOf(reviewers);
   }
 
   public boolean isMoreChanges() {
