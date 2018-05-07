@@ -63,9 +63,8 @@ public class SkylarkAction implements Action {
       }
       throw new ValidationException(
           e.getCause(),
-          "Error while executing the skylark transformer %s: %s",
-          function.getName(),
-          e.getMessage());
+          "Error while executing the skylark transformer %s: %s. Location: %s",
+          function.getName(), e.getMessage(), e.getLocation());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);

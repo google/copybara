@@ -246,6 +246,25 @@ public class FeedbackTest {
   }
 
   @Test
+  public void testEvalExceptionIncludesLocation() throws Exception {
+    Feedback feedback = feedback(
+        ""
+            + "def test_action(ctx):\n"
+            + "    result = ctx.foo()\n"
+            + "\n",
+        "test_action");
+    try {
+      feedback.run(workdir, /*sourceRef*/ null);
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage())
+          .contains(
+              "Error while executing the skylark transformer test_action: type 'feedback.context' "
+                  + "has no method foo(). Location: copy.bara.sky:2:14");
+    }
+  }
+
+  @Test
   public void testDestinationEffects() throws Exception {
     Feedback feedback = feedback(
           ""
