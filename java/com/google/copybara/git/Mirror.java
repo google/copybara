@@ -24,17 +24,16 @@ import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.config.ConfigFile;
 import com.google.copybara.git.github.util.GithubUtil;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 
 /**
  * Mirror one or more refspects between git repositories.
@@ -68,7 +67,7 @@ public class Mirror implements Migration {
   }
 
   @Override
-  public void run(Path workdir, @Nullable String sourceRef)
+  public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
     mirrorOptions.mirror(origin, destination, refspec, prune);
 

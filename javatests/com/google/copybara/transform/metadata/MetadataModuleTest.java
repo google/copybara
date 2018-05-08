@@ -359,7 +359,7 @@ public class MetadataModuleTest {
 
     createWorkflow(WorkflowMode.SQUASH,
         "metadata.use_last_change(default_message = 'Internal change\\n')")
-        .run(workdir, "2");
+        .run(workdir, ImmutableList.of("2"));
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
 
     assertThat(change.getChangesSummary()).isEqualTo("Internal change\n");
@@ -538,7 +538,7 @@ public class MetadataModuleTest {
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
     origin.setAuthor(new Author("keep me", "keep@me.com"))
         .addSimpleChange(0, "A change");
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR=keep me <keep@me.com>");
   }
@@ -548,7 +548,7 @@ public class MetadataModuleTest {
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author('OTHER_LABEL')");
     origin.setAuthor(new Author("keep me", "keep@me.com"))
         .addSimpleChange(0, "A change");
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).contains("OTHER_LABEL=keep me <keep@me.com>");
     assertThat(change.getChangesSummary()).doesNotContain("ORIGINAL_AUTHOR");
@@ -559,7 +559,7 @@ public class MetadataModuleTest {
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
     origin.setAuthor(new Author("keep me", "keep@me.com"))
         .addSimpleChange(0, "A change\n\nORIGINAL_AUTHOR=bye bye <bye@bye.com>");
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR=keep me <keep@me.com>");
     assertThat(change.getChangesSummary()).doesNotContain("bye bye");
@@ -570,7 +570,7 @@ public class MetadataModuleTest {
     Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author()");
     origin.setAuthor(new Author("remove me", "remove@me.com"))
         .addSimpleChange(0, "A change\n\nORIGINAL_AUTHOR=restore me <restore@me.com>\n");
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
     assertThat(change.getChangesSummary()).doesNotContain("ORIGINAL_AUTHOR");
@@ -583,14 +583,14 @@ public class MetadataModuleTest {
         .addSimpleChange(0, "A change\n\nORIGINAL_AUTHOR=restore me <restore@me.com>\n")
         .addSimpleChange(1, "Another change\n\n");
     createWorkflow(WorkflowMode.SQUASH, "metadata.restore_author()")
-        .run(workdir, /*sourceRef=*/null);
+        .run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
 
     assertThat(change.getAuthor().toString()).isEqualTo("Copybara <no-reply@google.com>");
 
     destination.processed.clear();
     createWorkflow(WorkflowMode.SQUASH, "metadata.restore_author(search_all_changes = True)")
-        .run(workdir, /*sourceRef=*/null);
+        .run(workdir, ImmutableList.of());
     change = Iterables.getLast(destination.processed);
 
     assertThat(change.getAuthor().toString()).isEqualTo("restore me <restore@me.com>");
@@ -603,7 +603,7 @@ public class MetadataModuleTest {
         .addSimpleChange(0, "A change\n\n"
             + "OTHER_LABEL=restore me <restore@me.com>\n"
             + "ORIGINAL_AUTHOR=no no <no@no.com>\n");
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
     assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR=no no <no@no.com>");
@@ -623,7 +623,7 @@ public class MetadataModuleTest {
         + "\n"
         + "LABEL=some label\n");
 
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
 
     ProcessedChange change = Iterables.getLast(destination.processed);
 
@@ -646,7 +646,7 @@ public class MetadataModuleTest {
         + "\n"
         + "LABEL=some label\n");
 
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
 
     ProcessedChange change = Iterables.getLast(destination.processed);
 
@@ -661,7 +661,7 @@ public class MetadataModuleTest {
 
     origin.addSimpleChange(3, "A change\n");
 
-    createWorkflow(WorkflowMode.SQUASH, transform).run(workdir, /*sourceRef=*/null);
+    createWorkflow(WorkflowMode.SQUASH, transform).run(workdir, ImmutableList.of());
 
     assertThat(Iterables.getLast(destination.processed).getChangesSummary())
         .isEqualTo("Changes: 0..3\n");
@@ -671,7 +671,7 @@ public class MetadataModuleTest {
     options.setForce(false);
     options.setLastRevision(null);
 
-    createWorkflow(WorkflowMode.SQUASH, transform).run(workdir, /*sourceRef=*/null);
+    createWorkflow(WorkflowMode.SQUASH, transform).run(workdir, ImmutableList.of());
 
     assertThat(Iterables.getLast(destination.processed).getChangesSummary())
         .isEqualTo("Changes: 3..4\n");
@@ -684,7 +684,7 @@ public class MetadataModuleTest {
 
     try {
       createWorkflow(WorkflowMode.SQUASH, "metadata.replace_message('${COPYBARA_LAST_REV}\\n')")
-          .run(workdir, /*sourceRef=*/null);
+          .run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains("Cannot find label 'COPYBARA_LAST_REV' in message");
@@ -699,7 +699,7 @@ public class MetadataModuleTest {
         "metadata.replace_message('foo\\n\\nbar\\nbaz\\n')",
         "metadata.replace_message('Message: ${COPYBARA_CURRENT_MESSAGE_TITLE}\\n"
             + "<${COPYBARA_CURRENT_MESSAGE}>')")
-        .run(workdir, /*sourceRef=*/null);
+        .run(workdir, ImmutableList.of());
 
     assertThat(Iterables.getLast(destination.processed).getChangesSummary())
         .isEqualTo("Message: foo\n"
@@ -730,7 +730,7 @@ public class MetadataModuleTest {
         + "    ]\n"
         + ")\n");
 
-    config.getMigration("default").run(workdir, /*sourceRef=*/null);
+    config.getMigration("default").run(workdir, ImmutableList.of());
 
     assertThat(Iterables.getLast(destination.processed).getChangesSummary())
         .isEqualTo(expectedRev.asString());
@@ -748,7 +748,7 @@ public class MetadataModuleTest {
         + "\n"
         + "LABEL=some label\n");
 
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
 
     ProcessedChange change = Iterables.getLast(destination.processed);
 
@@ -768,7 +768,7 @@ public class MetadataModuleTest {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot find label 'LABEL'");
 
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
   }
 
   @Test
@@ -781,7 +781,7 @@ public class MetadataModuleTest {
 
     origin.addSimpleChange(0, "A change\n");
 
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
 
     ProcessedChange change = Iterables.getLast(destination.processed);
 
@@ -794,7 +794,7 @@ public class MetadataModuleTest {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.verify_match(\"<public>(.|\\n)*</public>\")");
     origin.addSimpleChange(0, "this\nshould\n<public>match\n\nreally!</public>match");
-    wf.run(workdir, /*sourceRef=*/"HEAD");
+    wf.run(workdir, ImmutableList.of("HEAD"));
   }
 
   @Test
@@ -802,7 +802,7 @@ public class MetadataModuleTest {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.verify_match(\"foobar\")");
     try {
-      wf.run(workdir, /*sourceRef=*/"HEAD");
+      wf.run(workdir, ImmutableList.of("HEAD"));
       fail();
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Could not find 'foobar' in the change message");
@@ -815,7 +815,7 @@ public class MetadataModuleTest {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.verify_match(\"foo\", verify_no_match = True)");
     origin.addSimpleChange(0, "bar");
-    wf.run(workdir, /*sourceRef=*/"HEAD");
+    wf.run(workdir, ImmutableList.of("HEAD"));
   }
 
   @Test
@@ -825,7 +825,7 @@ public class MetadataModuleTest {
         "metadata.verify_match(\"bar\", verify_no_match = True)");
     origin.addSimpleChange(0, "bar");
     try {
-      wf.run(workdir, /*sourceRef=*/"HEAD");
+      wf.run(workdir, ImmutableList.of("HEAD"));
       fail("Should fail");
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("'bar' found in the change message");
@@ -903,7 +903,7 @@ public class MetadataModuleTest {
         .addSimpleChange(4, "change 4");
 
     destination.processed.clear();
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
     assertThat(destination.processed.get(0).getAuthor().toString())
         .isEqualTo("Some Person <some@example.com>");
     assertThat(destination.processed.get(1).getAuthor().toString())
@@ -938,7 +938,7 @@ public class MetadataModuleTest {
     destination.processed.clear();
 
     try {
-      wf.run(workdir, /*sourceRef=*/null);
+      wf.run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessage("Cannot find a mapping for author 'Not found <d@example.com>'");
@@ -1020,14 +1020,14 @@ public class MetadataModuleTest {
       throws IOException, ValidationException, RepoException {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, scrubber);
     origin.addSimpleChange(0, commitMsg);
-    wf.run(workdir, /*sourceRef=*/null);
+    wf.run(workdir, ImmutableList.of());
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getChangesSummary()).isEqualTo(expectedMsg);
   }
 
   private void runWorkflow(WorkflowMode mode, String... transforms)
       throws IOException, RepoException, ValidationException {
-    createWorkflow(mode, transforms).run(workdir, "2");
+    createWorkflow(mode, transforms).run(workdir, ImmutableList.of("2"));
   }
 
   private Workflow createWorkflow(WorkflowMode mode, String... transforms)

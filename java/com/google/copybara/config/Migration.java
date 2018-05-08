@@ -16,6 +16,7 @@
 
 package com.google.copybara.config;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Info;
 import com.google.copybara.Revision;
@@ -23,7 +24,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import java.nio.file.Path;
-import javax.annotation.Nullable;
 
 /**
  * A migration is a process that moves files and/or metadata (comments, labels...) at a particular
@@ -35,11 +35,13 @@ import javax.annotation.Nullable;
 public interface Migration {
 
   /**
-   * Run a migration for a source reference. If the source reference is not present the default
-   * (if any) will be used.
+   * Run a migration for a list of source references. If empty, the default (if any) will be used.
+   *
+   * <p>Different implementations of Migration might process the list of source references
+   * differently (batching them, or running one by one).
    *
    * @param workdir a working directory for doing file operations if needed.
-   * @param sourceRef the source revision to be migrated. If not present the default (if any) for
+   * @param sourceRefs the source references to be migrated. If not present the default (if any) for
    * the migration will be used.
    * @throws RepoException if an error happens while accessing the repository
    * @throws IOException if any generic I/O error happen during the process
@@ -47,7 +49,7 @@ public interface Migration {
    * configuration
    * is detected.
    */
-  void run(Path workdir, @Nullable String sourceRef)
+  void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException;
 
   default Info<? extends Revision> getInfo() throws RepoException, ValidationException {

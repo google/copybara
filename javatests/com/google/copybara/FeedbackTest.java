@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -83,7 +84,7 @@ public class FeedbackTest {
   @Test
   public void testAction() throws Exception {
     Feedback feedback = loggingFeedback();
-    feedback.run(workdir, /*sourceRef*/ "12345");
+    feedback.run(workdir, ImmutableList.of("12345"));
     console.assertThat().onceInLog(MessageType.INFO, "Ref: 12345");
     console.assertThat().onceInLog(MessageType.INFO, "Feedback name: default");
     console.assertThat().onceInLog(MessageType.INFO, "Action name: test_action");
@@ -92,8 +93,24 @@ public class FeedbackTest {
   @Test
   public void testNullSourceRef() throws Exception {
     Feedback feedback = loggingFeedback();
-    feedback.run(workdir, /*sourceRef*/ null);
+    feedback.run(workdir, ImmutableList.of());
     console.assertThat().onceInLog(MessageType.INFO, "Ref: None");
+  }
+
+  @Test
+  public void testMultipleSourceRefs() throws Exception {
+    Feedback feedback = loggingFeedback();
+    feedback.run(workdir, ImmutableList.of("12345", "67890"));
+    console
+        .assertThat()
+        .matchesNext(MessageType.INFO, ".*Ref: 12345")
+        .matchesNext(MessageType.INFO, ".*Feedback name: default")
+        .matchesNext(MessageType.INFO, ".*Action name: test_action")
+        .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
+        .matchesNext(MessageType.INFO, ".*Ref: 67890")
+        .matchesNext(MessageType.INFO, ".*Feedback name: default")
+        .matchesNext(MessageType.INFO, ".*Action name: test_action")
+        .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*");
   }
 
   @Test
@@ -105,7 +122,7 @@ public class FeedbackTest {
             + "\n",
         "test_action");
     try {
-      feedback.run(workdir, /*sourceRef*/ null);
+      feedback.run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException expected) {
       assertThat(expected.getMessage())
@@ -122,7 +139,7 @@ public class FeedbackTest {
             + "    return ctx.success()\n"
             + "\n",
         "test_action");
-    feedback.run(workdir, /*sourceRef*/ null);
+    feedback.run(workdir, ImmutableList.of());
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
   }
 
@@ -130,7 +147,7 @@ public class FeedbackTest {
   public void testNoActionsThrowsEmptyChangeException() throws Exception {
     Feedback feedback = feedback("");
     try {
-      feedback.run(workdir, /*sourceRef*/ null);
+      feedback.run(workdir, ImmutableList.of());
       fail();
     } catch (EmptyChangeException expected) {
       assertThat(expected).hasMessageThat()
@@ -151,7 +168,7 @@ public class FeedbackTest {
             + "\n",
         "test_action_1", "test_action_2");
     try {
-      feedback.run(workdir, /*sourceRef*/ null);
+      feedback.run(workdir, ImmutableList.of());
       fail();
     } catch (EmptyChangeException expected) {
       assertThat(expected).hasMessageThat()
@@ -174,7 +191,7 @@ public class FeedbackTest {
             + "\n",
         "test_action");
     try {
-      feedback.run(workdir, /*sourceRef*/ null);
+      feedback.run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException expected) {
       assertThat(expected).hasMessageThat()
@@ -197,7 +214,7 @@ public class FeedbackTest {
             + "    return ctx.success()\n"
             + "\n", "test_action_1", "test_action_2");
     try {
-      feedback.run(workdir, /*sourceRef*/ null);
+      feedback.run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException expected) {
       assertThat(expected).hasMessageThat()
@@ -220,7 +237,7 @@ public class FeedbackTest {
             + "def test_action_2(ctx):\n"
             + "    return ctx.success()\n"
             + "\n", "test_action_1", "test_action_2");
-    feedback.run(workdir, /*sourceRef*/ null);
+    feedback.run(workdir, ImmutableList.of());
     console
         .assertThat()
         .equalsNext(MessageType.INFO, "Action 'test_action_1' returned noop: No effect")
@@ -237,7 +254,7 @@ public class FeedbackTest {
             + "\n",
         "test_action");
     try {
-      feedback.run(workdir, /*sourceRef*/ null);
+      feedback.run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException expected) {
       assertThat(expected.getMessage())
@@ -254,7 +271,7 @@ public class FeedbackTest {
             + "\n",
         "test_action");
     try {
-      feedback.run(workdir, /*sourceRef*/ null);
+      feedback.run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException expected) {
       assertThat(expected.getMessage())
@@ -276,7 +293,7 @@ public class FeedbackTest {
               + "    return ctx.success()\n"
               + "\n",
         "test_action");
-    feedback.run(workdir, /*sourceRef*/ null);
+    feedback.run(workdir, ImmutableList.of());
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
 
     assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(1);

@@ -86,7 +86,7 @@ public class GitMirrorTest {
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
             + ")",
         "default");
-    mirror.run(workdir, /*sourceRef=*/null);
+    mirror.run(workdir, ImmutableList.of());
     String orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
     String dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
     assertThat(dest).isEqualTo(orig);
@@ -114,14 +114,14 @@ public class GitMirrorTest {
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
         + ")";
 
-    loadMigration(cfgContent, "one").run(workdir, /*sourceRef=*/null);
+    loadMigration(cfgContent, "one").run(workdir, ImmutableList.of());
     originRepo.simpleCommand("branch", "-D", "other");
     Mirror mirror = (Mirror) loadMigration(cfgContent, "two");
 
     assertThat(mirror.getOriginDescription().get("ref")).containsExactly("refs/heads/*");
     assertThat(mirror.getDestinationDescription().get("ref")).containsExactly("refs/heads/*");
 
-    mirror.run(workdir, /*sourceRef=*/null);
+    mirror.run(workdir, ImmutableList.of());
 
     checkRefDoesntExist("refs/heads/other");
   }
@@ -147,9 +147,9 @@ public class GitMirrorTest {
     String other = originRepo.git(originRepo.getGitDir(), "show-ref", "refs/heads/other",
         "-s").getStdout();
     Migration migration = loadMigration(cfg, "default");
-    migration.run(workdir, /*sourceRef=*/null);
+    migration.run(workdir, ImmutableList.of());
     originRepo.simpleCommand("branch", "-D", "other");
-    migration.run(workdir, /*sourceRef=*/null);
+    migration.run(workdir, ImmutableList.of());
     assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", "refs/heads/other", "-s").getStdout())
         .isEqualTo(other);
   }
@@ -169,9 +169,9 @@ public class GitMirrorTest {
         + "";
 
     Migration migration = loadMigration(cfg, "default");
-    migration.run(workdir, /*sourceRef=*/null);
+    migration.run(workdir, ImmutableList.of());
     originRepo.simpleCommand("branch", "-D", "other");
-    migration.run(workdir, /*sourceRef=*/null);
+    migration.run(workdir, ImmutableList.of());
 
     checkRefDoesntExist("refs/heads/other");
   }
@@ -193,7 +193,7 @@ public class GitMirrorTest {
         + "    ]"
         + ")";
     Migration mirror = loadMigration(cfg, "default");
-    mirror.run(workdir, /*sourceRef=*/null);
+    mirror.run(workdir, ImmutableList.of());
     String origMaster = originRepo.git(originRepo.getGitDir(), "show-ref", "master", "-s")
         .getStdout();
     String destMaster = destRepo.git(destRepo.getGitDir(), "show-ref", "origin_master", "-s")
@@ -235,7 +235,7 @@ public class GitMirrorTest {
   public void testMirrorConflict() throws Exception {
     Migration mirror = prepareForConflict();
     try {
-      mirror.run(workdir, /*sourceRef=*/null);
+      mirror.run(workdir, ImmutableList.of());
       fail();
     } catch (RepoException e) {
       assertThat(e.getMessage()).contains("[rejected]");
@@ -246,7 +246,7 @@ public class GitMirrorTest {
   public void testMirrorNoConflictIfForce() throws Exception {
     options.gitMirrorOptions.forcePush = true;
     Migration mirror = prepareForConflict();
-    mirror.run(workdir, /*sourceRef=*/null);
+    mirror.run(workdir, ImmutableList.of());
   }
 
   private Migration prepareForConflict() throws IOException, ValidationException, RepoException {

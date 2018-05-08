@@ -231,7 +231,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    workflow.run(workdir, /*sourceRef=*/"HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getRequestedRevision().contextReference()).isEqualTo("HEAD");
   }
@@ -241,7 +241,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    workflow.run(workdir, /*sourceRef=*/ "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(1);
     assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(1);
   }
@@ -254,7 +254,7 @@ public class WorkflowTest {
         "metadata.expose_label('" + COPYBARA_CONTEXT_REFERENCE_LABEL + "')"
     );
     Workflow workflow = workflow();
-    workflow.run(workdir, /*sourceRef=*/"HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary()).isEqualTo(""
         + "Import of HEAD\n"
@@ -269,7 +269,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    workflow.run(workdir, /*sourceRef=*/"HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     origin.addSimpleChange(/*timestamp*/ 2);
     DummyRevision expected = origin.resolve("HEAD");
     origin.addChange(/*timestamp*/ 3, Paths.get("not important"), "message",
@@ -277,7 +277,7 @@ public class WorkflowTest {
 
     options.setForce(false);
     workflow = skylarkWorkflow("default", SQUASH);
-    workflow.run(workdir, /*sourceRef=*/"HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     ProcessedChange change = Iterables.getLast(destination.processed);
     assertThat(change.getOriginRef().asString()).isEqualTo(expected.asString());
   }
@@ -291,9 +291,9 @@ public class WorkflowTest {
 
     // First change is migrated without context reference. Then we run again with
     // context ("HEAD").
-    workflow.run(workdir, /*sourceRef=*/ "1");
+    workflow.run(workdir, ImmutableList.of("1"));
     workflow = iterativeWorkflow(/*previousRef=*/ null);
-    workflow.run(workdir, /*sourceRef=*/ "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     for (ProcessedChange change : destination.processed) {
       assertThat(change.getRequestedRevision().contextReference())
           .isEqualTo(change.getOriginRef().asString().equals("1") ? null : "HEAD");
@@ -307,7 +307,7 @@ public class WorkflowTest {
     }
 
     Workflow workflow = iterativeWorkflow("0");
-    workflow.run(workdir, /*sourceRef=*/ "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
 
     assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(9);
     assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(9);
@@ -320,9 +320,9 @@ public class WorkflowTest {
     }
     String name = "notDefaultWorkflow";
     Workflow workflow = iterativeWorkflow(name, "0");
-    workflow.run(workdir, /*sourceRef=*/ "1");
+    workflow.run(workdir, ImmutableList.of("1"));
     workflow = iterativeWorkflow(name, null);
-    workflow.run(workdir, /*sourceRef=*/ "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
 
     for (ProcessedChange change : destination.processed) {
       assertThat(change.getWorkflowName()).isEqualTo(name);
@@ -336,7 +336,7 @@ public class WorkflowTest {
         .addSimpleChange(1, "Second Change");
 
     Workflow workflow = changeRequestWorkflow(null);
-    workflow.run(workdir, "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     ProcessedChange change = destination.processed.get(0);
 
     assertThat(change.getBaseline()).isEqualTo("42");
@@ -350,7 +350,7 @@ public class WorkflowTest {
         .addSimpleChange(1, "Second Change");
 
     Workflow workflow = changeRequestWorkflow(null);
-    workflow.run(workdir, "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
 
     assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(1);
     assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(1);
@@ -363,7 +363,7 @@ public class WorkflowTest {
     }
     Workflow workflow = iterativeWorkflow(/*previousRef=*/ "42");
 
-    workflow.run(workdir, /*sourceRef=*/ "50");
+    workflow.run(workdir, ImmutableList.of("50"));
     assertThat(destination.processed).hasSize(8);
     int nextChange = 43;
     for (ProcessedChange change : destination.processed) {
@@ -377,7 +377,7 @@ public class WorkflowTest {
     }
 
     workflow = iterativeWorkflow(null);
-    workflow.run(workdir, /*sourceRef=*/ "60");
+    workflow.run(workdir, ImmutableList.of("60"));
     assertThat(destination.processed).hasSize(18);
   }
 
@@ -387,11 +387,11 @@ public class WorkflowTest {
       origin.addSimpleChange(timestamp);
     }
     // First change so that iterative can find last imported revisions
-    iterativeWorkflow(/*previousRef=*/"40").run(workdir, /*sourceRef=*/"41");
+    iterativeWorkflow(/*previousRef=*/"40").run(workdir, ImmutableList.of("41"));
     options.workflowOptions.iterativeLimitChanges = 1;
     int numClsBefore = destination.processed.size();
     for (int i = 42; i <= 50; i++) {
-      iterativeWorkflow(/*previousRef=*/null).run(workdir, /*sourceRef=*/"50");
+      iterativeWorkflow(/*previousRef=*/null).run(workdir, ImmutableList.of("50"));
       assertThat(destination.processed).hasSize(numClsBefore + 1);
       numClsBefore++;
       assertThat(Iterables.getLast(destination.processed).getChangesSummary())
@@ -400,7 +400,7 @@ public class WorkflowTest {
 
     // Check that we don't import anything else after we have migrated all pending changes.
     thrown.expect(EmptyChangeException.class);
-    iterativeWorkflow(/*previousRef=*/null).run(workdir, /*sourceRef=*/null);
+    iterativeWorkflow(/*previousRef=*/null).run(workdir, ImmutableList.of());
   }
 
   @Test
@@ -460,7 +460,7 @@ public class WorkflowTest {
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"1");
 
     try {
-      workflow.run(workdir, /*sourceRef=*/"3");
+      workflow.run(workdir, ImmutableList.of("3"));
       fail();
     } catch (Exception expected) {
       assertThat(expected).isInstanceOf(expected.getClass());
@@ -482,7 +482,7 @@ public class WorkflowTest {
 
     Workflow workflow = iterativeWorkflow("0");
 
-    workflow.run(workdir, /*sourceRef=*/HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     assertThat(destination.processed).hasSize(2);
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
@@ -503,7 +503,7 @@ public class WorkflowTest {
 
     Workflow workflow = iterativeWorkflow("0");
 
-    workflow.run(workdir, /*sourceRef=*/HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     assertThat(destination.processed).hasSize(2);
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
@@ -530,7 +530,7 @@ public class WorkflowTest {
 
     passThruAuthoring();
 
-    iterativeWorkflow("0").run(workdir, /*sourceRef=*/HEAD);
+    iterativeWorkflow("0").run(workdir, ImmutableList.of(HEAD));
 
     assertThat(destination.processed).hasSize(2);
 
@@ -562,7 +562,7 @@ public class WorkflowTest {
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"2");
 
     try {
-      workflow.run(workdir, /*sourceRef=*/"9");
+      workflow.run(workdir, ImmutableList.of("9"));
       fail("Should throw ChangeRejectedException");
     } catch (ChangeRejectedException expected) {
       assertThat(expected.getMessage())
@@ -577,7 +577,7 @@ public class WorkflowTest {
     Workflow workflow = iterativeWorkflow(/*previousRef=*/null);
     thrown.expect(CannotResolveRevisionException.class);
     thrown.expectMessage("Previous revision label DummyOrigin-RevId could not be found");
-    workflow.run(workdir, /*sourceRef=*/"0");
+    workflow.run(workdir, ImmutableList.of("0"));
   }
 
   @Test
@@ -586,7 +586,7 @@ public class WorkflowTest {
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"0");
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("No new changes to import for resolved ref: 0");
-    workflow.run(workdir, /*sourceRef=*/"0");
+    workflow.run(workdir, ImmutableList.of("0"));
   }
 
   @Test
@@ -598,7 +598,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     destination.failOnEmptyChange = true;
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"0");
-    workflow.run(workdir, /*sourceRef=*/"3");
+    workflow.run(workdir, ImmutableList.of("3"));
     assertThat(destination.processed.get(1).getContent("file.txt")).isEqualTo("c");
   }
 
@@ -611,7 +611,7 @@ public class WorkflowTest {
     origin.singleFileChange(4, "four", "copy.bara.sky", "");
     transformations = ImmutableList.of();
     Workflow workflow = iterativeWorkflow(/*previousRef=*/"0");
-    workflow.run(workdir, /*sourceRef=*/HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     for (ProcessedChange change : destination.processed) {
       System.err.println(change.getChangesSummary());
     }
@@ -624,7 +624,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     origin.singleFileChange(0, "base1", "file.txt", "a");
     origin.singleFileChange(1, "base2", "file.txt", "b");
-    iterativeWorkflow(/*previousRef=*/"0").run(workdir, /*sourceRef=*/"1");
+    iterativeWorkflow(/*previousRef=*/"0").run(workdir, ImmutableList.of("1"));
     origin.singleFileChange(2, "pending1", "file.txt", "c");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
     origin.singleFileChange(3, "pending2", "file.txt", "d");
@@ -633,7 +633,7 @@ public class WorkflowTest {
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending2");
     origin.singleFileChange(5, "pending3", "file.txt", "e");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
-    iterativeWorkflow(/*previousRef=*/null).run(workdir, /*sourceRef=*/"3");
+    iterativeWorkflow(/*previousRef=*/null).run(workdir, ImmutableList.of("3"));
 
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("1", "2", "3"));
@@ -642,7 +642,7 @@ public class WorkflowTest {
     destination.processed.get(1).pending = true;
     destination.processed.get(2).pending = true;
 
-    iterativeWorkflow(/*previousRef=*/null).run(workdir, /*sourceRef=*/"5");
+    iterativeWorkflow(/*previousRef=*/null).run(workdir, ImmutableList.of("5"));
 
     // We migrate everything from pending1
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
@@ -657,7 +657,7 @@ public class WorkflowTest {
                             "file.txt", "b");
     origin.singleFileChange(2, "pending1", "file.txt", "c");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
-    skylarkWorkflow("default", CHANGE_REQUEST).run(workdir, /*sourceRef=*/"2");
+    skylarkWorkflow("default", CHANGE_REQUEST).run(workdir, ImmutableList.of("2"));
     origin.singleFileChange(3, "base3\n\n" + destination.getLabelNameWhenOrigin() + ": 3\n",
                             "file.txt", "d");
 
@@ -667,7 +667,7 @@ public class WorkflowTest {
 
     origin.singleFileChange(4, "pending2", "file.txt", "c");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
-    skylarkWorkflow("default", CHANGE_REQUEST).run(workdir, /*sourceRef=*/"4");
+    skylarkWorkflow("default", CHANGE_REQUEST).run(workdir, ImmutableList.of("4"));
 
     assertThat(destination.processed).hasSize(2);
     assertThat(destination.processed.get(1).getBaseline()).isEqualTo("3");
@@ -681,7 +681,7 @@ public class WorkflowTest {
     origin.singleFileChange(0, "base1", "file.txt", "a");
     origin.singleFileChange(1, "base2", "file.txt", "b");
     options.workflowOptions.lastRevision = "0";
-    skylarkWorkflow("default", SQUASH).run(workdir, /*sourceRef=*/"1");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("1"));
     origin.singleFileChange(2, "pending1", "file.txt", "c");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
     origin.singleFileChange(3, "pending2", "file.txt", "d");
@@ -691,7 +691,7 @@ public class WorkflowTest {
     origin.singleFileChange(5, "pending3", "file.txt", "e");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
     options.workflowOptions.lastRevision = null;
-    skylarkWorkflow("default", SQUASH).run(workdir, /*sourceRef=*/"3");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("3"));
 
     assertThat(Iterables.getLast(destination.processed).getChangesSummary()).isEqualTo(
         "Copybara import of the project:\n"
@@ -704,7 +704,7 @@ public class WorkflowTest {
     // Mark last change as pending.
     Iterables.getLast(destination.processed).pending = true;
 
-    skylarkWorkflow("default", SQUASH).run(workdir, /*sourceRef=*/"5");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("5"));
 
     assertThat(Iterables.getLast(destination.processed).getChangesSummary()).isEqualTo(
         "Copybara import of the project:\n"
@@ -722,7 +722,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
-    workflow.run(workdir, /*sourceRef=*/"0");
+    workflow.run(workdir, ImmutableList.of("0"));
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getContent("file.txt")).isEqualTo("0");
   }
@@ -730,7 +730,7 @@ public class WorkflowTest {
   @Test
   public void processIsCalledWithCurrentTimeIfTimestampNotInOrigin() throws Exception {
     Workflow workflow = workflow();
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
 
     ZonedDateTime timestamp = destination.processed.get(0).getTimestamp();
     assertThat(timestamp.toInstant().getEpochSecond()).isEqualTo(42);
@@ -740,7 +740,7 @@ public class WorkflowTest {
   public void processIsCalledWithCorrectWorkdir() throws Exception {
     Workflow workflow = workflow();
     String head = resolveHead();
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     assertThat(Files.readAllLines(workdir.resolve("checkout/file.txt"), UTF_8))
         .contains(PREFIX + head);
   }
@@ -749,7 +749,7 @@ public class WorkflowTest {
   public void sendsOriginTimestampToDest() throws Exception {
     Workflow workflow = workflow();
     origin.addSimpleChange(/*timestamp*/ 42918273);
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getTimestamp().toInstant().getEpochSecond())
         .isEqualTo(42918273);
@@ -766,7 +766,7 @@ public class WorkflowTest {
 
     Workflow workflow = workflow();
 
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     assertThat(destination.processed).hasSize(1);
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary()).contains(DEFAULT_AUTHOR.toString());
@@ -819,21 +819,21 @@ public class WorkflowTest {
     includeReleaseNotes = true;
 
     options.setForce(true);
-    skylarkWorkflow("default", SQUASH).run(workdir, HEAD);
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("'0' has been already migrated");
     options.setForce(false); // Disable force so that we get an error
-    skylarkWorkflow("default", SQUASH).run(workdir, oldRef);
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(oldRef));
   }
 
   @Test
   public void testSquashAlreadyMigratedSameChange() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
-    skylarkWorkflow("default", SQUASH).run(workdir, HEAD);
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("'0' has been already migrated");
     options.setForce(false); // Disable force so that we get an error
-    skylarkWorkflow("default", SQUASH).run(workdir, HEAD);
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
   }
 
   @Test
@@ -847,7 +847,7 @@ public class WorkflowTest {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot find last imported revision."
         + " Use --force if you really want to proceed with the migration");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
   }
 
   @Test
@@ -859,13 +859,13 @@ public class WorkflowTest {
     includeReleaseNotes = true;
 
     options.setForce(true);
-    workflow().run(workdir, HEAD);
+    workflow().run(workdir, ImmutableList.of(HEAD));
 
     assertThat(destination.newWriter(Glob.ALL_FILES, /*dryRun=*/false, /*groupId=*/null,
         /*oldWriter=*/null)
         .getDestinationStatus(origin.getLabelName()).getBaseline())
         .isEqualTo("3");
-    workflow().run(workdir, oldRef);
+    workflow().run(workdir, ImmutableList.of(oldRef));
     assertThat(destination.newWriter(Glob.ALL_FILES, /*dryRun=*/false, /*groupId=*/null,
         /*oldWriter=*/null)
         .getDestinationStatus(origin.getLabelName()).getBaseline())
@@ -874,7 +874,7 @@ public class WorkflowTest {
 
   @Test
   public void runsTransformations() throws Exception {
-    workflow().run(workdir, HEAD);
+    workflow().run(workdir, ImmutableList.of(HEAD));
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).numFiles()).isEqualTo(1);
     assertThat(destination.processed.get(0).getContent("file.txt")).isEqualTo(PREFIX + "0");
@@ -891,7 +891,7 @@ public class WorkflowTest {
     originFiles = "glob(['" + outsideFolder + "'])";
 
     try {
-      workflow().run(workdir, HEAD);
+      workflow().run(workdir, ImmutableList.of(HEAD));
       fail("should have thrown");
     } catch (ValidationException e) {
       console().assertThat()
@@ -908,7 +908,7 @@ public class WorkflowTest {
     originFiles = "glob(['{'])";
 
     try {
-      workflow().run(workdir, HEAD);
+      workflow().run(workdir, ImmutableList.of(HEAD));
       fail("should have thrown");
     } catch (ValidationException e) {
       console().assertThat()
@@ -925,7 +925,7 @@ public class WorkflowTest {
     originFiles = "glob(['**'], exclude = ['folder'])";
     Workflow workflow = workflow();
     prepareOriginExcludes("a");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder/file.txt", "folder2/file.txt");
   }
@@ -936,7 +936,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes("a");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
 
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2")
@@ -958,7 +958,7 @@ public class WorkflowTest {
         + "            ignore_noop = True,"
         + "        )"
     );
-    workflow().run(workdir, HEAD);
+    workflow().run(workdir, ImmutableList.of(HEAD));
     console().assertThat().onceInLog(MessageType.WARNING,
         ".*NOOP: Transformation.*");
   }
@@ -977,7 +977,7 @@ public class WorkflowTest {
         + "        )"
     );
     try {
-      workflow().run(workdir, HEAD);
+      workflow().run(workdir, ImmutableList.of(HEAD));
       fail();
     } catch (VoidOperationException ignored) {
     }
@@ -989,7 +989,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes("a");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
 
     assertThatPath(workdir.resolve("checkout"))
         .containsFiles("folder", "folder2", "folder/subfolder", "folder/subfolder/file.txt")
@@ -1024,7 +1024,7 @@ public class WorkflowTest {
     touchFile(four, "bar", "a");
     origin.addChange(4, four, "foo again", /*matchesGlob=*/true);
 
-    skylarkWorkflow("default", SQUASH).run(workdir, HEAD);
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
 
     // We skip changes that only touch foo.
     assertThat(Iterables.getLast(destination.processed).getChangesSummary())
@@ -1044,7 +1044,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow workflow = workflow();
     prepareOriginExcludes("a");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     console().assertThat()
         .timesInLog(0, MessageType.INFO, "Removed .* files from workdir");
   }
@@ -1058,7 +1058,7 @@ public class WorkflowTest {
     prepareOriginExcludes("b");
     prepareOriginExcludes("c");
     prepareOriginExcludes("d");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
     for (ProcessedChange processedChange : destination.processed) {
       for (String path : ImmutableList.of("folder/file.txt",
           "folder2/file.txt",
@@ -1090,7 +1090,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 42);
     Workflow workflow = iterativeWorkflow(resolveHead());
     origin.addSimpleChange(/*timestamp*/ 4242);
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
 
     assertThat(destination.processed).hasSize(1);
 
@@ -1108,7 +1108,7 @@ public class WorkflowTest {
   @Test
   public void testDestinationFilesPassedToDestination_squash() throws Exception {
     destinationFiles = "glob(['**'], exclude = ['foo', 'bar/**'])";
-    workflow().run(workdir, HEAD);
+    workflow().run(workdir, ImmutableList.of(HEAD));
 
     assertThat(destination.processed).hasSize(1);
 
@@ -1127,7 +1127,7 @@ public class WorkflowTest {
     thrown.expect(CannotResolveRevisionException.class);
     thrown.expectMessage(
         "Could not resolve --last-rev flag. Please make sure it exists in the origin: deadbeef");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
   }
 
   @Test
@@ -1137,7 +1137,7 @@ public class WorkflowTest {
         .addSimpleChange(1, "Second Change");
 
     Workflow workflow = changeRequestWorkflow(null);
-    workflow.run(workdir, "1");
+    workflow.run(workdir, ImmutableList.of("1"));
     ProcessedChange change = destination.processed.get(0);
 
     assertThat(change.getBaseline()).isEqualTo("42");
@@ -1155,7 +1155,7 @@ public class WorkflowTest {
         .addSimpleChange(3, "Third Change");
 
     Workflow workflow = iterativeWorkflow("0");
-    workflow.run(workdir, "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     ProcessedChange change = destination.processed.get(2);
 
     assertThat(change.getBaseline()).isNull();
@@ -1163,7 +1163,7 @@ public class WorkflowTest {
 
     Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
 
-    w.run(workdir, "2");
+    w.run(workdir, ImmutableList.of("2"));
 
     change = destination.processed.get(destination.processed.size() -1);
     assertThat(change.getChangesSummary()).isEqualTo("Second Change");
@@ -1193,7 +1193,7 @@ public class WorkflowTest {
         .addSimpleChange(3, "Third Change");
 
     Workflow workflow = iterativeWorkflow("0");
-    workflow.run(workdir, "1");
+    workflow.run(workdir, ImmutableList.of("1"));
     ProcessedChange change = destination.processed.get(0);
 
     assertThat(change.getBaseline()).isNull();
@@ -1202,7 +1202,7 @@ public class WorkflowTest {
     Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
 
     try {
-      w.run(workdir, "3");
+      w.run(workdir, ImmutableList.of("3"));
       fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains("Make sure to sync the submitted changes");
@@ -1220,7 +1220,7 @@ public class WorkflowTest {
         .addSimpleChange(3, "Third Change");
 
     Workflow workflow = iterativeWorkflow("0");
-    workflow.run(workdir, "1");
+    workflow.run(workdir, ImmutableList.of("1"));
     ProcessedChange change = destination.processed.get(0);
 
     assertThat(change.getBaseline()).isNull();
@@ -1228,7 +1228,7 @@ public class WorkflowTest {
 
     Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
 
-    w.run(workdir, "3");
+    w.run(workdir, ImmutableList.of("3"));
     change = destination.processed.get(destination.processed.size() - 1);
     assertThat(change.getChangesSummary()).isEqualTo("Third Change");
     assertThat(change.getBaseline()).isEqualTo("1");
@@ -1242,7 +1242,7 @@ public class WorkflowTest {
 
     passThruAuthoring();
     Workflow workflow = changeRequestWorkflow(null);
-    workflow.run(workdir, "1");
+    workflow.run(workdir, ImmutableList.of("1"));
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
   }
@@ -1256,7 +1256,7 @@ public class WorkflowTest {
 
     whiteListAuthoring();
 
-    changeRequestWorkflow(null).run(workdir, "1");
+    changeRequestWorkflow(null).run(workdir, ImmutableList.of("1"));
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(DEFAULT_AUTHOR);
   }
@@ -1267,7 +1267,7 @@ public class WorkflowTest {
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
         .addSimpleChange(1, "Second Change");
     Workflow workflow = changeRequestWorkflow("24");
-    workflow.run(workdir, "1");
+    workflow.run(workdir, ImmutableList.of("1"));
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("24");
     console().assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
@@ -1281,7 +1281,7 @@ public class WorkflowTest {
         .addSimpleChange(2, "Third Change");
     includeReleaseNotes = true;
     Workflow workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
-    workflow.run(workdir, "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
     assertThat(destination.processed.get(0).getChangesSummary()).isEqualTo(""
@@ -1301,7 +1301,7 @@ public class WorkflowTest {
         .addSimpleChange(2, "Third Change");
     setRevId = false;
     Workflow workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
-    workflow.run(workdir, "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
     assertThat(destination.processed.get(0).isSetRevId()).isFalse();
@@ -1317,7 +1317,7 @@ public class WorkflowTest {
         .addSimpleChange(2, "Third Change");
     transformations = ImmutableList.of("metadata.use_last_change()");
     Workflow workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
-    workflow.run(workdir, "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
     assertThat(destination.processed.get(0).getChangesSummary()).isEqualTo("Third Change");
@@ -1408,7 +1408,7 @@ public class WorkflowTest {
         + "             after = 'foo',\n"
         + "        )");
     Workflow workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
-    workflow.run(workdir, "HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
     return destination.processed.get(0).getAffectedFilesForSmartPrune();
@@ -1446,7 +1446,7 @@ public class WorkflowTest {
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage(
         "doesn't include any change for origin_files = glob(include = [\"included/**\"])");
-    workflow.run(workdir,/*sourceRef=*/null);
+    workflow.run(workdir, ImmutableList.of());
 
   }
 
@@ -1485,7 +1485,7 @@ public class WorkflowTest {
     origin.addSimpleChange(2,"change\n\nsome_label=b");
     origin.addSimpleChange(3,"change\n\nsome_label=c");
 
-    config.getMigration("one").run(workdir, null);
+    config.getMigration("one").run(workdir, ImmutableList.of());
 
     assertThat(destination.processed).hasSize(3);
     ImmutableList<String> oneResult = destination.processed.stream().map(
@@ -1496,7 +1496,7 @@ public class WorkflowTest {
 
     destination.processed.clear();
 
-    config.getMigration("two").run(workdir, null);
+    config.getMigration("two").run(workdir, ImmutableList.of());
 
     ImmutableList<String> twoResult = destination.processed.stream().map(
         ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
@@ -1504,7 +1504,7 @@ public class WorkflowTest {
     assertThat(oneResult).isEqualTo(twoResult);
 
     destination.processed.clear();
-    config.getMigration("three").run(workdir, null);
+    config.getMigration("three").run(workdir, ImmutableList.of());
 
     ImmutableList<String> threeResult = destination.processed.stream().map(
         ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
@@ -1534,11 +1534,11 @@ public class WorkflowTest {
 
     origin.addSimpleChange(1,"change\n\nsome_label=a");
 
-    config1.getMigration("default").run(workdir, null);
+    config1.getMigration("default").run(workdir, ImmutableList.of());
     ImmutableList<String> oneResult = destination.processed.stream().map(
         ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
     destination.processed.clear();
-    config2.getMigration("default").run(workdir, null);
+    config2.getMigration("default").run(workdir, ImmutableList.of());
     ImmutableList<String> twoResult = destination.processed.stream().map(
         ProcessedChange::getChangeIdentity).collect(ImmutableList.toImmutableList());
 
@@ -1551,7 +1551,7 @@ public class WorkflowTest {
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
         .addSimpleChange(1, "Last Change\n" + destination.getLabelNameWhenOrigin() + "=BADBAD");
     Workflow workflow = changeRequestWorkflow(null);
-    workflow.run(workdir, "1");
+    workflow.run(workdir, ImmutableList.of("1"));
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
   }
 
@@ -1724,7 +1724,7 @@ public class WorkflowTest {
         + "    transformations = [\n"
         + "      first, second" + (thirdTransform == null ? "" : ", third") + "]\n"
         + ")\n");
-    config.getMigration("default").run(workdir, "2");
+    config.getMigration("default").run(workdir, ImmutableList.of("2"));
   }
 
   @Test
@@ -1826,7 +1826,7 @@ public class WorkflowTest {
                     + "").getBytes(UTF_8)), "copy.bara.sky"),
         options.build(), options.general.console()).getMigration("default"));
 
-    wf.run(workdir, "HEAD");
+    wf.run(workdir, ImmutableList.of("HEAD"));
   }
 
   @Test
@@ -1836,7 +1836,7 @@ public class WorkflowTest {
         .singleFileChange(1, "one commit", "test.txt", "1\nTRANSFORMED42");
     Workflow workflow = changeRequestWorkflow("0");
     try {
-      workflow.run(workdir, "1");
+      workflow.run(workdir, ImmutableList.of("1"));
       fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessage("Workflow 'default' is not reversible");
@@ -1863,7 +1863,7 @@ public class WorkflowTest {
         + "    authoring = " + authoring + ",\n"
         + "    reversible_check = True,\n"
         + ")\n";
-    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
   }
 
   @Test
@@ -1890,7 +1890,7 @@ public class WorkflowTest {
         + "  ],\n"
         + "  authoring = " + authoring + ",\n"
         + ")\n";
-    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
     assertThat(Iterables.getOnlyElement(destination.processed).getChangesSummary())
         .isEqualTo("example2\n"
             + "other42\n");
@@ -1925,7 +1925,7 @@ public class WorkflowTest {
         + "  authoring = " + authoring + ",\n"
         + "  after_migration = [test('example'), test('other', 42), other]"
         + ")\n";
-    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
     assertThat(origin.getEndpoint().getMessages())
         .containsExactly("0 created destination/1 example2",
             "0 created destination/1 other42",
@@ -1957,7 +1957,7 @@ public class WorkflowTest {
         + "  after_migration = [test('example'), test('other', 42), other]"
         + ")\n";
     try {
-      loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/null);
+      loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException expected) {
       assertThat(expected.getMessage()).contains("Error loading config file");
@@ -1982,7 +1982,7 @@ public class WorkflowTest {
         + ")\n";
     Migration workflow = loadConfig(config).getMigration("default");
     try {
-      workflow.run(subdir, /*sourceRef=*/null);
+      workflow.run(subdir, ImmutableList.of());
       fail("Should fail because the workflow is not reversible");
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat()
@@ -2000,7 +2000,7 @@ public class WorkflowTest {
 
     thrown.expect(NotADestinationFileException.class);
     thrown.expectMessage("[bar.txt]");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
   }
 
   @Test
@@ -2020,7 +2020,7 @@ public class WorkflowTest {
 
     thrown.expect(NotADestinationFileException.class);
     thrown.expectMessage("[bar, foo42]");
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
   }
 
   @Test
@@ -2033,7 +2033,7 @@ public class WorkflowTest {
     origin.singleFileChange(/*timestamp=*/45, "commit 2", "foo42", "1");
     Workflow workflow = skylarkWorkflow("default", SQUASH);
 
-    workflow.run(workdir, HEAD);
+    workflow.run(workdir, ImmutableList.of(HEAD));
   }
 
   @Test
@@ -2053,7 +2053,7 @@ public class WorkflowTest {
         + "    mode = 'CHANGE_REQUEST',\n"
         + ")\n")
         .getMigration("foo")
-        .run(workdir, null);
+        .run(workdir, ImmutableList.of());
   }
 
   @Test
@@ -2139,13 +2139,13 @@ public class WorkflowTest {
     origin.singleFileChange(2, "change3", "folder/foo.txt", "bar");
     origin.singleFileChange(3, "change4", "file.txt", "ccc");
 
-    workflow.run(workdir, /*sourceRef=*/"1");
+    workflow.run(workdir, ImmutableList.of("1"));
 
     workflow = iterativeWorkflow(/*previousRef*/ null);
 
     verifyInfo(workflow.getInfo(), "change4");
 
-    workflow.run(workdir, /*sourceRef=*/"3");
+    workflow.run(workdir, ImmutableList.of("3"));
 
     // Empty list of changes
     verifyInfo(workflow.getInfo());
@@ -2160,7 +2160,7 @@ public class WorkflowTest {
     origin.singleFileChange(3, "change 4", "file.txt", "d");
     origin.singleFileChange(4, "change 5", "file.txt", "e");
     options.workflowOptions.initHistory = true;
-    skylarkWorkflow("default", ITERATIVE).run(workdir, /*sourceRef=*/"3");
+    skylarkWorkflow("default", ITERATIVE).run(workdir, ImmutableList.of("3"));
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("0", "1", "2", "3"));
   }
@@ -2175,14 +2175,14 @@ public class WorkflowTest {
     origin.singleFileChange(2, "change 3", "file.txt", "c");
     origin.singleFileChange(3, "change 4", "file.txt", "d");
 
-    skylarkWorkflow("default", ITERATIVE).run(workdir, /*sourceRef=*/"3");
+    skylarkWorkflow("default", ITERATIVE).run(workdir, ImmutableList.of("3"));
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("0", "1", "2", "3"));
 
     origin.singleFileChange(4, "change 5", "file.txt", "e");
     origin.singleFileChange(5, "change 6", "file.txt", "f");
 
-    skylarkWorkflow("default", ITERATIVE).run(workdir, /*sourceRef=*/"5");
+    skylarkWorkflow("default", ITERATIVE).run(workdir, ImmutableList.of("5"));
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("0", "1", "2", "3", "4", "5"));
     console().assertThat().onceInLog(MessageType.WARNING,
@@ -2199,7 +2199,7 @@ public class WorkflowTest {
     origin.singleFileChange(3, "change 4", "file.txt", "d");
     origin.singleFileChange(4, "change 5", "file.txt", "e");
     options.workflowOptions.initHistory = true;
-    skylarkWorkflow("default", SQUASH).run(workdir, /*sourceRef=*/"3");
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("3"));
     assertThat(Lists.transform(destination.processed, input -> input.getOriginRef().asString()))
         .isEqualTo(Lists.newArrayList("3"));
   }
@@ -2211,7 +2211,7 @@ public class WorkflowTest {
         new GeneralOptions(options.general.getFileSystem(), options.general.isVerbose(), console())
             .withEventMonitor(eventMonitor);
     try {
-      skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST).run(workdir, "");
+      skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST).run(workdir, ImmutableList.of(""));
       fail("Should fail");
     } catch (ValidationException e) {
       assertThat(e.getMessage()).isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
@@ -2256,7 +2256,7 @@ public class WorkflowTest {
     options.workflowOptions.checkLastRevState = true;
     options.setLastRevision(firstCommit);
 
-    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/"HEAD");
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
 
     // Modify destination last commit
     Files.write(destinationWorkdir.resolve("foo.txt"), "foo_changed".getBytes(UTF_8));
@@ -2272,7 +2272,7 @@ public class WorkflowTest {
     thrown.expect(ValidationException.class);
     thrown.expectMessage("didn't result in an empty change. This means that the result change of"
         + " that migration was modified ouside of Copybara");
-    loadConfig(config).getMigration("default").run(workdir, /*sourceRef=*/"HEAD");
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
   }
 
   private void prepareOriginExcludes(String content) throws IOException {

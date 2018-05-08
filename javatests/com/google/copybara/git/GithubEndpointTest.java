@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Core;
@@ -177,7 +178,7 @@ public class GithubEndpointTest {
                 + "      ctx.console.info('Created status')\n"
                 + "    return ctx.success()\n"
                 + "\n");
-    feedback.run(workdir, /*sourceRef*/ "e597746de9c1704e648ddc3ffa0d2096b146d600");
+    feedback.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
     console.assertThat().timesInLog(2, MessageType.INFO, "Created status");
 
     List<RequestRecord> requests = gitApiMockHttpTransport.requests;

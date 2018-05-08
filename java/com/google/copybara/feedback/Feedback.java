@@ -37,6 +37,8 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
 import javax.annotation.Nullable;
 
 /**
@@ -67,30 +69,15 @@ public class Feedback implements Migration {
   }
 
   @Override
-  public void run(Path workdir, @Nullable String sourceRef)
+  public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, ValidationException {
     ImmutableList.Builder<ActionResult> allResultsBuilder = ImmutableList.builder();
-    try (ProfilerTask ignore = profiler().start("run/" + name)) {
-      for (Action action : actions) {
-        ImmutableList<DestinationEffect> effects = ImmutableList.of();
-        try (ProfilerTask ignore2 = profiler().start(action.getName())) {
-          SkylarkConsole console = new SkylarkConsole(generalOptions.console());
-          eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
-          FeedbackContext context = new FeedbackContext(this, action, sourceRef, console);
-          action.run(context);
-          effects = context.getEffects();
-          ActionResult actionResult = context.getActionResult();
-          allResultsBuilder.add(actionResult);
-          // First error aborts the execution of the other actions
-          ValidationException.checkCondition(
-              actionResult.getResult() != Result.ERROR,
-              "Feedback migration '%s' action '%s' returned error: %s. Aborting execution.",
-              name, action.getName(), actionResult.getMsg());
-        } finally {
-          eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
-        }
-      }
+
+    for (String sourceRef :
+        sourceRefs.isEmpty() ? Collections.singletonList((String) null) : sourceRefs) {
+      allResultsBuilder.addAll(runForRef(sourceRef));
     }
+
     ImmutableList<ActionResult> allResults = allResultsBuilder.build();
     // This check also returns true if there are no actions
     if (allResults.stream().allMatch(a -> a.getResult() == Result.NO_OP)) {
@@ -102,6 +89,39 @@ public class Feedback implements Migration {
           String.format(
               "Feedback migration '%s' was noop. Detailed messages: %s", name, detailedMessage));
     }
+  }
+
+  /**
+   * Run this migration for a single ref.
+   */
+  private ImmutableList<ActionResult> runForRef(@Nullable String sourceRef)
+      throws ValidationException, RepoException {
+    ImmutableList.Builder<ActionResult> allResults = ImmutableList.builder();
+    String root = sourceRef == null
+        ? "run/" + name
+        : "run/" + name + "/" + sourceRef.replaceAll("([/ ])", "_");
+    try (ProfilerTask ignore = profiler().start(root)) {
+      for (Action action : actions) {
+        ImmutableList<DestinationEffect> effects = ImmutableList.of();
+        try (ProfilerTask ignore2 = profiler().start(action.getName())) {
+          SkylarkConsole console = new SkylarkConsole(generalOptions.console());
+          eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
+          FeedbackContext context = new FeedbackContext(this, action, sourceRef, console);
+          action.run(context);
+          effects = context.getEffects();
+          ActionResult actionResult = context.getActionResult();
+          allResults.add(actionResult);
+          // First error aborts the execution of the other actions
+          ValidationException.checkCondition(
+              actionResult.getResult() != Result.ERROR,
+              "Feedback migration '%s' action '%s' returned error: %s. Aborting execution.",
+              name, action.getName(), actionResult.getMsg());
+        } finally {
+          eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
+        }
+      }
+    }
+    return allResults.build();
   }
 
   @Override

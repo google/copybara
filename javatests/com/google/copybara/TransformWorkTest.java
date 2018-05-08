@@ -521,7 +521,7 @@ public class TransformWorkTest {
         + "    destination = testing.destination(),\n"
         + "    transformations = [" + functionName + "],\n"
         + "    authoring = authoring.pass_thru('foo <foo@foo.com>'),\n"
-        + ")\n").getMigration("default").run(workdir, /*sourceRef=*/null);
+        + ")\n").getMigration("default").run(workdir, ImmutableList.of());
   }
 
   private void checkAddLabel(String originalMsg, String expected) throws Exception {

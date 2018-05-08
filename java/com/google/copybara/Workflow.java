@@ -35,6 +35,7 @@ import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
+import com.google.copybara.exception.CommandLineException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Action;
@@ -213,8 +214,17 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Override
-  public void run(Path workdir, @Nullable String sourceRef)
+  public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
+    if (sourceRefs.size() > 1) {
+      throw new CommandLineException(
+          String.format(
+              "Workflow does not support multiple source_ref arguments yet: %s",
+              ImmutableList.copyOf(sourceRefs)));
+    }
+    @Nullable
+    String sourceRef = sourceRefs.size() == 1 ? sourceRefs.get(0) : null;
+
     validateFlags();
     try (ProfilerTask ignore = profiler().start("run/" + name)) {
       console.progress("Getting last revision: "

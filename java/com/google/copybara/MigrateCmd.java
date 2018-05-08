@@ -17,9 +17,10 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
-import com.google.copybara.exception.CommandLineException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.ExitCode;
@@ -48,20 +49,15 @@ public class MigrateCmd implements CopybaraCmd {
     ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,
         /*useSourceRef*/true);
     Copybara copybara = new Copybara(configValidator, migrationRanConsumer);
-    String sourceRef = configFileArgs.getSourceRef();
-    // TODO(danielromero): Add support in MigrateCmd for multiple source_refs
-    if (configFileArgs.getSourceRefs().size() >1 ) {
-      throw new CommandLineException(
-          String.format(
-              "'%s' subcommand does not support multiple source_ref arguments yet. Running for: %s",
-              name(), sourceRef));
-    }
+    ImmutableList<String> sourceRefs = configFileArgs.getSourceRefs();
     copybara.run(
         commandEnv.getOptions(),
-        configLoaderProvider.newLoader(configFileArgs.getConfigPath(), sourceRef),
+        configLoaderProvider.newLoader(
+            configFileArgs.getConfigPath(),
+            sourceRefs.size() == 1 ? Iterables.getOnlyElement(sourceRefs) : null),
         configFileArgs.getWorkflowName(),
         commandEnv.getWorkdir(),
-        sourceRef);
+        sourceRefs);
     return ExitCode.SUCCESS;
   }
 

@@ -166,7 +166,7 @@ public class GerritEndpointTest {
   @Test
   public void testFeedbackGetChange() throws Exception {
     Feedback feedback = notifyChangeToOriginFeedback();
-    feedback.run(workdir, /*sourceRef*/ "12345");
+    feedback.run(workdir, ImmutableList.of("12345"));
     assertThat(dummyTrigger.messages).containsAllIn(ImmutableList.of("Change number 12345"));
   }
 
@@ -180,7 +180,7 @@ public class GerritEndpointTest {
     };
     Feedback feedback = notifyChangeToOriginFeedback();
     try {
-      feedback.run(workdir, /*sourceRef*/ "12345");
+      feedback.run(workdir, ImmutableList.of("12345"));
       fail();
     } catch (ValidationException expected) {
       assertThat(expected).hasMessageThat()

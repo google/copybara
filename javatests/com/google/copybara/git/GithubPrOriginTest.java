@@ -526,7 +526,7 @@ public class GithubPrOriginTest {
                 + "    ]"
                 + ")");
 
-    workflow.run(workdir, "123");
+    workflow.run(workdir, ImmutableList.of("123"));
 
     assertThat(gitApiMockHttpTransport.requests).hasSize(3);
     

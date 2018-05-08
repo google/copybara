@@ -1043,12 +1043,6 @@ function test_migrate_missing_config() {
   expect_log "Try 'copybara help'"
 }
 
-function test_migrate_too_many_arguments() {
-  copybara_with_exit_code $COMMAND_LINE_ERROR migrate copy.bara.sky default foo bar
-
-  expect_log "'migrate' subcommand does not support multiple source_ref arguments yet. Running for: foo"
-}
-
 function test_info_missing_config() {
   copybara_with_exit_code $COMMAND_LINE_ERROR info
 

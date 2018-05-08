@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Truth;
@@ -113,7 +114,7 @@ public class ReadConfigFromChangeWorkflowTest {
     origin.addSimpleChange(2);
     origin.addSimpleChange(3);
 
-    wf.run(Files.createTempDirectory("workdir"), "3");
+    wf.run(Files.createTempDirectory("workdir"), ImmutableList.of("3"));
     // We are able to maintain state between invocations despite asking for new
     // writers.
     Truth.assertThat(destination.processed.stream()

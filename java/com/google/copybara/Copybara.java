@@ -33,7 +33,6 @@ import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.function.Consumer;
-import javax.annotation.Nullable;
 
 /**
  * Copybara tool main class.
@@ -57,14 +56,14 @@ public class Copybara {
    * Runs the migration specified by {@code migrationName}.
    */
   public void run(Options options, ConfigLoader configLoader, String migrationName,
-      Path workdir, @Nullable String sourceRef)
+      Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, ValidationException, IOException {
     Config config = loadConfig(options, configLoader, migrationName);
     Migration migration = config.getMigration(migrationName);
 
     if (!options.get(WorkflowOptions.class).isReadConfigFromChange()) {
       this.migrationRanConsumer.accept(migration);
-      migration.run(workdir, sourceRef);
+      migration.run(workdir, sourceRefs);
       return;
     }
 
@@ -83,7 +82,7 @@ public class Copybara {
     Workflow<? extends Revision, ? extends Revision> workflow =
         (Workflow<? extends Revision, ? extends Revision>) migration;
     new ReadConfigFromChangeWorkflow<>(workflow, options, configLoader, configValidator)
-        .run(workdir, sourceRef);
+        .run(workdir, sourceRefs);
   }
 
   /** Retrieves the {@link Info} of the {@code migrationName} and prints it to the console. */
