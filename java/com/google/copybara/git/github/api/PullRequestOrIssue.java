@@ -19,7 +19,10 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
+import com.google.common.collect.ImmutableList;
 import java.time.ZonedDateTime;
+import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * Common fields for issues and pull requests.
@@ -27,26 +30,16 @@ import java.time.ZonedDateTime;
  * <p>There are more fields but they are ignored for now.
  */
 public class PullRequestOrIssue {
-  @Key
-  private long number;
-
-  @Key
-  private String state;
-
-  @Key
-  private String title;
-
-  @Key
-  private String body;
-
-  @Key("created_at")
-  private String createdAt;
-
-  @Key("updated_at")
-  private String updatedAt;
-
-  @Key("html_url")
-  private String htmlUrl;
+  @Key private long number;
+  @Key private String state;
+  @Key private String title;
+  @Key private String body;
+  @Key("created_at") private String createdAt;
+  @Key("updated_at") private String updatedAt;
+  @Key("html_url") private String htmlUrl;
+  @Key private User user;
+  @Key private User assignee;
+  @Key private List<User> assignees;
 
   public long getNumber() {
     return number;
@@ -83,6 +76,19 @@ public class PullRequestOrIssue {
 
   public boolean isOpen() {
     return "open".equals(state);
+  }
+
+  @Nullable
+  public User getAssignee() {
+    return assignee;
+  }
+
+  public User getUser() {
+    return user;
+  }
+
+  public ImmutableList<User> getAssignees() {
+    return assignees == null ? ImmutableList.of() : ImmutableList.copyOf(assignees);
   }
 
   protected ToStringHelper getToStringHelper() {

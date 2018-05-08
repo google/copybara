@@ -107,6 +107,10 @@ public abstract class AbstractGithubApiTest {
 
     assertThat(pullRequest.getNumber()).isEqualTo(12345);
     assertThat(pullRequest.getState()).isEqualTo("open");
+    assertThat(pullRequest.getUser().getLogin()).isEqualTo("googletestuser");
+    assertThat(pullRequest.getAssignee().getLogin()).isEqualTo("octocat");
+    assertThat(pullRequest.getAssignees()).hasSize(1);
+    assertThat(pullRequest.getAssignees().get(0).getLogin()).isEqualTo("octocat");
     assertThat(pullRequest.getTitle()).isEqualTo("[TEST] example pull request one");
     assertThat(pullRequest.getBody()).isEqualTo("Example body.\r\n");
     assertThat(pullRequest.getHead().getLabel())
@@ -197,6 +201,10 @@ public abstract class AbstractGithubApiTest {
     Issue issue = api.getIssue("example/project", 12345);
 
     assertThat(issue.getNumber()).isEqualTo(12345);
+    assertThat(issue.getUser().getLogin()).isEqualTo("googletestuser");
+    assertThat(issue.getAssignee().getLogin()).isEqualTo("octocat");
+    assertThat(issue.getAssignees()).hasSize(1);
+    assertThat(issue.getAssignees().get(0).getLogin()).isEqualTo("octocat");
     assertThat(issue.getState()).isEqualTo("open");
     assertThat(issue.getTitle()).isEqualTo("[TEST] example pull request one");
     assertThat(issue.getBody()).isEqualTo("Example body.\r\n");
