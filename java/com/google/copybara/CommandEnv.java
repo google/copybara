@@ -42,7 +42,7 @@ public class CommandEnv {
   }
 
   /**
-   * Get the arguments parsed as config [ migration [source_ref ]]] if the command uses that format
+   * Get the arguments parsed as config [migration [source_ref]...] if the command uses that format.
    */
   @Nullable
   public ConfigFileArgs getConfigFileArgs() {
@@ -50,7 +50,7 @@ public class CommandEnv {
   }
 
   /**
-   * Parse the CLI arguments as config [workflow [reference]]
+   * Parse the CLI arguments as config [workflow [source_ref]...]
    */
   public ConfigFileArgs parseConfigFileArgs(CopybaraCmd cmd, boolean usesSourceRef)
       throws CommandLineException {
@@ -60,21 +60,16 @@ public class CommandEnv {
       throw new CommandLineException(
           String.format("Configuration file missing for '%s' subcommand.", cmd.name()));
     }
-    if (args.size() > 3) {
-      throw new CommandLineException(
-          String.format("Expected at most three arguments: %s. Note that flag values that contain "
-              + "whitespaces must be between quotes: --some-flag \"Some Value\"", args));
-    }
 
     String configPath = args.get(0);
 
     if (args.size() < 2) {
-      configFileArgs = new ConfigFileArgs(configPath, "default", null);
+      configFileArgs = new ConfigFileArgs(configPath, "default");
       return configFileArgs;
     }
     String workflowName = args.get(1);
     if (args.size() < 3) {
-      configFileArgs = new ConfigFileArgs(configPath, workflowName, null);
+      configFileArgs = new ConfigFileArgs(configPath, workflowName);
       return configFileArgs;
     }
 
@@ -82,7 +77,7 @@ public class CommandEnv {
       throw new CommandLineException(
           String.format("Too many arguments for subcommand '%s'", cmd.name()));
     }
-    configFileArgs = new ConfigFileArgs(configPath, workflowName, args.get(2));
+    configFileArgs = new ConfigFileArgs(configPath, workflowName, args.subList(2, args.size()));
     return configFileArgs;
   }
 

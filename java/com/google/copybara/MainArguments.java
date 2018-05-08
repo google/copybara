@@ -47,7 +47,7 @@ public final class MainArguments {
   @Parameter(description =
       ""
            // Not true for some commands. But most used commands use this format:
-          + "[subcommand] config_path [workflow_name [source_ref]]\n"
+          + "[subcommand] config_path [migration_name [source_ref]...]\n"
           + "\n"
           + (""
           + "subcommand: Optional, defaults to 'migrate'. The type of task to be performed by "
@@ -58,12 +58,13 @@ public final class MainArguments {
           + "\n"
           + "config_path: Required. Relative or absolute path to the main Copybara config file.\n"
           + "\n"
-          + "workflow_name: Optional, defaults to 'default'. The name of the workflow in the "
-          + "configuration to be used by Copybara.\n"
+          + "migration_name: Optional, defaults to 'default'. The name of the migration that the "
+          + "subcommand will be applied to.\n"
           + "\n"
-          + "source_ref: Optional. The reference to be resolved in the origin. Most of the times "
-          + "this argument is not needed, as Copybara keeps track of the last migrated reference "
-          + "in the destination.\n"
+          + "source_ref: Optional. The reference(s) to be resolved in the origin. Most of the "
+          + "times this argument is not needed, as Copybara can infer the last migrated reference "
+          + "in the destination. Different subcommands might require this argument, use ony one "
+          + "source_ref or use all the list.\n"
   )
   List<String> unnamed = new ArrayList<>();
 

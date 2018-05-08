@@ -48,12 +48,12 @@ public class ValidateCmd implements CopybaraCmd {
   @Override
   public ExitCode run(CommandEnv commandEnv)
       throws ValidationException, IOException, RepoException {
-    ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,
-        /*useSourceRef*/false);
+    ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this, /*useSourceRef*/false);
     Copybara copybara = new Copybara(configValidator, migrationRanConsumer);
 
-    ConfigLoader configLoader = configLoaderProvider.newLoader(
-        configFileArgs.getConfigPath(), configFileArgs.getSourceRef());
+    ConfigLoader configLoader =
+        configLoaderProvider.newLoader(
+            configFileArgs.getConfigPath(), configFileArgs.getSourceRef());
     ValidationResult result =
         copybara.validate(
             commandEnv.getOptions(),

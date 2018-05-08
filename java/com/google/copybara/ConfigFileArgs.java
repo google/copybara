@@ -17,6 +17,9 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import java.util.List;
 import javax.annotation.Nullable;
 
 /**
@@ -28,13 +31,16 @@ public final class ConfigFileArgs {
   private final String configPath;
   @Nullable
   private final String workflowName;
-  @Nullable
-  private final String sourceRef;
+  private final ImmutableList<String> sourceRefs;
 
-  ConfigFileArgs(String configPath, @Nullable String workflowName, @Nullable String sourceRef) {
+  ConfigFileArgs(String configPath, @Nullable String workflowName) {
+    this(configPath, workflowName, ImmutableList.of());
+  }
+
+  ConfigFileArgs(String configPath, String workflowName, List<String> sourceRefs) {
     this.configPath = Preconditions.checkNotNull(configPath);
     this.workflowName = workflowName;
-    this.sourceRef = sourceRef;
+    this.sourceRefs = ImmutableList.copyOf(sourceRefs);
   }
 
   public String getConfigPath() {
@@ -46,9 +52,18 @@ public final class ConfigFileArgs {
     return workflowName;
   }
 
+  /**
+   * Returns the first sourceRef from the command arguments, or null if no source ref was provided.
+   *
+   * <p>This method is provided for convenience, for subocmmands that only care about the first
+   * source_ref.
+   */
   @Nullable
   public String getSourceRef() {
-    return sourceRef;
+    return Iterables.getFirst(sourceRefs, /*default*/ null);
   }
 
+  public ImmutableList<String> getSourceRefs() {
+    return sourceRefs;
+  }
 }

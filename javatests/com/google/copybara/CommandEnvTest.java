@@ -58,7 +58,7 @@ public class CommandEnvTest {
     env.parseConfigFileArgs(mock(CopybaraCmd.class), /*usesSourceRef=*/true);
     assertThat(env.getConfigFileArgs().getConfigPath()).isEqualTo("foo/copy.bara.sky");
     assertThat(env.getConfigFileArgs().getWorkflowName()).isEqualTo("default");
-    assertThat(env.getConfigFileArgs().getSourceRef()).isNull();
+    assertThat(env.getConfigFileArgs().getSourceRefs()).isEmpty();
   }
 
   @Test
@@ -67,7 +67,7 @@ public class CommandEnvTest {
     env.parseConfigFileArgs(mock(CopybaraCmd.class), /*usesSourceRef=*/true);
     assertThat(env.getConfigFileArgs().getConfigPath()).isEqualTo("foo/copy.bara.sky");
     assertThat(env.getConfigFileArgs().getWorkflowName()).isEqualTo("wf");
-    assertThat(env.getConfigFileArgs().getSourceRef()).isNull();
+    assertThat(env.getConfigFileArgs().getSourceRefs()).isEmpty();
   }
 
   @Test
@@ -89,6 +89,16 @@ public class CommandEnvTest {
     env.parseConfigFileArgs(mock(CopybaraCmd.class), /*usesSourceRef=*/true);
     assertThat(env.getConfigFileArgs().getConfigPath()).isEqualTo("foo/copy.bara.sky");
     assertThat(env.getConfigFileArgs().getWorkflowName()).isEqualTo("wf");
-    assertThat(env.getConfigFileArgs().getSourceRef()).isEqualTo("123");
+    assertThat(env.getConfigFileArgs().getSourceRefs()).containsExactly("123");
+  }
+
+  @Test
+  public void testConfigParsingMultipleSourceRefs() throws CommandLineException {
+    CommandEnv env = new CommandEnv(workdir, options,
+        ImmutableList.of("foo/copy.bara.sky", "wf", "123", "456"));
+    env.parseConfigFileArgs(mock(CopybaraCmd.class), /*usesSourceRef=*/true);
+    assertThat(env.getConfigFileArgs().getConfigPath()).isEqualTo("foo/copy.bara.sky");
+    assertThat(env.getConfigFileArgs().getWorkflowName()).isEqualTo("wf");
+    assertThat(env.getConfigFileArgs().getSourceRefs()).containsExactly("123", "456");
   }
 }

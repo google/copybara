@@ -828,24 +828,6 @@ function test_command_copybara_filename_no_correct_name() {
   expect_log "Copybara config file filename should be 'copy.bara.sky'"
 }
 
-function test_command_copybara_wrong_command() {
-  copybara_with_exit_code COMMAND_LINE_ERROR foooo
-  expect_log "Invalid subcommand 'foooo'. Available commands: "
-  expect_log "Try 'copybara help'"
-}
-
-function test_command_too_few_args() {
-  copybara_with_exit_code $COMMAND_LINE_ERROR
-  expect_log "Configuration file missing for 'migrate' subcommand."
-  expect_log "Try 'copybara help'"
-}
-
-function test_command_too_many_args() {
-  copybara_with_exit_code $COMMAND_LINE_ERROR migrate config workflow_name origin/master unexpected
-  expect_log "Expected at most three arguments: \[config, workflow_name, origin/master, unexpected\]. Note that flag values that contain whitespaces must be between quotes: --some-flag \"Some Value\""
-  expect_log "Try 'copybara help'"
-}
-
 function setup_reversible_check_workflow() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
@@ -1042,16 +1024,29 @@ function test_subcommand_parsing_fails() {
   expect_log "Invalid subcommand 'migrate.sky'"
 }
 
+function test_command_copybara_wrong_subcommand() {
+  copybara_with_exit_code COMMAND_LINE_ERROR foooo
+  expect_log "Invalid subcommand 'foooo'. Available commands: "
+  expect_log "Try 'copybara help'"
+}
+
+function test_default_command_too_few_args() {
+  copybara_with_exit_code $COMMAND_LINE_ERROR
+  expect_log "Configuration file missing for 'migrate' subcommand."
+  expect_log "Try 'copybara help'"
+}
+
 function test_migrate_missing_config() {
   copybara_with_exit_code $COMMAND_LINE_ERROR migrate
 
   expect_log "Configuration file missing for 'migrate' subcommand."
+  expect_log "Try 'copybara help'"
 }
 
 function test_migrate_too_many_arguments() {
   copybara_with_exit_code $COMMAND_LINE_ERROR migrate copy.bara.sky default foo bar
 
-  expect_log "Expected at most three arguments"
+  expect_log "'migrate' subcommand does not support multiple source_ref arguments yet. Running for: foo"
 }
 
 function test_info_missing_config() {
