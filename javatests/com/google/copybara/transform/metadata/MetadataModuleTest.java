@@ -23,8 +23,8 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
@@ -152,11 +152,11 @@ public class MetadataModuleTest {
     Changes changes = new Changes(
         ImmutableList.of(
             new Change<>(new DummyRevision("3"), ORIGINAL_AUTHOR, "merge", fakeDate(),
-                ImmutableMultimap.of(),/*changeFiles=*/null, /*merge=*/true),
+                ImmutableListMultimap.of(), /*changeFiles=*/null, /*merge=*/true),
             new Change<>(new DummyRevision("2"), ORIGINAL_AUTHOR, "change2", fakeDate(),
-                ImmutableMap.of()),
+                ImmutableListMultimap.of()),
             new Change<>(new DummyRevision("1"), ORIGINAL_AUTHOR, "change1", fakeDate(),
-                ImmutableMap.of())
+                ImmutableListMultimap.of())
         ),
         ImmutableList.of()
     );
@@ -189,11 +189,11 @@ public class MetadataModuleTest {
     Changes changes = new Changes(
         ImmutableList.of(
             new Change<>(new DummyRevision("3"), ORIGINAL_AUTHOR, "merge", fakeDate(),
-                ImmutableMultimap.of(),/*changeFiles=*/null, /*merge=*/true),
+                ImmutableListMultimap.of(), /*changeFiles=*/null, /*merge=*/true),
             new Change<>(new DummyRevision("2"), ORIGINAL_AUTHOR, "change2", fakeDate(),
-                ImmutableMap.of()),
+                ImmutableListMultimap.of()),
             new Change<>(new DummyRevision("1"), ORIGINAL_AUTHOR, "change1", fakeDate(),
-                ImmutableMap.of())
+                ImmutableListMultimap.of())
         ),
         ImmutableList.of()
     );
@@ -486,16 +486,16 @@ public class MetadataModuleTest {
             new Changes(ImmutableList.of(
                 toChange(
                     new DummyRevision("1")
-                        .withLabels(ImmutableMap.of("LABEL", "bbb")), ORIGINAL_AUTHOR),
+                        .withLabels(ImmutableListMultimap.of("LABEL", "bbb")), ORIGINAL_AUTHOR),
                 toChange(
                     new DummyRevision("2")
-                        .withLabels(ImmutableMap.of("LABEL", "bbb")), ORIGINAL_AUTHOR),
+                        .withLabels(ImmutableListMultimap.of("LABEL", "bbb")), ORIGINAL_AUTHOR),
                 toChange(
                     new DummyRevision("2")
-                        .withLabels(ImmutableMap.of("LABEL", "ccc")), ORIGINAL_AUTHOR)
+                        .withLabels(ImmutableListMultimap.of("LABEL", "ccc")), ORIGINAL_AUTHOR)
             ), ImmutableList.of()))
         .withResolvedReference(new DummyRevision("123")
-            .withLabels(ImmutableMap.of("LABEL", "ddd")));
+            .withLabels(ImmutableListMultimap.of("LABEL", "ddd")));
     Transformation t = skylarkExecutor.eval("t", "t = "
         + "metadata.expose_label('LABEL', 'NEW_VALUE', all = True)");
     t.transform(tw);
@@ -523,11 +523,11 @@ public class MetadataModuleTest {
         .withChanges(new Changes(ImmutableList.of(
             toChange(
                 new DummyRevision("1")
-                    .withLabels(ImmutableMap.of("FROM_CHANGE", "from_change_value")),
+                    .withLabels(ImmutableListMultimap.of("FROM_CHANGE", "from_change_value")),
                 ORIGINAL_AUTHOR)
         ), ImmutableList.of()))
         .withResolvedReference(new DummyRevision("123")
-            .withLabels(ImmutableMap.of("SOME", "value")));
+            .withLabels(ImmutableListMultimap.of("SOME", "value")));
     Transformation t = skylarkExecutor.eval("t", "t = " + transform);
     t.transform(tw);
     assertThat(tw.getMessage()).isEqualTo(expectedOutput);
@@ -941,7 +941,8 @@ public class MetadataModuleTest {
       wf.run(workdir, ImmutableList.of());
       fail();
     } catch (ValidationException e) {
-      assertThat(e).hasMessage("Cannot find a mapping for author 'Not found <d@example.com>'");
+      assertThat(e).hasMessageThat()
+          .contains("Cannot find a mapping for author 'Not found <d@example.com>'");
     }
 
     assertThat(destination.processed.get(0).getAuthor().toString())

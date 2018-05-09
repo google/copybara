@@ -20,10 +20,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import java.time.ZonedDateTime;
 import java.util.Objects;
@@ -38,7 +38,7 @@ public final class GitRevision implements Revision {
   private final GitRepository repository;
   private final String sha1;
   @Nullable private final String reference;
-  private final ImmutableMap<String, String> associatedLabels;
+  private final ImmutableListMultimap<String, String> associatedLabels;
   @Nullable private final String reviewReference;
   @Nullable private final String url;
   /**
@@ -48,8 +48,8 @@ public final class GitRevision implements Revision {
    * @param sha1 a 40 characters SHA-1
    */
   GitRevision(GitRepository repository, String sha1) {
-    this(repository, sha1, /*reviewReference=*/ null, /*reference=*/ null, ImmutableMap.of(),
-        /*url=*/null);
+    this(repository, sha1, /*reviewReference=*/ null, /*reference=*/ null,
+        ImmutableListMultimap.of(), /*url=*/null);
   }
 
   /**
@@ -78,7 +78,7 @@ public final class GitRevision implements Revision {
       String sha1,
       @Nullable String reviewReference,
       @Nullable String reference,
-      ImmutableMap<String, String> associatedLabels,
+      ImmutableListMultimap<String, String> associatedLabels,
       @Nullable String url) {
     this.reviewReference = reviewReference;
     Preconditions.checkArgument(
@@ -161,7 +161,7 @@ public final class GitRevision implements Revision {
   }
 
   @Override
-  public ImmutableMap<String, String> associatedLabels() {
+  public ImmutableListMultimap<String, String> associatedLabels() {
     return associatedLabels;
   }
 

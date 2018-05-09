@@ -21,7 +21,7 @@ import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
@@ -36,13 +36,11 @@ import com.google.copybara.git.github.util.GithubUtil;
 import com.google.copybara.git.github.util.GithubUtil.GithubPrUrl;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.TreeMap;
-
 import javax.annotation.Nullable;
 
 /**
@@ -212,7 +210,7 @@ public enum GitRepoType {
           gitRevision.getSha1(),
           gerritPatchSetAsReviewReference(patchSet),
           changeNumber,
-          ImmutableMap.<String, String>builder()
+          ImmutableListMultimap.<String, String>builder()
               .put(GERRIT_CHANGE_NUMBER_LABEL, changeNumber)
               .put(GERRIT_CHANGE_ID_LABEL, changeId)
               .put(GERRIT_CHANGE_DESCRIPTION_LABEL, changeDescription)
@@ -288,7 +286,7 @@ public enum GitRepoType {
           gitRevision.getSha1(),
           /*reviewReference=*/null,
           stableRef,
-          ImmutableMap.of(), repoUrl);
+          ImmutableListMultimap.of(), repoUrl);
     }
     if (GithubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
       GitRevision gitRevision = repository.fetchSingleRef(repoUrl, ref);
@@ -297,7 +295,7 @@ public enum GitRepoType {
           gitRevision.getSha1(),
           /*reviewReference=*/null,
           ref,
-          ImmutableMap.of(), repoUrl);
+          ImmutableListMultimap.of(), repoUrl);
     }
     return null;
   }
@@ -366,7 +364,7 @@ public enum GitRepoType {
               e.getValue(),
               gerritPatchSetAsReviewReference(patchSet),
               e.getKey(),
-              ImmutableMap.of(), url));
+              ImmutableListMultimap.of(), url));
     }
     return patchSets;
   }

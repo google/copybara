@@ -28,7 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -237,7 +237,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
         .toString();
 
 
-    ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
+    ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
     labels.put(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber));
     labels.put(GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel);
     labels.put(GITHUB_BASE_BRANCH, prData.getBase().getRef());
@@ -292,7 +292,8 @@ public class GithubPROrigin implements Origin<GitRevision> {
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(GitRevision startRevision,
           int limit)
           throws RepoException, ValidationException {
-        String baseline = startRevision.associatedLabels().get(GITHUB_BASE_BRANCH_SHA1);
+        String baseline = Iterables.getLast(
+            startRevision.associatedLabels().get(GITHUB_BASE_BRANCH_SHA1), null);
         Preconditions.checkNotNull(baseline, "%s label should be present in %s",
                                    GITHUB_BASE_BRANCH_SHA1, startRevision);
 
@@ -348,7 +349,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
       @Nullable
       @Override
       public String getGroupIdentity(GitRevision rev) throws RepoException {
-        return rev.associatedLabels().get(GITHUB_PR_NUMBER_LABEL);
+        return Iterables.getLast(rev.associatedLabels().get(GITHUB_PR_NUMBER_LABEL) , null);
       }
     };
   }

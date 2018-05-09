@@ -85,10 +85,10 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   private final boolean insideExplicitTransform;
   private final boolean ignoreNoop;
   @Nullable
-  private Revision lastRev;
-  @Nullable private Revision currentRev;
+  private final Revision lastRev;
+  @Nullable private final Revision currentRev;
   private TransformWork skylarkTransformWork;
-  private SkylarkDict skylarkTransformParams;
+  private final SkylarkDict skylarkTransformParams;
 
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
@@ -360,10 +360,8 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
     }
 
     // Try to find the label in the resolved reference
-    String resolvedRefLabel = resolvedReference.associatedLabels().get(label);
-    if (resolvedRefLabel != null) {
-      result.add(resolvedRefLabel);
-    }
+    ImmutableList<String> resolvedRefLabel = resolvedReference.associatedLabels().get(label);
+    result.addAll(resolvedRefLabel);
     return SkylarkList.createImmutable(result);
   }
 

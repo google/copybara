@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.copybara.Change;
@@ -171,7 +172,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
                     processedChange.getAuthor(),
                     processedChange.getChangesSummary(),
                     processedChange.getTimestamp(),
-                    ImmutableMap.of()),
+                    ImmutableListMultimap.of()),
                 ImmutableMap.copyOf(labels
                     .stream()
                     .collect(Collectors.toMap(
@@ -194,7 +195,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
                     processedChange.getAuthor(),
                     processedChange.getChangesSummary(),
                     processedChange.getTimestamp(),
-                    ImmutableMap.of()));
+                    ImmutableListMultimap.of()));
         if (result == VisitResult.TERMINATE) {
           return;
         }

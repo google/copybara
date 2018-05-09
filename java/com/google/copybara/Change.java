@@ -20,12 +20,11 @@ import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimaps;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -50,7 +49,7 @@ public final class Change<R extends Revision> extends OriginRef {
   private final Author author;
   private final String message;
   private final ZonedDateTime dateTime;
-  private final ImmutableMultimap<String, String> labels;
+  private final ImmutableListMultimap<String, String> labels;
   private Author mappedAuthor;
   private final boolean merge;
 
@@ -58,18 +57,18 @@ public final class Change<R extends Revision> extends OriginRef {
   private final ImmutableSet<String> changeFiles;
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
-      ImmutableMap<String, String> labels) {
+      ImmutableListMultimap<String, String> labels) {
     this(revision, author, message, dateTime, labels, /*changeFiles=*/null);
   }
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
-      ImmutableMap<String, String> labels, @Nullable Set<String> changeFiles) {
-    this(revision, author, message, dateTime, ImmutableMultimap.copyOf(Multimaps.forMap(labels)),
-        changeFiles, /*merge=*/false);
+      ImmutableListMultimap<String, String> labels, @Nullable Set<String> changeFiles) {
+    this(revision, author, message, dateTime, labels, changeFiles, /*merge=*/false);
   }
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
-      ImmutableMultimap<String, String> labels, @Nullable Set<String> changeFiles, boolean merge) {
+      ImmutableListMultimap<String, String> labels, @Nullable Set<String> changeFiles,
+      boolean merge) {
     super(revision.asString());
     this.revision = Preconditions.checkNotNull(revision);
     this.author = Preconditions.checkNotNull(author);
@@ -149,7 +148,7 @@ public final class Change<R extends Revision> extends OriginRef {
     return ISO_OFFSET_DATE_TIME.format(getDateTime());
   }
 
-  public ImmutableMultimap<String, String> getLabels() {
+  public ImmutableListMultimap<String, String> getLabels() {
     return labels;
   }
 

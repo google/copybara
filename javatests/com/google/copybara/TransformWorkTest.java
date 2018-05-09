@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
@@ -262,13 +263,14 @@ public class TransformWorkTest {
         new Changes(ImmutableList.of(
             toChange(
                 new DummyRevision("1")
-                    .withLabels(ImmutableMap.of("ONE", "one", "SOME", "SHOULD_NOT_HAPPEN"))),
+                    .withLabels(
+                        ImmutableListMultimap.of("ONE", "one", "SOME", "SHOULD_NOT_HAPPEN"))),
             toChange(
-                new DummyRevision("2").withLabels(ImmutableMap.of("TWO", "two"))),
+                new DummyRevision("2").withLabels(ImmutableListMultimap.of("TWO", "two"))),
             toChange(
-                new DummyRevision("3").withLabels(ImmutableMap.of("THREE", "three")))
+                new DummyRevision("3").withLabels(ImmutableListMultimap.of("THREE", "three")))
         ), ImmutableList.of())).withResolvedReference(new DummyRevision("resolved").withLabels(
-        ImmutableMap.of("RESOLVED", "resolved",
+        ImmutableListMultimap.of("RESOLVED", "resolved",
             "ONE", "SHOULD_NOT_HAPPEN",
             "SOME", "SHOULD_NOT_HAPPEN")));
 

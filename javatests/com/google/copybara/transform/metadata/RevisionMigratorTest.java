@@ -19,17 +19,17 @@ package com.google.copybara.transform.metadata;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable;
 import com.google.copybara.Changes;
 import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.TransformWork;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -298,7 +298,7 @@ public class RevisionMigratorTest {
       Change<DummyRevision> change;
       do {
         changeNumber++;
-        ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
+        ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
         String destinationId = Integer.toHexString(changeNumber);
 
         if (changeNumber % 5 != 0) {

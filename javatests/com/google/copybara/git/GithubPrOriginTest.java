@@ -585,7 +585,9 @@ public class GithubPrOriginTest {
     // in the worse case it wouldn't find the merge sha-1 since baseline branch could have
     // already moved.
     assertThat(mergeRevision.associatedLabels().get(GitModule.DEFAULT_INTEGRATE_LABEL))
-        .contains(remote.resolveReference(GithubUtil.asHeadRef(123)).getSha1());
+        .contains(String.format(
+            "https://github.com/google/example/pull/123 from googletestuser:example-branch %s",
+            remote.resolveReference(GithubUtil.asHeadRef(123)).getSha1()));
 
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     assertThat(

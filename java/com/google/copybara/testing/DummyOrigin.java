@@ -21,7 +21,7 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
@@ -120,7 +120,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
     changes.add(new DummyRevision(
         "" + changes.size(), message, author, path,
         ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
-        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of(),
+        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableListMultimap.of(),
         matchesGlob, previousChanges));
     return this;
   }
@@ -151,7 +151,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   private class ReaderImpl implements Reader<DummyRevision> {
 
-    private Glob originFiles;
+    private final Glob originFiles;
     final Authoring authoring;
 
     ReaderImpl(Glob originFiles, Authoring authoring) {

@@ -23,17 +23,17 @@ import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
-import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
@@ -113,7 +113,7 @@ public class GerritOriginTest {
             repo.parseRef("HEAD"),
             GitRepoType.gerritPatchSetAsReviewReference(1),
             "12345",
-            ImmutableMap.of(
+            ImmutableListMultimap.of(
                 GERRIT_CHANGE_NUMBER_LABEL, "12345",
                 GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
                 GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,
@@ -127,7 +127,7 @@ public class GerritOriginTest {
             repo.parseRef("HEAD"),
             GitRepoType.gerritPatchSetAsReviewReference(2),
             "12345",
-            ImmutableMap.of(
+            ImmutableListMultimap.of(
                 GERRIT_CHANGE_NUMBER_LABEL, "12345",
                 GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
                 GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,
@@ -141,7 +141,7 @@ public class GerritOriginTest {
             repo.parseRef("HEAD"),
             GitRepoType.gerritPatchSetAsReviewReference(3),
             "12345",
-            ImmutableMap.of(
+            ImmutableListMultimap.of(
                 GERRIT_CHANGE_NUMBER_LABEL, "12345",
                 GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
                 GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,

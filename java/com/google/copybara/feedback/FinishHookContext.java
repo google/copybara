@@ -20,7 +20,6 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Revision;
@@ -33,6 +32,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Gives access to the feedback migration information and utilities.
@@ -49,7 +50,7 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
   private final SkylarkRevision resolvedRevision;
   private final SkylarkConsole console;
   private final SkylarkDict params;
-  private ImmutableList<DestinationEffect> destinationEffects;
+  private final ImmutableList<DestinationEffect> destinationEffects;
 
   public FinishHookContext(Action action, Endpoint origin, Endpoint destination,
       ImmutableList<DestinationEffect> destinationEffects,
@@ -135,8 +136,11 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
 
     @SkylarkCallable(name = "labels", doc = "A dictionary with the labels detected for the"
         + " requested/resolved revision.", structField = true)
-    public SkylarkDict<String, String> getLabels() {
-      return SkylarkDict.copyOf(/* env= */ null, ImmutableMap.copyOf(revision.associatedLabels()));
+    public SkylarkDict<String, SkylarkList<String>> getLabels() {
+      return SkylarkDict.copyOf(/* env= */ null,
+          revision.associatedLabels().asMap().entrySet().stream()
+              .collect(Collectors.toMap(Map.Entry::getKey,
+                  e -> SkylarkList.createImmutable(e.getValue()))));
     }
   }
 }

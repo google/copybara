@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Author;
@@ -103,6 +104,6 @@ public class CopybaraTest {
         new Author("Foo", "Bar"),
         "Lorem Ipsum",
         ZonedDateTime.now(ZoneId.systemDefault()),
-        ImmutableMap.of());
+        ImmutableListMultimap.of());
   }
 }

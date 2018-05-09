@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapDifference;
@@ -59,22 +60,22 @@ public class DummyRevision implements Revision {
   private final ZonedDateTime timestamp;
   @Nullable
   private final String contextReference;
-  private final ImmutableMap<String, String> referenceLabels;
+  private final ImmutableListMultimap<String, String> referenceLabels;
   private final boolean matchesGlob;
   @Nullable private final Path previousPath;
-  private final ImmutableMap<String, String> descriptionLabels;
+  private final ImmutableListMultimap<String, String> descriptionLabels;
 
   public DummyRevision(String reference) {
     this(reference, "DummyReference message", DEFAULT_AUTHOR,
         Paths.get("/DummyReference", reference), /*timestamp=*/null,
-        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableMap.of(),
+        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableListMultimap.of(),
          /*matchesGlob=*/true, /*previousPath=*/null);
   }
 
   DummyRevision(
       String reference, String message, Author author, Path changesBase,
       @Nullable ZonedDateTime timestamp, @Nullable String contextReference,
-      ImmutableMap<String, String> referenceLabels, boolean matchesGlob,
+      ImmutableListMultimap<String, String> referenceLabels, boolean matchesGlob,
       @Nullable Path previousPath) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
@@ -86,7 +87,7 @@ public class DummyRevision implements Revision {
     this.matchesGlob = matchesGlob;
     this.previousPath = previousPath;
 
-    ImmutableMap.Builder<String, String> labels = ImmutableMap.builder();
+    ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
     for (String line : message.split("\n")) {
       LabelFinder labelFinder = new LabelFinder(line);
       if (labelFinder.isLabel()) {
@@ -118,7 +119,7 @@ public class DummyRevision implements Revision {
         contextReference, this.referenceLabels, this.matchesGlob, this.previousPath);
   }
 
-  public DummyRevision withLabels(ImmutableMap<String, String> labels) {
+  public DummyRevision withLabels(ImmutableListMultimap<String, String> labels) {
     Preconditions.checkNotNull(labels);
     return new DummyRevision(
         this.reference, this.message, this.author, this.changesBase, this.timestamp,
@@ -189,7 +190,7 @@ public class DummyRevision implements Revision {
   }
 
   @Override
-  public ImmutableMap<String, String> associatedLabels() {
+  public ImmutableListMultimap<String, String> associatedLabels() {
     return referenceLabels;
   }
 
@@ -205,8 +206,8 @@ public class DummyRevision implements Revision {
     return message;
   }
 
-  public ImmutableMap<String, String> getLabels() {
-    return ImmutableMap.<String, String>builder().putAll(associatedLabels())
+  public ImmutableListMultimap<String, String> getLabels() {
+    return ImmutableListMultimap.<String, String>builder().putAll(associatedLabels())
         .putAll(descriptionLabels)
         .build();
   }

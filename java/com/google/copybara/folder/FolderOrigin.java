@@ -18,15 +18,15 @@ package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.Origin;
-import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.AbsoluteSymlinksNotAllowed;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
@@ -130,7 +130,7 @@ public class FolderOrigin implements Origin<FolderRevision> {
 
       @Override
       public Change<FolderRevision> change(FolderRevision ref) throws RepoException {
-        return new Change<>(ref, author, message, ref.readTimestamp(), ImmutableMap.of());
+        return new Change<>(ref, author, message, ref.readTimestamp(), ImmutableListMultimap.of());
       }
 
       @Override

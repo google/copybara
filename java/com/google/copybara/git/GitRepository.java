@@ -29,6 +29,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
@@ -1018,7 +1019,7 @@ public class GitRepository {
           "Cannot find '" + reference + "' object in the repository");
     }
     return new GitRevision(this, parseRef(reference), /*reviewReference=*/null, contextRef,
-        ImmutableMap.of(), url);
+        ImmutableListMultimap.of(), url);
   }
 
   /**

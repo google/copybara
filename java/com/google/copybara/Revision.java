@@ -16,7 +16,7 @@
 
 package com.google.copybara;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.RepoException;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -77,7 +77,7 @@ public interface Revision {
    * like Gerrit. The returned reference could have associated labels like the gerrit url for
    * the change.
    */
-  default ImmutableMap<String, String> associatedLabels() {
-    return ImmutableMap.of();
+  default ImmutableListMultimap<String, String> associatedLabels() {
+    return ImmutableListMultimap.of();
   }
 }

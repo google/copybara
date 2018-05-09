@@ -27,6 +27,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -551,8 +552,7 @@ public class GitRepositoryTest {
     repository.add().files("foo/foo.txt").run();
     repository.simpleCommand("commit", "foo/foo.txt", "-m", "message");
     GitRevision rev = new GitRevision(repository, repository.parseRef("HEAD"),
-                                       "this is review text", /*reference=*/null,
-                                       ImmutableMap.of(), /*url=*/null);
+        "this is review text", /*reference=*/null, ImmutableListMultimap.of(), /*url=*/null);
     ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/");
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getPath()).isEqualTo("foo/foo.txt");
