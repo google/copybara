@@ -331,6 +331,8 @@ Implicit labels that can be used/exposed:
   - GITHUB_BASE_BRANCH_SHA1: The base branch SHA-1 used as baseline.
   - GITHUB_PR_TITLE: Title of the Pull Request.
   - GITHUB_PR_BODY: Body of the Pull Request.
+  - GITHUB_PR_USER: The login of the author the pull request.
+  - GITHUB_PR_ASSIGNEES: A repeated label with the login of the assigned users.
 
 
 `githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN')`

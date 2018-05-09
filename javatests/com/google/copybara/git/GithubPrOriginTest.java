@@ -19,9 +19,11 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH_SHA1;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_ASSIGNEES;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_NUMBER_LABEL;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_USER;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -396,6 +398,9 @@ public class GithubPrOriginTest {
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH_SHA1, baseline1);
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_NUMBER_LABEL, "123");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_TITLE, "test summary");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_USER, "some_user");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_ASSIGNEES, "assignee1");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_ASSIGNEES, "assignee2");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_BODY,
         "test summary\n\nMore text");
 
@@ -718,7 +723,18 @@ public class GithubPrOriginTest {
             + "  \"base\": {\n"
             + "    \"label\": \"google:master\",\n"
             + "    \"ref\": \"master\"\n"
-            + "   }\n"
+            + "   },\n"
+            + "  \"user\": {\n"
+            + "    \"login\": \"some_user\"\n"
+            + "   },\n"
+            + "  \"assignees\": [\n"
+            + "    {\n"
+            + "      \"login\": \"assignee1\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"login\": \"assignee2\"\n"
+            + "    }\n"
+            + "  ]\n"
             + "}").getBytes(UTF_8);
       }
       fail(method + " " + url);

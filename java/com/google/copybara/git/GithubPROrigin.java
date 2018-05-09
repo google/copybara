@@ -49,6 +49,7 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.Label;
 import com.google.copybara.git.github.api.PullRequest;
+import com.google.copybara.git.github.api.User;
 import com.google.copybara.git.github.util.GithubUtil;
 import com.google.copybara.git.github.util.GithubUtil.GithubPrUrl;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -60,6 +61,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -74,6 +76,8 @@ public class GithubPROrigin implements Origin<GitRevision> {
   public static final String GITHUB_BASE_BRANCH_SHA1 = "GITHUB_BASE_BRANCH_SHA1";
   public static final String GITHUB_PR_TITLE = "GITHUB_PR_TITLE";
   public static final String GITHUB_PR_BODY = "GITHUB_PR_BODY";
+  public static final String GITHUB_PR_USER = "GITHUB_PR_USER";
+  public static final String GITHUB_PR_ASSIGNEES = "GITHUB_PR_ASSIGNEES";
   private static final String LOCAL_PR_HEAD_REF = "refs/PR_HEAD";
   private static final String LOCAL_PR_MERGE_REF = "refs/PR_MERGE";
   private static final String LOCAL_PR_BASE_BRANCH = "refs/PR_BASE_BRANCH";
@@ -247,6 +251,10 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
     labels.put(GITHUB_PR_TITLE, prData.getTitle());
     labels.put(GITHUB_PR_BODY, prData.getBody());
+    labels.put(GITHUB_PR_USER, prData.getUser().getLogin());
+    labels.putAll(GITHUB_PR_ASSIGNEES, prData.getAssignees().stream()
+        .map(User::getLogin)
+        .collect(Collectors.toList()));
 
     return new GitRevision(
         getRepository(),

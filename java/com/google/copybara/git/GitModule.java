@@ -24,8 +24,10 @@ import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH_SHA1;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_ASSIGNEES;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_USER;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -328,7 +330,10 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           + "  - " + GITHUB_BASE_BRANCH + ": The base branch name used for the Pull Request.\n"
           + "  - " + GITHUB_BASE_BRANCH_SHA1 + ": The base branch SHA-1 used as baseline.\n"
           + "  - " + GITHUB_PR_TITLE + ": Title of the Pull Request.\n"
-          + "  - " + GITHUB_PR_BODY + ": Body of the Pull Request.\n",
+          + "  - " + GITHUB_PR_BODY + ": Body of the Pull Request.\n"
+          + "  - " + GITHUB_PR_USER + ": The login of the author the pull request.\n"
+          + "  - " + GITHUB_PR_ASSIGNEES + ": A repeated label with the login of the assigned"
+          + " users.\n",
       parameters = {
           @Param(name = "self", type = GitModule.class, doc = "this object"),
           @Param(name = "url", type = String.class,
