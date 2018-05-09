@@ -476,6 +476,18 @@ public class GerritApiTest {
     assertThat(info.isOwner).isTrue();
   }
 
+  @Test
+  public void testGetSelfAccount() throws Exception {
+    JsonObject response = new JsonObject();
+    response.addProperty("_account_id", 42);
+    response.addProperty("name", "Copy Bara");
+    response.addProperty("email", "copy@bara.com");
+
+    mockResponse(new CheckRequest("GET", ".*accounts/self"), response.toString());
+    AccountInfo info =  gerritApi.getSelfAccount();
+    assertThat(info.getAccountId()).isEqualTo(42);
+  }
+
   public void mockResponse(Predicate<String> filter, String response) throws Exception {
     requestToResponse.put(filter, response.getBytes(StandardCharsets.UTF_8));
   }

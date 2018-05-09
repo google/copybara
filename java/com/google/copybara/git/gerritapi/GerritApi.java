@@ -101,6 +101,7 @@ public class GerritApi {
           ReviewResult.class);
     }
   }
+
   public void deleteReviewer(String changeId, long accountId,
       DeleteReviewerInput deleteReviewerInput)
       throws RepoException, ValidationException {
@@ -108,6 +109,13 @@ public class GerritApi {
       transport.post(
           "/changes/" + changeId + "/reviewers/" + accountId + "/delete",
           deleteReviewerInput, Empty.class);
+    }
+  }
+
+  public AccountInfo getSelfAccount()
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_get_self")) {
+      return transport.get("/accounts/self", AccountInfo.class);
     }
   }
 }
