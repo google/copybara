@@ -22,6 +22,7 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect.Type;
@@ -215,7 +216,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                                 new ProgressPrefixConsole(
                                     "Validating last migration: ", helper.getConsole()),
                                 metadata == null
-                                    ? new Metadata(change.getMessage(), change.getAuthor())
+                                    ? new Metadata(
+                                      change.getMessage(), change.getAuthor(),
+                                      ImmutableListMultimap.of())
                                     : metadata,
                                 changes,
                                 /*destinationBaseline=*/ null,
@@ -381,7 +384,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             .transform(
                 new TransformWork(
                     reverse,
-                    new Metadata(transformWork.getMessage(), transformWork.getAuthor()),
+                    transformWork.getMetadata(),
                     changes,
                     workflow.getConsole(),
                     new MigrationInfo(/*originLabel=*/ null, null),

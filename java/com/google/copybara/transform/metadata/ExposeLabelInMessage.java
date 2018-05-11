@@ -63,7 +63,7 @@ public class ExposeLabelInMessage implements Transformation {
     if (label.equals(newLabelName)) {
       work.removeLabelWithValue(this.label, value, /*wholeMessage=*/true);
     }
-    work.addLabel(newLabelName, value, separator);
+    work.addLabel(newLabelName, value, separator, /*hidden=*/false);
   }
 
   private void exposeAllLabels(TransformWork work) throws ValidationException {
@@ -80,7 +80,7 @@ public class ExposeLabelInMessage implements Transformation {
       work.removeLabel(label, /*wholeMessage=*/true);
     }
     for (String value : values) {
-      work.addLabel(newLabelName, value, separator);
+      work.addLabel(newLabelName, value, separator, /*hidden=*/false);
     }
   }
 

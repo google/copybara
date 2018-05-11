@@ -113,6 +113,31 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testAddHiddenLabel() throws Exception {
+    TransformWork work = create("Foo\n\nSOME=TEST\n");
+    ExplicitReversal t = skylark.eval("t", ""
+        + "def user_transform(ctx):\n"
+        + "    " + "ctx.add_label('FOO','BAR', hidden = True)" + "\n"
+        + "    " + "ctx.add_label('FOO','BAR', hidden = True)" + "\n"
+        + "t = core.transform([user_transform])");
+    t.transform(work);
+    assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\n");
+    assertThat(work.getAllLabels("FOO").getImmutableList()).isEqualTo(ImmutableList.of("BAR"));
+  }
+
+  @Test
+  public void testGetHiddenLabel() throws Exception {
+    TransformWork work = create("Foo\n\nSOME=TEST\n");
+    ExplicitReversal t = skylark.eval("t", ""
+        + "def user_transform(ctx):\n"
+        + "    " + "ctx.add_label('FOO','ONE', hidden = True)" + "\n"
+        + "    " + "ctx.add_label('FOO','TWO', hidden = True)" + "\n"
+        + "t = core.transform([user_transform])");
+    t.transform(work);
+    assertThat(work.getLabel("FOO")).isEqualTo("TWO");
+  }
+
+  @Test
   public void testAddLabelWhitespaceInMsg() throws Exception {
     checkAddLabel("    foo", "    foo\n\nTEST=VALUE\n");
   }

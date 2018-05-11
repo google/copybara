@@ -21,6 +21,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.authoring.Author;
@@ -146,8 +147,15 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
 
   @SkylarkCallable(name = "set_message", doc = "Update the message to be used in the change")
   public void setMessage(String message) {
-    this.metadata = new Metadata(Preconditions.checkNotNull(message, "Message cannot be null"),
-        metadata.getAuthor());
+    this.metadata = this.metadata.withMessage(message);
+  }
+
+  public Metadata getMetadata() {
+    return metadata;
+  }
+
+  public void addHiddenLabels(ImmutableListMultimap<String, String> hiddenLabels) {
+    this.metadata = metadata.addHiddenLabels(hiddenLabels);
   }
 
   @SkylarkCallable(
@@ -231,11 +239,18 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
           @Param(name = "value", type = String.class, doc = "The new value for the label"),
           @Param(name = "separator", type = String.class,
               doc = "The separator to use for the label", defaultValue = "\"=\""),
+          @Param(name = "hidden", type = Boolean.class,
+              doc = "Don't show the label in the message but only keep it internally",
+              named = true, positional = false, defaultValue = "False"),
       })
-  public void addLabel(String label, String value, String separator) {
-    setMessage(ChangeMessage.parseMessage(getMessage())
-        .withLabel(label, separator, value)
-        .toString());
+  public void addLabel(String label, String value, String separator, Boolean hidden) {
+    if (hidden) {
+      addHiddenLabels(ImmutableListMultimap.of(label, value));
+    } else {
+      setMessage(ChangeMessage.parseMessage(getMessage())
+          .withLabel(label, separator, value)
+          .toString());
+    }
   }
 
   @SkylarkCallable(name = "add_or_replace_label",
@@ -346,6 +361,15 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
         return SkylarkList.createImmutable(result);
       }
     }
+    ImmutableList<String> values = metadata.getHiddenLabels().get(label);
+    if (!values.isEmpty()) {
+      if (!all) {
+        return SkylarkList.createImmutable(ImmutableList.of(Iterables.getLast(values)));
+      } else {
+        result.addAll(values);
+      }
+    }
+
     // Try to find the label in the current changes migrated. We prioritize current
     // changes over resolvedReference. Since in iterative mode this would be more
     // specific to the current migration.
@@ -375,8 +399,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
 
   @SkylarkCallable(name = "set_author", doc = "Update the author to be used in the change")
   public void setAuthor(Author author) {
-    this.metadata = new Metadata(getMessage(),
-        Preconditions.checkNotNull(author, "Author cannot be null"));
+    this.metadata = this.metadata.withAuthor(author);
   }
 
   @SkylarkCallable(name = "changes", doc = "List of changes that will be migrated",
