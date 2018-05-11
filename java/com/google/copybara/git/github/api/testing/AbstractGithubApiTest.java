@@ -67,8 +67,6 @@ public abstract class AbstractGithubApiTest {
   public abstract void trainMockGet(String apiPath, byte[] response) throws Exception;
   public abstract void trainMockPost(String apiPath, Predicate<String> validator, byte[] response)
       throws Exception;
-  public abstract void trainMockPatch(String apiPath, Predicate<String> validator, byte[] response)
-      throws Exception;
 
   @Test
   public void testGetPulls() throws Exception {
@@ -239,7 +237,7 @@ public abstract class AbstractGithubApiTest {
 
   @Test
   public void testUpdateReference() throws Exception {
-    trainMockPatch(
+    trainMockPost(
         "/repos/octocat/Hello-World/git/refs/heads/test",
         createValidator(
             TestUpdateReferenceRequest.class,

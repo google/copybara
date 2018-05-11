@@ -144,7 +144,7 @@ public class GithubApi {
   public Ref updateReference(String projectId, String branchName, UpdateReferenceRequest request)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_update_reference")) {
-      Ref result = transport.patch(
+      Ref result = transport.post(
           String.format("repos/%s/git/refs/heads/%s", projectId, branchName), request, Ref.class);
       if (result.getRef() == null || result.getSha() == null || result.getUrl() == null) {
         throw new RepoException(
