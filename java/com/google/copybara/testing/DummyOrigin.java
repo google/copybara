@@ -22,6 +22,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
@@ -77,6 +78,9 @@ public class DummyOrigin implements Origin<DummyRevision> {
   public final List<DummyRevision> changes = new ArrayList<>();
 
   private final Map<String, String> changeIdToGroup = new HashMap<>();
+
+  private ImmutableSetMultimap<String, String> descriptionLabels =
+      ImmutableSetMultimap.of("type", getType());
 
   /**
    * Sets the author to use for the following changes that get added.
@@ -278,5 +282,15 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   public DummyEndpoint getEndpoint() {
     return endpoint;
+  }
+
+  /** Allows customizing the response of #describe to pose as another kind of origin in tests*/
+  public void setDescribeResponse(ImmutableSetMultimap<String, String> newResponse) {
+    descriptionLabels = newResponse;
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+    return descriptionLabels;
   }
 }
