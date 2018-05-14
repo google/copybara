@@ -41,6 +41,7 @@ import java.util.function.Supplier;
 public class ModuleSupplier {
 
   private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
+      GlobModule.class,
       Core.class,
       Authoring.Module.class,
       FolderModule.class,

@@ -68,7 +68,7 @@ public class FeedbackTest {
     options.general.withEventMonitor(eventMonitor);
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
-    skylark = new SkylarkParser(ImmutableSet.of(Core.class, TestingModule.class));
+    skylark = new SkylarkParser(ImmutableSet.of(GlobModule.class, Core.class, TestingModule.class));
   }
 
   @Test

@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
 import com.google.copybara.Core;
+import com.google.copybara.GlobModule;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -98,8 +99,8 @@ public class MetadataModuleTest {
     options.testingOptions.destination = destination;
     skylark =
         new SkylarkParser(
-            ImmutableSet.of(
-                Core.class, Authoring.Module.class, TestingModule.class, MetadataModule.class));
+            ImmutableSet.of(GlobModule.class, Core.class, Authoring.Module.class,
+                TestingModule.class, MetadataModule.class));
     skylarkExecutor = new SkylarkTestExecutor(options, MetadataModule.class);
 
     origin.addSimpleChange(0, "first commit\n\nExtended text")

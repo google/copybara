@@ -58,9 +58,7 @@ public class ReadConfigFromChangeWorkflowTest {
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     skylark = new SkylarkParser(ImmutableSet.of(
-        Core.class,
-        Authoring.Module.class,
-        TestingModule.class));
+        GlobModule.class, Core.class, Authoring.Module.class, TestingModule.class));
   }
 
   /**

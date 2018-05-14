@@ -152,10 +152,9 @@ public class WorkflowTest {
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     options.setForce(true); // Force by default unless we are testing the flag.
-    skylark = new SkylarkParser(ImmutableSet.of(
-        Core.class, Authoring.Module.class,
-        TestingModule.class, MetadataModule.class,
-        FolderModule.class, GitModule.class));
+    skylark = new SkylarkParser(ImmutableSet.of(GlobModule.class, Core.class,
+        Authoring.Module.class, TestingModule.class, MetadataModule.class, FolderModule.class,
+        GitModule.class));
     eventMonitor = new TestingEventMonitor();
     options.general.withEventMonitor(eventMonitor);
     transformWork = TransformWorks.of(workdir, "example", console);

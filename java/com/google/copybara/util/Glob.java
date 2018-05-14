@@ -45,7 +45,7 @@ import javax.annotation.Nullable;
     name = "glob",
     doc = "Glob returns a list of every file in the workdir that matches at least one"
         + " pattern in include and does not match any of the patterns in exclude.",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = SkylarkModuleCategory.BUILTIN, documented = false)
 public abstract class Glob implements Concatable {
 
   private static final Pattern UNESCAPE = Pattern.compile("\\\\(.)");

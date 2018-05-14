@@ -16,30 +16,39 @@
 
 package com.google.copybara.doc.skylark;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.beust.jcommander.Parameter;
 import com.google.auto.common.BasicAnnotationProcessor;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkGlobalLibrary;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
@@ -50,18 +59,23 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 
 /**
- * Reads classes annotated with {@link DocElement} or {@link DocField} and generates Markdown
- * documentation.
+ * Reads classes annotated with {@link DocElement} or
+ * {@link com.google.copybara.doc.annotations.DocField} and generates Markdown documentation.
  */
 public class MarkdownGenerator extends BasicAnnotationProcessor {
 
   public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latest();
+  }
+
+  private static void mdTitle(StringBuilder sb, int level, String name) {
+    sb.append("\n").append(Strings.repeat("#", level)).append(' ').append(name).append("\n\n");
   }
 
   @Override
@@ -70,7 +84,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     return ImmutableList.of(new ProcessingStep() {
       @Override
       public Set<? extends Class<? extends Annotation>> annotations() {
-        return ImmutableSet.<Class<? extends Annotation>>of(SkylarkModule.class);
+        return ImmutableSet.of(SkylarkModule.class, SkylarkGlobalLibrary.class);
       }
 
       @Override
@@ -93,135 +107,92 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
   private void processDoc(SetMultimap<Class<? extends Annotation>, Element> elementsByAnnotation)
       throws ElementException, IOException {
-    Multimap<String, String> docByElementType = ArrayListMultimap.create();
+
+    LinkedList<DocModule> modules = new LinkedList<>();
+    Set<Element> globalModules = elementsByAnnotation.get(SkylarkGlobalLibrary.class);
+    if (!globalModules.isEmpty()) {
+      DocModule docModule = new DocModule("Globals", "Global functions available in Copybara");
+      modules.add(docModule);
+      for (Element element : globalModules) {
+        TypeElement module = (TypeElement) element;
+        for (Element member : filterSkylarkCallable(module.getEnclosedElements())) {
+          docModule.functions.add(callableFunction((ExecutableElement) member,
+              annotationHelper(member, SkylarkCallable.class)));
+        }
+      }
+    }
 
     for (Element element : elementsByAnnotation.get(SkylarkModule.class)) {
       TypeElement module = (TypeElement) element;
-      StringBuilder sb = new StringBuilder();
 
       SkylarkModule skyModule = module.getAnnotation(SkylarkModule.class);
       if (!skyModule.documented()) {
         continue;
       }
-      sb.append("## ").append(skyModule.name()).append("\n\n");
-      sb.append(skyModule.doc());
-      sb.append("\n\n");
+      DocModule docModule = new DocModule(skyModule.name(), skyModule.doc());
+      modules.add(docModule);
 
-      // Generate flags associated with the whole module
-      sb.append(generateFlagsInfo(module));
-
-      for (Element member : module.getEnclosedElements()) {
-        sb.append(generateFunctionDocumentation(module, skyModule, member));
-      }
-      docByElementType.put(skyModule.name(), sb.toString());
-    }
-
-    for (String group : docByElementType.keySet()) {
-      FileObject resource = processingEnv.getFiler().createResource(
-          StandardLocation.SOURCE_OUTPUT, "", group + ".copybara.md");
-
-      try (Writer writer = resource.openWriter()) {
-        for (String groupValues : docByElementType.get(group)) {
-          writer.append(groupValues).append("\n");
+      for (Element member : filterSkylarkCallable(module.getEnclosedElements())) {
+        AnnotationHelper<SkylarkCallable> ann = annotationHelper(member, SkylarkCallable.class);
+        if (ann.ann.structField()) {
+          docModule.fields.add(new DocField(ann.ann.name(), ann.ann.doc()));
+        } else {
+          docModule.functions.add(callableFunction((ExecutableElement) member, ann));
         }
       }
+      // TODO(malcon): Remove this branch once we don't have more SkylarkSignatures.
+      for (Element member : filterSkylarkSignature(module.getEnclosedElements())) {
+        AnnotationHelper<SkylarkSignature> ann = annotationHelper(member, SkylarkSignature.class);
+        String functionName = ann.ann.name();
+        DeclaredType objectType = ann.getClassValue("objectType");
+
+        if (objectType.toString().equals(module.toString())) {
+          functionName = skyModule.name() + "." + functionName;
+        }
+        boolean skipFirstParam = firstParamIsSelf(module, objectType, skyModule.namespace());
+        docModule.functions.add(
+            documentSkylarkSignature(member, functionName, skipFirstParam, ann.ann.doc(),
+                ann.getValue("parameters"), ann.ann.parameters(),
+                skylarkTypeName(ann.getClassValue("returnType"))));
+      }
+
+      docModule.flags.addAll(generateFlagsInfo(module));
+    }
+
+    for (DocModule module : modules) {
+      FileObject resource = processingEnv.getFiler().createResource(
+          StandardLocation.SOURCE_OUTPUT, "", module.name + ".copybara.md");
+
+      try (Writer writer = resource.openWriter()) {
+        writer.append(module.toMarkdown(2)).append("\n");
+      }
     }
   }
 
-  private CharSequence generateFunctionDocumentation(TypeElement module, SkylarkModule skyModule,
-      Element member)
-      throws ElementException {
-    StringBuilder sb = new StringBuilder();
-    AnnotationHelper<SkylarkSignature> signature = annotationHelper(member,
-        SkylarkSignature.class);
-    if (signature == null || !(member instanceof VariableElement)) {
-      return sb;
-    }
+  private DocFunction callableFunction(ExecutableElement member,
+      AnnotationHelper<SkylarkCallable> callable) throws ElementException {
 
-    if (!signature.ann.documented()) {
-      return sb;
-    }
-
-    String functionName = signature.ann.name();
-    DeclaredType objectType = signature.getClassValue("objectType");
-
-    if (objectType.toString().equals(module.toString())) {
-      functionName = skyModule.name() + "." + functionName;
-    }
-
-    sb.append("<a id=\"").append(functionName).append("\" aria-hidden=\"true\"></a>\n");
-    sb.append("### ").append(functionName).append("\n\n");
-    sb.append(signature.ann.doc());
-    sb.append("\n\n");
-
-    // Create a string like `Origin foo(param, param2=Default)`
-    sb.append("`");
-    String returnTypeStr = skylarkTypeName(signature.getClassValue("returnType"));
-
-    if (!returnTypeStr.equals("")) {
-      sb.append(returnTypeStr).append(" ");
-    }
-
-    sb.append(functionName).append("(");
-
-    List<AnnotationValue> params = signature.getValue("parameters");
-
-
-    StringBuilder longDescription = new StringBuilder();
-    int startIndex = firstParamIsSelf(module, skyModule, objectType) ? 1 : 0;
-    for (int i = startIndex; i < params.size(); i++) {
-      AnnotationHelper<Param> param = new AnnotationHelper<>(
-          signature.ann.parameters()[i], (AnnotationMirror) params.get(i).getValue(), member);
-      if (i > startIndex) {
-        sb.append(", ");
-      }
-      sb.append(param.ann.name());
-      String defaultValue = param.ann.defaultValue();
-
-      if (!defaultValue.isEmpty()) {
-        sb.append("=").append(defaultValue);
-      }
-      longDescription.append(param.ann.name()).append("|");
-      longDescription.append("`").append(skylarkTypeNameGeneric(
-          param.getClassValue("type"),
-          param.getClassValue("generic1")
-      )).append("`").append("<br><p>");
-
-      longDescription.append(param.ann.doc());
-      longDescription.append("</p>");
-      longDescription.append("\n");
-    }
-    sb.append(")`\n\n");
-
-    if (longDescription.length() > 0) {
-      sb.append("#### Parameters:\n\n");
-      sb.append("Parameter | Description\n");
-      sb.append("--------- | -----------\n");
-      sb.append(longDescription);
-      sb.append("\n\n");
-    }
-    // Generate flags associated with an specific method
-    sb.append(generateFlagsInfo(member));
-
-
-    AnnotationHelper<Examples> examples = annotationHelper(member, Examples.class);
-    AnnotationHelper<Example> singleExample = annotationHelper(member, Example.class);
-
-    if (examples != null) {
-      sb.append("#### Examples:\n\n");
-      for (Example example : examples.ann.value()) {
-        printExample(sb, example);
-      }
-    } else if (singleExample != null) {
-      sb.append("#### Example:\n\n");
-      printExample(sb, singleExample.ann);
-    }
-
-    return sb;
+    return documentSkylarkSignature(member, callable.ann.name(),
+        /*skipFirstParam=*/false, callable.ann.doc(), callable.getValue("parameters"),
+        callable.ann.parameters(), skylarkTypeName(member.getReturnType()));
   }
 
-  private void printExample(StringBuilder sb, Example example) {
-    sb.append("##### ").append(example.title()).append(":\n\n");
+  private List<? extends Element> filterSkylarkCallable(List<? extends Element> enclosedElements) {
+    return enclosedElements.stream().filter(member -> {
+      AnnotationHelper<SkylarkCallable> ann = annotationHelper(member, SkylarkCallable.class);
+      return ann != null && member instanceof ExecutableElement && ann.ann.documented();
+    }).collect(Collectors.toList());
+  }
+
+  private List<? extends Element> filterSkylarkSignature(List<? extends Element> enclosedElements) {
+    return enclosedElements.stream().filter(member -> {
+      AnnotationHelper<SkylarkSignature> ann = annotationHelper(member, SkylarkSignature.class);
+      return ann != null && member instanceof VariableElement && ann.ann.documented();
+    }).collect(Collectors.toList());
+  }
+
+  private void printExample(StringBuilder sb, int level, Example example) {
+    mdTitle(sb, level, example.title() + ":");
     sb.append(example.before()).append("\n\n");
     sb.append("```python\n").append(example.code()).append("\n```\n\n");
     if (!example.after().equals("")) {
@@ -229,16 +200,44 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     }
   }
 
-  /** Detect if the first parameter is 'self' object. */
-  private boolean firstParamIsSelf(TypeElement classElement, SkylarkModule skyModule,
-      DeclaredType objectType) {
-    return !skyModule.namespace() && objectType.toString().equals(classElement.toString());
+  private DocFunction documentSkylarkSignature(Element member, String functionName,
+      boolean skipFirstParam, String doc, List<AnnotationValue> paramsAnnotations,
+      Param[] parameters, @Nullable String returnType) throws ElementException {
+
+    ImmutableList.Builder<DocParam> params = ImmutableList.builder();
+
+    for (int i = skipFirstParam ? 1 : 0; i < paramsAnnotations.size(); i++) {
+      AnnotationHelper<Param> param = new AnnotationHelper<>(
+          parameters[i], (AnnotationMirror) paramsAnnotations.get(i).getValue(), member);
+      params.add(new DocParam(
+          param.ann.name(),
+          Strings.isNullOrEmpty(param.ann.defaultValue()) ? null : param.ann.defaultValue(),
+          skylarkTypeNameGeneric(
+              param.getClassValue("type"),
+              param.getClassValue("generic1")),
+          param.ann.doc()));
+    }
+
+    AnnotationHelper<Examples> examples = annotationHelper(member, Examples.class);
+    AnnotationHelper<Example> singleExample = annotationHelper(member, Example.class);
+
+    ImmutableList.Builder<DocExample> docExample = ImmutableList.builder();
+    if (examples != null) {
+      for (Example example : examples.ann.value()) {
+        docExample.add(new DocExample(example));
+      }
+    } else if (singleExample != null) {
+      docExample.add(new DocExample(singleExample.ann));
+    }
+    return new DocFunction(functionName, doc, returnType, params.build(), generateFlagsInfo(member),
+        docExample.build());
   }
 
+  @Nullable
   private String skylarkTypeNameGeneric(DeclaredType declared, @Nullable DeclaredType generic) {
     String name = skylarkTypeName(declared);
-    if (name.isEmpty()) {
-      return "";
+    if (name == null) {
+      return null;
     }
     if (generic == null || generic.toString().equals("java.lang.Object")) {
       return name;
@@ -246,26 +245,37 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     return name + " of " + skylarkTypeName(generic);
   }
 
-  private String skylarkTypeName(DeclaredType declared) {
-    if (declared.toString().equals(
-        "com.google.devtools.build.lib.syntax.Runtime.NoneType")) {
-      return "";
+  /**
+   * Detect if the first parameter is 'self' object.
+   */
+  private boolean firstParamIsSelf(TypeElement classElement,
+      DeclaredType objectType, boolean isNamespace) {
+    return !isNamespace && objectType.toString().equals(classElement.toString());
+  }
+
+  @Nullable
+  private String skylarkTypeName(TypeMirror declared) {
+    if (declared.toString().equals("com.google.devtools.build.lib.syntax.Runtime.NoneType")
+        || declared.toString().equals("void")) {
+      return null;
     }
     Element element = processingEnv.getTypeUtils().asElement(declared);
+    if (element == null) {
+      return simplerJavaTypes(declared);
+    }
     SkylarkModule skyType = element.getAnnotation(SkylarkModule.class);
     if (skyType != null) {
       return skyType.name();
     }
-    return simplerJavaTypes(element);
+    return simplerJavaTypes(element.asType());
   }
 
-  private CharSequence generateFlagsInfo(Element classElement) throws ElementException {
-    StringBuilder sb = new StringBuilder();
+  private ImmutableList<DocFlag> generateFlagsInfo(Element classElement) throws ElementException {
+    ImmutableList.Builder<DocFlag> result = ImmutableList.builder();
     AnnotationHelper<UsesFlags> annotation = annotationHelper(classElement, UsesFlags.class);
     if (annotation == null) {
-      return sb;
+      return result.build();
     }
-    StringBuilder flagsString = new StringBuilder();
     for (DeclaredType flag : annotation.getClassListValue("value")) {
       Element flagClass = flag.asElement();
       for (Element member : flagClass.getEnclosedElements()) {
@@ -275,32 +285,11 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
             || flagAnnotation.hidden()) {
           continue;
         }
-        VariableElement field = (VariableElement) member;
-        flagsString.append(Joiner.on(", ").join(flagAnnotation.names()));
-        flagsString.append(" | *");
-        flagsString.append(simplerJavaTypes(field));
-        flagsString.append("* | ");
-        flagsString.append(flagAnnotation.description());
-        flagsString.append("\n");
+        result.add(new DocFlag(Joiner.on(", ").join(flagAnnotation.names()),
+            simplerJavaTypes(member.asType()), flagAnnotation.description()));
       }
     }
-    if (flagsString.length() > 0) {
-      sb.append("\n\n**Command line flags:**\n\n");
-      sb.append("Name | Type | Description\n");
-      sb.append("---- | ----------- | -----------\n");
-      sb.append(flagsString);
-      sb.append("\n");
-    }
-    return sb;
-  }
-
-  private String simplerJavaTypes(Element field) {
-    String s = field.asType().toString();
-    int dot = s.lastIndexOf('.');
-    if (dot == -1) {
-      return deCapitalize(s);
-    }
-    return deCapitalize(s.substring(dot + 1));
+    return result.build();
   }
 
   private String deCapitalize(String substring) {
@@ -380,6 +369,181 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     private ElementException(Element element, String message) {
       super(message);
       this.element = element;
+    }
+  }
+
+  private String simplerJavaTypes(TypeMirror typeMirror) {
+    String s = typeMirror.toString();
+    int dot = s.lastIndexOf('.');
+    if (dot == -1) {
+      return deCapitalize(s);
+    }
+    return deCapitalize(s.substring(dot + 1));
+  }
+
+  private void tableHeader(StringBuilder sb, String... fields) {
+    tableRow(sb, fields);
+    tableRow(sb, Stream.of(fields)
+        .map(e -> Strings.repeat("-", e.length()))
+        .toArray(String[]::new));
+  }
+
+  private void tableRow(StringBuilder sb, String... fields) {
+    sb.append(Joiner.on(" | ").join(fields)).append("\n");
+  }
+
+  private final class DocModule extends DocBase {
+
+    private final TreeSet<DocField> fields = new TreeSet<>();
+    private final TreeSet<DocFunction> functions = new TreeSet<>();
+    private final TreeSet<DocFlag> flags = new TreeSet<>();
+
+    DocModule(String name, String description) {
+      super(name, description);
+    }
+
+    CharSequence toMarkdown(int level) {
+      StringBuilder sb = new StringBuilder();
+      mdTitle(sb, level, name);
+      sb.append(description).append("\n\n");
+
+      if (!fields.isEmpty()) {
+        // TODO(malcon): Skip showing in ToC for now by showing it as a more deep element.
+        mdTitle(sb, level + 2, "Fields:");
+        tableHeader(sb, "Name", "Description");
+        for (DocField field : fields) {
+          tableRow(sb, field.name, field.description);
+        }
+        sb.append("\n");
+      }
+
+      printFlags(sb, flags);
+
+      for (DocFunction func : functions) {
+        sb.append("<a id=\"").append(func.name).append("\" aria-hidden=\"true\"></a>");
+        mdTitle(sb, level + 1, func.name);
+        sb.append(func.description);
+        sb.append("\n\n");
+        sb.append("`");
+        if (func.returnType != null) {
+          sb.append(func.returnType).append(" ");
+        }
+        sb.append(func.name).append("(");
+        Joiner.on(", ").appendTo(sb, Lists.transform(func.params,
+            p -> p.name + (p.defaultValue == null ? "" : "=" + p.defaultValue)));
+        sb.append(")`\n\n");
+
+        if (!Iterables.isEmpty(func.params)) {
+          mdTitle(sb, level + 2, "Parameters:");
+          tableHeader(sb, "Parameter", "Description");
+          for (DocParam param : func.params) {
+            tableRow(sb,
+                param.name,
+                String.format("`%s`<br><p>%s</p>", param.type, param.description));
+          }
+          sb.append("\n");
+        }
+        if (!func.examples.isEmpty()) {
+          mdTitle(sb, level + 2, func.examples.size() == 1 ? "Example:" : "Examples:");
+          for (DocExample example : func.examples) {
+            printExample(sb, level + 3, example.example);
+          }
+          sb.append("\n");
+        }
+        printFlags(sb, func.flags);
+      }
+      return sb;
+    }
+
+    private void printFlags(StringBuilder sb, Collection<DocFlag> flags) {
+      if (!flags.isEmpty()) {
+        sb.append("\n\n**Command line flags:**\n\n");
+        tableHeader(sb, "Name", "Type", "Description");
+        for (DocFlag field : flags) {
+          tableRow(sb, field.name, String.format("*%s*", field.type), field.description);
+        }
+        sb.append("\n");
+      }
+    }
+  }
+
+  private abstract class DocBase implements Comparable<DocBase> {
+
+    protected final String name;
+    protected final String description;
+
+    DocBase(String name, String description) {
+      this.name = checkNotNull(name);
+      this.description = checkNotNull(description);
+    }
+
+    @Override
+    public int compareTo(DocBase o) {
+      return name.compareTo(o.name);
+    }
+
+    public String getName() {
+      return name;
+    }
+  }
+
+  private final class DocField extends DocBase {
+
+    DocField(String name, String description) {
+      super(name, description);
+    }
+  }
+
+  private final class DocFunction extends DocBase {
+
+    private final TreeSet<DocFlag> flags = new TreeSet<>();
+    @Nullable
+    private final String returnType;
+    private final ImmutableList<DocParam> params;
+    private final ImmutableList<DocExample> examples;
+
+    DocFunction(String name, String description, @Nullable String returnType,
+        Iterable<DocParam> params, Iterable<DocFlag> flags, Iterable<DocExample> examples) {
+      super(name, description);
+      this.returnType = returnType;
+      this.params = ImmutableList.copyOf(params);
+      this.examples = ImmutableList.copyOf(examples);
+      Iterables.addAll(this.flags, flags);
+    }
+  }
+
+  private final class DocParam {
+
+    private final String name;
+    @Nullable
+    private final String defaultValue;
+    private final String type;
+    private final String description;
+
+    DocParam(String name, @Nullable String defaultValue, String type, String description) {
+      this.name = name;
+      this.defaultValue = defaultValue;
+      this.type = type;
+      this.description = description;
+    }
+  }
+
+  private final class DocFlag extends DocBase {
+
+    public final String type;
+
+    DocFlag(String name, String type, String description) {
+      super(name, description);
+      this.type = type;
+    }
+  }
+
+  private final class DocExample {
+
+    private final Example example;
+
+    DocExample(Example example) {
+      this.example = example;
     }
   }
 }

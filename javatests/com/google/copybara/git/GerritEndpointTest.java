@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Core;
+import com.google.copybara.GlobModule;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
@@ -57,7 +58,7 @@ import org.junit.runners.JUnit4;
 public class GerritEndpointTest {
 
   private static final ImmutableSet<Class<?>> MODULES =
-      ImmutableSet.of(Core.class, TestingModule.class, GitModule.class);
+      ImmutableSet.of(GlobModule.class, Core.class, TestingModule.class, GitModule.class);
   public static final String BASE_URL = "https://user:SECRET@copybara-not-real.com";
 
   private SkylarkTestExecutor skylarkTestExecutor;

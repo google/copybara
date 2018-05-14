@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
  * Annotation to associate an example snippet with a configuration element.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD})
+@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
 @Repeatable(Examples.class)
 public @interface Example {
 

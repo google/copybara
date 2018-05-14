@@ -38,6 +38,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.Change;
 import com.google.copybara.Core;
+import com.google.copybara.GlobModule;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Workflow;
@@ -141,7 +142,7 @@ public class GithubPrOriginTest {
     skylarkParser =
         new SkylarkParser(
             ImmutableSet.of(
-                Core.class, Authoring.Module.class,
+                GlobModule.class, Core.class, Authoring.Module.class,
                 FolderModule.class, GitModule.class));
   }
 

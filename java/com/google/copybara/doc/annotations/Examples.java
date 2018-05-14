@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
  * A collection of examples for a Copybara element.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD})
+@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
 public @interface Examples {
 
   Example[] value();

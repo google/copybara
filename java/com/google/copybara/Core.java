@@ -63,7 +63,6 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkList.MutableList;
 import com.google.devtools.build.lib.syntax.SkylarkList.Tuple;
 import com.google.devtools.build.lib.syntax.Type;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -100,58 +99,6 @@ public class Core implements OptionsAwareModule, LabelsAwareModule {
     generalOptions = options.get(GeneralOptions.class);
     workflowOptions = options.get(WorkflowOptions.class);
   }
-
-  @SuppressWarnings("unused")
-  @SkylarkSignature(
-      name = "glob",
-      returnType = Glob.class,
-      doc = "Glob returns a list of every file in the workdir that matches at least one"
-          + " pattern in include and does not match any of the patterns in exclude.",
-      parameters = {
-          @Param(name = "include", type = SkylarkList.class,
-              generic1 = String.class, doc = "The list of glob patterns to include"),
-          @Param(name = "exclude", type = SkylarkList.class,
-              generic1 = String.class, doc = "The list of glob patterns to exclude",
-              defaultValue = "[]", named = true, positional = false),
-      }, useLocation = true)
-  @Example(title = "Simple usage",
-      before = "Include all the files under a folder except for `internal` folder files:",
-      code = "glob([\"foo/**\"], exclude = [\"foo/internal/**\"])")
-  @Example(title = "Multiple folders",
-      before = "Globs can have multiple inclusive rules:",
-      code = "glob([\"foo/**\", \"bar/**\", \"baz/**.java\"])",
-      after = "This will include all files inside `foo` and `bar` folders and Java files"
-          + " inside `baz` folder.")
-  @Example(title = "Multiple excludes",
-      before = "Globs can have multiple exclusive rules:",
-      code = "glob([\"foo/**\"], exclude = [\"foo/internal/**\", \"foo/confidential/**\" ])",
-      after = "Include all the files of `foo` except the ones in `internal` and `confidential`"
-          + " folders")
-  @Example(title = "All BUILD files recursively",
-      before = "Copybara uses Java globbing. The globbing is very similar to Bash one. This"
-          + " means that recursive globbing for a filename is a bit more tricky:",
-      code = "glob([\"BUILD\", \"**/BUILD\"])",
-      after = "This is the correct way of matching all `BUILD` files recursively, including the"
-          + " one in the root. `**/BUILD` would only match `BUILD` files in subdirectories.")
-  @Example(title = "Matching multiple strings with one expression",
-      before = "While two globs can be used for matching two directories, there is a more"
-          + " compact approach:",
-      code = "glob([\"{java,javatests}/**\"])",
-      after = "This matches any file in `java` and `javatests` folders.")
-  public static final BuiltinFunction GLOB = new BuiltinFunction("glob") {
-    public Glob invoke(SkylarkList include, SkylarkList exclude, Location location)
-        throws EvalException {
-      List<String> includeStrings = Type.STRING_LIST.convert(include, "include");
-      List<String> excludeStrings = Type.STRING_LIST.convert(exclude, "exclude");
-      try {
-        return Glob.createGlob(includeStrings, excludeStrings);
-      } catch (IllegalArgumentException e) {
-        throw new EvalException(location, String.format(
-            "Cannot create a glob from: include='%s' and exclude='%s': %s",
-            includeStrings, excludeStrings, e.getMessage()), e);
-      }
-    }
-  };
 
   @SuppressWarnings("unused")
   @SkylarkSignature(name = "reverse", returnType = SkylarkList.class,

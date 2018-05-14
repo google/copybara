@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.GlobModule;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
@@ -52,6 +53,7 @@ public final class SkylarkTestExecutor {
     skylarkParser =
         new SkylarkParser(
             ImmutableSet.<Class<?>>builder()
+                .add(GlobModule.class)
                 .add(Core.class)
                 .add(Authoring.Module.class)
                 .add(modules)
