@@ -535,7 +535,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testsSaveAuthor() throws Exception {
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
     origin.setAuthor(new Author("keep me", "keep@me.com"))
         .addSimpleChange(0, "A change");
     wf.run(workdir, ImmutableList.of());
@@ -545,7 +545,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testsSaveAuthorOtherLabel() throws Exception {
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author('OTHER_LABEL')");
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author('OTHER_LABEL')");
     origin.setAuthor(new Author("keep me", "keep@me.com"))
         .addSimpleChange(0, "A change");
     wf.run(workdir, ImmutableList.of());
@@ -556,7 +556,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testsSaveReplaceAuthor() throws Exception {
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
     origin.setAuthor(new Author("keep me", "keep@me.com"))
         .addSimpleChange(0, "A change\n\nORIGINAL_AUTHOR=bye bye <bye@bye.com>");
     wf.run(workdir, ImmutableList.of());
@@ -567,7 +567,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testRestoreAuthor() throws Exception {
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author()");
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author()");
     origin.setAuthor(new Author("remove me", "remove@me.com"))
         .addSimpleChange(0, "A change\n\nORIGINAL_AUTHOR=restore me <restore@me.com>\n");
     wf.run(workdir, ImmutableList.of());
@@ -598,7 +598,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testRestoreAuthorOtherLabel() throws Exception {
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL')");
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL')");
     origin.setAuthor(new Author("remove me", "remove@me.com"))
         .addSimpleChange(0, "A change\n\n"
             + "OTHER_LABEL=restore me <restore@me.com>\n"
@@ -615,7 +615,7 @@ public class MetadataModuleTest {
   public void testAddHeader() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
 
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]')");
 
     origin.addSimpleChange(0, ""
@@ -638,7 +638,7 @@ public class MetadataModuleTest {
   public void testReplaceMessage() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
 
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.replace_message('[HEADER with ${LABEL}]\\n')");
 
     origin.addSimpleChange(0, ""
@@ -740,7 +740,7 @@ public class MetadataModuleTest {
   public void testAddHeader_noNewLine() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
 
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]: ', new_line = False)");
 
     origin.addSimpleChange(0, ""
@@ -761,7 +761,7 @@ public class MetadataModuleTest {
   @Test
   public void testAddHeaderLabelNotFound() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]')");
     origin.addSimpleChange(0, "foo");
 
@@ -775,7 +775,7 @@ public class MetadataModuleTest {
   public void testAddHeaderLabelNotFoundIgnore() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
 
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE,
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.add_header('[HEADER with ${LABEL}]', "
             + "ignore_label_not_found = True)");
 
@@ -889,7 +889,7 @@ public class MetadataModuleTest {
   @Test
   public void testMapAuthor() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, MetadataModule.MAP_AUTHOR_EXAMPLE_SIMPLE);
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, MetadataModule.MAP_AUTHOR_EXAMPLE_SIMPLE);
 
     origin.setAuthor(new Author("john", "john@example.com"))
         .addSimpleChange(0, "change 0");
@@ -919,7 +919,7 @@ public class MetadataModuleTest {
   @Test
   public void testMapAuthor_failIfNotFound() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
-    Workflow wf = createWorkflow(WorkflowMode.ITERATIVE, ""
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, ""
         + "metadata.map_author({\n"
         + "    'a' : 'x <x@example.com>',\n"
         + "    'b@example.com' : 'y <y@example.com>',\n"
@@ -1031,7 +1031,7 @@ public class MetadataModuleTest {
     createWorkflow(mode, transforms).run(workdir, ImmutableList.of("2"));
   }
 
-  private Workflow createWorkflow(WorkflowMode mode, String... transforms)
+  private Workflow<?, ?> createWorkflow(WorkflowMode mode, String... transforms)
       throws IOException, ValidationException {
     passThruAuthoring();
 
