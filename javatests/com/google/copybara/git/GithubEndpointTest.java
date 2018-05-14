@@ -133,6 +133,10 @@ public class GithubEndpointTest {
             "e = git.github_api(url = 'https://github.com/google/example')");
     assertThat(gitHubEndPoint.describe())
         .containsExactly("type", "github_api", "url", "https://github.com/google/example");
+
+    skylarkTestExecutor.verifyField(
+        "git.github_api(url = 'https://github.com/google/example')",
+        "url", "https://github.com/google/example");
   }
 
   @Test

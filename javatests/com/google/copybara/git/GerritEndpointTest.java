@@ -127,12 +127,16 @@ public class GerritEndpointTest {
             "e = git.gerrit_api(url = 'https://test.googlesource.com/example')");
     assertThat(gerritEndpoint.describe())
         .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
+
+    skylarkTestExecutor.verifyField(
+        "git.gerrit_api(url = 'https://test.googlesource.com/example')",
+        "url", "https://test.googlesource.com/example");
   }
 
   @Test
   public void testParsingEmptyUrl() {
     skylarkTestExecutor.evalFails("git.gerrit_api(url = '')))", "Invalid empty field 'url'");
-  }
+    }
 
   @Test
   public void testOriginRef() throws ValidationException {

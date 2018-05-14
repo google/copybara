@@ -121,6 +121,14 @@ public class GitHubEndPoint implements Endpoint {
     }
   }
 
+  @SkylarkCallable(
+      name = "url",
+      doc = "Return the URL of this endpoint.",
+      structField = true)
+  public String getUrl() {
+    return url;
+  }
+
   @Override
   public ImmutableSetMultimap<String, String> describe() {
     return ImmutableSetMultimap.of("type", "github_api", "url", url);
