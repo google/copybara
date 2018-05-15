@@ -27,7 +27,8 @@ import java.io.IOException;
 @SkylarkModule(
     name = "transformation",
     doc = "A transformation to the workdir",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    documented = false)
 public interface Transformation {
 
   /**

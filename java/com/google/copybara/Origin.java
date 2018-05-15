@@ -41,7 +41,8 @@ import javax.annotation.Nullable;
 @SkylarkModule(
     name = "origin",
     doc = "A Origin represents a source control repository from which source is copied.",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    documented = false)
 public interface Origin<R extends Revision> extends ConfigItemDescription {
 
   /**

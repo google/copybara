@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import com.google.copybara.doc.annotations.DocElement;
+import com.google.copybara.doc.annotations.DynamicContextObject;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -117,7 +118,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         TypeElement module = (TypeElement) element;
         for (Element member : filterSkylarkCallable(module.getEnclosedElements())) {
           docModule.functions.add(callableFunction((ExecutableElement) member,
-              annotationHelper(member, SkylarkCallable.class)));
+              annotationHelper(member, SkylarkCallable.class), /*prefix=*/null));
         }
       }
     }
@@ -129,6 +130,10 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       if (!skyModule.documented()) {
         continue;
       }
+
+      DynamicContextObject dynamicContextObject = module.getAnnotation(DynamicContextObject.class);
+
+
       DocModule docModule = new DocModule(skyModule.name(), skyModule.doc());
       modules.add(docModule);
 
@@ -137,7 +142,8 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         if (ann.ann.structField()) {
           docModule.fields.add(new DocField(ann.ann.name(), ann.ann.doc()));
         } else {
-          docModule.functions.add(callableFunction((ExecutableElement) member, ann));
+          docModule.functions.add(callableFunction((ExecutableElement) member, ann,
+              dynamicContextObject != null ? dynamicContextObject.varPrefix() : null));
         }
       }
       // TODO(malcon): Remove this branch once we don't have more SkylarkSignatures.
@@ -170,9 +176,12 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
   }
 
   private DocFunction callableFunction(ExecutableElement member,
-      AnnotationHelper<SkylarkCallable> callable) throws ElementException {
+      AnnotationHelper<SkylarkCallable> callable, @Nullable String prefix) throws ElementException {
 
-    return documentSkylarkSignature(member, callable.ann.name(),
+    return documentSkylarkSignature(member,
+        prefix != null
+            ? String.format("%s.%s", prefix, callable.ann.name())
+            : callable.ann.name(),
         /*skipFirstParam=*/false, callable.ann.doc(), callable.getValue("parameters"),
         callable.ann.parameters(), skylarkTypeName(member.getReturnType()));
   }

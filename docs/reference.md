@@ -8,6 +8,30 @@
     - [authoring.whitelisted](#authoring.whitelisted)
     - [new_author](#new_author)
   - [authoring_class](#authoring_class)
+  - [ChangeMessage](#changemessage)
+    - [label_values](#label_values)
+  - [Changes](#changes)
+  - [Path](#path)
+    - [relativize](#relativize)
+    - [resolve](#resolve)
+    - [resolve_sibling](#resolve_sibling)
+  - [PathAttributes](#pathattributes)
+  - [TransformWork](#transformwork)
+    - [ctx.add_label](#ctx.add_label)
+    - [ctx.add_or_replace_label](#ctx.add_or_replace_label)
+    - [ctx.add_text_before_labels](#ctx.add_text_before_labels)
+    - [ctx.find_all_labels](#ctx.find_all_labels)
+    - [ctx.find_label](#ctx.find_label)
+    - [ctx.new_path](#ctx.new_path)
+    - [ctx.now_as_string](#ctx.now_as_string)
+    - [ctx.read_path](#ctx.read_path)
+    - [ctx.remove_label](#ctx.remove_label)
+    - [ctx.replace_label](#ctx.replace_label)
+    - [ctx.run](#ctx.run)
+    - [ctx.set_author](#ctx.set_author)
+    - [ctx.set_message](#ctx.set_message)
+    - [ctx.write_path](#ctx.write_path)
+  - [change](#change)
   - [git](#git)
     - [git.destination](#git.destination)
     - [git.gerrit_destination](#git.gerrit_destination)
@@ -215,6 +239,328 @@ new_author('Foo Bar <foobar@myorg.com>')
 ## authoring_class
 
 The authors mapping between an origin and a destination
+
+
+
+## ChangeMessage
+
+Represents a well formed parsed change message with its associated labels.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+first_line | First line of this message
+text | The text description this message, not including the labels.
+
+<a id="label_values" aria-hidden="true"></a>
+### label_values
+
+Returns a list of values associated with the label name.
+
+`list<E> label_values(label_name)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label_name | `string`<br><p>The label name.</p>
+
+
+
+## Changes
+
+Data about the set of changes that are being migrated. Each change includes information like: original author, change message, labels, etc. You receive this as a field in TransformWork object for used defined transformations
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+current | List of changes that will be migrated
+migrated | List of changes that where migrated in previous Copybara executions or if using ITERATIVE mode in previous iterations of this workflow.
+
+
+
+## Path
+
+Represents a path in the checkout directory
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+attr | Get the file attributes, for example size.
+name | Filename of the path. For foo/bar/baz.txt it would be baz.txt
+parent | Get the parent path
+path | Full path relative to the checkout directory
+
+<a id="relativize" aria-hidden="true"></a>
+### relativize
+
+Constructs a relative path between this path and a given path. For example:<br>    path('a/b').relativize('a/b/c/d')<br>returns 'c/d'
+
+`Path relativize(other)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+other | `Path`<br><p>The path to relativize against this path</p>
+
+<a id="resolve" aria-hidden="true"></a>
+### resolve
+
+Resolve the given path against this path.
+
+`Path resolve(child)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+child | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+
+<a id="resolve_sibling" aria-hidden="true"></a>
+### resolve_sibling
+
+Resolve the given path against this path.
+
+`Path resolve_sibling(other)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+other | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+
+
+
+## PathAttributes
+
+Represents a path attributes like size.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+size | The size of the file. Throws an error if file size > 2GB.
+
+
+
+## TransformWork
+
+Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument to the <code>transformations</code> functions used in <code>core.workflow</code>
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+author | Author to be used in the change
+changes | List of changes that will be migrated
+console | Get an instance of the console to report errors or warnings
+message | Message to be used in the change
+params | Parameters for the function if created with core.dynamic_transform
+
+<a id="ctx.add_label" aria-hidden="true"></a>
+### ctx.add_label
+
+Add a label to the end of the description
+
+`ctx.add_label(label, value, separator="=", hidden=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p>The label to replace</p>
+value | `string`<br><p>The new value for the label</p>
+separator | `string`<br><p>The separator to use for the label</p>
+hidden | `boolean`<br><p>Don't show the label in the message but only keep it internally</p>
+
+<a id="ctx.add_or_replace_label" aria-hidden="true"></a>
+### ctx.add_or_replace_label
+
+Replace an existing label or add it to the end of the description
+
+`ctx.add_or_replace_label(label, value, separator="=")`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p>The label to replace</p>
+value | `string`<br><p>The new value for the label</p>
+separator | `string`<br><p>The separator to use for the label</p>
+
+<a id="ctx.add_text_before_labels" aria-hidden="true"></a>
+### ctx.add_text_before_labels
+
+Add a text to the description before the labels paragraph
+
+`ctx.add_text_before_labels()`
+
+<a id="ctx.find_all_labels" aria-hidden="true"></a>
+### ctx.find_all_labels
+
+Tries to find all the values for a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
+
+`sequence ctx.find_all_labels()`
+
+<a id="ctx.find_label" aria-hidden="true"></a>
+### ctx.find_label
+
+Tries to find a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
+
+`string ctx.find_label()`
+
+<a id="ctx.new_path" aria-hidden="true"></a>
+### ctx.new_path
+
+Create a new path
+
+`Path ctx.new_path(path)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `string`<br><p>The string representing the path</p>
+
+<a id="ctx.now_as_string" aria-hidden="true"></a>
+### ctx.now_as_string
+
+Get current date as a string
+
+`string ctx.now_as_string(format="yyyy-MM-dd", zone="UTC")`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+format | `string`<br><p>The format to use. See: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for details.</p>
+zone | `object`<br><p>The timezone id to use. See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default UTC </p>
+
+<a id="ctx.read_path" aria-hidden="true"></a>
+### ctx.read_path
+
+Read the content of path as UTF-8
+
+`string ctx.read_path(path)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `Path`<br><p>The string representing the path</p>
+
+<a id="ctx.remove_label" aria-hidden="true"></a>
+### ctx.remove_label
+
+Remove a label from the message if present
+
+`ctx.remove_label(label, whole_message=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p>The label to delete</p>
+whole_message | `boolean`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+
+<a id="ctx.replace_label" aria-hidden="true"></a>
+### ctx.replace_label
+
+Replace a label if it exist in the message
+
+`ctx.replace_label(label, value, separator="=", whole_message=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p>The label to replace</p>
+value | `string`<br><p>The new value for the label</p>
+separator | `string`<br><p>The separator to use for the label</p>
+whole_message | `boolean`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+
+<a id="ctx.run" aria-hidden="true"></a>
+### ctx.run
+
+Run a glob or a transform. For example:<br><code>files = ctx.run(glob(['**.java']))</code><br>or<br><code>ctx.run(core.move("foo", "bar"))</code><br>or<br>
+
+`object ctx.run(runnable)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+runnable | `object`<br><p>A glob or a transform (Transforms still not implemented)</p>
+
+<a id="ctx.set_author" aria-hidden="true"></a>
+### ctx.set_author
+
+Update the author to be used in the change
+
+`ctx.set_author()`
+
+<a id="ctx.set_message" aria-hidden="true"></a>
+### ctx.set_message
+
+Update the message to be used in the change
+
+`ctx.set_message()`
+
+<a id="ctx.write_path" aria-hidden="true"></a>
+### ctx.write_path
+
+Write an arbitrary string to a path (UTF-8 will be used)
+
+`ctx.write_path(path, content)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `Path`<br><p>The string representing the path</p>
+content | `string`<br><p>The content of the file</p>
+
+
+
+## change
+
+A change metadata. Contains information like author, change message or detected labels
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+author | The author of the change
+date_time_iso_offset | Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'
+first_line_message | The message of the change
+labels | A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is an heuristic and it could include things that are not labels.
+labels_all_values | A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is an heuristic and it could include things that are not labels.
+merge | Returns true if the change represents a merge
+message | The message of the change
+original_author | The author of the change before any mapping
 
 
 

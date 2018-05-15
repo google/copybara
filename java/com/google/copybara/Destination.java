@@ -33,7 +33,8 @@ import javax.annotation.Nullable;
 @SkylarkModule(
   name = "destination",
   doc = "A repository which a source of truth can be copied to",
-  category = SkylarkModuleCategory.TOP_LEVEL_TYPE
+  category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+  documented = false
 )
 public interface Destination<R extends Revision> extends ConfigItemDescription {
 
