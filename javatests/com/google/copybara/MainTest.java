@@ -39,16 +39,15 @@ import org.junit.runners.JUnit4;
 public class MainTest {
 
   private String[] args = {"copy.bara.sky"};
-  boolean called = false;
+  private boolean called = false;
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
-  private Path userHomeDir;
 
   @Before
   public void setUp() throws Exception {
     called = false;
-    userHomeDir = Files.createTempDirectory("MainTest");
+    Path userHomeDir = Files.createTempDirectory("MainTest");
     System.setProperty("user.home", userHomeDir.toString());
   }
 

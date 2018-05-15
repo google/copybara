@@ -95,19 +95,19 @@ public final class CoreTransformTest {
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
 
     assertThatPath(checkoutDir)
-        .containsFile("file.txt","baz")
+        .containsFile("file.txt", "baz")
         .containsNoMoreFiles();
 
     t.reverse().transform(TransformWorks.of(checkoutDir, "msg", console));
 
     assertThatPath(checkoutDir)
-        .containsFile("file.txt","foo")
+        .containsFile("file.txt", "foo")
         .containsNoMoreFiles();
   }
 
   @Test
   public void testOneLayerTransformWithNoop() throws ValidationException, IOException {
-    ExplicitReversal t = skylark.eval("x","x="
+    ExplicitReversal t = skylark.eval("x", "x="
                 + "core.transform([\n"
                 + "    core.replace(\n"
                 + "        before = 'not found',\n"
@@ -123,13 +123,13 @@ public final class CoreTransformTest {
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
     console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
     assertThatPath(checkoutDir)
-        .containsFile("file.txt","bar")
+        .containsFile("file.txt", "bar")
         .containsNoMoreFiles();
   }
 
   @Test
   public void testOneLayerTransformWithNoNoop() throws ValidationException, IOException {
-    ExplicitReversal t = skylark.eval("x","x="
+    ExplicitReversal t = skylark.eval("x", "x="
                 + "core.transform([\n"
                 + "    core.replace(\n"
                 + "        before = 'not found',\n"
@@ -143,16 +143,16 @@ public final class CoreTransformTest {
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
-    try{
+    try {
       t.transform(TransformWorks.of(checkoutDir, "msg", console));
       fail("Expected VoidOperationException");
-    } catch(VoidOperationException e) {
+    } catch (VoidOperationException e) {
       assertThat(e.getMessage()).containsMatch(".*was a no-op because it didn't "
           + "change any of the matching files.*");
     }
 
     assertThatPath(checkoutDir)
-        .containsFile("file.txt","foo")
+        .containsFile("file.txt", "foo")
         .containsNoMoreFiles();
   }
 
@@ -167,7 +167,7 @@ public final class CoreTransformTest {
                 + "],"
                 + "ignore_noop=True),";
 
-    ExplicitReversal t = skylark.eval("x","x="
+    ExplicitReversal t = skylark.eval("x", "x="
                 + "core.transform([\n"
                 + "    core.replace(\n"
                 + "        before = 'foo',\n"
@@ -183,7 +183,7 @@ public final class CoreTransformTest {
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
     assertThatPath(checkoutDir)
-        .containsFile("file.txt","baz")
+        .containsFile("file.txt", "baz")
         .containsNoMoreFiles();
     console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
   }
@@ -199,7 +199,7 @@ public final class CoreTransformTest {
           + "]),\n";
 
     ExplicitReversal t =
-        skylark.eval("x","x="
+        skylark.eval("x", "x="
                 + "core.transform([\n"
                 + "    core.replace(\n"
                 + "        before = 'foo',\n"
@@ -215,13 +215,14 @@ public final class CoreTransformTest {
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
     t.transform(TransformWorks.of(checkoutDir, "msg", console));
     assertThatPath(checkoutDir)
-        .containsFile("file.txt","baz")
+        .containsFile("file.txt", "baz")
         .containsNoMoreFiles();
     console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
   }
 
   @Test
-  public void testSecondLayerTransformWithInnerAndOuterNoop() throws ValidationException, IOException {
+  public void testSecondLayerTransformWithInnerAndOuterNoop()
+      throws ValidationException, IOException {
     String secondLayerTransform =
         "core.transform([\n"
             + "    core.replace(\n"
@@ -231,7 +232,7 @@ public final class CoreTransformTest {
             + "], ignore_noop=False),\n";
 
     ExplicitReversal t =
-        skylark.eval("x","x="
+        skylark.eval("x", "x="
             + "core.transform([\n"
             + "    core.replace(\n"
             + "        before = 'foo',\n"
@@ -246,10 +247,10 @@ public final class CoreTransformTest {
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
-    try{
+    try {
       t.transform(TransformWorks.of(checkoutDir, "msg", console));
       fail("Expected VoidOperationException");
-    } catch(VoidOperationException e) {
+    } catch (VoidOperationException e) {
       assertThat(e.getMessage()).containsMatch(".*was a no-op because it didn't "
           + "change any of the matching files.*");
     }
@@ -311,7 +312,7 @@ public final class CoreTransformTest {
   }
 
   @Test
-  public void errorForNonTransformationElementInList() throws Exception {
+  public void errorForNonTransformationElementInList() {
     skylark.evalFails("core.transform([42], reversal = [core.move('foo', 'bar')])",
         "expected type '?transformation'? for 'transformations' .* type '?int'? instead");
     skylark.evalFails("core.transform([core.move('foo', 'bar')], reversal = [42])",

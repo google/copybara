@@ -61,7 +61,7 @@ public class ExamplesTest {
         }
         for (Example example : samples) {
           anyFound = true;
-          Object val = null;
+          Object val;
           String exampleRef = module.getName() + "#" + field.getName() + ": " + example.title();
           try {
             val = Strings.isNullOrEmpty(example.testExistingVariable())
@@ -78,7 +78,7 @@ public class ExamplesTest {
     assertWithMessage("Could not find any example to run!").that(anyFound).isTrue();
   }
 
-  protected ImmutableSet<Class<?>> getUserModules() {
+  private ImmutableSet<Class<?>> getUserModules() {
     return new ModuleSupplier().getModules();
   }
 

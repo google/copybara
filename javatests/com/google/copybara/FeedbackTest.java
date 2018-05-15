@@ -336,7 +336,7 @@ public class FeedbackTest {
             + "    name = 'default',\n"
             + "    origin = testing.dummy_trigger(),\n"
             + "    destination = testing.dummy_endpoint(),\n"
-            + "    actions = [" + Joiner.on(',').join(actionNames) +"],\n"
+            + "    actions = [" + Joiner.on(',').join(actionNames) + "],\n"
             + ")\n"
             + "\n";
     System.err.println(config);

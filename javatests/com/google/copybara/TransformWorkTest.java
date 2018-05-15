@@ -529,13 +529,13 @@ public class TransformWorkTest {
     console.assertThat().onceInLog(MessageType.INFO, "File size: 10");
   }
 
-  private Path touchFile(Path base, String path) throws IOException {
-    return writeFile(base, path, "");
+  private void touchFile(Path base, String path) throws IOException {
+    writeFile(base, path, "");
   }
 
-  private Path writeFile(Path base, String path, String content) throws IOException {
+  private void writeFile(Path base, String path, String content) throws IOException {
     Files.createDirectories(base.resolve(path).getParent());
-    return Files.write(base.resolve(path), content.getBytes(UTF_8));
+    Files.write(base.resolve(path), content.getBytes(UTF_8));
   }
 
   private void runWorkflow(String functionName, String function)

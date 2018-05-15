@@ -30,11 +30,10 @@ import org.junit.runners.JUnit4;
 public class ChangeMessageTest {
 
   private SkylarkTestExecutor skylarkTestExecutor;
-  private OptionsBuilder options;
 
   @Before
   public void setUp() throws Exception {
-    options = new OptionsBuilder();
+    OptionsBuilder options = new OptionsBuilder();
     skylarkTestExecutor = new SkylarkTestExecutor(options, Core.class);
   }
 

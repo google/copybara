@@ -83,8 +83,8 @@ public class PatchingOptionsTest {
   @Test
   public void testPatchSkipVersionCheck() throws Exception {
     forceUseGnuPatch();
-    Map<String, String> env= new HashMap<>(options.general.getEnvironment());
-    env.put("GIT_EXEC_PATH","you shouldn't call git!");
+    Map<String, String> env = new HashMap<>(options.general.getEnvironment());
+    env.put("GIT_EXEC_PATH", "you shouldn't call git!");
     options.setEnvironment(env);
     writeFile(left, "file1.txt", "old text\n");
     writeFile(right, "file1.txt", "new text\n");
@@ -160,7 +160,7 @@ public class PatchingOptionsTest {
   }
 
   @Test
-  public void applyExcludedWithGithApply() throws Exception {
+  public void applyExcludedWithGitApply() throws Exception {
     useGitApply();
     checkApplyExcluded();
   }

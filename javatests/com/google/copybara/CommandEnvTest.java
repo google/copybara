@@ -71,7 +71,7 @@ public class CommandEnvTest {
   }
 
   @Test
-  public void testConfigParsingNoSourceRefButPassed() throws CommandLineException {
+  public void testConfigParsingNoSourceRefButPassed() {
     CommandEnv env = new CommandEnv(workdir, options,
         ImmutableList.of("foo/copy.bara.sky", "wf", "foo"));
     try {

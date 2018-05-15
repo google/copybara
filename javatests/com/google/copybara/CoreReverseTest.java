@@ -29,8 +29,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
-import com.google.devtools.build.lib.syntax.EvalException;
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import org.junit.Before;
@@ -45,7 +43,7 @@ public final class CoreReverseTest {
   private TestingConsole console;
 
   @Before
-  public void setup() throws IOException {
+  public void setup() {
     OptionsBuilder options = new OptionsBuilder();
     skylark = new SkylarkTestExecutor(options, Mock.class);
     console = new TestingConsole();
@@ -77,7 +75,7 @@ public final class CoreReverseTest {
   }
 
   @Test
-  public void reverseTypeError() throws Exception {
+  public void reverseTypeError() {
     try {
       skylark.<List<Transformation>>eval("foo", "foo = core.reverse([42])");
       fail();
@@ -89,7 +87,7 @@ public final class CoreReverseTest {
   }
 
   @Test
-  public void requiresReversibleTransform() throws Exception {
+  public void requiresReversibleTransform() {
     try {
       skylark.eval("foo", "foo = core.reverse([\n"
           + "   mock.transform('foo', False),\n"
@@ -118,8 +116,7 @@ public final class CoreReverseTest {
         documented = false)
     public static final BuiltinFunction transform = new BuiltinFunction("transform") {
       @SuppressWarnings("unused")
-      public Transformation invoke(String field, Boolean reversable)
-          throws EvalException, InterruptedException {
+      public Transformation invoke(String field, Boolean reversable) {
         return new SimpleReplace(field,
             reversable ? new SimpleReplace("reverse " + field, null) : null);
       }
@@ -163,8 +160,8 @@ public final class CoreReverseTest {
         return false;
       }
       SimpleReplace that = (SimpleReplace) o;
-      return Objects.equals(text, that.text) &&
-          Objects.equals(reverse, that.reverse);
+      return Objects.equals(text, that.text)
+          && Objects.equals(reverse, that.reverse);
     }
 
     @Override
