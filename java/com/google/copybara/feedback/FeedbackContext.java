@@ -179,7 +179,7 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
               doc = "The error message"
           ),
       })
-  public ActionResult noop(String errorMsg) {
+  public ActionResult error(String errorMsg) {
     return ActionResult.error(errorMsg);
   }
 
