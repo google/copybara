@@ -28,7 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import com.google.copybara.doc.annotations.DocElement;
-import com.google.copybara.doc.annotations.DynamicContextObject;
+import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -131,7 +131,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         continue;
       }
 
-      DynamicContextObject dynamicContextObject = module.getAnnotation(DynamicContextObject.class);
+      DocSignaturePrefix docSignaturePrefix = module.getAnnotation(DocSignaturePrefix.class);
 
 
       DocModule docModule = new DocModule(skyModule.name(), skyModule.doc());
@@ -143,7 +143,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
           docModule.fields.add(new DocField(ann.ann.name(), ann.ann.doc()));
         } else {
           docModule.functions.add(callableFunction((ExecutableElement) member, ann,
-              dynamicContextObject != null ? dynamicContextObject.varPrefix() : null));
+              docSignaturePrefix != null ? docSignaturePrefix.value() : skyModule.name()));
         }
       }
       // TODO(malcon): Remove this branch once we don't have more SkylarkSignatures.
@@ -273,10 +273,25 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       return simplerJavaTypes(declared);
     }
     SkylarkModule skyType = element.getAnnotation(SkylarkModule.class);
-    if (skyType != null) {
+    if (skyType == null) {
+      return simplerJavaTypes(element.asType());
+    }
+    if (!(declared instanceof DeclaredType)) {
       return skyType.name();
     }
-    return simplerJavaTypes(element.asType());
+    DeclaredType possibleGeneric = (DeclaredType) declared;
+    if (possibleGeneric.getTypeArguments().size() == 0) {
+      return skyType.name();
+    }
+    if (possibleGeneric.getTypeArguments().size() == 1) {
+      return skyType.name() + " of "
+          + skylarkTypeName(possibleGeneric.getTypeArguments().get(0));
+    }
+    return skyType.name() + "["
+        + Joiner.on(", ")
+        .join(possibleGeneric.getTypeArguments().stream().map(this::skylarkTypeName).collect(
+            Collectors.toList()))
+        + "]";
   }
 
   private ImmutableList<DocFlag> generateFlagsInfo(Element classElement) throws ElementException {

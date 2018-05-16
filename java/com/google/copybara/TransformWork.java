@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.doc.annotations.DynamicContextObject;
+import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.FileSystemTreeState;
 import com.google.copybara.treestate.TreeState;
@@ -69,7 +69,7 @@ import javax.annotation.Nullable;
         + "It includes information about changes like: the author to be used for commit, "
         + "change message, etc. You receive a TransformWork object as an argument to the <code>"
         + "transformations</code> functions used in <code>core.workflow</code>")
-@DynamicContextObject
+@DocSignaturePrefix("ctx")
 public final class TransformWork implements SkylarkContext<TransformWork> {
 
   static final String COPYBARA_CONTEXT_REFERENCE_LABEL = "COPYBARA_CONTEXT_REFERENCE";

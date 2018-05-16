@@ -16,7 +16,7 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.git.GitModule.NO_GIT_DESTINATION_INTEGRATES;
+import static com.google.copybara.git.GitModule.DEFAULT_GIT_INTEGRATES;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -247,7 +247,7 @@ public final class GerritDestination implements Destination<GitRevision> {
                 generalOptions.console(),
                 changeIdPolicy),
             new GerritProcessPushOutput(generalOptions.console()),
-            NO_GIT_DESTINATION_INTEGRATES),
+            DEFAULT_GIT_INTEGRATES),
         submit);
   }
 

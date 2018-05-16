@@ -50,10 +50,9 @@ import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.util.GithubUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
-import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
@@ -76,7 +75,7 @@ import java.util.List;
 public class GitModule implements OptionsAwareModule, LabelsAwareModule {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
-  static final SkylarkList<GitIntegrateChanges> NO_GIT_DESTINATION_INTEGRATES =
+  static final SkylarkList<GitIntegrateChanges> DEFAULT_GIT_INTEGRATES =
       SkylarkList.createImmutable(ImmutableList.of(
           new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
               Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
@@ -86,7 +85,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   private ConfigFile<?> mainConfigFile;
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(name = "origin", returnType = GitOrigin.class,
+  @SkylarkCallable(name = "origin",
       doc = "Defines a standard Git origin. For Git specific origins use: `github_origin` or "
           + "`gerrit_origin`.<br><br>"
           + "All the origins in this module accept several string formats as reference (When"
@@ -102,44 +101,44 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           + "`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>"
           + "This will use the pull request as the origin URL and reference.",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "url", type = String.class,
+          @Param(name = "url", type = String.class, named = true,
               doc = "Indicates the URL of the git repository"),
           @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
+              named = true,
               doc = "Represents the default reference that will be used for reading the revision "
                   + "from the git repository. For example: 'master'"),
-          @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
+          @Param(name = "submodules", type = String.class, defaultValue = "'NO'", named = true,
+              positional = false,
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
           @Param(name = "include_branch_commit_logs", type = Boolean.class, defaultValue = "False",
+              named = true, positional = false,
               doc = "Whether to include raw logs of branch commits in the migrated change message."
                   + "WARNING: This field is deprecated in favor of 'first_parent' one."
-              + " This setting *only* affects merge commits.", positional = false),
-          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True",
+                  + " This setting *only* affects merge commits."),
+          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True", named = true,
+              positional = false,
               doc = "If true, it only uses the first parent when looking for changes. Note that"
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
-                  + " change of the merged branch.", positional = false),
-      },
-      objectType = GitModule.class)
-  public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
-    public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
-        Boolean includeBranchCommitLogs, Boolean firstParent) throws EvalException {
-      return GitOrigin.newGitOrigin(
-          self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
-          SkylarkUtil.stringToEnum(location, "submodules",
-              submodules, GitOrigin.SubmoduleStrategy.class),
-          includeBranchCommitLogs, firstParent);
-    }
-  };
+                  + " change of the merged branch."),
+      }, useLocation = true)
+  public GitOrigin origin(String url, Object ref, String submodules,
+      Boolean includeBranchCommitLogs, Boolean firstParent, Location location)
+      throws EvalException {
+    return GitOrigin.newGitOrigin(
+        options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
+        SkylarkUtil.stringToEnum(location, "submodules",
+            submodules, GitOrigin.SubmoduleStrategy.class),
+        includeBranchCommitLogs, firstParent);
+  }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(name = "integrate", returnType = GitIntegrateChanges.class,
+  @SkylarkCallable(name = "integrate",
       doc = "Integrate changes from a url present in the migrated change label.",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "label", type = String.class,
+          @Param(name = "label", type = String.class, named = true,
               doc = "The migration label that will contain the url to the change to integrate.",
               defaultValue = "\"" + DEFAULT_INTEGRATE_LABEL + "\""),
-          @Param(name = "strategy", type = String.class,
+          @Param(name = "strategy", type = String.class, named = true,
               defaultValue = "\"FAKE_MERGE_AND_INCLUDE_FILES\"",
               doc = "How to integrate the change:<br>"
                   + "<ul>"
@@ -155,12 +154,11 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
                   + " it doesn't create a merge but only include changes not matching"
                   + " destination_files</li>"
                   + "</ul>"),
-          @Param(name = "ignore_errors", type = Boolean.class,
+          @Param(name = "ignore_errors", type = Boolean.class, named = true,
               doc = "If we should ignore integrate errors and continue the migration without the"
                   + " integrate", defaultValue = "True"),
-
       },
-      objectType = GitModule.class)
+      useLocation = true)
   @Example(title = "Integrate changes from a review url",
       before = "Assuming we have a git.destination defined like this:",
       code = "git.destination(\n"
@@ -174,65 +172,60 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               + " is found, it will fetch the git url and add that change as an additional parent"
               + " to the migration commit (merge). It will fake-merge any change from the url that"
               + " matches destination_files but it will include changes not matching it.")
-  public static final BuiltinFunction INTEGRATE = new BuiltinFunction("integrate") {
-    public GitIntegrateChanges invoke(GitModule self, String label, String strategy,
-        Boolean ignoreErrors) throws EvalException {
-      return new GitIntegrateChanges(
-          label,
-          SkylarkUtil.stringToEnum(location, "strategy", strategy, Strategy.class),
-          ignoreErrors);
-    }
-  };
+  public GitIntegrateChanges integrate(String label, String strategy, Boolean ignoreErrors,
+      Location location) throws EvalException {
+    return new GitIntegrateChanges(
+        label,
+        SkylarkUtil.stringToEnum(location, "strategy", strategy, Strategy.class),
+        ignoreErrors);
+  }
 
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(name = "mirror", returnType = NoneType.class,
+  @SkylarkCallable(name = "mirror",
       doc = "Mirror git references between repositories",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "name", type = String.class,
+          @Param(name = "name", type = String.class, named = true,
               doc = "Migration name"),
-          @Param(name = "origin", type = String.class,
+          @Param(name = "origin", type = String.class, named = true,
               doc = "Indicates the URL of the origin git repository"),
-          @Param(name = "destination", type = String.class,
+          @Param(name = "destination", type = String.class, named = true,
               doc = "Indicates the URL of the destination git repository"),
-          @Param(name = "refspecs", type = SkylarkList.class, generic1 = String.class,
+          @Param(name = "refspecs", type = SkylarkList.class, generic1 = String.class, named = true,
               defaultValue = "['refs/heads/*']",
               doc = "Represents a list of git refspecs to mirror between origin and destination."
                   + "For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference"
                   + "inside refs/heads to refs/remotes/origin."),
-          @Param(name = "prune", type = Boolean.class,
+          @Param(name = "prune", type = Boolean.class, named = true,
               doc = "Remove remote refs that don't have a origin counterpart",
               defaultValue = "False"),
 
       },
-      objectType = GitModule.class, useLocation = true, useEnvironment = true)
+      useLocation = true, useEnvironment = true)
   @UsesFlags(GitMirrorOptions.class)
-  public static final BuiltinFunction MIRROR = new BuiltinFunction("mirror") {
-    public NoneType invoke(GitModule self, String name, String origin, String destination,
-        SkylarkList<String> strRefSpecs, Boolean prune, Location location, Environment env)
-        throws EvalException {
-      GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
-      List<Refspec> refspecs = new ArrayList<>();
+  public NoneType mirror(String name, String origin, String destination,
+      SkylarkList<String> strRefSpecs, Boolean prune, Location location, Environment env)
+      throws EvalException {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    List<Refspec> refspecs = new ArrayList<>();
 
-      for (String refspec : SkylarkList.castList(strRefSpecs, String.class, "refspecs")) {
-        try {
-          refspecs.add(Refspec.create(
-              generalOptions.getEnvironment(), generalOptions.getCwd(), refspec));
-        } catch (InvalidRefspecException e) {
-          throw new EvalException(location, e);
-        }
+    for (String refspec : SkylarkList.castList(strRefSpecs, String.class, "refspecs")) {
+      try {
+        refspecs.add(Refspec.create(
+            generalOptions.getEnvironment(), generalOptions.getCwd(), refspec));
+      } catch (InvalidRefspecException e) {
+        throw new EvalException(location, e);
       }
-      GlobalMigrations.getGlobalMigrations(env).addMigration(location, name,
-          new Mirror(generalOptions, self.options.get(GitOptions.class),
-              name, origin, destination, refspecs,
-              self.options.get(GitMirrorOptions.class), prune, self.mainConfigFile));
-      return Runtime.NONE;
     }
-  };
+    GlobalMigrations.getGlobalMigrations(env).addMigration(location, name,
+        new Mirror(generalOptions, options.get(GitOptions.class),
+            name, origin, destination, refspecs,
+            options.get(GitMirrorOptions.class), prune, mainConfigFile));
+    return Runtime.NONE;
+  }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(name = "gerrit_origin", returnType = GitOrigin.class,
+  @SkylarkCallable(name = "gerrit_origin",
       doc = "Defines a Git origin for Gerrit reviews.\n"
           + "\n"
           + "Implicit labels that can be used/exposed:\n"
@@ -243,81 +236,43 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
           + " integrate automatically in the reverse workflow.\n",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "url", type = String.class,
+          @Param(name = "url", type = String.class, named = true,
               doc = "Indicates the URL of the git repository"),
           @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
+              named = true,
               doc = "DEPRECATED. Use git.origin for submitted branches."),
-          @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
+          @Param(name = "submodules", type = String.class, defaultValue = "'NO'", named = true,
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
-          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True",
+          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True", named = true,
               doc = "If true, it only uses the first parent when looking for changes. Note that"
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                   + " change of the merged branch.", positional = false),
       },
-      objectType = GitModule.class, useLocation = true)
-  public static final BuiltinFunction GERRIT_ORIGIN = new BuiltinFunction("gerrit_origin") {
-    public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
-        Boolean firstParent,
-        Location location) throws EvalException {
-      String refField = Type.STRING.convertOptional(ref, "ref");
-      if (!Strings.isNullOrEmpty(refField)) {
-        self.options.get(GeneralOptions.class).console().warn(
-            "'ref' field detected in configuration. git.gerrit_origin"
-                + " is deprecating its usage for submitted changes. Use git.origin instead.");
-        return GitOrigin.newGitOrigin(
-            self.options, url, refField, GitRepoType.GERRIT,
-            SkylarkUtil.stringToEnum(location, "submodules",
-                submodules, GitOrigin.SubmoduleStrategy.class),
-          /*includeBranchCommitLogs=*/false, firstParent);
-      }
-
-      return GerritOrigin.newGerritOrigin(
-          self.options, url, SkylarkUtil.stringToEnum(location, "submodules",
-              submodules, GitOrigin.SubmoduleStrategy.class), firstParent);
-    }
-  };
-
-  static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
-
-  @SuppressWarnings("unused")
-  @SkylarkSignature(name = "github_origin", returnType = GitOrigin.class,
-      doc = "Defines a Git origin for a Github repository. This origin should be used for public"
-          + " branches. Use " + GITHUB_PR_ORIGIN_NAME + " for importing Pull Requests.",
-      parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "url", type = String.class,
-              doc = "Indicates the URL of the git repository"),
-          @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
-              doc = "Represents the default reference that will be used for reading the revision "
-                  + "from the git repository. For example: 'master'"),
-          @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
-              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
-          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True",
-              doc = "If true, it only uses the first parent when looking for changes. Note that"
-                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
-                  + " change of the merged branch.", positional = false),
-
-      },
-      objectType = GitModule.class, useLocation = true)
-  public static final BuiltinFunction GITHUB_ORIGIN = new BuiltinFunction("github_origin") {
-    public GitOrigin invoke(GitModule self, String url, Object ref, String submodules,
-        Boolean firstParent, Location location) throws EvalException {
-      if (!GithubUtil.isGitHubUrl(url)) {
-        throw new EvalException(location, "Invalid Github URL: " + url);
-      }
-
-      // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
+      useLocation = true)
+  public GitOrigin gerritOrigin(String url, Object ref, String submodules,
+      Boolean firstParent,
+      Location location) throws EvalException {
+    String refField = Type.STRING.convertOptional(ref, "ref");
+    if (!Strings.isNullOrEmpty(refField)) {
+      options.get(GeneralOptions.class).console().warn(
+          "'ref' field detected in configuration. git.gerrit_origin"
+              + " is deprecating its usage for submitted changes. Use git.origin instead.");
       return GitOrigin.newGitOrigin(
-          self.options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
+          options, url, refField, GitRepoType.GERRIT,
           SkylarkUtil.stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
           /*includeBranchCommitLogs=*/false, firstParent);
     }
-  };
+
+    return GerritOrigin.newGerritOrigin(
+        options, url, SkylarkUtil.stringToEnum(location, "submodules",
+            submodules, GitOrigin.SubmoduleStrategy.class), firstParent);
+  }
+
+  static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(name = GITHUB_PR_ORIGIN_NAME, returnType = GithubPROrigin.class,
+  @SkylarkCallable(name = GITHUB_PR_ORIGIN_NAME,
       doc = "Defines a Git origin for Github pull requests.\n"
           + "\n"
           + "Implicit labels that can be used/exposed:\n"
@@ -335,165 +290,195 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
           + "  - " + GITHUB_PR_ASSIGNEES + ": A repeated label with the login of the assigned"
           + " users.\n",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "url", type = String.class,
+          @Param(name = "url", type = String.class, named = true,
               doc = "Indicates the URL of the GitHub repository"),
-          @Param(name = "use_merge", type = Boolean.class, defaultValue = "False",
+          @Param(name = "use_merge", type = Boolean.class, defaultValue = "False", named = true,
+              positional = false,
               doc = "If the content for refs/pull/<ID>/merge should be used instead of the PR"
                   + " head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head"
                   + " revision."),
-          @Param(name = "required_labels", type = SkylarkList.class,
+          @Param(name = "required_labels", type = SkylarkList.class, named = true,
               generic1 = String.class, defaultValue = "[]",
               doc = "Required labels to import the PR. All the labels need to be present in order"
                   + " to migrate the Pull Request.", positional = false),
-          @Param(name = "retryable_labels", type = SkylarkList.class,
+          @Param(name = "retryable_labels", type = SkylarkList.class, named = true,
               generic1 = String.class, defaultValue = "[]",
               doc = "Required labels to import the PR that should be retried. This parameter must"
                   + " be a subset of required_labels.", positional = false),
-          @Param(name = "submodules", type = String.class, defaultValue = "'NO'",
+          @Param(name = "submodules", type = String.class, defaultValue = "'NO'", named = true,
+              positional = false,
               doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
-          @Param(name = "baseline_from_branch", type = Boolean.class,
+          @Param(name = "baseline_from_branch", type = Boolean.class, named = true,
               doc = "WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>"
                   + "When the field is set to true for CHANGE_REQUEST workflows it will find the"
                   + " baseline comparing the Pull Request with the base branch instead of looking"
-                  + " for the *-RevId label in the commit message.", defaultValue = "False"),
-          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True",
+                  + " for the *-RevId label in the commit message.", defaultValue = "False",
+              positional = false),
+          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True", named = true,
               doc = "If true, it only uses the first parent when looking for changes. Note that"
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                   + " change of the merged branch.", positional = false),
-          @Param(name = "state", type = String.class, defaultValue = "'OPEN'",
+          @Param(name = "state", type = String.class, defaultValue = "'OPEN'", named = true,
+              positional = false,
               doc = "Only migrate Pull Request with that state."
                   + " Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'"),
       },
-      objectType = GitModule.class, useLocation = true)
+      useLocation = true)
   @UsesFlags(GithubPrOriginOptions.class)
-  public static final BuiltinFunction GITHUB_PR_ORIGIN = new BuiltinFunction(
-      GITHUB_PR_ORIGIN_NAME) {
-    public GithubPROrigin invoke(GitModule self, String url, Boolean merge,
-        SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
-        Boolean baselineFromBranch, Boolean firstParent, String state, Location location)
-        throws EvalException {
-      if (!url.contains("github.com")) {
-        throw new EvalException(location, "Invalid Github URL: " + url);
-      }
-      GithubPrOriginOptions githubPrOriginOptions = self.options.get(GithubPrOriginOptions.class);
-      return new GithubPROrigin(url, merge,
-          self.options.get(GeneralOptions.class),
-          self.options.get(GitOptions.class),
-          self.options.get(GitOriginOptions.class),
-          self.options.get(GithubOptions.class),
-          githubPrOriginOptions.getRequiredLabels(requiredLabels),
-          githubPrOriginOptions.getRetryableLabels(retryableLabels),
-          SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
-          baselineFromBranch, firstParent,
-          SkylarkUtil.stringToEnum(location,"state", state, StateFilter.class));
+  public GithubPROrigin githubPrOrigin(String url, Boolean merge,
+      SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
+      Boolean baselineFromBranch, Boolean firstParent, String state, Location location)
+      throws EvalException {
+    if (!url.contains("github.com")) {
+      throw new EvalException(location, "Invalid Github URL: " + url);
     }
-  };
+    GithubPrOriginOptions githubPrOriginOptions = options.get(GithubPrOriginOptions.class);
+    return new GithubPROrigin(url, merge,
+        options.get(GeneralOptions.class),
+        options.get(GitOptions.class),
+        options.get(GitOriginOptions.class),
+        options.get(GithubOptions.class),
+        githubPrOriginOptions.getRequiredLabels(requiredLabels),
+        githubPrOriginOptions.getRetryableLabels(retryableLabels),
+        SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
+        baselineFromBranch, firstParent,
+        SkylarkUtil.stringToEnum(location, "state", state, StateFilter.class));
+  }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(name = "destination", returnType = GitDestination.class,
+  @SkylarkCallable(name = "github_origin",
+      doc = "Defines a Git origin for a Github repository. This origin should be used for public"
+          + " branches. Use " + GITHUB_PR_ORIGIN_NAME + " for importing Pull Requests.",
+      parameters = {
+          @Param(name = "url", type = String.class, named = true,
+              doc = "Indicates the URL of the git repository"),
+          @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
+              named = true,
+              doc = "Represents the default reference that will be used for reading the revision "
+                  + "from the git repository. For example: 'master'"),
+          @Param(name = "submodules", type = String.class, defaultValue = "'NO'", named = true,
+              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True", named = true,
+              doc = "If true, it only uses the first parent when looking for changes. Note that"
+                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                  + " change of the merged branch.", positional = false),
+
+      },
+      useLocation = true)
+  public GitOrigin githubOrigin(String url, Object ref, String submodules,
+      Boolean firstParent, Location location) throws EvalException {
+    if (!GithubUtil.isGitHubUrl(url)) {
+      throw new EvalException(location, "Invalid Github URL: " + url);
+    }
+
+    // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
+    return GitOrigin.newGitOrigin(
+        options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
+        SkylarkUtil.stringToEnum(location, "submodules",
+            submodules, GitOrigin.SubmoduleStrategy.class),
+        /*includeBranchCommitLogs=*/false, firstParent);
+  }
+
+  @SuppressWarnings("unused")
+  @SkylarkCallable(name = "destination",
       doc = "Creates a commit in a git repository using the transformed worktree."
           + "<br><br>Given that Copybara doesn't ask for user/password in the console when"
           + " doing the push to remote repos, you have to use ssh protocol, have the credentials"
           + " cached or use a credential manager.",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "url", type = String.class,
+          @Param(name = "url", type = String.class, named = true,
               doc = "Indicates the URL to push to as well as the URL from which to get the parent "
                   + "commit"),
-          @Param(name = "push", type = String.class,
+          @Param(name = "push", type = String.class, named = true,
               doc = "Reference to use for pushing the change, for example 'master'",
-              defaultValue = "master"),
-          @Param(name = "fetch", type = String.class,
-              doc = "Indicates the ref from which to get the parent commit",
-              defaultValue = "push reference", noneable = true),
-          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False",
+              defaultValue = "'master'"),
+          @Param(name = "fetch", type = String.class, named = true,
+              doc = "Indicates the ref from which to get the parent commit. Defaults to push value"
+                  + " if None",
+              defaultValue = "None", noneable = true),
+          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False", named = true,
               doc = "If set, copybara will not actually push the result to the destination. This is"
                   + " meant for testing workflows and dry runs."),
-          @Param(name = "integrates", type = SkylarkList.class,
-              generic1 = GitIntegrateChanges.class, defaultValue = "[]",
-              // TODO(malcon): fake-merges Flip this
-              doc = "(NOT IMPLEMENTED) Integrate changes from a url present in the migrated change"
-                  + " label.", positional = false),
+          @Param(name = "integrates", type = SkylarkList.class, named = true,
+              generic1 = GitIntegrateChanges.class, defaultValue = "None",
+              doc = "Integrate changes from a url present in the migrated change"
+                  + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                  + " present in the message", positional = false, noneable = true),
       },
-      objectType = GitModule.class, useLocation = true)
+      useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
-  public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination",
-      ImmutableList.of("master", Runtime.NONE, false, NO_GIT_DESTINATION_INTEGRATES)) {
-    public GitDestination invoke(GitModule self, String url, String push, Object fetch,
-        Boolean skipPush, SkylarkList<GitIntegrateChanges> integrates, Location location)
-        throws EvalException {
-      GitDestinationOptions destinationOptions = self.options.get(GitDestinationOptions.class);
-      String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
-          "push", location);
-      GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
-      return new GitDestination(
-          checkNotEmpty(firstNotNull(destinationOptions.url, url),
-              "url", location),
-          checkNotEmpty(
-              firstNotNull(destinationOptions.fetch,
-                  convertFromNoneable(fetch, null),
-                  resolvedPush),
-              "fetch", location),
-          resolvedPush,
-          destinationOptions,
-          self.options.get(GitOptions.class),
-          generalOptions,
-          skipPush,
-          new DefaultCommitGenerator(),
-          new ProcessPushStructuredOutput(),
-          SkylarkList.castList(integrates, GitIntegrateChanges.class, "integrates"));
-    }
-  };
+  public GitDestination destination(String url, String push, Object fetch,
+      Boolean skipPush, Object integrates, Location location)
+      throws EvalException {
+    GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
+    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
+        "push", location);
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    return new GitDestination(
+        checkNotEmpty(firstNotNull(destinationOptions.url, url),
+            "url", location),
+        checkNotEmpty(
+            firstNotNull(destinationOptions.fetch,
+                convertFromNoneable(fetch, null),
+                resolvedPush),
+            "fetch", location),
+        resolvedPush,
+        destinationOptions,
+        options.get(GitOptions.class),
+        generalOptions,
+        skipPush,
+        new DefaultCommitGenerator(),
+        new ProcessPushStructuredOutput(),
+        SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+            GitIntegrateChanges.class, "integrates"));
+  }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(name = "github_pr_destination", returnType = GithubPrDestination.class,
+  @SkylarkCallable(name = "github_pr_destination",
       doc = "Creates changes in a new pull request in the destination.",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "url", type = String.class,
+          @Param(name = "url", type = String.class, named = true,
               doc = "Url of the GitHub project. For example"
                   + " \"https://github.com/google/copybara'\""),
-          @Param(name = "destination_ref", type = String.class,
+          @Param(name = "destination_ref", type = String.class, named = true,
               doc = "Destination reference for the change. By default 'master'",
-              defaultValue = "master"),
-          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False",
+              defaultValue = "\"master\""),
+          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False", named = true,
+              positional = false,
               doc = "If set, copybara will not actually push the result to the destination. This is"
                   + " meant for testing workflows and dry runs."),
           @Param(name = "title", type = String.class, defaultValue = "None", noneable = true,
+              named = true, positional = false,
               doc = "When creating a pull request, use this title. By default it uses the change"
                   + " first line."),
           @Param(name = "body", type = String.class, defaultValue = "None", noneable = true,
+              named = true, positional = false,
               doc = "When creating a pull request, use this body. By default it uses the change"
                   + " summary."),
       },
-      objectType = GitModule.class, useLocation = true)
+      useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GithubDestinationOptions.class})
-  public static final BuiltinFunction GH_PR_DESTINATION = new BuiltinFunction(
-      "github_pr_destination",
-      ImmutableList.of("master", false, Runtime.NONE, Runtime.NONE)) {
-    public GithubPrDestination invoke(GitModule self, String url, String destinationRef,
-        Boolean skipPush, Object title, Object body, Location location) throws EvalException {
-      GeneralOptions generalOptions = self.options.get(GeneralOptions.class);
-      // We don't restrict to github.com domain so that we can support GH Enterprise
-      // in the future.
-      checkRemoteUrl(url, location);
-      return new GithubPrDestination(
-          url,
-          destinationRef,
-          generalOptions,
-          self.options.get(GithubOptions.class),
-          self.options.get(GitDestinationOptions.class),
-          self.options.get(GithubDestinationOptions.class),
-          self.options.get(GitOptions.class),
-          skipPush,
-          new DefaultCommitGenerator(),
-          new ProcessPushStructuredOutput(),
-          NO_GIT_DESTINATION_INTEGRATES,
-          SkylarkUtil.convertFromNoneable(title, null),
-          SkylarkUtil.convertFromNoneable(body, null));
-    }
-  };
+  public GithubPrDestination githubPrDestination(String url, String destinationRef,
+      Boolean skipPush, Object title, Object body, Location location) throws EvalException {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    // We don't restrict to github.com domain so that we can support GH Enterprise
+    // in the future.
+    checkRemoteUrl(url, location);
+    return new GithubPrDestination(
+        url,
+        destinationRef,
+        generalOptions,
+        options.get(GithubOptions.class),
+        options.get(GitDestinationOptions.class),
+        options.get(GithubDestinationOptions.class),
+        options.get(GitOptions.class),
+        skipPush,
+        new DefaultCommitGenerator(),
+        new ProcessPushStructuredOutput(),
+        DEFAULT_GIT_INTEGRATES,
+        SkylarkUtil.convertFromNoneable(title, null),
+        SkylarkUtil.convertFromNoneable(body, null));
+  }
 
   private static void checkRemoteUrl(String url, Location location) throws EvalException {
     try {
@@ -513,30 +498,32 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(name = "gerrit_destination", returnType = GerritDestination.class,
+  @SkylarkCallable(name = "gerrit_destination",
       doc = "Creates a change in Gerrit using the transformed worktree. If this is used in "
           + "iterative mode, then each commit pushed in a single Copybara invocation will have the "
           + "correct commit parent. The reviews generated can then be easily done in the correct "
           + "order without rebasing.",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "url", type = String.class,
+          @Param(name = "url", type = String.class, named = true,
               doc = "Indicates the URL to push to as well as the URL from which to get the parent "
                   + "commit"),
-          @Param(name = "fetch", type = String.class,
+          @Param(name = "fetch", type = String.class, named = true, positional = true,
               doc = "Indicates the ref from which to get the parent commit"),
           @Param(
               name = "push_to_refs_for", type = String.class, defaultValue = "''",
+              named = true, positional = true,
               doc = "Review branch to push the change to, for example setting this to 'feature_x'"
                   + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
                   + "'fetch' value."),
           @Param(name = "submit", type = Boolean.class,
+              named = true,
               doc =
                   "If true, skip the push thru Gerrit refs/for/branch and directly push to branch."
                       + " This is effectively a git.destination that sets a Change-Id",
               defaultValue = "False"),
           @Param(
               name = "change_id_policy", type = String.class, defaultValue = "'FAIL_IF_PRESENT'",
+              named = true,
               doc = "What to do in the presence or absent of Change-Id in message:"
                   + "<ul>"
                   + "  <li>`'REQUIRE'`: Require that the change_id is present in the message as a"
@@ -546,120 +533,94 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
                   + "  <li>`'REPLACE'`: Replace with a new one if found</li>"
                   + "</ul>")
       },
-      objectType = GitModule.class, useLocation = true)
+      useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
-  public static final BuiltinFunction GERRIT_DESTINATION =
-      new BuiltinFunction("gerrit_destination") {
-    public GerritDestination invoke(
-        GitModule self, String url, String fetch, String pushToRefsFor, Boolean submit,
-        String changeIdPolicy, Location location) throws EvalException {
-      return GerritDestination.newGerritDestination(
-          self.options,
-          checkNotEmpty(url, "url", location),
-          checkNotEmpty(fetch, "fetch", location),
-          pushToRefsFor,
-          submit,
-          SkylarkUtil.stringToEnum(location, "change_id_policy", changeIdPolicy,
-              ChangeIdPolicy.class));
-    }
-  };
+  public GerritDestination gerritDestination(
+      String url, String fetch, String pushToRefsFor, Boolean submit,
+      String changeIdPolicy, Location location) throws EvalException {
+    return GerritDestination.newGerritDestination(
+        options,
+        checkNotEmpty(url, "url", location),
+        checkNotEmpty(fetch, "fetch", location),
+        pushToRefsFor,
+        submit,
+        SkylarkUtil.stringToEnum(location, "change_id_policy", changeIdPolicy,
+            ChangeIdPolicy.class));
+  }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(
+  @SkylarkCallable(
     name = "github_api",
-    returnType = GitHubEndPoint.class,
     doc = "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API "
         + "operations.",
     parameters = {
-      @Param(name = "self", type = GitModule.class, doc = "this object"),
-      @Param(name = "url", type = String.class, doc = "Indicates the GitHub repo URL."),
+        @Param(name = "url", type = String.class, doc = "Indicates the GitHub repo URL.",
+            named = true),
     },
-    objectType = GitModule.class,
     useLocation = true
   )
   @UsesFlags(GithubOptions.class)
-  public static final BuiltinFunction GITHUB_ENDPOINT =
-      new BuiltinFunction("github_api") {
-        public GitHubEndPoint invoke(GitModule self, String url, Location location)
-            throws EvalException {
-          return new GitHubEndPoint(
-              self.options.get(GithubOptions.class), checkNotEmpty(url, "url", location));
-        }
-      };
+  public GitHubEndPoint githubApi(String url, Location location)
+      throws EvalException {
+    return new GitHubEndPoint(
+        options.get(GithubOptions.class), checkNotEmpty(url, "url", location));
+  }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(
+  @SkylarkCallable(
       name = "gerrit_api",
-      returnType = GerritEndpoint.class,
       documented = false,
       doc = "Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API "
           + "operations.",
       parameters = {
-          @Param(name = "self", type = GitModule.class, doc = "this object"),
-          @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL."),
+          @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL.",
+              named = true),
       },
-      objectType = GitModule.class,
       useLocation = true
   )
   @UsesFlags(GerritOptions.class)
-  public static final BuiltinFunction GERRIT_ENDPOINT =
-      new BuiltinFunction("gerrit_api") {
-        public GerritEndpoint invoke(GitModule self, String url, Location location)
-            throws EvalException {
-          return new GerritEndpoint(
-              self.options.get(GerritOptions.class), checkNotEmpty(url, "url", location));
-        }
-      };
+  public GerritEndpoint gerritApi(String url, Location location) throws EvalException {
+    return new GerritEndpoint(options.get(GerritOptions.class),
+        checkNotEmpty(url, "url", location));
+  }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(
+  @SkylarkCallable(
       name = "gerrit_trigger",
-      returnType = GerritTrigger.class,
       documented = false,
       doc = "Defines a feedback trigger based on updates on a Gerrit change.",
       parameters = {
-        @Param(name = "self", type = GitModule.class, doc = "this object"),
-        @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL."),
+          @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL.",
+              named = true),
       },
-      objectType = GitModule.class,
+
       useLocation = true)
   @UsesFlags(GerritOptions.class)
-  public static final BuiltinFunction GERRIT_LABELS_TRIGGER =
-      new BuiltinFunction("gerrit_trigger") {
-        public GerritTrigger invoke(GitModule self, String url, Location location)
-            throws EvalException {
-          return new GerritTrigger(
-              self.options.get(GerritOptions.class), checkNotEmpty(url, "url", location));
-        }
-      };
+  public GerritTrigger gerritTrigger(String url, Location location) throws EvalException {
+    return new GerritTrigger(
+        options.get(GerritOptions.class), checkNotEmpty(url, "url", location));
+  }
 
   @SuppressWarnings("unused")
-  @SkylarkSignature(
+  @SkylarkCallable(
       name = "review_input",
-      returnType = SetReviewInput.class,
       documented = false,
       doc = "Creates a review to be posted on Gerrit.",
       parameters = {
-        @Param(name = "self", type = GitModule.class, doc = "this object"),
         @Param(
             name = "labels",
             type = SkylarkDict.class,
             doc = "The labels to post.",
             defaultValue = "{}"),
       },
-      objectType = GitModule.class,
       useLocation = true)
   @UsesFlags(GerritOptions.class)
-  public static final BuiltinFunction CREATE_REVIEW_INPUT =
-      new BuiltinFunction("review_input") {
-        public SetReviewInput invoke(
-            GitModule self, SkylarkDict<String, Integer> labels, Location location)
-            throws EvalException {
-          return SetReviewInput.create(
-              SkylarkDict.castSkylarkDictOrNoneToDict(
-                  labels, String.class, Integer.class, "Gerrit review  labels"));
-        }
-      };
+  public SetReviewInput reviewInput(SkylarkDict<String, Integer> labels, Location location)
+      throws EvalException {
+    return SetReviewInput.create(
+        SkylarkDict.castSkylarkDictOrNoneToDict(
+            labels, String.class, Integer.class, "Gerrit review  labels"));
+  }
 
   @Override
   public void setOptions(Options options) {

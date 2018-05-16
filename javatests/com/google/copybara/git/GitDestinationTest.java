@@ -136,7 +136,7 @@ public class GitDestinationTest {
             + "    fetch = 'master',\n"
             + "    push = 'master',\n"
             + ")",
-        "missing mandatory positional argument 'url'");
+        "parameter 'url' has no default value");
   }
 
   @Test

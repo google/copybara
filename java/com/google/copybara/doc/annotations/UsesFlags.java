@@ -27,7 +27,9 @@ import java.lang.annotation.Target;
  * <p>Can be set to a whole module or specific field functions.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD})
+@Target({ElementType.TYPE,
+    ElementType.FIELD, // TODO(malcon): Remove this once everything migrated to @SkylarkCallable
+    ElementType.METHOD})
 public @interface UsesFlags {
 
   /**

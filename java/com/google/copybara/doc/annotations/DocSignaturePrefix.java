@@ -22,16 +22,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks for documentation purpose an object that it can only be used in Skylark code executed
- * dynamically (Objects that are fields of {@code SkylarkContext} objects.
+ * Adds a custom prefix to the signature example and reference in the generated Markdown
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
-public @interface DynamicContextObject {
+public @interface DocSignaturePrefix {
 
   /**
    * When generating documentation use varPrefix + "." + method/field for generating the docs.
    * For example "ctx.origin"
    */
-  String varPrefix() default "ctx";
+  String value();
 }

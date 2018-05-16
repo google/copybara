@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.common.flogger.FluentLogger;
+import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -40,6 +41,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 @SkylarkModule(name = "Path",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents a path in the checkout directory")
+@DocSignaturePrefix("path")
 public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();

@@ -9,12 +9,12 @@
     - [new_author](#new_author)
   - [authoring_class](#authoring_class)
   - [ChangeMessage](#changemessage)
-    - [label_values](#label_values)
+    - [message.label_values](#message.label_values)
   - [Changes](#changes)
   - [Path](#path)
-    - [relativize](#relativize)
-    - [resolve](#resolve)
-    - [resolve_sibling](#resolve_sibling)
+    - [path.relativize](#path.relativize)
+    - [path.resolve](#path.resolve)
+    - [path.resolve_sibling](#path.resolve_sibling)
   - [PathAttributes](#pathattributes)
   - [TransformWork](#transformwork)
     - [ctx.add_label](#ctx.add_label)
@@ -44,11 +44,11 @@
     - [git.mirror](#git.mirror)
     - [git.origin](#git.origin)
   - [Console](#console)
-    - [error](#error)
-    - [info](#info)
-    - [progress](#progress)
-    - [verbose](#verbose)
-    - [warn](#warn)
+    - [console.error](#console.error)
+    - [console.info](#console.info)
+    - [console.progress](#console.progress)
+    - [console.verbose](#console.verbose)
+    - [console.warn](#console.warn)
   - [metadata](#metadata)
     - [metadata.add_header](#metadata.add_header)
     - [metadata.expose_label](#metadata.expose_label)
@@ -254,12 +254,12 @@ Name | Description
 first_line | First line of this message
 text | The text description this message, not including the labels.
 
-<a id="label_values" aria-hidden="true"></a>
-### label_values
+<a id="message.label_values" aria-hidden="true"></a>
+### message.label_values
 
 Returns a list of values associated with the label name.
 
-`list<E> label_values(label_name)`
+`sequence of string message.label_values(label_name)`
 
 
 #### Parameters:
@@ -298,12 +298,12 @@ name | Filename of the path. For foo/bar/baz.txt it would be baz.txt
 parent | Get the parent path
 path | Full path relative to the checkout directory
 
-<a id="relativize" aria-hidden="true"></a>
-### relativize
+<a id="path.relativize" aria-hidden="true"></a>
+### path.relativize
 
 Constructs a relative path between this path and a given path. For example:<br>    path('a/b').relativize('a/b/c/d')<br>returns 'c/d'
 
-`Path relativize(other)`
+`Path path.relativize(other)`
 
 
 #### Parameters:
@@ -312,12 +312,12 @@ Parameter | Description
 --------- | -----------
 other | `Path`<br><p>The path to relativize against this path</p>
 
-<a id="resolve" aria-hidden="true"></a>
-### resolve
+<a id="path.resolve" aria-hidden="true"></a>
+### path.resolve
 
 Resolve the given path against this path.
 
-`Path resolve(child)`
+`Path path.resolve(child)`
 
 
 #### Parameters:
@@ -326,12 +326,12 @@ Parameter | Description
 --------- | -----------
 child | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
 
-<a id="resolve_sibling" aria-hidden="true"></a>
-### resolve_sibling
+<a id="path.resolve_sibling" aria-hidden="true"></a>
+### path.resolve_sibling
 
 Resolve the given path against this path.
 
-`Path resolve_sibling(other)`
+`Path path.resolve_sibling(other)`
 
 
 #### Parameters:
@@ -415,7 +415,7 @@ Add a text to the description before the labels paragraph
 
 Tries to find all the values for a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
 
-`sequence ctx.find_all_labels()`
+`sequence of string ctx.find_all_labels()`
 
 <a id="ctx.find_label" aria-hidden="true"></a>
 ### ctx.find_label
@@ -582,7 +582,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`gitDestination git.destination(url, push=master, fetch=push reference, skip_push=False, integrates=[])`
+`gitDestination git.destination(url, push='master', fetch=None, skip_push=False, integrates=None)`
 
 
 #### Parameters:
@@ -591,9 +591,9 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
-fetch | `string`<br><p>Indicates the ref from which to get the parent commit</p>
+fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
 skip_push | `boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
-integrates | `sequence of git_integrate`<br><p>(NOT IMPLEMENTED) Integrate changes from a url present in the migrated change label.</p>
+integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 
 
 
@@ -710,7 +710,7 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 
 Creates changes in a new pull request in the destination.
 
-`githubPrDestination git.github_pr_destination(url, destination_ref=master, skip_push=False, title=None, body=None)`
+`githubPrDestination git.github_pr_destination(url, destination_ref="master", skip_push=False, title=None, body=None)`
 
 
 #### Parameters:
@@ -871,12 +871,12 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 
 A console that can be used in skylark transformations to print info, warning or error messages.
 
-<a id="error" aria-hidden="true"></a>
-### error
+<a id="console.error" aria-hidden="true"></a>
+### console.error
 
 Show an error in the log. Note that this will stop Copybara execution.
 
-`error(message)`
+`console.error(message)`
 
 
 #### Parameters:
@@ -885,12 +885,12 @@ Parameter | Description
 --------- | -----------
 message | `string`<br><p>message to log</p>
 
-<a id="info" aria-hidden="true"></a>
-### info
+<a id="console.info" aria-hidden="true"></a>
+### console.info
 
 Show an info message in the console
 
-`info(message)`
+`console.info(message)`
 
 
 #### Parameters:
@@ -899,12 +899,12 @@ Parameter | Description
 --------- | -----------
 message | `string`<br><p>message to log</p>
 
-<a id="progress" aria-hidden="true"></a>
-### progress
+<a id="console.progress" aria-hidden="true"></a>
+### console.progress
 
 Show a progress message in the console
 
-`progress(message)`
+`console.progress(message)`
 
 
 #### Parameters:
@@ -913,12 +913,12 @@ Parameter | Description
 --------- | -----------
 message | `string`<br><p>message to log</p>
 
-<a id="verbose" aria-hidden="true"></a>
-### verbose
+<a id="console.verbose" aria-hidden="true"></a>
+### console.verbose
 
 Show an info message in the console if verbose logging is enabled.
 
-`verbose(message)`
+`console.verbose(message)`
 
 
 #### Parameters:
@@ -927,12 +927,12 @@ Parameter | Description
 --------- | -----------
 message | `string`<br><p>message to log</p>
 
-<a id="warn" aria-hidden="true"></a>
-### warn
+<a id="console.warn" aria-hidden="true"></a>
+### console.warn
 
 Show a warning in the console
 
-`warn(message)`
+`console.warn(message)`
 
 
 #### Parameters:

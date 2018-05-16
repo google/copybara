@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -41,6 +42,7 @@ import javax.annotation.CheckReturnValue;
 @SkylarkModule(name = "ChangeMessage",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents a well formed parsed change message with its associated labels.")
+@DocSignaturePrefix("message")
 public final class ChangeMessage {
 
   private static final String DOUBLE_NEWLINE = "\n\n";
@@ -136,7 +138,7 @@ public final class ChangeMessage {
       parameters = {
           @Param(name = "label_name", type = String.class, named = true, doc = "The label name."),
       })
-  public List<String> getLabelValues(String labelName) {
+  public SkylarkList<String> getLabelValues(String labelName) {
     ImmutableListMultimap<String, String> localLabels = labelsAsMultimap();
     if (localLabels.containsKey(labelName)) {
       return SkylarkList.createImmutable(localLabels.get(labelName));

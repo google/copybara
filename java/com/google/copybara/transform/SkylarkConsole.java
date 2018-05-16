@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform;
 
+import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -27,6 +28,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
     category = SkylarkModuleCategory.BUILTIN,
     doc = "A console that can be used in skylark transformations to print info, warning or"
         + " error messages.")
+@DocSignaturePrefix("console")
 public class SkylarkConsole implements Console {
 
   private int errorCount = 0;

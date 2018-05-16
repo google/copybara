@@ -608,7 +608,7 @@ public class GerritDestinationTest {
         "git.gerrit_destination(\n"
             + "    url = 'file:///foo',\n"
             + ")",
-        "missing mandatory positional argument 'fetch'");
+        "parameter 'fetch' has no default value");
   }
 
   @Test
@@ -617,7 +617,7 @@ public class GerritDestinationTest {
         "git.gerrit_destination(\n"
             + "    fetch = 'master',\n"
             + ")",
-        "missing mandatory positional argument 'url'");
+        "parameter 'url' has no default value");
   }
 
   @Test
