@@ -280,7 +280,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       return skyType.name();
     }
     DeclaredType possibleGeneric = (DeclaredType) declared;
-    if (possibleGeneric.getTypeArguments().size() == 0) {
+    if (possibleGeneric.getTypeArguments().isEmpty()) {
       return skyType.name();
     }
     if (possibleGeneric.getTypeArguments().size() == 1) {
