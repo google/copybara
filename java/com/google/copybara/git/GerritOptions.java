@@ -33,10 +33,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.GerritApiTransport;
 import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
-
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /** Arguments for {@link GerritDestination}. */
@@ -44,11 +42,11 @@ import java.util.regex.Pattern;
 public class GerritOptions implements Option {
 
   private static final Pattern CHANGE_ID_PATTERN = Pattern.compile("I[0-9a-f]{40}");
-  protected final Supplier<GeneralOptions> generalOptionsSupplier;
+  protected final GeneralOptions generalOptions;
   protected GitOptions gitOptions;
 
-  public GerritOptions(Supplier<GeneralOptions> generalOptionsSupplier, GitOptions gitOptions) {
-    this.generalOptionsSupplier = generalOptionsSupplier;
+  public GerritOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
+    this.generalOptions = generalOptions;
     this.gitOptions = gitOptions;
   }
 
@@ -89,7 +87,7 @@ public class GerritOptions implements Option {
   @VisibleForTesting
   public GerritApi newGerritApi(String url) throws RepoException, ValidationException {
     return new GerritApi(getGerritApiTransport(hostUrl(url)),
-                         generalOptionsSupplier.get().profiler());
+                         generalOptions.profiler());
   }
 
   /**

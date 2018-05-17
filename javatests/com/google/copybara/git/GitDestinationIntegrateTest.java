@@ -89,16 +89,16 @@ public class GitDestinationIntegrateTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-    options.git = new TestGitOptions(localHub, () -> options.general);
+    options.git = new TestGitOptions(localHub, options.general);
 
-    options.github = new GithubOptions(() -> options.general, options.git) {
+    options.github = new GithubOptions(options.general, options.git) {
       @Override
       protected HttpTransport getHttpTransport() {
         return GitTestUtil.NO_GITHUB_API_CALLS;
       }
     };
 
-    options.gitDestination = new GitDestinationOptions(() -> options.general, options.git);
+    options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
 

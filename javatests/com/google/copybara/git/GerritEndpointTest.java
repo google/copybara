@@ -85,7 +85,7 @@ public class GerritEndpointTest {
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
     urlMapper = Files.createTempDirectory("url_mapper");
-    options.git = new TestGitOptions(urlMapper, () -> options.general);
+    options.git = new TestGitOptions(urlMapper, options.general);
     url = BASE_URL + "/foo/bar";
     gitApiMockHttpTransport = new TestingGitApiHttpTransport();
     credentialsFile = Files.createTempFile("credentials", "test");
@@ -95,7 +95,7 @@ public class GerritEndpointTest {
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
     options.gerrit =
-        new GerritOptions(() -> options.general, options.git) {
+        new GerritOptions(options.general, options.git) {
           @Override
           protected HttpTransport getHttpTransport() {
             return gitApiMockHttpTransport;

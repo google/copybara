@@ -197,9 +197,8 @@ public class WorkflowTest {
   private Workflow iterativeWorkflow(String workflowName, @Nullable String previousRef)
       throws ValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
-    options.general =
-        new GeneralOptions(options.general.getFileSystem(), options.general.isVerbose(), console())
-            .withEventMonitor(eventMonitor);
+    options.general.withEventMonitor(eventMonitor);
+    options.general.setConsoleForTest(console());
     return skylarkWorkflow(workflowName, WorkflowMode.ITERATIVE);
   }
 
@@ -2206,9 +2205,8 @@ public class WorkflowTest {
   @Test
   public void changeRequestInitHistory() throws Exception {
     options.workflowOptions.initHistory = true;
-    options.general =
-        new GeneralOptions(options.general.getFileSystem(), options.general.isVerbose(), console())
-            .withEventMonitor(eventMonitor);
+    options.general.withEventMonitor(eventMonitor);
+    options.general.setConsoleForTest(console());
     try {
       skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST).run(workdir, ImmutableList.of(""));
       fail("Should fail");

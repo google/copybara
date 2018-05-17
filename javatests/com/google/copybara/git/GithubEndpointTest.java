@@ -104,7 +104,7 @@ public class GithubEndpointTest {
       }
     };
 
-    options.github = new GithubOptions(() -> options.general, options.git) {
+    options.github = new GithubOptions(options.general, options.git) {
       @Override
       public GithubApi getApi(String project) throws RepoException {
         assertThat(project).isEqualTo(PROJECT);

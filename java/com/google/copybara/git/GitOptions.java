@@ -25,7 +25,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.jcommander.GreaterThanZeroValidator;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 /**
@@ -34,7 +33,7 @@ import javax.annotation.Nullable;
 @Parameters(separators = "=")
 public class GitOptions implements Option {
 
-  private final Supplier<GeneralOptions> generalOptionsSupplier;
+  private final GeneralOptions generalOptions;
 
   @Nullable
   public String getCredentialHelperStorePath() {
@@ -57,18 +56,18 @@ public class GitOptions implements Option {
       validateWith = GreaterThanZeroValidator.class)
   int visitChangePageSize = 200;
 
-  public GitOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
-    this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
+  public GitOptions(GeneralOptions generalOptions) {
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
   private Path getRepoStorage() throws IOException {
-    return generalOptionsSupplier.get().getDirFactory().getCacheDir("git_repos");
+    return generalOptions.getDirFactory().getCacheDir("git_repos");
   }
 
   public final GitRepository cachedBareRepoForUrl(String url) throws RepoException {
     Preconditions.checkNotNull(url);
     try {
-      return createBareRepo(generalOptionsSupplier.get(),
+      return createBareRepo(generalOptions,
                             GitRepository.createGitDirInCache(url, getRepoStorage()));
     } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);

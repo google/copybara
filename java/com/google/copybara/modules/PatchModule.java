@@ -20,14 +20,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.PatchingOptions;
-import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.OptionsAwareModule;
-import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.exception.CannotResolveLabel;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -46,7 +44,6 @@ import java.io.IOException;
     name = "patch",
     doc = "Module for applying patches.",
     category = SkylarkModuleCategory.BUILTIN)
-@UsesFlags(GeneralOptions.class)
 public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
   private static final Splitter LINES =
       Splitter.onPattern("\\r?\\n").omitEmptyStrings().trimResults();

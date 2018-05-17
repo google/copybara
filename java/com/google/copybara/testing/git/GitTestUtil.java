@@ -40,7 +40,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 /**
@@ -133,13 +132,12 @@ public final class GitTestUtil {
     private final Set<String> mappingPrefixes = Sets.newHashSet("https://");
     @Nullable private String forcePushForRefspec;
 
-    public TestGitOptions(Path httpsRepos, Supplier<GeneralOptions> generalOptionsSupplier) {
-      this(httpsRepos, generalOptionsSupplier, new Validator());
+    public TestGitOptions(Path httpsRepos, GeneralOptions generalOptions) {
+      this(httpsRepos, generalOptions, new Validator());
     }
 
-    public TestGitOptions(Path httpsRepos, Supplier<GeneralOptions> generalOptionsSupplier,
-        Validator validator) {
-      super(generalOptionsSupplier);
+    public TestGitOptions(Path httpsRepos, GeneralOptions generalOptions, Validator validator) {
+      super(generalOptions);
       this.httpsRepos = Preconditions.checkNotNull(httpsRepos);
       this.validator = Preconditions.checkNotNull(validator);
     }

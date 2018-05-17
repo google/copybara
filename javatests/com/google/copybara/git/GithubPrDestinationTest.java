@@ -79,9 +79,9 @@ public class GithubPrDestinationTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-    options.git = new TestGitOptions(localHub, () -> GithubPrDestinationTest.this.options.general);
+    options.git = new TestGitOptions(localHub, GithubPrDestinationTest.this.options.general);
 
-    options.github = new GithubOptions(() -> options.general, options.git) {
+    options.github = new GithubOptions(options.general, options.git) {
       @Override
       public GithubApi getApi(String project) throws RepoException {
         assertThat(project).isEqualTo(expectedProject);
@@ -97,7 +97,7 @@ public class GithubPrDestinationTest {
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     options.git.credentialHelperStorePath = credentialsFile.toString();
 
-    options.gitDestination = new GitDestinationOptions(() -> options.general, options.git);
+    options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     skylark = new SkylarkTestExecutor(options, GitModule.class);

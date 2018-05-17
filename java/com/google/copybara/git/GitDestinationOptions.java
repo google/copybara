@@ -23,14 +23,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.authoring.Author;
-
+import com.google.copybara.exception.RepoException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
@@ -40,7 +38,7 @@ import javax.annotation.Nullable;
 @Parameters(separators = "=")
 public final class GitDestinationOptions implements Option {
 
-  private final Supplier<GeneralOptions> generalOptions;
+  private final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
 
   @VisibleForTesting
@@ -55,7 +53,7 @@ public final class GitDestinationOptions implements Option {
           + " destination.")
   public String committerEmail = "";
 
-  public GitDestinationOptions(Supplier<GeneralOptions> generalOptions,
+  public GitDestinationOptions(GeneralOptions generalOptions,
       GitOptions gitOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
@@ -122,15 +120,15 @@ public final class GitDestinationOptions implements Option {
     try {
       if (Strings.isNullOrEmpty(localRepoPath)) {
         return gitOptions.cachedBareRepoForUrl(url)
-            .withWorkTree(generalOptions.get().getDirFactory().newTempDir("git_dest"));
+            .withWorkTree(generalOptions.getDirFactory().newTempDir("git_dest"));
       }
       Path path = Paths.get(localRepoPath);
 
       if (!Files.exists(path) || (Files.isDirectory(path) && isGitRepoOrEmptyDir(path))) {
         Files.createDirectories(path);
         return gitOptions.initRepo(
-            GitRepository.newRepo(generalOptions.get().isVerbose(), path,
-                generalOptions.get().getEnvironment()));
+            GitRepository.newRepo(generalOptions.isVerbose(), path,
+                generalOptions.getEnvironment()));
 
       }
       throw new RepoException(path + " is not empty and is not a git repository");

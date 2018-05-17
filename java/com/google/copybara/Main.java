@@ -42,7 +42,6 @@ import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.ExitCode;
-import com.google.copybara.util.SettableSupplier;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
@@ -53,9 +52,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -174,16 +171,13 @@ public class Main {
     CopybaraCmd subcommand = null;
 
     try {
-      ModuleSupplier moduleSupplier = newModuleSupplier();
+      ModuleSupplier moduleSupplier = newModuleSupplier(environment, fs, console);
 
       final MainArguments mainArgs = new MainArguments();
-      GeneralOptions.Args generalOptionsArgs = new GeneralOptions.Args();
-      SettableSupplier<GeneralOptions> generalOptionsSupplier = new SettableSupplier<>();
-      List<Option> allOptions = new ArrayList<>(moduleSupplier.newOptions(generalOptionsSupplier));
+      Options options = moduleSupplier.newOptions();
       jCommander = new JCommander(ImmutableList.builder()
-          .addAll(allOptions)
+          .addAll(options.getAll())
           .add(mainArgs)
-          .add(generalOptionsArgs)
           .build());
       jCommander.setProgramName("copybara");
 
@@ -191,10 +185,6 @@ public class Main {
       logger.atInfo().log("Copybara version: %s", version);
       jCommander.parse(args);
 
-      GeneralOptions generalOptions = generalOptionsArgs.init(environment, fs, console);
-      generalOptionsSupplier.set(generalOptions);
-      allOptions.add(generalOptions);
-      Options options = new Options(allOptions);
 
       ConfigLoaderProvider configLoaderProvider = newConfigLoaderProvider(moduleSupplier, options);
 
@@ -207,6 +197,7 @@ public class Main {
 
       initEnvironment(options, cmdToRun.getSubcommand(), ImmutableList.copyOf(args));
 
+      GeneralOptions generalOptions = options.get(GeneralOptions.class);
       Path baseWorkdir = mainArgs.getBaseWorkdir(generalOptions, generalOptions.getFileSystem());
 
       commandEnv = new CommandEnv(baseWorkdir, options, cmdToRun.getArgs());
@@ -287,8 +278,9 @@ public class Main {
   }
 
   /** Returns a module supplier. */
-  protected ModuleSupplier newModuleSupplier() {
-    return new ModuleSupplier();
+  protected ModuleSupplier newModuleSupplier(ImmutableMap<String, String> environment,
+      FileSystem fs, Console console) {
+    return new ModuleSupplier(environment, fs, console);
   }
 
   protected ConfigLoaderProvider newConfigLoaderProvider(
@@ -491,7 +483,7 @@ public class Main {
    */
   private class HelpCmd implements CopybaraCmd {
 
-    private JCommander jCommander;
+    private final JCommander jCommander;
 
     HelpCmd(JCommander jCommander) {
       this.jCommander = Preconditions.checkNotNull(jCommander);

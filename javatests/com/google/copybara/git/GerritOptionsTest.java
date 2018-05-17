@@ -20,8 +20,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.util.console.LogConsole;
@@ -44,10 +42,10 @@ public class GerritOptionsTest {
 
   @Before
   public void setup() {
-    Supplier<GeneralOptions> generalOptionsSupplier = Suppliers.ofInstance(new GeneralOptions(
-        FileSystems.getDefault(), /*verbose=*/true,
-        LogConsole.writeOnlyConsole(System.out, /*verbose=*/true)));
-    options = new GerritOptions(generalOptionsSupplier, new GitOptions(generalOptionsSupplier));
+    GeneralOptions generalOptions = new GeneralOptions(
+        System.getenv(), FileSystems.getDefault(),
+        LogConsole.writeOnlyConsole(System.out, /*verbose=*/true));
+    options = new GerritOptions(generalOptions, new GitOptions(generalOptions));
     jcommander = new JCommander(ImmutableList.of(options));
   }
 

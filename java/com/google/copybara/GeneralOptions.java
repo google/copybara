@@ -44,6 +44,7 @@ import javax.annotation.Nullable;
 /**
  * General options available for all the program classes.
  */
+@Parameters(separators = "=")
 public final class GeneralOptions implements Option {
 
   public static final String NOANSI = "--noansi";
@@ -52,35 +53,18 @@ public final class GeneralOptions implements Option {
   public static final String OUTPUT_ROOT_FLAG = "--output-root";
   public static final String OUTPUT_LIMIT_FLAG = "--output-limit";
 
-  private final Map<String, String> environment;
-  private final FileSystem fileSystem;
-  private final boolean verbose;
-  private final Console console;
-  private final boolean noCleanup;
-  private final boolean disableReversibleCheck;
-  private final boolean force;
-  private final int outputLimit;
-  @Nullable
-  private final Path configRoot;
-  @Nullable
-  private final Path outputRoot;
+  private Map<String, String> environment;
+  private FileSystem fileSystem;
+  private Console console;
+  private Path configRootPath;
+  private Path outputRootPath;
 
   private Profiler profiler = new Profiler(Ticker.systemTicker());
 
-  // Default implementation does not show up in the console (unless verbose is used)
-  private EventMonitor eventMonitor =
-      new EventMonitor() {
-        @Override
-        public void onMigrationFinished(MigrationFinishedEvent event) {
-          console().verboseFmt("Migration finished: %s", event);
-        }
-      };
-
-  @VisibleForTesting
-  public GeneralOptions(FileSystem fileSystem, boolean verbose, Console console) {
-    this(System.getenv(), fileSystem, verbose, console, /*configRoot=*/null, /*outputRoot=*/null,
-        /*noCleanup*/ true, /*disableReversibleCheck=*/false, /*force=*/false,
-        /*outputLimit*/ 0);
+  public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, Console console) {
+    this.environment = environment;
+    this.fileSystem = Preconditions.checkNotNull(fileSystem);
+    this.console = Preconditions.checkNotNull(console);
   }
 
   @VisibleForTesting
@@ -91,22 +75,31 @@ public final class GeneralOptions implements Option {
     this.console = Preconditions.checkNotNull(console);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
-    this.configRoot = configRoot;
-    this.outputRoot = outputRoot;
+    this.configRootPath = configRoot;
+    this.outputRootPath = outputRoot;
     this.noCleanup = noCleanup;
     this.disableReversibleCheck = disableReversibleCheck;
     this.force = force;
     this.outputLimit = outputLimit;
   }
 
-  public GeneralOptions withForce(boolean force) {
-    return new GeneralOptions(environment, fileSystem, verbose, console, configRoot, outputRoot,
-                              noCleanup, disableReversibleCheck, force, outputLimit);
+  // Default implementation does not show up in the console (unless verbose is used)
+  private EventMonitor eventMonitor =
+      new EventMonitor() {
+        @Override
+        public void onMigrationFinished(MigrationFinishedEvent event) {
+          console().verboseFmt("Migration finished: %s", event);
+        }
+      };
+
+  public GeneralOptions withForce(boolean force) throws ValidationException {
+    return new GeneralOptions(environment, fileSystem, verbose, console, getConfigRoot(),
+        getOutputRoot(), noCleanup, disableReversibleCheck, force, outputLimit);
   }
 
-  public GeneralOptions withConsole(Console console) {
-    return new GeneralOptions(environment, fileSystem, verbose, console, configRoot, outputRoot,
-                              noCleanup, disableReversibleCheck, force, outputLimit);
+  public GeneralOptions withConsole(Console console) throws ValidationException {
+    return new GeneralOptions(environment, fileSystem, verbose, console, getConfigRoot(),
+        getOutputRoot(), noCleanup, disableReversibleCheck, force, outputLimit);
   }
 
   public Map<String, String> getEnvironment() {
@@ -148,8 +141,13 @@ public final class GeneralOptions implements Option {
    * Returns the root absolute path to use for config.
    */
   @Nullable
-  public Path getConfigRoot() {
-    return configRoot;
+  public Path getConfigRoot() throws ValidationException {
+    if (configRootPath == null && this.configRoot != null) {
+      configRootPath = fileSystem.getPath(this.configRoot).toAbsolutePath();
+      checkCondition(Files.exists(configRootPath), "%s doesn't exist", configRoot);
+      checkCondition(Files.isDirectory(configRootPath), "%s isn't a directory", configRoot);
+    }
+    return configRootPath;
   }
 
   /**
@@ -161,7 +159,10 @@ public final class GeneralOptions implements Option {
   @VisibleForTesting
   @Nullable
   public Path getOutputRoot() {
-    return outputRoot;
+    if (outputRootPath == null && this.outputRoot != null) {
+      outputRootPath = fileSystem.getPath(this.outputRoot);
+    }
+    return outputRootPath;
   }
 
   /**
@@ -216,12 +217,37 @@ public final class GeneralOptions implements Option {
    * overridden with the flag --output-root.
    */
   public DirFactory getDirFactory() {
-    if (outputRoot != null) {
-      return new DirFactory(outputRoot);
+    if (getOutputRoot() != null) {
+      return new DirFactory(getOutputRoot());
     } else {
       String home = checkNotNull(environment.get("HOME"), "$HOME environment var is not set");
       return new DirFactory(fileSystem.getPath(home).resolve("copybara"));
     }
+  }
+
+  @VisibleForTesting
+  public void setEnvironmentForTest(Map<String, String> environment) {
+    this.environment = environment;
+  }
+
+  @VisibleForTesting
+  public void setOutputRootPathForTest(Path outputRootPath) {
+    this.outputRootPath = outputRootPath;
+  }
+
+  @VisibleForTesting
+  public void setConsoleForTest(Console console) {
+    this.console = console;
+  }
+
+  @VisibleForTesting
+  public void setForceForTest(boolean force) {
+    this.force = force;
+  }
+
+  @VisibleForTesting
+  public void setFileSystemForTest(FileSystem fileSystem) {
+    this.fileSystem = fileSystem;
   }
 
   public GeneralOptions withProfiler(Profiler profiler) {
@@ -234,8 +260,6 @@ public final class GeneralOptions implements Option {
     return this;
   }
 
-  @Parameters(separators = "=")
-  public static final class Args {
     @Parameter(names = {"-v", "--verbose"}, description = "Verbose output.")
     boolean verbose;
 
@@ -286,25 +310,4 @@ public final class GeneralOptions implements Option {
                 + " Keep in mind that running in this mode will lead to an ever increasing disk"
                 + " usage.")
     boolean noCleanup = false;
-
-    /**
-     * This method should be called after the options have been set but before are used by any
-     * class.
-     */
-    public GeneralOptions init(
-        Map<String, String> environment, FileSystem fileSystem, Console console)
-        throws ValidationException {
-      Path configRoot = null;
-      if (this.configRoot != null) {
-        configRoot = fileSystem.getPath(this.configRoot).toAbsolutePath();
-        checkCondition(Files.exists(configRoot), "%s doesn't exist", configRoot);
-        checkCondition(Files.isDirectory(configRoot), "%s isn't a directory", configRoot);
-      }
-
-      Path outputRoot = this.outputRoot != null ? fileSystem.getPath(this.outputRoot) : null;
-      return new GeneralOptions(
-          environment, fileSystem, verbose, console, configRoot, outputRoot, noCleanup,
-          disableReversibleCheck, force, outputLimit);
-    }
-  }
 }

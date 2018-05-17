@@ -118,7 +118,7 @@ public class GerritApiTest {
     };
 
     GerritOptions gerritOptions = new GerritOptions(
-        () -> options.general, options.git) {
+        options.general, options.git) {
       @Override
       protected HttpTransport getHttpTransport() {
         return httpTransport;

@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.authoring.Authoring;
@@ -33,7 +34,9 @@ import com.google.copybara.git.GithubOptions;
 import com.google.copybara.git.GithubPrOriginOptions;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
-import java.util.function.Supplier;
+import com.google.copybara.util.console.Console;
+import java.nio.file.FileSystem;
+import java.util.Map;
 
 /**
  * A supplier of modules and {@link Option}s for Copybara.
@@ -48,7 +51,17 @@ public class ModuleSupplier {
       GitModule.class,
       MetadataModule.class,
       PatchModule.class);
-  
+  private final Map<String, String> environment;
+  private final FileSystem fileSystem;
+  private final Console console;
+
+  public ModuleSupplier(Map<String, String> environment, FileSystem fileSystem,
+      Console console) {
+    this.environment = Preconditions.checkNotNull(environment);
+    this.fileSystem = Preconditions.checkNotNull(fileSystem);
+    this.console = Preconditions.checkNotNull(console);
+  }
+
   /**
    * Returns the {@code set} of modules available.
    */
@@ -57,22 +70,24 @@ public class ModuleSupplier {
   }
 
   /** Returns a new list of {@link Option}s. */
-  public ImmutableList<Option> newOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
-    GitOptions gitOptions = new GitOptions(generalOptionsSupplier);
+  public Options newOptions() {
+    GeneralOptions generalOptions = new GeneralOptions(environment, fileSystem, console);
+    GitOptions gitOptions = new GitOptions(generalOptions);
     GitDestinationOptions gitDestinationOptions =
-        new GitDestinationOptions(generalOptionsSupplier, gitOptions);
-    return ImmutableList.of(
+        new GitDestinationOptions(generalOptions, gitOptions);
+    return new Options(ImmutableList.of(
+        generalOptions,
         new FolderDestinationOptions(),
         new FolderOriginOptions(),
         gitOptions,
         new GitOriginOptions(),
         new GithubPrOriginOptions(),
         gitDestinationOptions,
-        new GithubOptions(generalOptionsSupplier, gitOptions),
+        new GithubOptions(generalOptions, gitOptions),
         new GithubDestinationOptions(),
-        new GerritOptions(generalOptionsSupplier, gitOptions),
-        new GitMirrorOptions(generalOptionsSupplier, gitOptions),
-        new PatchingOptions(generalOptionsSupplier),
-        new WorkflowOptions());
+        new GerritOptions(generalOptions, gitOptions),
+        new GitMirrorOptions(generalOptions, gitOptions),
+        new PatchingOptions(generalOptions),
+        new WorkflowOptions()));
   }
 }

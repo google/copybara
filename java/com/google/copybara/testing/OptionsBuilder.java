@@ -60,7 +60,7 @@ import java.util.Map;
  */
 public class OptionsBuilder {
 
-  public GeneralOptions general =
+  public final GeneralOptions general =
       new GeneralOptions(
           System.getenv(),
           Jimfs.newFileSystem(),
@@ -75,13 +75,13 @@ public class OptionsBuilder {
   public FolderDestinationOptions folderDestination = new FolderDestinationOptions();
   public FolderOriginOptions folderOrigin = new FolderOriginOptions();
 
-  public GitOptions git = new GitOptions(() -> general);
+  public GitOptions git = new GitOptions(general);
   public GitOriginOptions gitOrigin = new GitOriginOptions();
   public GithubPrOriginOptions githubPrOrigin = new GithubPrOriginOptions();
-  public GitDestinationOptions gitDestination = new GitDestinationOptions(() -> general, git);
-  public PatchingOptions patch = new PatchingOptions(() -> general);
+  public GitDestinationOptions gitDestination = new GitDestinationOptions(general, git);
+  public PatchingOptions patch = new PatchingOptions(general);
 
-  public GithubOptions github = new GithubOptions(() -> general, git) {
+  public GithubOptions github = new GithubOptions(general, git) {
     @Override
     protected HttpTransport getHttpTransport() {
       throw new UnsupportedOperationException(
@@ -89,77 +89,49 @@ public class OptionsBuilder {
     }
   };
   public GithubDestinationOptions githubDestination = new GithubDestinationOptions();
-  public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions(() -> general, git);
-  public GerritOptions gerrit = new GerritOptions(() -> general, git);
+  public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions(general, git);
+  public GerritOptions gerrit = new GerritOptions(general, git);
   public WorkflowOptions workflowOptions =
       new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null,
           /*checkLastRevState=*/false);
 
   public TestingOptions testingOptions = new TestingOptions();
 
-  public final OptionsBuilder setWorkdirToRealTempDir() throws IOException {
+  public final OptionsBuilder setWorkdirToRealTempDir() {
     return setWorkdirToRealTempDir(StandardSystemProperty.USER_DIR.value());
   }
 
   public OptionsBuilder setWorkdirToRealTempDir(String cwd) {
-    general = new GeneralOptions(
-        updateEnvironment(general.getEnvironment(), "PWD", cwd),
-        FileSystems.getDefault(), /*verbose=*/true,
-        general.console(),
-        general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
-        /*outputLimit*/ 0);
+    general.setFileSystemForTest(FileSystems.getDefault());
+    general.setEnvironmentForTest(updateEnvironment(general.getEnvironment(), "PWD", cwd));
     return this;
   }
 
   public OptionsBuilder setEnvironment(Map<String, String> environment) {
-    general = new GeneralOptions(
-        environment,
-        general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
-        /*outputLimit*/ 0);
+    general.setEnvironmentForTest(environment);
     return this;
   }
 
-  public OptionsBuilder setOutputRootToTmpDir() throws IOException {
-    general = new GeneralOptions(
-        general.getEnvironment(),
-        general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(),
-        // Using Files.createTempDirectory() generates paths > 255 in some tests and that causes
-        // 'File name too long' exceptions in Linux
-        FileSystems.getDefault().getPath(StandardSystemProperty.JAVA_IO_TMPDIR.value()),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
-        /*outputLimit*/ 0);
+  public OptionsBuilder setOutputRootToTmpDir() {
+    // Using Files.createTempDirectory() generates paths > 255 in some tests and that causes
+    // 'File name too long' exceptions in Linux
+    general.setOutputRootPathForTest(
+        FileSystems.getDefault().getPath(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
     return this;
   }
 
   public final OptionsBuilder setConsole(Console newConsole) {
-    general = new GeneralOptions(
-        general.getEnvironment(), general.getFileSystem(), general.isVerbose(), newConsole,
-        general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
-        /*outputLimit*/ 0);
+    general.setConsoleForTest(newConsole);
     return this;
   }
 
   public final OptionsBuilder setHomeDir(String homeDir) {
-    general = new GeneralOptions(
-        updateEnvironment(general.getEnvironment(), "HOME", homeDir),
-        general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), general.isForced(),
-        /*outputLimit*/ 0);
+    general.setEnvironmentForTest(updateEnvironment(general.getEnvironment(), "HOME", homeDir));
     return this;
   }
 
   public final OptionsBuilder setForce(boolean force) {
-    general = new GeneralOptions(
-        general.getEnvironment(),
-        general.getFileSystem(), general.isVerbose(), general.console(),
-        general.getConfigRoot(), general.getOutputRoot(),
-        general.isNoCleanup(), general.isDisableReversibleCheck(), force, /*outputLimit*/ 0);
+    general.setForceForTest(force);
     return this;
   }
 

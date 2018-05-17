@@ -1621,6 +1621,21 @@ This matches any file in `java` and `javatests` folders.
 
 Core functionality for creating migrations, and basic transformations.
 
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+--config-root | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
+--disable-reversible-check | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
+--force | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
+--noansi | *boolean* | Don't use ANSI output for messages
+--nocleanup | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
+--output-limit | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
+--output-root | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
+-v, --verbose | *boolean* | Verbose output.
+
 <a id="core.copy" aria-hidden="true"></a>
 ### core.copy
 

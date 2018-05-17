@@ -24,18 +24,17 @@ import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.github.api.GitHubApiTransportImpl;
 import com.google.copybara.git.github.api.GithubApi;
-import java.util.function.Supplier;
 
 /**
  * Options related to GitHub
  */
 public class GithubOptions implements Option {
 
-  protected final Supplier<GeneralOptions> generalOptionsSupplier;
+  protected final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
 
-  public GithubOptions(Supplier<GeneralOptions> generalOptionsSupplier, GitOptions gitOptions) {
-    this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
+  public GithubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
   }
 
@@ -48,8 +47,8 @@ public class GithubOptions implements Option {
     }
     return new GithubApi(
         new GitHubApiTransportImpl(repo, getHttpTransport(), storePath,
-            generalOptionsSupplier.get().console()),
-        generalOptionsSupplier.get().profiler());
+            generalOptions.console()),
+        generalOptions.profiler());
   }
 
   protected HttpTransport getHttpTransport() {

@@ -79,7 +79,12 @@ public class ExamplesTest {
   }
 
   private ImmutableSet<Class<?>> getUserModules() {
-    return new ModuleSupplier().getModules();
+    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    return new ModuleSupplier(
+        optionsBuilder.general.getEnvironment(),
+        optionsBuilder.general.getFileSystem(),
+        optionsBuilder.general.console())
+        .getModules();
   }
 
 }

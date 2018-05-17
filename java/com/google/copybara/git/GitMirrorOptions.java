@@ -16,17 +16,14 @@
 
 package com.google.copybara.git;
 
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -36,11 +33,11 @@ import java.util.stream.Collectors;
 public class GitMirrorOptions implements Option {
 
   private final GitOptions gitOptions;
-  private final Supplier<GeneralOptions> generalOptionsSupplier;
+  private final GeneralOptions generalOptions;
 
-  public GitMirrorOptions(Supplier<GeneralOptions> generalOptionsSupplier, GitOptions gitOptions) {
+  public GitMirrorOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
-    this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
   @Parameter(names = "--git-mirror-force",
@@ -54,11 +51,11 @@ public class GitMirrorOptions implements Option {
         .map(r -> r.originToOrigin().toString())
         .collect(Collectors.toList());
 
-    generalOptionsSupplier.get().console().progressFmt("Fetching from %s", origin);
+    generalOptions.console().progressFmt("Fetching from %s", origin);
 
     repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
 
-    generalOptionsSupplier.get().console().progressFmt("Pushing to %s", destination);
+    generalOptions.console().progressFmt("Pushing to %s", destination);
     List<Refspec> pushRefspecs = forcePush
         ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
         : refspec;

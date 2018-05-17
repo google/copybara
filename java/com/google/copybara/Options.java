@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map.Entry;
 
@@ -52,5 +53,9 @@ public class Options {
       throw new IllegalStateException("No option type found for " + optionClass);
     }
     return (T) option;
+  }
+
+  public ImmutableCollection<Option> getAll() {
+    return config.values();
   }
 }

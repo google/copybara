@@ -80,7 +80,9 @@ public class ReadConfigFromChangeWorkflowTest {
     Config cfg = loadConfig(configCode);
     ConfigLoader constantConfigLoader =
         new ConfigLoader(
-            new ModuleSupplier() {
+            new ModuleSupplier(options.general.getEnvironment(),
+                options.general.getFileSystem(),
+                options.general.console()) {
               @Override
               public ImmutableSet<Class<?>> getModules() {
                 return ImmutableSet.of(Core.class, Authoring.Module.class, TestingModule.class);

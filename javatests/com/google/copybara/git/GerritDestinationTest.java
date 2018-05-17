@@ -120,14 +120,14 @@ public class GerritDestinationTest {
         .setConsole(console)
         .setOutputRootToTmpDir();
     urlMapper = Files.createTempDirectory("url_mapper");
-    options.git = new TestGitOptions(urlMapper, () -> options.general);
-    options.gerrit = new GerritOptions(() -> options.general, options.git) {
+    options.git = new TestGitOptions(urlMapper, options.general);
+    options.gerrit = new GerritOptions(options.general, options.git) {
       @Override
       protected GerritApiTransportImpl getGerritApiTransport(URI uri) throws RepoException {
         return new GerritApiTransportImpl(repo(), uri, gitApiMockHttpTransport);
       }
     };
-    options.gitDestination = new GitDestinationOptions(() -> options.general, options.git);
+    options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     excludedDestinationPaths = ImmutableList.of();

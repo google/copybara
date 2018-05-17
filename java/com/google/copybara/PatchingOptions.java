@@ -26,17 +26,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.InsideGitDirException;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,10 +50,10 @@ public class PatchingOptions implements Option {
       Pattern.DOTALL);
   private static final String PATCH_BIN_FLAG = "--patch-bin";
   public static final String SKIP_VERSION_CHECK_FLAG = "--patch-skip-version-check";
-  private final Supplier<GeneralOptions> generalOptionsSupplier;
+  private final GeneralOptions generalOptions;
 
-  public PatchingOptions(Supplier<GeneralOptions> generalOptionsSupplier) {
-    this.generalOptionsSupplier = Preconditions.checkNotNull(generalOptionsSupplier);
+  public PatchingOptions(GeneralOptions generalOptions) {
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
   @Parameter(names = PATCH_BIN_FLAG, description = "Path for GNU Patch command")
@@ -83,8 +82,8 @@ public class PatchingOptions implements Option {
       return;
     }
     Preconditions.checkArgument(stripSlashes >= 0, "stripSlashes must be >= 0.");
-    boolean verbose = generalOptionsSupplier.get().isVerbose();
-    Map<String, String> env = generalOptionsSupplier.get().getEnvironment();
+    boolean verbose = generalOptions.isVerbose();
+    Map<String, String> env = generalOptions.getEnvironment();
     if (shouldUsePatch(excludedPaths)) {
       Preconditions.checkState(excludedPaths.isEmpty(), "Not supported by GNU Patch");
       patchWithGnuPatch(rootDir, diffContents, stripSlashes, verbose, reverse, env);
@@ -135,7 +134,7 @@ public class PatchingOptions implements Option {
       }
 
       if (isMac()) {
-        generalOptionsSupplier.get().console()
+        generalOptions.console()
             .warnFmt("GNU Patch version is too old (%s) to be used by Copybara. "
                 + "Defaulting to 'git apply'. Use %s if patch is available in a different"
                 + " location", version, PATCH_BIN_FLAG);
@@ -159,7 +158,7 @@ public class PatchingOptions implements Option {
   Version getPatchVersion(String patchBin) throws CommandException, ValidationException {
 
     String out = new CommandRunner(new Command(new String[]{patchBin, "-v"}))
-        .withVerbose(generalOptionsSupplier.get().isVerbose())
+        .withVerbose(generalOptions.isVerbose())
         .execute()
         .getStdout()
         .trim();
