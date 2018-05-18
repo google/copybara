@@ -42,11 +42,9 @@ import com.google.common.collect.Maps;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
-import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.Migration;
-import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.EmptyChangeException;
@@ -54,19 +52,16 @@ import com.google.copybara.exception.NotADestinationFileException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.exception.VoidOperationException;
-import com.google.copybara.folder.FolderModule;
-import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingEventMonitor;
-import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
-import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
@@ -112,7 +107,7 @@ public class WorkflowTest {
   private OptionsBuilder options;
   private String authoring;
 
-  private SkylarkParser skylark;
+  private SkylarkTestExecutor skylark;
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -152,9 +147,7 @@ public class WorkflowTest {
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     options.setForce(true); // Force by default unless we are testing the flag.
-    skylark = new SkylarkParser(ImmutableSet.of(GlobModule.class, Core.class,
-        Authoring.Module.class, TestingModule.class, MetadataModule.class, FolderModule.class,
-        GitModule.class));
+    skylark = new SkylarkTestExecutor(options);
     eventMonitor = new TestingEventMonitor();
     options.general.withEventMonitor(eventMonitor);
     transformWork = TransformWorks.of(workdir, "example", console);
@@ -1523,12 +1516,10 @@ public class WorkflowTest {
         + ")\n\n"
         + "").getBytes();
     Config config1 = skylark.loadConfig(
-        new MapConfigFile(ImmutableMap.of("foo/copy.bara.sky", cfgContent), "foo/copy.bara.sky"),
-        options.build(), options.general.console());
+        new MapConfigFile(ImmutableMap.of("foo/copy.bara.sky", cfgContent), "foo/copy.bara.sky"));
 
     Config config2 = skylark.loadConfig(
-        new MapConfigFile(ImmutableMap.of("bar/copy.bara.sky", cfgContent), "bar/copy.bara.sky"),
-        options.build(), options.general.console());
+        new MapConfigFile(ImmutableMap.of("bar/copy.bara.sky", cfgContent), "bar/copy.bara.sky"));
 
     origin.addSimpleChange(1,"change\n\nsome_label=a");
 
@@ -1571,9 +1562,7 @@ public class WorkflowTest {
 
   private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
-        new MapConfigFile(
-            ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"),
-        options.build(), options.general.console());
+        new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"));
   }
 
   @Test
@@ -1790,8 +1779,7 @@ public class WorkflowTest {
                 "copy.bara.sky", (""
                     + "load('foo', 'foo_wf')\n"
                     + "foo_wf('default')\n"
-                    + "").getBytes(UTF_8)), "copy.bara.sky"),
-        options.build(), options.general.console()).getMigration("default"));
+                    + "").getBytes(UTF_8)), "copy.bara.sky")).getMigration("default"));
 
     assertThat(wf.getName()).isEqualTo("default");
   }
@@ -1821,8 +1809,7 @@ public class WorkflowTest {
                     + "    destination = testing.destination(),\n"
                     + "    transformations = transformations,\n"
                     + ")\n"
-                    + "").getBytes(UTF_8)), "copy.bara.sky"),
-        options.build(), options.general.console()).getMigration("default"));
+                    + "").getBytes(UTF_8)), "copy.bara.sky")).getMigration("default"));
 
     wf.run(workdir, ImmutableList.of("HEAD"));
   }

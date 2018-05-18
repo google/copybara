@@ -37,8 +37,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.Change;
-import com.google.copybara.Core;
-import com.google.copybara.GlobModule;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Workflow;
@@ -46,12 +44,10 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.config.MapConfigFile;
-import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.folder.FolderModule;
 import com.google.copybara.git.github.api.GithubApi;
 import com.google.copybara.git.github.util.GithubUtil;
 import com.google.copybara.testing.FileSubjects;
@@ -82,7 +78,6 @@ public class GithubPrOriginTest {
   private OptionsBuilder options;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
-  private SkylarkParser skylarkParser;
 
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
@@ -138,12 +133,7 @@ public class GithubPrOriginTest {
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     options.git.credentialHelperStorePath = credentialsFile.toString();
 
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
-    skylarkParser =
-        new SkylarkParser(
-            ImmutableSet.of(
-                GlobModule.class, Core.class, Authoring.Module.class,
-                FolderModule.class, GitModule.class));
+    skylark = new SkylarkTestExecutor(options);
   }
 
   private GitRepository localHubRepo(String name) throws RepoException {
@@ -544,14 +534,9 @@ public class GithubPrOriginTest {
 
   @SuppressWarnings("unchecked")
   private Workflow<GitRevision, ?> workflow(String config) throws IOException, ValidationException {
-    return (Workflow<GitRevision, ?>)
-        skylarkParser
-            .loadConfig(
-                new MapConfigFile(
-                    ImmutableMap.of("copy.bara.sky", config.getBytes()), "copy.bara.sky"),
-                options.build(),
-                console)
-            .getMigration("default");
+    return (Workflow<GitRevision, ?>) skylark.loadConfig(
+        new MapConfigFile(ImmutableMap.of("copy.bara.sky", config.getBytes()), "copy.bara.sky"))
+        .getMigration("default");
   }
 
   @Test

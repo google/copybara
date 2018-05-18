@@ -32,9 +32,11 @@ public class ConfigLoader {
 
   private final SkylarkParser skylarkParser;
   private final ConfigFile<?> configFile;
+  private final ModuleSet moduleSet;
 
-  public ConfigLoader(ModuleSupplier moduleSupplier, ConfigFile<?> configFile) {
-    this.skylarkParser = new SkylarkParser(moduleSupplier.getModules());
+  public ConfigLoader(ModuleSet moduleSet, ConfigFile<?> configFile) {
+    this.moduleSet = moduleSet;
+    this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules());
     this.configFile = Preconditions.checkNotNull(configFile);
   }
 
@@ -47,19 +49,18 @@ public class ConfigLoader {
 
   /**
    * Loads the configuration using this loader.
-   * @param options Parsed command line options
    * @param console the console to use for reporting progress/errors
    */
-  public Config load(Options options, Console console) throws ValidationException, IOException {
-    return loadForConfigFile(options, console, configFile);
+  public Config load(Console console) throws ValidationException, IOException {
+    return loadForConfigFile(console, configFile);
   }
 
-  protected Config loadForConfigFile(Options options, Console console, ConfigFile<?> configFile)
+  protected Config loadForConfigFile(Console console, ConfigFile<?> configFile)
       throws IOException, ValidationException {
-    return skylarkParser.loadConfig(configFile, options, console);
+    return skylarkParser.loadConfig(configFile, moduleSet, console);
   }
 
-  public Config loadForRevision(Options options, Console console, Revision revision)
+  public Config loadForRevision(Console console, Revision revision)
       throws ValidationException, RepoException{
     throw new RuntimeException("This origin/configuration doesn't allow loading configs from"
         + " specific revisions");

@@ -50,7 +50,7 @@ public class InfoCmd implements CopybaraCmd {
 
     Config config = configLoaderProvider
         .newLoader(configFileArgs.getConfigPath(), configFileArgs.getSourceRef())
-        .load(commandEnv.getOptions(), commandEnv.getOptions().get(GeneralOptions.class).console());
+        .load(commandEnv.getOptions().get(GeneralOptions.class).console());
     copybara.info(commandEnv.getOptions(), config, configFileArgs.getWorkflowName());
     return ExitCode.SUCCESS;
   }

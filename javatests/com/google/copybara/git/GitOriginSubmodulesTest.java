@@ -21,11 +21,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -64,7 +64,7 @@ public class GitOriginSubmodulesTest {
         .setConsole(new TestingConsole())
         .setOutputRootToTmpDir();
 
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylark = new SkylarkTestExecutor(options);
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");

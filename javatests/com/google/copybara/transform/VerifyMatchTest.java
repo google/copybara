@@ -5,7 +5,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Core;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -37,7 +36,7 @@ public final class VerifyMatchTest {
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   private void transform(VerifyMatch verifyMatch) throws IOException, ValidationException {

@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Destination;
 import com.google.copybara.Origin;
 import com.google.copybara.Revision;
@@ -84,7 +85,8 @@ public class SkylarkParserTest {
     OptionsBuilder options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
-    parser = new SkylarkTestExecutor(options, Mock.class, MockLabelsAwareModule.class);
+    parser = new SkylarkTestExecutor(options)
+        .withStaticModules(ImmutableSet.of(Mock.class, MockLabelsAwareModule.class));
   }
 
   private String setUpInclusionTest() {

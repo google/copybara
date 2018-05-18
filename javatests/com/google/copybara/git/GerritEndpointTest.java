@@ -27,12 +27,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Core;
-import com.google.copybara.GlobModule;
-import com.google.copybara.config.Config;
-import com.google.copybara.config.MapConfigFile;
-import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
@@ -40,7 +34,6 @@ import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Runtime;
@@ -57,12 +50,9 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GerritEndpointTest {
 
-  private static final ImmutableSet<Class<?>> MODULES =
-      ImmutableSet.of(GlobModule.class, Core.class, TestingModule.class, GitModule.class);
   public static final String BASE_URL = "https://user:SECRET@copybara-not-real.com";
 
-  private SkylarkTestExecutor skylarkTestExecutor;
-  private SkylarkParser skylarkParser;
+  private SkylarkTestExecutor skylark;
   private TestingConsole console;
   private OptionsBuilder options;
   private Path workdir;
@@ -70,12 +60,10 @@ public class GerritEndpointTest {
   private Path urlMapper;
   private String url;
   private  GitApiMockHttpTransport gitApiMockHttpTransport;
-  private Path repoGitDir;
   private Path credentialsFile;
 
   @Before
   public void setup() throws Exception {
-    repoGitDir = Files.createTempDirectory("GerritEndpointTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
     Files.createDirectories(workdir);
     console = new TestingConsole();
@@ -107,36 +95,30 @@ public class GerritEndpointTest {
           }
         };
 
-    skylarkTestExecutor =
-        new SkylarkTestExecutor(options, MODULES.toArray(new Class<?>[MODULES.size()]));
-    skylarkParser = new SkylarkParser(MODULES);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   private String changeNumberFromRequest(String url) {
     return url.replaceAll(".*changes/([0-9]{1,10}).*", "$1");
   }
 
-  private GitRepository repo() {
-    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true);
-  }
-
   @Test
   public void testParsing() throws Exception {
     GerritEndpoint gerritEndpoint =
-        skylarkTestExecutor.eval(
+        skylark.eval(
             "e",
             "e = git.gerrit_api(url = 'https://test.googlesource.com/example')");
     assertThat(gerritEndpoint.describe())
         .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
 
-    skylarkTestExecutor.verifyField(
+    skylark.verifyField(
         "git.gerrit_api(url = 'https://test.googlesource.com/example')",
         "url", "https://test.googlesource.com/example");
   }
 
   @Test
   public void testParsingEmptyUrl() {
-    skylarkTestExecutor.evalFails("git.gerrit_api(url = '')))", "Invalid empty field 'url'");
+    skylark.evalFails("git.gerrit_api(url = '')))", "Invalid empty field 'url'");
     }
 
   @Test
@@ -147,7 +129,7 @@ public class GerritEndpointTest {
         ImmutableMap.<String, Object>builder()
             .put("ref", "12345")
             .build();
-    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+    skylark.verifyFields(var, expectedFieldValues);
   }
 
   @Test
@@ -160,7 +142,7 @@ public class GerritEndpointTest {
             .put("type", "gerrit_api")
             .put("url", "https://test.googlesource.com/example")
             .build();
-    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+    skylark.verifyFields(var, expectedFieldValues);
   }
 
   /**
@@ -388,7 +370,7 @@ public class GerritEndpointTest {
             .put("revisions['foo'].commit.subject", "JUST A TEST")
             .put("revisions['foo'].commit.message", "JUST A TEST\n\nSecond line of description.\n")
             .build();
-    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+    skylark.verifyFields(var, expectedFieldValues);
   }
 
   @Test
@@ -406,7 +388,7 @@ public class GerritEndpointTest {
     String config =
         String.format(
             "git.gerrit_api(url = '%s').get_change('12345', include_results = ['LABELS'])", url);
-    skylarkTestExecutor.evalFails(config, "Pagination is not supported yet.");
+    skylark.evalFails(config, "Pagination is not supported yet.");
   }
 
   @Test
@@ -419,7 +401,7 @@ public class GerritEndpointTest {
             url);
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.of("labels", ImmutableMap.of("Code-Review", 1));
-    skylarkTestExecutor.verifyFields(config, expectedFieldValues);
+    skylark.verifyFields(config, expectedFieldValues);
   }
 
   @Test
@@ -433,7 +415,7 @@ public class GerritEndpointTest {
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.of(
             "id", "copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61");
-    skylarkTestExecutor.verifyFields(config + "[0]", expectedFieldValues);
+    skylark.verifyFields(config + "[0]", expectedFieldValues);
   }
 
   private Feedback notifyChangeToOriginFeedback() throws IOException, ValidationException {
@@ -459,15 +441,7 @@ public class GerritEndpointTest {
             + ")\n"
             + "\n";
     System.err.println(config);
-    return (Feedback) loadConfig(config).getMigration("default");
-  }
-
-  private Config loadConfig(String content) throws IOException, ValidationException {
-    return skylarkParser.loadConfig(
-        new MapConfigFile(
-            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"),
-        options.build(),
-        options.general.console());
+    return (Feedback) skylark.loadConfig(config).getMigration("default");
   }
 
   private class TestingGitApiHttpTransport extends GitApiMockHttpTransport {

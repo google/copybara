@@ -32,11 +32,11 @@ import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
+import com.google.copybara.TransformResult;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
-import com.google.copybara.TransformResult;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.authoring.Author;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
@@ -98,7 +98,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
 
     url = "file://" + repoGitDir;
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylark = new SkylarkTestExecutor(options);
     force = false;
   }
 

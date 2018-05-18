@@ -34,7 +34,7 @@ public class ChangeMessageTest {
   @Before
   public void setUp() throws Exception {
     OptionsBuilder options = new OptionsBuilder();
-    skylarkTestExecutor = new SkylarkTestExecutor(options, Core.class);
+    skylarkTestExecutor = new SkylarkTestExecutor(options);
   }
 
   @Test

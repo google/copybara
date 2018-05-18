@@ -74,7 +74,7 @@ public final class SubmodulesInDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
 
     url = "file://" + repoGitDir;
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylark = new SkylarkTestExecutor(options);
 
     submodule = GitRepository
         .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true)

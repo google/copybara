@@ -81,6 +81,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
               /*ignoreErrors=*/true)));
 
+  // TODO(malcon): Remove and pass specific ones as constructor parameter
   private Options options;
   private ConfigFile<?> mainConfigFile;
 

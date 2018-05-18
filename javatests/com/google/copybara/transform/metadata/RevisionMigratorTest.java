@@ -85,7 +85,7 @@ public class RevisionMigratorTest {
     OptionsBuilder options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
-    skylark = new SkylarkTestExecutor(options, MetadataModule.class);
+    skylark = new SkylarkTestExecutor(options);
 
   }
 

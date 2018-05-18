@@ -19,9 +19,10 @@ package com.google.copybara.testing;
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.copybara.exception.CannotResolveLabel;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -44,7 +45,8 @@ public final class SkylarkTestExecutorTest {
     TestingConsole console = new TestingConsole();
     OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console);
-    skylark = new SkylarkTestExecutor(options, DummyModule.class);
+    skylark = new SkylarkTestExecutor(options)
+        .withStaticModules(ImmutableSet.of(DummyModule.class));
   }
 
   @Test

@@ -82,7 +82,7 @@ public class GerritOriginTest {
         .setConsole(console)
         .setOutputRootToTmpDir();
 
-    SkylarkTestExecutor skylark = new SkylarkTestExecutor(options, GitModule.class);
+    SkylarkTestExecutor skylark = new SkylarkTestExecutor(options);
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");

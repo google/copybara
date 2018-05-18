@@ -147,7 +147,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
                                 lastChange.getRef(), lastChange.firstLineMessage()));
 
       Config config = ReadConfigFromChangeWorkflow.this.configLoader.
-          loadForRevision(options, getConsole(), lastChange.getRevision());
+          loadForRevision(getConsole(), lastChange.getRevision());
       // The service config validator already checks that the configuration matches the registry,
       // checking that the origin and destination haven't changed.
       List<String> errors =

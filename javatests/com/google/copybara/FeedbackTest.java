@@ -23,20 +23,18 @@ import static org.junit.Assert.fail;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
-import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingEventMonitor;
-import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -50,7 +48,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class FeedbackTest {
 
-  private SkylarkParser skylark;
+  private SkylarkTestExecutor skylark;
   private TestingConsole console;
   private TestingEventMonitor eventMonitor;
   private OptionsBuilder options;
@@ -68,7 +66,7 @@ public class FeedbackTest {
     options.general.withEventMonitor(eventMonitor);
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
-    skylark = new SkylarkParser(ImmutableSet.of(GlobModule.class, Core.class, TestingModule.class));
+    skylark = new SkylarkTestExecutor(options);
   }
 
   @Test
@@ -346,8 +344,6 @@ public class FeedbackTest {
   private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
         new MapConfigFile(
-            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"),
-        options.build(),
-        options.general.console());
+            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"));
   }
 }

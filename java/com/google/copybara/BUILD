@@ -113,6 +113,16 @@ java_library(
 )
 
 java_library(
+    name = "moduleset",
+    srcs = ["ModuleSet.java"],
+    javacopts = JAVACOPTS,
+    deps = [
+        ":options",
+        "//third_party:guava",
+    ],
+)
+
+java_library(
     name = "base",
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,

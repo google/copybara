@@ -20,8 +20,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.exception.ValidationException;
@@ -41,8 +39,7 @@ public class ExamplesTest {
   @Test
   public void testExamples() throws ValidationException {
 
-    SkylarkTestExecutor executor = new SkylarkTestExecutor(new OptionsBuilder(),
-        Iterables.toArray(getUserModules(), Class.class));
+    SkylarkTestExecutor executor = new SkylarkTestExecutor(new OptionsBuilder());
 
     boolean anyFound = false;
     for (Class<?> module : executor.getModules()) {
@@ -77,14 +74,4 @@ public class ExamplesTest {
     }
     assertWithMessage("Could not find any example to run!").that(anyFound).isTrue();
   }
-
-  private ImmutableSet<Class<?>> getUserModules() {
-    OptionsBuilder optionsBuilder = new OptionsBuilder();
-    return new ModuleSupplier(
-        optionsBuilder.general.getEnvironment(),
-        optionsBuilder.general.getFileSystem(),
-        optionsBuilder.general.console())
-        .getModules();
-  }
-
 }

@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Core;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
@@ -61,7 +60,7 @@ public class CopyOrMoveTest {
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   private void transform(Transformation t) throws IOException, ValidationException {

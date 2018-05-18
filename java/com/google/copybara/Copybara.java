@@ -151,7 +151,7 @@ public class Copybara {
     Console console = options.get(GeneralOptions.class).console();
     ValidationResult.Builder resultBuilder = new ValidationResult.Builder();
     try {
-      Config config = configLoader.load(options, console);
+      Config config = configLoader.load(console);
       resultBuilder.append(validateConfig(config, migrationName));
     } catch (ValidationException e) {
       // The validate subcommand should not throw Validation exceptions but log a result
@@ -170,7 +170,7 @@ public class Copybara {
       throws IOException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     Console console = generalOptions.console();
-    Config config = configLoader.load(options, console);
+    Config config = configLoader.load(console);
     console.progress("Validating configuration");
     ValidationResult result = validateConfig(config, migrationName);
     if (!result.hasErrors()) {

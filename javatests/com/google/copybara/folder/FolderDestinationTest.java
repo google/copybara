@@ -24,8 +24,8 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -65,7 +65,7 @@ public class FolderDestinationTest {
     Files.write(workdir.resolve("test.txt"), new byte[]{});
     Files.write(workdir.resolve("dir/file.txt"), new byte[]{});
     excludedPathsForDeletion = ImmutableList.of();
-    skylark = new SkylarkTestExecutor(options, FolderModule.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   private void write() throws ValidationException, RepoException, IOException {

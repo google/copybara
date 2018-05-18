@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Core;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -56,7 +55,7 @@ public final class TodoReplaceTest {
     console = new TestingConsole();
     OptionsBuilder options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
 

@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -45,7 +46,8 @@ public final class CoreReverseTest {
   @Before
   public void setup() {
     OptionsBuilder options = new OptionsBuilder();
-    skylark = new SkylarkTestExecutor(options, Mock.class);
+    skylark = new SkylarkTestExecutor(options)
+    .withStaticModules(ImmutableSet.of(Mock.class));
     console = new TestingConsole();
     options.setConsole(console);
   }

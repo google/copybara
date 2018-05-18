@@ -19,7 +19,6 @@ package com.google.copybara.transform;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Core;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -56,7 +55,7 @@ public class RemoveTest {
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   @Test

@@ -17,24 +17,18 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Truth;
-import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
-import com.google.copybara.config.MapConfigFile;
-import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
-import com.google.copybara.testing.TestingModule;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -45,10 +39,10 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class ReadConfigFromChangeWorkflowTest {
 
-  private SkylarkParser skylark;
   private OptionsBuilder options;
   private DummyOrigin origin;
   private RecordsProcessCallDestination destination;
+  private SkylarkTestExecutor skylark;
 
   @Before
   public void setup() {
@@ -57,8 +51,7 @@ public class ReadConfigFromChangeWorkflowTest {
     destination = new RecordsProcessCallDestination();
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
-    skylark = new SkylarkParser(ImmutableSet.of(
-        GlobModule.class, Core.class, Authoring.Module.class, TestingModule.class));
+    skylark = new SkylarkTestExecutor(options);
   }
 
   /**
@@ -77,23 +70,16 @@ public class ReadConfigFromChangeWorkflowTest {
         + "    destination = testing.destination(),"
         + "    authoring = authoring.pass_thru('foo <foo@foo.com>')"
         + ")";
-    Config cfg = loadConfig(configCode);
+    Config cfg = skylark.loadConfig(configCode);
     ConfigLoader constantConfigLoader =
         new ConfigLoader(
-            new ModuleSupplier(options.general.getEnvironment(),
-                options.general.getFileSystem(),
-                options.general.console()) {
-              @Override
-              public ImmutableSet<Class<?>> getModules() {
-                return ImmutableSet.of(Core.class, Authoring.Module.class, TestingModule.class);
-              }
-            },
-            getConfig(configCode)) {
+            skylark.createModuleSet(),
+            skylark.createConfigFile("copy.bara.sky", configCode)) {
           @Override
-          public Config loadForRevision(Options options, Console console, Revision revision)
+          public Config loadForRevision(Console console, Revision revision)
               throws ValidationException {
             try {
-              return super.load(options, console);
+              return super.load(console);
             } catch (IOException e) {
               throw new AssertionError("Should not fail", e);
             }
@@ -121,15 +107,5 @@ public class ReadConfigFromChangeWorkflowTest {
                          .map(ProcessedChange::getState)
                          .collect(Collectors.toSet()))
         .containsExactly(0, 1, 2);
-
-  }
-
-  private Config loadConfig(String content) throws IOException, ValidationException {
-    return skylark.loadConfig(getConfig(content), options.build(), options.general.console());
-  }
-
-  private static MapConfigFile getConfig(String content) {
-    return new MapConfigFile(ImmutableMap.of(
-        "copy.bara.sky", content.getBytes(StandardCharsets.UTF_8)), "copy.bara.sky");
   }
 }

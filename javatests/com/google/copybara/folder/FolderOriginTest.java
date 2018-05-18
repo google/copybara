@@ -74,7 +74,7 @@ public class FolderOriginTest {
     options = new OptionsBuilder()
         .setWorkdirToRealTempDir()
         .setHomeDir(StandardSystemProperty.USER_HOME.value());
-    skylark = new SkylarkTestExecutor(options, FolderModule.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   @Test

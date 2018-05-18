@@ -21,7 +21,6 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Core;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.FileSubjects;
@@ -62,7 +61,7 @@ public final class ReplaceTest {
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console);
-    skylark = new SkylarkTestExecutor(options, Core.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   private void transform(Replace replace) throws IOException, ValidationException {

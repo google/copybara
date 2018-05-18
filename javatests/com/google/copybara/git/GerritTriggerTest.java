@@ -18,11 +18,8 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Core;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.testing.TestingConsole;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +39,7 @@ public class GerritTriggerTest {
     options = new OptionsBuilder();
     options.setConsole(console).setOutputRootToTmpDir();
     skylarkTestExecutor =
-        new SkylarkTestExecutor(options, Core.class, TestingModule.class, GitModule.class);
+        new SkylarkTestExecutor(options);
   }
 
   @Test

@@ -136,7 +136,7 @@ public class GerritDestinationTest {
     url = "https://localhost:33333/foo/bar";
     repo().init();
 
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylark = new SkylarkTestExecutor(options);
 
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {

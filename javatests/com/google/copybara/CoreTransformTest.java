@@ -52,7 +52,7 @@ public final class CoreTransformTest {
     checkoutDir = fs.getPath("/test-checkoutDir");
     Files.createDirectories(checkoutDir);
     OptionsBuilder options = new OptionsBuilder();
-    skylark = new SkylarkTestExecutor(options, Core.class);
+    skylark = new SkylarkTestExecutor(options);
     console = new TestingConsole();
     options.setConsole(console);
   }

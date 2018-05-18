@@ -25,22 +25,17 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
-import com.google.copybara.Core;
-import com.google.copybara.GlobModule;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowMode;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
-import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyOrigin;
@@ -49,7 +44,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -78,8 +72,7 @@ public class MetadataModuleTest {
   private OptionsBuilder options;
   private String authoring;
 
-  private SkylarkParser skylark;
-  private SkylarkTestExecutor skylarkExecutor;
+  private SkylarkTestExecutor skylark;
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -97,11 +90,7 @@ public class MetadataModuleTest {
     options.setConsole(new TestingConsole());
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
-    skylark =
-        new SkylarkParser(
-            ImmutableSet.of(GlobModule.class, Core.class, Authoring.Module.class,
-                TestingModule.class, MetadataModule.class));
-    skylarkExecutor = new SkylarkTestExecutor(options, MetadataModule.class);
+    skylark = new SkylarkTestExecutor(options);
 
     origin.addSimpleChange(0, "first commit\n\nExtended text")
         .setAuthor(FOO_BAR)
@@ -122,9 +111,7 @@ public class MetadataModuleTest {
   private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
         new MapConfigFile(
-            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"),
-        options.build(),
-        options.general.console());
+            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"));
   }
 
   @Test
@@ -165,7 +152,7 @@ public class MetadataModuleTest {
         .withChanges(changes);
 
     // The default is to use merges, since git.origin does --first-parent by default
-    skylarkExecutor.<MetadataSquashNotes>eval("s", "s = metadata.squash_notes()").transform(work);
+    skylark.<MetadataSquashNotes>eval("s", "s = metadata.squash_notes()").transform(work);
 
     assertThat(work.getMessage()).isEqualTo("Copybara import of the project:\n"
         + "\n"
@@ -176,7 +163,7 @@ public class MetadataModuleTest {
     work = TransformWorks.of(workdir, "the message", testingConsole)
         .withChanges(changes);
 
-    skylarkExecutor.<MetadataSquashNotes>eval("s", "s = metadata.squash_notes(use_merge = False)")
+    skylark.<MetadataSquashNotes>eval("s", "s = metadata.squash_notes(use_merge = False)")
         .transform(work);
 
     assertThat(work.getMessage()).isEqualTo("Copybara import of the project:\n"
@@ -202,7 +189,7 @@ public class MetadataModuleTest {
         .withChanges(changes);
 
     // The default is to use merges, since git.origin does --first-parent by default
-    skylarkExecutor.<UseLastChange>eval("s", "s = metadata.use_last_change()")
+    skylark.<UseLastChange>eval("s", "s = metadata.use_last_change()")
         .transform(work);
 
     assertThat(work.getMessage()).isEqualTo("merge");
@@ -210,7 +197,7 @@ public class MetadataModuleTest {
     work = TransformWorks.of(workdir, "the message", testingConsole)
         .withChanges(changes);
 
-    skylarkExecutor.<UseLastChange>eval("s", "s = metadata.use_last_change(use_merge = False)")
+    skylark.<UseLastChange>eval("s", "s = metadata.use_last_change(use_merge = False)")
         .transform(work);
 
     assertThat(work.getMessage()).isEqualTo("change2");
@@ -497,7 +484,7 @@ public class MetadataModuleTest {
             ), ImmutableList.of()))
         .withResolvedReference(new DummyRevision("123")
             .withLabels(ImmutableListMultimap.of("LABEL", "ddd")));
-    Transformation t = skylarkExecutor.eval("t", "t = "
+    Transformation t = skylark.eval("t", "t = "
         + "metadata.expose_label('LABEL', 'NEW_VALUE', all = True)");
     t.transform(tw);
     assertThat(tw.getMessage()).isEqualTo("some message\n"
@@ -529,7 +516,7 @@ public class MetadataModuleTest {
         ), ImmutableList.of()))
         .withResolvedReference(new DummyRevision("123")
             .withLabels(ImmutableListMultimap.of("SOME", "value")));
-    Transformation t = skylarkExecutor.eval("t", "t = " + transform);
+    Transformation t = skylark.eval("t", "t = " + transform);
     t.transform(tw);
     assertThat(tw.getMessage()).isEqualTo(expectedOutput);
   }
@@ -956,7 +943,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testMapAuthor_reversible() throws Exception {
-    Transformation m = skylarkExecutor.eval("m", "m = "
+    Transformation m = skylark.eval("m", "m = "
         + "metadata.map_author({\n"
         + "    'a <a@example.com>' : 'b <b@example.com>',\n"
         + "},"
@@ -975,7 +962,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testMapAuthor_nonReversible() throws Exception {
-    Transformation m = skylarkExecutor.eval("m", "m = "
+    Transformation m = skylark.eval("m", "m = "
         + "metadata.map_author({\n"
         + "    'a' : 'b <b@example.com>',\n"
         + "},"
@@ -986,7 +973,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testMapAuthor_noop_reversal() throws Exception {
-    Transformation m = skylarkExecutor.eval("m", "m = "
+    Transformation m = skylark.eval("m", "m = "
         + "metadata.map_author({\n"
         + "    'a' : 'b <b@example.com>',\n"
         + "},"
@@ -1001,7 +988,7 @@ public class MetadataModuleTest {
 
   @Test
   public void testMapAuthor_reverseFaiIfNotFound() throws Exception {
-    Transformation m = skylarkExecutor.eval("m", "m = "
+    Transformation m = skylark.eval("m", "m = "
         + "metadata.map_author({\n"
         + "    'a <a@example.com>' : 'b <b@example.com>',\n"
         + "},"

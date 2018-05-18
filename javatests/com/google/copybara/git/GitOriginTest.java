@@ -28,18 +28,18 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.copybara.Origin.Reader.ChangesResponse;
-import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
-import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.Origin.Reader;
-import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
+import com.google.copybara.Origin.Reader.ChangesResponse;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -92,7 +92,7 @@ public class GitOriginTest {
         .setConsole(console)
         .setOutputRootToTmpDir();
 
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylark = new SkylarkTestExecutor(options);
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");

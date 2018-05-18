@@ -27,10 +27,10 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.Destination.Writer;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
@@ -106,7 +106,7 @@ public class GitDestinationIntegrateTest {
     options.setForce(true);
 
     url = "file://" + repoGitDir;
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   @Test

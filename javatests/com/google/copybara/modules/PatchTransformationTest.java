@@ -86,7 +86,7 @@ public class PatchTransformationTest {
     console = new TestingConsole();
     options = new OptionsBuilder().setConsole(console);
     patchingOptions = options.build().get(PatchingOptions.class);
-    skylark = new SkylarkTestExecutor(options, PatchModule.class);
+    skylark = new SkylarkTestExecutor(options);
     ImmutableMap<String, byte[]> configFiles =
         ImmutableMap.of(
             "diff.patch", (DIFF).getBytes(UTF_8),

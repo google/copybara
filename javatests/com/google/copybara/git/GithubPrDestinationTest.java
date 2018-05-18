@@ -100,7 +100,7 @@ public class GithubPrDestinationTest {
     options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   @Test

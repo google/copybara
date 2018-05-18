@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
+import com.google.copybara.ModuleSet;
 import com.google.copybara.Options;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
@@ -62,10 +63,11 @@ public class SkylarkParser {
   private static final Object initializationLock = new Object();
 
   private static final Set<Class<?>> initializedModules = new HashSet<>();
-  public SkylarkParser(Set<Class<?>> modules) {
+
+  public SkylarkParser(Set<Class<?>> staticModules) {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(GlobalMigrations.class)
-        .addAll(modules).build();
+        .addAll(staticModules).build();
 
     // Skylark initialization is not thread safe and manipulates static fields. While calling
     // this concurrently doesn't happen in the tool, there can be other usages of this that
@@ -93,9 +95,10 @@ public class SkylarkParser {
   }
 
   @SuppressWarnings("unchecked")
-  public Config loadConfig(ConfigFile<?> config, Options options, Console console)
+  public Config loadConfig(ConfigFile<?> config, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException {
-    return getConfigWithTransitiveImports(config, options, console).config;
+    Preconditions.checkArgument(moduleSet.getModules().isEmpty(), "Still not implemented!");
+    return getConfigWithTransitiveImports(config, moduleSet, console).config;
   }
 
   private Config loadConfigInternal(ConfigFile content, Options options,
@@ -138,13 +141,13 @@ public class SkylarkParser {
    *     dependency cycles.
    */
   public <T> ConfigWithDependencies<T> getConfigWithTransitiveImports(
-      ConfigFile<T> config, Options options, Console console)
+      ConfigFile<T> config, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException {
     CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(config);
     ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
 
-    Config parsedConfig = loadConfigInternal(capturingConfigFile, options, configFilesSupplier,
-        console);
+    Config parsedConfig = loadConfigInternal(capturingConfigFile, moduleSet.getOptions(),
+        configFilesSupplier, console);
 
     ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
 

@@ -32,7 +32,6 @@ import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.testing.TestingModule;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.Message.MessageType;
@@ -74,7 +73,7 @@ public class TransformWorkTest {
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     options.setForce(true); // We don't care about force for this test
-    skylark = new SkylarkTestExecutor(options, TestingModule.class);
+    skylark = new SkylarkTestExecutor(options);
     workdir = Files.createTempDirectory("workdir");
   }
 

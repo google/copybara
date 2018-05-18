@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.folder.FolderDestinationOptions;
@@ -35,8 +36,10 @@ import com.google.copybara.git.GithubPrOriginOptions;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import java.nio.file.FileSystem;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * A supplier of modules and {@link Option}s for Copybara.
@@ -48,6 +51,7 @@ public class ModuleSupplier {
       Core.class,
       Authoring.Module.class,
       FolderModule.class,
+      // TODO(malcon): Move to non-static
       GitModule.class,
       MetadataModule.class,
       PatchModule.class);
@@ -64,13 +68,25 @@ public class ModuleSupplier {
 
   /**
    * Returns the {@code set} of modules available.
+   * TODO(malcon): Remove once no more static modules exist.
    */
-  public ImmutableSet<Class<?>> getModules() {
+  protected ImmutableSet<Class<?>> getStaticModules() {
     return BASIC_MODULES;
   }
 
+  /**
+   * Get non-static modules available
+   */
+  public ImmutableSet<Object> getModules(Options options) {
+    return ImmutableSet.of(
+        // TODO(malcon): Move GitModule from static to non-static
+        // new GitModule()
+    );
+  }
+
+  
   /** Returns a new list of {@link Option}s. */
-  public Options newOptions() {
+  protected Options newOptions() {
     GeneralOptions generalOptions = new GeneralOptions(environment, fileSystem, console);
     GitOptions gitOptions = new GitOptions(generalOptions);
     GitDestinationOptions gitDestinationOptions =
@@ -90,4 +106,33 @@ public class ModuleSupplier {
         new PatchingOptions(generalOptions),
         new WorkflowOptions()));
   }
+
+  /**
+   * A ModuleSet contains the collection of modules and flags for one Skylark copy.bara.sky
+   * evaluation/execution.
+   */
+  public final ModuleSet create() {
+    Options options = newOptions();
+    return new ModuleSet(options, getStaticModules(), modulesToVariableMap(options));
+  }
+
+  private ImmutableMap<String, Object> modulesToVariableMap(Options options) {
+    return getModules(options).stream()
+        .collect(ImmutableMap.toImmutableMap(
+            this::findClosestSkylarkModuleName,
+            Function.identity()));
+  }
+
+  private String findClosestSkylarkModuleName(Object o) {
+    Class<?> cls = o.getClass();
+    while (cls != null && cls != Object.class) {
+      SkylarkModule annotation = cls.getAnnotation(SkylarkModule.class);
+      if (annotation != null) {
+        return annotation.name();
+      }
+      cls = cls.getSuperclass();
+    }
+    throw new IllegalStateException("Cannot find @SkylarkModule for " + o.getClass());
+  }
+
 }

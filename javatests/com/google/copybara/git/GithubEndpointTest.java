@@ -23,12 +23,6 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Core;
-import com.google.copybara.GlobModule;
-import com.google.copybara.config.Config;
-import com.google.copybara.config.MapConfigFile;
-import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
@@ -38,7 +32,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport.RequestRecord;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.testing.TestingModule;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -53,12 +46,9 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GithubEndpointTest {
 
-  private static final ImmutableSet<Class<?>> MODULES =
-      ImmutableSet.of(GlobModule.class, Core.class, TestingModule.class, GitModule.class);
   private static final String PROJECT = "google/example";
 
-  private SkylarkTestExecutor skylarkTestExecutor;
-  private SkylarkParser skylarkParser;
+  private SkylarkTestExecutor skylark;
   private TestingConsole console;
   private OptionsBuilder options;
   private DummyTrigger dummyTrigger;
@@ -121,28 +111,26 @@ public class GithubEndpointTest {
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     options.git.credentialHelperStorePath = credentialsFile.toString();
 
-    skylarkTestExecutor =
-        new SkylarkTestExecutor(options, MODULES.toArray(new Class<?>[MODULES.size()]));
-    skylarkParser = new SkylarkParser(MODULES);
+    skylark = new SkylarkTestExecutor(options);
   }
 
   @Test
   public void testParsing() throws Exception {
     GitHubEndPoint gitHubEndPoint =
-        skylarkTestExecutor.eval(
+        skylark.eval(
             "e",
             "e = git.github_api(url = 'https://github.com/google/example')");
     assertThat(gitHubEndPoint.describe())
         .containsExactly("type", "github_api", "url", "https://github.com/google/example");
 
-    skylarkTestExecutor.verifyField(
+    skylark.verifyField(
         "git.github_api(url = 'https://github.com/google/example')",
         "url", "https://github.com/google/example");
   }
 
   @Test
   public void testParsingEmptyUrl() {
-    skylarkTestExecutor.evalFails("git.github_api(url = '')", "Invalid empty field 'url'");
+    skylark.evalFails("git.github_api(url = '')", "Invalid empty field 'url'");
   }
 
   @Test
@@ -153,7 +141,7 @@ public class GithubEndpointTest {
         ImmutableMap.<String, Object>builder()
             .put("ref", "12345")
             .build();
-    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+    skylark.verifyFields(var, expectedFieldValues);
   }
 
   @Test
@@ -166,7 +154,7 @@ public class GithubEndpointTest {
             .put("type", "github_api")
             .put("url", "https://github.com/google/example")
             .build();
-    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+    skylark.verifyFields(var, expectedFieldValues);
   }
 
   /**
@@ -222,7 +210,7 @@ public class GithubEndpointTest {
             .put("description", "Observed foo")
             .put("context", "test")
             .build();
-    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+    skylark.verifyFields(var, expectedFieldValues);
   }
 
   /**
@@ -240,7 +228,7 @@ public class GithubEndpointTest {
             .put("url", "https://github.com/google/example/git/refs/heads/test")
             .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
             .build();
-    skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+    skylark.verifyFields(var, expectedFieldValues);
   }
 
   private Feedback feedback(String actionFunction) throws IOException, ValidationException {
@@ -257,14 +245,6 @@ public class GithubEndpointTest {
             + ")\n"
             + "\n";
     System.err.println(config);
-    return (Feedback) loadConfig(config).getMigration("default");
-  }
-
-  private Config loadConfig(String content) throws IOException, ValidationException {
-    return skylarkParser.loadConfig(
-        new MapConfigFile(
-            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"),
-        options.build(),
-        options.general.console());
+    return (Feedback) skylark.loadConfig(config).getMigration("default");
   }
 }

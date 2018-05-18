@@ -22,10 +22,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Core;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.GlobModule;
-import com.google.copybara.authoring.Authoring;
+import com.google.copybara.ModuleSet;
+import com.google.copybara.ModuleSupplier;
+import com.google.copybara.Options;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
@@ -42,23 +42,39 @@ import java.util.Map.Entry;
 /**
  * Utility class for running a simple skylark code and getting back a declared variable.
  */
-public final class SkylarkTestExecutor {
+public class SkylarkTestExecutor {
 
   private static final String DEFAULT_FILE = "copy.bara.sky";
   private final OptionsBuilder options;
-  private final SkylarkParser skylarkParser;
+  private final ModuleSupplier moduleSupplier;
   private final Map<String, byte[]> extraConfigFiles = new HashMap<>();
+  private SkylarkParser skylarkParser;
+  private ModuleSupplier moduleSupplierForTest;
+  private ImmutableSet<Class<?>> testModules = ImmutableSet.of();
 
-  public SkylarkTestExecutor(OptionsBuilder options, Class<?>... modules) {
-    skylarkParser =
-        new SkylarkParser(
-            ImmutableSet.<Class<?>>builder()
-                .add(GlobModule.class)
-                .add(Core.class)
-                .add(Authoring.Module.class)
-                .add(modules)
-                .build());
+  public SkylarkTestExecutor(OptionsBuilder options) {
+    this(options, new ModuleSupplier(options.general.getEnvironment(),
+        options.general.getFileSystem(), options.general.console()));
+  }
+
+  public SkylarkTestExecutor withStaticModules(ImmutableSet<Class<?>> testModules) {
+    this.testModules = Preconditions.checkNotNull(testModules);
+    // TODO(malcon): Remove this once all the static modules are gone.
+    initParser();
+    return this;
+  }
+
+  protected SkylarkTestExecutor(OptionsBuilder options, ModuleSupplier moduleSupplier) {
     this.options = options;
+    this.moduleSupplier = moduleSupplier;
+    initParser();
+  }
+
+  private void initParser() {
+    moduleSupplierForTest = new ModuleSupplierForTest(options, moduleSupplier);
+    skylarkParser = new SkylarkParser(ImmutableSet.<Class<?>>builder()
+                .addAll(moduleSupplierForTest.create().getStaticModules())
+                .build());
   }
 
   public SkylarkTestExecutor addExtraConfigFile(String key, String content) {
@@ -124,23 +140,35 @@ public final class SkylarkTestExecutor {
 
   public Config loadConfig(String filename, String configContent)
       throws IOException, ValidationException {
+    return loadConfig(createConfigFile(filename, configContent));
+  }
+
+  public Config loadConfig(ConfigFile<String> configFile)
+      throws IOException, ValidationException {
     try {
-      return skylarkParser.loadConfig(
-          createConfigFile(filename, configContent),
-          options.build(), options.general.console());
+      return skylarkParser.loadConfig(configFile, createModuleSet(), options.general.console());
     } catch (ValidationException ve) {
       throw new ValidationException(ve, ve.getMessage() + getLogErrors());
     }
   }
 
+  /**
+   * Normally this is not what you want to use
+   */
+  public SkylarkParser getSkylarkParser() {
+    return skylarkParser;
+  }
+
+  /**
+   * In general creating multiple ModuleSets is a bad idea (Since options are created again), but
+   * for test is fine since we share the same OptionsBuilder.
+   */
+  public ModuleSet createModuleSet() {
+    return moduleSupplierForTest.create();
+  }
+
   public Config loadConfig(String configContent) throws IOException, ValidationException {
-    try {
-      return skylarkParser.loadConfig(
-          createConfigFile(DEFAULT_FILE, configContent),
-          options.build(), options.general.console());
-    } catch (ValidationException ve) {
-      throw new ValidationException(ve, ve.getMessage() + getLogErrors());
-    }
+    return loadConfig(DEFAULT_FILE, configContent);
   }
 
   public Map<String, ConfigFile<String>> getConfigMap(String configContent)
@@ -151,11 +179,11 @@ public final class SkylarkTestExecutor {
   public <T> Map<String, ConfigFile<T>> getConfigMap(ConfigFile<T> config)
       throws IOException, ValidationException {
     return skylarkParser.getConfigWithTransitiveImports(
-            config, options.build(), options.general.console())
+            config, createModuleSet(), options.general.console())
         .files;
   }
 
-  private ConfigFile<String> createConfigFile(String filename, String configContent) {
+  public ConfigFile<String> createConfigFile(String filename, String configContent) {
     return new MapConfigFile(
         new ImmutableMap.Builder<String, byte[]>()
             .putAll(extraConfigFiles)
@@ -185,4 +213,38 @@ public final class SkylarkTestExecutor {
   private TestingConsole getConsole() {
     return (TestingConsole) options.build().get(GeneralOptions.class).console();
   }
+
+  private class ModuleSupplierForTest extends ModuleSupplier {
+
+    private final OptionsBuilder options;
+    private final ModuleSupplier moduleSupplier;
+
+    ModuleSupplierForTest(OptionsBuilder options, ModuleSupplier moduleSupplier) {
+      super(options.general.getEnvironment(), options.general.getFileSystem(),
+          options.general.console());
+      this.options = options;
+      this.moduleSupplier = Preconditions.checkNotNull(moduleSupplier);
+    }
+
+    @Override
+    protected ImmutableSet<Class<?>> getStaticModules() {
+       return ImmutableSet.<Class<?>>builder()
+           .addAll(moduleSupplier.create().getStaticModules())
+           // This is used too frequently to pass it in testModules.
+           .add(TestingModule.class)
+           .addAll(testModules)
+           .build();
+    }
+
+    @Override
+    public ImmutableSet<Object> getModules(Options options) {
+      return moduleSupplier.getModules(options);
+    }
+
+    @Override
+    protected Options newOptions() {
+      return options.build();
+    }
+  }
+
 }

@@ -17,7 +17,8 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.git.GitRepository.*;
+import static com.google.copybara.git.GitRepository.newBareRepo;
+import static com.google.copybara.git.GitRepository.newRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -69,7 +70,7 @@ public class GitMirrorTest {
 
     destRepo.init();
 
-    skylark = new SkylarkTestExecutor(options, GitModule.class);
+    skylark = new SkylarkTestExecutor(options);
 
     Files.write(originRepo.getWorkTree().resolve("test.txt"), "some content".getBytes());
     originRepo.add().files("test.txt").run();

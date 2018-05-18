@@ -74,6 +74,7 @@ java_library(
         ":base",
         ":global_migrations",
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara:moduleset",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util/console",
         "//third_party:flogger",

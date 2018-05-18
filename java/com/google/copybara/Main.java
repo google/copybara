@@ -171,10 +171,10 @@ public class Main {
     CopybaraCmd subcommand = null;
 
     try {
-      ModuleSupplier moduleSupplier = newModuleSupplier(environment, fs, console);
+      ModuleSet moduleSet = newModuleSet(environment, fs, console);
 
       final MainArguments mainArgs = new MainArguments();
-      Options options = moduleSupplier.newOptions();
+      Options options = moduleSet.getOptions();
       jCommander = new JCommander(ImmutableList.builder()
           .addAll(options.getAll())
           .add(mainArgs)
@@ -186,10 +186,10 @@ public class Main {
       jCommander.parse(args);
 
 
-      ConfigLoaderProvider configLoaderProvider = newConfigLoaderProvider(moduleSupplier, options);
+      ConfigLoaderProvider configLoaderProvider = newConfigLoaderProvider(moduleSet);
 
       ImmutableMap<String, CopybaraCmd> commands =
-          Maps.uniqueIndex(getCommands(options, moduleSupplier, configLoaderProvider, jCommander),
+          Maps.uniqueIndex(getCommands(moduleSet, configLoaderProvider, jCommander),
               CopybaraCmd::name);
 
       CommandWithArgs cmdToRun = mainArgs.parseCommand(commands, commands.get("migrate"));
@@ -241,10 +241,10 @@ public class Main {
     }
   }
 
-  public ImmutableSet<CopybaraCmd> getCommands(Options options, ModuleSupplier moduleSupplier,
+  public ImmutableSet<CopybaraCmd> getCommands(ModuleSet moduleSet,
       ConfigLoaderProvider configLoaderProvider, JCommander jcommander)
       throws CommandLineException {
-    ConfigValidator validator = getConfigValidator(options);
+    ConfigValidator validator = getConfigValidator(moduleSet.getOptions());
     Consumer<Migration> consumer = getMigrationRanConsumer();
     return ImmutableSet.of(
         new MigrateCmd(validator, consumer, configLoaderProvider),
@@ -277,16 +277,15 @@ public class Main {
     return new ConfigValidator() {};
   }
 
-  /** Returns a module supplier. */
-  protected ModuleSupplier newModuleSupplier(ImmutableMap<String, String> environment,
+  /** Returns a new module set. */
+  protected ModuleSet newModuleSet(ImmutableMap<String, String> environment,
       FileSystem fs, Console console) {
-    return new ModuleSupplier(environment, fs, console);
+    return new ModuleSupplier(environment, fs, console).create();
   }
 
-  protected ConfigLoaderProvider newConfigLoaderProvider(
-      ModuleSupplier moduleSupplier, Options options) {
-    GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    return (configPath, sourceRef) -> new ConfigLoader(moduleSupplier,
+  protected ConfigLoaderProvider newConfigLoaderProvider(ModuleSet moduleSet) {
+    GeneralOptions generalOptions = moduleSet.getOptions().get(GeneralOptions.class);
+    return (configPath, sourceRef) -> new ConfigLoader(moduleSet,
         createConfigFileWithHeuristic(validateLocalConfig(generalOptions, configPath),
             generalOptions.getConfigRoot()));
   }
