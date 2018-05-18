@@ -57,6 +57,12 @@ public class SkylarkTestExecutor {
         options.general.getFileSystem(), options.general.console()));
   }
 
+  protected SkylarkTestExecutor(OptionsBuilder options, ModuleSupplier moduleSupplier) {
+    this.options = options;
+    this.moduleSupplier = moduleSupplier;
+    initParser();
+  }
+
   public SkylarkTestExecutor withStaticModules(ImmutableSet<Class<?>> testModules) {
     this.testModules = Preconditions.checkNotNull(testModules);
     // TODO(malcon): Remove this once all the static modules are gone.
@@ -64,17 +70,9 @@ public class SkylarkTestExecutor {
     return this;
   }
 
-  protected SkylarkTestExecutor(OptionsBuilder options, ModuleSupplier moduleSupplier) {
-    this.options = options;
-    this.moduleSupplier = moduleSupplier;
-    initParser();
-  }
-
   private void initParser() {
     moduleSupplierForTest = new ModuleSupplierForTest(options, moduleSupplier);
-    skylarkParser = new SkylarkParser(ImmutableSet.<Class<?>>builder()
-                .addAll(moduleSupplierForTest.create().getStaticModules())
-                .build());
+    skylarkParser = new SkylarkParser(moduleSupplierForTest.create().getStaticModules());
   }
 
   public SkylarkTestExecutor addExtraConfigFile(String key, String content) {
