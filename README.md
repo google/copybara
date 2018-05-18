@@ -43,7 +43,7 @@ core.workflow(
         url = "file:///tmp/foo",
     ),
 
-    # Copy everything but don't remove a README_INTERNAL.txt file if it exists.
+    # Copy everything but remove a README_INTERNAL.txt file if it exists.
     destination_files = glob(["third_party/copybara/**"], exclude = ["README_INTERNAL.txt"]),
 
     authoring = authoring.pass_thru("Default email <default@default.com>"),
