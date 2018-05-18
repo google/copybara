@@ -16,6 +16,8 @@
 
 package com.google.copybara.git.github.util;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import com.google.copybara.exception.ValidationException;
@@ -42,6 +44,9 @@ public class GithubUtil {
    * Given a url that represents a GitHub repository, return the project name.
    */
   public static String getProjectNameFromUrl(String url) throws ValidationException {
+
+    checkCondition(!Strings.isNullOrEmpty(url), "Empty url");
+    
     if (url.startsWith(GIT_GITHUB_PROTOCOL)) {
       return url.substring(GIT_GITHUB_PROTOCOL.length()).replaceAll("([.]git|/)$", "");
     }

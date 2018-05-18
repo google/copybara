@@ -186,6 +186,11 @@ public class GithubPrOriginTest {
   }
 
   @Test
+  public void testEmptyUrl() {
+    skylark.evalFails("git.github_pr_origin( url = '')", "Invalid empty field 'url'");
+  }
+
+  @Test
   public void testGitResolvePullRequestRawRef() throws Exception {
     checkResolve(githubPrOrigin(
         "url = 'https://github.com/google/example'",

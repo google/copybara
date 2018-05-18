@@ -126,8 +126,8 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       Boolean includeBranchCommitLogs, Boolean firstParent, Location location)
       throws EvalException {
     return GitOrigin.newGitOrigin(
-        options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GIT,
-        SkylarkUtil.stringToEnum(location, "submodules",
+        options, checkNotEmpty(url, "url", location), Type.STRING.convertOptional(ref, "ref"),
+        GitRepoType.GIT, SkylarkUtil.stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
         includeBranchCommitLogs, firstParent);
   }
@@ -253,6 +253,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
   public GitOrigin gerritOrigin(String url, Object ref, String submodules,
       Boolean firstParent,
       Location location) throws EvalException {
+    checkNotEmpty(url, "url", location);
     String refField = Type.STRING.convertOptional(ref, "ref");
     if (!Strings.isNullOrEmpty(refField)) {
       options.get(GeneralOptions.class).console().warn(
@@ -330,6 +331,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
       Boolean baselineFromBranch, Boolean firstParent, String state, Location location)
       throws EvalException {
+    checkNotEmpty(url, "url", location);
     if (!url.contains("github.com")) {
       throw new EvalException(location, "Invalid Github URL: " + url);
     }
@@ -368,7 +370,7 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
       useLocation = true)
   public GitOrigin githubOrigin(String url, Object ref, String submodules,
       Boolean firstParent, Location location) throws EvalException {
-    if (!GithubUtil.isGitHubUrl(url)) {
+    if (!GithubUtil.isGitHubUrl(checkNotEmpty(url, "url", location))) {
       throw new EvalException(location, "Invalid Github URL: " + url);
     }
 

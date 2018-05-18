@@ -73,6 +73,7 @@ public class GerritOriginTest {
   private GitRevision secondRevision;
   private GitRevision thirdRevision;
   private String baseline;
+  private SkylarkTestExecutor skylark;
 
   @Before
   public void setup() throws Exception {
@@ -82,7 +83,7 @@ public class GerritOriginTest {
         .setConsole(console)
         .setOutputRootToTmpDir();
 
-    SkylarkTestExecutor skylark = new SkylarkTestExecutor(options);
+    skylark = new SkylarkTestExecutor(options);
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");
@@ -149,6 +150,11 @@ public class GerritOriginTest {
     git("update-ref", "refs/changes/45/12345/3", thirdRevision.getSha1());
 
     GitTestUtil.createFakeGerritNodeDbMeta(repo, 12345, CHANGE_ID);
+  }
+
+  @Test
+  public void testEmptyUrl() {
+    skylark.evalFails("git.gerrit_origin( url = '')", "Invalid empty field 'url'");
   }
 
   @Test

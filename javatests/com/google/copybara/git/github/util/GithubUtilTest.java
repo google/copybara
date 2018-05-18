@@ -48,5 +48,11 @@ public class GithubUtilTest {
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Not a github url");
     }
+    try {
+      getProjectNameFromUrl("");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e.getMessage()).contains("Empty url");
+    }
   }
 }

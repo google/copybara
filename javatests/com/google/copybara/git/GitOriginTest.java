@@ -156,6 +156,16 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testEmptyUrl() {
+    skylark.evalFails("git.origin( url = '')", "Invalid empty field 'url'");
+  }
+
+  @Test
+  public void testEmptyUrlGithub() {
+    skylark.evalFails("git.github_origin( url = '')", "Invalid empty field 'url'");
+  }
+
+  @Test
   public void testGitOriginWithEmptyRef() throws Exception {
     origin = skylark.eval("result",
         "result = git.origin(\n"
