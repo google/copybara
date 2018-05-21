@@ -18,17 +18,37 @@ output=$1
 shift
 echo "Generating documentation for $# transitive jars"
 printf '# Table of Contents\n\n\n' >> "$output"
-touch detail
+
 for jar in "$@";do
-  # Continue if no md file is found
-  unzip -q -p "$jar" "*.copybara.md" >> detail 2> /dev/null || continue
+    # Continue if no md file is found
+    unzip -q -t "$jar" "*.copybara.md"  2>&1 > /dev/null || continue
+    mkdir -p temp_dir
+    rm -f temp_dir/*
+    cd temp_dir
+    unzip -q "../$jar" "*.copybara.md" || continue
+    cd ..
+    for file in temp_dir/*; do
+      # Find module name and create a .md file. Not nice but should work for now
+      name="$(cat $file | grep "^## " | head -1 | sed 's/## //g').md"
+      # If the new file is bigger than the old one we assume it is an extension.
+      # It works as far as we don't delete exposed information (We shouldn't).
+      if [[ -f $name && "$(stat -c%s "$file")" -le "$(stat -c%s "$name")" ]]; then
+  	continue;
+      fi
+      cat $file > "$name"
+    done
 done
+
+# Consistent sorting between platforms
+export LC_ALL=C
+find *.md | sort -f | xargs cat > result
+
 {
   # Grep h1 (#) and h2 (##), contruct a line as '## - [foo](foo)' so that we have the
   # correct indentation, and finally replace ## or #### by spaces.
-  < detail grep "^###\\? "  | awk '{ print ""$1"- ["$2"](#"tolower($2)")"}'   \
+  < result grep "^###\\? "  | awk '{ print ""$1"- ["$2"](#"tolower($2)")"}'   \
     | sed 's/###/    /g' | sed 's/##/  /g'
 
   printf '\n\n'
-  cat detail
+  cat result
 } >> "$output"

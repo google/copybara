@@ -8,9 +8,59 @@
     - [authoring.whitelisted](#authoring.whitelisted)
     - [new_author](#new_author)
   - [authoring_class](#authoring_class)
+  - [change](#change)
   - [ChangeMessage](#changemessage)
     - [message.label_values](#message.label_values)
   - [Changes](#changes)
+  - [Console](#console)
+    - [console.error](#console.error)
+    - [console.info](#console.info)
+    - [console.progress](#console.progress)
+    - [console.verbose](#console.verbose)
+    - [console.warn](#console.warn)
+  - [core](#core)
+    - [core.copy](#core.copy)
+    - [core.dynamic_transform](#core.dynamic_transform)
+    - [core.move](#core.move)
+    - [core.remove](#core.remove)
+    - [core.replace](#core.replace)
+    - [core.reverse](#core.reverse)
+    - [core.todo_replace](#core.todo_replace)
+    - [core.transform](#core.transform)
+    - [core.verify_match](#core.verify_match)
+    - [core.workflow](#core.workflow)
+    - [parse_message](#parse_message)
+  - [folder](#folder)
+    - [folder.destination](#folder.destination)
+    - [folder.origin](#folder.origin)
+  - [git](#git)
+    - [git.destination](#git.destination)
+    - [git.gerrit_destination](#git.gerrit_destination)
+    - [git.gerrit_origin](#git.gerrit_origin)
+    - [git.github_api](#git.github_api)
+    - [git.github_origin](#git.github_origin)
+    - [git.github_pr_destination](#git.github_pr_destination)
+    - [git.github_pr_origin](#git.github_pr_origin)
+    - [git.integrate](#git.integrate)
+    - [git.mirror](#git.mirror)
+    - [git.origin](#git.origin)
+  - [Globals](#globals)
+    - [glob](#glob)
+  - [metadata](#metadata)
+    - [metadata.add_header](#metadata.add_header)
+    - [metadata.expose_label](#metadata.expose_label)
+    - [metadata.map_author](#metadata.map_author)
+    - [metadata.map_references](#metadata.map_references)
+    - [metadata.remove_label](#metadata.remove_label)
+    - [metadata.replace_message](#metadata.replace_message)
+    - [metadata.restore_author](#metadata.restore_author)
+    - [metadata.save_author](#metadata.save_author)
+    - [metadata.scrubber](#metadata.scrubber)
+    - [metadata.squash_notes](#metadata.squash_notes)
+    - [metadata.use_last_change](#metadata.use_last_change)
+    - [metadata.verify_match](#metadata.verify_match)
+  - [patch](#patch)
+    - [patch.apply](#patch.apply)
   - [Path](#path)
     - [path.relativize](#path.relativize)
     - [path.resolve](#path.resolve)
@@ -31,56 +81,6 @@
     - [ctx.set_author](#ctx.set_author)
     - [ctx.set_message](#ctx.set_message)
     - [ctx.write_path](#ctx.write_path)
-  - [change](#change)
-  - [git](#git)
-    - [git.destination](#git.destination)
-    - [git.gerrit_destination](#git.gerrit_destination)
-    - [git.gerrit_origin](#git.gerrit_origin)
-    - [git.github_api](#git.github_api)
-    - [git.github_origin](#git.github_origin)
-    - [git.github_pr_destination](#git.github_pr_destination)
-    - [git.github_pr_origin](#git.github_pr_origin)
-    - [git.integrate](#git.integrate)
-    - [git.mirror](#git.mirror)
-    - [git.origin](#git.origin)
-  - [Console](#console)
-    - [console.error](#console.error)
-    - [console.info](#console.info)
-    - [console.progress](#console.progress)
-    - [console.verbose](#console.verbose)
-    - [console.warn](#console.warn)
-  - [metadata](#metadata)
-    - [metadata.add_header](#metadata.add_header)
-    - [metadata.expose_label](#metadata.expose_label)
-    - [metadata.map_author](#metadata.map_author)
-    - [metadata.map_references](#metadata.map_references)
-    - [metadata.remove_label](#metadata.remove_label)
-    - [metadata.replace_message](#metadata.replace_message)
-    - [metadata.restore_author](#metadata.restore_author)
-    - [metadata.save_author](#metadata.save_author)
-    - [metadata.scrubber](#metadata.scrubber)
-    - [metadata.squash_notes](#metadata.squash_notes)
-    - [metadata.use_last_change](#metadata.use_last_change)
-    - [metadata.verify_match](#metadata.verify_match)
-  - [Globals](#globals)
-    - [glob](#glob)
-  - [core](#core)
-    - [core.copy](#core.copy)
-    - [core.dynamic_transform](#core.dynamic_transform)
-    - [core.move](#core.move)
-    - [core.remove](#core.remove)
-    - [core.replace](#core.replace)
-    - [core.reverse](#core.reverse)
-    - [core.todo_replace](#core.todo_replace)
-    - [core.transform](#core.transform)
-    - [core.verify_match](#core.verify_match)
-    - [core.workflow](#core.workflow)
-    - [parse_message](#parse_message)
-  - [folder](#folder)
-    - [folder.destination](#folder.destination)
-    - [folder.origin](#folder.origin)
-  - [patch](#patch)
-    - [patch.apply](#patch.apply)
 
 
 
@@ -242,6 +242,27 @@ The authors mapping between an origin and a destination
 
 
 
+## change
+
+A change metadata. Contains information like author, change message or detected labels
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+author | The author of the change
+date_time_iso_offset | Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'
+first_line_message | The message of the change
+labels | A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is an heuristic and it could include things that are not labels.
+labels_all_values | A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is an heuristic and it could include things that are not labels.
+merge | Returns true if the change represents a merge
+message | The message of the change
+original_author | The author of the change before any mapping
+ref | Origin reference ref
+
+
+
 ## ChangeMessage
 
 Represents a well formed parsed change message with its associated labels.
@@ -284,283 +305,593 @@ migrated | List of changes that where migrated in previous Copybara executions o
 
 
 
-## Path
+## Console
 
-Represents a path in the checkout directory
+A console that can be used in skylark transformations to print info, warning or error messages.
 
+<a id="console.error" aria-hidden="true"></a>
+### console.error
 
-#### Fields:
+Show an error in the log. Note that this will stop Copybara execution.
 
-Name | Description
----- | -----------
-attr | Get the file attributes, for example size.
-name | Filename of the path. For foo/bar/baz.txt it would be baz.txt
-parent | Get the parent path
-path | Full path relative to the checkout directory
-
-<a id="path.relativize" aria-hidden="true"></a>
-### path.relativize
-
-Constructs a relative path between this path and a given path. For example:<br>    path('a/b').relativize('a/b/c/d')<br>returns 'c/d'
-
-`Path path.relativize(other)`
+`console.error(message)`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-other | `Path`<br><p>The path to relativize against this path</p>
+message | `string`<br><p>message to log</p>
 
-<a id="path.resolve" aria-hidden="true"></a>
-### path.resolve
+<a id="console.info" aria-hidden="true"></a>
+### console.info
 
-Resolve the given path against this path.
+Show an info message in the console
 
-`Path path.resolve(child)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-child | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
-
-<a id="path.resolve_sibling" aria-hidden="true"></a>
-### path.resolve_sibling
-
-Resolve the given path against this path.
-
-`Path path.resolve_sibling(other)`
+`console.info(message)`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-other | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+message | `string`<br><p>message to log</p>
 
+<a id="console.progress" aria-hidden="true"></a>
+### console.progress
 
+Show a progress message in the console
 
-## PathAttributes
-
-Represents a path attributes like size.
-
-
-#### Fields:
-
-Name | Description
----- | -----------
-size | The size of the file. Throws an error if file size > 2GB.
-
-
-
-## TransformWork
-
-Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument to the <code>transformations</code> functions used in <code>core.workflow</code>
-
-
-#### Fields:
-
-Name | Description
----- | -----------
-author | Author to be used in the change
-changes | List of changes that will be migrated
-console | Get an instance of the console to report errors or warnings
-message | Message to be used in the change
-params | Parameters for the function if created with core.dynamic_transform
-
-<a id="ctx.add_label" aria-hidden="true"></a>
-### ctx.add_label
-
-Add a label to the end of the description
-
-`ctx.add_label(label, value, separator="=", hidden=False)`
+`console.progress(message)`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-label | `string`<br><p>The label to replace</p>
-value | `string`<br><p>The new value for the label</p>
-separator | `string`<br><p>The separator to use for the label</p>
-hidden | `boolean`<br><p>Don't show the label in the message but only keep it internally</p>
+message | `string`<br><p>message to log</p>
 
-<a id="ctx.add_or_replace_label" aria-hidden="true"></a>
-### ctx.add_or_replace_label
+<a id="console.verbose" aria-hidden="true"></a>
+### console.verbose
 
-Replace an existing label or add it to the end of the description
+Show an info message in the console if verbose logging is enabled.
 
-`ctx.add_or_replace_label(label, value, separator="=")`
+`console.verbose(message)`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-label | `string`<br><p>The label to replace</p>
-value | `string`<br><p>The new value for the label</p>
-separator | `string`<br><p>The separator to use for the label</p>
+message | `string`<br><p>message to log</p>
 
-<a id="ctx.add_text_before_labels" aria-hidden="true"></a>
-### ctx.add_text_before_labels
+<a id="console.warn" aria-hidden="true"></a>
+### console.warn
 
-Add a text to the description before the labels paragraph
+Show a warning in the console
 
-`ctx.add_text_before_labels()`
-
-<a id="ctx.find_all_labels" aria-hidden="true"></a>
-### ctx.find_all_labels
-
-Tries to find all the values for a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
-
-`sequence of string ctx.find_all_labels()`
-
-<a id="ctx.find_label" aria-hidden="true"></a>
-### ctx.find_label
-
-Tries to find a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
-
-`string ctx.find_label()`
-
-<a id="ctx.new_path" aria-hidden="true"></a>
-### ctx.new_path
-
-Create a new path
-
-`Path ctx.new_path(path)`
+`console.warn(message)`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-path | `string`<br><p>The string representing the path</p>
-
-<a id="ctx.now_as_string" aria-hidden="true"></a>
-### ctx.now_as_string
-
-Get current date as a string
-
-`string ctx.now_as_string(format="yyyy-MM-dd", zone="UTC")`
+message | `string`<br><p>message to log</p>
 
 
-#### Parameters:
 
-Parameter | Description
---------- | -----------
-format | `string`<br><p>The format to use. See: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for details.</p>
-zone | `object`<br><p>The timezone id to use. See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default UTC </p>
+## core
 
-<a id="ctx.read_path" aria-hidden="true"></a>
-### ctx.read_path
-
-Read the content of path as UTF-8
-
-`string ctx.read_path(path)`
+Core functionality for creating migrations, and basic transformations.
 
 
-#### Parameters:
 
-Parameter | Description
---------- | -----------
-path | `Path`<br><p>The string representing the path</p>
+**Command line flags:**
 
-<a id="ctx.remove_label" aria-hidden="true"></a>
-### ctx.remove_label
+Name | Type | Description
+---- | ---- | -----------
+--config-root | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
+--disable-reversible-check | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
+--force | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
+--noansi | *boolean* | Don't use ANSI output for messages
+--nocleanup | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
+--output-limit | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
+--output-root | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
+-v, --verbose | *boolean* | Verbose output.
 
-Remove a label from the message if present
+<a id="core.copy" aria-hidden="true"></a>
+### core.copy
 
-`ctx.remove_label(label, whole_message=False)`
+Copy files between directories and renames files
+
+`transformation core.copy(before, after, paths=glob(["**"]), overwrite=False)`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-label | `string`<br><p>The label to delete</p>
-whole_message | `boolean`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
-
-<a id="ctx.replace_label" aria-hidden="true"></a>
-### ctx.replace_label
-
-Replace a label if it exist in the message
-
-`ctx.replace_label(label, value, separator="=", whole_message=False)`
+before | `string`<br><p>The name of the file or directory to copy. If this is the empty string and 'after' is a directory, then all files in the workdir will be copied to the sub directory specified by 'after', maintaining the directory tree.</p>
+after | `string`<br><p>The name of the file or directory destination. If this is the empty string and 'before' is a directory, then all files in 'before' will be copied to the repo root, maintaining the directory tree inside 'before'.</p>
+paths | `glob`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
+overwrite | `boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 
 
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-label | `string`<br><p>The label to replace</p>
-value | `string`<br><p>The new value for the label</p>
-separator | `string`<br><p>The separator to use for the label</p>
-whole_message | `boolean`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
-
-<a id="ctx.run" aria-hidden="true"></a>
-### ctx.run
-
-Run a glob or a transform. For example:<br><code>files = ctx.run(glob(['**.java']))</code><br>or<br><code>ctx.run(core.move("foo", "bar"))</code><br>or<br>
-
-`object ctx.run(runnable)`
+#### Examples:
 
 
-#### Parameters:
+##### Copy a directory:
 
-Parameter | Description
---------- | -----------
-runnable | `object`<br><p>A glob or a transform (Transforms still not implemented)</p>
+Move all the files in a directory to another directory:
 
-<a id="ctx.set_author" aria-hidden="true"></a>
-### ctx.set_author
+```python
+core.copy("foo/bar_internal", "bar")
+```
 
-Update the author to be used in the change
+In this example, `foo/bar_internal/one` will be copied to `bar/one`.
 
-`ctx.set_author()`
 
-<a id="ctx.set_message" aria-hidden="true"></a>
-### ctx.set_message
+##### Copy with reversal:
 
-Update the message to be used in the change
+Copy all static files to a 'static' folder and use remove for reverting the change
 
-`ctx.set_message()`
+```python
+core.transform(
+    [core.copy("foo", "foo/static", paths = glob(["**.css","**.html", ]))],
+    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]
+)
+```
 
-<a id="ctx.write_path" aria-hidden="true"></a>
-### ctx.write_path
 
-Write an arbitrary string to a path (UTF-8 will be used)
+<a id="core.dynamic_transform" aria-hidden="true"></a>
+### core.dynamic_transform
 
-`ctx.write_path(path, content)`
+Create a dynamic Skylark transformation. This should only be used by libraries developers
+
+`transformation core.dynamic_transform(impl, params={})`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-path | `Path`<br><p>The string representing the path</p>
-content | `string`<br><p>The content of the file</p>
+impl | `baseFunction`<br><p>The Skylark function to call</p>
+params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
+
+
+#### Example:
+
+
+##### Create a dynamic transformation with parameter:
+
+If you want to create a library that uses dynamic transformations, you probably want to make them customizable. In order to do that, in your library.bara.sky, you need to hide the dynamic transformation (prefix with '_' and instead expose a function that creates the dynamic transformation with the param:
+
+```python
+def _test_impl(ctx):
+  ctx.set_message(ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\n')
+
+def test(name, number = 2):
+  return core.dynamic_transform(impl = _test_impl,
+                           params = { 'name': name, 'number': number})
+
+  
+```
+
+After defining this function, you can use `test('example', 42)` as a transformation in `core.workflow`.
+
+
+<a id="core.move" aria-hidden="true"></a>
+### core.move
+
+Moves files between directories and renames files
+
+`transformation core.move(before, after, paths=glob(["**"]), overwrite=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+before | `string`<br><p>The name of the file or directory before moving. If this is the empty string and 'after' is a directory, then all files in the workdir will be moved to the sub directory specified by 'after', maintaining the directory tree.</p>
+after | `string`<br><p>The name of the file or directory after moving. If this is the empty string and 'before' is a directory, then all files in 'before' will be moved to the repo root, maintaining the directory tree inside 'before'.</p>
+paths | `glob`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be moved. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
+overwrite | `boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+
+
+#### Examples:
+
+
+##### Move a directory:
+
+Move all the files in a directory to another directory:
+
+```python
+core.move("foo/bar_internal", "bar")
+```
+
+In this example, `foo/bar_internal/one` will be moved to `bar/one`.
+
+
+##### Move all the files to a subfolder:
+
+Move all the files in the checkout dir into a directory called foo:
+
+```python
+core.move("", "foo")
+```
+
+In this example, `one` and `two/bar` will be moved to `foo/one` and `foo/two/bar`.
+
+
+##### Move a subfolder's content to the root:
+
+Move the contents of a folder to the checkout root directory:
+
+```python
+core.move("foo", "")
+```
+
+In this example, `foo/bar` would be moved to `bar`.
+
+
+<a id="core.remove" aria-hidden="true"></a>
+### core.remove
+
+Remove files from the workdir. **This transformation is only mean to be used inside core.transform for reversing core.copy like transforms**. For regular file filtering use origin_files exclude mechanism.
+
+`remove core.remove(paths)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+paths | `glob`<br><p>The files to be deleted</p>
+
+
+#### Examples:
+
+
+##### Reverse a file copy:
+
+Move all the files in a directory to another directory:
+
+```python
+core.transform(
+    [core.copy("foo", "foo/public")],
+    reversal = [core.remove(glob(["foo/public/**"]))])
+```
+
+In this example, `foo/bar_internal/one` will be moved to `bar/one`.
+
+
+##### Copy with reversal:
+
+Copy all static files to a 'static' folder and use remove for reverting the change
+
+```python
+core.transform(
+    [core.copy("foo", "foo/static", paths = glob(["**.css","**.html", ]))],
+    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]
+)
+```
+
+
+<a id="core.replace" aria-hidden="true"></a>
+### core.replace
+
+Replace a text with another text using optional regex groups. This tranformer can be automatically reversed.
+
+`replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False, ignore=[])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+before | `string`<br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'.</p>
+after | `string`<br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
+regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the replaced text.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
+paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+first_only | `boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
+multiline | `boolean`<br><p>Whether to replace text that spans more than one line.</p>
+repeated_groups | `boolean`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
+ignore | `sequence`<br><p>A set of regexes. Any text that matches any expression in this set, which might otherwise be transformed, will be ignored.</p>
+
+
+#### Examples:
+
+
+##### Simple replacement:
+
+Replaces the text "internal" with "external" in all java files
+
+```python
+core.replace(
+    before = "internal",
+    after = "external",
+    paths = glob(["**.java"]),
+)
+```
+
+
+##### Replace using regex groups:
+
+In this example we map some urls from the internal to the external version in all the files of the project.
+
+```python
+core.replace(
+        before = "https://some_internal/url/${pkg}.html",
+        after = "https://example.com/${pkg}.html",
+        regex_groups = {
+            "pkg": ".*",
+        },
+    )
+```
+
+So a url like `https://some_internal/url/foo/bar.html` will be transformed to `https://example.com/foo/bar.html`.
+
+
+##### Remove confidential blocks:
+
+This example removes blocks of text/code that are confidential and thus shouldn'tbe exported to a public repository.
+
+```python
+core.replace(
+        before = "${x}",
+        after = "",
+        multiline = True,
+        regex_groups = {
+            "x": "(?m)^.*BEGIN-INTERNAL[\\w\\W]*?END-INTERNAL.*$\\n",
+        },
+    )
+```
+
+This replace would transform a text file like:
+
+```
+This is
+public
+ // BEGIN-INTERNAL
+ confidential
+ information
+ // END-INTERNAL
+more public code
+ // BEGIN-INTERNAL
+ more confidential
+ information
+ // END-INTERNAL
+```
+
+Into:
+
+```
+This is
+public
+more public code
+```
 
 
 
-## change
 
-A change metadata. Contains information like author, change message or detected labels
+<a id="core.reverse" aria-hidden="true"></a>
+### core.reverse
+
+Given a list of transformations, returns the list of transformations equivalent to undoing all the transformations
+
+`sequence core.reverse(transformations)`
 
 
-#### Fields:
+#### Parameters:
 
-Name | Description
----- | -----------
-author | The author of the change
-date_time_iso_offset | Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'
-first_line_message | The message of the change
-labels | A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is an heuristic and it could include things that are not labels.
-labels_all_values | A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is an heuristic and it could include things that are not labels.
-merge | Returns true if the change represents a merge
-message | The message of the change
-original_author | The author of the change before any mapping
+Parameter | Description
+--------- | -----------
+transformations | `sequence of transformation`<br><p>The transformations to reverse</p>
+
+<a id="core.todo_replace" aria-hidden="true"></a>
+### core.todo_replace
+
+Replace Google style TODOs. For example `TODO(username, othername)`.
+
+`todoReplace core.todo_replace(tags=['TODO', 'NOTE'], mapping={}, mode='MAP_OR_IGNORE', paths=glob(["**"]), default=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+tags | `sequence of string`<br><p>Prefix tag to look for</p>
+mapping | `dict`<br><p>Mapping of users/strings</p>
+mode | `string`<br><p>Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul></p>
+paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+default | `string`<br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
+
+
+#### Examples:
+
+
+##### Simple update:
+
+Replace TODOs and NOTES for users in the mapping:
+
+```python
+core.todo_replace(
+  mapping = {
+    'test1' : 'external1',
+    'test2' : 'external2'
+  }
+)
+```
+
+Would replace texts like TODO(test1) or NOTE(test1, test2) with TODO(external1) or NOTE(external1, external2)
+
+
+##### Scrubbing:
+
+Remove text from inside TODOs
+
+```python
+core.todo_replace(
+  mode = 'SCRUB_NAMES'
+)
+```
+
+Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo and NOTE:foo
+
+
+<a id="core.transform" aria-hidden="true"></a>
+### core.transform
+
+Groups some transformations in a transformation that can contain a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.<br>If reversal is not provided, the transform will try to compute the reverse of the transformations list.
+
+`transformation core.transform(transformations, reversal=The reverse of 'transformations', ignore_noop=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+transformations | `sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation.</p>
+reversal | `sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
+ignore_noop | `boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
+
+<a id="core.verify_match" aria-hidden="true"></a>
+### core.verify_match
+
+Verifies that a RegEx matches (or not matches) the specified files. Does not transform anything, but will stop the workflow if it fails.
+
+`verifyMatch core.verify_match(regex, paths=glob(["**"]), verify_no_match=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+regex | `string`<br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
+paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+verify_no_match | `boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
+
+<a id="core.workflow" aria-hidden="true"></a>
+### core.workflow
+
+Defines a migration pipeline which can be invoked via the Copybara command.
+
+Implicit labels that can be used/exposed:
+
+  - COPYBARA_CONTEXT_REFERENCE: Requested reference. For example if copybara is invoked as `copybara copy.bara.sky workflow master`, the value would be `master`.
+  - COPYBARA_LAST_REV: Last reference that was migrated
+  - COPYBARA_CURRENT_REV: The current reference being migrated
+  - COPYBARA_CURRENT_MESSAGE: The current message at this point of the transformations
+  - COPYBARA_CURRENT_MESSAGE_TITLE: The current message title (first line) at this point of the transformations
+
+
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], change_identity=None, set_rev_id=True, smart_prune=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+name | `string`<br><p>The name of the workflow.</p>
+origin | `origin`<br><p>Where to read from the code to be migrated, before applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
+destination | `destination`<br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
+authoring | `authoring_class`<br><p>The author mapping configuration from origin to destination.</p>
+transformations | `sequence`<br><p>The transformations to be run for this workflow. They will run in sequence.</p>
+origin_files | `glob`<br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
+destination_files | `glob`<br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
+mode | `string`<br><p>Workflow mode. Currently we support three modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change, etc. The final intention should be to submit the change.</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the Source-of-Truth. This mode is useful when, despite the pending change being already in the SoT, the users want to review the code on a different system. The final intention should never be to submit in the destination, but just review or test</li></ul></p>
+reversible_check | `boolean`<br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
+check_last_rev_state | `boolean`<br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
+ask_for_confirmation | `boolean`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
+dry_run | `boolean`<br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
+after_migration | `sequence`<br><p>Run a feedback workflow after one migration happens. STILL WIP</p>
+change_identity | `string`<br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: The name of the workflow being run</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
+set_rev_id | `boolean`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For certain workflows like `CHANGE_REQUEST` it not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
+smart_prune | `boolean`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+--change-request-from-sot-limit | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
+--change-request-from-sot-retry | *integer>* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
+--change_request_parent | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
+--check-last-rev-state | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
+--default-author | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
+--dry-run | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
+--ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
+--import-noop-changes | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
+--init-history | *boolean* | Import all the changes from the beginning of the history up to the resolved ref. For 'ITERATIVE' workflows this will import individual changes since the first one. For 'SQUASH' it will import the squashed change up to the resolved ref. WARNING: Use with care, this flag should be used only for the very first run of Copybara for a workflow.
+--iterative-limit-changes | *int* | Import just a number of changes instead of all the pending ones
+--last-rev | *string* | Last revision that was migrated to the destination
+--nosmart-prune | *boolean* | Disable smart prunning
+--notransformation-join | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
+--read-config-from-change | *boolean* | For each imported origin change, load the configuration from that change.
+--squash-skip-history | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
+--threads | *int* | Number of threads to use when running transformations that change lot of files
+--threads-min-size | *int* | Minimum size of the lists to process to run them in parallel
+--workflow-identity-user | *string* | Use a custom string as a user for computing change identity
+
+<a id="parse_message" aria-hidden="true"></a>
+### parse_message
+
+Returns a ChangeMessage parsed from a well formed string.
+
+`ChangeMessage parse_message(message)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+message | `string`<br><p>The contents of the change message</p>
+
+
+
+## folder
+
+Module for dealing with local filesytem folders
+
+<a id="folder.destination" aria-hidden="true"></a>
+### folder.destination
+
+A folder destination is a destination that puts the output in a folder. It can be used both for testing or real production migrations.Given that folder destination does not support a lot of the features of real VCS, there are some limitations on how to use it:<ul><li>It requires passing a ref as an argument, as there is no way of calculating previous migrated changes. Alternatively, --last-rev can be used, which could migrate N changes.<li>Most likely, the workflow should use 'SQUASH' mode, as history is not supported.<li>If 'ITERATIVE' mode is used, a new temp directory will be created for each change migrated.</ul>
+
+`destination folder.destination()`
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+--folder-dir | *string* | Local directory to write the output of the migration to. If the directory exists, all files will be deleted. By default Copybara will generate a temporary directory, so you shouldn't need this.
+
+<a id="folder.origin" aria-hidden="true"></a>
+### folder.origin
+
+A folder origin is a origin that uses a folder as input
+
+`folderOrigin folder.origin(materialize_outside_symlinks=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+materialize_outside_symlinks | `boolean`<br><p>By default folder.origin will refuse any symlink in the migration folder that is an absolute symlink or that refers to a file outside of the folder. If this flag is set, it will materialize those symlinks as regular files in the checkout directory.</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+--folder-origin-author | *string* | Author of the change being migrated from folder.origin()
+--folder-origin-message | *string* | Message of the change being migrated from folder.origin()
 
 
 
@@ -867,79 +1198,81 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 
 
 
-## Console
+## Globals
 
-A console that can be used in skylark transformations to print info, warning or error messages.
+Global functions available in Copybara
 
-<a id="console.error" aria-hidden="true"></a>
-### console.error
+<a id="glob" aria-hidden="true"></a>
+### glob
 
-Show an error in the log. Note that this will stop Copybara execution.
+Glob returns a list of every file in the workdir that matches at least one pattern in include and does not match any of the patterns in exclude.
 
-`console.error(message)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-message | `string`<br><p>message to log</p>
-
-<a id="console.info" aria-hidden="true"></a>
-### console.info
-
-Show an info message in the console
-
-`console.info(message)`
+`glob glob(include, exclude=[])`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-message | `string`<br><p>message to log</p>
-
-<a id="console.progress" aria-hidden="true"></a>
-### console.progress
-
-Show a progress message in the console
-
-`console.progress(message)`
+include | `sequence of string`<br><p>The list of glob patterns to include</p>
+exclude | `sequence of string`<br><p>The list of glob patterns to exclude</p>
 
 
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-message | `string`<br><p>message to log</p>
-
-<a id="console.verbose" aria-hidden="true"></a>
-### console.verbose
-
-Show an info message in the console if verbose logging is enabled.
-
-`console.verbose(message)`
+#### Examples:
 
 
-#### Parameters:
+##### Simple usage:
 
-Parameter | Description
---------- | -----------
-message | `string`<br><p>message to log</p>
+Include all the files under a folder except for `internal` folder files:
 
-<a id="console.warn" aria-hidden="true"></a>
-### console.warn
-
-Show a warning in the console
-
-`console.warn(message)`
+```python
+glob(["foo/**"], exclude = ["foo/internal/**"])
+```
 
 
-#### Parameters:
+##### Multiple folders:
 
-Parameter | Description
---------- | -----------
-message | `string`<br><p>message to log</p>
+Globs can have multiple inclusive rules:
+
+```python
+glob(["foo/**", "bar/**", "baz/**.java"])
+```
+
+This will include all files inside `foo` and `bar` folders and Java files inside `baz` folder.
+
+
+##### Multiple excludes:
+
+Globs can have multiple exclusive rules:
+
+```python
+glob(["foo/**"], exclude = ["foo/internal/**", "foo/confidential/**" ])
+```
+
+Include all the files of `foo` except the ones in `internal` and `confidential` folders
+
+
+##### All BUILD files recursively:
+
+Copybara uses Java globbing. The globbing is very similar to Bash one. This means that recursive globbing for a filename is a bit more tricky:
+
+```python
+glob(["BUILD", "**/BUILD"])
+```
+
+This is the correct way of matching all `BUILD` files recursively, including the one in the root. `**/BUILD` would only match `BUILD` files in subdirectories.
+
+
+##### Matching multiple strings with one expression:
+
+While two globs can be used for matching two directories, there is a more compact approach:
+
+```python
+glob(["{java,javatests}/**"])
+```
+
+This matches any file in `java` and `javatests` folders.
+
 
 
 
@@ -1539,598 +1872,6 @@ metadata.verify_match("<public>(.|\n)*</public>")
 
 
 
-## Globals
-
-Global functions available in Copybara
-
-<a id="glob" aria-hidden="true"></a>
-### glob
-
-Glob returns a list of every file in the workdir that matches at least one pattern in include and does not match any of the patterns in exclude.
-
-`glob glob(include, exclude=[])`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-include | `sequence of string`<br><p>The list of glob patterns to include</p>
-exclude | `sequence of string`<br><p>The list of glob patterns to exclude</p>
-
-
-#### Examples:
-
-
-##### Simple usage:
-
-Include all the files under a folder except for `internal` folder files:
-
-```python
-glob(["foo/**"], exclude = ["foo/internal/**"])
-```
-
-
-##### Multiple folders:
-
-Globs can have multiple inclusive rules:
-
-```python
-glob(["foo/**", "bar/**", "baz/**.java"])
-```
-
-This will include all files inside `foo` and `bar` folders and Java files inside `baz` folder.
-
-
-##### Multiple excludes:
-
-Globs can have multiple exclusive rules:
-
-```python
-glob(["foo/**"], exclude = ["foo/internal/**", "foo/confidential/**" ])
-```
-
-Include all the files of `foo` except the ones in `internal` and `confidential` folders
-
-
-##### All BUILD files recursively:
-
-Copybara uses Java globbing. The globbing is very similar to Bash one. This means that recursive globbing for a filename is a bit more tricky:
-
-```python
-glob(["BUILD", "**/BUILD"])
-```
-
-This is the correct way of matching all `BUILD` files recursively, including the one in the root. `**/BUILD` would only match `BUILD` files in subdirectories.
-
-
-##### Matching multiple strings with one expression:
-
-While two globs can be used for matching two directories, there is a more compact approach:
-
-```python
-glob(["{java,javatests}/**"])
-```
-
-This matches any file in `java` and `javatests` folders.
-
-
-
-
-## core
-
-Core functionality for creating migrations, and basic transformations.
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ---- | -----------
---config-root | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
---disable-reversible-check | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
---force | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
---noansi | *boolean* | Don't use ANSI output for messages
---nocleanup | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
---output-limit | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
---output-root | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
--v, --verbose | *boolean* | Verbose output.
-
-<a id="core.copy" aria-hidden="true"></a>
-### core.copy
-
-Copy files between directories and renames files
-
-`transformation core.copy(before, after, paths=glob(["**"]), overwrite=False)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-before | `string`<br><p>The name of the file or directory to copy. If this is the empty string and 'after' is a directory, then all files in the workdir will be copied to the sub directory specified by 'after', maintaining the directory tree.</p>
-after | `string`<br><p>The name of the file or directory destination. If this is the empty string and 'before' is a directory, then all files in 'before' will be copied to the repo root, maintaining the directory tree inside 'before'.</p>
-paths | `glob`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
-overwrite | `boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
-
-
-#### Examples:
-
-
-##### Copy a directory:
-
-Move all the files in a directory to another directory:
-
-```python
-core.copy("foo/bar_internal", "bar")
-```
-
-In this example, `foo/bar_internal/one` will be copied to `bar/one`.
-
-
-##### Copy with reversal:
-
-Copy all static files to a 'static' folder and use remove for reverting the change
-
-```python
-core.transform(
-    [core.copy("foo", "foo/static", paths = glob(["**.css","**.html", ]))],
-    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]
-)
-```
-
-
-<a id="core.dynamic_transform" aria-hidden="true"></a>
-### core.dynamic_transform
-
-Create a dynamic Skylark transformation. This should only be used by libraries developers
-
-`transformation core.dynamic_transform(impl, params={})`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-impl | `baseFunction`<br><p>The Skylark function to call</p>
-params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
-
-
-#### Example:
-
-
-##### Create a dynamic transformation with parameter:
-
-If you want to create a library that uses dynamic transformations, you probably want to make them customizable. In order to do that, in your library.bara.sky, you need to hide the dynamic transformation (prefix with '_' and instead expose a function that creates the dynamic transformation with the param:
-
-```python
-def _test_impl(ctx):
-  ctx.set_message(ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\n')
-
-def test(name, number = 2):
-  return core.dynamic_transform(impl = _test_impl,
-                           params = { 'name': name, 'number': number})
-
-  
-```
-
-After defining this function, you can use `test('example', 42)` as a transformation in `core.workflow`.
-
-
-<a id="core.move" aria-hidden="true"></a>
-### core.move
-
-Moves files between directories and renames files
-
-`transformation core.move(before, after, paths=glob(["**"]), overwrite=False)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-before | `string`<br><p>The name of the file or directory before moving. If this is the empty string and 'after' is a directory, then all files in the workdir will be moved to the sub directory specified by 'after', maintaining the directory tree.</p>
-after | `string`<br><p>The name of the file or directory after moving. If this is the empty string and 'before' is a directory, then all files in 'before' will be moved to the repo root, maintaining the directory tree inside 'before'.</p>
-paths | `glob`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be moved. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
-overwrite | `boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
-
-
-#### Examples:
-
-
-##### Move a directory:
-
-Move all the files in a directory to another directory:
-
-```python
-core.move("foo/bar_internal", "bar")
-```
-
-In this example, `foo/bar_internal/one` will be moved to `bar/one`.
-
-
-##### Move all the files to a subfolder:
-
-Move all the files in the checkout dir into a directory called foo:
-
-```python
-core.move("", "foo")
-```
-
-In this example, `one` and `two/bar` will be moved to `foo/one` and `foo/two/bar`.
-
-
-##### Move a subfolder's content to the root:
-
-Move the contents of a folder to the checkout root directory:
-
-```python
-core.move("foo", "")
-```
-
-In this example, `foo/bar` would be moved to `bar`.
-
-
-<a id="core.remove" aria-hidden="true"></a>
-### core.remove
-
-Remove files from the workdir. **This transformation is only mean to be used inside core.transform for reversing core.copy like transforms**. For regular file filtering use origin_files exclude mechanism.
-
-`remove core.remove(paths)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-paths | `glob`<br><p>The files to be deleted</p>
-
-
-#### Examples:
-
-
-##### Reverse a file copy:
-
-Move all the files in a directory to another directory:
-
-```python
-core.transform(
-    [core.copy("foo", "foo/public")],
-    reversal = [core.remove(glob(["foo/public/**"]))])
-```
-
-In this example, `foo/bar_internal/one` will be moved to `bar/one`.
-
-
-##### Copy with reversal:
-
-Copy all static files to a 'static' folder and use remove for reverting the change
-
-```python
-core.transform(
-    [core.copy("foo", "foo/static", paths = glob(["**.css","**.html", ]))],
-    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]
-)
-```
-
-
-<a id="core.replace" aria-hidden="true"></a>
-### core.replace
-
-Replace a text with another text using optional regex groups. This tranformer can be automatically reversed.
-
-`replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False, ignore=[])`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-before | `string`<br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'.</p>
-after | `string`<br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
-regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the replaced text.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
-paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-first_only | `boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
-multiline | `boolean`<br><p>Whether to replace text that spans more than one line.</p>
-repeated_groups | `boolean`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
-ignore | `sequence`<br><p>A set of regexes. Any text that matches any expression in this set, which might otherwise be transformed, will be ignored.</p>
-
-
-#### Examples:
-
-
-##### Simple replacement:
-
-Replaces the text "internal" with "external" in all java files
-
-```python
-core.replace(
-    before = "internal",
-    after = "external",
-    paths = glob(["**.java"]),
-)
-```
-
-
-##### Replace using regex groups:
-
-In this example we map some urls from the internal to the external version in all the files of the project.
-
-```python
-core.replace(
-        before = "https://some_internal/url/${pkg}.html",
-        after = "https://example.com/${pkg}.html",
-        regex_groups = {
-            "pkg": ".*",
-        },
-    )
-```
-
-So a url like `https://some_internal/url/foo/bar.html` will be transformed to `https://example.com/foo/bar.html`.
-
-
-##### Remove confidential blocks:
-
-This example removes blocks of text/code that are confidential and thus shouldn'tbe exported to a public repository.
-
-```python
-core.replace(
-        before = "${x}",
-        after = "",
-        multiline = True,
-        regex_groups = {
-            "x": "(?m)^.*BEGIN-INTERNAL[\\w\\W]*?END-INTERNAL.*$\\n",
-        },
-    )
-```
-
-This replace would transform a text file like:
-
-```
-This is
-public
- // BEGIN-INTERNAL
- confidential
- information
- // END-INTERNAL
-more public code
- // BEGIN-INTERNAL
- more confidential
- information
- // END-INTERNAL
-```
-
-Into:
-
-```
-This is
-public
-more public code
-```
-
-
-
-
-<a id="core.reverse" aria-hidden="true"></a>
-### core.reverse
-
-Given a list of transformations, returns the list of transformations equivalent to undoing all the transformations
-
-`sequence core.reverse(transformations)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-transformations | `sequence of transformation`<br><p>The transformations to reverse</p>
-
-<a id="core.todo_replace" aria-hidden="true"></a>
-### core.todo_replace
-
-Replace Google style TODOs. For example `TODO(username, othername)`.
-
-`todoReplace core.todo_replace(tags=['TODO', 'NOTE'], mapping={}, mode='MAP_OR_IGNORE', paths=glob(["**"]), default=None)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-tags | `sequence of string`<br><p>Prefix tag to look for</p>
-mapping | `dict`<br><p>Mapping of users/strings</p>
-mode | `string`<br><p>Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul></p>
-paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-default | `string`<br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
-
-
-#### Examples:
-
-
-##### Simple update:
-
-Replace TODOs and NOTES for users in the mapping:
-
-```python
-core.todo_replace(
-  mapping = {
-    'test1' : 'external1',
-    'test2' : 'external2'
-  }
-)
-```
-
-Would replace texts like TODO(test1) or NOTE(test1, test2) with TODO(external1) or NOTE(external1, external2)
-
-
-##### Scrubbing:
-
-Remove text from inside TODOs
-
-```python
-core.todo_replace(
-  mode = 'SCRUB_NAMES'
-)
-```
-
-Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo and NOTE:foo
-
-
-<a id="core.transform" aria-hidden="true"></a>
-### core.transform
-
-Groups some transformations in a transformation that can contain a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.<br>If reversal is not provided, the transform will try to compute the reverse of the transformations list.
-
-`transformation core.transform(transformations, reversal=The reverse of 'transformations', ignore_noop=None)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-transformations | `sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation.</p>
-reversal | `sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
-ignore_noop | `boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
-
-<a id="core.verify_match" aria-hidden="true"></a>
-### core.verify_match
-
-Verifies that a RegEx matches (or not matches) the specified files. Does not transform anything, but will stop the workflow if it fails.
-
-`verifyMatch core.verify_match(regex, paths=glob(["**"]), verify_no_match=False)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-regex | `string`<br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
-paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-verify_no_match | `boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
-
-<a id="core.workflow" aria-hidden="true"></a>
-### core.workflow
-
-Defines a migration pipeline which can be invoked via the Copybara command.
-
-Implicit labels that can be used/exposed:
-
-  - COPYBARA_CONTEXT_REFERENCE: Requested reference. For example if copybara is invoked as `copybara copy.bara.sky workflow master`, the value would be `master`.
-  - COPYBARA_LAST_REV: Last reference that was migrated
-  - COPYBARA_CURRENT_REV: The current reference being migrated
-  - COPYBARA_CURRENT_MESSAGE: The current message at this point of the transformations
-  - COPYBARA_CURRENT_MESSAGE_TITLE: The current message title (first line) at this point of the transformations
-
-
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], change_identity=None, set_rev_id=True, smart_prune=False)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-name | `string`<br><p>The name of the workflow.</p>
-origin | `origin`<br><p>Where to read from the code to be migrated, before applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
-destination | `destination`<br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
-authoring | `authoring_class`<br><p>The author mapping configuration from origin to destination.</p>
-transformations | `sequence`<br><p>The transformations to be run for this workflow. They will run in sequence.</p>
-origin_files | `glob`<br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
-destination_files | `glob`<br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
-mode | `string`<br><p>Workflow mode. Currently we support three modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change, etc. The final intention should be to submit the change.</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the Source-of-Truth. This mode is useful when, despite the pending change being already in the SoT, the users want to review the code on a different system. The final intention should never be to submit in the destination, but just review or test</li></ul></p>
-reversible_check | `boolean`<br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
-check_last_rev_state | `boolean`<br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
-ask_for_confirmation | `boolean`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
-dry_run | `boolean`<br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
-after_migration | `sequence`<br><p>Run a feedback workflow after one migration happens. STILL WIP</p>
-change_identity | `string`<br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: The name of the workflow being run</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
-set_rev_id | `boolean`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For certain workflows like `CHANGE_REQUEST` it not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
-smart_prune | `boolean`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ---- | -----------
---change-request-from-sot-limit | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
---change-request-from-sot-retry | *integer>* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
---change_request_parent | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
---check-last-rev-state | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
---default-author | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
---dry-run | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
---ignore-noop | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
---import-noop-changes | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
---init-history | *boolean* | Import all the changes from the beginning of the history up to the resolved ref. For 'ITERATIVE' workflows this will import individual changes since the first one. For 'SQUASH' it will import the squashed change up to the resolved ref. WARNING: Use with care, this flag should be used only for the very first run of Copybara for a workflow.
---iterative-limit-changes | *int* | Import just a number of changes instead of all the pending ones
---last-rev | *string* | Last revision that was migrated to the destination
---nosmart-prune | *boolean* | Disable smart prunning
---notransformation-join | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
---read-config-from-change | *boolean* | For each imported origin change, load the configuration from that change.
---squash-skip-history | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
---threads | *int* | Number of threads to use when running transformations that change lot of files
---threads-min-size | *int* | Minimum size of the lists to process to run them in parallel
---workflow-identity-user | *string* | Use a custom string as a user for computing change identity
-
-<a id="parse_message" aria-hidden="true"></a>
-### parse_message
-
-Returns a ChangeMessage parsed from a well formed string.
-
-`ChangeMessage parse_message(message)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-message | `string`<br><p>The contents of the change message</p>
-
-
-
-## folder
-
-Module for dealing with local filesytem folders
-
-<a id="folder.destination" aria-hidden="true"></a>
-### folder.destination
-
-A folder destination is a destination that puts the output in a folder. It can be used both for testing or real production migrations.Given that folder destination does not support a lot of the features of real VCS, there are some limitations on how to use it:<ul><li>It requires passing a ref as an argument, as there is no way of calculating previous migrated changes. Alternatively, --last-rev can be used, which could migrate N changes.<li>Most likely, the workflow should use 'SQUASH' mode, as history is not supported.<li>If 'ITERATIVE' mode is used, a new temp directory will be created for each change migrated.</ul>
-
-`destination folder.destination()`
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ---- | -----------
---folder-dir | *string* | Local directory to write the output of the migration to. If the directory exists, all files will be deleted. By default Copybara will generate a temporary directory, so you shouldn't need this.
-
-<a id="folder.origin" aria-hidden="true"></a>
-### folder.origin
-
-A folder origin is a origin that uses a folder as input
-
-`folderOrigin folder.origin(materialize_outside_symlinks=False)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-materialize_outside_symlinks | `boolean`<br><p>By default folder.origin will refuse any symlink in the migration folder that is an absolute symlink or that refers to a file outside of the folder. If this flag is set, it will materialize those symlinks as regular files in the checkout directory.</p>
-
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ---- | -----------
---folder-origin-author | *string* | Author of the change being migrated from folder.origin()
---folder-origin-message | *string* | Message of the change being migrated from folder.origin()
-
-
-
 ## patch
 
 Module for applying patches.
@@ -2150,5 +1891,265 @@ Parameter | Description
 patches | `sequence of string`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).</p>
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
 series | `string`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).</p>
+
+
+
+## Path
+
+Represents a path in the checkout directory
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+attr | Get the file attributes, for example size.
+name | Filename of the path. For foo/bar/baz.txt it would be baz.txt
+parent | Get the parent path
+path | Full path relative to the checkout directory
+
+<a id="path.relativize" aria-hidden="true"></a>
+### path.relativize
+
+Constructs a relative path between this path and a given path. For example:<br>    path('a/b').relativize('a/b/c/d')<br>returns 'c/d'
+
+`Path path.relativize(other)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+other | `Path`<br><p>The path to relativize against this path</p>
+
+<a id="path.resolve" aria-hidden="true"></a>
+### path.resolve
+
+Resolve the given path against this path.
+
+`Path path.resolve(child)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+child | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+
+<a id="path.resolve_sibling" aria-hidden="true"></a>
+### path.resolve_sibling
+
+Resolve the given path against this path.
+
+`Path path.resolve_sibling(other)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+other | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+
+
+
+## PathAttributes
+
+Represents a path attributes like size.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+size | The size of the file. Throws an error if file size > 2GB.
+
+
+
+## TransformWork
+
+Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument to the <code>transformations</code> functions used in <code>core.workflow</code>
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+author | Author to be used in the change
+changes | List of changes that will be migrated
+console | Get an instance of the console to report errors or warnings
+message | Message to be used in the change
+params | Parameters for the function if created with core.dynamic_transform
+
+<a id="ctx.add_label" aria-hidden="true"></a>
+### ctx.add_label
+
+Add a label to the end of the description
+
+`ctx.add_label(label, value, separator="=", hidden=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p>The label to replace</p>
+value | `string`<br><p>The new value for the label</p>
+separator | `string`<br><p>The separator to use for the label</p>
+hidden | `boolean`<br><p>Don't show the label in the message but only keep it internally</p>
+
+<a id="ctx.add_or_replace_label" aria-hidden="true"></a>
+### ctx.add_or_replace_label
+
+Replace an existing label or add it to the end of the description
+
+`ctx.add_or_replace_label(label, value, separator="=")`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p>The label to replace</p>
+value | `string`<br><p>The new value for the label</p>
+separator | `string`<br><p>The separator to use for the label</p>
+
+<a id="ctx.add_text_before_labels" aria-hidden="true"></a>
+### ctx.add_text_before_labels
+
+Add a text to the description before the labels paragraph
+
+`ctx.add_text_before_labels()`
+
+<a id="ctx.find_all_labels" aria-hidden="true"></a>
+### ctx.find_all_labels
+
+Tries to find all the values for a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
+
+`sequence of string ctx.find_all_labels()`
+
+<a id="ctx.find_label" aria-hidden="true"></a>
+### ctx.find_label
+
+Tries to find a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
+
+`string ctx.find_label()`
+
+<a id="ctx.new_path" aria-hidden="true"></a>
+### ctx.new_path
+
+Create a new path
+
+`Path ctx.new_path(path)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `string`<br><p>The string representing the path</p>
+
+<a id="ctx.now_as_string" aria-hidden="true"></a>
+### ctx.now_as_string
+
+Get current date as a string
+
+`string ctx.now_as_string(format="yyyy-MM-dd", zone="UTC")`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+format | `string`<br><p>The format to use. See: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for details.</p>
+zone | `object`<br><p>The timezone id to use. See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default UTC </p>
+
+<a id="ctx.read_path" aria-hidden="true"></a>
+### ctx.read_path
+
+Read the content of path as UTF-8
+
+`string ctx.read_path(path)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `Path`<br><p>The string representing the path</p>
+
+<a id="ctx.remove_label" aria-hidden="true"></a>
+### ctx.remove_label
+
+Remove a label from the message if present
+
+`ctx.remove_label(label, whole_message=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p>The label to delete</p>
+whole_message | `boolean`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+
+<a id="ctx.replace_label" aria-hidden="true"></a>
+### ctx.replace_label
+
+Replace a label if it exist in the message
+
+`ctx.replace_label(label, value, separator="=", whole_message=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p>The label to replace</p>
+value | `string`<br><p>The new value for the label</p>
+separator | `string`<br><p>The separator to use for the label</p>
+whole_message | `boolean`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+
+<a id="ctx.run" aria-hidden="true"></a>
+### ctx.run
+
+Run a glob or a transform. For example:<br><code>files = ctx.run(glob(['**.java']))</code><br>or<br><code>ctx.run(core.move("foo", "bar"))</code><br>or<br>
+
+`object ctx.run(runnable)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+runnable | `object`<br><p>A glob or a transform (Transforms still not implemented)</p>
+
+<a id="ctx.set_author" aria-hidden="true"></a>
+### ctx.set_author
+
+Update the author to be used in the change
+
+`ctx.set_author()`
+
+<a id="ctx.set_message" aria-hidden="true"></a>
+### ctx.set_message
+
+Update the message to be used in the change
+
+`ctx.set_message()`
+
+<a id="ctx.write_path" aria-hidden="true"></a>
+### ctx.write_path
+
+Write an arbitrary string to a path (UTF-8 will be used)
+
+`ctx.write_path(path, content)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `Path`<br><p>The string representing the path</p>
+content | `string`<br><p>The content of the file</p>
 
 

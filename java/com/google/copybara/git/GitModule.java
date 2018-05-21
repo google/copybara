@@ -16,7 +16,6 @@
 
 package com.google.copybara.git;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
@@ -29,6 +28,7 @@ import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_USER;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
@@ -36,7 +36,6 @@ import com.google.copybara.Options;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
 import com.google.copybara.config.LabelsAwareModule;
-import com.google.copybara.config.OptionsAwareModule;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -72,7 +71,7 @@ import java.util.List;
     doc = "Set of functions to define Git origins and destinations.",
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(GitOptions.class)
-public class GitModule implements OptionsAwareModule, LabelsAwareModule {
+public class GitModule implements LabelsAwareModule {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
   static final SkylarkList<GitIntegrateChanges> DEFAULT_GIT_INTEGRATES =
@@ -82,8 +81,12 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
               /*ignoreErrors=*/true)));
 
   // TODO(malcon): Remove and pass specific ones as constructor parameter
-  private Options options;
+  private final Options options;
   private ConfigFile<?> mainConfigFile;
+
+  public GitModule(Options options) {
+    this.options = Preconditions.checkNotNull(options);
+  }
 
   @SuppressWarnings("unused")
   @SkylarkCallable(name = "origin",
@@ -623,11 +626,6 @@ public class GitModule implements OptionsAwareModule, LabelsAwareModule {
     return SetReviewInput.create(
         SkylarkDict.castSkylarkDictOrNoneToDict(
             labels, String.class, Integer.class, "Gerrit review  labels"));
-  }
-
-  @Override
-  public void setOptions(Options options) {
-    this.options = checkNotNull(options);
   }
 
   @Override

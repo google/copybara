@@ -31,6 +31,7 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Environment;
@@ -92,7 +93,7 @@ public class SkylarkTestExecutor {
     try {
       Environment env =
           skylarkParser.executeSkylark(
-              createConfigFile(DEFAULT_FILE, config), options.build(), options.general.console());
+              createConfigFile(DEFAULT_FILE, config), createModuleSet(), options.general.console());
       T t = (T) env.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
@@ -104,11 +105,11 @@ public class SkylarkTestExecutor {
     }
   }
 
-  String getLogErrors() {
-    return "\nLogged errors:\n" +
-        getConsole().getMessages().stream()
+  private String getLogErrors() {
+    return "\nLogged errors:\n"
+        + getConsole().getMessages().stream()
         .filter(m -> m.getType().equals(MessageType.ERROR))
-        .map(m -> m.getText()).reduce((a,b) -> a + "\n" + b)
+        .map(Message::getText).reduce((a, b) -> a + "\n" + b)
         .orElse("No log errors");
   }
 

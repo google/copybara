@@ -51,8 +51,6 @@ public class ModuleSupplier {
       Core.class,
       Authoring.Module.class,
       FolderModule.class,
-      // TODO(malcon): Move to non-static
-      GitModule.class,
       MetadataModule.class,
       PatchModule.class);
   private final Map<String, String> environment;
@@ -79,8 +77,7 @@ public class ModuleSupplier {
    */
   public ImmutableSet<Object> getModules(Options options) {
     return ImmutableSet.of(
-        // TODO(malcon): Move GitModule from static to non-static
-        // new GitModule()
+        new GitModule(options)
     );
   }
 
@@ -134,5 +131,4 @@ public class ModuleSupplier {
     }
     throw new IllegalStateException("Cannot find @SkylarkModule for " + o.getClass());
   }
-
 }

@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ModuleSet;
-import com.google.copybara.Options;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
@@ -47,6 +46,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -97,17 +97,16 @@ public class SkylarkParser {
   @SuppressWarnings("unchecked")
   public Config loadConfig(ConfigFile<?> config, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException {
-    Preconditions.checkArgument(moduleSet.getModules().isEmpty(), "Still not implemented!");
     return getConfigWithTransitiveImports(config, moduleSet, console).config;
   }
 
-  private Config loadConfigInternal(ConfigFile content, Options options,
+  private Config loadConfigInternal(ConfigFile<?> content, ModuleSet moduleSet,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier, Console console)
       throws IOException, ValidationException {
     GlobalMigrations globalMigrations;
     Environment env;
     try {
-      env = new Evaluator(options, content, configFilesSupplier, console).eval(content);
+      env = new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
       globalMigrations = GlobalMigrations.getGlobalMigrations(env);
     } catch (InterruptedException e) {
       // This should not happen since we shouldn't have anything interruptable during loading.
@@ -118,12 +117,13 @@ public class SkylarkParser {
   }
 
   @VisibleForTesting
-  public <T> Environment executeSkylark(ConfigFile<T> content, Options options, Console console)
+  public <T> Environment executeSkylark(ConfigFile<T> content, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException, InterruptedException {
     CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(content);
     ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
 
-    Environment eval = new Evaluator(options, content, configFilesSupplier, console).eval(content);
+    Environment eval = new Evaluator(moduleSet, content, configFilesSupplier, console)
+        .eval(content);
 
     ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
     configFilesSupplier.setConfigFiles(allLoadedFiles);
@@ -146,8 +146,8 @@ public class SkylarkParser {
     CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(config);
     ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
 
-    Config parsedConfig = loadConfigInternal(capturingConfigFile, moduleSet.getOptions(),
-        configFilesSupplier, console);
+    Config parsedConfig = loadConfigInternal(capturingConfigFile, moduleSet, configFilesSupplier,
+        console);
 
     ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
 
@@ -161,7 +161,7 @@ public class SkylarkParser {
 
     private ImmutableMap<String, ConfigFile<T>> configFiles = null;
 
-    public void setConfigFiles(ImmutableMap<String, ConfigFile<T>> configFiles) {
+    void setConfigFiles(ImmutableMap<String, ConfigFile<T>> configFiles) {
       Preconditions.checkState(this.configFiles == null, "Already set");
       this.configFiles = Preconditions.checkNotNull(configFiles);
     }
@@ -201,14 +201,16 @@ public class SkylarkParser {
     private final EventHandler eventHandler;
     // Globals shared by all the files loaded
     private final GlobalFrame moduleGlobals;
+    private final ModuleSet moduleSet;
 
-    private Evaluator(Options options, ConfigFile<?> mainConfigFile,
+    private Evaluator(ModuleSet moduleSet, ConfigFile<?> mainConfigFile,
         Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier,
         Console console) {
       this.console = Preconditions.checkNotNull(console);
       this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
+      this.moduleSet = Preconditions.checkNotNull(moduleSet);
       eventHandler = new ConsoleEventHandler(this.console);
-      moduleGlobals = createModuleGlobals(eventHandler, options, configFilesSupplier);
+      moduleGlobals = createModuleGlobals(eventHandler, this.moduleSet, configFilesSupplier);
     }
 
     private Environment eval(ConfigFile<?> content)
@@ -230,7 +232,8 @@ public class SkylarkParser {
       }
       Environment env = createEnvironment(
           eventHandler,
-          createGlobalsForConfigFile(eventHandler, content, mainConfigFile, moduleGlobals),
+          createGlobalsForConfigFile(eventHandler, content, mainConfigFile, moduleGlobals,
+              moduleSet),
           imports);
 
       checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
@@ -275,9 +278,20 @@ public class SkylarkParser {
    */
   private GlobalFrame createGlobalsForConfigFile(
       EventHandler eventHandler, ConfigFile<?> currentConfigFile, ConfigFile<?> mainConfigFile,
-      GlobalFrame moduleGlobals) {
+      GlobalFrame moduleGlobals, ModuleSet moduleSet) {
     Environment env = createEnvironment(eventHandler, moduleGlobals, ImmutableMap.of());
 
+    for (Object module : moduleSet.getModules().values()) {
+      // We mutate the module per file loaded. Not ideal but it is the best we can do.
+      if (module instanceof LabelsAwareModule) {
+        ((LabelsAwareModule) module).setConfigFile(mainConfigFile, currentConfigFile);
+        ((LabelsAwareModule) module)
+            .setDynamicEnvironment(() -> Environment.builder(Mutability.create("dynamic_action"))
+                .setSemantics(SkylarkSemantics.DEFAULT_SEMANTICS)
+                .setEventHandler(eventHandler)
+                .build());
+      }
+    }
     for (Class<?> module : modules) {
       logger.atInfo().log("Creating variable for %s", module.getName());
       // We mutate the module per file loaded. Not ideal but it is the best we can do.
@@ -299,10 +313,19 @@ public class SkylarkParser {
    * Create a global enviroment for one evaluation (will be shared between all the dependant
    * files loaded).
    */
-  private GlobalFrame createModuleGlobals(EventHandler eventHandler, Options options,
+  private GlobalFrame createModuleGlobals(EventHandler eventHandler, ModuleSet moduleSet,
       Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK,
         ImmutableMap.of());
+
+    for (Entry<String, Object> module : moduleSet.getModules().entrySet()) {
+      logger.atInfo().log("Creating variable for %s", module.getKey());
+      if (module.getValue() instanceof LabelsAwareModule) {
+        ((LabelsAwareModule) module.getValue()).setAllConfigResources(configFilesSupplier);
+      }
+      // Modules shouldn't use the same name
+      env.setup(module.getKey(), module.getValue());
+    }
 
     for (Class<?> module : modules) {
       logger.atInfo().log("Creating variable for %s", module.getName());
@@ -310,7 +333,7 @@ public class SkylarkParser {
       Runtime.setupModuleGlobals(env, module);
       // Add the options to the module that require them
       if (OptionsAwareModule.class.isAssignableFrom(module)) {
-        ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(options);
+        ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(moduleSet.getOptions());
       }
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
         ((LabelsAwareModule) getModuleGlobal(env, module))

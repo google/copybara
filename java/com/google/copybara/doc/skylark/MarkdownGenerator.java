@@ -60,6 +60,7 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.FileObject;
@@ -116,7 +117,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       modules.add(docModule);
       for (Element element : globalModules) {
         TypeElement module = (TypeElement) element;
-        for (Element member : filterSkylarkCallable(module.getEnclosedElements())) {
+        for (Element member : findSkylarkCallables(module)) {
           docModule.functions.add(callableFunction((ExecutableElement) member,
               annotationHelper(member, SkylarkCallable.class), /*prefix=*/null));
         }
@@ -137,7 +138,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       DocModule docModule = new DocModule(skyModule.name(), skyModule.doc());
       modules.add(docModule);
 
-      for (Element member : filterSkylarkCallable(module.getEnclosedElements())) {
+      for (Element member : findSkylarkCallables(module)) {
         AnnotationHelper<SkylarkCallable> ann = annotationHelper(member, SkylarkCallable.class);
         if (ann.ann.structField()) {
           docModule.fields.add(new DocField(ann.ann.name(), ann.ann.doc()));
@@ -186,11 +187,20 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         callable.ann.parameters(), skylarkTypeName(member.getReturnType()));
   }
 
-  private List<? extends Element> filterSkylarkCallable(List<? extends Element> enclosedElements) {
-    return enclosedElements.stream().filter(member -> {
+  private List<? extends Element> findSkylarkCallables(TypeElement module) {
+    TypeMirror superclass = module.getSuperclass();
+    ImmutableList.Builder<Element> result = ImmutableList.builder();
+    if (!(superclass instanceof NoType)) {
+      Element element = processingEnv.getTypeUtils().asElement(superclass);
+      if (element instanceof TypeElement) {
+        result.addAll(findSkylarkCallables((TypeElement) element));
+      }
+    }
+    result.addAll(module.getEnclosedElements().stream().filter(member -> {
       AnnotationHelper<SkylarkCallable> ann = annotationHelper(member, SkylarkCallable.class);
       return ann != null && member instanceof ExecutableElement && ann.ann.documented();
-    }).collect(Collectors.toList());
+    }).collect(Collectors.toList()));
+    return result.build();
   }
 
   private List<? extends Element> filterSkylarkSignature(List<? extends Element> enclosedElements) {
