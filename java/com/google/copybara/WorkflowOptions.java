@@ -182,8 +182,12 @@ public class WorkflowOptions implements Option {
    */
   public void reportNoop(Console console, String message, boolean currentIgnoreNoop)
       throws VoidOperationException {
-    if (ignoreNoop || currentIgnoreNoop) {
+    if (ignoreNoop) {
       console.warn("NOOP: " + message);
+    } else if(currentIgnoreNoop){
+      if(console.isVerbose()){
+        console.warn("NOOP: " + message);
+      }
     } else {
       throw new VoidOperationException(message);
     }

@@ -45,6 +45,11 @@ public final class TestingConsole extends CapturingConsole {
         LogConsole.writeOnlyConsole(System.out, /*verbose=*/ true)), ALL_TYPES);
   }
 
+  public TestingConsole(boolean verbose) {
+    super(CapturingConsole.captureAllConsole(
+        LogConsole.writeOnlyConsole(System.out, verbose)), ALL_TYPES);
+  }
+
   public TestingConsole respondYes() {
     this.programmedResponses.addLast(PromptResponse.YES);
     return this;

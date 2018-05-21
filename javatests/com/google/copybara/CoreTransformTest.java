@@ -45,13 +45,14 @@ public final class CoreTransformTest {
   private SkylarkTestExecutor skylark;
   private TestingConsole console;
   private Path checkoutDir;
+  private OptionsBuilder options;
 
   @Before
   public void setup() throws IOException {
     FileSystem fs = Jimfs.newFileSystem();
     checkoutDir = fs.getPath("/test-checkoutDir");
     Files.createDirectories(checkoutDir);
-    OptionsBuilder options = new OptionsBuilder();
+    options = new OptionsBuilder();
     skylark = new SkylarkTestExecutor(options);
     console = new TestingConsole();
     options.setConsole(console);
@@ -186,6 +187,24 @@ public final class CoreTransformTest {
         .containsFile("file.txt", "baz")
         .containsNoMoreFiles();
     console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
+  }
+
+  @Test
+  public void testIgnoreNoopWithVerboseFalse() throws ValidationException, IOException {
+    ExplicitReversal t = skylark.eval("x", "x="
+        + "core.transform([\n"
+            + "    core.replace(\n"
+            + "        before = 'not found',\n"
+            + "        after = 'not important',\n"
+            + "    ),\n"
+            + "],"
+            + "ignore_noop=True)");
+    console = new TestingConsole(false);
+    options.setConsole(console);
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+    t.transform(TransformWorks.of(checkoutDir, "msg", console));
+    console.assertThat().matchesNext(MessageType.PROGRESS, ".*Replace not found.*")
+        .containsNoMoreMessages();
   }
 
   @Test
