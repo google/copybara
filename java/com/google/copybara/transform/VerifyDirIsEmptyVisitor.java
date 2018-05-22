@@ -16,30 +16,39 @@
 
 package com.google.copybara.transform;
 
+import com.google.common.base.Preconditions;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
+import javax.annotation.Nullable;
 
 /**
  * A visitor which recursively verifies there are no files or symlinks in a directory tree.
  */
 final class VerifyDirIsEmptyVisitor extends SimpleFileVisitor<Path> {
   private final Path root;
+  @Nullable
+  private final PathMatcher pathMatcher;
   private final ArrayList<String> existingFiles = new ArrayList<>();
 
-  VerifyDirIsEmptyVisitor(Path root) {
-    this.root = root;
+  VerifyDirIsEmptyVisitor(Path root, @Nullable PathMatcher pathMatcher) {
+    this.root = Preconditions.checkNotNull(root);
+    this.pathMatcher = pathMatcher;
   }
 
   @Override
-  public FileVisitResult visitFile(Path source, BasicFileAttributes attrs) throws IOException {
-    existingFiles.add(root.relativize(source).toString());
+  public FileVisitResult visitFile(Path source, BasicFileAttributes attrs) {
+    Path relative = root.relativize(source);
+    if (pathMatcher == null || pathMatcher.matches(relative)) {
+      existingFiles.add(relative.toString());
+    }
     return FileVisitResult.CONTINUE;
   }
 

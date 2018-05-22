@@ -111,9 +111,12 @@ public class CopyOrMove implements Transformation {
     Path after = work.getCheckoutDir().resolve(this.after).normalize();
       if (Files.isDirectory(after, LinkOption.NOFOLLOW_LINKS)
           && after.startsWith(before)) {
-        // When moving from a parent dir to a sub-directory, make sure after doesn't already have
-        // files in it - this is most likely a mistake.
-        new VerifyDirIsEmptyVisitor(after).walk();
+      // When moving from a parent dir to a sub-directory, make sure after doesn't already have
+      // files in it - this is most likely a mistake.
+      new VerifyDirIsEmptyVisitor(
+              after,
+              Files.isDirectory(before) && paths != Glob.ALL_FILES ? paths.relativeTo(after) : null)
+          .walk();
       }
       createParentDirs(after);
       try {

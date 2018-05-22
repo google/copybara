@@ -16,11 +16,13 @@
 
 package com.google.copybara.transform;
 
+import static com.google.common.truth.Truth.*;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
+import com.google.common.truth.Truth;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
@@ -31,8 +33,11 @@ import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -426,10 +431,71 @@ public class CopyOrMoveTest {
     touch("third_party/java/bar.java");
     touch("third_party/java/foo.java");
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage(
-        "Files already exist in " + checkoutDir + "/third_party/java: [bar.java, foo.java]");
-    transform(mover);
+    try {
+      transform(mover);
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains(
+              "Files already exist in " + checkoutDir + "/third_party/java: [bar.java, foo.java]");
+    }
+  }
+
+  @Test
+  public void testMoveWithGlob() throws Exception {
+    ExplicitReversal t = skylark.eval("m", "m = "
+        + "core.transform([\n"
+        + "  core.move('foo','' , paths = glob(['**.txt'])),\n"
+        + "  core.move('foo/bar', 'bar'),\n"
+        + "])\n");
+    touch("foo/baz");
+    touch("foo/foo.txt");
+    touch("foo/bar");
+    transform(t);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo.txt", "bar", "foo/baz")
+        .containsNoMoreFiles();
+
+    transform(t.reverse());
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo/foo.txt", "foo/bar", "foo/baz")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCanMoveWithPathGlobsSpecificFile() throws Exception {
+    ExplicitReversal t = skylark.eval("m", "m = "
+        + "core.transform([\n"
+        + "  core.move('foo','' , paths = glob(['foo.txt'])),\n"
+        + "  core.move('foo/bar', 'bar'),\n"
+        + "])\n");
+    touch("foo/baz");
+    touch("foo/foo.txt");
+    touch("foo/bar");
+    transform(t);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo.txt", "bar", "foo/baz")
+        .containsNoMoreFiles();
+
+    transform(t.reverse());
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo/foo.txt", "foo/bar", "foo/baz")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCannotMoveWithPathGlobsSpecificFile() throws Exception {
+    CopyOrMove t = skylark.eval("m", "m = core.move('foo', '' , paths = glob(['foo.txt']))");
+    touch("foo/foo.txt");
+    touch("foo.txt");
+    try {
+      transform(t);
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat()
+          .contains("Cannot move file to '" + checkoutDir + "/foo.txt' because it already exists");
+    }
   }
 
   @Test
