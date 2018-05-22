@@ -39,7 +39,7 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 
 /** Gerrit endpoint implementation for feedback migrations. */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 @SkylarkModule(
     name = "gerrit_api_obj",
     category = SkylarkModuleCategory.BUILTIN,
@@ -128,7 +128,7 @@ public class GerritEndpoint implements Endpoint {
       throws EvalException {
     try {
       return doSetReview(changeId, revisionId, reviewInput);
-    } catch (RepoException | ValidationException e) {
+    } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(/*location=*/ null, e);
     }
   }
@@ -159,7 +159,7 @@ public class GerritEndpoint implements Endpoint {
       GerritApi gerritApi = gerritOptions.newGerritApi(url);
       return SkylarkList.createImmutable(
           gerritApi.getChanges(new ChangesQuery(String.format("commit:%s", commit))));
-    } catch (RepoException | ValidationException e) {
+    } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(/*location=*/ null, e);
     }
   }

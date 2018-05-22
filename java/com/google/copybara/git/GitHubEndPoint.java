@@ -116,7 +116,7 @@ public class GitHubEndPoint implements Endpoint {
       String project = GithubUtil.getProjectNameFromUrl(url);
       return githubOptions.getApi(project).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
-    } catch (RepoException | ValidationException e) {
+    } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(/*location=*/null, e);
     }
   }

@@ -19,6 +19,7 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.util.Collections;
@@ -52,5 +53,10 @@ public class SetReviewInput {
 
   public static SetReviewInput create(Map<String, Integer> labels) {
     return new SetReviewInput(labels);
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this).add("labels", labels).toString();
   }
 }

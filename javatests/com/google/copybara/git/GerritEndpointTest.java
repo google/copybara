@@ -27,7 +27,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.testing.DummyTrigger;
@@ -90,7 +89,7 @@ public class GerritEndpointTest {
           }
 
           @Override
-          protected GitRepository getCredentialsRepo() throws RepoException {
+          protected GitRepository getCredentialsRepo() {
             return repo;
           }
         };
@@ -393,7 +392,6 @@ public class GerritEndpointTest {
 
   @Test
   public void testPostLabel() throws ValidationException {
-    gitApiMockHttpTransport = new TestingGitApiHttpTransport();
     String config =
         String.format(
             "git.gerrit_api(url = '%s')."
@@ -406,7 +404,6 @@ public class GerritEndpointTest {
 
   @Test
   public void testListChanges() throws ValidationException {
-    gitApiMockHttpTransport = new TestingGitApiHttpTransport();
     String config =
         String.format(
             "git.gerrit_api(url = '%s')."

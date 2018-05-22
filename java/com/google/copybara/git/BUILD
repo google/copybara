@@ -44,6 +44,7 @@ java_library(
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:global_migrations",
         "//java/com/google/copybara/doc:annotations",

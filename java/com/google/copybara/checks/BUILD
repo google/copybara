@@ -12,45 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-licenses(["notice"])  # Apache 2.0
-
 package(default_visibility = ["//visibility:public"])
 
-JAVACOPTS = [
-    "-Xlint:unchecked",
-    "-source",
-    "1.8",
-]
+licenses(["notice"])  # Apache 2.0
 
 java_library(
-    name = "util",
-    srcs = glob(
-        ["util/**/*.java"],
-    ),
-    javacopts = JAVACOPTS,
-    deps = [
-        "//java/com/google/copybara/exception",
-        "//third_party:guava",
-        "//third_party:re2j",
+    name = "checks",
+    srcs = glob(["**/*.java"]),
+    javacopts = [
+        "-Xlint:unchecked",
+        "-source",
+        "1.8",
     ],
-)
-
-java_library(
-    name = "api",
-    srcs = glob(
-        ["api/**/*.java"],
-    ),
-    javacopts = JAVACOPTS,
     deps = [
-        "//java/com/google/copybara/checks",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/git:core",
-        "//java/com/google/copybara/profiler",
-        "//java/com/google/copybara/util/console",
-        "//third_party:flogger",
-        "//third_party:google_http_client",
         "//third_party:guava",
         "//third_party:jsr305",
+        "//third_party:re2j",
         "//third_party:skylark-lang",
     ],
 )
