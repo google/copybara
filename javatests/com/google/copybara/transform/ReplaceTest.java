@@ -85,7 +85,7 @@ public final class ReplaceTest {
     skylark.evalFails("core.replace(\n"
             + "  before = 'asdf',\n"
             + ")",
-        "missing mandatory positional argument 'after'");
+        "parameter 'after' has no default value");
   }
 
   @Test

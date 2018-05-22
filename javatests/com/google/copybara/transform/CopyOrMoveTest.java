@@ -440,7 +440,7 @@ public class CopyOrMoveTest {
     } catch (ValidationException expected) {}
 
     console.assertThat()
-        .onceInLog(MessageType.ERROR, ".*missing mandatory .* 'before'.*");
+        .onceInLog(MessageType.ERROR, ".*parameter 'before' has no default value.*");
   }
 
   @Test
@@ -451,6 +451,6 @@ public class CopyOrMoveTest {
     } catch (ValidationException expected) {}
 
     console.assertThat()
-        .onceInLog(MessageType.ERROR, ".*missing mandatory .* 'after'.*");
+        .onceInLog(MessageType.ERROR, ".*parameter 'after' has no default value.*");
   }
 }

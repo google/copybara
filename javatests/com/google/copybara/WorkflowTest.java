@@ -1556,7 +1556,7 @@ public class WorkflowTest {
       fail();
     } catch (ValidationException e) {
       console().assertThat().onceInLog(MessageType.ERROR,
-          ".*missing mandatory positional argument 'authoring'.*");
+          ".*parameter 'authoring' has no default value.*");
     }
   }
 
@@ -1580,7 +1580,7 @@ public class WorkflowTest {
         System.err.println(message);
       }
       console().assertThat().onceInLog(MessageType.ERROR,
-          ".*missing mandatory positional argument 'origin'.*");
+          ".*parameter 'origin' has no default value.*");
     }
   }
 
@@ -1726,7 +1726,7 @@ public class WorkflowTest {
       fail();
     } catch (ValidationException e) {
       console().assertThat().onceInLog(MessageType.ERROR,
-          ".*missing mandatory positional argument 'destination'.*");
+          ".*parameter 'destination' has no default value.*");
     }
   }
 

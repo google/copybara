@@ -47,8 +47,7 @@ import java.util.function.Function;
 public class ModuleSupplier {
 
   private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
-      GlobModule.class,
-      Core.class,
+      CoreGlobal.class,
       Authoring.Module.class,
       FolderModule.class,
       MetadataModule.class,
@@ -77,6 +76,7 @@ public class ModuleSupplier {
    */
   public ImmutableSet<Object> getModules(Options options) {
     return ImmutableSet.of(
+        new Core(options.get(GeneralOptions.class), options.get(WorkflowOptions.class)),
         new GitModule(options)
     );
   }

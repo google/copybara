@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
+import com.google.copybara.doc.annotations.DocDefault;
+import com.google.copybara.doc.annotations.DocDefaults;
 import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.doc.annotations.Example;
@@ -42,6 +44,7 @@ import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -225,12 +228,28 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
     ImmutableList.Builder<DocParam> params = ImmutableList.builder();
 
+    Map<String, String> docDefaultsMap = new HashMap<>();
+    AnnotationHelper<DocDefaults> docDefaults = annotationHelper(member, DocDefaults.class);
+    AnnotationHelper<DocDefault> docDefault = annotationHelper(member, DocDefault.class);
+
+    if (docDefaults != null) {
+      for (DocDefault d : docDefaults.ann.value()) {
+        docDefaultsMap.put(d.field(), d.value());
+      }
+    } else if (docDefault != null) {
+      docDefaultsMap.put(docDefault.ann.field(), docDefault.ann.value());
+    }
+
     for (int i = skipFirstParam ? 1 : 0; i < paramsAnnotations.size(); i++) {
       AnnotationHelper<Param> param = new AnnotationHelper<>(
           parameters[i], (AnnotationMirror) paramsAnnotations.get(i).getValue(), member);
       params.add(new DocParam(
           param.ann.name(),
-          Strings.isNullOrEmpty(param.ann.defaultValue()) ? null : param.ann.defaultValue(),
+          docDefaultsMap.containsKey(param.ann.name())
+              ? docDefaultsMap.get(param.ann.name())
+              : Strings.isNullOrEmpty(param.ann.defaultValue())
+                  ? null
+                  : param.ann.defaultValue(),
           skylarkTypeNameGeneric(
               param.getClassValue("type"),
               param.getClassValue("generic1")),

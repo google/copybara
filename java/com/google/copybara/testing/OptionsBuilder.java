@@ -47,7 +47,7 @@ import com.google.copybara.git.GithubOptions;
 import com.google.copybara.git.GithubPrOriginOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.util.console.LogConsole;
+import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
@@ -65,7 +65,7 @@ public class OptionsBuilder {
           System.getenv(),
           Jimfs.newFileSystem(),
           /*verbose=*/ true,
-          LogConsole.readWriteConsole(System.in, System.out, /*verbose*/ true),
+          new TestingConsole(),
           /* configRoot= */ null,
           /*outputRoot*/ null,
           /*reuseOutputDirs*/ true,

@@ -29,7 +29,6 @@
     - [core.transform](#core.transform)
     - [core.verify_match](#core.verify_match)
     - [core.workflow](#core.workflow)
-    - [parse_message](#parse_message)
   - [folder](#folder)
     - [folder.destination](#folder.destination)
     - [folder.origin](#folder.origin)
@@ -46,6 +45,7 @@
     - [git.origin](#git.origin)
   - [Globals](#globals)
     - [glob](#glob)
+    - [parse_message](#parse_message)
   - [metadata](#metadata)
     - [metadata.add_header](#metadata.add_header)
     - [metadata.expose_label](#metadata.expose_label)
@@ -680,7 +680,7 @@ more public code
 
 Given a list of transformations, returns the list of transformations equivalent to undoing all the transformations
 
-`sequence core.reverse(transformations)`
+`sequence of transformation core.reverse(transformations)`
 
 
 #### Parameters:
@@ -786,7 +786,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_CURRENT_MESSAGE_TITLE: The current message title (first line) at this point of the transformations
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(['**']), destination_files=glob(['**']), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], change_identity=None, set_rev_id=True, smart_prune=False)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=True for CHANGE_REQUEST, ask_for_confirmation=False, dry_run=False, after_migration=[], change_identity=None, set_rev_id=True, smart_prune=False)`
 
 
 #### Parameters:
@@ -834,20 +834,6 @@ Name | Type | Description
 --threads | *int* | Number of threads to use when running transformations that change lot of files
 --threads-min-size | *int* | Minimum size of the lists to process to run them in parallel
 --workflow-identity-user | *string* | Use a custom string as a user for computing change identity
-
-<a id="parse_message" aria-hidden="true"></a>
-### parse_message
-
-Returns a ChangeMessage parsed from a well formed string.
-
-`ChangeMessage parse_message(message)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-message | `string`<br><p>The contents of the change message</p>
 
 
 
@@ -1273,6 +1259,20 @@ glob(["{java,javatests}/**"])
 
 This matches any file in `java` and `javatests` folders.
 
+
+<a id="parse_message" aria-hidden="true"></a>
+### parse_message
+
+Returns a ChangeMessage parsed from a well formed string.
+
+`ChangeMessage parse_message(message)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+message | `string`<br><p>The contents of the change message</p>
 
 
 

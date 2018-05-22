@@ -28,10 +28,12 @@ import com.google.devtools.build.lib.syntax.Type;
 import java.util.List;
 
 /**
- * A module to expose Skylark glob() function.
+ * A module to expose Skylark glob(), parse_message(), etc functions.
+ *
+ * <p>Don't add functions here and prefer "core" namespace unless it is something really general
  */
 @SkylarkGlobalLibrary
-public class GlobModule {
+public class CoreGlobal {
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
@@ -79,6 +81,23 @@ public class GlobModule {
       throw new EvalException(location, String.format(
           "Cannot create a glob from: include='%s' and exclude='%s': %s",
           includeStrings, excludeStrings, e.getMessage()), e);
+    }
+  }
+
+  @SuppressWarnings("unused")
+  @SkylarkCallable(
+      name = "parse_message",
+      doc = "Returns a ChangeMessage parsed from a well formed string.",
+      parameters = {
+          @Param(name = "message", named = true, type = String.class,
+              doc = "The contents of the change message"),
+      }, useLocation = true)
+  public ChangeMessage parseMessage(String changeMessage, Location location) throws EvalException {
+    try {
+      return ChangeMessage.parseMessage(changeMessage);
+    } catch (RuntimeException e) {
+      throw new EvalException(location, String.format(
+          "Cannot parse change message '%s': %s", changeMessage, e.getMessage()), e);
     }
   }
 }
