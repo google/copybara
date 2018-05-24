@@ -29,8 +29,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -535,6 +537,118 @@ public class GithubPrOriginTest {
         .contains("Migration success at");
     assertThat(gitApiMockHttpTransport.requests.get(2).getRequest())
         .contains("Migration success at");
+  }
+
+  @Test
+  public void testReviewApprovers() throws Exception {
+    GitRevision noReviews = checkReviewApprovers();
+    assertThat(noReviews.associatedLabels())
+        .doesNotContainKey(GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER);
+    assertThat(noReviews.associatedLabels())
+        .doesNotContainKey(GithubPROrigin.GITHUB_PR_REVIEWER_OTHER);
+
+    GitRevision any = checkReviewApprovers("review_state = 'ANY'");
+
+    assertThat(any.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+        .containsExactly("APPROVED_MEMBER", "COMMENTED_OWNER", "APPROVED_COLLABORATOR");
+    assertThat(any.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+        .containsExactly("COMMENTED_OTHER");
+
+    try {
+      checkReviewApprovers("review_state = 'HEAD_COMMIT_APPROVED'",
+          "review_approvers = [\"MEMBER\", \"OWNER\"]");
+      fail();
+    } catch (EmptyChangeException e) {
+      assertThat(e).hasMessageThat().contains("missing the required approvals");
+    }
+
+    GitRevision hasReviewers = checkReviewApprovers("review_state = 'ANY_COMMIT_APPROVED'",
+        "review_approvers = [\"MEMBER\", \"OWNER\"]");
+
+    assertThat(hasReviewers.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+        .containsExactly("APPROVED_MEMBER", "COMMENTED_OWNER");
+    assertThat(hasReviewers.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+        .containsExactly("COMMENTED_OTHER", "APPROVED_COLLABORATOR");
+
+    GitRevision anyCommitApproved = checkReviewApprovers("review_state = 'HAS_REVIEWERS'",
+        "review_approvers = [\"OWNER\"]");
+
+    assertThat(anyCommitApproved.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+        .containsExactly("COMMENTED_OWNER");
+    assertThat(anyCommitApproved.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+        .containsExactly("APPROVED_MEMBER", "COMMENTED_OTHER", "APPROVED_COLLABORATOR");
+  }
+
+  private GitRevision checkReviewApprovers(String... configLines)
+      throws RepoException, IOException, ValidationException {
+    GitRepository remote = localHubRepo("google/example");
+    addFiles(remote, "base", ImmutableMap.<String, String>builder().put("test.txt", "a").build());
+    addFiles(remote, "one", ImmutableMap.<String, String>builder().put("test.txt", "b").build());
+    addFiles(remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").build());
+
+    String prHeadSha1 = remote.parseRef("HEAD");
+    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
+
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+        if (url.contains("/reviews")) {
+          return (toJson(ImmutableList.of(
+              ImmutableMap.of(
+                  "user", ImmutableMap.of(
+                      "login", "APPROVED_COLLABORATOR"
+                  ),
+                  "state", "APPROVED",
+                  "author_association", "COLLABORATOR",
+                  "commit_id", prHeadSha1
+              ),
+              ImmutableMap.of(
+                  "user", ImmutableMap.of(
+                      "login", "APPROVED_MEMBER"
+                  ),
+                  "state", "APPROVED",
+                  "author_association", "MEMBER",
+                  "commit_id", Strings.repeat("0", 40)
+              ),
+              ImmutableMap.of(
+                  "user", ImmutableMap.of(
+                      "login", "COMMENTED_OWNER"
+                  ),
+                  "state", "COMMENTED",
+                  "author_association", "OWNER",
+                  "commit_id", prHeadSha1
+              ),
+              ImmutableMap.of(
+                  "user", ImmutableMap.of(
+                      "login", "COMMENTED_OTHER"
+                  ),
+                  "state", "COMMENTED",
+                  "author_association", "NONE",
+                  "commit_id", prHeadSha1
+              )
+          ))).getBytes(UTF_8);
+        }
+        return new MockPullRequest(123, ImmutableList.of(), "open")
+            .getContent(method, url, request);
+      }
+    };
+
+    GithubPROrigin origin = skylark.eval("origin", "origin = "
+        + "git.github_pr_origin(\n"
+        + "    url = 'https://github.com/google/example',\n"
+        + (configLines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(configLines) + ",\n")
+        + ")\n");
+
+    return origin.resolve("123");
+  }
+
+  private String toJson(Object obj) {
+    try {
+      return GsonFactory.getDefaultInstance().toPrettyString(obj);
+    } catch (IOException e) {
+      // Unexpected
+      throw new IllegalStateException(e);
+    }
   }
 
   @SuppressWarnings("unchecked")

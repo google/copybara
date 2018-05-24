@@ -29,6 +29,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -46,9 +47,12 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.github.api.AuthorAssociation;
+import com.google.copybara.git.github.api.GithubApi;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.Label;
 import com.google.copybara.git.github.api.PullRequest;
+import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.User;
 import com.google.copybara.git.github.util.GithubUtil;
 import com.google.copybara.git.github.util.GithubUtil.GithubPrUrl;
@@ -57,6 +61,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -78,6 +83,8 @@ public class GithubPROrigin implements Origin<GitRevision> {
   public static final String GITHUB_PR_BODY = "GITHUB_PR_BODY";
   public static final String GITHUB_PR_USER = "GITHUB_PR_USER";
   public static final String GITHUB_PR_ASSIGNEES = "GITHUB_PR_ASSIGNEES";
+  public static final String GITHUB_PR_REVIEWER_APPROVER = "GITHUB_PR_REVIEWER_APPROVER";
+  public static final String GITHUB_PR_REVIEWER_OTHER = "GITHUB_PR_REVIEWER_OTHER";
   private static final String LOCAL_PR_HEAD_REF = "refs/PR_HEAD";
   private static final String LOCAL_PR_MERGE_REF = "refs/PR_MERGE";
   private static final String LOCAL_PR_BASE_BRANCH = "refs/PR_BASE_BRANCH";
@@ -95,12 +102,14 @@ public class GithubPROrigin implements Origin<GitRevision> {
   private final boolean baselineFromBranch;
   private final Boolean firstParent;
   private final StateFilter requiredState;
+  @Nullable private final ReviewState reviewState;
+  private final ImmutableSet<AuthorAssociation> reviewApprovers;
 
   GithubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GithubOptions githubOptions,
       Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
-      boolean baselineFromBranch, Boolean firstParent,
-      StateFilter requiredState) {
+      boolean baselineFromBranch, Boolean firstParent, StateFilter requiredState,
+      @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -114,6 +123,8 @@ public class GithubPROrigin implements Origin<GitRevision> {
     this.baselineFromBranch = baselineFromBranch;
     this.firstParent = firstParent;
     this.requiredState = Preconditions.checkNotNull(requiredState);
+    this.reviewState = reviewState;
+    this.reviewApprovers = Preconditions.checkNotNull(reviewApprovers);
   }
 
   @Override
@@ -163,13 +174,14 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   private GitRevision getRevisionForPR(String project, int prNumber)
       throws RepoException, ValidationException {
+    GithubApi api = githubOptions.getApi(project);
     if (!requiredLabels.isEmpty()) {
       int retryCount = 0;
       Set<String> requiredButNotPresent;
       do {
         Issue issue;
         try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_issue")) {
-          issue = githubOptions.getApi(project).getIssue(project, prNumber);
+          issue = api.getIssue(project, prNumber);
         }
 
         requiredButNotPresent = Sets.newHashSet(requiredLabels);
@@ -191,9 +203,33 @@ public class GithubPROrigin implements Origin<GitRevision> {
             requiredButNotPresent));
       }
     }
+
+    ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
+
     PullRequest prData;
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
-      prData = githubOptions.getApi(project).getPullRequest(project, prNumber);
+      prData = api.getPullRequest(project, prNumber);
+    }
+
+    if (reviewState != null) {
+      ImmutableList<Review> reviews = api.getReviews(project, prNumber);
+      if (!reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha())) {
+        throw new EmptyChangeException(String.format(
+            "Cannot migrate http://github.com/%s/pull/%d because it is missing the required"
+                + " approvals (origin is configured as %s)",
+            project, prNumber, reviewState));
+      }
+      Set<String> approvers = new HashSet<>();
+      Set<String> others = new HashSet<>();
+      for (Review review : reviews) {
+        if (reviewApprovers.contains(review.getAuthorAssociation())) {
+          approvers.add(review.getUser().getLogin());
+        } else {
+          others.add(review.getUser().getLogin());
+        }
+      }
+      labels.putAll(GITHUB_PR_REVIEWER_APPROVER, approvers);
+      labels.putAll(GITHUB_PR_REVIEWER_OTHER, others);
     }
 
     if (requiredState == StateFilter.OPEN && !prData.isOpen()) {
@@ -241,7 +277,6 @@ public class GithubPROrigin implements Origin<GitRevision> {
         .toString();
 
 
-    ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
     labels.put(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber));
     labels.put(GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel);
     labels.put(GITHUB_BASE_BRANCH, prData.getBase().getRef());
@@ -388,5 +423,58 @@ public class GithubPROrigin implements Origin<GitRevision> {
     OPEN,
     CLOSED,
     ALL
+  }
+
+  enum ReviewState {
+    /**
+     * Requires that the current head commit has at least one valid approval
+     */
+    HEAD_COMMIT_APPROVED {
+      @Override
+      boolean shouldMigrate(ImmutableList<Review> reviews, String sha) {
+        return reviews.stream()
+            .filter(e -> e.getCommitId().equals(sha))
+            .anyMatch(Review::isApproved);
+      }
+    },
+    /**
+     * Any valid approval, even for old commits is good.
+     */
+    ANY_COMMIT_APPROVED {
+      @Override
+      boolean shouldMigrate(ImmutableList<Review> reviews, String sha) {
+        return reviews.stream().anyMatch(Review::isApproved);
+      }
+    },
+    /**
+     * There are reviewers in the change that have commented, asked for changes or approved
+     */
+    HAS_REVIEWERS {
+      @Override
+      boolean shouldMigrate(ImmutableList<Review> reviews, String sha) {
+        return !reviews.isEmpty();
+      }
+    },
+    /**
+     * Import the change regardless of the the review state. It will populate the appropriate
+     * labels if found
+     */
+    ANY {
+      @Override
+      boolean shouldMigrate(ImmutableList<Review> reviews, String sha) {
+        return true;
+      }
+    };
+
+    boolean shouldMigrate(ImmutableList<Review> reviews,
+        ImmutableSet<AuthorAssociation> approvers, String sha) {
+      return shouldMigrate(reviews.stream()
+              // Only take into acccount reviews by valid approverTypes
+              .filter(e -> approvers.contains(e.getAuthorAssociation()))
+              .collect(ImmutableList.toImmutableList()),
+          sha);
+    }
+
+    abstract boolean shouldMigrate(ImmutableList<Review> reviews, String sha);
   }
 }

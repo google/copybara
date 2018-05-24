@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
@@ -25,12 +26,15 @@ import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH_SHA1;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_ASSIGNEES;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER;
+import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_REVIEWER_OTHER;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_USER;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.checks.Checker;
@@ -38,6 +42,7 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
@@ -45,8 +50,10 @@ import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
+import com.google.copybara.git.GithubPROrigin.ReviewState;
 import com.google.copybara.git.GithubPROrigin.StateFilter;
 import com.google.copybara.git.gerritapi.SetReviewInput;
+import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.util.GithubUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -62,6 +69,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -131,7 +139,7 @@ public class GitModule implements LabelsAwareModule {
       throws EvalException {
     return GitOrigin.newGitOrigin(
         options, checkNotEmpty(url, "url", location), Type.STRING.convertOptional(ref, "ref"),
-        GitRepoType.GIT, SkylarkUtil.stringToEnum(location, "submodules",
+        GitRepoType.GIT, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
         includeBranchCommitLogs, firstParent);
   }
@@ -181,7 +189,7 @@ public class GitModule implements LabelsAwareModule {
       Location location) throws EvalException {
     return new GitIntegrateChanges(
         label,
-        SkylarkUtil.stringToEnum(location, "strategy", strategy, Strategy.class),
+        stringToEnum(location, "strategy", strategy, Strategy.class),
         ignoreErrors);
   }
 
@@ -265,13 +273,13 @@ public class GitModule implements LabelsAwareModule {
               + " is deprecating its usage for submitted changes. Use git.origin instead.");
       return GitOrigin.newGitOrigin(
           options, url, refField, GitRepoType.GERRIT,
-          SkylarkUtil.stringToEnum(location, "submodules",
+          stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
           /*includeBranchCommitLogs=*/false, firstParent);
     }
 
     return GerritOrigin.newGerritOrigin(
-        options, url, SkylarkUtil.stringToEnum(location, "submodules",
+        options, url, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class), firstParent);
   }
 
@@ -294,7 +302,14 @@ public class GitModule implements LabelsAwareModule {
           + "  - " + GITHUB_PR_BODY + ": Body of the Pull Request.\n"
           + "  - " + GITHUB_PR_USER + ": The login of the author the pull request.\n"
           + "  - " + GITHUB_PR_ASSIGNEES + ": A repeated label with the login of the assigned"
-          + " users.\n",
+          + " users.\n"
+          + "  - " + GITHUB_PR_REVIEWER_APPROVER + ": A repeated label with the login of users"
+          + " that have participated in the review and that can approve the import. Only"
+          + " populated if `review_state` field is set. Every reviewers type matching"
+          + " `review_approvers` will be added to this list.\n"
+          + "  - " + GITHUB_PR_REVIEWER_OTHER + ": A repeated label with the login of users"
+          + " that have participated in the review but cannot approve the import. Only"
+          + " populated if `review_state` field is set.\n",
       parameters = {
           @Param(name = "url", type = String.class, named = true,
               doc = "Indicates the URL of the GitHub repository"),
@@ -328,17 +343,60 @@ public class GitModule implements LabelsAwareModule {
               positional = false,
               doc = "Only migrate Pull Request with that state."
                   + " Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'"),
+          @Param(name = "review_state", type = String.class, defaultValue = "None",
+              named = true, positional = false, noneable = true,
+              doc = "Required state of the reviews associated with the Pull Request"
+                  + " Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`,"
+                  + " `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if"
+                  + " the user wants `" + GITHUB_PR_REVIEWER_APPROVER + "` and `"
+                  + GITHUB_PR_REVIEWER_OTHER + "` labels populated"),
+          @Param(name = "review_approvers", type = SkylarkList.class, generic1 = String.class,
+              defaultValue = "None",
+              named = true, positional = false, noneable = true,
+              doc = "The set of reviewer types that are considered for approvals. In order to"
+                  + " have any effect, `review_state` needs to be set. "
+                  + GITHUB_PR_REVIEWER_APPROVER + "` will be populated for these types."
+                  + " See the valid types here:"
+                  + " https://developer.github.com/v4/reference/enum/commentauthorassociation/"),
       },
       useLocation = true)
   @UsesFlags(GithubPrOriginOptions.class)
+  @DocDefault(field = "review_approvers", value = "[\"COLLABORATOR\", \"MEMBER\", \"OWNER\"]")
   public GithubPROrigin githubPrOrigin(String url, Boolean merge,
       SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
-      Boolean baselineFromBranch, Boolean firstParent, String state, Location location)
+      Boolean baselineFromBranch, Boolean firstParent, String state,
+      Object reviewStateParam, Object reviewApproversParam, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     if (!url.contains("github.com")) {
       throw new EvalException(location, "Invalid Github URL: " + url);
     }
+    String reviewStateString = SkylarkUtil.convertFromNoneable(reviewStateParam, null);
+    SkylarkList<String> reviewApproversStrings =
+        SkylarkUtil.convertFromNoneable(reviewApproversParam, null);
+    ReviewState reviewState;
+    ImmutableSet<AuthorAssociation> reviewApprovers;
+    if (reviewStateString == null) {
+      reviewState = null;
+      SkylarkUtil.check(location, reviewApproversStrings == null,
+          "'review_approvers' cannot be set if `review_state` is not set");
+      reviewApprovers = ImmutableSet.of();
+    } else {
+      reviewState = ReviewState.valueOf(reviewStateString);
+      if (reviewApproversStrings == null) {
+        reviewApproversStrings = SkylarkList.createImmutable(
+            ImmutableList.of("COLLABORATOR", "MEMBER", "OWNER"));
+      }
+      HashSet<AuthorAssociation> approvers = new HashSet<>();
+      for (String r : reviewApproversStrings) {
+        if (!approvers.add(
+            stringToEnum(location, "review_approvers", r, AuthorAssociation.class))) {
+          throw new EvalException(location, "Repeated element " + r);
+        }
+      }
+      reviewApprovers = ImmutableSet.copyOf(approvers);
+    }
+
     GithubPrOriginOptions githubPrOriginOptions = options.get(GithubPrOriginOptions.class);
     return new GithubPROrigin(url, merge,
         options.get(GeneralOptions.class),
@@ -347,9 +405,11 @@ public class GitModule implements LabelsAwareModule {
         options.get(GithubOptions.class),
         githubPrOriginOptions.getRequiredLabels(requiredLabels),
         githubPrOriginOptions.getRetryableLabels(retryableLabels),
-        SkylarkUtil.stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
+        stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch, firstParent,
-        SkylarkUtil.stringToEnum(location, "state", state, StateFilter.class));
+        stringToEnum(location, "state", state, StateFilter.class),
+        reviewState,
+        reviewApprovers);
   }
 
   @SuppressWarnings("unused")
@@ -381,7 +441,7 @@ public class GitModule implements LabelsAwareModule {
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
     return GitOrigin.newGitOrigin(
         options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
-        SkylarkUtil.stringToEnum(location, "submodules",
+        stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
         /*includeBranchCommitLogs=*/false, firstParent);
   }
@@ -551,7 +611,7 @@ public class GitModule implements LabelsAwareModule {
         checkNotEmpty(fetch, "fetch", location),
         pushToRefsFor,
         submit,
-        SkylarkUtil.stringToEnum(location, "change_id_policy", changeIdPolicy,
+        stringToEnum(location, "change_id_policy", changeIdPolicy,
             ChangeIdPolicy.class));
   }
 
