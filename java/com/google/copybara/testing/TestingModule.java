@@ -100,11 +100,27 @@ public class TestingModule implements OptionsAwareModule {
         }
       };
 
+  @SkylarkSignature(
+      name = "dummy_checker",
+      returnType = DummyChecker.class,
+      doc = "A dummy checker",
+      parameters = {
+        @Param(name = "self", type = TestingModule.class, doc = "this object"),
+      },
+      objectType = TestingModule.class)
+  public static final BuiltinFunction CHECKER =
+      new BuiltinFunction("dummy_checker") {
+        public DummyChecker invoke(TestingModule self) throws EvalException {
+          return self.testingOptions.checker;
+        }
+      };
+
   public final static class TestingOptions implements Option {
 
     public DummyOrigin origin;
     public RecordsProcessCallDestination destination;
 
     public DummyTrigger feedbackTrigger;
+    public DummyChecker checker;
   }
 }

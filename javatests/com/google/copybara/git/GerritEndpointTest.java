@@ -27,8 +27,10 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
@@ -71,6 +73,7 @@ public class GerritEndpointTest {
         .setOutputRootToTmpDir();
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
     urlMapper = Files.createTempDirectory("url_mapper");
     options.git = new TestGitOptions(urlMapper, options.general);
     url = BASE_URL + "/foo/bar";
@@ -113,6 +116,32 @@ public class GerritEndpointTest {
     skylark.verifyField(
         "git.gerrit_api(url = 'https://test.googlesource.com/example')",
         "url", "https://test.googlesource.com/example");
+  }
+
+  @Test
+  public void testParsingWithChecker() throws Exception {
+    GerritEndpoint gerritEndpoint =
+        skylark.eval(
+            "e",
+            "e = git.gerrit_api(\n"
+                + "url = 'https://test.googlesource.com/example', \n"
+                + "checker = testing.dummy_checker(),\n"
+                + ")\n");
+    assertThat(gerritEndpoint.describe())
+        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
+
+    skylark.verifyField(
+        "git.gerrit_api(url = 'https://test.googlesource.com/example')",
+        "url", "https://test.googlesource.com/example");
+  }
+
+  @Test
+  public void testCheckerIsHonored() {
+    String config =
+        String.format(
+            "git.gerrit_api(url = '%s', checker = testing.dummy_checker())"
+                + ".get_change('12_badword_34', include_results = ['LABELS'])", url);
+    skylark.evalFails(config, "Bad word found!");
   }
 
   @Test

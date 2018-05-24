@@ -123,7 +123,7 @@ public class GerritDestinationTest {
     options.git = new TestGitOptions(urlMapper, options.general);
     options.gerrit = new GerritOptions(options.general, options.git) {
       @Override
-      protected GerritApiTransportImpl getGerritApiTransport(URI uri) throws RepoException {
+      protected GerritApiTransportImpl newGerritApiTransport(URI uri) {
         return new GerritApiTransportImpl(repo(), uri, gitApiMockHttpTransport);
       }
     };

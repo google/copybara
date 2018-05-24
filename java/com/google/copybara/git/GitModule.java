@@ -33,6 +33,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
 import com.google.copybara.config.LabelsAwareModule;
@@ -581,12 +582,18 @@ public class GitModule implements LabelsAwareModule {
       parameters = {
           @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL.",
               named = true),
+          @Param(name = "checker", type = Checker.class,  defaultValue = "None",
+              doc = "A checker for the Gerrit API transport.", named = true, noneable = true),
       },
       useLocation = true
   )
   @UsesFlags(GerritOptions.class)
-  public GerritEndpoint gerritApi(String url, Location location) throws EvalException {
-    return new GerritEndpoint(options.get(GerritOptions.class),
+  public GerritEndpoint gerritApi(String url, Object checkerObj, Location location)
+      throws EvalException {
+    Checker checker = convertFromNoneable(checkerObj, null);
+    GerritOptions gerritOptions = options.get(GerritOptions.class);
+    return new GerritEndpoint(
+        gerritOptions.newGerritApiSupplier(url, checker),
         checkNotEmpty(url, "url", location));
   }
 
@@ -598,13 +605,19 @@ public class GitModule implements LabelsAwareModule {
       parameters = {
           @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL.",
               named = true),
+          @Param(name = "checker", type = Checker.class,  defaultValue = "None",
+              doc = "A checker for the Gerrit API transport provided by this trigger.",
+              named = true, noneable = true),
       },
-
       useLocation = true)
   @UsesFlags(GerritOptions.class)
-  public GerritTrigger gerritTrigger(String url, Location location) throws EvalException {
+  public GerritTrigger gerritTrigger(String url, Object checkerObj, Location location)
+      throws EvalException {
+    Checker checker = convertFromNoneable(checkerObj, null);
+    GerritOptions gerritOptions = options.get(GerritOptions.class);
     return new GerritTrigger(
-        options.get(GerritOptions.class), checkNotEmpty(url, "url", location));
+        gerritOptions.newGerritApiSupplier(url, checker),
+        checkNotEmpty(url, "url", location));
   }
 
   @SuppressWarnings("unused")

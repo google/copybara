@@ -21,22 +21,23 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Trigger;
+import com.google.copybara.git.GerritOptions.GerritApiSupplier;
 
 /** A  feedback trigger based on updates on a Gerrit change.
  */
 public class GerritTrigger implements Trigger {
 
-  private final GerritOptions gerritOptions;
+  private final GerritApiSupplier apiSupplier;
   private final String url;
 
-  GerritTrigger(GerritOptions gerritOptions, String url) {
-    this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
+  GerritTrigger(GerritApiSupplier apiSupplier, String url) {
+    this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
   }
 
   @Override
   public Endpoint getEndpoint() {
-    return new GerritEndpoint(gerritOptions, url);
+    return new GerritEndpoint(apiSupplier, url);
   }
 
   @Override
@@ -47,7 +48,6 @@ public class GerritTrigger implements Trigger {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("gerritOptions", gerritOptions)
         .add("url", url)
         .toString();
   }

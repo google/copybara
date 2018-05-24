@@ -18,6 +18,8 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -38,6 +40,7 @@ public class GerritTriggerTest {
     console = new TestingConsole();
     options = new OptionsBuilder();
     options.setConsole(console).setOutputRootToTmpDir();
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
     skylarkTestExecutor =
         new SkylarkTestExecutor(options);
   }
@@ -47,6 +50,22 @@ public class GerritTriggerTest {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
             "e", "e = git.gerrit_trigger(url = 'https://test.googlesource.com/example'))");
+    assertThat(gerritTrigger.describe())
+        .containsExactly("type", "gerrit_trigger", "url", "https://test.googlesource.com/example");
+    assertThat(gerritTrigger.getEndpoint().describe())
+        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
+  }
+
+  @Test
+  public void testParsingWithChecker() throws Exception {
+    GerritTrigger gerritTrigger =
+        skylarkTestExecutor.eval(
+            "e",
+            "e = git.gerrit_trigger(\n"
+                + "url = 'https://test.googlesource.com/example', \n"
+                + "checker = testing.dummy_checker(),\n"
+                + ")\n");
+
     assertThat(gerritTrigger.describe())
         .containsExactly("type", "gerrit_trigger", "url", "https://test.googlesource.com/example");
     assertThat(gerritTrigger.getEndpoint().describe())

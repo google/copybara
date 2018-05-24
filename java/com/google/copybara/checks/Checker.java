@@ -17,12 +17,19 @@
 package com.google.copybara.checks;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
 import java.nio.file.Path;
 
 /**
  * A generic interface for performing checks on string contents and files.
  */
+@SkylarkModule(
+    name = "checker",
+    doc = "A checker to be run on arbitrary data and files",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    documented = false)
 public interface Checker {
 
   /**

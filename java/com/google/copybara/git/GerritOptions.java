@@ -28,14 +28,17 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.GerritApiTransport;
 import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
+import com.google.copybara.git.gerritapi.GerritApiTransportWithChecker;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 /** Arguments for {@link GerritDestination}. */
 @Parameters(separators = "=")
@@ -82,12 +85,34 @@ public class GerritOptions implements Option {
   protected boolean noRevIdDEPRECATED = false;
 
   /**
+   * Returns a lazy supplier of {@link GerritApi}.
+   */
+  public GerritApiSupplier newGerritApiSupplier(String url, @Nullable Checker checker) {
+    return () ->
+        checker == null ? newGerritApi(url) : newGerritApi(url, checker);
+  }
+
+  // TODO(danielromero): Replace by LazyGitRepository
+  interface GerritApiSupplier {
+    GerritApi newGerritApi() throws RepoException, ValidationException;
+  }
+
+  /**
    * Override this method in a class for a specific Gerrit implementation.
    */
   @VisibleForTesting
   public GerritApi newGerritApi(String url) throws RepoException, ValidationException {
-    return new GerritApi(getGerritApiTransport(hostUrl(url)),
+    return new GerritApi(newGerritApiTransport(hostUrl(url)),
                          generalOptions.profiler());
+  }
+
+  /**
+   * Creates a new {@link GerritApi} enforcing the given {@link Checker}.
+   */
+  public GerritApi newGerritApi(String url, Checker checker)
+      throws ValidationException, RepoException {
+    return new GerritApi(newGerritApiTransport(hostUrl(url), checker),
+        generalOptions.profiler());
   }
 
   /**
@@ -133,11 +158,19 @@ public class GerritOptions implements Option {
   }
 
   /**
-   * Get the Gerrit http transport for a URI.
+   * Create a Gerrit http transport for a URI.
    */
-  protected GerritApiTransport getGerritApiTransport(URI uri)
+  protected GerritApiTransport newGerritApiTransport(URI uri)
       throws RepoException, ValidationException {
     return new GerritApiTransportImpl(getCredentialsRepo(), uri, getHttpTransport());
+  }
+
+  /**
+   * Create a Gerrit http transport for a URI and {@link Checker}.
+   */
+  protected GerritApiTransport newGerritApiTransport(URI uri, Checker checker)
+      throws RepoException, ValidationException {
+    return new GerritApiTransportWithChecker(newGerritApiTransport(uri), checker);
   }
 
   @VisibleForTesting
