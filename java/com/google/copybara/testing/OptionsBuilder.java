@@ -83,7 +83,7 @@ public class OptionsBuilder {
 
   public GithubOptions github = new GithubOptions(general, git) {
     @Override
-    protected HttpTransport getHttpTransport() {
+    protected HttpTransport newHttpTransport() {
       throw new UnsupportedOperationException(
           "You probably have overwritten GitOptions, so you need to create this variable too");
     }

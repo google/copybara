@@ -36,7 +36,6 @@
     - [git.destination](#git.destination)
     - [git.gerrit_destination](#git.gerrit_destination)
     - [git.gerrit_origin](#git.gerrit_origin)
-    - [git.github_api](#git.github_api)
     - [git.github_origin](#git.github_origin)
     - [git.github_pr_destination](#git.github_pr_destination)
     - [git.github_pr_origin](#git.github_pr_origin)
@@ -990,20 +989,6 @@ url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-
-<a id="git.github_api" aria-hidden="true"></a>
-### git.github_api
-
-Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
-
-`github_api_obj git.github_api(url)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-url | `string`<br><p>Indicates the GitHub repo URL.</p>
 
 <a id="git.github_origin" aria-hidden="true"></a>
 ### git.github_origin

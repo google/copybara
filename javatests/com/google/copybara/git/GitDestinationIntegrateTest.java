@@ -93,7 +93,7 @@ public class GitDestinationIntegrateTest {
 
     options.github = new GithubOptions(options.general, options.git) {
       @Override
-      protected HttpTransport getHttpTransport() {
+      protected HttpTransport newHttpTransport() {
         return GitTestUtil.NO_GITHUB_API_CALLS;
       }
     };

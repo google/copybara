@@ -174,7 +174,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   private GitRevision getRevisionForPR(String project, int prNumber)
       throws RepoException, ValidationException {
-    GithubApi api = githubOptions.getApi(project);
+    GithubApi api = githubOptions.newGitHubApi(project);
     if (!requiredLabels.isEmpty()) {
       int retryCount = 0;
       Set<String> requiredButNotPresent;
@@ -350,7 +350,8 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
       @Override
       public Endpoint getFeedbackEndPoint() {
-        return new GitHubEndPoint(githubOptions, url);
+        // TODO(danielromero): Populate checker
+        return new GitHubEndPoint(githubOptions.newGitHubApiSupplier(url, /*checker*/ null), url);
       }
 
       /**

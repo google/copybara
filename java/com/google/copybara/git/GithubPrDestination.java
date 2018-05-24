@@ -154,7 +154,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
-        GithubApi api = githubOptions.getApi(GithubUtil.getProjectNameFromUrl(url));
+        GithubApi api = githubOptions.newGitHubApi(GithubUtil.getProjectNameFromUrl(url));
         for (PullRequest pr : api.getPullRequests(getProjectName())) {
           if (pr.isOpen() && pr.getHead().getRef().equals(pushBranchName)) {
             console.infoFmt("Pull request for branch %s already exists as %s/pull/%s",

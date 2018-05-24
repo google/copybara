@@ -625,19 +625,24 @@ public class GitModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
     name = "github_api",
+    documented = false,
     doc = "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API "
         + "operations.",
     parameters = {
         @Param(name = "url", type = String.class, doc = "Indicates the GitHub repo URL.",
             named = true),
+        @Param(name = "checker", type = Checker.class,  defaultValue = "None",
+            doc = "A checker for the Gerrit API transport.", named = true, noneable = true),
     },
     useLocation = true
   )
   @UsesFlags(GithubOptions.class)
-  public GitHubEndPoint githubApi(String url, Location location)
+  public GitHubEndPoint githubApi(String url, Object checkerObj, Location location)
       throws EvalException {
-    return new GitHubEndPoint(
-        options.get(GithubOptions.class), checkNotEmpty(url, "url", location));
+    checkNotEmpty(url, "url", location);
+    Checker checker = convertFromNoneable(checkerObj, null);
+    GithubOptions githubOptions = options.get(GithubOptions.class);
+    return new GitHubEndPoint(githubOptions.newGitHubApiSupplier(url, checker), url);
   }
 
   @SuppressWarnings("unused")
@@ -657,11 +662,10 @@ public class GitModule implements LabelsAwareModule {
   @UsesFlags(GerritOptions.class)
   public GerritEndpoint gerritApi(String url, Object checkerObj, Location location)
       throws EvalException {
+    checkNotEmpty(url, "url", location);
     Checker checker = convertFromNoneable(checkerObj, null);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
-    return new GerritEndpoint(
-        gerritOptions.newGerritApiSupplier(url, checker),
-        checkNotEmpty(url, "url", location));
+    return new GerritEndpoint(gerritOptions.newGerritApiSupplier(url, checker), url);
   }
 
   @SuppressWarnings("unused")
@@ -680,11 +684,10 @@ public class GitModule implements LabelsAwareModule {
   @UsesFlags(GerritOptions.class)
   public GerritTrigger gerritTrigger(String url, Object checkerObj, Location location)
       throws EvalException {
+    checkNotEmpty(url, "url", location);
     Checker checker = convertFromNoneable(checkerObj, null);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
-    return new GerritTrigger(
-        gerritOptions.newGerritApiSupplier(url, checker),
-        checkNotEmpty(url, "url", location));
+    return new GerritTrigger(gerritOptions.newGerritApiSupplier(url, checker), url);
   }
 
   @SuppressWarnings("unused")

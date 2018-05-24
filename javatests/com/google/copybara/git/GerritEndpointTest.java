@@ -140,20 +140,19 @@ public class GerritEndpointTest {
     String config =
         ""
             + "def test_action(ctx):\n"
-            + "  ctx.destination.get_change('12_badword_34', include_results = ['LABELS'])"
+            + "  ctx.destination.get_change('12_badword_34', include_results = ['LABELS'])\n"
             + "  return ctx.success()\n"
             + "\n"
             + "core.feedback(\n"
             + "    name = 'default',\n"
             + "    origin = testing.dummy_trigger(),\n"
             + "    destination = git.gerrit_api("
-            + "        url = '" + url + "',\n"
+            + "        url = 'https://test.googlesource.com/example',\n"
             + "        checker = testing.dummy_checker(),\n"
             + "    ),\n"
             + "    actions = [test_action,],\n"
             + ")\n"
             + "\n";
-    System.err.println(config);
     Feedback feedback = (Feedback) skylark.loadConfig(config).getMigration("default");
     try {
       feedback.run(workdir, ImmutableList.of("12345"));

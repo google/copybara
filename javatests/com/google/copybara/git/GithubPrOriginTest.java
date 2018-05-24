@@ -121,13 +121,13 @@ public class GithubPrOriginTest {
 
     options.github = new GithubOptions(options.general, options.git) {
       @Override
-      public GithubApi getApi(String project) throws RepoException {
+      public GithubApi newGitHubApi(String project) throws RepoException {
         assertThat(project).isEqualTo(expectedProject);
-        return super.getApi(project);
+        return super.newGitHubApi(project);
       }
 
       @Override
-      protected HttpTransport getHttpTransport() {
+      protected HttpTransport newHttpTransport() {
         return gitApiMockHttpTransport;
       }
     };

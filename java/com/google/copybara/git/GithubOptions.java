@@ -20,10 +20,17 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubApiTransportImpl;
+import com.google.copybara.git.github.api.GitHubApiTransportWithChecker;
 import com.google.copybara.git.github.api.GithubApi;
+import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.util.console.Console;
+import javax.annotation.Nullable;
 
 /**
  * Options related to GitHub
@@ -38,20 +45,53 @@ public class GithubOptions implements Option {
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
   }
 
-  public GithubApi getApi(String gitHubRepo) throws RepoException {
+  /**
+   * Returns a lazy supplier of {@link GithubApi}.
+   */
+  public LazyResourceLoader<GithubApi> newGitHubApiSupplier(
+      String url, @Nullable Checker checker) {
+    return (console) -> {
+      String project = GithubUtil.getProjectNameFromUrl(url);
+      return checker == null ? newGitHubApi(project) : newGitHubApi(project, checker, console);
+    };
+  }
+
+  /**
+   * Returns a new {@link GithubApi} instance for the given project.
+   *
+   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
+   */
+  public GithubApi newGitHubApi(String gitHubProject) throws RepoException {
+    return newGitHubApi(gitHubProject, /*checker*/ null, generalOptions.console());
+  }
+
+  /**
+   * Returns a new {@link GithubApi} instance for the given project  enforcing the given
+   * {@link Checker}.
+   *
+   * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
+   */
+  public GithubApi newGitHubApi(String gitHubProject, @Nullable Checker checker, Console console)
+      throws RepoException {
     GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
 
     String storePath = gitOptions.getCredentialHelperStorePath();
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    return new GithubApi(
-        new GitHubApiTransportImpl(repo, getHttpTransport(), storePath,
-            generalOptions.console()),
-        generalOptions.profiler());
+    GitHubApiTransport transport = newTransport(repo, storePath, console);
+    if (checker != null) {
+      transport = new GitHubApiTransportWithChecker(transport, checker, console);
+    }
+    return new GithubApi(transport, generalOptions.profiler());
   }
 
-  protected HttpTransport getHttpTransport() {
+  private GitHubApiTransport newTransport(
+      GitRepository repo, String storePath, Console console) {
+    return new GitHubApiTransportImpl(repo, newHttpTransport(), storePath, console);
+  }
+
+  protected HttpTransport newHttpTransport() {
     return new NetHttpTransport();
   }
 }

@@ -24,14 +24,17 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CreateStatusRequest;
+import com.google.copybara.git.github.api.GithubApi;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -49,12 +52,20 @@ import com.google.devtools.build.lib.syntax.EvalException;
 )
 public class GitHubEndPoint implements Endpoint {
 
-  private GithubOptions githubOptions;
+  private LazyResourceLoader<GithubApi> apiSupplier;
   private String url;
+  private Console console;
 
-  GitHubEndPoint(GithubOptions githubOptions, String url) {
-    this.githubOptions = Preconditions.checkNotNull(githubOptions);
+  GitHubEndPoint(LazyResourceLoader<GithubApi> apiSupplier, String url) {
+    this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
+    this.console = null;
+  }
+
+  private GitHubEndPoint(LazyResourceLoader<GithubApi> apiSupplier, String url, Console console) {
+    this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
+    this.url = Preconditions.checkNotNull(url);
+    this.console = Preconditions.checkNotNull(console);
   }
 
   @SkylarkCallable(name = "create_status",
@@ -84,7 +95,7 @@ public class GitHubEndPoint implements Endpoint {
       checkCondition(!Strings.isNullOrEmpty(context), "context cannot be empty");
 
       String project = GithubUtil.getProjectNameFromUrl(url);
-      return githubOptions.getApi(project).createStatus(
+      return apiSupplier.load(console).createStatus(
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
                                                  convertFromNoneable(targetUrl, null),
                                                  description, context));
@@ -114,7 +125,7 @@ public class GitHubEndPoint implements Endpoint {
       checkCondition(!Strings.isNullOrEmpty(ref), "ref cannot be empty");
 
       String project = GithubUtil.getProjectNameFromUrl(url);
-      return githubOptions.getApi(project).updateReference(
+      return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(/*location=*/null, e);
@@ -130,6 +141,11 @@ public class GitHubEndPoint implements Endpoint {
   }
 
   @Override
+  public GitHubEndPoint withConsole(Console console) {
+    return new GitHubEndPoint(this.apiSupplier, this.url, console);
+  }
+
+  @Override
   public ImmutableSetMultimap<String, String> describe() {
     return ImmutableSetMultimap.of("type", "github_api", "url", url);
   }
@@ -137,7 +153,6 @@ public class GitHubEndPoint implements Endpoint {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("githubOptions", githubOptions)
         .add("url", url)
         .toString();
   }

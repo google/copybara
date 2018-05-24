@@ -18,15 +18,18 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.git.github.api.GithubApi;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
@@ -65,7 +68,7 @@ public class GithubEndpointTest {
         .setOutputRootToTmpDir();
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
-
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
       @Override
       protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
@@ -96,13 +99,13 @@ public class GithubEndpointTest {
 
     options.github = new GithubOptions(options.general, options.git) {
       @Override
-      public GithubApi getApi(String project) throws RepoException {
+      public GithubApi newGitHubApi(String project) throws RepoException {
         assertThat(project).isEqualTo(PROJECT);
-        return super.getApi(project);
+        return super.newGitHubApi(project);
       }
 
       @Override
-      protected HttpTransport getHttpTransport() {
+      protected HttpTransport newHttpTransport() {
         return gitApiMockHttpTransport;
       }
     };
@@ -126,6 +129,52 @@ public class GithubEndpointTest {
     skylark.verifyField(
         "git.github_api(url = 'https://github.com/google/example')",
         "url", "https://github.com/google/example");
+  }
+
+  @Test
+  public void testParsingWithChecker() throws Exception {
+    GitHubEndPoint gitHubEndpoint =
+        skylark.eval(
+            "e",
+            "e = git.github_api(\n"
+                + "url = 'https://github.com/google/example', \n"
+                + "checker = testing.dummy_checker(),\n"
+                + ")\n");
+    assertThat(gitHubEndpoint.describe())
+        .containsExactly("type", "github_api", "url", "https://github.com/google/example");
+
+    skylark.verifyField(
+        "git.github_api(url = 'https://github.com/google/example')",
+        "url", "https://github.com/google/example");
+  }
+
+  @Test
+  public void testCheckerIsHonored() throws Exception {
+    String config =
+        ""
+            + "def test_action(ctx):\n"
+            + "  ctx.destination.update_reference(\n"
+            + "      'e597746de9c1704e648ddc3ffa0d2096b146d600', 'foo_badword_bar', True)\n"
+            + "  return ctx.success()\n"
+            + "\n"
+            + "core.feedback(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    destination = git.github_api("
+            + "        url = 'https://github.com/google/example',\n"
+            + "        checker = testing.dummy_checker(),\n"
+            + "    ),\n"
+            + "    actions = [test_action,],\n"
+            + ")\n"
+            + "\n";
+    Feedback feedback = (Feedback) skylark.loadConfig(config).getMigration("default");
+    try {
+      feedback.run(workdir, ImmutableList.of("12345"));
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected).hasMessageThat()
+          .contains("Bad word found!. Location: copy.bara.sky:2:3");
+    }
   }
 
   @Test
