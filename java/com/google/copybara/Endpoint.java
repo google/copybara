@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.OriginRef;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -89,5 +90,12 @@ public interface Endpoint extends SkylarkValue {
     String url =
         describe.containsKey("url") ? Iterables.getOnlyElement(describe.get("url"), null) : null;
     return new DestinationRef(ref, type, url);
+  }
+
+  /**
+   * Returns an instance of this endpoint with the given console.
+   */
+  default Endpoint withConsole(Console console) {
+    return this;
   }
 }

@@ -16,7 +16,7 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.git.LazyGitRepository.memoized;
+import static com.google.copybara.LazyResourceLoader.memoized;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -27,8 +27,9 @@ import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.exception.RepoException;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.TransformResult;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.CommitGenerator;
 import com.google.copybara.git.GitDestination.ProcessPushOutput;
@@ -62,7 +63,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
   @Nullable private String title;
   @Nullable private String body;
   private final boolean effectiveSkipPush;
-  private final LazyGitRepository localRepo;
+  private final LazyResourceLoader<GitRepository> localRepo;
 
   public GithubPrDestination(String url, String destinationRef, GeneralOptions generalOptions,
       GithubOptions githubOptions,
@@ -229,7 +230,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
     @Nullable
     Long pullRequestNumber;
 
-    GithubWriterState(LazyGitRepository localRepo, String localBranch) {
+    GithubWriterState(LazyResourceLoader<GitRepository> localRepo, String localBranch) {
       super(localRepo, localBranch);
     }
   }

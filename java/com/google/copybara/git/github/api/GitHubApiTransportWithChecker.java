@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.lang.reflect.Type;
 
@@ -28,16 +29,20 @@ public class GitHubApiTransportWithChecker implements GitHubApiTransport {
 
   private final GitHubApiTransport delegate;
   private final Checker checker;
+  private final Console console;
 
-  public GitHubApiTransportWithChecker(GitHubApiTransport delegate, Checker checker) {
+  public GitHubApiTransportWithChecker(
+      GitHubApiTransport delegate, Checker checker, Console console) {
     this.delegate = Preconditions.checkNotNull(delegate);
     this.checker = Preconditions.checkNotNull(checker);
+    this.console = Preconditions.checkNotNull(console);
   }
 
   @Override
   public <T> T get(String path, Type responseType) throws RepoException, ValidationException {
     try {
-      checker.doCheck(ImmutableMap.of("path", path, "response_type", responseType.toString()));
+      checker.doCheck(
+          ImmutableMap.of("path", path, "response_type", responseType.toString()), console);
     } catch (IOException e) {
       throw new RuntimeException("Error running checker", e);
     }
@@ -52,7 +57,8 @@ public class GitHubApiTransportWithChecker implements GitHubApiTransport {
           ImmutableMap.of(
               "path", path,
               "request", request.toString(),
-              "response_type", responseType.toString()));
+              "response_type", responseType.toString()),
+          console);
     } catch (IOException e) {
       throw new RuntimeException("Error running checker", e);
     }

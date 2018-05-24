@@ -19,7 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.exception.ValidationException.checkCondition;
-import static com.google.copybara.git.LazyGitRepository.memoized;
+import static com.google.copybara.LazyResourceLoader.memoized;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -36,6 +36,7 @@ import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -107,7 +108,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private final boolean effectiveSkipPush;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
-  private final LazyGitRepository localRepo;
+  private final LazyResourceLoader<GitRepository> localRepo;
 
   GitDestination(
       String repoUrl,
@@ -188,10 +189,10 @@ public final class GitDestination implements Destination<GitRevision> {
 
     boolean alreadyFetched;
     boolean firstWrite = true;
-    final LazyGitRepository localRepo;
+    final LazyResourceLoader<GitRepository> localRepo;
     final String localBranch;
 
-    WriterState(LazyGitRepository localRepo, String localBranch) {
+    WriterState(LazyResourceLoader<GitRepository> localRepo, String localBranch) {
       this.localRepo = localRepo;
       this.localBranch = localBranch;
     }
@@ -259,7 +260,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
     @Override
     public void visitChanges(@Nullable GitRevision start, ChangesVisitor visitor)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, ValidationException {
       GitRepository repository = getRepository(baseConsole);
       try {
         fetchIfNeeded(repository, baseConsole);
@@ -301,7 +302,7 @@ public final class GitDestination implements Destination<GitRevision> {
     @Nullable
     @Override
     public DestinationStatus getDestinationStatus(String labelName)
-        throws RepoException {
+        throws RepoException, ValidationException {
       GitRepository repo = getRepository(baseConsole);
       try {
         fetchIfNeeded(repo, baseConsole);
@@ -536,8 +537,8 @@ public final class GitDestination implements Destination<GitRevision> {
      *
      * Note that this is not a public interface and is subjec to change.
      */
-    public GitRepository getRepository(Console console) throws RepoException {
-      return state.localRepo.get(console);
+    public GitRepository getRepository(Console console) throws RepoException, ValidationException {
+      return state.localRepo.load(console);
     }
 
     private void updateLocalBranchToBaseline(GitRepository repo, String baseline)
@@ -673,7 +674,7 @@ public final class GitDestination implements Destination<GitRevision> {
   /**
    * Not a public API. It is subject to change.
    */
-  public LazyGitRepository getLocalRepo() {
+  public LazyResourceLoader<GitRepository> getLocalRepo() {
     return localRepo;
   }
 

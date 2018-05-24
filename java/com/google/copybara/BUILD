@@ -76,6 +76,7 @@ BASE_SRCS = [
     "DestinationEffect.java",
     "Endpoint.java",
     "Info.java",
+    "LazyResourceLoader.java",
     "LabelFinder.java",
     "LocalParallelizer.java",
     "Metadata.java",

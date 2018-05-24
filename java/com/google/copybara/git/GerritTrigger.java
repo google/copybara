@@ -20,17 +20,18 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Trigger;
-import com.google.copybara.git.GerritOptions.GerritApiSupplier;
+import com.google.copybara.git.gerritapi.GerritApi;
 
 /** A  feedback trigger based on updates on a Gerrit change.
  */
 public class GerritTrigger implements Trigger {
 
-  private final GerritApiSupplier apiSupplier;
+  private final LazyResourceLoader<GerritApi> apiSupplier;
   private final String url;
 
-  GerritTrigger(GerritApiSupplier apiSupplier, String url) {
+  GerritTrigger(LazyResourceLoader<GerritApi> apiSupplier, String url) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
   }

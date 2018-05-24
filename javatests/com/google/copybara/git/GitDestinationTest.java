@@ -1421,7 +1421,7 @@ public class GitDestinationTest {
     Files.write(credentialsFile, "https://user:SECRET@somehost.com".getBytes(UTF_8));
     options.git.credentialHelperStorePath = credentialsFile.toString();
 
-    GitRepository repository = destinationFirstCommit().getLocalRepo().get(console);
+    GitRepository repository = destinationFirstCommit().getLocalRepo().load(console);
     UserPassword result = repository
         .credentialFill("https://somehost.com/foo/bar");
 

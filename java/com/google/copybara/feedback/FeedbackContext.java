@@ -74,13 +74,13 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
   @SkylarkCallable(name = "origin", doc = "An object representing the origin. Can be used to"
       + " query about the ref or modifying the origin state", structField = true)
   public Endpoint getOrigin() {
-    return feedback.getTrigger().getEndpoint();
+    return feedback.getTrigger().getEndpoint().withConsole(console);
   }
 
   @SkylarkCallable(name = "destination", doc = "An object representing the destination. Can be used"
       + " to query or modify the destination state", structField = true)
   public Endpoint getDestination() {
-    return feedback.getDestination();
+    return feedback.getDestination().withConsole(console);
   }
 
   @SkylarkCallable(

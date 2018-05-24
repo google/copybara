@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.checks.CheckerException;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
@@ -45,7 +46,8 @@ public class DummyChecker implements Checker {
   }
 
   @Override
-  public void doCheck(ImmutableMap<String, String> fields) throws CheckerException, IOException {
+  public void doCheck(ImmutableMap<String, String> fields, Console console)
+      throws CheckerException, IOException {
     for (Entry<String, String> entry : fields.entrySet()) {
       if (badWords.stream().anyMatch(s -> entry.getValue().contains(s))) {
         throw new CheckerException("Bad word found!");
@@ -54,7 +56,7 @@ public class DummyChecker implements Checker {
   }
 
   @Override
-  public void doCheck(Path target) throws CheckerException, IOException {
+  public void doCheck(Path target, Console console) throws CheckerException, IOException {
     throw new UnsupportedOperationException("Not implemented yet");
   }
 }

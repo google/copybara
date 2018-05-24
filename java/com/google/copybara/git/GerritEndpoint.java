@@ -21,10 +21,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.GerritOptions.GerritApiSupplier;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangesQuery;
 import com.google.copybara.git.gerritapi.GerritApi;
@@ -32,12 +32,14 @@ import com.google.copybara.git.gerritapi.GetChangeInput;
 import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import javax.annotation.Nullable;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -48,12 +50,21 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
     doc = "Gerrit API endpoint implementation for feedback migrations.")
 public class GerritEndpoint implements Endpoint {
 
-  private final GerritApiSupplier apiSupplier;
+  private final LazyResourceLoader<GerritApi> apiSupplier;
   private final String url;
+  @Nullable
+  private final Console console;
 
-  GerritEndpoint(GerritApiSupplier apiSupplier, String url) {
+  GerritEndpoint(LazyResourceLoader<GerritApi> apiSupplier, String url) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
+    this.console = null;
+  }
+
+  private GerritEndpoint(LazyResourceLoader<GerritApi> apiSupplier, String url, Console console) {
+    this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
+    this.url = Preconditions.checkNotNull(url);
+    this.console = Preconditions.checkNotNull(console);
   }
 
   @SkylarkCallable(
@@ -99,7 +110,7 @@ public class GerritEndpoint implements Endpoint {
 
   private ChangeInfo doGetChange(String changeId, ImmutableSet<IncludeResult> includeResults)
       throws RepoException, ValidationException {
-    GerritApi gerritApi = apiSupplier.newGerritApi();
+    GerritApi gerritApi = apiSupplier.load(console);
     return gerritApi.getChange(changeId, new GetChangeInput(includeResults));
   }
 
@@ -137,7 +148,7 @@ public class GerritEndpoint implements Endpoint {
   private ReviewResult doSetReview(
       String changeId, String revisionId, SetReviewInput setReviewInput)
       throws RepoException, ValidationException {
-    GerritApi gerritApi = apiSupplier.newGerritApi();
+    GerritApi gerritApi = apiSupplier.load(console);
     return gerritApi.setReview(changeId, revisionId, setReviewInput);
   }
 
@@ -157,7 +168,7 @@ public class GerritEndpoint implements Endpoint {
       })
   public SkylarkList<ChangeInfo> listChanges(String commit) throws EvalException {
     try {
-      GerritApi gerritApi = apiSupplier.newGerritApi();
+      GerritApi gerritApi = apiSupplier.load(console);
       return SkylarkList.createImmutable(
           gerritApi.getChanges(new ChangesQuery(String.format("commit:%s", commit))));
     } catch (RepoException | ValidationException | RuntimeException e) {
@@ -171,6 +182,11 @@ public class GerritEndpoint implements Endpoint {
       structField = true)
   public String getUrl() {
     return url;
+  }
+
+  @Override
+  public GerritEndpoint withConsole(Console console) {
+    return new GerritEndpoint(this.apiSupplier, this.url, console);
   }
 
   @Override

@@ -17,6 +17,7 @@
 package com.google.copybara.checks;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
@@ -38,7 +39,8 @@ public interface Checker {
    * @throws CheckerException if the check produced errors
    * @throws IOException if the checker could not be run
    */
-  void doCheck(ImmutableMap<String, String> fields) throws CheckerException, IOException;
+  void doCheck(ImmutableMap<String, String> fields, Console console)
+      throws CheckerException, IOException;
 
   /**
    * Performs a check on the files inside a given path.
@@ -46,5 +48,5 @@ public interface Checker {
    * @throws CheckerException if the check produced errors
    * @throws IOException if the checker could not be run
    */
-  void doCheck(Path target) throws CheckerException, IOException;
+  void doCheck(Path target, Console console) throws CheckerException, IOException;
 }

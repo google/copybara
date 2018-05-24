@@ -136,12 +136,32 @@ public class GerritEndpointTest {
   }
 
   @Test
-  public void testCheckerIsHonored() {
+  public void testCheckerIsHonored() throws Exception {
     String config =
-        String.format(
-            "git.gerrit_api(url = '%s', checker = testing.dummy_checker())"
-                + ".get_change('12_badword_34', include_results = ['LABELS'])", url);
-    skylark.evalFails(config, "Bad word found!");
+        ""
+            + "def test_action(ctx):\n"
+            + "  ctx.destination.get_change('12_badword_34', include_results = ['LABELS'])"
+            + "  return ctx.success()\n"
+            + "\n"
+            + "core.feedback(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    destination = git.gerrit_api("
+            + "        url = '" + url + "',\n"
+            + "        checker = testing.dummy_checker(),\n"
+            + "    ),\n"
+            + "    actions = [test_action,],\n"
+            + ")\n"
+            + "\n";
+    System.err.println(config);
+    Feedback feedback = (Feedback) skylark.loadConfig(config).getMigration("default");
+    try {
+      feedback.run(workdir, ImmutableList.of("12345"));
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected).hasMessageThat()
+          .contains("Bad word found!. Location: copy.bara.sky:2:3");
+    }
   }
 
   @Test
