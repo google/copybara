@@ -17,22 +17,18 @@
 package com.google.copybara.util.console.testing;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.LogSubjects.LogSubject;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public final class TestingConsoleTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private TestingConsole console;
 
@@ -138,9 +134,12 @@ public final class TestingConsoleTest {
   public void throwsExceptionIfNoMoreResponses() throws Exception {
     Console console = new TestingConsole()
         .respondNo();
-    console.promptConfirmation("Proceed?");
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage("No more programmed responses");
-    console.promptConfirmation("Proceed?");
+    assertThat(console.promptConfirmation("Proceed?")).isFalse();
+    try {
+      boolean response = console.promptConfirmation("Proceed?");
+      fail("Expected an IllegalStateException, but got:" + response);
+    } catch (IllegalStateException expected) {
+      assertThat(expected).hasMessageThat().contains("No more programmed responses");
+    }
   }
 }

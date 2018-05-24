@@ -124,7 +124,7 @@ public class ConsoleTest {
     console.warnFmt("This is %s", "warning");
     console.infoFmt("This is %s", "info");
     console.progressFmt("This is %s", "progress");
-    console.promptConfirmationFmt("Do you want to %s?", "continue");
+    assertThat(console.promptConfirmationFmt("Do you want to %s?", "continue")).isTrue();
 
     assertThat(console.getMessages()).containsExactly(
         new Message(MessageType.ERROR, "This is error!"),

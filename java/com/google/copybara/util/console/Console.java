@@ -17,6 +17,7 @@
 package com.google.copybara.util.console;
 
 import java.io.IOException;
+import javax.annotation.CheckReturnValue;
 
 /**
  * Write user messages to the console
@@ -104,11 +105,13 @@ public interface Console {
   /**
    * Returns true if this Console's input registers Y/y after showing the prompt message.
    */
+  @CheckReturnValue
   boolean promptConfirmation(String message);
 
   /**
    * Like promptConfirmation, but takes a format String as argument.
    */
+  @CheckReturnValue
   default boolean promptConfirmationFmt(String format, Object... args) throws IOException {
     return promptConfirmation(String.format(format, args));
   }
