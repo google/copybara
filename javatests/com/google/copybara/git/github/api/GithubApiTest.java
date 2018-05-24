@@ -26,6 +26,7 @@ import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.github.api.testing.AbstractGithubApiTest;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -34,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +47,7 @@ public class GithubApiTest extends AbstractGithubApiTest {
 
   private MockHttpTransport httpTransport;
 
-  private Map<String, byte[]> requestToResponse;
+  private Map<String, MockLowLevelHttpResponse> requestToResponse;
   private Map<String, Predicate<String>> requestValidators;
   private Path credentialsFile;
 
@@ -84,18 +86,16 @@ public class GithubApiTest extends AbstractGithubApiTest {
                     return super.execute();
                   }
                 };
-            byte[] content = requestToResponse.get(requestString);
-            MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
-            if (content == null) {
+            MockLowLevelHttpResponse response = requestToResponse.get(requestString);
+            if (response == null) {
+              response = new MockLowLevelHttpResponse();
               response.setContent(
                   String.format(
                       "{ 'message' : 'This is not the repo you are looking for! %s %s',"
                           + " 'documentation_url' : 'http://github.com/some_url'}",
                       method, url));
               response.setStatusCode(404);
-            } else {
-              response.setContent(content);
-            }
+            } 
             request.setResponse(response);
             return request;
           }
@@ -105,9 +105,14 @@ public class GithubApiTest extends AbstractGithubApiTest {
   }
 
   @Override
-  public void trainMockGet(String apiPath, byte[] response) throws Exception {
+  public void trainMockGetWithHeaders(String apiPath, byte[] response,
+      ImmutableMap<String, String> headers) {
     String path = String.format("GET https://api.github.com%s", apiPath);
-    requestToResponse.put(path, response);
+    MockLowLevelHttpResponse httpResponse = new MockLowLevelHttpResponse().setContent(response);
+    for (Entry<String, String> entry : headers.entrySet()) {
+      httpResponse.addHeader(entry.getKey(), entry.getValue());
+    }
+    requestToResponse.put(path, httpResponse);
     requestValidators.put(path, (r) -> true);
   }
 
@@ -118,10 +123,9 @@ public class GithubApiTest extends AbstractGithubApiTest {
   }
 
   @Override
-  public void trainMockPost(String apiPath, Predicate<String> requestValidator, byte[] response)
-      throws Exception {
+  public void trainMockPost(String apiPath, Predicate<String> requestValidator, byte[] response) {
     String path = String.format("POST https://api.github.com%s", apiPath);
-    requestToResponse.put(path, response);
+    requestToResponse.put(path, new MockLowLevelHttpResponse().setContent(response));
     requestValidators.put(path, requestValidator);
   }
 }

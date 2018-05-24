@@ -28,6 +28,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 import javax.annotation.Nullable;
 
 /**
@@ -50,6 +52,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
   private static final String API_URL = "https://api.github.com";
+  private static final String API_PREFIX = API_URL + "/";
   private static final String GITHUB_WEB_URL = "https://github.com";
 
   private final GitRepository repo;
@@ -70,17 +73,34 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   public <T> T get(String path, Type responseType) throws RepoException, ValidationException {
     HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent());
 
-    GenericUrl url = new GenericUrl(URI.create(API_URL + "/" + path));
+    GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
     try {
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
-      return (T) response.parseAs(responseType);
+
+      Object responseObj = response.parseAs(responseType);
+      if (responseObj instanceof PaginatedList) {
+        return (T) ((PaginatedList) responseObj).withPaginationInfo(API_PREFIX,
+            maybeGetLinkHeader(response));
+      }
+      return (T) responseObj;
     } catch (HttpResponseException e) {
       throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
                                    "GET", path, null, e.getContent());
     } catch (IOException e) {
       throw new RepoException("Error running GitHub API operation " + path, e);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Nullable
+  private String maybeGetLinkHeader(HttpResponse response) {
+    HttpHeaders headers = response.getHeaders();
+    List<String> link = (List<String>) headers.get("Link");
+    if (link == null) {
+      return null;
+    }
+    return Iterables.getOnlyElement(link);
   }
 
   private ClientError parseErrorOrIgnore(HttpResponseException e) {
@@ -115,12 +135,18 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       throws RepoException, ValidationException {
     HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials());
 
-    GenericUrl url = new GenericUrl(URI.create(API_URL + "/" + path));
+    GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
     try {
       HttpRequest httpRequest = requestFactory.buildPostRequest(url,
           new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
-      return (T) response.parseAs(responseType);
+      Object responseObj = response.parseAs(responseType);
+      if (responseObj instanceof PaginatedList) {
+        return (T) ((PaginatedList) responseObj).withPaginationInfo(API_PREFIX,
+            maybeGetLinkHeader(response));
+      }
+      return (T) responseObj;
+
     } catch (HttpResponseException e) {
       try {
         throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),

@@ -23,6 +23,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -33,7 +34,8 @@ public class GithubApi {
   private final GitHubApiTransport transport;
   private final Profiler profiler;
 
-  public static final int REFS_PER_PAGE = 100;
+  public static final int MAX_PER_PAGE = 100;
+  private static final int MAX_PAGES = 5;
 
   public GithubApi(GitHubApiTransport transport, Profiler profiler) {
     this.transport = Preconditions.checkNotNull(transport);
@@ -75,13 +77,27 @@ public class GithubApi {
    * @param projectId a project in the form of "google/copybara"
    * @param number the pull request number
    */
-  public List<Review> getReviews(String projectId, long number)
+  public ImmutableList<Review> getReviews(String projectId, long number)
       throws RepoException, ValidationException {
-    try (ProfilerTask ignore = profiler.start("github_api_get_reviews")) {
-      return transport.get(
-          String.format("repos/%s/pulls/%d/reviews", projectId, number),
-          new TypeToken<List<Review>>() {}.getType());
+    return paginatedGet(String.format("repos/%s/pulls/%d/reviews?per_page=%d",
+        projectId, number, MAX_PER_PAGE),
+        "github_api_get_reviews",
+        new TypeToken<PaginatedList<Review>>() {}.getType());
+  }
+
+  private <T> ImmutableList<T> paginatedGet(String path, String profilerName, Type type)
+      throws RepoException, ValidationException {
+    ImmutableList.Builder<T> builder = ImmutableList.builder();
+    int pages = 0;
+    while (path != null && pages < MAX_PAGES) {
+      try (ProfilerTask ignore = profiler.start(String.format("%s_page_%d", profilerName, pages))) {
+        PaginatedList<T> page = transport.get(path, type);
+        builder.addAll(page);
+        path = page.getNextUrl();
+        pages++;
+      }
     }
+    return builder.build();
   }
 
   /**
@@ -117,7 +133,7 @@ public class GithubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_list_refs")) {
       List<Ref> result =
-          transport.get(String.format("repos/%s/git/refs?per_page=%d", projectId, REFS_PER_PAGE),
+          transport.get(String.format("repos/%s/git/refs?per_page=%d", projectId, MAX_PER_PAGE),
               new TypeToken<List<Ref>>() {
               }.getType());
 

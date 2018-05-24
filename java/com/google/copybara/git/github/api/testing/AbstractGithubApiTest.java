@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -64,9 +65,15 @@ public abstract class AbstractGithubApiTest {
 
   public abstract GitHubApiTransport getTransport() throws Exception;
 
-  public abstract void trainMockGet(String apiPath, byte[] response) throws Exception;
-  public abstract void trainMockPost(String apiPath, Predicate<String> validator, byte[] response)
-      throws Exception;
+  public abstract void trainMockGetWithHeaders(String apiPath, byte[] response,
+      ImmutableMap<String, String> headers);
+
+  private void trainMockGet(String apiPath, byte[] response) {
+    trainMockGetWithHeaders(apiPath, response, ImmutableMap.of());
+  }
+
+  public abstract void trainMockPost(String apiPath, Predicate<String> validator, byte[] response);
+
 
   @Test
   public void testGetPulls() throws Exception {
@@ -137,20 +144,43 @@ public abstract class AbstractGithubApiTest {
 
   @Test
   public void testGetPullReviews() throws Exception {
-    trainMockGet(
-        "/repos/octocat/Hello-World/pulls/12/reviews",
-        getResource("pulls_12345_reviews_testdata.json"));
+    trainMockGetWithHeaders("/repos/octocat/Hello-World/pulls/12/reviews?per_page=100",
+        getResource("pulls_12345_reviews_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=2>; rel=\"next\", "
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=1>; rel=\"first\""
+        ));
+
+    trainMockGetWithHeaders("/repositories/123/pulls?per_page=100&page=2",
+        getResource("pulls_12345_reviews_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=1>; rel=\"prev\","
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=3>; rel=\"next\", "
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=1>; rel=\"first\""
+        ));
+
+    trainMockGetWithHeaders("/repositories/123/pulls?per_page=100&page=3",
+        getResource("pulls_12345_reviews_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=2>; rel=\"prev\","
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repositories/123/pulls?per_page=100&page=1>; rel=\"first\""
+        ));
     List<Review> reviews = api.getReviews("octocat/Hello-World", 12);
 
-    assertThat(reviews).hasSize(1);
-    assertThat(reviews.get(0).getBody()).isEqualTo("Here is the body for the review.");
-    assertThat(reviews.get(0).getId()).isEqualTo(80L);
-    assertThat(reviews.get(0).getUser().getId()).isEqualTo(1L);
-    assertThat(reviews.get(0).getUser().getLogin()).isEqualTo("octocat");
-    assertThat(reviews.get(0).getState()).isEqualTo("APPROVED");
-    assertThat(reviews.get(0).isApproved()).isTrue();
-    assertThat(reviews.get(0).getCommitId())
-        .isEqualTo("ecdd80bb57125d7ba9641ffaa4d7d2c19d3f3091");
+    assertThat(reviews).hasSize(3);
+    for (Review review : reviews) {
+      assertThat(review.getBody()).isEqualTo("Here is the body for the review.");
+      assertThat(review.getId()).isEqualTo(80L);
+      assertThat(review.getUser().getId()).isEqualTo(1L);
+      assertThat(review.getUser().getLogin()).isEqualTo("octocat");
+      assertThat(review.getState()).isEqualTo("APPROVED");
+      assertThat(review.isApproved()).isTrue();
+      assertThat(review.getCommitId())
+          .isEqualTo("ecdd80bb57125d7ba9641ffaa4d7d2c19d3f3091");
+    }
   }
 
   @Test
@@ -279,7 +309,7 @@ public abstract class AbstractGithubApiTest {
   }
 
 
-  protected byte[] getResource(String testfile) throws IOException {
+  private byte[] getResource(String testfile) throws IOException {
     return Files.readAllBytes(
         Paths.get(System.getenv("TEST_SRCDIR"),
             "copybara/java/com/google/copybara/git/github/api/"
@@ -287,7 +317,7 @@ public abstract class AbstractGithubApiTest {
             .resolve(testfile));
   }
 
-  protected <T> Predicate<String> createValidator(Class<T> clazz, Predicate<T> predicate) {
+  private <T> Predicate<String> createValidator(Class<T> clazz, Predicate<T> predicate) {
     return s -> {
       try {
         T requestObject = GsonFactory.getDefaultInstance().createJsonParser(s).parse(clazz);
