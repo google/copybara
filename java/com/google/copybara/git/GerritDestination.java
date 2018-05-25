@@ -217,9 +217,6 @@ public final class GerritDestination implements Destination<GitRevision> {
       boolean submit,
       ChangeIdPolicy changeIdPolicy) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    if (pushToRefsFor.isEmpty()) {
-      pushToRefsFor = fetch;
-    }
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     String push;
     if (submit) {

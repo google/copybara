@@ -266,6 +266,49 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testDefaultRefForPush() throws Exception {
+    fetch = "foo";
+    pushToRefsFor = null;
+
+    String expectedChangeId = runForDefaults();
+    assertThat(lastCommitChangeIdLineForRef("refs/for/foo", "origin_ref", repo()))
+        .isEqualTo(expectedChangeId);
+  }
+
+  @Test
+  public void testDefaultRefForPushFetchFlag() throws Exception {
+    fetch = "bar";
+    options.gitDestination.fetch = "foo";
+    pushToRefsFor = null;
+
+    String expectedChangeId = runForDefaults();
+    assertThat(lastCommitChangeIdLineForRef("refs/for/foo", "origin_ref", repo()))
+        .isEqualTo(expectedChangeId);
+  }
+
+  @Test
+  public void testRefForPushFetchFlag() throws Exception {
+    fetch = "bar";
+    options.gitDestination.fetch = "foo";
+    pushToRefsFor = "baz";
+
+    String expectedChangeId = runForDefaults();
+    assertThat(lastCommitChangeIdLineForRef("refs/for/baz", "origin_ref", repo()))
+        .isEqualTo(expectedChangeId);
+  }
+
+  private String runForDefaults() throws IOException, ValidationException, RepoException {
+    fakeOneCommitInDestination();
+    git("branch", "foo");
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+
+    String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
+    options.gerrit.gerritChangeId = changeId;
+    process(new DummyRevision("origin_ref"));
+    return GerritDestination.CHANGE_ID_LABEL + ": " + changeId;
+  }
+
+  @Test
   public void reuseChangeId() throws Exception {
     fetch = "master";
 

@@ -935,7 +935,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for='', submit=False, change_id_policy='FAIL_IF_PRESENT')`
+`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, change_id_policy='FAIL_IF_PRESENT')`
 
 
 #### Parameters:

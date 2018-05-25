@@ -574,11 +574,11 @@ public class GitModule implements LabelsAwareModule {
           @Param(name = "url", type = String.class, named = true,
               doc = "Indicates the URL to push to as well as the URL from which to get the parent "
                   + "commit"),
-          @Param(name = "fetch", type = String.class, named = true, positional = true,
+          @Param(name = "fetch", type = String.class, named = true,
               doc = "Indicates the ref from which to get the parent commit"),
           @Param(
-              name = "push_to_refs_for", type = String.class, defaultValue = "''",
-              named = true, positional = true,
+              name = "push_to_refs_for", type = String.class, defaultValue = "None",
+              named = true, noneable = true,
               doc = "Review branch to push the change to, for example setting this to 'feature_x'"
                   + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
                   + "'fetch' value."),
@@ -602,14 +602,21 @@ public class GitModule implements LabelsAwareModule {
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
+  @DocDefault(field = "push_to_refs_for", value = "fetch value")
   public GerritDestination gerritDestination(
-      String url, String fetch, String pushToRefsFor, Boolean submit,
+      String url, String fetch, Object pushToRefsFor, Boolean submit,
       String changeIdPolicy, Location location) throws EvalException {
     return GerritDestination.newGerritDestination(
         options,
         checkNotEmpty(url, "url", location),
-        checkNotEmpty(fetch, "fetch", location),
-        pushToRefsFor,
+        checkNotEmpty(firstNotNull(
+            options.get(GitDestinationOptions.class).fetch,
+            fetch), "fetch", location),
+        checkNotEmpty(
+            firstNotNull(convertFromNoneable(pushToRefsFor, null),
+                options.get(GitDestinationOptions.class).fetch,
+                fetch),
+            "push_to_refs_for", location),
         submit,
         stringToEnum(location, "change_id_policy", changeIdPolicy,
             ChangeIdPolicy.class));
