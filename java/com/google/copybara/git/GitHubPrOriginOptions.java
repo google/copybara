@@ -29,7 +29,7 @@ import java.util.Set;
  * <p>Intentionally empty so that we have the necessary infrastructure when
  * we add github options.
  */
-public class GithubPrOriginOptions implements Option {
+public class GitHubPrOriginOptions implements Option {
 
   @Parameter(names = "--github-required-label",
       description = "Required labels in the Pull Request to be imported by "

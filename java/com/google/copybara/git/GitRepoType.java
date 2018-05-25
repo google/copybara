@@ -32,8 +32,8 @@ import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.github.util.GithubUtil;
-import com.google.copybara.git.github.util.GithubUtil.GithubPrUrl;
+import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.git.github.util.GitHubUtil.GitHubPrUrl;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.List;
@@ -115,7 +115,7 @@ public enum GitRepoType {
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions)
         throws RepoException, ValidationException {
       if ((ref.startsWith("https://github.com") && ref.startsWith(repoUrl))
-          || GithubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
+          || GitHubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
         GitRevision ghPullRequest = maybeFetchGithubPullRequest(repository, repoUrl, ref);
         if (ghPullRequest != null) {
           return ghPullRequest;
@@ -275,10 +275,10 @@ public enum GitRepoType {
   protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository,
       String repoUrl, String ref)
       throws RepoException, ValidationException {
-    Optional<GithubPrUrl> githubPrUrl = GithubUtil.maybeParseGithubPrUrl(ref);
+    Optional<GitHubPrUrl> githubPrUrl = GitHubUtil.maybeParseGithubPrUrl(ref);
     if (githubPrUrl.isPresent()) {
       // TODO(malcon): Support merge ref too once we have github pr origin.
-      String stableRef = GithubUtil.asHeadRef(githubPrUrl.get().getPrNumber());
+      String stableRef = GitHubUtil.asHeadRef(githubPrUrl.get().getPrNumber());
       GitRevision gitRevision = repository.fetchSingleRef(
           "https://github.com/" + githubPrUrl.get().getProject(), stableRef);
       return new GitRevision(
@@ -288,7 +288,7 @@ public enum GitRepoType {
           stableRef,
           ImmutableListMultimap.of(), repoUrl);
     }
-    if (GithubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
+    if (GitHubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
       GitRevision gitRevision = repository.fetchSingleRef(repoUrl, ref);
       return new GitRevision(
           repository,

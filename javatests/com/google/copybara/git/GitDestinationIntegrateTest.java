@@ -91,7 +91,7 @@ public class GitDestinationIntegrateTest {
         .setOutputRootToTmpDir();
     options.git = new TestGitOptions(localHub, options.general);
 
-    options.github = new GithubOptions(options.general, options.git) {
+    options.github = new GitHubOptions(options.general, options.git) {
       @Override
       protected HttpTransport newHttpTransport() {
         return GitTestUtil.NO_GITHUB_API_CALLS;
@@ -289,7 +289,7 @@ public class GitDestinationIntegrateTest {
     GitDestination destination = destinationWithDefaultIntegrates();
     GitLogEntry previous = createBaseDestinationChange(destination);
 
-    String label = new GithubPRIntegrateLabel(repo, options.general,
+    String label = new GitHubPRIntegrateLabel(repo, options.general,
         "example/test_repo", 20, "some_user:branch", secondChange.getSha1()).toString();
 
     assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
@@ -323,7 +323,7 @@ public class GitDestinationIntegrateTest {
         .filter(e -> e.getType() == MessageType.WARNING)
         .collect(Collectors.toList())).isEmpty();
 
-    label = new GithubPRIntegrateLabel(repo, options.general,
+    label = new GitHubPRIntegrateLabel(repo, options.general,
         "example/test_repo", 20, "some_user:branch", firstChange.getSha1()).toString();
     assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
         + " from some_user:branch " + firstChange.getSha1());

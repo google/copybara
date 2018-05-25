@@ -17,10 +17,10 @@
 package com.google.copybara.git;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
-import static com.google.copybara.git.github.util.GithubUtil.asGithubUrl;
-import static com.google.copybara.git.github.util.GithubUtil.asHeadRef;
-import static com.google.copybara.git.github.util.GithubUtil.asMergeRef;
-import static com.google.copybara.git.github.util.GithubUtil.getProjectNameFromUrl;
+import static com.google.copybara.git.github.util.GitHubUtil.asGithubUrl;
+import static com.google.copybara.git.github.util.GitHubUtil.asHeadRef;
+import static com.google.copybara.git.github.util.GitHubUtil.asMergeRef;
+import static com.google.copybara.git.github.util.GitHubUtil.getProjectNameFromUrl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
@@ -48,14 +48,14 @@ import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github.api.AuthorAssociation;
-import com.google.copybara.git.github.api.GithubApi;
+import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.Label;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.User;
-import com.google.copybara.git.github.util.GithubUtil;
-import com.google.copybara.git.github.util.GithubUtil.GithubPrUrl;
+import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.git.github.util.GitHubUtil.GitHubPrUrl;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -72,7 +72,7 @@ import javax.annotation.Nullable;
 /**
  * A class for reading GitHub Pull Requests
  */
-public class GithubPROrigin implements Origin<GitRevision> {
+public class GitHubPROrigin implements Origin<GitRevision> {
 
   static final int RETRY_COUNT = 3;
 
@@ -94,7 +94,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
   private final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
   private final GitOriginOptions gitOriginOptions;
-  private final GithubOptions githubOptions;
+  private final GitHubOptions gitHubOptions;
   private final Set<String> requiredLabels;
   private final Set<String> retryableLabels;
   private final SubmoduleStrategy submoduleStrategy;
@@ -105,8 +105,8 @@ public class GithubPROrigin implements Origin<GitRevision> {
   @Nullable private final ReviewState reviewState;
   private final ImmutableSet<AuthorAssociation> reviewApprovers;
 
-  GithubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
-      GitOptions gitOptions, GitOriginOptions gitOriginOptions, GithubOptions githubOptions,
+  GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
+      GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
       Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
       boolean baselineFromBranch, Boolean firstParent, StateFilter requiredState,
       @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers) {
@@ -115,7 +115,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.gitOriginOptions = Preconditions.checkNotNull(gitOriginOptions);
-    this.githubOptions = githubOptions;
+    this.gitHubOptions = gitHubOptions;
     this.requiredLabels = Preconditions.checkNotNull(requiredLabels);
     this.retryableLabels = Preconditions.checkNotNull(retryableLabels);
     this.submoduleStrategy = Preconditions.checkNotNull(submoduleStrategy);
@@ -136,7 +136,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     console.progress("GitHub PR Origin: Resolving reference " + reference);
 
     // A whole https pull request url
-    Optional<GithubPrUrl> githubPrUrl = GithubUtil.maybeParseGithubPrUrl(reference);
+    Optional<GitHubPrUrl> githubPrUrl = GitHubUtil.maybeParseGithubPrUrl(reference);
     String configProjectName = getProjectNameFromUrl(url);
     if (githubPrUrl.isPresent()) {
       checkCondition(
@@ -152,7 +152,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     }
 
     // refs/pull/12345/head
-    Optional<Integer> prNumber = GithubUtil.maybeParseGithubPrFromHeadRef(reference);
+    Optional<Integer> prNumber = GitHubUtil.maybeParseGithubPrFromHeadRef(reference);
     if (prNumber.isPresent()) {
       return getRevisionForPR(configProjectName, prNumber.get());
     }
@@ -174,7 +174,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
 
   private GitRevision getRevisionForPR(String project, int prNumber)
       throws RepoException, ValidationException {
-    GithubApi api = githubOptions.newGitHubApi(project);
+    GitHubApi api = gitHubOptions.newGitHubApi(project);
     if (!requiredLabels.isEmpty()) {
       int retryCount = 0;
       Set<String> requiredButNotPresent;
@@ -269,7 +269,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
     String refForMigration = useMerge ? LOCAL_PR_MERGE_REF : LOCAL_PR_HEAD_REF;
     GitRevision gitRevision = getRepository().resolveReference(refForMigration);
 
-    String integrateLabel = new GithubPRIntegrateLabel(getRepository(), generalOptions,
+    String integrateLabel = new GitHubPRIntegrateLabel(getRepository(), generalOptions,
         project, prNumber,
         prData.getHead().getLabel(),
         // The integrate SHA has to be HEAD of the PR not the merge ref, even if use_merge = True
@@ -351,7 +351,7 @@ public class GithubPROrigin implements Origin<GitRevision> {
       @Override
       public Endpoint getFeedbackEndPoint() {
         // TODO(danielromero): Populate checker
-        return new GitHubEndPoint(githubOptions.newGitHubApiSupplier(url, /*checker*/ null), url);
+        return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, /*checker*/ null), url);
       }
 
       /**

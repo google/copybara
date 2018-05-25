@@ -28,7 +28,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.git.GitRepository;
-import com.google.copybara.git.github.api.testing.AbstractGithubApiTest;
+import com.google.copybara.git.github.api.testing.AbstractGitHubApiTest;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,7 +43,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GithubApiTest extends AbstractGithubApiTest {
+public class GitHubApiTest extends AbstractGitHubApiTest {
 
   private MockHttpTransport httpTransport;
 

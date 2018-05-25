@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * A mini API for getting and updating GitHub projects through the GitHub REST API.
  */
-public class GithubApi {
+public class GitHubApi {
 
   private final GitHubApiTransport transport;
   private final Profiler profiler;
@@ -37,7 +37,7 @@ public class GithubApi {
   public static final int MAX_PER_PAGE = 100;
   private static final int MAX_PAGES = 5;
 
-  public GithubApi(GitHubApiTransport transport, Profiler profiler) {
+  public GitHubApi(GitHubApiTransport transport, Profiler profiler) {
     this.transport = Preconditions.checkNotNull(transport);
     this.profiler = Preconditions.checkNotNull(profiler);
   }

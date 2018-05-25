@@ -38,7 +38,6 @@ import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -104,7 +103,7 @@ public class GitIntegrateChanges {
       try (ProfilerTask ignore = generalOptions.profiler().start("integrate",
           ImmutableMap.of("URL", label.getValue()))) {
         generalOptions.console().progress("Integrating change from " + label.getValue());
-        IntegrateLabel integrateLabel = GithubPRIntegrateLabel.parse(label.getValue(), repository,
+        IntegrateLabel integrateLabel = GitHubPRIntegrateLabel.parse(label.getValue(), repository,
             generalOptions);
         if (integrateLabel == null) {
           integrateLabel = GerritIntegrateLabel.parse(label.getValue(), repository,

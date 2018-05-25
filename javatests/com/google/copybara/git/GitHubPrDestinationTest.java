@@ -30,7 +30,7 @@ import com.google.copybara.Destination.Writer;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
-import com.google.copybara.git.github.api.GithubApi;
+import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
@@ -54,7 +54,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GithubPrDestinationTest {
+public class GitHubPrDestinationTest {
 
   private Path repoGitDir;
   private OptionsBuilder options;
@@ -70,7 +70,7 @@ public class GithubPrDestinationTest {
 
   @Before
   public void setup() throws Exception {
-    repoGitDir = Files.createTempDirectory("GithubPrDestinationTest-repoGitDir");
+    repoGitDir = Files.createTempDirectory("GitHubPrDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
     localHub = Files.createTempDirectory("localHub");
 
@@ -79,11 +79,11 @@ public class GithubPrDestinationTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-    options.git = new TestGitOptions(localHub, GithubPrDestinationTest.this.options.general);
+    options.git = new TestGitOptions(localHub, GitHubPrDestinationTest.this.options.general);
 
-    options.github = new GithubOptions(options.general, options.git) {
+    options.github = new GitHubOptions(options.general, options.git) {
       @Override
-      public GithubApi newGitHubApi(String project) throws RepoException {
+      public GitHubApi newGitHubApi(String project) throws RepoException {
         assertThat(project).isEqualTo(expectedProject);
         return super.newGitHubApi(project);
       }
@@ -137,7 +137,7 @@ public class GithubPrDestinationTest {
         throw new IllegalStateException();
       }
     };
-    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo', \n"
         + "    title = 'custom title',\n"
         + "    body = 'custom body',\n"
@@ -193,7 +193,7 @@ public class GithubPrDestinationTest {
         throw new IllegalStateException();
       }
     };
-    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
 
@@ -261,7 +261,7 @@ public class GithubPrDestinationTest {
   }
 
   private void checkFindProject(String url, String project) throws ValidationException {
-    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = '" + url + "',"
         + "    destination_ref = 'other',"
         + ")");
@@ -293,7 +293,7 @@ public class GithubPrDestinationTest {
         throw new IllegalStateException();
       }
     };
-    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo',"
         + "    destination_ref = 'other',"
         + ")");
@@ -323,7 +323,7 @@ public class GithubPrDestinationTest {
   public void testDestinationStatus() throws ValidationException, IOException, RepoException {
     options.githubDestination.createPullRequest = false;
     gitApiMockHttpTransport = GitTestUtil.NO_GITHUB_API_CALLS;
-    GithubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
 

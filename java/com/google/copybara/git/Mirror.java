@@ -28,7 +28,7 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -88,9 +88,9 @@ public class Mirror implements Migration {
   }
 
   public static String getOriginDestinationRef(String url) throws ValidationException {
-    return GithubUtil.isGitHubUrl(url)
-        ? GithubUtil.asGithubUrl(
-        GithubUtil.getProjectNameFromUrl(url))
+    return GitHubUtil.isGitHubUrl(url)
+        ? GitHubUtil.asGithubUrl(
+        GitHubUtil.getProjectNameFromUrl(url))
         : url;
   }
 

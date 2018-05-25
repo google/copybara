@@ -25,7 +25,7 @@ import com.google.copybara.Option;
  * <p>Intentionally empty so that we have the necessary infrastructure when
  * we add github options.
  */
-public final class GithubDestinationOptions implements Option {
+public final class GitHubDestinationOptions implements Option {
 
   static final String GITHUB_DESTINATION_PR_BRANCH = "--github-destination-pr-branch";
 

@@ -28,12 +28,12 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CreateStatusRequest;
-import com.google.copybara.git.github.api.GithubApi;
+import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
-import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -52,17 +52,17 @@ import com.google.devtools.build.lib.syntax.EvalException;
 )
 public class GitHubEndPoint implements Endpoint {
 
-  private LazyResourceLoader<GithubApi> apiSupplier;
+  private LazyResourceLoader<GitHubApi> apiSupplier;
   private String url;
   private Console console;
 
-  GitHubEndPoint(LazyResourceLoader<GithubApi> apiSupplier, String url) {
+  GitHubEndPoint(LazyResourceLoader<GitHubApi> apiSupplier, String url) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.console = null;
   }
 
-  private GitHubEndPoint(LazyResourceLoader<GithubApi> apiSupplier, String url, Console console) {
+  private GitHubEndPoint(LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.console = Preconditions.checkNotNull(console);
@@ -94,7 +94,7 @@ public class GitHubEndPoint implements Endpoint {
       checkCondition(!Strings.isNullOrEmpty(description), "description cannot be empty");
       checkCondition(!Strings.isNullOrEmpty(context), "context cannot be empty");
 
-      String project = GithubUtil.getProjectNameFromUrl(url);
+      String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).createStatus(
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
                                                  convertFromNoneable(targetUrl, null),
@@ -124,7 +124,7 @@ public class GitHubEndPoint implements Endpoint {
           "Not a valid complete SHA-1: %s", sha);
       checkCondition(!Strings.isNullOrEmpty(ref), "ref cannot be empty");
 
-      String project = GithubUtil.getProjectNameFromUrl(url);
+      String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
     } catch (RepoException | ValidationException | RuntimeException e) {

@@ -26,13 +26,13 @@ import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitDestinationOptions;
+import com.google.copybara.git.GitHubDestinationOptions;
+import com.google.copybara.git.GitHubOptions;
+import com.google.copybara.git.GitHubPrOriginOptions;
 import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
-import com.google.copybara.git.GithubDestinationOptions;
-import com.google.copybara.git.GithubOptions;
-import com.google.copybara.git.GithubPrOriginOptions;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.console.Console;
@@ -94,10 +94,10 @@ public class ModuleSupplier {
         new FolderOriginOptions(),
         gitOptions,
         new GitOriginOptions(),
-        new GithubPrOriginOptions(),
+        new GitHubPrOriginOptions(),
         gitDestinationOptions,
-        new GithubOptions(generalOptions, gitOptions),
-        new GithubDestinationOptions(),
+        new GitHubOptions(generalOptions, gitOptions),
+        new GitHubDestinationOptions(),
         new GerritOptions(generalOptions, gitOptions),
         new GitMirrorOptions(generalOptions, gitOptions),
         new PatchingOptions(generalOptions),

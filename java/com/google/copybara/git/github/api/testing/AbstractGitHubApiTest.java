@@ -27,10 +27,10 @@ import com.google.common.collect.Lists;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.CreateStatusRequest;
+import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubApiTransport;
-import com.google.copybara.git.github.api.GithubApi;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.Label;
 import com.google.copybara.git.github.api.PullRequest;
@@ -52,15 +52,15 @@ import org.junit.Test;
 /**
  * Base test to run the same tests on various implementations of the GitHubApiTransport
  */
-public abstract class AbstractGithubApiTest {
+public abstract class AbstractGitHubApiTest {
 
-  protected GithubApi api;
+  protected GitHubApi api;
 
   @Before
   public void setUpFamework() throws Exception {
     Profiler profiler = new Profiler(Ticker.systemTicker());
     profiler.init(ImmutableList.of(new LogProfilerListener()));
-    api = new GithubApi(getTransport(), profiler);
+    api = new GitHubApi(getTransport(), profiler);
   }
 
   public abstract GitHubApiTransport getTransport() throws Exception;

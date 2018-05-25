@@ -24,54 +24,54 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubApiTransportImpl;
 import com.google.copybara.git.github.api.GitHubApiTransportWithChecker;
-import com.google.copybara.git.github.api.GithubApi;
-import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.console.Console;
 import javax.annotation.Nullable;
 
 /**
  * Options related to GitHub
  */
-public class GithubOptions implements Option {
+public class GitHubOptions implements Option {
 
   protected final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
 
-  public GithubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
+  public GitHubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
   }
 
   /**
-   * Returns a lazy supplier of {@link GithubApi}.
+   * Returns a lazy supplier of {@link GitHubApi}.
    */
-  public LazyResourceLoader<GithubApi> newGitHubApiSupplier(
+  public LazyResourceLoader<GitHubApi> newGitHubApiSupplier(
       String url, @Nullable Checker checker) {
     return (console) -> {
-      String project = GithubUtil.getProjectNameFromUrl(url);
+      String project = GitHubUtil.getProjectNameFromUrl(url);
       return checker == null ? newGitHubApi(project) : newGitHubApi(project, checker, console);
     };
   }
 
   /**
-   * Returns a new {@link GithubApi} instance for the given project.
+   * Returns a new {@link GitHubApi} instance for the given project.
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
-  public GithubApi newGitHubApi(String gitHubProject) throws RepoException {
+  public GitHubApi newGitHubApi(String gitHubProject) throws RepoException {
     return newGitHubApi(gitHubProject, /*checker*/ null, generalOptions.console());
   }
 
   /**
-   * Returns a new {@link GithubApi} instance for the given project  enforcing the given
+   * Returns a new {@link GitHubApi} instance for the given project  enforcing the given
    * {@link Checker}.
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
-  public GithubApi newGitHubApi(String gitHubProject, @Nullable Checker checker, Console console)
+  public GitHubApi newGitHubApi(String gitHubProject, @Nullable Checker checker, Console console)
       throws RepoException {
     GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
 
@@ -83,7 +83,7 @@ public class GithubOptions implements Option {
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, checker, console);
     }
-    return new GithubApi(transport, generalOptions.profiler());
+    return new GitHubApi(transport, generalOptions.profiler());
   }
 
   private GitHubApiTransport newTransport(

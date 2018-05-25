@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
-import com.google.copybara.git.github.api.GithubApi;
+import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
@@ -47,7 +47,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GithubEndpointTest {
+public class GitHubEndpointTest {
 
   private static final String PROJECT = "google/example";
 
@@ -97,9 +97,9 @@ public class GithubEndpointTest {
       }
     };
 
-    options.github = new GithubOptions(options.general, options.git) {
+    options.github = new GitHubOptions(options.general, options.git) {
       @Override
-      public GithubApi newGitHubApi(String project) throws RepoException {
+      public GitHubApi newGitHubApi(String project) throws RepoException {
         assertThat(project).isEqualTo(PROJECT);
         return super.newGitHubApi(project);
       }

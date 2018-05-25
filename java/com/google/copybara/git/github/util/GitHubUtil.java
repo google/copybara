@@ -30,14 +30,14 @@ import java.util.Optional;
 /**
  * General utilities for manipulating GitHub urls and data
  */
-public class GithubUtil {
+public class GitHubUtil {
 
   private static final Pattern GITHUB_PULL_REQUEST =
       Pattern.compile("https://github[.]com/(.+)/pull/([0-9]+)");
   private static final String GIT_GITHUB_PROTOCOL = "git@github.com:";
   private static final String GITHUB_HOST = "github.com";
 
-  private GithubUtil() {
+  private GitHubUtil() {
   }
 
   /**
@@ -77,7 +77,7 @@ public class GithubUtil {
    */
   public static boolean isGitHubUrl(String url) {
     try {
-      GithubUtil.getProjectNameFromUrl(url);
+      GitHubUtil.getProjectNameFromUrl(url);
       return true;
     } catch (ValidationException e) {
       return false;
@@ -112,10 +112,10 @@ public class GithubUtil {
     return matcher.matches() ? Optional.of(Integer.parseInt(matcher.group(1))) : Optional.empty();
   }
 
-  public static Optional<GithubPrUrl> maybeParseGithubPrUrl(String ref) {
+  public static Optional<GitHubPrUrl> maybeParseGithubPrUrl(String ref) {
     Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
     return matcher.matches()
-           ? Optional.of(new GithubPrUrl(matcher.group(1), Integer.parseInt(matcher.group(2))))
+           ? Optional.of(new GitHubPrUrl(matcher.group(1), Integer.parseInt(matcher.group(2))))
            : Optional.empty();
   }
 
@@ -136,12 +136,12 @@ public class GithubUtil {
   /**
    * A GitHub PR project and number
    */
-  public static class GithubPrUrl {
+  public static class GitHubPrUrl {
 
     private final String project;
     private final int prNumber;
 
-    GithubPrUrl(String project, int prNumber) {
+    GitHubPrUrl(String project, int prNumber) {
       this.project = project;
       this.prNumber = prNumber;
     }

@@ -36,9 +36,9 @@ import com.google.copybara.git.GitDestination.ProcessPushOutput;
 import com.google.copybara.git.GitDestination.WriterImpl;
 import com.google.copybara.git.GitDestination.WriterState;
 import com.google.copybara.git.github.api.CreatePullRequest;
-import com.google.copybara.git.github.api.GithubApi;
+import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.PullRequest;
-import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -48,14 +48,14 @@ import javax.annotation.Nullable;
 /**
  * A destination for creating/updating Github Pull Requests.
  */
-public class GithubPrDestination implements Destination<GitRevision> {
+public class GitHubPrDestination implements Destination<GitRevision> {
 
   private final String url;
   private final String destinationRef;
   private final GeneralOptions generalOptions;
-  private final GithubOptions githubOptions;
+  private final GitHubOptions gitHubOptions;
   private final GitDestinationOptions destinationOptions;
-  private final GithubDestinationOptions githubDestinationOptions;
+  private final GitHubDestinationOptions gitHubDestinationOptions;
   private final GitOptions gitOptions;
   private final CommitGenerator commitGenerator;
   private final ProcessPushOutput processPushOutput;
@@ -65,18 +65,18 @@ public class GithubPrDestination implements Destination<GitRevision> {
   private final boolean effectiveSkipPush;
   private final LazyResourceLoader<GitRepository> localRepo;
 
-  public GithubPrDestination(String url, String destinationRef, GeneralOptions generalOptions,
-      GithubOptions githubOptions,
-      GitDestinationOptions destinationOptions, GithubDestinationOptions githubDestinationOptions,
+  public GitHubPrDestination(String url, String destinationRef, GeneralOptions generalOptions,
+      GitHubOptions gitHubOptions,
+      GitDestinationOptions destinationOptions, GitHubDestinationOptions gitHubDestinationOptions,
       GitOptions gitOptions,
       boolean skipPush, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
       Iterable<GitIntegrateChanges> integrates, @Nullable String title, @Nullable String body) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
-    this.githubOptions = Preconditions.checkNotNull(githubOptions);
+    this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
     this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
-    this.githubDestinationOptions = Preconditions.checkNotNull(githubDestinationOptions);
+    this.gitHubDestinationOptions = Preconditions.checkNotNull(gitHubDestinationOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
     this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
@@ -111,20 +111,20 @@ public class GithubPrDestination implements Destination<GitRevision> {
       throws ValidationException {
     WriterImpl gitOldWriter = (WriterImpl) oldWriter;
 
-    boolean effectiveSkipPush = GithubPrDestination.this.effectiveSkipPush || dryRun;
+    boolean effectiveSkipPush = GitHubPrDestination.this.effectiveSkipPush || dryRun;
 
-    GithubWriterState state;
+    GitHubWriterState state;
     String pushBranchName = branchFromGroupId(groupId);
     if (oldWriter != null && gitOldWriter.skipPush == effectiveSkipPush) {
-      state = (GithubWriterState) ((WriterImpl) oldWriter).state;
+      state = (GitHubWriterState) ((WriterImpl) oldWriter).state;
     } else {
-      state = new GithubWriterState(localRepo,
+      state = new GitHubWriterState(localRepo,
           destinationOptions.localRepoPath != null
               ? pushBranchName
               : "copybara/push-" + UUID.randomUUID() + (dryRun ? "-dryrun" : ""));
     }
 
-    return new WriterImpl<GithubWriterState>(destinationFiles, effectiveSkipPush, url,
+    return new WriterImpl<GitHubWriterState>(destinationFiles, effectiveSkipPush, url,
         destinationRef, pushBranchName,
         generalOptions, commitGenerator, processPushOutput,
         state, /*nonFastForwardPush=*/true, integrates,
@@ -146,7 +146,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
-        if (!githubDestinationOptions.createPullRequest) {
+        if (!gitHubDestinationOptions.createPullRequest) {
           console.infoFmt("Please create a PR manually following this link: %s/compare/%s...%s"
                   + " (Only needed once)",
               asHttpsUrl(), destinationRef, pushBranchName);
@@ -154,7 +154,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
-        GithubApi api = githubOptions.newGitHubApi(GithubUtil.getProjectNameFromUrl(url));
+        GitHubApi api = gitHubOptions.newGitHubApi(GitHubUtil.getProjectNameFromUrl(url));
         for (PullRequest pr : api.getPullRequests(getProjectName())) {
           if (pr.isOpen() && pr.getHead().getRef().equals(pushBranchName)) {
             console.infoFmt("Pull request for branch %s already exists as %s/pull/%s",
@@ -203,12 +203,12 @@ public class GithubPrDestination implements Destination<GitRevision> {
 
   @VisibleForTesting
   String getProjectName() throws ValidationException {
-    return GithubUtil.getProjectNameFromUrl(url);
+    return GitHubUtil.getProjectNameFromUrl(url);
   }
 
   private String branchFromGroupId(@Nullable String groupId) throws ValidationException {
-    if (!Strings.isNullOrEmpty(githubDestinationOptions.destinationPrBranch)) {
-      return githubDestinationOptions.destinationPrBranch;
+    if (!Strings.isNullOrEmpty(gitHubDestinationOptions.destinationPrBranch)) {
+      return gitHubDestinationOptions.destinationPrBranch;
     }
     // We could do more magic here with the change identity. But this is already complex so we
     // require  a group identity either provided by the origin or the workflow (Will be implemented
@@ -216,7 +216,7 @@ public class GithubPrDestination implements Destination<GitRevision> {
     ValidationException.checkCondition(groupId != null,
         "git.github_pr_destination is incompatible with the current origin. Origin has to be"
             + " able to provide the group identity or use '%s' flag",
-        GithubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
+        GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
     return groupId.replaceAll("[^A-Za-z0-9_-]", "_");
   }
 
@@ -225,12 +225,12 @@ public class GithubPrDestination implements Destination<GitRevision> {
     return GitRepository.GIT_ORIGIN_REV_ID;
   }
 
-  private static class GithubWriterState extends WriterState {
+  private static class GitHubWriterState extends WriterState {
 
     @Nullable
     Long pullRequestNumber;
 
-    GithubWriterState(LazyResourceLoader<GitRepository> localRepo, String localBranch) {
+    GitHubWriterState(LazyResourceLoader<GitRepository> localRepo, String localBranch) {
       super(localRepo, localBranch);
     }
   }

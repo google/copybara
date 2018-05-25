@@ -24,7 +24,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
 import javax.annotation.Nullable;
 
 /**
@@ -35,7 +34,7 @@ import javax.annotation.Nullable;
  * <p>Where SHA-1 is optional: If present it means to integrate the specific SHA-1. Otherwise the
  * head of the PR is used.
  */
-class GithubPRIntegrateLabel implements IntegrateLabel {
+class GitHubPRIntegrateLabel implements IntegrateLabel {
 
   private static final Pattern LABEL_PATTERN = Pattern.compile(
       "https://github.com/([a-zA-Z0-9_/-]+)/pull/([0-9]+)"
@@ -51,7 +50,7 @@ class GithubPRIntegrateLabel implements IntegrateLabel {
   @Nullable
   private final String sha1;
 
-  GithubPRIntegrateLabel(GitRepository repository, GeneralOptions generalOptions, String projectId,
+  GitHubPRIntegrateLabel(GitRepository repository, GeneralOptions generalOptions, String projectId,
       long prNumber, String originBranch, @Nullable String sha1) {
     this.repository = Preconditions.checkNotNull(repository);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -62,11 +61,11 @@ class GithubPRIntegrateLabel implements IntegrateLabel {
   }
 
   @Nullable
-  static GithubPRIntegrateLabel parse(String str, GitRepository repository,
+  static GitHubPRIntegrateLabel parse(String str, GitRepository repository,
       GeneralOptions generalOptions) {
     Matcher matcher = LABEL_PATTERN.matcher(str);
     return matcher.matches()
-           ? new GithubPRIntegrateLabel(repository, generalOptions,
+           ? new GitHubPRIntegrateLabel(repository, generalOptions,
                                         matcher.group(1),
                                         Long.parseLong(matcher.group(2)),
                                         matcher.group(3),

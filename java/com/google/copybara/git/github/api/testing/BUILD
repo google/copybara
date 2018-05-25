@@ -19,7 +19,7 @@ package(default_visibility = ["//visibility:public"])
 java_library(
     name = "abstract_gitapi_test",
     testonly = 1,
-    srcs = ["AbstractGithubApiTest.java"],
+    srcs = ["AbstractGitHubApiTest.java"],
     data = glob(["*_testdata.json"]),
     deps = [
         "//java/com/google/copybara/git/github:api",

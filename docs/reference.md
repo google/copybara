@@ -1012,7 +1012,7 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 
 Creates changes in a new pull request in the destination.
 
-`githubPrDestination git.github_pr_destination(url, destination_ref="master", skip_push=False, title=None, body=None)`
+`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", skip_push=False, title=None, body=None)`
 
 
 #### Parameters:
@@ -1064,7 +1064,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 
 
-`githubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"])`
+`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"])`
 
 
 #### Parameters:

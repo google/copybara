@@ -19,17 +19,17 @@ package com.google.copybara.git;
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH_SHA1;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_ASSIGNEES;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_BODY;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH_SHA1;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_ASSIGNEES;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_REVIEWER_OTHER;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_USER;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -48,13 +48,13 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
 import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
+import com.google.copybara.git.GitHubPROrigin.ReviewState;
+import com.google.copybara.git.GitHubPROrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
-import com.google.copybara.git.GithubPROrigin.ReviewState;
-import com.google.copybara.git.GithubPROrigin.StateFilter;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
-import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -291,7 +291,7 @@ public class GitModule implements LabelsAwareModule {
           + "\n"
           + "Implicit labels that can be used/exposed:\n"
           + "\n"
-          + "  - " + GithubPROrigin.GITHUB_PR_NUMBER_LABEL + ": The pull request number if the"
+          + "  - " + GitHubPROrigin.GITHUB_PR_NUMBER_LABEL + ": The pull request number if the"
           + " reference passed was in the form of `https://github.com/project/pull/123`, "
           + " `refs/pull/123/head` or `refs/pull/123/master`.\n"
           + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
@@ -360,9 +360,9 @@ public class GitModule implements LabelsAwareModule {
                   + " https://developer.github.com/v4/reference/enum/commentauthorassociation/"),
       },
       useLocation = true)
-  @UsesFlags(GithubPrOriginOptions.class)
+  @UsesFlags(GitHubPrOriginOptions.class)
   @DocDefault(field = "review_approvers", value = "[\"COLLABORATOR\", \"MEMBER\", \"OWNER\"]")
-  public GithubPROrigin githubPrOrigin(String url, Boolean merge,
+  public GitHubPROrigin githubPrOrigin(String url, Boolean merge,
       SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
       Boolean baselineFromBranch, Boolean firstParent, String state,
       Object reviewStateParam, Object reviewApproversParam, Location location)
@@ -397,14 +397,14 @@ public class GitModule implements LabelsAwareModule {
       reviewApprovers = ImmutableSet.copyOf(approvers);
     }
 
-    GithubPrOriginOptions githubPrOriginOptions = options.get(GithubPrOriginOptions.class);
-    return new GithubPROrigin(url, merge,
+    GitHubPrOriginOptions gitHubPrOriginOptions = options.get(GitHubPrOriginOptions.class);
+    return new GitHubPROrigin(url, merge,
         options.get(GeneralOptions.class),
         options.get(GitOptions.class),
         options.get(GitOriginOptions.class),
-        options.get(GithubOptions.class),
-        githubPrOriginOptions.getRequiredLabels(requiredLabels),
-        githubPrOriginOptions.getRetryableLabels(retryableLabels),
+        options.get(GitHubOptions.class),
+        gitHubPrOriginOptions.getRequiredLabels(requiredLabels),
+        gitHubPrOriginOptions.getRetryableLabels(retryableLabels),
         stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch, firstParent,
         stringToEnum(location, "state", state, StateFilter.class),
@@ -434,7 +434,7 @@ public class GitModule implements LabelsAwareModule {
       useLocation = true)
   public GitOrigin githubOrigin(String url, Object ref, String submodules,
       Boolean firstParent, Location location) throws EvalException {
-    if (!GithubUtil.isGitHubUrl(checkNotEmpty(url, "url", location))) {
+    if (!GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location))) {
       throw new EvalException(location, "Invalid Github URL: " + url);
     }
 
@@ -524,20 +524,20 @@ public class GitModule implements LabelsAwareModule {
                   + " summary."),
       },
       useLocation = true)
-  @UsesFlags({GitDestinationOptions.class, GithubDestinationOptions.class})
-  public GithubPrDestination githubPrDestination(String url, String destinationRef,
+  @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
+  public GitHubPrDestination githubPrDestination(String url, String destinationRef,
       Boolean skipPush, Object title, Object body, Location location) throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     // We don't restrict to github.com domain so that we can support GH Enterprise
     // in the future.
     checkRemoteUrl(url, location);
-    return new GithubPrDestination(
+    return new GitHubPrDestination(
         url,
         destinationRef,
         generalOptions,
-        options.get(GithubOptions.class),
+        options.get(GitHubOptions.class),
         options.get(GitDestinationOptions.class),
-        options.get(GithubDestinationOptions.class),
+        options.get(GitHubDestinationOptions.class),
         options.get(GitOptions.class),
         skipPush,
         new DefaultCommitGenerator(),
@@ -636,13 +636,13 @@ public class GitModule implements LabelsAwareModule {
     },
     useLocation = true
   )
-  @UsesFlags(GithubOptions.class)
+  @UsesFlags(GitHubOptions.class)
   public GitHubEndPoint githubApi(String url, Object checkerObj, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     Checker checker = convertFromNoneable(checkerObj, null);
-    GithubOptions githubOptions = options.get(GithubOptions.class);
-    return new GitHubEndPoint(githubOptions.newGitHubApiSupplier(url, checker), url);
+    GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
+    return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, checker), url);
   }
 
   @SuppressWarnings("unused")

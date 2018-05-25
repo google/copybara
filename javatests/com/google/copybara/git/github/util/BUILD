@@ -28,6 +28,6 @@ DEPS = [
 ]
 
 all_tests(
-    tests = ["GithubUtilTest.java"],
+    tests = ["GitHubUtilTest.java"],
     deps = DEPS,
 )

@@ -39,12 +39,12 @@ import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderOriginOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitDestinationOptions;
+import com.google.copybara.git.GitHubDestinationOptions;
+import com.google.copybara.git.GitHubOptions;
+import com.google.copybara.git.GitHubPrOriginOptions;
 import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
-import com.google.copybara.git.GithubDestinationOptions;
-import com.google.copybara.git.GithubOptions;
-import com.google.copybara.git.GithubPrOriginOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -77,18 +77,18 @@ public class OptionsBuilder {
 
   public GitOptions git = new GitOptions(general);
   public GitOriginOptions gitOrigin = new GitOriginOptions();
-  public GithubPrOriginOptions githubPrOrigin = new GithubPrOriginOptions();
+  public GitHubPrOriginOptions githubPrOrigin = new GitHubPrOriginOptions();
   public GitDestinationOptions gitDestination = new GitDestinationOptions(general, git);
   public PatchingOptions patch = new PatchingOptions(general);
 
-  public GithubOptions github = new GithubOptions(general, git) {
+  public GitHubOptions github = new GitHubOptions(general, git) {
     @Override
     protected HttpTransport newHttpTransport() {
       throw new UnsupportedOperationException(
           "You probably have overwritten GitOptions, so you need to create this variable too");
     }
   };
-  public GithubDestinationOptions githubDestination = new GithubDestinationOptions();
+  public GitHubDestinationOptions githubDestination = new GitHubDestinationOptions();
   public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions(general, git);
   public GerritOptions gerrit = new GerritOptions(general, git);
   public WorkflowOptions workflowOptions =

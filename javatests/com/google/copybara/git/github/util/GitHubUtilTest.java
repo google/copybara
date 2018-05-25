@@ -17,17 +17,16 @@
 package com.google.copybara.git.github.util;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.git.github.util.GithubUtil.getProjectNameFromUrl;
+import static com.google.copybara.git.github.util.GitHubUtil.getProjectNameFromUrl;
 import static org.junit.Assert.fail;
 
 import com.google.copybara.exception.ValidationException;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GithubUtilTest {
+public class GitHubUtilTest {
 
   @Test
   public void testGetPRojectNameFromUrl() throws Exception {

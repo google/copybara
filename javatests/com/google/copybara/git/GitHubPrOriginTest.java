@@ -17,13 +17,13 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_BASE_BRANCH_SHA1;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_ASSIGNEES;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_BODY;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_NUMBER_LABEL;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_TITLE;
-import static com.google.copybara.git.GithubPROrigin.GITHUB_PR_USER;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH_SHA1;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_ASSIGNEES;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_BODY;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_NUMBER_LABEL;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -50,8 +50,8 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.github.api.GithubApi;
-import com.google.copybara.git.github.util.GithubUtil;
+import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
@@ -74,7 +74,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GithubPrOriginTest {
+public class GitHubPrOriginTest {
 
   private Path repoGitDir;
   private OptionsBuilder options;
@@ -94,7 +94,7 @@ public class GithubPrOriginTest {
 
   @Before
   public void setup() throws Exception {
-    repoGitDir = Files.createTempDirectory("GithubPrDestinationTest-repoGitDir");
+    repoGitDir = Files.createTempDirectory("GitHubPrDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
     localHub = Files.createTempDirectory("localHub");
 
@@ -119,9 +119,9 @@ public class GithubPrOriginTest {
           }
         });
 
-    options.github = new GithubOptions(options.general, options.git) {
+    options.github = new GitHubOptions(options.general, options.git) {
       @Override
-      public GithubApi newGitHubApi(String project) throws RepoException {
+      public GitHubApi newGitHubApi(String project) throws RepoException {
         assertThat(project).isEqualTo(expectedProject);
         return super.newGitHubApi(project);
       }
@@ -202,7 +202,7 @@ public class GithubPrOriginTest {
 
   @Test
   public void testGitResolveSha1() throws Exception {
-    GithubPROrigin origin = githubPrOrigin(
+    GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
     checkResolve(origin,
         "refs/pull/123/head", 123, ImmutableList.of());
@@ -332,17 +332,17 @@ public class GithubPrOriginTest {
     addFiles(remote, "two", ImmutableMap.<String, String>builder()
         .put("test.txt", "c").build());
     String prHeadSha1 = remote.parseRef("HEAD");
-    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
     withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // master = base commit.
 
     addFiles(remote, "master change", ImmutableMap.<String, String>builder()
         .put("other.txt", "").build());
-    remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("HEAD"));
+    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
     gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of(), "open");
 
-    GithubPROrigin origin = githubPrOrigin(
+    GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
 
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
@@ -377,17 +377,17 @@ public class GithubPrOriginTest {
     addFiles(remote, "two", ImmutableMap.<String, String>builder()
         .put("test.txt", "c").build());
     String prHeadSha1 = remote.parseRef("HEAD");
-    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
     withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // master = base commit.
 
     String baselineMerge = addFiles(remote, "master change", ImmutableMap.<String, String>builder()
         .put("other.txt", "").build());
-    remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("HEAD"));
+    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
     gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of(), "open");
 
-    GithubPROrigin origin = githubPrOrigin(
+    GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
         "baseline_from_branch = True");
 
@@ -477,7 +477,7 @@ public class GithubPrOriginTest {
     addFiles(remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").build());
 
     String prHeadSha1 = remote.parseRef("HEAD");
-    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
       @Override
@@ -543,15 +543,15 @@ public class GithubPrOriginTest {
   public void testReviewApprovers() throws Exception {
     GitRevision noReviews = checkReviewApprovers();
     assertThat(noReviews.associatedLabels())
-        .doesNotContainKey(GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER);
+        .doesNotContainKey(GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER);
     assertThat(noReviews.associatedLabels())
-        .doesNotContainKey(GithubPROrigin.GITHUB_PR_REVIEWER_OTHER);
+        .doesNotContainKey(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER);
 
     GitRevision any = checkReviewApprovers("review_state = 'ANY'");
 
-    assertThat(any.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+    assertThat(any.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
         .containsExactly("APPROVED_MEMBER", "COMMENTED_OWNER", "APPROVED_COLLABORATOR");
-    assertThat(any.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+    assertThat(any.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER))
         .containsExactly("COMMENTED_OTHER");
 
     try {
@@ -565,17 +565,17 @@ public class GithubPrOriginTest {
     GitRevision hasReviewers = checkReviewApprovers("review_state = 'ANY_COMMIT_APPROVED'",
         "review_approvers = [\"MEMBER\", \"OWNER\"]");
 
-    assertThat(hasReviewers.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+    assertThat(hasReviewers.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
         .containsExactly("APPROVED_MEMBER", "COMMENTED_OWNER");
-    assertThat(hasReviewers.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+    assertThat(hasReviewers.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER))
         .containsExactly("COMMENTED_OTHER", "APPROVED_COLLABORATOR");
 
     GitRevision anyCommitApproved = checkReviewApprovers("review_state = 'HAS_REVIEWERS'",
         "review_approvers = [\"OWNER\"]");
 
-    assertThat(anyCommitApproved.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+    assertThat(anyCommitApproved.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
         .containsExactly("COMMENTED_OWNER");
-    assertThat(anyCommitApproved.associatedLabels().get(GithubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+    assertThat(anyCommitApproved.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER))
         .containsExactly("APPROVED_MEMBER", "COMMENTED_OTHER", "APPROVED_COLLABORATOR");
   }
 
@@ -587,7 +587,7 @@ public class GithubPrOriginTest {
     addFiles(remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").build());
 
     String prHeadSha1 = remote.parseRef("HEAD");
-    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
       @Override
@@ -633,7 +633,7 @@ public class GithubPrOriginTest {
       }
     };
 
-    GithubPROrigin origin = skylark.eval("origin", "origin = "
+    GitHubPROrigin origin = skylark.eval("origin", "origin = "
         + "git.github_pr_origin(\n"
         + "    url = 'https://github.com/google/example',\n"
         + (configLines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(configLines) + ",\n")
@@ -673,12 +673,12 @@ public class GithubPrOriginTest {
     addFiles(remote, "master change", ImmutableMap.<String, String>builder()
         .put("a.txt", "").put("d.txt", "").build());
     remote.simpleCommand("merge", "foo");
-    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), remote.parseRef("foo"));
-    remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("master"));
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), remote.parseRef("foo"));
+    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("master"));
 
     gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of(), "open");
 
-    GithubPROrigin origin = githubPrOrigin(
+    GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
         "use_merge = True");
 
@@ -697,7 +697,7 @@ public class GithubPrOriginTest {
     assertThat(mergeRevision.associatedLabels().get(GitModule.DEFAULT_INTEGRATE_LABEL))
         .contains(String.format(
             "https://github.com/google/example/pull/123 from googletestuser:example-branch %s",
-            remote.resolveReference(GithubUtil.asHeadRef(123)).getSha1()));
+            remote.resolveReference(GitHubUtil.asHeadRef(123)).getSha1()));
 
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     assertThat(
@@ -706,7 +706,7 @@ public class GithubPrOriginTest {
         .isEqualTo(Lists.newArrayList("base\n", "one\n", "two\n", "Merge branch 'foo'\n"));
 
     // Simulate fast-forward
-    remote.simpleCommand("update-ref", GithubUtil.asMergeRef(123), remote.parseRef("foo"));
+    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("foo"));
 
     assertThat(Lists.transform(
         reader.changes(/*fromRef=*/null, origin.resolve("123")).getChanges(), Change::getMessage))
@@ -719,12 +719,12 @@ public class GithubPrOriginTest {
     addFiles(remote, "base", ImmutableMap.<String, String>builder()
         .put("test.txt", "a").build());
     String prHeadSha1 = remote.parseRef("HEAD");
-    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(123), prHeadSha1);
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
     gitApiMockHttpTransport = new MockPullRequest(123, ImmutableList.of(), "open");
 
     // Now try with merge ref
-    GithubPROrigin origin = githubPrOrigin(
+    GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
         "use_merge = True");
 
@@ -733,20 +733,20 @@ public class GithubPrOriginTest {
     origin.newReader(Glob.ALL_FILES, authoring).checkout(origin.resolve("123"), workdir);
   }
 
-  private void checkResolve(GithubPROrigin origin, String reference, int prNumber,
+  private void checkResolve(GitHubPROrigin origin, String reference, int prNumber,
       MockPullRequest mockPullRequest)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = localHubRepo("google/example");
     addFiles(remote, "first change", ImmutableMap.<String, String>builder()
         .put(prNumber + ".txt", "").build());
     String sha1 = remote.parseRef("HEAD");
-    remote.simpleCommand("update-ref", GithubUtil.asHeadRef(prNumber), sha1);
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(prNumber), sha1);
 
     gitApiMockHttpTransport = mockPullRequest;
 
     GitRevision rev = origin.resolve(reference);
     assertThat(rev.asString()).hasLength(40);
-    assertThat(rev.contextReference()).isEqualTo(GithubUtil.asHeadRef(prNumber));
+    assertThat(rev.contextReference()).isEqualTo(GitHubUtil.asHeadRef(prNumber));
     assertThat(rev.associatedLabels()).containsEntry(GITHUB_PR_NUMBER_LABEL,
         Integer.toString(prNumber));
     assertThat(rev.associatedLabels()).containsEntry(GitModule.DEFAULT_INTEGRATE_LABEL,
@@ -754,7 +754,7 @@ public class GithubPrOriginTest {
             + " from googletestuser:example-branch " + sha1);
   }
 
-  private void checkResolve(GithubPROrigin origin, String reference, int prNumber,
+  private void checkResolve(GitHubPROrigin origin, String reference, int prNumber,
       ImmutableList<String> presentLabels)
       throws RepoException, IOException, ValidationException {
     checkResolve(
@@ -780,7 +780,7 @@ public class GithubPrOriginTest {
     return remote.withWorkTree(Files.createTempDirectory("temp"));
   }
 
-  private GithubPROrigin githubPrOrigin(String... lines) throws ValidationException {
+  private GitHubPROrigin githubPrOrigin(String... lines) throws ValidationException {
     return skylark.eval("r", "r = git.github_pr_origin("
         + "    " + Joiner.on(",\n    ").join(lines) + ",\n)");
   }
@@ -847,7 +847,7 @@ public class GithubPrOriginTest {
     }
 
     protected String mockIssue(String number, String state) {
-      if (retryCount < GithubPROrigin.RETRY_COUNT - 1) {
+      if (retryCount < GitHubPROrigin.RETRY_COUNT - 1) {
         retryCount++;
         return createIssue(number, defaultPresentLabels, state);
       }
