@@ -88,6 +88,9 @@ public class GitModule implements LabelsAwareModule {
           new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
               Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
               /*ignoreErrors=*/true)));
+  protected static final String GERRIT_TRIGGER = "gerrit_trigger";
+  protected static final String GERRIT_API = "gerrit_api";
+  protected static final String GITHUB_API = "github_api";
 
   // TODO(malcon): Remove and pass specific ones as constructor parameter
   private final Options options;
@@ -624,7 +627,7 @@ public class GitModule implements LabelsAwareModule {
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
-    name = "github_api",
+    name = GITHUB_API,
     documented = false,
     doc = "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API "
         + "operations.",
@@ -641,13 +644,14 @@ public class GitModule implements LabelsAwareModule {
       throws EvalException {
     checkNotEmpty(url, "url", location);
     Checker checker = convertFromNoneable(checkerObj, null);
+    validateEndpointChecker(location, checker, GITHUB_API);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, checker), url);
   }
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
-      name = "gerrit_api",
+      name = GERRIT_API,
       documented = false,
       doc = "Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API "
           + "operations.",
@@ -664,13 +668,14 @@ public class GitModule implements LabelsAwareModule {
       throws EvalException {
     checkNotEmpty(url, "url", location);
     Checker checker = convertFromNoneable(checkerObj, null);
+    validateEndpointChecker(location, checker, GERRIT_API);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     return new GerritEndpoint(gerritOptions.newGerritApiSupplier(url, checker), url);
   }
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
-      name = "gerrit_trigger",
+      name = GERRIT_TRIGGER,
       documented = false,
       doc = "Defines a feedback trigger based on updates on a Gerrit change.",
       parameters = {
@@ -686,6 +691,7 @@ public class GitModule implements LabelsAwareModule {
       throws EvalException {
     checkNotEmpty(url, "url", location);
     Checker checker = convertFromNoneable(checkerObj, null);
+    validateEndpointChecker(location, checker, GERRIT_TRIGGER);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     return new GerritTrigger(gerritOptions.newGerritApiSupplier(url, checker), url);
   }
@@ -715,4 +721,10 @@ public class GitModule implements LabelsAwareModule {
   public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
     this.mainConfigFile = mainConfigFile;
   }
+
+  /**
+   * Validates the {@link Checker} provided to a feedback endpoint.
+   */
+  protected void validateEndpointChecker(
+      Location location, Checker checker, String functionName) throws EvalException {}
 }
