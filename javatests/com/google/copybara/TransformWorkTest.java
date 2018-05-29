@@ -134,6 +134,27 @@ public class TransformWorkTest {
         + "t = core.transform([user_transform])");
     t.transform(work);
     assertThat(work.getLabel("FOO")).isEqualTo("TWO");
+    assertThat(work.getAllLabels("FOO").getImmutableList())
+        .isEqualTo(ImmutableList.of("ONE", "TWO"));
+  }
+
+  @Test
+  public void testAddTwoDifferentHiddenLabels() throws Exception {
+    TransformWork work = create("Foo\n\nSOME=TEST\n");
+    ExplicitReversal t = skylark.eval("t", ""
+        + "def user_transform(ctx):\n"
+        + "    " + "ctx.add_label('ONE','val2', hidden = True)" + "\n"
+        + "    " + "ctx.add_label('ONE','val2', hidden = True)" + "\n"
+        + "    " + "ctx.add_label('ONE','val1', hidden = True)" + "\n"
+        + "    " + "ctx.add_label('TWO','val2', hidden = True)" + "\n"
+        + "    " + "ctx.add_label('TWO','val2', hidden = True)" + "\n"
+        + "    " + "ctx.add_label('TWO','val1', hidden = True)" + "\n"
+        + "t = core.transform([user_transform])");
+    t.transform(work);
+    assertThat(work.getAllLabels("ONE").getImmutableList())
+        .isEqualTo(ImmutableList.of("val2", "val1"));
+    assertThat(work.getAllLabels("TWO").getImmutableList())
+        .isEqualTo(ImmutableList.of("val2", "val1"));
   }
 
   @Test

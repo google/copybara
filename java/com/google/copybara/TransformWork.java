@@ -22,6 +22,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.authoring.Author;
@@ -156,7 +158,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
     return metadata;
   }
 
-  public void addHiddenLabels(ImmutableListMultimap<String, String> hiddenLabels) {
+  public void addHiddenLabels(ImmutableMultimap<String, String> hiddenLabels) {
     this.metadata = metadata.addHiddenLabels(hiddenLabels);
   }
 
@@ -363,7 +365,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
         return SkylarkList.createImmutable(result);
       }
     }
-    ImmutableList<String> values = metadata.getHiddenLabels().get(label);
+    ImmutableSet<String> values = metadata.getHiddenLabels().get(label);
     if (!values.isEmpty()) {
       if (!all) {
         return SkylarkList.createImmutable(ImmutableList.of(Iterables.getLast(values)));

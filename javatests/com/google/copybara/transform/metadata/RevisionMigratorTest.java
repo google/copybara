@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable;
@@ -91,7 +92,7 @@ public class RevisionMigratorTest {
 
   private TransformWork getTransformWork(String msg) {
     return new TransformWork(checkoutDir, new Metadata(msg, new Author("foo", "foo@foo.com"),
-        ImmutableListMultimap.of()),
+        ImmutableSetMultimap.of()),
         Changes.EMPTY, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader),
         new DummyRevision("1234567890"), false);
   }

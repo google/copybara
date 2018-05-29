@@ -15,7 +15,7 @@
  */
 package com.google.copybara.testing;
 
-import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
 import com.google.copybara.Metadata;
@@ -43,7 +43,7 @@ public class TransformWorks {
   public static TransformWork of(Path checkoutDir, String msg, Console console) {
     return new TransformWork(
         checkoutDir,
-        new Metadata(msg, new Author("foo", "foo@foo.com"), ImmutableListMultimap.of()),
+        new Metadata(msg, new Author("foo", "foo@foo.com"), ImmutableSetMultimap.of()),
         Changes.EMPTY,
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),

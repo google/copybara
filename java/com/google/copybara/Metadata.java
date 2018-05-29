@@ -19,6 +19,8 @@ package com.google.copybara;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.authoring.Author;
 
 /**
@@ -28,10 +30,10 @@ public final class Metadata {
 
   private final String message;
   private final Author author;
-  private final ImmutableListMultimap<String, String> hiddenLabels;
+  private final ImmutableSetMultimap<String, String> hiddenLabels;
 
   public Metadata(String message, Author author,
-      ImmutableListMultimap<String, String> hiddenLabels) {
+      ImmutableSetMultimap<String, String> hiddenLabels) {
     this.message = checkNotNull(message);
     this.author = checkNotNull(author);
     this.hiddenLabels = checkNotNull(hiddenLabels);
@@ -48,10 +50,12 @@ public final class Metadata {
   /**
    * We never allow deleting hidden labels. Use a different name if you want to rename one.
    */
-  public final Metadata addHiddenLabels(ImmutableListMultimap<String, String> hiddenLabels) {
+  public final Metadata addHiddenLabels(ImmutableMultimap<String, String> hiddenLabels) {
     checkNotNull(hiddenLabels, "hidden labels cannot be null");
     return new Metadata(message, author,
-        ImmutableListMultimap.<String, String>builder().putAll(hiddenLabels).build());
+        ImmutableSetMultimap.<String, String>builder()
+            .putAll(this.hiddenLabels)
+            .putAll(hiddenLabels).build());
   }
 
   /**
@@ -72,7 +76,7 @@ public final class Metadata {
    * Hidden labels are labels added by transformations during transformations but that they are
    * not visible in the message.
    */
-  public ImmutableListMultimap<String, String> getHiddenLabels() {
+  public ImmutableSetMultimap<String, String> getHiddenLabels() {
     return hiddenLabels;
   }
 }

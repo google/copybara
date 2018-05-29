@@ -22,7 +22,7 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect.Type;
@@ -218,7 +218,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                                 metadata == null
                                     ? new Metadata(
                                       change.getMessage(), change.getAuthor(),
-                                      ImmutableListMultimap.of())
+                                      ImmutableSetMultimap.of())
                                     : metadata,
                                 changes,
                                 /*destinationBaseline=*/ null,
