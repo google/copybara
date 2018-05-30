@@ -18,15 +18,14 @@ package com.google.copybara.profiler;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.FakeTicker;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import com.google.copybara.testing.profiler.RecordingListener;
+import com.google.copybara.testing.profiler.RecordingListener.EventType;
+import com.google.copybara.testing.profiler.RecordingListener.TaskWithType;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -58,13 +57,13 @@ public class ProfilerTest {
   }
 
   @Test
-  public void reeentrantTest() {
-    try (ProfilerTask p1 = profiler.start("task1")) {
-      try (ProfilerTask p2 = profiler.start("task2")) {
+  public void reentrantTest() {
+    try (ProfilerTask ignore = profiler.start("task1")) {
+      try (ProfilerTask ignore2 = profiler.start("task2")) {
         profiler.simpleTask("task3", ticker.read(), ticker.read());
         profiler.simpleTask("task4", ticker.read(), ticker.read());
       }
-      try (ProfilerTask p2 = profiler.start("task5")) {
+      try (ProfilerTask ignore2 = profiler.start("task5")) {
         profiler.simpleTask("task6", ticker.read(), ticker.read());
         profiler.simpleTask("task7", ticker.read(), ticker.read());
       }
@@ -121,7 +120,7 @@ public class ProfilerTest {
   @Test
   public void multiThreadTest() {
     ExecutorService executorService = Executors.newFixedThreadPool(2);
-    try (ProfilerTask p1 = profiler.start("task1")) {
+    try (ProfilerTask ignore = profiler.start("task1")) {
       // Sequence the two invocations to have repetible tests
       CountDownLatch latch = new CountDownLatch(1);
       executorService.submit(() -> {
@@ -184,66 +183,8 @@ public class ProfilerTest {
   }
 
   @Test
-  public void testTaskType() throws Exception {
+  public void testTaskType() {
     assertThat(profiler.taskType("profiler_test"))
         .isEqualTo(ImmutableMap.of("type", "profiler_test"));
-  }
-
-  private static class RecordingListener implements Listener {
-
-    private final List<TaskWithType> events = new ArrayList<>();
-
-    @Override
-    public void taskStarted(Task task) {
-      events.add(new TaskWithType(EventType.START, task));
-    }
-
-    @Override
-    public void taskFinished(Task task) {
-      events.add(new TaskWithType(EventType.END, task));
-    }
-
-  }
-
-  private static class TaskWithType {
-
-    private final EventType type;
-    private final Task task;
-
-    public TaskWithType(EventType type, Task task) {
-      this.type = type;
-      this.task = task;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("type", type)
-          .add("task", task)
-          .toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      TaskWithType that = (TaskWithType) o;
-      return type == that.type &&
-          Objects.equals(task, that.task);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(type, task);
-    }
-  }
-
-  private enum EventType {
-    START,
-    END
   }
 }
