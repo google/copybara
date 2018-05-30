@@ -92,8 +92,7 @@ public class GitModule implements LabelsAwareModule {
   protected static final String GERRIT_API = "gerrit_api";
   protected static final String GITHUB_API = "github_api";
 
-  // TODO(malcon): Remove and pass specific ones as constructor parameter
-  private final Options options;
+  protected final Options options;
   private ConfigFile<?> mainConfigFile;
 
   public GitModule(Options options) {
