@@ -783,6 +783,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_CURRENT_REV: The current reference being migrated
   - COPYBARA_CURRENT_MESSAGE: The current message at this point of the transformations
   - COPYBARA_CURRENT_MESSAGE_TITLE: The current message title (first line) at this point of the transformations
+  - COPYBARA_AUTHOR: The author of the change
 
 
 `core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=True for CHANGE_REQUEST, ask_for_confirmation=False, dry_run=False, after_migration=[], change_identity=None, set_rev_id=True, smart_prune=False)`
@@ -1059,7 +1060,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_TITLE: Title of the Pull Request.
   - GITHUB_PR_BODY: Body of the Pull Request.
   - GITHUB_PR_USER: The login of the author the pull request.
-  - GITHUB_PR_ASSIGNEES: A repeated label with the login of the assigned users.
+  - GITHUB_PR_ASSIGNEE: A repeated label with the login of the assigned users.
   - GITHUB_PR_REVIEWER_APPROVER: A repeated label with the login of users that have participated in the review and that can approve the import. Only populated if `review_state` field is set. Every reviewers type matching `review_approvers` will be added to this list.
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 

@@ -19,7 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH_SHA1;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_ASSIGNEES;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_ASSIGNEE;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_BODY;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_NUMBER_LABEL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
@@ -397,8 +397,8 @@ public class GitHubPrOriginTest {
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_NUMBER_LABEL, "123");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_TITLE, "test summary");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_USER, "some_user");
-    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_ASSIGNEES, "assignee1");
-    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_ASSIGNEES, "assignee2");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_ASSIGNEE, "assignee1");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_ASSIGNEE, "assignee2");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_BODY,
         "test summary\n\nMore text");
 

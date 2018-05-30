@@ -82,7 +82,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   public static final String GITHUB_PR_TITLE = "GITHUB_PR_TITLE";
   public static final String GITHUB_PR_BODY = "GITHUB_PR_BODY";
   public static final String GITHUB_PR_USER = "GITHUB_PR_USER";
-  public static final String GITHUB_PR_ASSIGNEES = "GITHUB_PR_ASSIGNEES";
+  public static final String GITHUB_PR_ASSIGNEE = "GITHUB_PR_ASSIGNEE";
   public static final String GITHUB_PR_REVIEWER_APPROVER = "GITHUB_PR_REVIEWER_APPROVER";
   public static final String GITHUB_PR_REVIEWER_OTHER = "GITHUB_PR_REVIEWER_OTHER";
   private static final String LOCAL_PR_HEAD_REF = "refs/PR_HEAD";
@@ -287,7 +287,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     labels.put(GITHUB_PR_TITLE, prData.getTitle());
     labels.put(GITHUB_PR_BODY, prData.getBody());
     labels.put(GITHUB_PR_USER, prData.getUser().getLogin());
-    labels.putAll(GITHUB_PR_ASSIGNEES, prData.getAssignees().stream()
+    labels.putAll(GITHUB_PR_ASSIGNEE, prData.getAssignees().stream()
         .map(User::getLogin)
         .collect(Collectors.toList()));
 

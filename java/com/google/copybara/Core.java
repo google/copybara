@@ -134,7 +134,8 @@ public class Core implements LabelsAwareModule {
           + "  - " + TransformWork.COPYBARA_CURRENT_MESSAGE
           + ": The current message at this point of the transformations\n"
           + "  - " + TransformWork.COPYBARA_CURRENT_MESSAGE_TITLE
-          + ": The current message title (first line) at this point of the transformations\n",
+          + ": The current message title (first line) at this point of the transformations\n"
+          + "  - " + TransformWork.COPYBARA_AUTHOR + ": The author of the change\n",
       parameters = {
           @Param(name = "name", named = true, type = String.class,
               doc = "The name of the workflow.", positional = false),

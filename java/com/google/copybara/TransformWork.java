@@ -78,6 +78,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   static final String COPYBARA_LAST_REV = "COPYBARA_LAST_REV";
   static final String COPYBARA_CURRENT_REV = "COPYBARA_CURRENT_REV";
   static final String COPYBARA_CURRENT_MESSAGE = "COPYBARA_CURRENT_MESSAGE";
+  static final String COPYBARA_AUTHOR = "COPYBARA_AUTHOR";
   static final String COPYBARA_CURRENT_MESSAGE_TITLE = "COPYBARA_CURRENT_MESSAGE_TITLE";
 
   private final Path checkoutDir;
@@ -536,6 +537,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
             currentRev.asString().replaceAll(" .*", "")));
 
     labels.put(COPYBARA_CURRENT_MESSAGE, ImmutableList.of(getMessage()));
+    labels.put(COPYBARA_AUTHOR, ImmutableList.of(getMessage()));
     labels.put(COPYBARA_CURRENT_MESSAGE_TITLE,
         ImmutableList.of(Change.extractFirstLine(metadata.getMessage())));
     return labels;

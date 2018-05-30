@@ -21,7 +21,7 @@ import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH_SHA1;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_ASSIGNEES;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_ASSIGNEE;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_BODY;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER;
@@ -304,7 +304,7 @@ public class GitModule implements LabelsAwareModule {
           + "  - " + GITHUB_PR_TITLE + ": Title of the Pull Request.\n"
           + "  - " + GITHUB_PR_BODY + ": Body of the Pull Request.\n"
           + "  - " + GITHUB_PR_USER + ": The login of the author the pull request.\n"
-          + "  - " + GITHUB_PR_ASSIGNEES + ": A repeated label with the login of the assigned"
+          + "  - " + GITHUB_PR_ASSIGNEE + ": A repeated label with the login of the assigned"
           + " users.\n"
           + "  - " + GITHUB_PR_REVIEWER_APPROVER + ": A repeated label with the login of users"
           + " that have participated in the review and that can approve the import. Only"
