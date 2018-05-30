@@ -106,15 +106,18 @@ public class GitRepository {
               "ambiguous argument '(.+)': unknown revision or path not in the working tree"));
 
   private static final Pattern FETCH_CANNOT_RESOLVE_ERRORS =
-      Pattern.compile(""
-          // When fetching a ref like 'refs/foo' fails.
-          + "(fatal: Couldn't find remote ref"
-          // When fetching a SHA-1 ref
-          + "|no such remote ref"
-          // Local fetch for a SHA-1 fails
-          + "|upload-pack: not our ref"
-          // Gerrit when fetching
-          + "|ERR want .+ not valid)");
+      Pattern.compile(
+          ""
+              // When fetching a ref like 'refs/foo' fails.
+              + "(fatal: Couldn't find remote ref"
+              // When fetching a SHA-1 ref
+              + "|no such remote ref"
+              // New output for fetching (git version 2.17)
+              + "|fatal: no matching remote head"
+              // Local fetch for a SHA-1 fails
+              + "|upload-pack: not our ref"
+              // Gerrit when fetching
+              + "|ERR want .+ not valid)");
   private static final Pattern NO_GIT_REPOSITORY =
       Pattern.compile("does not appear to be a git repository");
 
