@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.UUID;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
@@ -143,4 +144,19 @@ public final class GitDestinationOptions implements Option {
     }
   }
 
+  /**
+   * Used internally to be able to traverse the local repo once a migration finishes.
+   */
+  public String customLocalBranch;
+
+  /**
+   * Returns the local branch that will be used for working on the change before pushing.
+   */
+  public String getLocalBranch(String resolvedPush, boolean dryRun) {
+    return localRepoPath != null
+        ? resolvedPush // This is nicer for the user
+        : customLocalBranch != null
+            ? customLocalBranch
+            : "copybara/resolvedPush-" + UUID.randomUUID() + (dryRun ? "-dryrun" : "");
+  }
 }

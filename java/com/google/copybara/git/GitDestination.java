@@ -18,8 +18,8 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.FORCE;
-import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.LazyResourceLoader.memoized;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -52,7 +52,6 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import javax.annotation.Nullable;
 
 /**
@@ -167,10 +166,7 @@ public final class GitDestination implements Destination<GitRevision> {
     if (oldWriter != null && gitOldWriter.skipPush == effectiveSkipPush) {
       state = ((WriterImpl) oldWriter).state;
     } else {
-      state = new WriterState(localRepo,
-          destinationOptions.localRepoPath != null
-              ? push // This is nicer for the user
-              : "copybara/push-" + UUID.randomUUID() + (dryRun ? "-dryrun" : ""));
+      state = new WriterState(localRepo, destinationOptions.getLocalBranch(push, dryRun));
     }
 
     return new WriterImpl<>(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
@@ -230,7 +226,7 @@ public final class GitDestination implements Destination<GitRevision> {
     /**
      * Create a new git.destination writer
      */
-    public WriterImpl(Glob destinationFiles, boolean skipPush, String repoUrl, String remoteFetch,
+    WriterImpl(Glob destinationFiles, boolean skipPush, String repoUrl, String remoteFetch,
         String remotePush, GeneralOptions generalOptions, CommitGenerator commitGenerator,
         ProcessPushOutput processPushOutput, S state, boolean nonFastForwardPush,
         Iterable<GitIntegrateChanges> integrates, boolean lastRevFirstParent,
