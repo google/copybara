@@ -85,6 +85,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   public static final String GITHUB_PR_ASSIGNEE = "GITHUB_PR_ASSIGNEE";
   public static final String GITHUB_PR_REVIEWER_APPROVER = "GITHUB_PR_REVIEWER_APPROVER";
   public static final String GITHUB_PR_REVIEWER_OTHER = "GITHUB_PR_REVIEWER_OTHER";
+  public static final String GITHUB_PR_REQUESTED_REVIEWER = "GITHUB_PR_REQUESTED_REVIEWER";
   private static final String LOCAL_PR_HEAD_REF = "refs/PR_HEAD";
   private static final String LOCAL_PR_MERGE_REF = "refs/PR_MERGE";
   private static final String LOCAL_PR_BASE_BRANCH = "refs/PR_BASE_BRANCH";
@@ -276,7 +277,9 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         getRepository().resolveReference(LOCAL_PR_HEAD_REF).getSha1())
         .toString();
 
-
+    labels.putAll(GITHUB_PR_REQUESTED_REVIEWER, prData.getRequestedReviewers().stream()
+        .map(User::getLogin)
+        .collect(ImmutableList.toImmutableList()));
     labels.put(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber));
     labels.put(GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel);
     labels.put(GITHUB_BASE_BRANCH, prData.getBase().getRef());

@@ -17,6 +17,8 @@
 package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 /**
  * Represents a pull request returned by
@@ -24,12 +26,9 @@ import com.google.api.client.util.Key;
  */
 public class PullRequest extends PullRequestOrIssue {
 
-  @Key
-  private Revision head;
-
-  @Key
-  private Revision base;
-
+  @Key private Revision head;
+  @Key private Revision base;
+  @Key("requested_reviewers") private List<User> requestedReviewers;
 
   public Revision getHead() {
     return head;
@@ -37,6 +36,12 @@ public class PullRequest extends PullRequestOrIssue {
 
   public Revision getBase() {
     return base;
+  }
+
+  public ImmutableList<User> getRequestedReviewers() {
+    return requestedReviewers == null
+        ? ImmutableList.of()
+        : ImmutableList.copyOf(requestedReviewers);
   }
 
   @Override

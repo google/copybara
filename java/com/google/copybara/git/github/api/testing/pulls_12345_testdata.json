@@ -75,6 +75,12 @@
     }
   ],
   "requested_reviewers": [
+    {
+      "login": "some_requested_reviewer"
+    },
+    {
+      "login": "other_requested_reviewer"
+    }
   ],
   "milestone": null,
   "commits_url": "https://api.github.com/repos/example-org/my-project/pulls/12345/commits",

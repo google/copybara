@@ -118,6 +118,11 @@ public abstract class AbstractGitHubApiTest {
     assertThat(pullRequest.getUser().getLogin()).isEqualTo("googletestuser");
     assertThat(pullRequest.getAssignee().getLogin()).isEqualTo("octocat");
     assertThat(pullRequest.getAssignees()).hasSize(1);
+    assertThat(pullRequest.getRequestedReviewers()).hasSize(2);
+    assertThat(pullRequest.getRequestedReviewers().get(0).getLogin())
+        .isEqualTo("some_requested_reviewer");
+    assertThat(pullRequest.getRequestedReviewers().get(1).getLogin())
+        .isEqualTo("other_requested_reviewer");
     assertThat(pullRequest.getAssignees().get(0).getLogin()).isEqualTo("octocat");
     assertThat(pullRequest.getTitle()).isEqualTo("[TEST] example pull request one");
     assertThat(pullRequest.getBody()).isEqualTo("Example body.\r\n");
