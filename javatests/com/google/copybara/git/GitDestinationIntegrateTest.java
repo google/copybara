@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.FAKE_MERGE;
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.INCLUDE_FILES;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
@@ -27,6 +28,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.TransformResult;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -176,6 +178,50 @@ public class GitDestinationIntegrateTest {
 
     assertThat(Lists.transform(feature2Merge.getParents(), GitRevision::getSha1))
         .isEqualTo(Lists.newArrayList(feature1Merge.getCommit().getSha1(), feature2.getSha1()));
+  }
+
+  /**
+   * Checks that we can correctly read destination status (last fake merge commit created) after
+   * an integration.
+   *
+   * <p>Don't change the file paths or contents of this test. It needs to be like this to generate
+   * an empty diff with the feature branch (pure fake-merge).
+   */
+  @Test
+  public void testDestinationStatus() throws ValidationException, IOException, RepoException {
+    destinationFiles = Glob.createGlob(ImmutableList.of("foo/**"));
+    Path gitDir = Files.createTempDirectory("gitdir");
+    Path repoPath = Files.createTempDirectory("workdir");
+    GitRepository repo = GitRepository.newBareRepo(gitDir, getGitEnv(), /*verbose=*/ true)
+        .init()
+        .withWorkTree(repoPath);
+
+    singleChange(repoPath, repo, "base.txt", "first change");
+    repo.simpleCommand("branch", "feature1");
+    repo.forceCheckout("feature1");
+    GitRevision feature = singleChange(repoPath, repo, "foo/a", "Feature 1 change");
+    repo.forceCheckout("master");
+
+    // Just so that the migration doesn't fail since the git repo is a non-bare repo.
+    repo.forceCheckout("feature1");
+
+    GitDestination destination = destination("url = 'file://" + repo.getGitDir() + "'");
+
+    migrateOriginChange(destination, "Test change\n"
+        + "\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getGitDir().toString()
+        + " feature1\n", "foo/a", "", "the_rev");
+
+    GitLogEntry featureMerge = getLastMigratedChange("master", repo);
+
+    assertThat(featureMerge.getBody()).isEqualTo("Merge of " + feature.getSha1() + "\n"
+        + "\n"
+        + DummyOrigin.LABEL_NAME + ": the_rev\n");
+
+    DestinationStatus destinationStatus = destination.newWriter(destinationFiles,
+        /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null).getDestinationStatus(
+        DummyOrigin.LABEL_NAME);
+    assertWithMessage(gitDir.toString()).that(destinationStatus.getBaseline()).isEqualTo("the_rev");
   }
 
   @Test
@@ -454,14 +500,21 @@ public class GitDestinationIntegrateTest {
 
   private GitRevision singleChange(Path workTree, GitRepository repo, String file, String msg)
       throws IOException, RepoException, CannotResolveRevisionException {
-    Files.write(workTree.resolve(file), new byte[0]);
+    Path path = workTree.resolve(file);
+    Files.createDirectories(path.getParent());
+    Files.write(path, new byte[0]);
     repo.add().all().run();
     repo.simpleCommand("commit", "-m", msg);
     return repo.resolveReference("HEAD");
   }
 
   private GitLogEntry getLastMigratedChange(String ref) throws RepoException {
-    return Iterables.getOnlyElement(repo().log(ref)
+    GitRepository repo = repo();
+    return getLastMigratedChange(ref, repo());
+  }
+
+  private GitLogEntry getLastMigratedChange(String ref, GitRepository repo) throws RepoException {
+    return Iterables.getOnlyElement(repo.log(ref)
         .withLimit(1)
         .includeFiles(true).includeMergeDiff(true)
         .run());
@@ -507,11 +560,17 @@ public class GitDestinationIntegrateTest {
 
   private void migrateOriginChange(GitDestination destination, String summary, String content)
       throws IOException, RepoException, ValidationException {
+    migrateOriginChange(destination, summary, "test.txt", content, "test");
+  }
+  private void migrateOriginChange(GitDestination destination, String summary,
+      String file, String content,
+      String originRef) throws IOException, RepoException, ValidationException {
     Writer<GitRevision> writer = destination.newWriter(destinationFiles,
         /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null);
 
-    Files.write(workdir.resolve("test.txt"), content.getBytes());
-    TransformResult result = TransformResults.of(workdir, new DummyRevision("test"))
+    Files.createDirectories(workdir.resolve(file).getParent());
+    Files.write(workdir.resolve(file), content.getBytes());
+    TransformResult result = TransformResults.of(workdir, new DummyRevision(originRef))
         .withSummary(summary);
 
     writer.write(result, console);

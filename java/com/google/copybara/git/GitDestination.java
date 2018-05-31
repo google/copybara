@@ -320,8 +320,7 @@ public final class GitDestination implements Destination<GitRevision> {
           ChangeReader.Builder.forDestination(repo, baseConsole)
               .setVerbose(generalOptions.isVerbose())
               .setFirstParent(lastRevFirstParent)
-              .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR)
-              .setRoots(destinationFiles.roots());
+              .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR);
       try {
         // Using same visitChangePageSize for now
         GitVisitorUtil.visitChanges(

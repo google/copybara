@@ -29,6 +29,7 @@ import com.google.common.truth.Truth;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeVisitable.VisitResult;
+import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
@@ -348,6 +349,53 @@ public class GitDestinationTest {
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("empty change");
     process(newWriter(), ref);
+  }
+
+  /**
+   * regression to ensure we don't do:
+   *
+   *     git log -- some_path
+   *
+   *  This doesn't work for fake merges as the merge is not shown when a path is passed even
+   *  with -m.
+   */
+  @Test
+  public void getDestinationStatusForFakeMergeAndNonEmptyRoots() throws Exception {
+    fetch = "master";
+    push = "master";
+
+    Files.createDirectories(workdir.resolve("dir"));
+    Files.write(workdir.resolve("dir/file"), "".getBytes());
+    GitRepository repo = repo().withWorkTree(workdir);
+    repo.add().files("dir/file").run();
+    repo.simpleCommand("commit", "-m", "first commit");
+
+    repo.simpleCommand("branch", "foo");
+
+    Files.write(workdir.resolve("dir/file"), "other".getBytes());
+    repo.add().files("dir/file").run();
+    repo.simpleCommand("commit", "-m", "first commit");
+
+    repo.forceCheckout("foo");
+
+    Files.write(workdir.resolve("dir/file"), "feature".getBytes());
+    repo.add().files("dir/file").run();
+    repo.simpleCommand("commit", "-m", "first commit");
+
+    repo.forceCheckout("master");
+
+    // Fake merge
+    repo.simpleCommand("merge", "-Xours", "foo", "-m",
+        "A fake merge\n\n" + DummyOrigin.LABEL_NAME + ": foo");
+
+    destinationFiles = Glob.createGlob(ImmutableList.of("dir/**"));
+
+    DestinationStatus status = destination().newWriter(destinationFiles,
+        /*dryRun=*/false,/*groupId=*/null, /*oldWriter=*/null)
+        .getDestinationStatus(DummyOrigin.LABEL_NAME);
+
+    assertThat(status).isNotNull();
+    assertThat(status.getBaseline()).isEqualTo("foo");
   }
 
   @Test
