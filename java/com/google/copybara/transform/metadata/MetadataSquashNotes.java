@@ -24,6 +24,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
+import com.google.copybara.transform.metadata.LabelTemplate.LabelNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,18 +36,18 @@ import java.util.stream.Collectors;
  */
 public class MetadataSquashNotes implements Transformation {
 
-  private final String prefix;
+  private final LabelTemplate prefixTemplate;
   private final int max;
   private final boolean compact;
   private final boolean showAuthor;
   private final boolean showDescription;
   private final boolean showRef;
   private final boolean oldestFirst;
-  private boolean useMerge;
+  private final boolean useMerge;
 
   public MetadataSquashNotes(String prefix, int max, boolean compact, boolean showRef,
       boolean showAuthor, boolean showDescription, boolean oldestFirst, boolean useMerge) {
-    this.prefix = prefix;
+    this.prefixTemplate = new LabelTemplate(prefix);
     this.max = max;
     this.compact = compact;
     this.showRef = showRef;
@@ -59,7 +60,14 @@ public class MetadataSquashNotes implements Transformation {
   @Override
   public void transform(TransformWork work)
       throws IOException, ValidationException {
-    StringBuilder sb = new StringBuilder(prefix);
+    StringBuilder sb;
+    try {
+      sb = new StringBuilder(prefixTemplate.resolve(work::getLabel));
+    } catch (LabelNotFoundException e) {
+      throw new ValidationException(
+          "Cannot find label '%s' in message:\n %s\nor any of the original commit messages",
+          e.getLabel(), work.getMessage());
+    }
     if (max == 0) {
       // Don't force changes to be computed if we don't want any change back.
       work.setMessage(sb.toString());

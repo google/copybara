@@ -136,6 +136,44 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testSquashNotesWithTemplatePrefix() throws Exception {
+    runWorkflow(WorkflowMode.SQUASH, ""
+        + "metadata.map_author({"
+        + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
+        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
+        + "}),"
+        + "metadata.squash_notes("
+        + "  prefix = 'Importing foo version ${COPYBARA_CURRENT_REV}:\\n\\n'"
+        + ")");
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary())
+        .isEqualTo(""
+            + "Importing foo version 2:\n"
+            + "\n"
+            + "  - 2 third commit by Foo Baz <foo@baz.com>\n"
+            + "  - 1 second commit by Foo Bar <foo@bar.com>\n"
+            + "");
+    assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+  }
+
+  @Test
+  public void testSquashNotesWithTemplatePrefix_notFound() throws Exception {
+    try {
+      runWorkflow(WorkflowMode.SQUASH, ""
+          + "metadata.map_author({"
+          + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
+          + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
+          + "}),"
+          + "metadata.squash_notes("
+          + "  prefix = 'Importing foo version ${NOTFOUND}:\\n\\n'"
+          + ")");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("NOTFOUND");
+    }
+  }
+
+  @Test
   public void testSquashNotesWithMerge() throws Exception {
     Changes changes = new Changes(
         ImmutableList.of(
