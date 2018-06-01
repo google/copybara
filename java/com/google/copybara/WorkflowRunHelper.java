@@ -73,9 +73,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   protected final Destination.Writer<D> writer;
   @Nullable
   private final String groupId;
-  @Nullable protected final String rawSourceRef;
+  @Nullable final String rawSourceRef;
 
-  protected WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
+  WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
       Reader<O> originReader, Writer<D> destinationWriter, @Nullable String groupId,
       @Nullable String rawSourceRef)
       throws ValidationException, RepoException {
@@ -425,7 +425,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             workflow.getName(),
             changes,
             rawSourceRef,
-            workflow.isSetRevId());
+            workflow.isSetRevId(),
+            transformWork::getAllLabels);
 
     if (destinationBaseline != null) {
       transformResult = transformResult.withBaseline(destinationBaseline.getBaseline());

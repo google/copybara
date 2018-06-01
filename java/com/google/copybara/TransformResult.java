@@ -24,6 +24,8 @@ import com.google.copybara.util.DiffUtil.DiffFile;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Collection;
+import java.util.function.Function;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
@@ -48,6 +50,7 @@ public final class TransformResult {
   private final Changes changes;
   private final boolean setRevId;
   @Nullable private final ImmutableList<DiffFile> affectedFilesForSmartPrune;
+  private final Function<String, Collection<String>> labelFinder;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -56,7 +59,8 @@ public final class TransformResult {
 
   public TransformResult(Path path, Revision currentRevision, Author author, String summary,
       Revision requestedRevision, String workflowName, Changes changes,
-      @Nullable String rawSourceRef, boolean setRevId)
+      @Nullable String rawSourceRef, boolean setRevId,
+      Function<String, Collection<String>> labelFinder)
       throws RepoException {
     this(
         path,
@@ -72,7 +76,8 @@ public final class TransformResult {
         changes,
         rawSourceRef,
         setRevId,
-        /*affectedFilesForSmartPrune=*/ null);
+        /*affectedFilesForSmartPrune=*/ null,
+        labelFinder);
   }
 
   private TransformResult(
@@ -89,7 +94,8 @@ public final class TransformResult {
       Changes changes,
       @Nullable String rawSourceRef,
       boolean setRevId,
-      @Nullable ImmutableList<DiffFile> affectedFilesForSmartPrune) {
+      @Nullable ImmutableList<DiffFile> affectedFilesForSmartPrune,
+      Function<String, Collection<String>> labelFinder) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -104,6 +110,7 @@ public final class TransformResult {
     this.rawSourceRef = rawSourceRef;
     this.setRevId = setRevId;
     this.affectedFilesForSmartPrune = affectedFilesForSmartPrune;
+    this.labelFinder = Preconditions.checkNotNull(labelFinder);
   }
 
   @CheckReturnValue
@@ -123,7 +130,8 @@ public final class TransformResult {
         this.changes,
         this.rawSourceRef,
         this.setRevId,
-        this.affectedFilesForSmartPrune);
+        this.affectedFilesForSmartPrune,
+        this.labelFinder);
   }
 
   /**
@@ -147,7 +155,8 @@ public final class TransformResult {
         this.changes,
         this.rawSourceRef,
         this.setRevId,
-        this.affectedFilesForSmartPrune);
+        this.affectedFilesForSmartPrune,
+        this.labelFinder);
   }
 
   @CheckReturnValue
@@ -166,7 +175,8 @@ public final class TransformResult {
         this.changes,
         this.rawSourceRef,
         setRevId,
-        this.affectedFilesForSmartPrune);
+        this.affectedFilesForSmartPrune,
+        this.labelFinder);
   }
 
   @CheckReturnValue
@@ -185,7 +195,8 @@ public final class TransformResult {
         this.changes,
         this.rawSourceRef,
         this.setRevId,
-        this.affectedFilesForSmartPrune);
+        this.affectedFilesForSmartPrune,
+        this.labelFinder);
   }
 
   @CheckReturnValue
@@ -204,7 +215,8 @@ public final class TransformResult {
         changes,
         this.rawSourceRef,
         this.setRevId,
-        this.affectedFilesForSmartPrune);
+        this.affectedFilesForSmartPrune,
+        this.labelFinder);
   }
 
   @CheckReturnValue
@@ -223,7 +235,8 @@ public final class TransformResult {
         this.changes,
         this.rawSourceRef,
         setRevId,
-        this.affectedFilesForSmartPrune);
+        this.affectedFilesForSmartPrune,
+        this.labelFinder);
   }
 
   @CheckReturnValue
@@ -244,7 +257,28 @@ public final class TransformResult {
         this.changes,
         this.rawSourceRef,
         this.setRevId,
-        affectedFilesForSmartPrune);
+        affectedFilesForSmartPrune,
+        this.labelFinder);
+  }
+
+  @CheckReturnValue
+  public TransformResult withLabelFinder(Function<String, Collection<String>> labelMapper) {
+    return new TransformResult(
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        this.baseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName,
+        this.changes,
+        this.rawSourceRef,
+        this.setRevId,
+        this.affectedFilesForSmartPrune,
+        Preconditions.checkNotNull(labelMapper));
   }
 
   /**
@@ -378,5 +412,12 @@ public final class TransformResult {
   @Nullable
   public ImmutableList<DiffFile> getAffectedFilesForSmartPrune() {
     return affectedFilesForSmartPrune;
+  }
+
+  /**
+   * A function that returns all the label values that match a name.
+   */
+  public Function<String, Collection<String>> getLabelFinder() {
+    return labelFinder;
   }
 }

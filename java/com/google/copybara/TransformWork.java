@@ -397,7 +397,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   /**
    * Search for a label in the current message. We are less strict and look in the whole message.
    */
-  public ImmutableList<LabelFinder> getLabelInMessage(String name) {
+  private ImmutableList<LabelFinder> getLabelInMessage(String name) {
     return parseMessage(/*wholeMessage= */true).getLabels().stream()
         .filter(label -> label.isLabel(name)).collect(ImmutableList.toImmutableList());
   }
