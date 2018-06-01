@@ -577,7 +577,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * are stored in the origin.
    */
   boolean skipChange(Change<?> currentChange) {
-    boolean skipChange = shouldSkipChange(currentChange, workflow, workflowOptions());
+    boolean skipChange = shouldSkipChange(currentChange, workflow, workflowOptions(), getConsole());
     if (skipChange) {
       getConsole().infoFmt("Skipped change %s as it would create an empty result.",
           currentChange.toString());
@@ -590,7 +590,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * provided.
    */
   static boolean shouldSkipChange(Change<?> currentChange,
-      Workflow<? extends Revision, ? extends Revision> workflow, WorkflowOptions workflowOptions) {
+      Workflow<? extends Revision, ? extends Revision> workflow, WorkflowOptions workflowOptions,
+      Console console) {
     if (workflowOptions.importNoopChanges) {
       return false;
     }
@@ -613,6 +614,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     for (String changesFile : currentChange.getChangeFiles()) {
       for (String configPath : workflow.configPaths()) {
         if (changesFile.endsWith(configPath)) {
+          console.infoFmt("Migrating %s because %s config file changed at that revision",
+              currentChange.getRevision().asString(), changesFile);
           return false;
         }
       }

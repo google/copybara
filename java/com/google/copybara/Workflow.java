@@ -317,7 +317,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       .stream()
                       .filter(
                           change ->
-                              !WorkflowRunHelper.shouldSkipChange(change, this, workflowOptions))
+                              !WorkflowRunHelper.shouldSkipChange(change, this, workflowOptions,
+                                  console))
                       .collect(ImmutableList.toImmutableList());
               MigrationReference<O> migrationRef =
                   MigrationReference.create(
