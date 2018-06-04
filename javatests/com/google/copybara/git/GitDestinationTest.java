@@ -807,7 +807,7 @@ public class GitDestinationTest {
     return newWriter().getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline();
   }
 
-  private void branchChange(Path scratchTree, GitRepository scratchRepo, final String branch,
+  private void branchChange(Path scratchTree, GitRepository scratchRepo, String branch,
       String msg) throws RepoException, IOException {
     scratchRepo.simpleCommand("checkout", branch);
     Files.write(scratchTree.resolve(branch + ".file"), msg.getBytes(UTF_8));
@@ -1437,7 +1437,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "Visit me soon".getBytes());
     process(newWriter(), ref2);
 
-    final List<Change<?>> visited = new ArrayList<>();
+    List<Change<?>> visited = new ArrayList<>();
     newWriter().visitChanges(null,
         input -> {
           visited.add(input);
