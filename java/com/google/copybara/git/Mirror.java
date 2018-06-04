@@ -30,6 +30,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -69,7 +70,9 @@ public class Mirror implements Migration {
   @Override
   public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
-    mirrorOptions.mirror(origin, destination, refspec, prune);
+    try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
+      mirrorOptions.mirror(origin, destination, refspec, prune);
+    }
 
     // More fine grain events based on the references created/updated/deleted:
     generalOptions
@@ -87,10 +90,9 @@ public class Mirror implements Migration {
                         ImmutableList.of()))));
   }
 
-  public static String getOriginDestinationRef(String url) throws ValidationException {
+  private static String getOriginDestinationRef(String url) throws ValidationException {
     return GitHubUtil.isGitHubUrl(url)
-        ? GitHubUtil.asGithubUrl(
-        GitHubUtil.getProjectNameFromUrl(url))
+        ? GitHubUtil.asGithubUrl(GitHubUtil.getProjectNameFromUrl(url))
         : url;
   }
 
@@ -127,10 +129,8 @@ public class Mirror implements Migration {
     return name;
   }
 
-
   @Override
   public String getModeString() {
     return MODE_STRING;
   }
-
 }

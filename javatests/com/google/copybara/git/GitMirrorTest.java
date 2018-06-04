@@ -24,13 +24,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.testing.FakeTicker;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.profiler.Profiler;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.profiler.RecordingListener;
+import com.google.copybara.testing.profiler.RecordingListener.EventType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -67,7 +71,6 @@ public class GitMirrorTest {
         .withWorkTree(Files.createTempDirectory("worktree"));
     originRepo.init();
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
-
     destRepo.init();
 
     skylark = new SkylarkTestExecutor(options);
@@ -80,6 +83,11 @@ public class GitMirrorTest {
 
   @Test
   public void testMirror() throws Exception {
+    RecordingListener recordingCallback = new RecordingListener();
+    Profiler profiler = new Profiler(new FakeTicker());
+    profiler.init(ImmutableList.of(recordingCallback));
+    options.general.withProfiler(profiler);
+
     Migration mirror = loadMigration(""
         + "git.mirror("
         + "    name = 'default',"
@@ -91,6 +99,15 @@ public class GitMirrorTest {
     String orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
     String dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
     assertThat(dest).isEqualTo(orig);
+
+    recordingCallback
+        .assertMatchesNext(EventType.START, "//copybara")
+        .assertMatchesNext(EventType.START, "//copybara/run/default")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/fetch")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/fetch")
+        .assertMatchesNext(EventType.START, "//copybara/run/default/push")
+        .assertMatchesNext(EventType.END, "//copybara/run/default/push")
+        .assertMatchesNext(EventType.END, "//copybara/run/default");
   }
 
   /**

@@ -23,6 +23,8 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.profiler.Profiler;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -53,12 +55,18 @@ public class GitMirrorOptions implements Option {
 
     generalOptions.console().progressFmt("Fetching from %s", origin);
 
-    repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
+    Profiler profiler = generalOptions.profiler();
+    try (ProfilerTask ignore = profiler.start("fetch")) {
+      repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
+    }
 
     generalOptions.console().progressFmt("Pushing to %s", destination);
     List<Refspec> pushRefspecs = forcePush
         ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
         : refspec;
-    repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+
+    try (ProfilerTask ignore = profiler.start("push")) {
+      repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+    }
   }
 }
