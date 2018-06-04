@@ -22,6 +22,7 @@ java_library(
     srcs = ["AbstractGitHubApiTest.java"],
     data = glob(["*_testdata.json"]),
     deps = [
+        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/profiler",
         "//third_party:google_http_client",

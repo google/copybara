@@ -24,6 +24,7 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.CreateStatusRequest;
@@ -138,12 +139,14 @@ public abstract class AbstractGitHubApiTest {
     try {
       api.getPullRequest("example/project", 12345);
       fail();
-    } catch (GitHubApiException e) {
-      assertThat(e.getError().getMessage()).isNotEmpty();
-      assertThat(e.getError().getDocumentationUrl()).isNotEmpty();
-      assertThat(e.getRawError()).isNotEmpty();
-      assertThat(e.getHttpCode()).isEqualTo(404);
-      assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("Pull Request not found");
+      GitHubApiException cause = (GitHubApiException) e.getCause();
+      assertThat(cause.getError().getMessage()).isNotEmpty();
+      assertThat(cause.getError().getDocumentationUrl()).isNotEmpty();
+      assertThat(cause.getRawError()).isNotEmpty();
+      assertThat(cause.getHttpCode()).isEqualTo(404);
+      assertThat(cause.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
     }
   }
 

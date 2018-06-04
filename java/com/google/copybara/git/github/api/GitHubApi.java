@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.lang.reflect.Type;
@@ -55,6 +56,8 @@ public class GitHubApi {
               }.getType());
 
       return ImmutableList.copyOf(result);
+    } catch (GitHubApiException e) {
+      throw treatGitHubException(e, "Project");
     }
   }
 
@@ -68,6 +71,8 @@ public class GitHubApi {
     try (ProfilerTask ignore = profiler.start("github_api_get_pull")) {
       return transport.get(
           String.format("repos/%s/pulls/%d", projectId, number), PullRequest.class);
+    } catch (GitHubApiException e) {
+      throw treatGitHubException(e, "Pull Request");
     }
   }
 
@@ -122,6 +127,8 @@ public class GitHubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_issue")) {
       return transport.get(String.format("repos/%s/issues/%d", projectId, number), Issue.class);
+    } catch (GitHubApiException e) {
+      throw treatGitHubException(e, "Issue");
     }
   }
 
@@ -179,5 +186,13 @@ public class GitHubApi {
       return transport.get(String.format("repos/%s/statuses/%s", projectId, sha1),
           CombinedStatus.class);
     }
+  }
+
+  private RepoException treatGitHubException(GitHubApiException e, final String entity)
+      throws ValidationException, GitHubApiException {
+    if (e.getResponseCode() == ResponseCode.NOT_FOUND) {
+      throw new ValidationException(e, "%s not found: %s", entity, e.getRawError());
+    }
+    throw e;
   }
 }
