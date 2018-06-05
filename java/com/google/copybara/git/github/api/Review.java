@@ -18,7 +18,6 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import javax.annotation.Nullable;
 
 /**
  * Represents a pull request review element returned by
@@ -68,7 +67,6 @@ public class Review {
     return "APPROVED".equals(getState());
   }
 
-  @Nullable
   public AuthorAssociation getAuthorAssociation() {
     return authorAssociation == null
         ? AuthorAssociation.NONE

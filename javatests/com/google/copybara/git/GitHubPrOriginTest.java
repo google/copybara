@@ -540,6 +540,36 @@ public class GitHubPrOriginTest {
   }
 
   @Test
+  public void testReviewApproversDescription() throws ValidationException {
+    assertThat(createGitHubPrOrigin().describe(Glob.ALL_FILES)).containsExactly(
+        "type", "git.github_pr_origin",
+        "url", "https://github.com/google/example"
+    );
+
+    assertThat(createGitHubPrOrigin(
+        "review_state = 'ANY'"
+    ).describe(Glob.ALL_FILES)).containsExactly(
+        "type", "git.github_pr_origin",
+        "url", "https://github.com/google/example",
+        "review_state", "ANY",
+        "review_approvers", "MEMBER",
+        "review_approvers", "OWNER",
+        "review_approvers", "COLLABORATOR"
+    );
+
+    assertThat(createGitHubPrOrigin(
+        "review_state = 'HEAD_COMMIT_APPROVED'",
+        "review_approvers = ['MEMBER', 'OWNER']"
+    ).describe(Glob.ALL_FILES)).containsExactly(
+        "type", "git.github_pr_origin",
+        "url", "https://github.com/google/example",
+        "review_state", "HEAD_COMMIT_APPROVED",
+        "review_approvers", "MEMBER",
+        "review_approvers", "OWNER"
+    );
+  }
+
+  @Test
   public void testReviewApprovers() throws Exception {
     GitRevision noReviews = checkReviewApprovers();
     assertThat(noReviews.associatedLabels())
@@ -633,13 +663,17 @@ public class GitHubPrOriginTest {
       }
     };
 
-    GitHubPROrigin origin = skylark.eval("origin", "origin = "
+    GitHubPROrigin origin = createGitHubPrOrigin(configLines);
+
+    return origin.resolve("123");
+  }
+
+  private GitHubPROrigin createGitHubPrOrigin(String... configLines) throws ValidationException {
+    return skylark.eval("origin", "origin = "
         + "git.github_pr_origin(\n"
         + "    url = 'https://github.com/google/example',\n"
         + (configLines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(configLines) + ",\n")
         + ")\n");
-
-    return origin.resolve("123");
   }
 
   private String toJson(Object obj) {

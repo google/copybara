@@ -417,6 +417,11 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         new ImmutableSetMultimap.Builder<String, String>()
             .put("type", getType())
             .put("url", url);
+    if (reviewState != null) {
+      builder.put("review_state", reviewState.name());
+      builder.putAll("review_approvers",
+          reviewApprovers.stream().map(Enum::name).collect(ImmutableList.toImmutableList()));
+    }
     return builder.build();
   }
 
