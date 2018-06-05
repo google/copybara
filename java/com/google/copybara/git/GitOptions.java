@@ -44,7 +44,7 @@ public class GitOptions implements Option {
   @Parameter(names = "--git-credential-helper-store-file",
       description = "Credentials store file to be used. See "
           + "https://git-scm.com/docs/git-credential-store")
-  String credentialHelperStorePath;
+  public String credentialHelperStorePath;
 
   @Parameter(names = "--nogit-credential-helper-store",
       description = "Disable using credentials store. See "

@@ -40,6 +40,7 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -105,12 +106,15 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final StateFilter requiredState;
   @Nullable private final ReviewState reviewState;
   private final ImmutableSet<AuthorAssociation> reviewApprovers;
+  @Nullable
+  private final Checker endpointChecker;
 
   GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
       Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
       boolean baselineFromBranch, Boolean firstParent, StateFilter requiredState,
-      @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers) {
+      @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers,
+      @Nullable Checker endpointChecker) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -126,6 +130,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     this.requiredState = Preconditions.checkNotNull(requiredState);
     this.reviewState = reviewState;
     this.reviewApprovers = Preconditions.checkNotNull(reviewApprovers);
+    this.endpointChecker = endpointChecker;
   }
 
   @Override
@@ -352,9 +357,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       }
 
       @Override
-      public Endpoint getFeedbackEndPoint() {
-        // TODO(danielromero): Populate checker
-        return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, /*checker*/ null), url);
+      public Endpoint getFeedbackEndPoint() throws ValidationException {
+        gitHubOptions.validateEndpointChecker(endpointChecker);
+        return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, endpointChecker), url)
+            .withConsole(console);
       }
 
       /**

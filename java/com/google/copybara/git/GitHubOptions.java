@@ -24,6 +24,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubApiTransportImpl;
@@ -84,6 +85,11 @@ public class GitHubOptions implements Option {
       transport = new GitHubApiTransportWithChecker(transport, checker, console);
     }
     return new GitHubApi(transport, generalOptions.profiler());
+  }
+
+  /** Validate if a {@link Checker} is valid to use with GitHub endpoints. */
+  public void validateEndpointChecker(@Nullable Checker checker) throws ValidationException {
+    // Accept any by default
   }
 
   private GitHubApiTransport newTransport(

@@ -416,7 +416,8 @@ public class GitModule implements LabelsAwareModule {
         baselineFromBranch, firstParent,
         stringToEnum(location, "state", state, StateFilter.class),
         reviewState,
-        reviewApprovers);
+        reviewApprovers,
+        convertFromNoneable(checkerObj, null));
   }
 
   @SuppressWarnings("unused")

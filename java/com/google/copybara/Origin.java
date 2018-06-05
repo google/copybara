@@ -215,7 +215,7 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
     /**
      * Utility endpoint for accessing and adding feedback data.
      */
-    default Endpoint getFeedbackEndPoint() {
+    default Endpoint getFeedbackEndPoint() throws ValidationException {
       return Endpoint.NOOP_ENDPOINT;
     }
   }

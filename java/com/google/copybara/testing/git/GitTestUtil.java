@@ -166,7 +166,7 @@ public final class GitTestUtil {
     }
   }
 
-  private static class RewriteUrlGitRepository extends GitRepository {
+  public static class RewriteUrlGitRepository extends GitRepository {
 
     private final GeneralOptions generalOptions;
     private final Path httpsRepos;
@@ -175,7 +175,7 @@ public final class GitTestUtil {
     @Nullable
     private final String forcePushForRefspec;
 
-    RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
+    public RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
         Path httpsRepos, Validator validator, Set<String> mappingPrefixes,
         @Nullable String forcePushForRefspec) {
       super(gitDir, workTree, generalOptions.isVerbose(), generalOptions.getEnvironment());

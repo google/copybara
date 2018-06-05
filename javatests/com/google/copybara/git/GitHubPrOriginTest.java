@@ -819,7 +819,7 @@ public class GitHubPrOriginTest {
         + "    " + Joiner.on(",\n    ").join(lines) + ",\n)");
   }
 
-  private static class MockPullRequest extends GitApiMockHttpTransport {
+  public static class MockPullRequest extends GitApiMockHttpTransport {
 
     private final int prNumber;
     private final ImmutableList<String> defaultPresentLabels;
@@ -839,12 +839,12 @@ public class GitHubPrOriginTest {
       this.state = state;
     }
 
-    MockPullRequest(int prNumber, ImmutableList<String> defaultPresentLabels, String state) {
+    public MockPullRequest(int prNumber, ImmutableList<String> defaultPresentLabels, String state) {
       this(prNumber, defaultPresentLabels, defaultPresentLabels, state);
     }
 
     @Override
-    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+    public byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
       if (url.equals("https://api.github.com/repos/google/example/issues/" + prNumber)) {
         return mockIssue(Integer.toString(prNumber), state).getBytes();
       } else if (url.startsWith(
