@@ -360,6 +360,11 @@ public class GitModule implements LabelsAwareModule {
                   + GITHUB_PR_REVIEWER_APPROVER + "` will be populated for these types."
                   + " See the valid types here:"
                   + " https://developer.github.com/v4/reference/enum/commentauthorassociation/"),
+          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
+              doc = "A checker for the GitHub API endpoint provided for after_migration hooks. "
+                  + "This field is not used if the workflow doesn't have hooks.",
+              named = true, positional = false,
+              noneable = true),
       },
       useLocation = true)
   @UsesFlags(GitHubPrOriginOptions.class)
@@ -367,7 +372,7 @@ public class GitModule implements LabelsAwareModule {
   public GitHubPROrigin githubPrOrigin(String url, Boolean merge,
       SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
       Boolean baselineFromBranch, Boolean firstParent, String state,
-      Object reviewStateParam, Object reviewApproversParam, Location location)
+      Object reviewStateParam, Object reviewApproversParam, Object checkerObj, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     if (!url.contains("github.com")) {
@@ -634,7 +639,7 @@ public class GitModule implements LabelsAwareModule {
         @Param(name = "url", type = String.class, doc = "Indicates the GitHub repo URL.",
             named = true),
         @Param(name = "checker", type = Checker.class,  defaultValue = "None",
-            doc = "A checker for the Gerrit API transport.", named = true, noneable = true),
+            doc = "A checker for the GitHub API transport.", named = true, noneable = true),
     },
     useLocation = true
   )

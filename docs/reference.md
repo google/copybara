@@ -1065,7 +1065,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 
 
-`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"])`
+`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None)`
 
 
 #### Parameters:
@@ -1082,6 +1082,7 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 state | `string`<br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
 review_state | `string`<br><p>Required state of the reviews associated with the Pull Request Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`, `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
 review_approvers | `sequence of string`<br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/reference/enum/commentauthorassociation/</p>
+api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not used if the workflow doesn't have hooks.</p>
 
 
 
