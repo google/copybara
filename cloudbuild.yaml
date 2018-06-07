@@ -1,0 +1,7 @@
+# GCB configuration file
+# To learn more about GCB, go to https://cloud.google.com/container-builder/docs/
+steps:
+- name: gcr.io/cloud-builders/bazel
+  args: ['test', '...','--test_output=errors', '--sandbox_tmpfs_path=/tmp']
+options:
+  machine_type: N1_HIGHCPU_8
