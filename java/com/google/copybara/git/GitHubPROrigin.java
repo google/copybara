@@ -250,7 +250,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     // latency.
     console.progressFmt("Fetching Pull Request %d and branch '%s'",
         prNumber, prData.getBase().getRef());
-    try {
+    try(ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
       ImmutableList.Builder<String> refSpecBuilder = ImmutableList.<String>builder()
           .add(String.format("%s:%s", asHeadRef(prNumber), LOCAL_PR_HEAD_REF))
           // Prefix the branch name with 'refs/heads/' since some implementations of
