@@ -75,7 +75,7 @@ public class GitOrigin implements Origin<GitRevision> {
   /**
    * Url of the repository
    */
-  protected final String repoUrl;
+  final String repoUrl;
 
   /**
    * Default reference to track
@@ -115,7 +115,7 @@ public class GitOrigin implements Origin<GitRevision> {
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
 
-  static ImmutableList<Change<GitRevision>> asChanges(Collection<GitChange> gitChanges) {
+  private static ImmutableList<Change<GitRevision>> asChanges(Collection<GitChange> gitChanges) {
     return gitChanges.stream().map(GitChange::getChange).collect(ImmutableList.toImmutableList());
   }
 
@@ -152,7 +152,6 @@ public class GitOrigin implements Origin<GitRevision> {
     private final boolean includeBranchCommitLogs;
     private final SubmoduleStrategy submoduleStrategy;
     private final boolean firstParent;
-    private String url;
 
     ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
         GitOptions gitOptions,
@@ -377,7 +376,6 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent) {
-    options.get(GeneralOptions.class).getEnvironment();
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
