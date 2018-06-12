@@ -54,7 +54,7 @@ public class SkylarkAction implements Action {
     } catch (EvalException e) {
       String error =
           String.format(
-              "Error while executing the skylark transformer %s: %s",
+              "Error while executing the skylark transformation %s: %s",
               function.getName(), e.getMessage());
       if (e.getCause() instanceof ValidationException) {
         throw new ValidationException(e.getCause(), error);

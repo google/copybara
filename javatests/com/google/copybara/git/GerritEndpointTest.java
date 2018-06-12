@@ -218,7 +218,7 @@ public class GerritEndpointTest {
       fail();
     } catch (ValidationException expected) {
       assertThat(expected).hasMessageThat()
-          .contains("Error while executing the skylark transformer test_action");
+          .contains("Error while executing the skylark transformation test_action");
       Throwable cause = expected.getCause();
       assertThat(cause).isInstanceOf(IllegalArgumentException.class);
     }
