@@ -40,6 +40,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 
 /** GitHub specific class used in feedback mechanism and migration event hooks to access GitHub */
 @SuppressWarnings("unused")
@@ -127,7 +128,35 @@ public class GitHubEndPoint implements Endpoint {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(/*location=*/null, e);
+    }
+  }
+
+  @SkylarkCallable(name = "get_reference",
+      doc = "get the reference from git database",
+      parameters = {
+          @Param(name = "branchName", type = String.class, named =  true,
+              doc = "The branch name of the reference")
+      })
+  public Ref getReference(String branchName) throws EvalException {
+    try {
+      checkCondition(!Strings.isNullOrEmpty(branchName), "Branch name cannot be empty");
+
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      return apiSupplier.load(console).getReference(project, branchName);
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(/*location=*/null, e);
+    }
+  }
+
+  @SkylarkCallable(name = "get_references",
+      doc = "get less or equal 500 references from git database")
+  public SkylarkList<Ref> getReferences() throws EvalException {
+    try {
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      return SkylarkList.createImmutable(apiSupplier.load(console).getReferences(project));
+    } catch (RepoException | ValidationException e) {
       throw new EvalException(/*location=*/null, e);
     }
   }

@@ -295,6 +295,39 @@ public abstract class AbstractGitHubApiTest {
   }
 
   @Test
+  public void testGetReference() throws Exception {
+    trainMockGet(
+        "/repos/octocat/Hello-World/git/refs/heads/g3",
+        getResource("get_reference_response_testdata.json"));
+
+    Ref response = api.getReference("octocat/Hello-World","heads/g3");
+
+    assertThat(response.getRef()).isEqualTo("refs/heads/g3");
+    assertThat(response.getSha()).isEqualTo("9a2f372a62761ac378a62935c44cfcb9695d0661");
+    assertThat(response.getUrl()).isEqualTo(
+        "https://api.github.com/repos/octocat/Hello-World/git/refs/heads/g3");
+  }
+
+  @Test
+  public void testGetAllReferences() throws Exception {
+    trainMockGet(
+        "/repos/octocat/Hello-World/git/refs?per_page=100",
+        getResource("get_all_references_response_testdata.json"));
+
+    ImmutableList<Ref> response = api.getReferences("octocat/Hello-World");
+
+    assertThat(response.get(0).getRef()).isEqualTo("refs/heads/g3");
+    assertThat(response.get(0).getSha()).isEqualTo("9a2f372a62761ac378a62935c44cfcb9695d0661");
+    assertThat(response.get(0).getUrl()).isEqualTo(
+        "https://api.github.com/repos/octocat/Hello-World/git/refs/heads/g3");
+    assertThat(response.get(1).getRef()).isEqualTo("refs/heads/master");
+    assertThat(response.get(1).getSha()).isEqualTo("9a2f372a62761ac378a62935c44cfcb9695d0661");
+    assertThat(response.get(1).getUrl()).isEqualTo(
+        "https://api.github.com/repos/octocat/Hello-World/git/refs/heads/master");
+  }
+
+
+  @Test
   public void testGetCombinedStatus() throws Exception {
     trainMockGet("/repos/octocat/Hello-World/statuses/6dcb09b5b57875f334f61aebed695e2e4193db5e",
         getResource("get_combined_status_testdata.json"));

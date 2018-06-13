@@ -1,0 +1,21 @@
+[
+  {
+    "ref": "refs/heads/g3",
+    "node_id": "MDM6UmVmNjc3MjIwMTc6ZzM=",
+    "url": "https://api.github.com/repos/octocat/Hello-World/git/refs/heads/g3",
+    "object": {
+      "sha": "9a2f372a62761ac378a62935c44cfcb9695d0661",
+      "type": "commit",
+      "url": "https://api.github.com/repos/octocat/Hello-World/git/commits/9a2f372a62761ac378a62935c44cfcb9695d0661"
+    }
+  },
+  {
+    "ref": "refs/heads/master",
+    "node_id": "MDM6UmVmNjc3MjIwMTc6bWFzdGVy",
+    "url": "https://api.github.com/repos/octocat/Hello-World/git/refs/heads/master",
+    "object": {
+      "sha": "9a2f372a62761ac378a62935c44cfcb9695d0661",
+      "type": "commit",
+      "url": "https://api.github.com/repos/octocat/Hello-World/git/commits/9a2f372a62761ac378a62935c44cfcb9695d0661"
+    }
+  }]

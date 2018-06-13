@@ -180,6 +180,25 @@ public class GitHubApi {
     }
   }
 
+  public Ref getReference(String projectId, String branchName)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_reference")) {
+      Ref result = transport.get(
+          String.format("repos/%s/git/refs/%s", projectId, branchName), Ref.class);
+      return result;
+    }
+  }
+
+  public ImmutableList<Ref> getReferences(String projectId)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_references")) {
+      return paginatedGet(String.format("repos/%s/git/refs?per_page=%d",
+          projectId, MAX_PER_PAGE),
+          "github_api_get_references",
+          new TypeToken<PaginatedList<Ref>>() {}.getType());
+    }
+  }
+
   public CombinedStatus getCombinedStatus(String projectId, String sha1)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_combined_status")) {

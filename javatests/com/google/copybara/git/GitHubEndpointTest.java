@@ -69,33 +69,46 @@ public class GitHubEndpointTest {
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
     options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
-        if (url.contains("/status")) {
-          return ("{\n"
-              + "    state : 'success',\n"
-              + "    target_url : 'https://github.com/google/example',\n"
-              + "    description : 'Observed foo',\n"
-              + "    context : 'test'\n"
-              + "}"
-          ).getBytes(UTF_8);
-        }
-        if (url.contains("/git/refs/heads")) {
-          return ("{\n"
-              + "    ref : 'refs/heads/test',\n"
-              + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-              + "    object : { \n"
-              + "       type : 'commit',\n"
-              + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-              + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
-              + "   } \n"
-              + "}"
-          ).getBytes(UTF_8);
-        }
-        throw new RuntimeException("Unexpected url: " + url);
-      }
-    };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+            if (url.contains("/status")) {
+              return ("{\n"
+                      + "    state : 'success',\n"
+                      + "    target_url : 'https://github.com/google/example',\n"
+                      + "    description : 'Observed foo',\n"
+                      + "    context : 'test'\n"
+                      + "}")
+                  .getBytes(UTF_8);
+            }
+            if (url.contains("/git/refs/heads")) {
+              return ("{\n"
+                      + "    ref : 'refs/heads/test',\n"
+                      + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+                      + "    object : { \n"
+                      + "       type : 'commit',\n"
+                      + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+                      + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                      + "   } \n"
+                      + "}")
+                  .getBytes(UTF_8);
+            }
+            if (url.contains("git/refs?per_page=100")) {
+              return ("[{\n"
+                      + "    ref : 'refs/heads/test',\n"
+                      + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+                      + "    object : { \n"
+                      + "       type : 'commit',\n"
+                      + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+                      + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                      + "   } \n"
+                      + "}]")
+                  .getBytes(UTF_8);
+            }
+            throw new RuntimeException("Unexpected url: " + url);
+          }
+        };
 
     options.github = new GitHubOptions(options.general, options.git) {
       @Override
@@ -278,6 +291,42 @@ public class GitHubEndpointTest {
             .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
             .build();
     skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  /**
+   * A test that uses get_reference.
+   *
+   */
+  @Test
+  public void testGetReference() throws Exception{
+    String var =
+        "git.github_api(url = 'https://github.com/google/example')"
+            + ".get_reference('heads/test')";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("ref", "refs/heads/test")
+            .put("url", "https://github.com/google/example/git/refs/heads/test")
+            .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
+            .build();
+    skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  /**
+   * A test that uses get_references.
+   *
+   */
+  @Test
+  public void testGetReferences() throws Exception{
+    String var =
+        "git.github_api(url = 'https://github.com/google/example')"
+            + ".get_references()";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("ref", "refs/heads/test")
+            .put("url", "https://github.com/google/example/git/refs/heads/test")
+            .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
+            .build();
+    skylark.verifyFields(var + "[0]", expectedFieldValues);
   }
 
   private Feedback feedback(String actionFunction) throws IOException, ValidationException {
