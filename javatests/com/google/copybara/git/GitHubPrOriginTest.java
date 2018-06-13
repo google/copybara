@@ -350,12 +350,13 @@ public class GitHubPrOriginTest {
     GitRevision prHead = origin.resolve("123");
     assertThat(prHead.getSha1()).isEqualTo(prHeadSha1);
     ImmutableList<Change<GitRevision>> changes =
-        reader.changes(origin.resolve(base), prHead).getChanges();
+        reader.changes(origin.resolve(base), prHead).getChangesAsListForTest();
 
     assertThat(Lists.transform(changes, Change::getMessage))
         .isEqualTo(Lists.newArrayList("one\n", "two\n"));
     // Non-found baseline. We return all the changes between baseline and PR head.
-    changes = reader.changes(origin.resolve(remote.parseRef("HEAD")), prHead).getChanges();
+    changes = reader.changes(origin.resolve(remote.parseRef("HEAD")), prHead)
+        .getChangesAsListForTest();
 
     // Even if the PR is outdated it should return only the changes in the PR by finding the
     // common ancestor.
@@ -413,7 +414,7 @@ public class GitHubPrOriginTest {
     assertThat(
             reader
                 .changes(baselineObj.get().getOriginRevision(), headPrRevision)
-                .getChanges()
+                .getChangesAsListForTest()
                 .size())
         .isEqualTo(2);
 
@@ -453,7 +454,7 @@ public class GitHubPrOriginTest {
     assertThat(
             reader
                 .changes(baselineObj.get().getOriginRevision(), headPrRevision)
-                .getChanges()
+                .getChangesAsListForTest()
                 .size())
         .isEqualTo(2);
 
@@ -738,14 +739,16 @@ public class GitHubPrOriginTest {
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     assertThat(
             Lists.transform(
-                reader.changes(/*fromRef=*/ null, mergeRevision).getChanges(), Change::getMessage))
+                reader.changes(/*fromRef=*/ null, mergeRevision).getChangesAsListForTest(),
+                Change::getMessage))
         .isEqualTo(Lists.newArrayList("base\n", "one\n", "two\n", "Merge branch 'foo'\n"));
 
     // Simulate fast-forward
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("foo"));
 
     assertThat(Lists.transform(
-        reader.changes(/*fromRef=*/null, origin.resolve("123")).getChanges(), Change::getMessage))
+        reader.changes(/*fromRef=*/null, origin.resolve("123")).getChangesAsListForTest(),
+        Change::getMessage))
         .isEqualTo(Lists.newArrayList("base\n", "one\n", "two\n"));
   }
 

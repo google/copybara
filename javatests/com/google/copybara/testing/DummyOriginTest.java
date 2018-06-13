@@ -20,13 +20,13 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.Glob;
 import java.time.Instant;
 import org.junit.Rule;
@@ -65,7 +65,7 @@ public class DummyOriginTest {
         AuthoringMappingMode.OVERWRITE, ImmutableSet.of());
     Reader<DummyRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     ImmutableList<Change<DummyRevision>> changes =
-        reader.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0")).getChanges();
+        reader.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0")).getChangesAsListForTest();
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getMessage()).isEqualTo("foo msg");
   }
@@ -101,7 +101,7 @@ public class DummyOriginTest {
     Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
         AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
     ImmutableList<Change<DummyRevision>> changes = origin.newReader(Glob.ALL_FILES, authoring)
-        .changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1")).getChanges();
+        .changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1")).getChangesAsListForTest();
 
     assertThat(changes).hasSize(2);
     assertThat(changes.get(0).getAuthor())

@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -82,27 +83,43 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
     ChangesResponse<R> changes(@Nullable R fromRef, R toRef) throws RepoException;
 
     class ChangesResponse<R extends Revision> {
-      private final ImmutableList<Change<R>> changes;
+
+      @Nullable
+      private final ChangeGraph<Change<R>> changes;
       @Nullable private final EmptyReason emptyReason;
 
-      private ChangesResponse(ImmutableList<Change<R>> changes, @Nullable EmptyReason emptyReason) {
+      private ChangesResponse(@Nullable ChangeGraph<Change<R>> changes,
+          @Nullable EmptyReason emptyReason) {
+        Preconditions.checkArgument(changes == null ^ emptyReason == null, "Either we have"
+            + " changes or we have an empty reason");
         this.changes = changes;
         this.emptyReason = emptyReason;
+        if (changes != null) {
+          Preconditions.checkArgument(!changes.nodes().isEmpty(), "Non-null empty graphs are not"
+              + "allowed. Use emptyReason instead");
+        }
       }
 
       public static <T extends Revision> ChangesResponse<T> forChanges(
-          Iterable<Change<T>> changes) {
-        Preconditions.checkArgument(!Iterables.isEmpty(changes));
-        return new ChangesResponse<>(ImmutableList.copyOf(changes), null);
+          ChangeGraph<Change<T>> changes) {
+        Preconditions.checkArgument(!changes.nodes().isEmpty(), "Empty changes not allowed");
+        if (changes.nodes().size() > 1) {
+          for (Change<T> node : changes.nodes()) {
+            Preconditions.checkState(
+                !changes.predecessors(node).isEmpty() || !changes.successors(node).isEmpty(),
+                "Unconnected node: %s", node);
+          }
+        }
+        return new ChangesResponse<>(changes, /*emptyReason*/ null);
       }
 
       public static <T extends Revision> ChangesResponse<T> noChanges(EmptyReason emptyReason) {
         Preconditions.checkNotNull(emptyReason);
-        return new ChangesResponse<>(ImmutableList.of(), emptyReason);
+        return new ChangesResponse<>(null, emptyReason);
       }
 
       public boolean isEmpty() {
-        return emptyReason != null;
+        return changes == null;
       }
 
       public EmptyReason getEmptyReason() {
@@ -110,9 +127,23 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
         return emptyReason;
       }
 
-      /** The changes that happen in the interval (fromRef, toRef] */
-      public ImmutableList<Change<R>> getChanges() {
-        Preconditions.checkState(!changes.isEmpty(), "Use isEmpty() first");
+      /**
+       * The changes that happen in the interval (fromRef, toRef] as a flatten list
+       */
+      @VisibleForTesting
+      public ImmutableList<Change<R>> getChangesAsListForTest() {
+        Preconditions.checkNotNull(changes, "Use isEmpty() first");
+        return ImmutableList.copyOf(changes.nodes());
+      }
+
+      /**
+       * The changes that happen in the interval (fromRef, toRef].
+       *
+       * <p>The graph nodes are in order from oldest change to newest change.
+       * <code>graph.successors()</code> returns the parents of each change.
+       */
+      public ChangeGraph<Change<R>> getChanges() {
+        Preconditions.checkNotNull(changes, "Use isEmpty() first");
         return changes;
       }
 

@@ -101,8 +101,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * <p>The list contains the changes in order: First change is the oldest. Last change is the
    * newest.
    */
-  protected WorkflowRunHelper<O, D> forChanges(Iterable<? extends Change<?>> currentChanges)
-      throws RepoException, ValidationException, IOException {
+  protected WorkflowRunHelper<O, D> forChange(Change<?> change)
+      throws RepoException, ValidationException {
     return this;
   }
 
@@ -198,7 +198,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               }
               Change<O> change = originReader.change(lastRev);
               Changes changes = new Changes(ImmutableList.of(change), ImmutableList.of());
-              WorkflowRunHelper<O, D> helper = forChanges(changes.getCurrent()).withDryRun();
+              WorkflowRunHelper<O, D> helper = forChange(change).withDryRun();
 
               try {
                 workflow
@@ -578,7 +578,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * are stored in the origin.
    */
   boolean skipChange(Change<?> currentChange) {
-    boolean skipChange = shouldSkipChange(currentChange, workflow, workflowOptions(), getConsole());
+    boolean skipChange = shouldSkipChange(currentChange, workflow, getConsole());
     if (skipChange) {
       getConsole().verboseFmt("Skipped change %s as it would create an empty result.",
           currentChange.toString());
@@ -590,9 +590,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    * Returns true iff the given change should be skipped based on the origin globs and flags
    * provided.
    */
-  static boolean shouldSkipChange(Change<?> currentChange,
-      Workflow<? extends Revision, ? extends Revision> workflow, WorkflowOptions workflowOptions,
-      Console console) {
+  static boolean shouldSkipChange(Change<?> currentChange, Workflow<? extends Revision,
+      ? extends Revision> workflow, Console console) {
     if (workflow.isMigrateNoopChanges()) {
       return false;
     }

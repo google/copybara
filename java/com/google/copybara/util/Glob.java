@@ -138,7 +138,7 @@ public abstract class Glob implements Concatable {
 
   protected abstract Iterable<String> getIncludes();
 
-  protected static ImmutableSet<String> computeRootsFromIncludes(Iterable<String> includes) {
+  static ImmutableSet<String> computeRootsFromIncludes(Iterable<String> includes) {
     List<String> roots = new ArrayList<>();
 
     for (String includePath : includes) {

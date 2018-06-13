@@ -66,8 +66,7 @@ class ChangeReader {
   ImmutableList<GitChange> run(String refExpression) throws RepoException {
     LogCmd logCmd = repository
         .log(refExpression)
-        .firstParent(firstParent)
-        .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots);
+        .firstParent(firstParent);
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
     }
@@ -96,6 +95,8 @@ class ChangeReader {
     ImmutableList<GitLogEntry> entries =
         repository
             .log(parents.get(0).getSha1() + ".." + ref.getSha1())
+            // This might give incorrect results but several migrations rely on this behavior.
+            // and first_parent = False doesn't work for ITERATIVE
             .withPaths(Glob.isEmptyRoot(roots) ? ImmutableList.of() : roots)
             .firstParent(false)
             .run();
@@ -187,11 +188,9 @@ class ChangeReader {
       return new Builder(repository, console);
     }
 
-    static Builder forOrigin(
-        Authoring authoring, GitRepository repository, Console console, Glob originFiles) {
+    static Builder forOrigin(Authoring authoring, GitRepository repository, Console console) {
       return new Builder(repository, console)
-          .setAuthoring(authoring)
-          .setRoots(originFiles.roots());
+          .setAuthoring(authoring);
     }
 
     private Builder(GitRepository repository, Console console) {

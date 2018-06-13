@@ -17,6 +17,8 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.Origin.Reader.ChangesResponse.forChanges;
+import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.console.Consoles.logLines;
 
@@ -24,10 +26,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
+import com.google.copybara.ChangeGraph;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -50,7 +55,8 @@ import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -115,10 +121,6 @@ public class GitOrigin implements Origin<GitRevision> {
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
 
-  private static ImmutableList<Change<GitRevision>> asChanges(Collection<GitChange> gitChanges) {
-    return gitChanges.stream().map(GitChange::getChange).collect(ImmutableList.toImmutableList());
-  }
-
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(repoUrl, originFiles, authoring,
@@ -139,6 +141,23 @@ public class GitOrigin implements Origin<GitRevision> {
       ref = reference;
     }
     return repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions);
+  }
+
+  private static boolean affectsRoots(ImmutableSet<String> roots,
+      ImmutableCollection<String> changedFiles) {
+    if (changedFiles == null || Glob.isEmptyRoot(roots)) {
+      return true;
+    }
+    // This is O(changes * files * roots) in the worse case. roots shouldn't be big and
+    // files shouldn't be big for 99% of the changes.
+    for (String file : changedFiles) {
+      for (String root : roots) {
+        if (file.equals(root) || file.startsWith(root + "/")) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   static class ReaderImpl implements Reader<GitRevision> {
@@ -172,10 +191,10 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     private ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
-      return ChangeReader.Builder.forOrigin(authoring,
-          getRepository(), generalOptions.console(), originFiles)
+      return ChangeReader.Builder.forOrigin(authoring, getRepository(), generalOptions.console())
           .setVerbose(generalOptions.isVerbose())
           .setIncludeBranchCommitLogs(includeBranchCommitLogs)
+          .setRoots(originFiles.roots())
           .setUrl(repoUrl);
     }
 
@@ -304,19 +323,39 @@ public class GitOrigin implements Origin<GitRevision> {
           .build();
       ImmutableList<GitChange> gitChanges = changeReader.run(refRange);
       if (!gitChanges.isEmpty()) {
-        return ChangesResponse.forChanges(asChanges(gitChanges));
+
+        return forChanges(toGraph(gitChanges));
       }
       if (fromRef == null) {
-        return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
+        return noChanges(EmptyReason.NO_CHANGES);
       }
       if (fromRef.getSha1().equals(toRef.getSha1())
           || getRepository().isAncestor(toRef.getSha1(), fromRef.getSha1())) {
-        return ChangesResponse.noChanges(EmptyReason.TO_IS_ANCESTOR);
+        return noChanges(EmptyReason.TO_IS_ANCESTOR);
       }
       if (getRepository().isAncestor(fromRef.getSha1(), toRef.getSha1())) {
-        return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
+        return noChanges(EmptyReason.NO_CHANGES);
       }
-      return ChangesResponse.noChanges(EmptyReason.UNRELATED_REVISIONS);
+      return noChanges(EmptyReason.UNRELATED_REVISIONS);
+    }
+
+    private ChangeGraph<Change<GitRevision>> toGraph(Iterable<GitChange> gitChanges) {
+      ChangeGraph.Builder<Change<GitRevision>> builder = ChangeGraph.builder();
+
+      Map<GitRevision, Change<GitRevision>> byRevision = new HashMap<>();
+      for (GitChange e : gitChanges) {
+        builder.addChange(e.getChange());
+        byRevision.put(e.getChange().getRevision(), e.getChange());
+      }
+      for (GitChange gitChange : gitChanges) {
+        for (GitRevision parent : gitChange.getParents()) {
+          Change<GitRevision> parentChange = byRevision.get(parent);
+          if (parentChange != null) {
+            builder.addParent(gitChange.getChange(), parentChange);
+          }
+        }
+      }
+      return builder.build();
     }
 
     @Override
@@ -326,7 +365,9 @@ public class GitOrigin implements Origin<GitRevision> {
           .setLimit(1)
           .setFirstParent(firstParent)
           .build();
-      ImmutableList<Change<GitRevision>> changes = asChanges(changeReader.run(ref.getSha1()));
+      ImmutableList<Change<GitRevision>> changes = changeReader.run(ref.getSha1())
+          .stream().map(GitChange::getChange).collect(ImmutableList.toImmutableList());
+
       if (changes.isEmpty()) {
         throw new EmptyChangeException(
             String.format(
@@ -347,13 +388,23 @@ public class GitOrigin implements Origin<GitRevision> {
 
     /**
      * Visit changes using git --skip and -n for pagination.
+     *
+     * <p>We only visit files in the roots. The reason is that there can be different project
+     * imports from the same git repository. Using origin_files glob directly would be more
+     * accurate, but that doesn't work well with changes on origin_files over time. Roots OTOH is
+     * a good compromise.
      */
     @Override
     public void visitChanges(GitRevision start, ChangesVisitor visitor)
         throws RepoException, CannotResolveRevisionException {
       ChangeReader.Builder queryChanges = changeReaderBuilder(repoUrl).setFirstParent(firstParent);
+      ImmutableSet<String> roots = originFiles.roots();
+
       GitVisitorUtil.visitChanges(
-          start, visitor, queryChanges, generalOptions, "origin", gitOptions.visitChangePageSize);
+          start, input -> affectsRoots(roots, input.getChangeFiles())
+              ? visitor.visit(input)
+              : VisitResult.CONTINUE,
+          queryChanges, generalOptions, "origin", gitOptions.visitChangePageSize);
     }
   }
 

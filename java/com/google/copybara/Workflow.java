@@ -312,7 +312,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       "origin.changes",
                       () -> {
                         ChangesResponse<O> changes = oReader.changes(lastMigrated, lastResolved);
-                        return changes.isEmpty() ? ImmutableList.of() : changes.getChanges();
+                        return changes.isEmpty()
+                            ? ImmutableList.of()
+                            : ImmutableList.copyOf(changes.getChanges().nodes());
                       });
 
               ImmutableList<Change<O>> changes =
@@ -320,8 +322,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       .stream()
                       .filter(
                           change ->
-                              !WorkflowRunHelper.shouldSkipChange(change, this, workflowOptions,
-                                  console))
+                              !WorkflowRunHelper.shouldSkipChange(change, this, console))
                       .collect(ImmutableList.toImmutableList());
               MigrationReference<O> migrationRef =
                   MigrationReference.create(
@@ -455,7 +456,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
    * Visible for extension
    */
   @Nullable
-  protected String computeGroupIdentity(@Nullable String originGroupId) {
+  String computeGroupIdentity(@Nullable String originGroupId) {
     return originGroupId == null ? null : computeIdentity("OriginGroupIdentity", originGroupId);
   }
 

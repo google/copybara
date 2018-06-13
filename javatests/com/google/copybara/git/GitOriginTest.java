@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.util.Glob.createGlob;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -33,6 +34,8 @@ import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
+import com.google.copybara.Revision;
+import com.google.copybara.Workflow;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -42,6 +45,8 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.RecordsProcessCallDestination;
+import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
@@ -289,7 +294,7 @@ public class GitOriginTest {
     repo.simpleCommand("merge", "foo");
 
     ImmutableList<Change<GitRevision>> changes = newReader().changes(/*fromRef=*/null,
-        origin.resolve("master")).getChanges();
+        origin.resolve("master")).getChangesAsListForTest();
 
     assertThat(changes.get(2).firstLineMessage()).contains("Merge");
     assertThat(changes.get(2).getChangeFiles()).containsExactly("bar.txt");
@@ -470,7 +475,7 @@ public class GitOriginTest {
     singleFileCommit(author, "change4", "test.txt", "some content4");
 
     ImmutableList<Change<GitRevision>> changes = newReader()
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChangesAsListForTest();
 
     assertThat(changes).hasSize(3);
     assertThat(changes.stream()
@@ -509,21 +514,6 @@ public class GitOriginTest {
     assertThat(change.firstLineMessage()).isEqualTo("change2");
     assertThat(change.getRevision().asString()).isEqualTo(lastCommitRef.asString());
     assertThat(change.getRevision().getUrl()).startsWith("file://");
-  }
-
-  @Test
-  public void testChangeDoesNotAffectPaths() throws Exception {
-    String author = "John Name <john@name.com>";
-    singleFileCommit(author, "change2", "excluded", "Excluded file");
-
-    originFiles = createGlob(ImmutableList.of("included/**"), ImmutableList.of("excluded"));
-    GitRevision lastCommitRef = getLastCommitRef();
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage(
-        String.format(
-            "'%s' revision cannot be found in the origin or it didn't affect the origin paths.",
-            lastCommitRef.asString()));
-    newReader().change(lastCommitRef);
   }
 
   @Test
@@ -628,7 +618,7 @@ public class GitOriginTest {
     assertThat(visited.get(3).firstLineMessage()).isEqualTo("first file");
 
     ImmutableList<Change<GitRevision>> changes = reader.changes(/*fromRef=*/null, lastCommitRef)
-        .getChanges();
+        .getChangesAsListForTest();
     assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
         Lists.transform(visited, Change::getRevision));
     assertThat(changes.reverse().get(0).isMerge()).isTrue();
@@ -652,7 +642,7 @@ public class GitOriginTest {
     assertThat(Lists.transform(visited, Change::firstLineMessage)).containsExactly(
         "Merge branch 'feature'", "master2", "change3", "master1", "change2", "first file");
 
-    changes = reader.changes(/*fromRef=*/null, lastCommitRef).getChanges();
+    changes = reader.changes(/*fromRef=*/null, lastCommitRef).getChangesAsListForTest();
     assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
         Lists.transform(visited, Change::getRevision));
     assertThat(changes.reverse().get(0).isMerge()).isTrue();
@@ -700,7 +690,7 @@ public class GitOriginTest {
     createBranchMerge(author);
 
     ImmutableList<Change<GitRevision>> changes = newReader()
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChangesAsListForTest();
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
@@ -714,7 +704,60 @@ public class GitOriginTest {
     }
   }
 
-  public void createBranchMerge(String author) throws Exception {
+  @Test
+  public void testChangesMergeNoop() throws Exception {
+    checkChangesMergeNoop(false);
+  }
+
+  @Test
+  public void testChangesMergeNoop_importNoopChanges() throws Exception {
+    checkChangesMergeNoop(true);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void checkChangesMergeNoop(boolean importNoopChanges) throws Exception {
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    options.testingOptions.destination = destination;
+
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "base", "base.txt", "");
+    options.setLastRevision(repo.parseRef("master"));
+    git("branch", "feature");
+    singleFileCommit(author, "main_branch_change", "one.txt", "");
+    String mainBranchChangeSha1 = repo.parseRef("master");
+    Thread.sleep(1100); // Make sure one_change is shown before in git log.
+    git("checkout", "feature");
+    singleFileCommit(author, "change1", "base.txt", "base");
+    singleFileCommit(author, "change2", "base.txt", ""); // Revert
+    singleFileCommit(author, "change3", "exclude.txt", "I should be excluded");
+    git("checkout", "master");
+    git("merge", "master", "feature");
+    String headSha1 = repo.parseRef("master");
+
+    Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin(\n"
+        + "         url = '" + url + "',\n"
+        + "         first_parent = False,\n"
+        + "    ),\n"
+        + "    origin_files = glob(['**'], exclude = ['exclude**']),\n"
+        + "    destination = testing.destination(),\n"
+        + "    migrate_noop_changes = " + (importNoopChanges ? "True" : "False") + ",\n"
+        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + ")\n").getMigration("default");
+
+    wf.run(checkoutDir, ImmutableList.of("master"));
+
+    String expected = importNoopChanges ? headSha1 : mainBranchChangeSha1;
+    String actual = Iterables.getLast(destination.processed).getOriginRef().asString();
+    assertWithMessage(String.format("Expected:\n%s\nBut found:\n%s",
+        Iterables.getOnlyElement(repo.log(expected).withLimit(1).run()),
+        Iterables.getOnlyElement(repo.log(actual).withLimit(1).run())))
+        .that(actual).isEqualTo(expected);
+  }
+
+  private void createBranchMerge(String author) throws Exception {
     git("branch", "feature");
     git("checkout", "feature");
     singleFileCommit(author, "change2", "test2.txt", "some content2");
@@ -751,8 +794,8 @@ public class GitOriginTest {
 
     Reader<GitRevision> reader = newReader();
     assertThat(reader.change(firstRef).getMessage()).contains("first file");
-    assertThat(reader.changes(null, secondRef).getChanges()).hasSize(2);
-    assertThat(reader.changes(firstRef, secondRef).getChanges()).hasSize(1);
+    assertThat(reader.changes(null, secondRef).getChangesAsListForTest()).hasSize(2);
+    assertThat(reader.changes(firstRef, secondRef).getChangesAsListForTest()).hasSize(1);
   }
 
   @Test
@@ -764,6 +807,7 @@ public class GitOriginTest {
     assertThat(instant).isEqualTo(Instant.parse(commitTime));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void doNotCountCommitsOutsideOfOriginFileRoots() throws Exception {
     Files.write(remote.resolve("excluded_file.txt"), "some content".getBytes(UTF_8));
@@ -771,45 +815,78 @@ public class GitOriginTest {
     git("commit", "-m", "excluded_file", "--date", commitTime);
     // Note that one of the roots looks like a flag for "git log"
     originFiles = createGlob(ImmutableList.of("include/**", "--parents/**"), ImmutableList.of());
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    options.testingOptions.destination = destination;
+    options.setForce(true);
 
+    Path workdir = Files.createTempDirectory("workdir");
     // No files are in the included roots - make sure we can get an empty list of changes.
     GitRevision firstRef = origin.resolve(firstCommitRef);
-    ChangesResponse<GitRevision> resp = newReader().changes(firstRef, origin.resolve("HEAD"));
-    assertThat(resp.isEmpty()).isTrue();
-    assertThat(resp.getEmptyReason()).isEqualTo(EmptyReason.NO_CHANGES);
+    options.setLastRevision(firstCommitRef);
+
+    String config = ""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin(\n"
+        + "         url = 'file://" + repo.getGitDir() + "',\n"
+        + "         ref = 'other',\n"
+        + "    ),\n"
+        + "    origin_files = glob(['include/**', '--parents/**']),\n"
+        + "    destination = testing.destination(),\n"
+        + "    mode = 'ITERATIVE',\n"
+        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + ")\n";
+
+    try {
+      skylark.loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
+      fail();
+    } catch (EmptyChangeException expected) {
+      // should fail
+    }
 
     // Now add a file in an included root and make sure we get that change from the Reader.
     Files.createDirectories(remote.resolve("--parents"));
     Files.write(remote.resolve("--parents/included_file.txt"), "some content".getBytes(UTF_8));
     repo.add().files("--parents/included_file.txt").run();
     git("commit", "-m", "included_file", "--date", commitTime);
+    String firstExpected = repo.parseRef("HEAD");
+    skylark.loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
+
     GitRevision firstIncludedRef =
-        Iterables.getOnlyElement(
-            newReader().changes(firstRef, origin.resolve("HEAD")).getChanges())
-        .getRevision();
+        (GitRevision) Iterables.getOnlyElement(destination.processed).getOriginRef();
+
+    assertThat(firstIncludedRef.getSha1()).isEqualTo(firstExpected);
 
     // Add an excluded file, and make sure the commit is skipped.
     Files.write(remote.resolve("excluded_file_2.txt"), "some content".getBytes(UTF_8));
     repo.add().files("excluded_file_2.txt").run();
     git("commit", "-m", "excluded_file_2", "--date", commitTime);
 
-    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
-        .getChanges();
-    assertThat(changes).hasSize(1);
-    assertThat(changes.get(0).getRevision().asString())
-        .isEqualTo(firstIncludedRef.asString());
+    destination.processed.clear();
+
+    skylark.loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
+
+    firstIncludedRef =
+        (GitRevision) Iterables.getOnlyElement(destination.processed).getOriginRef();
+    // Still only change is the one that changed included files.
+    assertThat(firstIncludedRef.getSha1()).isEqualTo(firstExpected);
 
     // Add another included file, and make sure we only get the 2 included changes, and the
     // intervening excluded one is absent.
     Files.write(remote.resolve("--parents/included_file_2.txt"), "some content".getBytes(UTF_8));
     repo.add().files("--parents/included_file_2.txt").run();
     git("commit", "-m", "included_file_2", "--date", commitTime);
-    changes = newReader().changes(firstRef, origin.resolve("HEAD")).getChanges();
-    assertThat(changes).hasSize(2);
-    assertThat(changes.get(0).getRevision().asString())
-        .isEqualTo(firstIncludedRef.asString());
-    assertThat(changes.get(1).getMessage())
-        .contains("included_file_2");
+
+    String secondExpected = repo.parseRef("HEAD");
+
+    destination.processed.clear();
+
+    skylark.loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
+
+    assertThat(destination.processed).hasSize(2);
+
+    assertThat(destination.processed.get(0).getOriginRef().asString()).isEqualTo(firstExpected);
+    assertThat(destination.processed.get(1).getOriginRef().asString()).isEqualTo(secondExpected);
   }
 
   @Test
@@ -820,7 +897,7 @@ public class GitOriginTest {
     git("commit", "-m", "empty_commit", "--date", commitTime, "--allow-empty");
     GitRevision firstRef = origin.resolve(firstCommitRef);
     List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
-        .getChanges();
+        .getChangesAsListForTest();
     assertThat(Iterables.getOnlyElement(changes).getMessage()).contains("empty_commit");
   }
 
@@ -843,7 +920,7 @@ public class GitOriginTest {
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
     List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
-        .getChanges();
+        .getChangesAsListForTest();
     assertThat(changes).hasSize(2);
 
     assertThat(changes.get(0).getMessage())
@@ -854,6 +931,7 @@ public class GitOriginTest {
         .contains("i hope this is included in the migrated message!");
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void branchCommitLogsOnlyCoverIncludedOriginFileRoots() throws Exception {
     String excludedMessage = "i hope this IS NOT included in the migrated message!";
@@ -879,17 +957,29 @@ public class GitOriginTest {
     git("commit", "-m", "mainline message!");
     git("merge", "the-branch");
 
-    moreOriginArgs = "include_branch_commit_logs = True";
-    originFiles = createGlob(ImmutableList.of("include/**"), ImmutableList.of());
-    origin = origin();
+    options.setForce(true);
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    options.testingOptions.destination = destination;
+    options.setLastRevision(firstCommitRef);
+    Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin(\n"
+        + "         url = '" + url + "',\n"
+        + "         include_branch_commit_logs = True,\n"
+        + "    ),\n"
+        + "    origin_files = glob(['include/**']),\n"
+        + "    destination = testing.destination(),\n"
+        + "    mode = 'ITERATIVE',\n"
+        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + ")\n").getMigration("default");
 
-    GitRevision firstRef = origin.resolve(firstCommitRef);
-    List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
-        .getChanges();
+    wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
+    List<ProcessedChange> changes = destination.processed;
     assertThat(changes).hasSize(2);
-    assertThat(changes.get(0).getMessage()).contains("mainline message!");
-    assertThat(changes.get(1).getMessage()).doesNotContain(excludedMessage);
-    assertThat(changes.get(1).getMessage()).contains("i hope this is included@@@");
+    assertThat(changes.get(0).getChangesSummary()).contains("mainline message!");
+    assertThat(changes.get(1).getChangesSummary()).doesNotContain(excludedMessage);
+    assertThat(changes.get(1).getChangesSummary()).contains("i hope this is included@@@");
   }
 
   @Test
@@ -902,7 +992,7 @@ public class GitOriginTest {
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
     List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
-        .getChanges();
+        .getChangesAsListForTest();
     String message = Iterables.getOnlyElement(changes).getMessage();
     assertThat(message).doesNotContain(ChangeReader.BRANCH_COMMIT_LOG_HEADING);
     assertThat(message).contains("i hope this is included in the migrated message!");

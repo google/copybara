@@ -36,6 +36,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.Change;
+import com.google.copybara.ChangeGraph;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
@@ -390,10 +391,17 @@ public class GitHubPROrigin implements Origin<GitRevision> {
             return prChanges;
         }
         try {
-          return ChangesResponse.forChanges(ImmutableList.<Change<GitRevision>>builder()
-              .addAll(prChanges.getChanges())
-              .add(change(merge.getCommit()))
-              .build());
+          ChangeGraph<Change<GitRevision>> changes = prChanges.getChanges();
+          ChangeGraph.Builder<Change<GitRevision>> graph =
+              ChangeGraph.<Change<GitRevision>>builder().addAll(changes);
+
+          Change<GitRevision> mergeChange = change(merge.getCommit());
+          graph.addChange(mergeChange);
+          prChanges.getChanges().nodes().stream()
+              .filter(e -> e.getRevision().equals(gitRevision))
+              .findAny()
+              .ifPresent(parent -> graph.addParent(mergeChange, parent));
+          return ChangesResponse.forChanges(graph.build());
         } catch (EmptyChangeException e) {
           throw new RepoException("Error getting the merge commit information: " + merge, e);
         }

@@ -205,7 +205,7 @@ public class GerritOriginTest {
 
     ImmutableList<Change<GitRevision>> changes = reader.changes(
             origin.resolve("http://foo.com/#/c/12345/1"),
-            origin.resolve("http://foo.com/#/c/12345/3")).getChanges();
+        origin.resolve("http://foo.com/#/c/12345/3")).getChangesAsListForTest();
 
     assertThat(changes.get(0).getRevision().getUrl()).isNotNull();
     // Each ref is conceptually a rebase. Size is not really important for this test.

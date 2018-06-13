@@ -17,11 +17,11 @@
 package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Change;
+import com.google.copybara.ChangeGraph;
 import com.google.copybara.Origin;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -120,7 +120,9 @@ public class FolderOrigin implements Origin<FolderRevision> {
       public ChangesResponse<FolderRevision> changes(
           @Nullable FolderRevision fromRef, FolderRevision toRef) throws RepoException {
         // Ignore fromRef since a folder doesn't have history of changes
-        return ChangesResponse.forChanges(ImmutableList.of(change(toRef)));
+        ChangeGraph.Builder<Change<FolderRevision>> graph = ChangeGraph.builder();
+        graph.addChange(change(toRef));
+        return ChangesResponse.forChanges(graph.build());
       }
 
       @Override

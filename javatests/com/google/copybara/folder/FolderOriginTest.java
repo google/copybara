@@ -180,7 +180,8 @@ public class FolderOriginTest {
     FolderRevision ref = origin.resolve(localFolder.toString());
     Change<FolderRevision> change = reader.change(ref);
 
-    assertThat(Iterables.getOnlyElement(reader.changes(/*fromRef=*/ null, ref).getChanges()))
+    assertThat(
+        Iterables.getOnlyElement(reader.changes(/*fromRef=*/ null, ref).getChangesAsListForTest()))
         .isEqualTo(change);
     return change;
   }

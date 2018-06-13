@@ -22,11 +22,15 @@ import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
+import com.google.common.graph.Graph;
+import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.Graphs;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
@@ -42,9 +46,13 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.ProgressPrefixConsole;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
@@ -60,7 +68,7 @@ public enum WorkflowMode {
     @Override
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
-      ImmutableList<Change<O>> detectedChanges = ImmutableList.of();
+      Graph<Change<O>> detectedChanges = GraphBuilder.directed().build();
       O current = runHelper.getResolvedRef();
       O lastRev = null;
       if (isHistorySupported(runHelper)) {
@@ -81,22 +89,23 @@ public enum WorkflowMode {
 
       runHelper.maybeValidateRepoInLastRevState(metadata);
 
-      WorkflowRunHelper<O, D> helperForChanges = runHelper.forChanges(detectedChanges);
+      // Don't replace helperForChanges with runHelper since origin_files could
+      // be potentially different in the helper for the current change.
+      WorkflowRunHelper<O, D> helperForChanges = detectedChanges.nodes().isEmpty()
+          ? runHelper
+          : runHelper.forChange(Iterables.getLast(detectedChanges.nodes()));
+
       // Remove changes that don't affect origin_files
-      detectedChanges = detectedChanges.stream()
-          // Don't replace helperForChanges with runHelper since origin_files could
-          // be potentially different in the helper for the current change.
-          .filter(change -> !helperForChanges.skipChange(change))
-          .collect(ImmutableList.toImmutableList());
+      ImmutableList<Change<O>> changes = flattenChanges(detectedChanges, helperForChanges);
 
       // Try to use the latest change that affected the origin_files roots instead of the
       // current revision, that could be an unrelated change.
-      current = detectedChanges.isEmpty()
+      current = changes.isEmpty()
           ? current
-          : Iterables.getLast(detectedChanges).getRevision();
+          : Iterables.getLast(changes).getRevision();
 
       if (runHelper.isSquashWithoutHistory()) {
-        detectedChanges = ImmutableList.of();
+        changes = ImmutableList.of();
       }
 
       helperForChanges.migrate(
@@ -105,7 +114,7 @@ public enum WorkflowMode {
               runHelper.getConsole(),
               metadata,
               // Squash notes an Skylark API expect last commit to be the first one.
-              new Changes(detectedChanges.reverse(), ImmutableList.of()),
+          new Changes(changes.reverse(), ImmutableList.of()),
               /*destinationBaseline=*/null,
               runHelper.getResolvedRef());
     }
@@ -130,7 +139,7 @@ public enum WorkflowMode {
       }
       int changeNumber = 1;
 
-      ImmutableList<Change<O>> changes = changesResponse.getChanges();
+      ImmutableList<Change<O>> changes = ImmutableList.copyOf(changesResponse.getChanges().nodes());
       Iterator<Change<O>> changesIterator = changes.iterator();
       int limit = changes.size();
       if (runHelper.workflowOptions().iterativeLimitChanges < changes.size()) {
@@ -153,7 +162,7 @@ public enum WorkflowMode {
         boolean errors = false;
         try (ProfilerTask ignored = runHelper.profiler().start(change.getRef())) {
           ImmutableList<Change<O>> current = ImmutableList.of(change);
-          WorkflowRunHelper<O, D> currentHelper = runHelper.forChanges(current);
+          WorkflowRunHelper<O, D> currentHelper = runHelper.forChange(change);
           if (currentHelper.skipChange(change)) {
             continue;
           }
@@ -350,17 +359,16 @@ public enum WorkflowMode {
         ChangesResponse<O> changesResponse = runHelper.getOriginReader()
             .changes(baseline.get().getOriginRevision(),
                 runHelper.getResolvedRef());
-        if (changesResponse.isEmpty()) {
+        changes = flattenChanges(changesResponse.getChanges(), runHelper);
+        if (changes.isEmpty()) {
           throw new EmptyChangeException(String
               .format("Change '%s' doesn't include any change for origin_files = %s",
                   runHelper.getResolvedRef(), runHelper.getOriginFiles()));
         }
-        changes = changesResponse.getChanges();
       }
 
-      runHelper
-          .forChanges(changes)
-          .migrate(
+    // --read-config-from-change is not implemented in CHANGE_REQUEST mode
+    runHelper.migrate(
               runHelper.getResolvedRef(),
               /*lastRev=*/null,
               runHelper.getConsole(),
@@ -427,6 +435,46 @@ public enum WorkflowMode {
 
   private static boolean isHistorySupported(WorkflowRunHelper<?, ?> helper) {
     return helper.destinationSupportsPreviousRef() && helper.getOriginReader().supportsHistory();
+  }
+
+  static <O extends Revision, D extends Revision> ImmutableList<Change<O>> flattenChanges(
+      Graph<Change<O>> detectedChanges, WorkflowRunHelper<O, D> helperForChanges) {
+
+    // Doesn't take into account merges
+    ImmutableSet<Change<O>> naiveKeep = detectedChanges.nodes().stream()
+        .filter(currentChange -> !helperForChanges.skipChange(currentChange))
+        .collect(ImmutableSet.toImmutableSet());
+
+    // Find nodes without children commits.
+    ImmutableSet<Change<O>> roots = detectedChanges.nodes().stream()
+        .filter(e -> detectedChanges.successors(e).isEmpty())
+        .collect(ImmutableSet.toImmutableSet());
+
+    ArrayDeque<Change<O>> toVisit = new ArrayDeque<>(roots);
+
+    Set<Change<O>> visited = new HashSet<>();
+    Set<Change<O>> keep = new HashSet<>();
+    while (!toVisit.isEmpty()) {
+      Change<O> current = toVisit.remove();
+      if (!visited.add(current)) {
+        continue;
+      }
+      if (naiveKeep.contains(current)) {
+        keep.add(current);
+        keep.addAll(Collections2.filter(Graphs.reachableNodes(detectedChanges, current),
+            naiveKeep::contains));
+      }
+
+      Set<Change<O>> parents = detectedChanges.predecessors(current);
+      if (parents.isEmpty()) {
+        continue;
+      }
+      toVisit.add(Iterables.getFirst(parents, null));
+    }
+
+    List<Change<O>> result = new ArrayList<>(detectedChanges.nodes());
+    result.retainAll(keep);
+    return ImmutableList.copyOf(result);
   }
 
   /**

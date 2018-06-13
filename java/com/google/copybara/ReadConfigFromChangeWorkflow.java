@@ -20,7 +20,7 @@ import static com.google.common.base.Joiner.on;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.Iterables;
+import com.google.common.base.Preconditions;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.config.Config;
@@ -133,22 +133,15 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
     }
 
     @Override
-    protected WorkflowRunHelper<O, D> forChanges(Iterable<? extends Change<?>> currentChanges)
-        throws RepoException, ValidationException, IOException {
-      // Why last? If it's iterative mode, there is only one change, and if it's squash we want
-      // the last one.
-      if (Iterables.isEmpty(currentChanges)) {
-        // Squash workflows can provide a list of empty changes if no migration is pending.
-        return this;
-      }
+    protected WorkflowRunHelper<O, D> forChange(Change<?> change)
+        throws RepoException, ValidationException {
+      Preconditions.checkNotNull(change);
 
-      @SuppressWarnings("unchecked")
-      Change<O> lastChange = (Change<O>) Iterables.getLast(currentChanges);
       logger.info(String.format("Loading configuration for change '%s %s'",
-                                lastChange.getRef(), lastChange.firstLineMessage()));
+          change.getRef(), change.firstLineMessage()));
 
       Config config = ReadConfigFromChangeWorkflow.this.configLoader.
-          loadForRevision(getConsole(), lastChange.getRevision());
+          loadForRevision(getConsole(), change.getRevision());
       // The service config validator already checks that the configuration matches the registry,
       // checking that the origin and destination haven't changed.
       List<String> errors =
@@ -158,14 +151,14 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       if (!errors.isEmpty()) {
         throw new ValidationException(
             "Invalid configuration [ref '%s': %s ]: '%s': \n%s",
-            lastChange.getRef(), configLoader.location(), workflowName, on('\n').join(errors));
+            change.getRef(), configLoader.location(), workflowName, on('\n').join(errors));
       }
 
       Migration migration = config.getMigration(workflowName);
       if (!(migration instanceof Workflow)) {
         throw new ValidationException(
             "Invalid configuration [ref '%s': %s ]: '%s' is not a workflow",
-            lastChange.getRef(), configLoader.location(), workflowName);
+            change.getRef(), configLoader.location(), workflowName);
       }
       @SuppressWarnings("unchecked")
       Workflow<O, D> workflowForChange = (Workflow<O, D>) migration;
