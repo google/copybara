@@ -67,6 +67,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1501,7 +1502,7 @@ public class GitRepository {
         cmd.addAll(paths);
       }
 
-      CommandOutput output = repo.simpleCommand(cmd.toArray(new String[cmd.size()]));
+      CommandOutput output = repo.simpleCommand(cmd.toArray(new String[0]));
       return parseLog(output.getStdout(), includeBody);
     }
 
@@ -1561,12 +1562,13 @@ public class GitRepository {
     private ZonedDateTime tryParseDate(Map<String, String> fields, String dateField,
         String commit) {
       String value = getField(fields, dateField);
-      if (value.startsWith("%")) {
+      try {
+        return ZonedDateTime.parse(value);
+      } catch (DateTimeParseException e) {
         logger.atSevere().log("Cannot parse date '%s' for commit %s. Using epoch time instead",
             value, commit);
         return ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
       }
-      return ZonedDateTime.parse(value);
     }
 
     private String getField(Map<String, String> fields, String field) {
