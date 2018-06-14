@@ -51,4 +51,10 @@ public class CheckoutPathAttributes {
           String.format("File %s is too big to compute the size: %d bytes", path, size));
     }
   }
+
+  @SkylarkCallable(name = "symlink",
+      doc = "Returns true if it is a symlink", structField = true)
+  public boolean isSymlink() {
+    return attributes.isSymbolicLink();
+  }
 }

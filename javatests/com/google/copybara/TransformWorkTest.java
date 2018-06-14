@@ -534,7 +534,7 @@ public class TransformWorkTest {
   }
 
   @Test
-  public void testAttr() throws RepoException, IOException, ValidationException {
+  public void testAttrSize() throws RepoException, IOException, ValidationException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("foo");
     Files.createDirectories(base);
@@ -547,6 +547,27 @@ public class TransformWorkTest {
         + "    ctx.console.info('File size: ' + str(size))");
 
     console.assertThat().onceInLog(MessageType.INFO, "File size: 10");
+  }
+
+  @Test
+  public void testAttrIsSymlink() throws IOException, ValidationException {
+    Path base = Files.createDirectories(workdir.resolve("foo"));
+    Files.write(base.resolve("file.txt"), "1234567890".getBytes(UTF_8));
+    Files.createSymbolicLink(base.resolve("link.txt"), base.resolve("file.txt"));
+
+    Transformation transformation = skylark.eval("transformation", ""
+        + "def test(ctx):\n"
+        + "    for f in ctx.run(glob(['**'])):\n"
+        + "        ctx.console.info(f.path + ':' + str(f.attr.symlink))\n"
+        + "        if f.attr.symlink:\n"
+        + "            ctx.console.info(f.path + ' -> ' + f.read_symlink().path)\n"
+        + "\n"
+        + "transformation = core.transform([test])");
+
+    transformation.transform(TransformWorks.of(workdir, "test", console));
+    console.assertThat().onceInLog(MessageType.INFO, ".*foo/link.txt:True.*");
+    console.assertThat().onceInLog(MessageType.INFO, ".*foo/file.txt:False.*");
+    console.assertThat().onceInLog(MessageType.INFO, ".*foo/link.txt -> foo/file.txt.*");
   }
 
   private void touchFile(Path base, String path) throws IOException {

@@ -25,10 +25,13 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.NotLinkException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
@@ -143,11 +146,30 @@ public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
   public CheckoutPathAttributes attr() throws FuncallException {
     try {
       return new CheckoutPathAttributes(path,
-          Files.readAttributes(checkoutDir.resolve(path), BasicFileAttributes.class));
+          Files.readAttributes(checkoutDir.resolve(path), BasicFileAttributes.class,
+              LinkOption.NOFOLLOW_LINKS));
     } catch (IOException e) {
       String msg = "Error getting attributes for " + path + ":" + e;
       logger.atSevere().withCause(e).log(msg);
       throw new FuncallException(msg);
+    }
+  }
+
+  @SkylarkCallable(name = "read_symlink", doc = "Read the symlink")
+  public CheckoutPath readSymbolicLink() throws EvalException, FuncallException {
+    try {
+      Path symlink = Files.readSymbolicLink(checkoutDir.resolve(this.path));
+      Path path = symlink.normalize();
+      if (!path.startsWith(checkoutDir)) {
+        throw new FuncallException("Symlink outside the checkout dir: "+ symlink);
+      }
+      return create(checkoutDir.relativize(path));
+    } catch (NotLinkException e) {
+      throw new EvalException(null, String.format("%s is not a symlink", path));
+    } catch (IOException e) {
+      String msg = String.format("Cannot resolve symlink %s: %s", path, e);
+      logger.atSevere().withCause(e).log(msg);
+      throw new EvalException(null, msg, e);
     }
   }
 

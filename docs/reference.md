@@ -61,6 +61,7 @@
   - [patch](#patch)
     - [patch.apply](#patch.apply)
   - [Path](#path)
+    - [path.read_symlink](#path.read_symlink)
     - [path.relativize](#path.relativize)
     - [path.resolve](#path.resolve)
     - [path.resolve_sibling](#path.resolve_sibling)
@@ -1899,6 +1900,13 @@ name | Filename of the path. For foo/bar/baz.txt it would be baz.txt
 parent | Get the parent path
 path | Full path relative to the checkout directory
 
+<a id="path.read_symlink" aria-hidden="true"></a>
+### path.read_symlink
+
+Read the symlink
+
+`Path path.read_symlink()`
+
 <a id="path.relativize" aria-hidden="true"></a>
 ### path.relativize
 
@@ -1953,6 +1961,7 @@ Represents a path attributes like size.
 Name | Description
 ---- | -----------
 size | The size of the file. Throws an error if file size > 2GB.
+symlink | Returns true if it is a symlink
 
 
 
