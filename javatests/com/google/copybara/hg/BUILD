@@ -21,12 +21,12 @@ licenses(["notice"])  # Apache 2.0
 
 DEPS = [
     "//java/com/google/copybara/hg",
+    "//java/com/google/copybara/util",
+    "//third_party:truth",
 ]
 
 all_tests(
     tags = ["local"],
-    tests = glob(
-        ["**/*.java"],
-    ),
+    tests = ["HgRepositoryTest.java"],
     deps = DEPS,
 )

@@ -37,6 +37,10 @@ import java.util.List;
  */
 public class HgRepository {
 
+  /**
+   * Label to mark the original revision id (Hg SHA-1) for migrated commits.
+   */
+  public static final String HG_ORIGIN_REV_ID = "HgOrigin-RevId";
 
   /**
    * The location of the {@code .hg} directory.
@@ -64,10 +68,34 @@ public class HgRepository {
   }
 
   /**
+   * Finds all changes from a repository at {@code url} and adds to the current repository.
+   * Defaults to forced pull.
+   *
+   * <p>This does not update the copy of the project in the working directory.
+   *
+   * @param url remote hg repository url
+   */
+  public void pull(String url) throws RepoException {
+    pull(url,true);
+  }
+
+  public void pull(String url, boolean force) throws RepoException {
+    ImmutableList.Builder<String> builder = ImmutableList.builder();
+    builder.add("pull", url); //TODO(jlliu): validate url
+
+    if (force) {
+      builder.add("-f");
+    }
+
+    hg(hgDir, builder.build());
+  }
+
+
+  /**
    * Invokes {@code hg} in the directory given by {@code cwd} against this repository and returns
    * the {@link CommandOutput} if the command execution was successful.
    *
-   * Only to be used externally for testing.
+   * <p>Only to be used externally for testing.
    *
    * @param cwd the directory in which to execute the command
    * @param params the argv to pass to Hg, excluding the initial {@code hg}
@@ -77,14 +105,19 @@ public class HgRepository {
     return hg(cwd, Arrays.asList(params));
   }
 
+  public Path getHgDir() {
+    return hgDir;
+  }
+
   private CommandOutput hg(Path cwd, Iterable<String> params) throws RepoException {
     try{
       return executeHg(cwd, params, -1);
     }
     catch (CommandException e) {
-      throw new RepoException("Error executing 'hg': " + e.getMessage(), e);
+      throw new RepoException("Error executing 'hg' " + e.getMessage(), e);
     }
   }
+
 
   private static CommandOutputWithStatus executeHg(Path cwd, Iterable<String> params,
       int maxLogLines) throws CommandException {

@@ -24,29 +24,14 @@ JAVACOPTS = [
 
 CORE = [
     "HgRepository.java",
+    "HgRevision.java",
 ]
 
 java_library(
     name = "hg",
-    srcs = glob(
-        ["**/*.java"],
-    ),
-    javacopts = JAVACOPTS,
-    deps = [
-        ":core",
-        "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/util",
-        "//third_party:guava",
-        "//third_party:shell",
-    ],
-)
-
-java_library(
-    name = "core",
     srcs = CORE,
     javacopts = JAVACOPTS,
     deps = [
-        #":exec_path",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/exception",
