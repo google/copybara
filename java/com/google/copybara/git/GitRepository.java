@@ -47,13 +47,13 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -63,6 +63,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -1546,14 +1548,25 @@ public class GitRepository {
               tree,
               AuthorParser.parse(getField(fields, AUTHOR_FIELD)),
               AuthorParser.parse(getField(fields, COMMITTER_FIELD)),
-              ZonedDateTime.parse(getField(fields, AUTHOR_DATE_FIELD)),
-              ZonedDateTime.parse(getField(fields, COMMITTER_DATE)),
+              tryParseDate(fields, AUTHOR_DATE_FIELD, commit),
+              tryParseDate(fields, COMMITTER_DATE, commit),
               body, files));
         } catch (InvalidAuthorException e) {
           throw new RepoException("Error in commit '" + commit + "'. Invalid author.", e);
         }
       }
       return commits.build();
+    }
+
+    private ZonedDateTime tryParseDate(Map<String, String> fields, String dateField,
+        String commit) {
+      String value = getField(fields, dateField);
+      if (value.startsWith("%")) {
+        logger.atSevere().log("Cannot parse date '%s' for commit %s. Using epoch time instead",
+            value, commit);
+        return ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
+      }
+      return ZonedDateTime.parse(value);
     }
 
     private String getField(Map<String, String> fields, String field) {

@@ -39,11 +39,14 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
+import com.google.copybara.util.CommandOutput;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -97,6 +100,32 @@ public class GitRepositoryTest {
 
     // All the refs point to the same commit.
     assertThat(ImmutableSet.of(after.values())).hasSize(1);
+  }
+
+  @Test
+  public void testBadCommitInLog() throws RepoException, IOException {
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    //
+    repository.simpleCommand("commit", "foo.txt", "-m", "message");
+    GitLogEntry entry = Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
+
+    String badCommit = "tree " + entry.getTree() + "\n"
+        + "parent " + entry.getCommit().getSha1() + "\n"
+        + "author Some User <example@example.com> 1528942829 --400\n"
+        + "committer Some User <example@example.com> 1528942829 --400\n"
+        + "\n"
+        + "Allow to check and resolve symlinks";
+    Files.write(workdir.resolve("commit"), badCommit.getBytes(UTF_8));
+    String commitSha1 = repository.simpleCommand("hash-object", "-w", "-t", "commit",
+        "--", workdir.resolve("commit")
+            .toAbsolutePath().toString()).getStdout().trim();
+    entry = Iterables.getOnlyElement(repository.log(commitSha1).withLimit(1).run());
+
+    ZonedDateTime epoch = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
+
+    assertThat(entry.getAuthorDate()).isEquivalentAccordingToCompareTo(epoch);
+    assertThat(entry.getCommitDate()).isEquivalentAccordingToCompareTo(epoch);
   }
 
   @Test
