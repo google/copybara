@@ -255,9 +255,14 @@ public class GitHubPrDestinationTest {
     checkFindProject("https://github.com/foo/", "foo");
     checkFindProject("git+https://github.com/foo", "foo");
     checkFindProject("git@github.com/foo", "foo");
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot find project name from url https://github.com");
-    checkFindProject("https://github.com", "foo");
+    checkFindProject("git@github.com:org/internal_repo_name.git", "org/internal_repo_name");
+    try {
+      checkFindProject("https://github.com", "foo");
+      fail();
+    } catch (ValidationException e) {
+      console.assertThat().onceInLog(MessageType.ERROR,
+          ".*'https://github.com' is not a valid GitHub url.*");
+    }
   }
 
   private void checkFindProject(String url, String project) throws ValidationException {

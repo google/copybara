@@ -62,6 +62,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
@@ -538,7 +539,7 @@ public class GitModule implements LabelsAwareModule {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     // We don't restrict to github.com domain so that we can support GH Enterprise
     // in the future.
-    checkRemoteUrl(url, location);
+    SkylarkUtil.check(location, GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
     return new GitHubPrDestination(
         url,
         destinationRef,
@@ -553,14 +554,6 @@ public class GitModule implements LabelsAwareModule {
         DEFAULT_GIT_INTEGRATES,
         SkylarkUtil.convertFromNoneable(title, null),
         SkylarkUtil.convertFromNoneable(body, null));
-  }
-
-  private static void checkRemoteUrl(String url, Location location) throws EvalException {
-    try {
-      URI.create(url);
-    } catch (IllegalArgumentException e) {
-      throw new EvalException(location, url + " is not a valid git url");
-    }
   }
 
   private static String firstNotNull(String... values) {
