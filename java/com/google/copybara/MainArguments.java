@@ -42,7 +42,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 public final class MainArguments {
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
-  static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
+  public static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
   @Parameter(description =
       ""
