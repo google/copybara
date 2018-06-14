@@ -1014,7 +1014,7 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 
 Creates changes in a new pull request in the destination.
 
-`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", skip_push=False, title=None, body=None)`
+`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", skip_push=False, title=None, body=None, integrates=None)`
 
 
 #### Parameters:
@@ -1026,6 +1026,7 @@ destination_ref | `string`<br><p>Destination reference for the change. By defaul
 skip_push | `boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
 title | `string`<br><p>When creating a pull request, use this title. By default it uses the change first line.</p>
 body | `string`<br><p>When creating a pull request, use this body. By default it uses the change summary.</p>
+integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 
 
 

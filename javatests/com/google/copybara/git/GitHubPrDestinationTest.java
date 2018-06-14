@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Destination.DestinationStatus;
@@ -263,6 +264,24 @@ public class GitHubPrDestinationTest {
       console.assertThat().onceInLog(MessageType.ERROR,
           ".*'https://github.com' is not a valid GitHub url.*");
     }
+  }
+
+  @Test
+  public void testIntegratesCanBeRemoved() throws Exception {
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = '" + "https://github.com/foo" + "',"
+        + "    destination_ref = 'other',"
+        + ")");
+
+    assertThat(ImmutableList.copyOf(d.getIntegrates())).isEqualTo(GitModule.DEFAULT_GIT_INTEGRATES);
+
+    d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = '" + "https://github.com/foo" + "',"
+        + "    destination_ref = 'other',"
+        + "    integrates = [],"
+        + ")");
+
+    assertThat(d.getIntegrates()).isEmpty();
   }
 
   private void checkFindProject(String url, String project) throws ValidationException {

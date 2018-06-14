@@ -206,6 +206,11 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     return GitHubUtil.getProjectNameFromUrl(url);
   }
 
+  @VisibleForTesting
+  Iterable<GitIntegrateChanges> getIntegrates() {
+    return integrates;
+  }
+
   private String branchFromGroupId(@Nullable String groupId) throws ValidationException {
     if (!Strings.isNullOrEmpty(gitHubDestinationOptions.destinationPrBranch)) {
       return gitHubDestinationOptions.destinationPrBranch;

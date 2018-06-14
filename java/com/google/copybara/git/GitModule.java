@@ -531,11 +531,17 @@ public class GitModule implements LabelsAwareModule {
               named = true, positional = false,
               doc = "When creating a pull request, use this body. By default it uses the change"
                   + " summary."),
+          @Param(name = "integrates", type = SkylarkList.class, named = true,
+              generic1 = GitIntegrateChanges.class, defaultValue = "None",
+              doc = "Integrate changes from a url present in the migrated change"
+                  + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                  + " present in the message", positional = false, noneable = true),
       },
       useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
   public GitHubPrDestination githubPrDestination(String url, String destinationRef,
-      Boolean skipPush, Object title, Object body, Location location) throws EvalException {
+      Boolean skipPush, Object title, Object body, Object integrates, Location location)
+      throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     // We don't restrict to github.com domain so that we can support GH Enterprise
     // in the future.
@@ -551,7 +557,8 @@ public class GitModule implements LabelsAwareModule {
         skipPush,
         new DefaultCommitGenerator(),
         new ProcessPushStructuredOutput(),
-        DEFAULT_GIT_INTEGRATES,
+        SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+            GitIntegrateChanges.class, "integrates"),
         SkylarkUtil.convertFromNoneable(title, null),
         SkylarkUtil.convertFromNoneable(body, null));
   }
