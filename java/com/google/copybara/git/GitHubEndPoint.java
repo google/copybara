@@ -35,6 +35,7 @@ import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -84,9 +85,16 @@ public class GitHubEndPoint implements Endpoint {
           @Param(name = "target_url", type = String.class, named =  true,
               doc = "Url with expanded information about the event", noneable = true,
           defaultValue = "None"),
-      })
-  public Status createStatus(String sha, String state, String context, String description,
-      Object targetUrl) throws EvalException {
+      },
+      useLocation = true
+  )
+  public Status createStatus(
+      String sha,
+      String state,
+      String context,
+      String description,
+      Object targetUrl,
+      Location location) throws EvalException {
     try {
       checkCondition(State.VALID_VALUES.contains(state),
                      "Invalid value for state. Valid values: %s", State.VALID_VALUES);
@@ -101,7 +109,7 @@ public class GitHubEndPoint implements Endpoint {
                                                  convertFromNoneable(targetUrl, null),
                                                  description, context));
     } catch (RepoException | ValidationException e) {
-      throw new EvalException(/*location=*/null, e);
+      throw new EvalException(location, e);
     }
   }
 
@@ -118,8 +126,11 @@ public class GitHubEndPoint implements Endpoint {
                   + "make sure the update is a fast-forward update. Leaving this out or "
                   + "setting it to false will make sure you're not overwriting work. Default: false")
 
-      })
-  public Ref updateReference(String sha, String ref, boolean force) throws EvalException {
+      },
+      useLocation = true
+  )
+  public Ref updateReference(String sha, String ref, boolean force, Location location)
+      throws EvalException {
     try {
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
           "Not a valid complete SHA-1: %s", sha);
@@ -129,7 +140,7 @@ public class GitHubEndPoint implements Endpoint {
       return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
     } catch (RepoException | ValidationException e) {
-      throw new EvalException(/*location=*/null, e);
+      throw new EvalException(location, e);
     }
   }
 
@@ -138,26 +149,31 @@ public class GitHubEndPoint implements Endpoint {
       parameters = {
           @Param(name = "branchName", type = String.class, named =  true,
               doc = "The branch name of the reference")
-      })
-  public Ref getReference(String branchName) throws EvalException {
+      },
+      useLocation = true
+  )
+  public Ref getReference(String branchName, Location location) throws EvalException {
     try {
       checkCondition(!Strings.isNullOrEmpty(branchName), "Branch name cannot be empty");
 
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getReference(project, branchName);
     } catch (RepoException | ValidationException e) {
-      throw new EvalException(/*location=*/null, e);
+      throw new EvalException(location, e);
     }
   }
 
-  @SkylarkCallable(name = "get_references",
-      doc = "get less or equal 500 references from git database")
-  public SkylarkList<Ref> getReferences() throws EvalException {
+  @SkylarkCallable(
+      name = "get_references",
+      doc = "get less or equal 500 references from git database",
+      useLocation = true
+  )
+  public SkylarkList<Ref> getReferences(Location location) throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return SkylarkList.createImmutable(apiSupplier.load(console).getReferences(project));
     } catch (RepoException | ValidationException e) {
-      throw new EvalException(/*location=*/null, e);
+      throw new EvalException(location, e);
     }
   }
 

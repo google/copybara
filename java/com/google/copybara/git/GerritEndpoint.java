@@ -33,6 +33,7 @@ import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -88,9 +89,10 @@ public class GerritEndpoint implements Endpoint {
         positional = false,
         defaultValue = "['LABELS']"
       ),
-    }
+    },
+    useLocation = true
   )
-  public ChangeInfo getChange(String id, SkylarkList<?> includeResults)
+  public ChangeInfo getChange(String id, SkylarkList<?> includeResults, Location location)
       throws EvalException {
     try {
       ImmutableSet.Builder<IncludeResult> enumResults = ImmutableSet.builder();
@@ -104,7 +106,7 @@ public class GerritEndpoint implements Endpoint {
           !changeInfo.isMoreChanges(), "Pagination is not supported yet.");
       return changeInfo;
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(/*location=*/ null, e);
+      throw new EvalException(location, e);
     }
   }
 
@@ -135,13 +137,15 @@ public class GerritEndpoint implements Endpoint {
             type = SetReviewInput.class,
             doc = "The review to post to Gerrit.",
             named = true),
-      })
-  public ReviewResult postLabel(String changeId, String revisionId, SetReviewInput reviewInput)
+      },
+      useLocation = true)
+  public ReviewResult postLabel(
+      String changeId, String revisionId, SetReviewInput reviewInput, Location location)
       throws EvalException {
     try {
       return doSetReview(changeId, revisionId, reviewInput);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(/*location=*/ null, e);
+      throw new EvalException(location, e);
     }
   }
 
@@ -165,14 +169,16 @@ public class GerritEndpoint implements Endpoint {
             doc =
                 "The commit sha to list changes by."
                     + " See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search."),
-      })
-  public SkylarkList<ChangeInfo> listChanges(String commit) throws EvalException {
+      },
+      useLocation = true)
+  public SkylarkList<ChangeInfo> listChanges(String commit, Location location)
+      throws EvalException {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return SkylarkList.createImmutable(
           gerritApi.getChanges(new ChangesQuery(String.format("commit:%s", commit))));
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(/*location=*/ null, e);
+      throw new EvalException(location, e);
     }
   }
 

@@ -25,6 +25,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.List;
 import java.util.Objects;
@@ -158,7 +159,7 @@ public class WorkflowOptions implements Option {
     if (defaultAuthor == null) {
       return null;
     }
-    return Author.parse(/*location=*/ null, defaultAuthor);
+    return Author.parse(Location.BUILTIN, defaultAuthor);
   }
 
   public boolean isReadConfigFromChange() {

@@ -24,6 +24,7 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 
@@ -50,7 +51,7 @@ public class RestoreOriginalAuthor implements Transformation {
       ImmutableCollection<String> labelValue = change.getLabels().get(label);
       if (!labelValue.isEmpty()) {
         try {
-          author = Author.parse(/*location=*/null, Iterables.getLast(labelValue));
+          author = Author.parse(Location.BUILTIN, Iterables.getLast(labelValue));
         } catch (EvalException e) {
           // Don't fail the migration because the label is wrong since it is very
           // difficult for a user to recover from this.
