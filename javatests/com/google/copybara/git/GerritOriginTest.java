@@ -187,13 +187,6 @@ public class GerritOriginTest {
   }
 
   @Test
-  public void testGroupIdentity() throws RepoException, ValidationException {
-    Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, AUTHORING);
-    GitRevision revision = origin.resolve("http://foo.com/#/c/12345/2");
-    assertThat(reader.getGroupIdentity(revision)).isEqualTo("12345");
-  }
-
-  @Test
   public void testChanges() throws RepoException, ValidationException {
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, AUTHORING);
     Change<GitRevision> res = reader.change(origin.resolve("http://foo.com/#/c/12345/2"));

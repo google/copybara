@@ -29,6 +29,7 @@ import com.google.copybara.Revision;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.Workflow;
+import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.exception.RepoException;
@@ -474,7 +475,7 @@ public class SkylarkParserTest {
     }
   }
 
-  public static class MockDestination implements Destination {
+  public static class MockDestination implements Destination<Revision> {
 
     private final String folder;
 
@@ -483,8 +484,7 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable String groupId,
-        @Nullable Writer oldWriter) {
+    public Writer<Revision> newWriter(WriterContext<Revision> writerContext) {
       throw new UnsupportedOperationException();
     }
 

@@ -35,6 +35,7 @@ import com.google.copybara.Changes;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.LabelFinder;
+import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -208,12 +209,20 @@ public class GerritDestinationTest {
 
   private void process(DummyRevision originRef)
       throws ValidationException, RepoException, IOException {
-    ImmutableList<DestinationEffect> result = destination()
-        .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
-            /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
-        .write(
-            TransformResults.of(workdir, originRef).withIdentity(originRef.asString()),
-            console);
+    WriterContext<GitRevision> writerContext =
+        new WriterContext<>(
+            "GerritDestination",
+            "TEST",
+            Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
+            /*dryRun=*/ false,
+            new DummyRevision("test"),
+            /*oldWriter=*/ null);
+    ImmutableList<DestinationEffect> result =
+        destination()
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef).withIdentity(originRef.asString()),
+                console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
     assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
@@ -448,14 +457,22 @@ public class GerritDestinationTest {
     gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
 
     DummyRevision originRef = new DummyRevision("origin_ref");
-    List<DestinationEffect> result = destination(config)
-        .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
-            /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
-        .write(
-            TransformResults.of(workdir, originRef)
-                .withSummary(summary)
-                .withIdentity(originRef.asString()),
-            console);
+    WriterContext<GitRevision> writerContext =
+        new WriterContext<>(
+            "GerritDestinationTest",
+            "test",
+            Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
+            /*dryRun=*/ false,
+            /*originalRevision=*/ originRef,
+            /*oldWriter=*/ null);
+    List<DestinationEffect> result =
+        destination(config)
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary(summary)
+                    .withIdentity(originRef.asString()),
+                console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
 
@@ -484,13 +501,22 @@ public class GerritDestinationTest {
     DummyRevision originRef = new DummyRevision("origin_ref");
     GerritDestination destination = destination("submit = True");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
-    List<DestinationEffect> result = destination
-        .newWriter(glob,/*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
-        .write(
-            TransformResults.of(workdir, originRef)
-                .withSummary("Test message")
-                .withIdentity(originRef.asString()),
-            console);
+    WriterContext<GitRevision> writerContext =
+        new WriterContext<>(
+            "GerritDestinationTest",
+            "test",
+            glob,
+            false,
+            originRef,
+            /*oldWriter=*/ null);
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString()),
+                console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
 
@@ -929,14 +955,22 @@ public class GerritDestinationTest {
       throws ValidationException, RepoException, IOException {
     fetch = "master";
     DummyRevision originRef = new DummyRevision("origin_ref");
-    ImmutableList<DestinationEffect> result = destination("allow_empty_diff_patchset = False")
-        .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
-            /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
-        .write(
-            TransformResults.of(workdir, originRef)
-                .withIdentity(originRef.asString())
-                .withBaseline(baseline),
-            console);
+    WriterContext<GitRevision> writerContext =
+        new WriterContext<>(
+            "GerritDestinationTest",
+            "test",
+            Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
+            /*dryRun=*/ false,
+            /*originalRevision=*/ originRef,
+            /*oldWriter=*/ null);
+    ImmutableList<DestinationEffect> result =
+        destination("allow_empty_diff_patchset = False")
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withIdentity(originRef.asString())
+                    .withBaseline(baseline),
+                console);
     assertThat(result).hasSize(1);
   }
 

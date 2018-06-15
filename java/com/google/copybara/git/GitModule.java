@@ -554,10 +554,13 @@ public class GitModule implements LabelsAwareModule {
         options.get(GitOptions.class),
         skipPush,
         new DefaultWriteHook(),
-        SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
-            GitIntegrateChanges.class, "integrates"),
+        SkylarkList.castList(
+            SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+            GitIntegrateChanges.class,
+            "integrates"),
         SkylarkUtil.convertFromNoneable(title, null),
-        SkylarkUtil.convertFromNoneable(body, null));
+        SkylarkUtil.convertFromNoneable(body, null),
+        mainConfigFile);
   }
 
   private static String firstNotNull(String... values) {

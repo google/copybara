@@ -33,6 +33,7 @@ import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
+import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
@@ -41,7 +42,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -54,7 +54,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
 
 /**
@@ -85,9 +84,9 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
   public class WriterImpl implements Writer<Revision> {
 
     final Glob destinationFiles;
-    private final boolean dryRun;
     @Nullable
-    private final String groupId;
+    private final String contextReference;
+    private final boolean dryRun;
     private final int state;
 
 
@@ -95,14 +94,14 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
       this.state = 0;
-      this.groupId = null;
+      this.contextReference = null;
     }
 
-    public WriterImpl(Glob destinationFiles, boolean dryRun, @Nullable String groupId,
+    public WriterImpl(Glob destinationFiles, boolean dryRun, @Nullable String contextReference,
         @Nullable WriterImpl old) {
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
-      this.groupId = groupId;
+      this.contextReference = contextReference;
       this.state = old != null && old.dryRun == dryRun ? old.state + 1 : 0;
     }
 
@@ -117,14 +116,17 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
         return null;
       }
 
-      if (groupId == null) {
+      if (contextReference == null) {
         return new DestinationStatus(lastSubmitted.getOriginRef().asString(), ImmutableList.of());
       }
 
-      ImmutableList<String> pending = processed.stream()
-          .filter(c -> c.pending && groupId.equals(c.groupIdentity))
-          .map(c -> c.getOriginRef().asString())
-          .collect(ImmutableList.toImmutableList());
+      ImmutableList<String> pending =
+          processed
+              .stream()
+              .filter(c -> c.pending &&
+                  contextReference.equals(c.getOriginRef().contextReference()))
+              .map(c -> c.getOriginRef().asString())
+              .collect(ImmutableList.toImmutableList());
       return new DestinationStatus(lastSubmitted.getOriginRef().asString(), pending);
     }
 
@@ -148,9 +150,13 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
         throw new EmptyChangeException("Change did not produce a result");
       }
       ProcessedChange change =
-          new ProcessedChange(transformResult, copyWorkdir(transformResult.getPath()),
-                              transformResult.getBaseline(), destinationFiles,
-                              dryRun, groupId, state);
+          new ProcessedChange(
+              transformResult,
+              copyWorkdir(transformResult.getPath()),
+              transformResult.getBaseline(),
+              destinationFiles,
+              dryRun,
+              state);
       processed.add(change);
       return ImmutableList.of(
           new DestinationEffect(
@@ -224,9 +230,12 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
   }
 
   @Override
-  public Writer<Revision> newWriter(Glob destinationFiles, boolean dryRun,
-      @Nullable String groupId, @Nullable Writer<Revision> oldWriter) {
-    return new WriterImpl(destinationFiles, dryRun, groupId, (WriterImpl) oldWriter);
+  public Writer<Revision> newWriter(WriterContext<Revision> writerContext) {
+    return new WriterImpl(
+        writerContext.getDestinationFiles(),
+        writerContext.isDryRun(),
+        writerContext.getOriginalRevision().contextReference(),
+        (WriterImpl) writerContext.getOldWriter());
   }
 
   @Override
@@ -241,18 +250,21 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     private final String baseline;
     private final Glob destinationFiles;
     private final boolean dryRun;
-    private final String groupIdentity;
     private final int state;
     public boolean pending;
 
-    private ProcessedChange(TransformResult transformResult, ImmutableMap<String, String> workdir,
-        String baseline, Glob destinationFiles, boolean dryRun, String groupIdentity, int state) {
+    private ProcessedChange(
+        TransformResult transformResult,
+        ImmutableMap<String, String> workdir,
+        String baseline,
+        Glob destinationFiles,
+        boolean dryRun,
+        int state) {
       this.transformResult = Preconditions.checkNotNull(transformResult);
       this.workdir = Preconditions.checkNotNull(workdir);
       this.baseline = baseline;
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
-      this.groupIdentity = groupIdentity;
       this.state = state;
     }
 
@@ -299,10 +311,6 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
     public boolean isDryRun() {
       return dryRun;
-    }
-
-    public String getGroupIdentity() {
-      return groupIdentity;
     }
 
     public String getContent(String fileName) {

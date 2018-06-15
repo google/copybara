@@ -410,12 +410,6 @@ public class GitHubPROrigin implements Origin<GitRevision> {
           throw new RepoException("Error getting the merge commit information: " + merge, e);
         }
       }
-
-      @Nullable
-      @Override
-      public String getGroupIdentity(GitRevision rev) throws RepoException {
-        return Iterables.getLast(rev.associatedLabels().get(GITHUB_PR_NUMBER_LABEL) , null);
-      }
     };
   }
 
