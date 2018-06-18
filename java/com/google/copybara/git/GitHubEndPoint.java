@@ -145,7 +145,7 @@ public class GitHubEndPoint implements Endpoint {
   }
 
   @SkylarkCallable(name = "get_reference",
-      doc = "get the reference from git database",
+      doc = "get the reference from GitHub",
       parameters = {
           @Param(name = "branchName", type = String.class, named =  true,
               doc = "The branch name of the reference")
@@ -165,7 +165,7 @@ public class GitHubEndPoint implements Endpoint {
 
   @SkylarkCallable(
       name = "get_references",
-      doc = "get less or equal 500 references from git database",
+      doc = "Load up to 500 references from GitHub",
       useLocation = true
   )
   public SkylarkList<Ref> getReferences(Location location) throws EvalException {
