@@ -145,19 +145,19 @@ public class GitHubEndPoint implements Endpoint {
   }
 
   @SkylarkCallable(name = "get_reference",
-      doc = "get the reference from git database",
+      doc = "Get a reference SHA-1 from GitHub",
       parameters = {
-          @Param(name = "branchName", type = String.class, named =  true,
-              doc = "The branch name of the reference")
+          @Param(name = "ref", type = String.class, named =  true,
+              doc = "The name of the reference")
       },
       useLocation = true
   )
-  public Ref getReference(String branchName, Location location) throws EvalException {
+  public Ref getReference(String Ref, Location location) throws EvalException {
     try {
-      checkCondition(!Strings.isNullOrEmpty(branchName), "Branch name cannot be empty");
+      checkCondition(!Strings.isNullOrEmpty(Ref), "Ref cannot be empty");
 
       String project = GitHubUtil.getProjectNameFromUrl(url);
-      return apiSupplier.load(console).getReference(project, branchName);
+      return apiSupplier.load(console).getReference(project, Ref);
     } catch (RepoException | ValidationException e) {
       throw new EvalException(location, e);
     }
@@ -165,7 +165,8 @@ public class GitHubEndPoint implements Endpoint {
 
   @SkylarkCallable(
       name = "get_references",
-      doc = "get less or equal 500 references from git database",
+      doc = "Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum "
+          + "number of 500.",
       useLocation = true
   )
   public SkylarkList<Ref> getReferences(Location location) throws EvalException {
