@@ -22,6 +22,7 @@ licenses(["notice"])  # Apache 2.0
 DEPS = [
     "//java/com/google/copybara/hg",
     "//java/com/google/copybara/util",
+    "//java/com/google/copybara/exception",
     "//third_party:truth",
 ]
 

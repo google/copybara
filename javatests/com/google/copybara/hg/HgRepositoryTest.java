@@ -17,8 +17,10 @@
 package com.google.copybara.hg;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
 import com.google.common.base.Splitter;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.CommandOutput;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,7 +53,7 @@ public class HgRepositoryTest {
   }
 
   @Test
-  public void testPullSingleRef() throws Exception {
+  public void testPull() throws Exception {
     repository.init();
     Path newFile = Files.createTempFile(workDir, "foo", ".txt");
     String fileName = newFile.toString();
@@ -96,6 +98,34 @@ public class HgRepositoryTest {
     assertThat(globalIds).hasSize(2);
     assertThat(globalIds.get(1)).isEqualTo(beforeRev.getGlobalId());
     assertThat(globalIds.get(0)).isEqualTo(remoteRev.getGlobalId());
+  }
+
+  @Test
+  public void testPullInvalidPath() throws Exception {
+    repository.init();
+    String invalidPath = "/not/a/path";
+    try {
+      repository.pull(invalidPath);
+      fail("Cannot pull from invalid path");
+    }
+    catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("Repository not found");
+    }
+  }
+
+  @Test
+  public void testPullInvalidRepo() throws Exception {
+    repository.init();
+    Path invalidRepo = Files.createTempDirectory("notRepo");
+    try {
+      repository.pull(invalidRepo.toString());
+      fail("Cannot pull from invalid repository");
+    }
+    catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .contains("Repository not found");
+    }
   }
 
 }

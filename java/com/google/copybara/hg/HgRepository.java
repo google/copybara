@@ -20,11 +20,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
+import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
+import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +45,10 @@ public class HgRepository {
    */
   public static final String HG_ORIGIN_REV_ID = "HgOrigin-RevId";
 
+  private static final Pattern INVALID_HG_REPOSITORY =
+      Pattern.compile("abort: repository .+ not found!");
+
+
   /**
    * The location of the {@code .hg} directory.
    */
@@ -56,7 +63,7 @@ public class HgRepository {
    * @return the new HgRepository
    * @throws RepoException if the directory cannot be created
    */
-  public HgRepository init() throws RepoException {
+  public HgRepository init() throws Exception {
     try {
       Files.createDirectories(hgDir);
     }
@@ -75,13 +82,14 @@ public class HgRepository {
    *
    * @param url remote hg repository url
    */
-  public void pull(String url) throws RepoException {
+  public void pull(String url) throws RepoException, ValidationException {
     pull(url,true);
   }
 
-  public void pull(String url, boolean force) throws RepoException {
+  public void pull(String url, boolean force) throws RepoException, ValidationException {
     ImmutableList.Builder<String> builder = ImmutableList.builder();
-    builder.add("pull", url); //TODO(jlliu): validate url
+
+    builder.add("pull", url);
 
     if (force) {
       builder.add("-f");
@@ -101,7 +109,7 @@ public class HgRepository {
    * @param params the argv to pass to Hg, excluding the initial {@code hg}
    */
   @VisibleForTesting
-  public CommandOutput hg(Path cwd, String... params) throws RepoException {
+  public CommandOutput hg(Path cwd, String... params) throws Exception {
     return hg(cwd, Arrays.asList(params));
   }
 
@@ -109,15 +117,25 @@ public class HgRepository {
     return hgDir;
   }
 
-  private CommandOutput hg(Path cwd, Iterable<String> params) throws RepoException {
+  private CommandOutput hg(Path cwd, Iterable<String> params)
+      throws RepoException, ValidationException {
     try{
       return executeHg(cwd, params, -1);
     }
-    catch (CommandException e) {
-      throw new RepoException("Error executing 'hg' " + e.getMessage(), e);
+    catch (BadExitStatusWithOutputException e) {
+      CommandOutputWithStatus output = e.getOutput();
+
+      if (INVALID_HG_REPOSITORY.matcher(output.getStderr()).find()) {
+        throw new ValidationException(
+            String.format("Repository not found: %s", output.getStderr()));
+      }
+
+      throw new RepoException(String.format("Error executing 'hg': %s", e.getMessage()), e);
+    }
+    catch(CommandException e) {
+      throw new RepoException(String.format("Error executing 'hg': %s", e.getMessage()), e);
     }
   }
-
 
   private static CommandOutputWithStatus executeHg(Path cwd, Iterable<String> params,
       int maxLogLines) throws CommandException {
