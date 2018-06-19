@@ -32,8 +32,7 @@ import java.util.List;
 @SkylarkModule(
     name = "gerritapi.CommitInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit commit information.",
-    documented = false)
+    doc = "Gerrit commit information.")
 public class CommitInfo implements SkylarkValue {
   @Key private String commit;
   @Key private List<ParentCommitInfo> parents;

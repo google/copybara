@@ -47,8 +47,10 @@ import javax.annotation.Nullable;
 @SkylarkModule(
     name = "gerrit_api_obj",
     category = SkylarkModuleCategory.BUILTIN,
-    documented = false,
-    doc = "Gerrit API endpoint implementation for feedback migrations.")
+    doc =
+        ""
+            + "[EXPERIMENTAL] Gerrit API endpoint implementation for feedback migrations and after "
+            + "migration hooks.")
 public class GerritEndpoint implements Endpoint {
 
   private final LazyResourceLoader<GerritApi> apiSupplier;

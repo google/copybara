@@ -40,8 +40,7 @@ import java.util.stream.Collectors;
  */
 @SkylarkModule(name = "feedback.finish_hook_context",
     category = SkylarkModuleCategory.BUILTIN,
-    doc = "Gives access to the feedback migration information and utilities.",
-    documented = false)
+    doc = "Gives access to the feedback migration information and utilities.")
 public class FinishHookContext implements SkylarkContext<FinishHookContext> {
 
   private final Action action;
@@ -124,8 +123,7 @@ public class FinishHookContext implements SkylarkContext<FinishHookContext> {
 
   @SkylarkModule(name = "feedback.revision_context",
       category = SkylarkModuleCategory.BUILTIN,
-      doc = "Information about the revision request/resolved for the migration",
-      documented = false)
+      doc = "Information about the revision request/resolved for the migration")
   private static class SkylarkRevision {
 
     private final Revision revision;

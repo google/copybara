@@ -32,8 +32,7 @@ import java.time.ZonedDateTime;
 @SkylarkModule(
     name = "gerritapi.ChangeMessageInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit change message information.",
-    documented = false)
+    doc = "Gerrit change message information.")
 public class ChangeMessageInfo {
 
   @Key private String id;

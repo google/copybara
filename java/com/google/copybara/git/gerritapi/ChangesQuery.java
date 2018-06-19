@@ -36,7 +36,6 @@ import javax.annotation.Nullable;
     doc =
         "Input for listing Gerrit changes. See "
             + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes",
-    documented = false,
     category = SkylarkModuleCategory.BUILTIN
 )
 public class ChangesQuery {

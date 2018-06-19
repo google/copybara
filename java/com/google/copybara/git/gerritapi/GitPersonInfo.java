@@ -32,8 +32,7 @@ import java.time.ZonedDateTime;
 @SkylarkModule(
     name = "gerritapi.GitPersonInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Git person information.",
-    documented = false)
+    doc = "Git person information.")
 public class GitPersonInfo {
 
   @Key private String name;

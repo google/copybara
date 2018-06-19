@@ -27,8 +27,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 @SkylarkModule(
     name = "gerritapi.ParentCommitInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit parent commit information.",
-    documented = false)
+    doc = "Gerrit parent commit information.")
 public class ParentCommitInfo {
   @Key private String commit;
   @Key private String subject;

@@ -38,8 +38,7 @@ import java.util.Map;
 @SkylarkModule(
     name = "gerritapi.ChangeInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit change information.",
-    documented = false)
+    doc = "Gerrit change information.")
 public class ChangeInfo implements SkylarkValue {
 
   @Key private String id;

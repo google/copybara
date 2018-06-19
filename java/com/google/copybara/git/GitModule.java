@@ -62,13 +62,11 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -633,9 +631,10 @@ public class GitModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
     name = GITHUB_API,
-    documented = false,
-    doc = "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API "
-        + "operations.",
+    doc =
+        ""
+            + "[EXPERIMENTAL] Defines a feedback API endpoint for GitHub, that exposes relevant "
+            + "GitHub API operations.",
     parameters = {
         @Param(name = "url", type = String.class, doc = "Indicates the GitHub repo URL.",
             named = true),
@@ -657,17 +656,25 @@ public class GitModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = GERRIT_API,
-      documented = false,
-      doc = "Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API "
-          + "operations.",
+      doc =
+          ""
+              + "[EXPERIMENTAL] Defines a feedback API endpoint for Gerrit, that exposes relevant "
+              + "Gerrit API operations.",
       parameters = {
-          @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL.",
-              named = true),
-          @Param(name = "checker", type = Checker.class,  defaultValue = "None",
-              doc = "A checker for the Gerrit API transport.", named = true, noneable = true),
+        @Param(
+            name = "url",
+            type = String.class,
+            doc = "Indicates the Gerrit repo URL.",
+            named = true),
+        @Param(
+            name = "checker",
+            type = Checker.class,
+            defaultValue = "None",
+            doc = "A checker for the Gerrit API transport.",
+            named = true,
+            noneable = true),
       },
-      useLocation = true
-  )
+      useLocation = true)
   @UsesFlags(GerritOptions.class)
   public GerritEndpoint gerritApi(String url, Object checkerObj, Location location)
       throws EvalException {
@@ -681,8 +688,7 @@ public class GitModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = GERRIT_TRIGGER,
-      documented = false,
-      doc = "Defines a feedback trigger based on updates on a Gerrit change.",
+      doc = "[EXPERIMENTAL] Defines a feedback trigger based on updates on a Gerrit change.",
       parameters = {
           @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL.",
               named = true),
@@ -704,7 +710,6 @@ public class GitModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "review_input",
-      documented = false,
       doc = "Creates a review to be posted on Gerrit.",
       parameters = {
         @Param(

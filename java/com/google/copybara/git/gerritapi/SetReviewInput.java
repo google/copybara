@@ -33,7 +33,6 @@ import java.util.Map;
     doc =
         "Input for posting a review to Gerrit. See "
             + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input",
-    documented = false,
     category = SkylarkModuleCategory.BUILTIN
 )
 public class SetReviewInput {

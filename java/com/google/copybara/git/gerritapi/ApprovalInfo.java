@@ -28,8 +28,7 @@ import java.time.ZonedDateTime;
 @SkylarkModule(
     name = "gerritapi.ApprovalInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit approval information.",
-    documented = false)
+    doc = "Gerrit approval information.")
 public class ApprovalInfo extends AccountInfo {
   @Key int value;
   @Key String date;

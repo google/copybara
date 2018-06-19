@@ -45,8 +45,7 @@ import javax.annotation.Nullable;
 @SuppressWarnings("unused")
 @SkylarkModule(name = "feedback.context",
     category = SkylarkModuleCategory.BUILTIN,
-    doc = "Gives access to the feedback migration information and utilities.",
-    documented = false)
+    doc = "Gives access to the feedback migration information and utilities.")
 public class FeedbackContext implements SkylarkContext<FeedbackContext> {
 
   private final Feedback feedback;

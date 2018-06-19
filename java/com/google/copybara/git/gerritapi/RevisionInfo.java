@@ -31,8 +31,7 @@ import java.util.Map;
 @SkylarkModule(
     name = "gerritapi.RevisionInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit revision information.",
-    documented = false)
+    doc = "Gerrit revision information.")
 public class RevisionInfo implements SkylarkValue {
 
   @Key private String kind;

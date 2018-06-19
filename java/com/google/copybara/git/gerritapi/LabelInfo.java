@@ -31,8 +31,7 @@ import java.util.Map;
 @SkylarkModule(
     name = "gerritapi.LabelInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit label information.",
-    documented = false)
+    doc = "Gerrit label information.")
 public class LabelInfo {
   @Key boolean optional;
   @Key AccountInfo approved;

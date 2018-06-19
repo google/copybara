@@ -48,9 +48,10 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 @SkylarkModule(
   name = "github_api_obj",
   category = SkylarkModuleCategory.BUILTIN,
-  documented = false,
   doc =
-      "GitHub specific class used in feedback mechanism and migration event hooks to access GitHub"
+      ""
+          + "[EXPERIMENTAL] GitHub API endpoint implementation for feedback migrations and after "
+          + "migration hooks."
 )
 public class GitHubEndPoint implements Endpoint {
 

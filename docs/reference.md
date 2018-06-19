@@ -21,6 +21,7 @@
   - [core](#core)
     - [core.copy](#core.copy)
     - [core.dynamic_transform](#core.dynamic_transform)
+    - [core.feedback](#core.feedback)
     - [core.move](#core.move)
     - [core.remove](#core.remove)
     - [core.replace](#core.replace)
@@ -29,19 +30,50 @@
     - [core.transform](#core.transform)
     - [core.verify_match](#core.verify_match)
     - [core.workflow](#core.workflow)
+  - [feedback.context](#feedback.context)
+    - [feedback.context.error](#feedback.context.error)
+    - [feedback.context.noop](#feedback.context.noop)
+    - [feedback.context.record_effect](#feedback.context.record_effect)
+    - [feedback.context.success](#feedback.context.success)
+  - [feedback.finish_hook_context](#feedback.finish_hook_context)
+  - [feedback.revision_context](#feedback.revision_context)
   - [folder](#folder)
     - [folder.destination](#folder.destination)
     - [folder.origin](#folder.origin)
+  - [gerritapi.AccountInfo](#gerritapi.accountinfo)
+  - [gerritapi.ApprovalInfo](#gerritapi.approvalinfo)
+  - [gerritapi.ChangeInfo](#gerritapi.changeinfo)
+  - [gerritapi.ChangeMessageInfo](#gerritapi.changemessageinfo)
+  - [gerritapi.ChangesQuery](#gerritapi.changesquery)
+  - [gerritapi.CommitInfo](#gerritapi.commitinfo)
+  - [gerritapi.GitPersonInfo](#gerritapi.gitpersoninfo)
+  - [gerritapi.LabelInfo](#gerritapi.labelinfo)
+  - [gerritapi.ParentCommitInfo](#gerritapi.parentcommitinfo)
+  - [gerritapi.ReviewResult](#gerritapi.reviewresult)
+  - [gerritapi.RevisionInfo](#gerritapi.revisioninfo)
+  - [gerrit_api_obj](#gerrit_api_obj)
+    - [gerrit_api_obj.get_change](#gerrit_api_obj.get_change)
+    - [gerrit_api_obj.list_changes_by_commit](#gerrit_api_obj.list_changes_by_commit)
+    - [gerrit_api_obj.post_review](#gerrit_api_obj.post_review)
   - [git](#git)
     - [git.destination](#git.destination)
+    - [git.gerrit_api](#git.gerrit_api)
     - [git.gerrit_destination](#git.gerrit_destination)
     - [git.gerrit_origin](#git.gerrit_origin)
+    - [git.gerrit_trigger](#git.gerrit_trigger)
+    - [git.github_api](#git.github_api)
     - [git.github_origin](#git.github_origin)
     - [git.github_pr_destination](#git.github_pr_destination)
     - [git.github_pr_origin](#git.github_pr_origin)
     - [git.integrate](#git.integrate)
     - [git.mirror](#git.mirror)
     - [git.origin](#git.origin)
+    - [git.review_input](#git.review_input)
+  - [github_api_obj](#github_api_obj)
+    - [github_api_obj.create_status](#github_api_obj.create_status)
+    - [github_api_obj.get_reference](#github_api_obj.get_reference)
+    - [github_api_obj.get_references](#github_api_obj.get_references)
+    - [github_api_obj.update_reference](#github_api_obj.update_reference)
   - [Globals](#globals)
     - [glob](#glob)
     - [parse_message](#parse_message)
@@ -66,6 +98,7 @@
     - [path.resolve](#path.resolve)
     - [path.resolve_sibling](#path.resolve_sibling)
   - [PathAttributes](#pathattributes)
+  - [SetReviewInput](#setreviewinput)
   - [TransformWork](#transformwork)
     - [ctx.add_label](#ctx.add_label)
     - [ctx.add_or_replace_label](#ctx.add_or_replace_label)
@@ -481,6 +514,38 @@ def test(name, number = 2):
 After defining this function, you can use `test('example', 42)` as a transformation in `core.workflow`.
 
 
+<a id="core.feedback" aria-hidden="true"></a>
+### core.feedback
+
+[EXPERIMENTAL] This feature is currently under development.
+
+Defines a migration of changes' metadata, that can be invoked via the Copybara command in the same way as a regular workflow migrates the change itself.
+
+It is considered change metadata any information associated with a change (pending or submitted) that is not core to the change itself. A few examples:
+<ul>
+  <li> Comments: Present in any code review system. Examples: Github PRs or Gerrit     code reviews.</li>
+  <li> Labels: Used in code review systems for approvals and/or CI results.     Examples: Github labels, Gerrit code review labels.</li>
+</ul>
+For the purpose of this workflow, it is not considered metadata the commit message in Git, or any of the contents of the file tree.
+
+
+
+`core.feedback(name, origin, destination, actions=[])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+name | `string`<br><p>The name of the feedback workflow.</p>
+origin | `trigger`<br><p>The trigger of a feedback migration.</p>
+destination | `api`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or Github PR.</p>
+actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:
+  - There is no guarantee of the order of execution.
+  - Actions need to be independent from each other.
+  - Failure in one action might prevent other actions from executing.
+</p>
+
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
 
@@ -838,6 +903,107 @@ Name | Type | Description
 
 
 
+## feedback.context
+
+Gives access to the feedback migration information and utilities.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+action_name | The name of the current action.
+console | Get an instance of the console to report errors or warnings
+destination | An object representing the destination. Can be used to query or modify the destination state
+feedback_name | The name of the Feedback migration calling this action.
+origin | An object representing the origin. Can be used to query about the ref or modifying the origin state
+params | Parameters for the function if created with core.dynamic_feedback
+ref | A string representation of the entity that triggered the event
+
+<a id="feedback.context.error" aria-hidden="true"></a>
+### feedback.context.error
+
+Returns an error action result.
+
+`feedback.action_result feedback.context.error(msg)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+msg | `string`<br><p>The error message</p>
+
+<a id="feedback.context.noop" aria-hidden="true"></a>
+### feedback.context.noop
+
+Returns a no op action result with an optional message.
+
+`feedback.action_result feedback.context.noop(msg=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+msg | `string`<br><p>The no op message</p>
+
+<a id="feedback.context.record_effect" aria-hidden="true"></a>
+### feedback.context.record_effect
+
+Records an effect of the current action.
+
+`feedback.context.record_effect(summary, origin_refs, destination_ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+summary | `string`<br><p>The summary of this effect</p>
+origin_refs | `sequence of origin_ref`<br><p>The origin refs</p>
+destination_ref | `destination_ref`<br><p>The destination ref</p>
+
+<a id="feedback.context.success" aria-hidden="true"></a>
+### feedback.context.success
+
+Returns a successful action result.
+
+`feedback.action_result feedback.context.success()`
+
+
+
+## feedback.finish_hook_context
+
+Gives access to the feedback migration information and utilities.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+console | Get an instance of the console to report errors or warnings
+destination | An object representing the destination. Can be used to query or modify the destination state
+effects | The list of effects that happened in the destination
+origin | An object representing the origin. Can be used to query about the state
+params | Parameters for the function if created with core.dynamic_feedback
+revision | Get the requested/resolved revision
+
+
+
+## feedback.revision_context
+
+Information about the revision request/resolved for the migration
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+labels | A dictionary with the labels detected for the requested/resolved revision.
+
+
+
 ## folder
 
 Module for dealing with local filesytem folders
@@ -879,6 +1045,284 @@ Name | Type | Description
 ---- | ---- | -----------
 --folder-origin-author | *string* | Author of the change being migrated from folder.origin()
 --folder-origin-message | *string* | Message of the change being migrated from folder.origin()
+
+
+
+## gerritapi.AccountInfo
+
+Gerrit account information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+account_id | The numeric ID of the account.
+email | The email address the user prefers to be contacted through.
+Only set if detailed account information is requested.
+See option DETAILED_ACCOUNTS for change queries
+and options DETAILS and ALL_EMAILS for account queries.
+name | The full name of the user.
+Only set if detailed account information is requested.
+See option DETAILED_ACCOUNTS for change queries
+and option DETAILS for account queries.
+secondary_emails | A list of the secondary email addresses of the user.
+Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.
+Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.
+username | The username of the user.
+Only set if detailed account information is requested.
+See option DETAILED_ACCOUNTS for change queries
+and option DETAILS for account queries.
+
+
+
+## gerritapi.ApprovalInfo
+
+Gerrit approval information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+account_id | The numeric ID of the account.
+date | The time and date describing when the approval was made.
+email | The email address the user prefers to be contacted through.
+Only set if detailed account information is requested.
+See option DETAILED_ACCOUNTS for change queries
+and options DETAILS and ALL_EMAILS for account queries.
+name | The full name of the user.
+Only set if detailed account information is requested.
+See option DETAILED_ACCOUNTS for change queries
+and option DETAILS for account queries.
+secondary_emails | A list of the secondary email addresses of the user.
+Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.
+Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.
+username | The username of the user.
+Only set if detailed account information is requested.
+See option DETAILED_ACCOUNTS for change queries
+and option DETAILS for account queries.
+value | The vote that the user has given for the label. If present and zero, the user is permitted to vote on the label. If absent, the user is not permitted to vote on that label.
+
+
+
+## gerritapi.ChangeInfo
+
+Gerrit change information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+branch | The name of the target branch.
+The refs/heads/ prefix is omitted.
+change_id | The Change-Id of the change.
+created | The timestamp of when the change was created.
+current_revision | The commit ID of the current patch set of this change.
+Only set if the current revision is requested or if all revisions are requested.
+id | The ID of the change in the format "'<project>~<branch>~<Change-Id>'", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.
+labels | The labels of the change as a map that maps the label names to LabelInfo entries.
+Only set if labels or detailed labels are requested.
+messages | Messages associated with the change as a list of ChangeMessageInfo entities.
+Only set if messages are requested.
+number | The legacy numeric ID of the change.
+owner | The owner of the change as an AccountInfo entity.
+project | The name of the project.
+revisions | All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.
+Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.
+status | The status of the change (NEW, MERGED, ABANDONED).
+subject | The subject of the change (header line of the commit message).
+submitted | The timestamp of when the change was submitted.
+topic | The topic to which this change belongs.
+updated | The timestamp of when the change was last updated.
+
+
+
+## gerritapi.ChangeMessageInfo
+
+Gerrit change message information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+author | Author of the message as an AccountInfo entity.
+Unset if written by the Gerrit system.
+date | The timestamp of when this identity was constructed.
+id | The ID of the message.
+message | The text left by the user.
+real_author | Real author of the message as an AccountInfo entity.
+Set if the message was posted on behalf of another user.
+revision_number | Which patchset (if any) generated this message.
+tag | Value of the tag field from ReviewInput set while posting the review. NOTE: To apply different tags on on different votes/comments multiple invocations of the REST call are required.
+
+
+
+## gerritapi.ChangesQuery
+
+Input for listing Gerrit changes. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes
+
+
+
+## gerritapi.CommitInfo
+
+Gerrit commit information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+author | The author of the commit as a GitPersonInfo entity.
+commit | The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.
+committer | The committer of the commit as a GitPersonInfo entity.
+message | The commit message.
+parents | The parent commits of this commit as a list of CommitInfo entities. In each parent only the commit and subject fields are populated.
+subject | The subject of the commit (header line of the commit message).
+
+
+
+## gerritapi.GitPersonInfo
+
+Git person information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+date | The timestamp of when this identity was constructed.
+email | The email address of the author/committer.
+name | The name of the author/committer.
+
+
+
+## gerritapi.LabelInfo
+
+Gerrit label information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+all | List of all approvals for this label as a list of ApprovalInfo entities. Items in this list may not represent actual votes cast by users; if a user votes on any label, a corresponding ApprovalInfo will appear in this list for all labels.
+approved | One user who approved this label on the change (voted the maximum value) as an AccountInfo entity.
+blocking | If true, the label blocks submit operation. If not set, the default is false.
+default_value | The default voting value for the label. This value may be outside the range specified in permitted_labels.
+disliked | One user who disliked this label on the change (voted negatively, but not the minimum value) as an AccountInfo entity.
+recommended | One user who recommended this label on the change (voted positively, but not the maximum value) as an AccountInfo entity.
+rejected | One user who rejected this label on the change (voted the minimum value) as an AccountInfo entity.
+value | The voting value of the user who recommended/disliked this label on the change if it is not “+1”/“-1”.
+values | A map of all values that are allowed for this label. The map maps the values (“-2”, “-1”, " `0`", “+1”, “+2”) to the value descriptions.
+
+
+
+## gerritapi.ParentCommitInfo
+
+Gerrit parent commit information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+commit | The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.
+subject | The subject of the commit (header line of the commit message).
+
+
+
+## gerritapi.ReviewResult
+
+Gerrit review result.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+labels | Map of labels to values after the review was posted.
+ready | If true, the change was moved from WIP to ready for review as a result of this action. Not set if false.
+
+
+
+## gerritapi.RevisionInfo
+
+Gerrit revision information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+commit | The commit of the patch set as CommitInfo entity.
+created | The timestamp of when the patch set was created.
+kind | The change kind. Valid values are REWORK, TRIVIAL_REBASE, MERGE_FIRST_PARENT_UPDATE, NO_CODE_CHANGE, and NO_CHANGE.
+patchset_number | The patch set number, or edit if the patch set is an edit.
+ref | The Git reference for the patch set.
+uploader | The uploader of the patch set as an AccountInfo entity.
+
+
+
+## gerrit_api_obj
+
+[EXPERIMENTAL] Gerrit API endpoint implementation for feedback migrations and after migration hooks.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+url | Return the URL of this endpoint.
+
+<a id="gerrit_api_obj.get_change" aria-hidden="true"></a>
+### gerrit_api_obj.get_change
+
+Retrieve a Gerrit change.
+
+`gerritapi.ChangeInfo gerrit_api_obj.get_change(id, include_results=['LABELS'])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+id | `string`<br><p>The change id or change number.</p>
+include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
+
+<a id="gerrit_api_obj.list_changes_by_commit" aria-hidden="true"></a>
+### gerrit_api_obj.list_changes_by_commit
+
+Get changes from Gerrit based on a query. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.
+
+
+`sequence of gerritapi.ChangeInfo gerrit_api_obj.list_changes_by_commit(commit)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+commit | `string`<br><p>The commit sha to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
+
+<a id="gerrit_api_obj.post_review" aria-hidden="true"></a>
+### gerrit_api_obj.post_review
+
+Post a label to a Gerrit change for a particular revision. The label will be authored by the user running the tool, or the role account if running in the service.
+
+
+`gerritapi.ReviewResult gerrit_api_obj.post_review(change_id, revision_id, review_input)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+change_id | `string`<br><p>The Gerrit change id.</p>
+revision_id | `string`<br><p>The revision for which the comment will be posted.</p>
+review_input | `SetReviewInput`<br><p>The review to post to Gerrit.</p>
 
 
 
@@ -930,6 +1374,31 @@ Name | Type | Description
 --git-destination-skip-push | *boolean* | If set, the tool will not push to the remote destination
 --git-destination-url | *string* | If set, overrides the git destination URL.
 --nogit-destination-rebase | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+
+<a id="git.gerrit_api" aria-hidden="true"></a>
+### git.gerrit_api
+
+[EXPERIMENTAL] Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
+
+`gerrit_api_obj git.gerrit_api(url, checker=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url | `string`<br><p>Indicates the Gerrit repo URL.</p>
+checker | `checker`<br><p>A checker for the Gerrit API transport.</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+--gerrit-change-id | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
+--gerrit-new-change | *boolean* | Create a new change instead of trying to reuse an existing one.
+--gerrit-topic | *string* | Gerrit topic to use
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
 ### git.gerrit_destination
@@ -991,6 +1460,46 @@ url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+
+<a id="git.gerrit_trigger" aria-hidden="true"></a>
+### git.gerrit_trigger
+
+[EXPERIMENTAL] Defines a feedback trigger based on updates on a Gerrit change.
+
+`gerritTrigger git.gerrit_trigger(url, checker=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url | `string`<br><p>Indicates the Gerrit repo URL.</p>
+checker | `checker`<br><p>A checker for the Gerrit API transport provided by this trigger.</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+--gerrit-change-id | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
+--gerrit-new-change | *boolean* | Create a new change instead of trying to reuse an existing one.
+--gerrit-topic | *string* | Gerrit topic to use
+
+<a id="git.github_api" aria-hidden="true"></a>
+### git.github_api
+
+[EXPERIMENTAL] Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
+
+`github_api_obj git.github_api(url, checker=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url | `string`<br><p>Indicates the GitHub repo URL.</p>
+checker | `checker`<br><p>A checker for the GitHub API transport.</p>
 
 <a id="git.github_origin" aria-hidden="true"></a>
 ### git.github_origin
@@ -1174,6 +1683,98 @@ ref | `string`<br><p>Represents the default reference that will be used for read
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 include_branch_commit_logs | `boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+
+<a id="git.review_input" aria-hidden="true"></a>
+### git.review_input
+
+Creates a review to be posted on Gerrit.
+
+`SetReviewInput git.review_input(labels={})`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+labels | `dict`<br><p>The labels to post.</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+--gerrit-change-id | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
+--gerrit-new-change | *boolean* | Create a new change instead of trying to reuse an existing one.
+--gerrit-topic | *string* | Gerrit topic to use
+
+
+
+## github_api_obj
+
+[EXPERIMENTAL] GitHub API endpoint implementation for feedback migrations and after migration hooks.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+url | Return the URL of this endpoint.
+
+<a id="github_api_obj.create_status" aria-hidden="true"></a>
+### github_api_obj.create_status
+
+Create or update a status for a commit. Returns the status created.
+
+`github_api_status_obj github_api_obj.create_status(sha, state, context, description, target_url=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+sha | `string`<br><p>The SHA-1 for which we want to create or update the status</p>
+state | `string`<br><p>The state of the commit status: 'success', 'error', 'pending' or 'failure'</p>
+context | `string`<br><p>The context for the commit status. Use a value like 'copybara/import_successful' or similar</p>
+description | `string`<br><p>Description about what happened</p>
+target_url | `string`<br><p>Url with expanded information about the event</p>
+
+<a id="github_api_obj.get_reference" aria-hidden="true"></a>
+### github_api_obj.get_reference
+
+Get a reference SHA-1 from GitHub
+
+`github_api_ref_obj github_api_obj.get_reference(ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The name of the reference</p>
+
+<a id="github_api_obj.get_references" aria-hidden="true"></a>
+### github_api_obj.get_references
+
+Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum number of 500.
+
+`sequence of github_api_ref_obj github_api_obj.get_references()`
+
+<a id="github_api_obj.update_reference" aria-hidden="true"></a>
+### github_api_obj.update_reference
+
+Update a reference to point to a new commit. Returns the info of the reference.
+
+`github_api_ref_obj github_api_obj.update_reference(ref, sha, force)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The name of the reference.</p>
+sha | `string`<br><p>The id for the commit status.</p>
+force | `boolean`<br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
 
 
 
@@ -1963,6 +2564,12 @@ Name | Description
 ---- | -----------
 size | The size of the file. Throws an error if file size > 2GB.
 symlink | Returns true if it is a symlink
+
+
+
+## SetReviewInput
+
+Input for posting a review to Gerrit. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input
 
 
 

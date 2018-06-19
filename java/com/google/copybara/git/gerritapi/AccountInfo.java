@@ -31,8 +31,7 @@ import java.util.List;
 @SkylarkModule(
     name = "gerritapi.AccountInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit account information.",
-    documented = false)
+    doc = "Gerrit account information.")
 public class AccountInfo {
   @Key("_account_id") long accountId;
   @Key String name;

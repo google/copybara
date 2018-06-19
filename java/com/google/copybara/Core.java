@@ -841,10 +841,8 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "feedback",
-
-      documented = false,
       doc = ""
-          + "WIP: This is not implemented yet.\n"
+          + "[EXPERIMENTAL] This feature is currently under development.\n"
           + "\n"
           + "Defines a migration of changes' metadata, that can be invoked via the Copybara "
           + "command in the same way as a regular workflow migrates the change itself.\n"

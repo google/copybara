@@ -29,8 +29,7 @@ import java.util.Map;
 @SkylarkModule(
     name = "gerritapi.ReviewResult",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    doc = "Gerrit review result.",
-    documented = false)
+    doc = "Gerrit review result.")
 public class ReviewResult {
   @Key private Map<String, Integer> labels;
   @Key private boolean ready;
