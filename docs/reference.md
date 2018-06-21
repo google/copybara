@@ -852,7 +852,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=True for CHANGE_REQUEST, ask_for_confirmation=False, dry_run=False, after_migration=[], change_identity=None, set_rev_id=True, smart_prune=False)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=True for CHANGE_REQUEST, ask_for_confirmation=False, dry_run=False, after_migration=[], change_identity=None, set_rev_id=True, smart_prune=False, migrate_noop_changes=False)`
 
 
 #### Parameters:
@@ -875,6 +875,7 @@ after_migration | `sequence`<br><p>Run a feedback workflow after one migration h
 change_identity | `string`<br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: The name of the workflow being run</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
 set_rev_id | `boolean`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For certain workflows like `CHANGE_REQUEST` it not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
 smart_prune | `boolean`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
+migrate_noop_changes | `boolean`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
 
 
 

@@ -241,6 +241,13 @@ public class Core implements LabelsAwareModule {
                   + " now we only revert the non-affected files. This only works for CHANGE_REQUEST"
                   + " mode.",
               defaultValue = "False", positional = false),
+          @Param(name = "migrate_noop_changes", named = true, type = Boolean.class,
+              doc = "By default, Copybara tries to only migrate changes that affect origin_files"
+                  + " or config files. This flag allows to include all the changes. Note that it"
+                  + " might generate more empty changes errors. In `ITERATIVE` mode it might fail"
+                  + " if some transformation is validating the message (Like has to contain 'PUBLIC'"
+                  + " and the change doesn't contain it because it is internal).",
+              defaultValue = "False", positional = false),
       },
       useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -264,6 +271,7 @@ public class Core implements LabelsAwareModule {
       Object changeIdentityObj,
       Boolean setRevId,
       Boolean smartPrune,
+      Boolean migrateNoopChanges,
       Location location,
       Environment env)
       throws EvalException {
@@ -328,7 +336,8 @@ public class Core implements LabelsAwareModule {
         convertFeedbackActions(afterMigrations, location, dynamicEnvironment),
         changeIdentity,
         setRevId,
-        smartPrune));
+        smartPrune,
+        workflowOptions.migrateNoopChanges || migrateNoopChanges));
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj, Location location)

@@ -88,7 +88,7 @@ public class WorkflowOptions implements Option {
       description = "By default Copybara will only try to migrate changes that could affect the"
           + " destination. Ignoring changes that only affect excluded files in origin_files. This"
           + " flag disables that behavior and runs for all the changes.")
-  public boolean importNoopChanges = false;
+  public boolean migrateNoopChanges = false;
 
   @Parameter(names = {"--workflow-identity-user"},
       description = "Use a custom string as a user for computing change identity")

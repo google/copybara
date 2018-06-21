@@ -593,7 +593,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   static boolean shouldSkipChange(Change<?> currentChange,
       Workflow<? extends Revision, ? extends Revision> workflow, WorkflowOptions workflowOptions,
       Console console) {
-    if (workflowOptions.importNoopChanges) {
+    if (workflow.isMigrateNoopChanges()) {
       return false;
     }
     // We cannot know the files included. Try to migrate then.

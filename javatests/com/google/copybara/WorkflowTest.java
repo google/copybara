@@ -120,6 +120,7 @@ public class WorkflowTest {
   private TransformWork transformWork;
   private boolean setRevId;
   private boolean smartPrune;
+  private boolean migrateNoopChangesField;
 
   @Before
   public void setup() throws Exception {
@@ -153,6 +154,7 @@ public class WorkflowTest {
     transformWork = TransformWorks.of(workdir, "example", console);
     setRevId = true;
     smartPrune = false;
+    migrateNoopChangesField = false;
   }
 
   private TestingConsole console() {
@@ -181,6 +183,7 @@ public class WorkflowTest {
         + "    authoring = " + authoring + ",\n"
         + "    set_rev_id = " + (setRevId ? "True" : "False") + ",\n"
         + "    smart_prune = " + (smartPrune ? "True" : "False") + ",\n"
+        + "    migrate_noop_changes = " + (migrateNoopChangesField ? "True" : "False") + ",\n"
         + "    mode = '" + mode + "',\n"
         + ")\n";
     System.err.println(config);
@@ -595,6 +598,23 @@ public class WorkflowTest {
 
   @Test
   public void iterativeOnlyRunForMatchingOriginFiles() throws Exception {
+    checkItereativeOnlyRUnForMatchingOriginFiles("one", "three");
+  }
+
+  @Test
+  public void iterativeOnlyRunForMatchingOriginFiles_importNoopFlag() throws Exception {
+    options.workflowOptions.migrateNoopChanges = true;
+    checkItereativeOnlyRUnForMatchingOriginFiles("one", "two", "three", "four");
+  }
+
+  @Test
+  public void iterativeOnlyRunForMatchingOriginFiles_importNoopField() throws Exception {
+    migrateNoopChangesField = true;
+    checkItereativeOnlyRUnForMatchingOriginFiles("one", "two", "three", "four");
+  }
+
+  private void checkItereativeOnlyRUnForMatchingOriginFiles(String... changes)
+      throws IOException, ValidationException, RepoException {
     origin.singleFileChange(0, "base", "file.txt", "a");
     origin.singleFileChange(1, "one", "file.txt", "b");
     origin.singleFileChange(2, "two", "excluded/two", "b");
@@ -603,11 +623,11 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/"0");
     workflow.run(workdir, ImmutableList.of(HEAD));
-    for (ProcessedChange change : destination.processed) {
-      System.err.println(change.getChangesSummary());
+
+    assertThat(destination.processed).hasSize(changes.length);
+    for (int i = 0; i < changes.length; i++) {
+      assertThat(destination.processed.get(i).getChangesSummary()).contains(changes[i]);
     }
-    assertThat(destination.processed.get(0).getChangesSummary()).contains("one");
-    assertThat(destination.processed.get(1).getChangesSummary()).contains("three");
   }
 
   @Test

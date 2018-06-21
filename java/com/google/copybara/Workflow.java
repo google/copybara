@@ -100,6 +100,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final ImmutableList<Token> changeIdentity;
   private final boolean setRevId;
   private final boolean smartPrune;
+  private final boolean migrateNoopChanges;
   private final boolean checkLastRevState;
 
   public Workflow(
@@ -124,7 +125,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       ImmutableList<Action> afterMigrationActions,
       ImmutableList<Token> changeIdentity,
       boolean setRevId,
-      boolean smartPrune) {
+      boolean smartPrune,
+      boolean migrateNoopChanges) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -150,6 +152,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.changeIdentity = Preconditions.checkNotNull(changeIdentity);
     this.setRevId = setRevId;
     this.smartPrune = smartPrune;
+    this.migrateNoopChanges = migrateNoopChanges;
   }
 
   @Override
@@ -515,5 +518,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public boolean isSmartPrune() {
     return smartPrune;
+  }
+
+  public boolean isMigrateNoopChanges() {
+    return migrateNoopChanges;
   }
 }
