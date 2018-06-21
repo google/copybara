@@ -119,7 +119,9 @@ public class SkylarkTestExecutor {
    */
   public void verifyField(String var, String fieldName, Object expectedValue)
       throws ValidationException {
-    Object result = eval("e", String.format("e = %s.%s", var, fieldName));
+    Object result = eval("e", String.format(
+        // Support lists
+        fieldName.startsWith("[") ?"e = %s%s" : "e = %s.%s", var, fieldName));
     if (!result.equals(expectedValue)) {
       throw new RuntimeException(
           String.format("Invalid field %s. Got: %s. Want: %s", fieldName, result, expectedValue));
