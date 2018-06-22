@@ -203,7 +203,7 @@ public class GitRepository {
   static Optional<String> version(Map<String, String> environment) {
     try {
       String version = executeGit(Paths.get(StandardSystemProperty.USER_DIR.value()),
-          ImmutableList.of("version"), environment, /*verbose=*/false).getStdout();
+          ImmutableList.of("version"), environment, /*verbose=*/true).getStdout();
       return Optional.of(version);
     } catch (CommandException e) {
       return Optional.empty();
@@ -221,7 +221,7 @@ public class GitRepository {
       executeGit(cwd,
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
           env,
-          /*verbose=*/false);
+          /*verbose=*/true);
     } catch (CommandException e) {
       Optional<String> version = version(env);
       throw new InvalidRefspecException(
