@@ -41,6 +41,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -550,24 +551,61 @@ public class TransformWorkTest {
   }
 
   @Test
-  public void testAttrIsSymlink() throws IOException, ValidationException {
+  public void testSymlinks() throws IOException, ValidationException {
     Path base = Files.createDirectories(workdir.resolve("foo"));
-    Files.write(base.resolve("file.txt"), "1234567890".getBytes(UTF_8));
-    Files.createSymbolicLink(base.resolve("link.txt"), base.resolve("file.txt"));
+    Files.write(Files.createDirectory(base.resolve("a")).resolve("file.txt"),
+        "THE CONTENT".getBytes(UTF_8));
+    Files.createSymbolicLink(Files.createDirectory(base.resolve("b")).resolve("file.txt"),
+        Paths.get("../a/file.txt"));
+    Files.write(Files.createDirectories(base.resolve("c/folder")).resolve("file.txt"),
+        "THE CONTENT2".getBytes(UTF_8));
+    Files.createSymbolicLink(base.resolve("c/file.txt"), Paths.get("folder/file.txt"));
 
     Transformation transformation = skylark.eval("transformation", ""
         + "def test(ctx):\n"
         + "    for f in ctx.run(glob(['**'])):\n"
         + "        ctx.console.info(f.path + ':' + str(f.attr.symlink))\n"
         + "        if f.attr.symlink:\n"
-        + "            ctx.console.info(f.path + ' -> ' + f.read_symlink().path)\n"
+        + "            target = f.read_symlink()\n"
+        + "            ctx.console.info(f.path + ' -> ' + target.path)\n"
+        + "            ctx.console.info(f.path + ' content ' + ctx.read_path(f))\n"
+        + "            ctx.console.info(target.path + ' content ' + ctx.read_path(target))\n"
         + "\n"
         + "transformation = core.transform([test])");
 
     transformation.transform(TransformWorks.of(workdir, "test", console));
-    console.assertThat().onceInLog(MessageType.INFO, ".*foo/link.txt:True.*");
-    console.assertThat().onceInLog(MessageType.INFO, ".*foo/file.txt:False.*");
-    console.assertThat().onceInLog(MessageType.INFO, ".*foo/link.txt -> foo/file.txt.*");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/a/file.txt:False");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/b/file.txt:True");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/b/file.txt -> foo/a/file.txt");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/b/file.txt content THE CONTENT");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/a/file.txt content THE CONTENT");
+
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/file.txt:True");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/folder/file.txt:False");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/file.txt -> foo/c/folder/file.txt");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/file.txt content THE CONTENT2");
+    console.assertThat().onceInLog(MessageType.INFO, "foo/c/folder/file.txt content THE CONTENT2");
+  }
+
+  @Test
+  public void testSymlinks_outside() throws IOException, ValidationException {
+    Path base = Files.createDirectories(workdir.resolve("foo"));
+    Path tempFile = Files.createTempFile("foo", "bar");
+
+    Files.write(tempFile, "THE CONTENT".getBytes(UTF_8));
+    Files.createSymbolicLink(base.resolve("symlink"), tempFile);
+
+    Transformation transformation = skylark.eval("transformation", ""
+        + "def test(ctx):\n"
+        + "    ctx.new_path('foo/symlink').read_symlink()\n"
+        + "\n"
+        + "transformation = core.transform([test])");
+
+    try {
+      transformation.transform(TransformWorks.of(workdir, "test", console));
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("points to a file outside the checkout dir");
+    }
   }
 
   private void touchFile(Path base, String path) throws IOException {

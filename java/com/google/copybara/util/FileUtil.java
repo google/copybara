@@ -302,70 +302,78 @@ public final class FileUtil {
       }
       return FileVisitResult.CONTINUE;
     }
+  }
 
-    /**
-     * Resolves {@code symlink} recursively until it finds a regular file or directory. It also
-     * checks that all its intermediate paths jumps are under {@code root}.
-     */
-    private ResolvedSymlink resolveSymlink(Path root, Path symlink) throws IOException {
-      checkArgument(symlink.startsWith(root), "%s doesn't start with %s", symlink, root);
-      checkArgument(root.isAbsolute(), "%s is not absolute", root);
+  /**
+   * Represents the regular file/directory that a symlink points to. It also includes a boolean
+   * that is true if during all the symlink steps resolution, all the paths found where relative
+   * to the root directory.
+   */
+  public static final class ResolvedSymlink {
 
-      Path relativeLink = root.relativize(symlink).normalize();
-      Path realLink = symlink;
-      boolean insideRoot = true;
-      Set<Path> visited = new LinkedHashSet<>();
-      while (true) {
-        if (visited.contains(relativeLink)) {
-          throw new IOException("Symlink cycle detected:\n  "
-              + Joiner.on("\n  ").join(
-              Iterables.concat(visited, ImmutableList.of(relativeLink))));
-        }
-        visited.add(relativeLink);
+    private final Path regularFile;
+    private final boolean allUnderRoot;
 
-        if (insideRoot && (relativeLink.isAbsolute()
-            || relativeLink.getNameCount() == 0
-            // Because it is normalized, '..' is the first segment if it goes outside root.
-            || relativeLink.getName(0).toString().equals(".."))) {
-          insideRoot = false;
-        }
+    ResolvedSymlink(Path regularFile, boolean allUnderRoot) {
+      this.regularFile = checkNotNull(regularFile);
+      this.allUnderRoot = allUnderRoot;
+    }
 
-        if (Files.isSymbolicLink(realLink)) {
-          // Read the symlink. Could be '/foo/bar', '../../baz' or 'some' for example.
-          Path resolved = Files.readSymbolicLink(realLink);
-          // Resolve to absolute path. We use sibling because 'some' should be resolved
-          // to the directory containing realLink + the link.
-          realLink = realLink.resolveSibling(resolved).normalize();
-          if (insideRoot) {
-            // Now we have a possibly absolute path. Resolve relative to root and normalize
-            // so '..' is the first segment.
-            relativeLink = root.relativize(realLink).normalize();
-          } else {
-            relativeLink = realLink;
-          }
+    public Path getRegularFile() {
+      return regularFile;
+    }
+
+    public boolean isAllUnderRoot() {
+      return allUnderRoot;
+    }
+  }
+
+  /**
+   * Resolves {@code symlink} recursively until it finds a regular file or directory. It also
+   * checks that all its intermediate paths jumps are under {@code root}.
+   */
+  public static ResolvedSymlink resolveSymlink(Path root, Path symlink) throws IOException {
+    checkArgument(symlink.startsWith(root), "%s doesn't start with %s", symlink, root);
+    checkArgument(root.isAbsolute(), "%s is not absolute", root);
+
+    Path relativeLink = root.relativize(symlink).normalize();
+    Path realLink = symlink;
+    boolean insideRoot = true;
+    Set<Path> visited = new LinkedHashSet<>();
+    while (true) {
+      if (visited.contains(relativeLink)) {
+        throw new IOException("Symlink cycle detected:\n  "
+            + Joiner.on("\n  ").join(
+            Iterables.concat(visited, ImmutableList.of(relativeLink))));
+      }
+      visited.add(relativeLink);
+
+      if (insideRoot && (relativeLink.isAbsolute()
+          || relativeLink.getNameCount() == 0
+          // Because it is normalized, '..' is the first segment if it goes outside root.
+          || relativeLink.getName(0).toString().equals(".."))) {
+        insideRoot = false;
+      }
+
+      if (Files.isSymbolicLink(realLink)) {
+        // Read the symlink. Could be '/foo/bar', '../../baz' or 'some' for example.
+        Path resolved = Files.readSymbolicLink(realLink);
+        // Resolve to absolute path. We use sibling because 'some' should be resolved
+        // to the directory containing realLink + the link.
+        realLink = realLink.resolveSibling(resolved).normalize();
+        if (insideRoot) {
+          // Now we have a possibly absolute path. Resolve relative to root and normalize
+          // so '..' is the first segment.
+          relativeLink = root.relativize(realLink).normalize();
         } else {
-          // We reach to the regular file/directory.
-          break;
+          relativeLink = realLink;
         }
-      }
-      return new ResolvedSymlink(realLink, insideRoot);
-    }
-
-    /**
-     * Represents the regular file/directory that a symlink points to. It also includes a boolean
-     * that is true if during all the symlink steps resolution, all the paths found where relative
-     * to the root directory.
-     */
-    private static final class ResolvedSymlink {
-
-      private final Path regularFile;
-      private final boolean allUnderRoot;
-
-      ResolvedSymlink(Path regularFile, boolean allUnderRoot) {
-        this.regularFile = checkNotNull(regularFile);
-        this.allUnderRoot = allUnderRoot;
+      } else {
+        // We reach to the regular file/directory.
+        break;
       }
     }
+    return new ResolvedSymlink(realLink, insideRoot);
   }
 
   /**

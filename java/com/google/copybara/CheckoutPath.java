@@ -19,6 +19,8 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
+import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.FileUtil.ResolvedSymlink;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -158,14 +160,19 @@ public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
   @SkylarkCallable(name = "read_symlink", doc = "Read the symlink")
   public CheckoutPath readSymbolicLink() throws EvalException, FuncallException {
     try {
-      Path symlink = Files.readSymbolicLink(checkoutDir.resolve(this.path));
-      Path path = symlink.normalize();
-      if (!path.startsWith(checkoutDir)) {
-        throw new FuncallException("Symlink outside the checkout dir: "+ symlink);
+      Path symlinkPath = checkoutDir.resolve(path);
+      if (!Files.isSymbolicLink(symlinkPath)) {
+        throw new FuncallException(String.format("%s is not a symlink", path));
       }
-      return create(checkoutDir.relativize(path));
-    } catch (NotLinkException e) {
-      throw new EvalException(null, String.format("%s is not a symlink", path));
+
+      ResolvedSymlink resolvedSymlink = FileUtil.resolveSymlink(checkoutDir, symlinkPath);
+      if (!resolvedSymlink.isAllUnderRoot()) {
+        throw new FuncallException(String.format(
+            "Symlink %s points to a file outside the checkout dir: %s",
+            symlinkPath, resolvedSymlink.getRegularFile()));
+      }
+
+      return create(checkoutDir.relativize(resolvedSymlink.getRegularFile()));
     } catch (IOException e) {
       String msg = String.format("Cannot resolve symlink %s: %s", path, e);
       logger.atSevere().withCause(e).log(msg);
