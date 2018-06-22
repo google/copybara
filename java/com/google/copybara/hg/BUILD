@@ -37,6 +37,7 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util",
         "//third_party:flogger",
+        "//third_party:google_http_client",  # TODO(jlliu): split
         "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:re2j",

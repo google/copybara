@@ -17,8 +17,10 @@
 package com.google.copybara.hg;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.reflect.TypeToken;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.Command;
@@ -27,13 +29,23 @@ import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
+import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.annotations.SerializedName;
 import com.google.re2j.Pattern;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * A class for manipulating Hg (Mercurial) repositories
@@ -98,6 +110,12 @@ public class HgRepository {
     hg(hgDir, builder.build());
   }
 
+  /**
+   * Creates a log command
+   */
+  public LogCmd log() {
+    return LogCmd.create(this);
+  }
 
   /**
    * Invokes {@code hg} in the directory given by {@code cwd} against this repository and returns
@@ -148,5 +166,141 @@ public class HgRepository {
     CommandRunner runner = new CommandRunner(cmd);
     return
         maxLogLines >= 0 ? runner.withMaxStdOutLogLines(maxLogLines).execute() : runner.execute();
+  }
+
+  /**
+   * An object that can perform a "hg log" operation on a repository and returns a list of
+   * {@link HgLogEntry}.
+   */
+  public static class LogCmd {
+
+    private final HgRepository repo;
+
+    private final int limit;
+
+    /** Branch to limit the query from. Defaults to all branches if null.*/
+    @Nullable
+    private final String branch;
+
+    LogCmd(HgRepository repo, int limit, @Nullable String branch) {
+      this.repo = repo;
+      this.limit = limit;
+      this.branch = branch;
+    }
+
+    static LogCmd create(HgRepository repo) {
+      return new LogCmd(
+          Preconditions.checkNotNull(repo), /*limit*/0, /*branch*/null);
+    }
+
+    /**
+     * Limit the query to {@code limit} results. Should be > 0.
+     */
+    public LogCmd withLimit(int limit) {
+      Preconditions.checkArgument(limit > 0);
+      return new LogCmd(repo, limit, branch);
+    }
+
+    /**
+     * Only query for revisions from the branch {@code branch}.
+     */
+    public LogCmd withBranch(String branch) {
+      return new LogCmd(repo, limit, branch);
+    }
+
+    /**
+     * Run "hg log' and return zero or more {@link HgLogEntry}.
+     */
+    public ImmutableList<HgLogEntry> run() throws RepoException, ValidationException {
+      ImmutableList.Builder<String> builder = ImmutableList.builder();
+      builder.add("log", "--verbose"); // verbose flag shows files in output
+
+      if (branch != null) {
+        builder.add("--branch", branch);
+      }
+
+      /* hg requires limit to be a positive integer */
+      if (limit > 0) {
+        builder.add("--limit", String.valueOf(limit));
+      }
+
+      builder.add("-Tjson");
+      CommandOutput output = repo.hg(repo.getHgDir(), builder.build());
+      return parseLog(output.getStdout());
+    }
+
+    private ImmutableList<HgLogEntry> parseLog(String log) throws RepoException{
+      if (log.isEmpty()) {
+        return ImmutableList.of();
+      }
+
+      Gson gson = new Gson();
+      Type logListType = new TypeToken<List<HgLogEntry>>() {}.getType();
+
+      try {
+        List<HgLogEntry> logEntries = gson.fromJson(log.trim(), logListType);
+        return ImmutableList.copyOf(logEntries);
+      }
+      catch (JsonParseException e) {
+        throw new RepoException(String.format("Cannot parse log output: %s", e.getMessage()));
+      }
+    }
+  }
+
+  /**
+   * An object that represents a commit as returned by 'hg log'.
+   */
+  public static class HgLogEntry {
+    @SerializedName("node") private final String globalId;
+    private final List<String> parents;
+    private final String user;
+    @SerializedName("date") private final List<String> commitDate;
+    private final String branch;
+    @SerializedName("desc") private final String description;
+    private final List<String> files;
+
+    HgLogEntry(String node, List<String> parents, String user,
+        List<String> commitDate, String branch,
+        String desc, List<String> files) {
+      this.globalId = Preconditions.checkNotNull(node);
+      this.parents = ImmutableList.copyOf(parents);
+      this.user = user;
+      this.commitDate = commitDate;
+      this.branch = branch;
+      this.description = desc;
+      this.files = ImmutableList.copyOf(files);
+    }
+
+    public List<String> getParents() {
+      return parents;
+    }
+
+    public String getUser() {
+      return user;
+    }
+
+    public String getGlobalId() {
+      return globalId;
+    }
+
+    public ZonedDateTime getZonedDate() {
+      Instant date = Instant.ofEpochSecond(
+          Long.parseLong(commitDate.get(0)));
+      ZoneOffset offset = ZoneOffset.ofTotalSeconds(-1 * Integer.parseInt(commitDate.get(1)));
+      ZoneId zone = ZoneId.ofOffset("", offset);
+      return ZonedDateTime.ofInstant(date, zone);
+    }
+
+    public String getBranch() {
+      return branch;
+    }
+
+    public String getDescription() {
+      return description;
+    }
+
+    public List<String> getFiles() {
+      return files;
+    }
   }
 }

@@ -17,13 +17,19 @@
 package com.google.copybara.hg;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.util.CommandOutput;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
@@ -128,4 +134,158 @@ public class HgRepositoryTest {
     }
   }
 
+  @Test
+  public void testLog() throws Exception {
+    repository.init();
+
+    String user = "Copy Bara <copy@bara.com>";
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("+11:00")).truncatedTo(ChronoUnit.SECONDS);
+    ZonedDateTime date2 = date.plus(1, ChronoUnit.SECONDS);
+    ZonedDateTime date3 = date.plus(2, ChronoUnit.SECONDS);
+    String desc = "one";
+    String desc2 = "two";
+    String desc3 = "three\nthree";
+
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-u", user, "-d", date.toString(), "-m", desc);
+
+    repository.hg(workDir, "branch", "other");
+    Files.write(workDir.resolve(fileName), "hello".getBytes(UTF_8));
+    repository.hg(workDir, "commit", "-u", user, "-d", date2.toString(), "-m", desc2);
+
+    Path remoteDir = Files.createTempDirectory("remotedir");
+    HgRepository remoteRepo = new HgRepository(remoteDir);
+    remoteRepo.init();
+    Path newFile2 = Files.createTempFile(remoteDir, "bar", ".txt");
+    String fileName2 = newFile2.toString();
+    remoteRepo.hg(remoteDir, "add", fileName2);
+    remoteRepo.hg(remoteDir, "commit", "-u", user, "-d", date3.toString(), "-m", desc3);
+
+    repository.pull(remoteDir.toString());
+
+    ImmutableList<HgLogEntry> allCommits = repository.log().withLimit(5).run();
+
+    assertThat(allCommits.size()).isEqualTo(3);
+
+    assertThat(allCommits.get(0).getParents()).hasSize(1);
+    assertThat(allCommits.get(0).getParents().get(0))
+        .isEqualTo("0000000000000000000000000000000000000000");
+    assertThat(allCommits.get(1).getParents().get(0))
+        .isEqualTo(allCommits.get(2).getGlobalId());
+    assertThat(allCommits.get(2).getParents().get(0))
+        .isEqualTo("0000000000000000000000000000000000000000");
+
+
+    assertThat(allCommits.get(0).getUser()).isEqualTo("Copy Bara <copy@bara.com>");
+    assertThat(allCommits.get(0).getUser()).isEqualTo(allCommits.get(1).getUser());
+    assertThat(allCommits.get(0).getUser()).isEqualTo(allCommits.get(2).getUser());
+
+    assertThat(allCommits.get(0).getZonedDate()).isEqualTo(date3);
+    assertThat(allCommits.get(1).getZonedDate()).isEqualTo(date2);
+    assertThat(allCommits.get(2).getZonedDate()).isEqualTo(date);
+
+    assertThat(allCommits.get(0).getBranch()).isEqualTo("default");
+    assertThat(allCommits.get(1).getBranch()).isEqualTo("other");
+    assertThat(allCommits.get(2).getBranch()).isEqualTo("default");
+
+    assertThat(allCommits.get(0).getFiles()).containsExactly(newFile2.getFileName().toString());
+    assertThat(allCommits.get(1).getFiles()).containsExactly(newFile.getFileName().toString());
+    assertThat(allCommits.get(2).getFiles()).containsExactly(newFile.getFileName().toString());
+
+    assertThat(allCommits.get(0).getDescription()).isEqualTo(desc3);
+    assertThat(allCommits.get(1).getDescription()).isEqualTo(desc2);
+    assertThat(allCommits.get(2).getDescription()).isEqualTo(desc);
+
+    ImmutableList<HgLogEntry> defaultCommits = repository.log()
+        .withLimit(5)
+        .withBranch("default")
+        .run();
+    assertThat(defaultCommits).hasSize(2);
+
+    ImmutableList<HgLogEntry> otherCommits = repository.log()
+        .withLimit(5)
+        .withBranch("other")
+        .run();
+    assertThat(otherCommits).hasSize(1);
+  }
+
+  @Test
+  public void testLogTwoParents() throws Exception {
+    repository.init();
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", "foo");
+
+    Path remoteDir = Files.createTempDirectory("remotedir");
+    HgRepository remoteRepo = new HgRepository(remoteDir);
+    remoteRepo.init();
+    Path newFile2 = Files.createTempFile(remoteDir, "foo", ".txt");
+    String fileName2 = newFile2.toString();
+    Files.write(remoteDir.resolve(fileName2), "hello".getBytes(UTF_8));
+    remoteRepo.hg(remoteDir, "add", fileName2);
+    remoteRepo.hg(remoteDir, "commit", "-m", "hello");
+
+    repository.pull(remoteDir.toString());
+    repository.hg(workDir, "merge");
+    Files.write(workDir.resolve(fileName), "hello".getBytes(UTF_8));
+    repository.hg(workDir, "commit", "-m", "merge");
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+
+    assertThat(commits.get(0).getParents()).hasSize(2);
+  }
+
+  @Test
+  public void testLogNoFiles() throws Exception {
+    repository.init();
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", "foo");
+    repository.hg(workDir, "rm", fileName);
+    repository.hg(workDir, "commit", "--amend", "-m", "amend");
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+    assertThat(commits.get(0).getFiles()).hasSize(0);
+  }
+
+  @Test
+  public void testLogMultipleFiles() throws Exception {
+    repository.init();
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    Path newFile2 = Files.createTempFile(workDir, "bar", ".txt");
+    String fileName = newFile.toString();
+    String fileName2 = newFile2.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "add", fileName2);
+    repository.hg(workDir, "commit", "-m", "add 2 files");
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+    assertThat(commits.get(0).getFiles()).hasSize(2);
+  }
+
+  @Test
+  public void testLogLimit() throws Exception {
+    repository.init();
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", "foo");
+    Files.write(workDir.resolve(fileName), "hello".getBytes(UTF_8));
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", "hello");
+
+    ImmutableList<HgLogEntry> commits = repository.log().withLimit(1).run();
+    assertThat(commits).hasSize(1);
+
+    try {
+      repository.log().withLimit(0).run();
+      fail("Cannot have limit of 0");
+    }
+    catch (IllegalArgumentException expected) {
+    }
+  }
 }
