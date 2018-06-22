@@ -25,6 +25,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.jimfs.Jimfs;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
@@ -53,17 +54,15 @@ public class GitHubEndpointTest {
 
   private SkylarkTestExecutor skylark;
   private TestingConsole console;
-  private OptionsBuilder options;
   private DummyTrigger dummyTrigger;
   private Path workdir;
   private GitApiMockHttpTransport gitApiMockHttpTransport;
 
   @Before
   public void setup() throws Exception {
-    workdir = Files.createTempDirectory("workdir");
-    Files.createDirectories(workdir);
+    workdir = Jimfs.newFileSystem().getPath("/");
     console = new TestingConsole();
-    options = new OptionsBuilder();
+    OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console)
         .setOutputRootToTmpDir();
     dummyTrigger = new DummyTrigger();

@@ -45,6 +45,7 @@ DEPS = [
     "//third_party:google_http_client",
     "//third_party:google_http_client_test",
     "//third_party:jcommander",
+    "//third_party:jimfs",
     "//third_party:skylark-lang",
     "//third_party:truth",
     "//third_party:mockito",

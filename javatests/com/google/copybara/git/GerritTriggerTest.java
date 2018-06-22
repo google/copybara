@@ -32,13 +32,11 @@ import org.junit.runners.JUnit4;
 public class GerritTriggerTest {
 
   private SkylarkTestExecutor skylarkTestExecutor;
-  private TestingConsole console;
-  private OptionsBuilder options;
 
   @Before
   public void setup() throws Exception {
-    console = new TestingConsole();
-    options = new OptionsBuilder();
+    TestingConsole console = new TestingConsole();
+    OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console).setOutputRootToTmpDir();
     options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
     skylarkTestExecutor =

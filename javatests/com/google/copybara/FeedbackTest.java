@@ -24,6 +24,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.jimfs.Jimfs;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
@@ -38,7 +39,6 @@ import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,17 +51,15 @@ public class FeedbackTest {
   private SkylarkTestExecutor skylark;
   private TestingConsole console;
   private TestingEventMonitor eventMonitor;
-  private OptionsBuilder options;
   private DummyTrigger dummyTrigger;
   private Path workdir;
 
   @Before
   public void setup() throws Exception {
-    workdir = Files.createTempDirectory("workdir");
-    Files.createDirectories(workdir);
+    workdir = Jimfs.newFileSystem().getPath("/");
     console = new TestingConsole();
     eventMonitor = new TestingEventMonitor();
-    options = new OptionsBuilder();
+    OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console);
     options.general.withEventMonitor(eventMonitor);
     dummyTrigger = new DummyTrigger();

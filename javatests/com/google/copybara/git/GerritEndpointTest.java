@@ -28,6 +28,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.jimfs.Jimfs;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.testing.DummyChecker;
@@ -51,34 +52,29 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GerritEndpointTest {
 
-  public static final String BASE_URL = "https://user:SECRET@copybara-not-real.com";
+  private static final String BASE_URL = "https://user:SECRET@copybara-not-real.com";
 
   private SkylarkTestExecutor skylark;
-  private TestingConsole console;
-  private OptionsBuilder options;
   private Path workdir;
   private DummyTrigger dummyTrigger;
-  private Path urlMapper;
   private String url;
   private  GitApiMockHttpTransport gitApiMockHttpTransport;
-  private Path credentialsFile;
 
   @Before
   public void setup() throws Exception {
-    workdir = Files.createTempDirectory("workdir");
-    Files.createDirectories(workdir);
-    console = new TestingConsole();
-    options = new OptionsBuilder();
+    workdir = Jimfs.newFileSystem().getPath("/");
+    TestingConsole console = new TestingConsole();
+    OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console)
         .setOutputRootToTmpDir();
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
     options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
-    urlMapper = Files.createTempDirectory("url_mapper");
+    Path urlMapper = Files.createTempDirectory("url_mapper");
     options.git = new TestGitOptions(urlMapper, options.general);
     url = BASE_URL + "/foo/bar";
     gitApiMockHttpTransport = new TestingGitApiHttpTransport();
-    credentialsFile = Files.createTempFile("credentials", "test");
+    Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, BASE_URL.getBytes(UTF_8));
     GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
         getGitEnv(), /*verbose=*/true)
