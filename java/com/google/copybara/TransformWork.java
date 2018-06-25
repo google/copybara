@@ -150,7 +150,9 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
     return skylarkTransformParams;
   }
 
-  @SkylarkCallable(name = "set_message", doc = "Update the message to be used in the change")
+  @SkylarkCallable(name = "set_message", doc = "Update the message to be used in the change",
+      parameters = { @Param(name = "message", type = String.class)}
+  )
   public void setMessage(String message) {
     this.metadata = this.metadata.withMessage(message);
   }
@@ -273,7 +275,8 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   }
 
   @SkylarkCallable(name = "add_text_before_labels",
-      doc = "Add a text to the description before the labels paragraph")
+      doc = "Add a text to the description before the labels paragraph",
+      parameters = { @Param(name = "text", type = String.class) })
   public void addTextBeforeLabels(String text) {
     ChangeMessage message = ChangeMessage.parseMessage(getMessage());
     message = message.withText(message.getText() + '\n' + text);
@@ -336,8 +339,9 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   @SkylarkCallable(name = "find_label", doc = ""
       + "Tries to find a label. First it looks at the generated message (IOW labels that might"
       + " have been added by previous steps), then looks in all the commit messages being imported"
-      + " and finally in the resolved reference passed in the CLI."
-      , allowReturnNones = true)
+      + " and finally in the resolved reference passed in the CLI.",
+      parameters = { @Param(name = "label", type = String.class) },
+      allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
     Collection<String> labelValues = findLabelValues(label, /*all=*/false);
@@ -347,8 +351,9 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   @SkylarkCallable(name = "find_all_labels", doc = ""
       + "Tries to find all the values for a label. First it looks at the generated message (IOW"
       + " labels that might have been added by previous steps), then looks in all the commit"
-      + " messages being imported and finally in the resolved reference passed in the CLI."
-      , allowReturnNones = true)
+      + " messages being imported and finally in the resolved reference passed in the CLI.",
+      parameters = { @Param(name = "message", type = String.class) },
+      allowReturnNones = true)
   public SkylarkList<String> getAllLabels(String label) {
     return findLabelValues(label, /*all=*/true);
   }
@@ -402,7 +407,8 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
         .filter(label -> label.isLabel(name)).collect(ImmutableList.toImmutableList());
   }
 
-  @SkylarkCallable(name = "set_author", doc = "Update the author to be used in the change")
+  @SkylarkCallable(name = "set_author", doc = "Update the author to be used in the change",
+      parameters = { @Param(name = "author", type = Author.class) })
   public void setAuthor(Author author) {
     this.metadata = this.metadata.withAuthor(author);
   }

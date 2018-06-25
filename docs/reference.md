@@ -2627,21 +2627,42 @@ separator | `string`<br><p>The separator to use for the label</p>
 
 Add a text to the description before the labels paragraph
 
-`ctx.add_text_before_labels()`
+`ctx.add_text_before_labels(text)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+text | `string`<br><p></p>
 
 <a id="ctx.find_all_labels" aria-hidden="true"></a>
 ### ctx.find_all_labels
 
 Tries to find all the values for a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
 
-`sequence of string ctx.find_all_labels()`
+`sequence of string ctx.find_all_labels(message)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+message | `string`<br><p></p>
 
 <a id="ctx.find_label" aria-hidden="true"></a>
 ### ctx.find_label
 
 Tries to find a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
 
-`string ctx.find_label()`
+`string ctx.find_label(label)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+label | `string`<br><p></p>
 
 <a id="ctx.new_path" aria-hidden="true"></a>
 ### ctx.new_path
@@ -2737,14 +2758,28 @@ runnable | `object`<br><p>A glob or a transform (Transforms still not implemente
 
 Update the author to be used in the change
 
-`ctx.set_author()`
+`ctx.set_author(author)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+author | `author`<br><p></p>
 
 <a id="ctx.set_message" aria-hidden="true"></a>
 ### ctx.set_message
 
 Update the message to be used in the change
 
-`ctx.set_message()`
+`ctx.set_message(message)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+message | `string`<br><p></p>
 
 <a id="ctx.write_path" aria-hidden="true"></a>
 ### ctx.write_path
