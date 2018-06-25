@@ -44,17 +44,21 @@ public final class MainArguments {
 
   public static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
+  // TODO(danielromero): Annotate the subcommands with the documentation and generate this
+  // automatically.
   @Parameter(description =
       ""
-           // Not true for some commands. But most used commands use this format:
-          + "[subcommand] config_path [migration_name [source_ref]...]\n"
+          + "[subcommand] [config_path [migration_name [source_ref]...]]\n"
           + "\n"
           + (""
           + "subcommand: Optional, defaults to 'migrate'. The type of task to be performed by "
           + "Copybara. Available subcommands:\n"
+          + "  - help: Shows the help.\n"
+          + "  - info: Reads the last migrated revision in the origin and destination.\n"
           + "  - migrate: Executes the migration for the given config.\n"
           + "  - validate: Validates that the configuration is correct.\n"
-          + "  - info: Reads the last migrated revision in the origin and destination.\n")
+          + "  - version: Shows the version of Copybara.\n"
+          + "")
           + "\n"
           + "config_path: Required. Relative or absolute path to the main Copybara config file.\n"
           + "\n"
@@ -67,14 +71,6 @@ public final class MainArguments {
           + "source_ref or use all the list.\n"
   )
   List<String> unnamed = new ArrayList<>();
-
-  @Parameter(names = "--help", help = true, description = "DEPRECATED. Use copybara help")
-  @Deprecated
-  boolean helpDontUse;
-
-  @Parameter(names = "--version", description = "DEPRECATED. USe copybara version")
-  @Deprecated
-  boolean versionDontUse;
 
   @Parameter(names = "--work-dir", description = "Directory where all the transformations"
       + " will be performed. By default a temporary directory.")
