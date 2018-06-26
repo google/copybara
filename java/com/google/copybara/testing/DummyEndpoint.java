@@ -18,6 +18,7 @@ package com.google.copybara.testing;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
+import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -45,7 +46,8 @@ public class DummyEndpoint implements Endpoint {
         .build();
   }
 
-  @SkylarkCallable(name = "message", doc = "Add a new message")
+  @SkylarkCallable(name = "message", doc = "Add a new message",
+      parameters = { @Param(name = "message", type = String.class) })
   public void add(String msg) {
     messages.add(msg);
   }
