@@ -343,8 +343,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     int deleted = FileUtil.deleteFilesRecursively(
         checkoutDir, FileUtil.notPathMatcher(originFiles));
     if (deleted != 0) {
-      processConsole.info(
-          String.format("Removed %d files from workdir that do not match origin_files", deleted));
+      processConsole.infoFmt(
+          "Removed %d files from workdir that do not match origin_files", deleted);
     }
 
     Path originCopy = null;
@@ -580,7 +580,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   boolean skipChange(Change<?> currentChange) {
     boolean skipChange = shouldSkipChange(currentChange, workflow, workflowOptions(), getConsole());
     if (skipChange) {
-      getConsole().infoFmt("Skipped change %s as it would create an empty result.",
+      getConsole().verboseFmt("Skipped change %s as it would create an empty result.",
           currentChange.toString());
     }
     return skipChange;
