@@ -175,9 +175,14 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             return result.build();
           }
         }
-        ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
+        ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary().trim());
+        String title = GitHubPrDestination.this.title == null ? msg.firstLine()
+            : GitHubPrDestination.this.title;
+        ValidationException.checkCondition(!Strings.isNullOrEmpty(title),
+            "Pull Request title cannot be empty. Either use 'title' field in"
+                + " git.github_pr_destination or modify the message to not be empty");
         PullRequest pr = api.createPullRequest(getProjectName(),
-            new CreatePullRequest(title == null ? msg.firstLine() : title,
+            new CreatePullRequest(title,
                 body == null ? msg.getText() : body,
                 pushBranchName, destinationRef));
         console.infoFmt("Pull Request %s/pull/%s created using branch '%s'.", asHttpsUrl(),

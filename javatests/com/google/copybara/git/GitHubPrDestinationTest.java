@@ -170,6 +170,49 @@ public class GitHubPrDestinationTest {
     checkWrite(/*groupId=*/null);
   }
 
+  @Test
+  public void testTrimMessageForPrTitle()
+      throws ValidationException, IOException, RepoException {
+    options.githubDestination.destinationPrBranch = "feature";
+    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
+      @Override
+      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
+          throws IOException {
+        boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+        if ("GET".equals(method) && isPulls) {
+          return "[]".getBytes(UTF_8);
+        } else if ("POST".equals(method) && isPulls) {
+          assertThat(request.getContentAsString())
+              .isEqualTo("{\"base\":\"master\",\"body\":\"Internal change.\",\"head\":\"feature\","
+                  + "\"title\":\"Internal change.\"}");
+          return ("{\n"
+              + "  \"id\": 1,\n"
+              + "  \"number\": 12345,\n"
+              + "  \"state\": \"open\",\n"
+              + "  \"title\": \"test summary\",\n"
+              + "  \"body\": \"test summary\""
+              + "}").getBytes();
+        }
+        fail(method + " " + url);
+        throw new IllegalStateException();
+      }
+    };
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo'"
+        + ")");
+
+    Writer<GitRevision> writer = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, "feature",
+        /*oldWriter=*/null);
+
+    GitRepository remote = localHubRepo("foo");
+    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+
+    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("one"))
+        .withSummary("\n\n\n\n\nInternal change."), console);
+  }
+
   private void checkWrite(String groupId)
       throws ValidationException, RepoException, IOException {
     gitApiMockHttpTransport = new GitApiMockHttpTransport() {
