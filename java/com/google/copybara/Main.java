@@ -40,7 +40,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
-import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
@@ -382,19 +381,20 @@ public class Main {
 
   protected void cleanupOutputDir(GeneralOptions generalOptions)
       throws RepoException, IOException, ValidationException {
-    try (ProfilerTask ignore = generalOptions.profiler().start("clean_outputdir")) {
-      generalOptions.console().progress("Cleaning output directory");
-      generalOptions
-          .ioRepoTask(
-              "clean_outputdir",
-              () -> {
-                if (generalOptions.isNoCleanup()) {
-                  return null;
-                }
-                generalOptions.getDirFactory().cleanupTempDirs();
+    generalOptions
+        .ioRepoTask(
+            "clean_outputdir",
+            () -> {
+              if (generalOptions.isNoCleanup()) {
                 return null;
-              });
-    }
+              }
+              generalOptions.console().progress("Cleaning output directory");
+              generalOptions.getDirFactory().cleanupTempDirs();
+              // Only for profiling purposes, no need to use the console
+              logger.atInfo()
+                  .log("Cleaned output directory:" + generalOptions.getDirFactory().getTmpRoot());
+              return null;
+            });
   }
   /**
    * Performs cleanup tasks after executing Copybara.

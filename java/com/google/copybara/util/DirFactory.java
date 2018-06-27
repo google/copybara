@@ -46,16 +46,20 @@ public class DirFactory {
 
   /** Creates a temp directory in the root path. */
   public Path newTempDir(String name) throws IOException {
-    Path outputPath = rootPath.resolve(TMP);
+    Path outputPath = getTmpRoot();
     // Create the output if it doesn't exist.
     Files.createDirectories(outputPath);
     return Files.createTempDirectory(outputPath, name);
   }
 
   public void cleanupTempDirs() throws IOException {
-    Path outputPath = rootPath.resolve(TMP);
+    Path outputPath = getTmpRoot();
     if (Files.exists(outputPath)) {
         FileUtil.deleteRecursively(outputPath);
     }
+  }
+
+  public Path getTmpRoot() {
+    return rootPath.resolve(TMP);
   }
 }
