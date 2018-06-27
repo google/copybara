@@ -1690,7 +1690,7 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 
 Creates a review to be posted on Gerrit.
 
-`SetReviewInput git.review_input(labels={})`
+`SetReviewInput git.review_input(labels={}, message=None)`
 
 
 #### Parameters:
@@ -1698,6 +1698,7 @@ Creates a review to be posted on Gerrit.
 Parameter | Description
 --------- | -----------
 labels | `dict`<br><p>The labels to post.</p>
+message | `string`<br><p>The message to be added as review comment.</p>
 
 
 

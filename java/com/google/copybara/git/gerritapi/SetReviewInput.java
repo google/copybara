@@ -37,21 +37,22 @@ import java.util.Map;
 )
 public class SetReviewInput {
 
+  @Key String message;
   @VisibleForTesting
-  @Key
-  Map<String, Integer> labels;
+  @Key Map<String, Integer> labels;
 
   @SuppressWarnings("unused")
   public SetReviewInput() {
     this.labels = Collections.emptyMap();
   }
 
-  public SetReviewInput(Map<String, Integer> labels) {
+  public SetReviewInput(String message, Map<String, Integer> labels) {
+    this.message = message;
     this.labels = labels;
   }
 
-  public static SetReviewInput create(Map<String, Integer> labels) {
-    return new SetReviewInput(labels);
+  public static SetReviewInput create(String message, Map<String, Integer> labels) {
+    return new SetReviewInput(message, labels);
   }
 
   @Override

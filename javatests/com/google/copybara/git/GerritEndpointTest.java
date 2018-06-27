@@ -439,7 +439,7 @@ public class GerritEndpointTest {
     String config =
         String.format(
             "git.gerrit_api(url = '%s')."
-                + "post_review('12345', 'sha1', git.review_input({'Code-Review', 1}))",
+                + "post_review('12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))",
             url);
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.of("labels", ImmutableMap.of("Code-Review", 1));

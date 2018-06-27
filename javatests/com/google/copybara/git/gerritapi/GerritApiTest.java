@@ -39,7 +39,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.gerritapi.GerritApiException.ResponseCode;
@@ -299,7 +298,18 @@ public class GerritApiTest {
         + ")]}'\n" + mockReviewResult());
 
     ReviewResult reviewResult =
-        gerritApi.setReview(CHANGE_ID, REVISION_ID, SetReviewInput.create(ImmutableMap.of()));
+        gerritApi.setReview(CHANGE_ID, REVISION_ID, SetReviewInput.create(null, ImmutableMap.of()));
+    assertThat(reviewResult.getLabels()).isEqualTo(ImmutableMap.of("Code-Review", -1));
+  }
+
+  @Test
+  public void testSetReviewWithMessage() throws Exception {
+    mockResponse(new CheckRequest("POST", ".*/changes/.*/revisions/.*"), ""
+        + ")]}'\n" + mockReviewResult());
+
+    ReviewResult reviewResult =
+        gerritApi.setReview(CHANGE_ID, REVISION_ID, SetReviewInput.create("foo",
+            ImmutableMap.of()));
     assertThat(reviewResult.getLabels()).isEqualTo(ImmutableMap.of("Code-Review", -1));
   }
 
@@ -312,11 +322,12 @@ public class GerritApiTest {
   @Test
   public void testSetReviewInputSerialization() {
     SetReviewInput setReviewInput =
-        SetReviewInput.create(ImmutableMap.of("Code Review", 1));
+        SetReviewInput.create("foo", ImmutableMap.of("Code Review", 1));
     Gson gson = new Gson();
     String text = gson.toJson(setReviewInput);
     SetReviewInput deserialized = gson.fromJson(text, SetReviewInput.class);
     assertThat(deserialized.labels).isEqualTo(setReviewInput.labels);
+    assertThat(deserialized.message).isEqualTo("foo");
   }
 
   private static String mockChangeInfo(ChangeStatus status) {

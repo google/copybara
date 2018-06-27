@@ -716,13 +716,20 @@ public class GitModule implements LabelsAwareModule {
             name = "labels",
             type = SkylarkDict.class,
             doc = "The labels to post.",
+            named = true,
             defaultValue = "{}"),
+          @Param(
+              name = "message",
+              type = String.class,
+              doc = "The message to be added as review comment.",
+              named = true,
+              defaultValue = "None", noneable = true),
       },
       useLocation = true)
   @UsesFlags(GerritOptions.class)
-  public SetReviewInput reviewInput(SkylarkDict<String, Integer> labels, Location location)
-      throws EvalException {
-    return SetReviewInput.create(
+  public SetReviewInput reviewInput(SkylarkDict<String, Integer> labels, Object message,
+      Location location) throws EvalException {
+    return SetReviewInput.create(SkylarkUtil.convertFromNoneable(message, null),
         SkylarkDict.castSkylarkDictOrNoneToDict(
             labels, String.class, Integer.class, "Gerrit review  labels"));
   }
@@ -735,6 +742,7 @@ public class GitModule implements LabelsAwareModule {
   /**
    * Validates the {@link Checker} provided to a feedback endpoint.
    */
+  @SuppressWarnings({"unused", "RedundantThrows"})
   protected void validateEndpointChecker(
       Location location, Checker checker, String functionName) throws EvalException {}
 }
