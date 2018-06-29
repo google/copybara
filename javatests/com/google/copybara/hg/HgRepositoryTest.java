@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.util.CommandOutput;
@@ -59,7 +60,7 @@ public class HgRepositoryTest {
   }
 
   @Test
-  public void testPull() throws Exception {
+  public void testPullAll() throws Exception {
     repository.init();
     Path newFile = Files.createTempFile(workDir, "foo", ".txt");
     String fileName = newFile.toString();
@@ -88,7 +89,7 @@ public class HgRepositoryTest {
 
     HgRevision remoteRev = new HgRevision(remoteRepo, remoteRevIds.get(1));
 
-    repository.pull(remoteDir.toString());
+    repository.pullAll(remoteDir.toString());
 
     CommandOutput newCommandOutput = repository.hg(workDir, "log", "--template",
         "{rev}:{node}\n");
@@ -107,11 +108,47 @@ public class HgRepositoryTest {
   }
 
   @Test
+  public void testPullFromRef() throws Exception {
+    repository.init();
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", "bar");
+
+    Path remoteDir = Files.createTempDirectory("remotedir");
+    HgRepository remoteRepo = new HgRepository(remoteDir);
+    remoteRepo.init();
+    Path newFile2 = Files.createTempFile(remoteDir, "bar", ".txt");
+    String fileName2 = newFile2.toString();
+    remoteRepo.hg(remoteDir, "add", fileName2);
+    remoteRepo.hg(remoteDir, "commit", "-m", "foo");
+
+    Path newFile3 = Files.createTempFile(remoteDir, "foobar", ".txt");
+    String fileName3 = newFile3.toString();
+    remoteRepo.hg(remoteDir, "add", fileName3);
+    remoteRepo.hg(remoteDir, "commit", "-m", "foobar");
+
+    Path newFile4 = Files.createTempFile(remoteDir, "barfoo", ".txt");
+    String fileName4 = newFile4.toString();
+    remoteRepo.hg(remoteDir, "add", fileName4);
+    remoteRepo.hg(remoteDir, "commit", "-m", "barfoo");
+
+    ImmutableList<HgLogEntry> remoteCommits = remoteRepo.log().run();
+
+    repository.pullFromRef(remoteDir.toString(), remoteCommits.get(1).getGlobalId());
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+
+    assertThat(commits).hasSize(3);
+    assertThat(commits.get(0).getGlobalId()).isEqualTo(remoteCommits.get(1).getGlobalId());
+  }
+
+  @Test
   public void testPullInvalidPath() throws Exception {
     repository.init();
     String invalidPath = "/not/a/path";
     try {
-      repository.pull(invalidPath);
+      repository.pullAll(invalidPath);
       fail("Cannot pull from invalid path");
     }
     catch (ValidationException e) {
@@ -124,7 +161,7 @@ public class HgRepositoryTest {
     repository.init();
     Path invalidRepo = Files.createTempDirectory("notRepo");
     try {
-      repository.pull(invalidRepo.toString());
+      repository.pullAll(invalidRepo.toString());
       fail("Cannot pull from invalid repository");
     }
     catch (ValidationException e) {
@@ -163,9 +200,9 @@ public class HgRepositoryTest {
     remoteRepo.hg(remoteDir, "add", fileName2);
     remoteRepo.hg(remoteDir, "commit", "-u", user, "-d", date3.toString(), "-m", desc3);
 
-    repository.pull(remoteDir.toString());
+    repository.pullAll(remoteDir.toString());
 
-    ImmutableList<HgLogEntry> allCommits = repository.log().withLimit(5).run();
+    ImmutableList<HgLogEntry> allCommits = repository.log().run();
 
     assertThat(allCommits.size()).isEqualTo(3);
 
@@ -228,7 +265,7 @@ public class HgRepositoryTest {
     remoteRepo.hg(remoteDir, "add", fileName2);
     remoteRepo.hg(remoteDir, "commit", "-m", "hello");
 
-    repository.pull(remoteDir.toString());
+    repository.pullAll(remoteDir.toString());
     repository.hg(workDir, "merge");
     Files.write(workDir.resolve(fileName), "hello".getBytes(UTF_8));
     repository.hg(workDir, "commit", "-m", "merge");
@@ -286,6 +323,61 @@ public class HgRepositoryTest {
       fail("Cannot have limit of 0");
     }
     catch (IllegalArgumentException expected) {
+    }
+  }
+
+  @Test
+  public void testCleanUpdate() throws Exception {
+    repository.init();
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", "foo");
+
+    Path newFile2 = Files.createTempFile(workDir, "bar", ".txt");
+    String fileName2 = newFile2.toString();
+    repository.hg(workDir, "add", fileName2);
+    repository.hg(workDir, "commit", "-m", "bar");
+
+    Path newFile3 = Files.createTempFile(workDir, "foobar", ".txt");
+    String fileName3 = newFile3.toString();
+    repository.hg(workDir, "add", fileName3);
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+    repository.cleanUpdate(commits.get(1).getGlobalId());
+
+    assertThat(commits).hasSize(2);
+
+    assertThat(Files.exists(newFile)).isTrue();
+    assertThat(Files.notExists(newFile2)).isTrue();
+
+    /* Hg does not delete untracked files on update. In practice, this is ok because there should
+    be no untracked files as the workDir is deleted every time.
+     */
+    assertThat(Files.exists(newFile3)).isTrue();
+  }
+
+  @Test
+  public void testIdentify() throws Exception {
+    repository.init();
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", "foo");
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+    String globalId = commits.get(0).getGlobalId();
+
+    assertThat(repository.identify(globalId).getGlobalId()).isEqualTo(globalId);
+    assertThat(repository.identify("tip").getGlobalId()).isEqualTo(globalId);
+    assertThat(repository.identify(String.valueOf(0)).getGlobalId()).isEqualTo(globalId);
+    assertThat(repository.identify("default").getGlobalId()).isEqualTo(globalId);
+
+    try {
+      repository.identify("not_a_branch");
+    }
+    catch (ValidationException expected) {
+      assertThat(expected.getMessage()).isEqualTo("Reference not_a_branch is unknown");
     }
   }
 }

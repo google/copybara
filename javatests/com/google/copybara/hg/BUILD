@@ -24,11 +24,17 @@ DEPS = [
     "//java/com/google/copybara/util",
     "//java/com/google/copybara/authoring",
     "//java/com/google/copybara/exception",
+    "//third_party:skylark-lang",
+    "//java/com/google/copybara:base",
+    "//java/com/google/copybara/testing",
     "//third_party:truth",
 ]
 
 all_tests(
     tags = ["local"],
-    tests = ["HgRepositoryTest.java"],
+    tests = [
+        "HgOriginTest.java",
+        "HgRepositoryTest.java",
+    ],
     deps = DEPS,
 )

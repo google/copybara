@@ -18,6 +18,7 @@ package com.google.copybara.hg;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.reflect.TypeToken;
@@ -31,7 +32,6 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.SerializedName;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -59,15 +59,22 @@ public class HgRepository {
 
   private static final Pattern INVALID_HG_REPOSITORY =
       Pattern.compile("abort: repository .+ not found!");
-
+  private static final Pattern UNKNOWN_REVISION =
+      Pattern.compile("abort: unknown revision '.+'!");
 
   /**
    * The location of the {@code .hg} directory.
    */
   private final Path hgDir;
 
+
   protected HgRepository(Path hgDir) {
     this.hgDir = hgDir;
+  }
+
+
+  public static HgRepository newRepository(Path hgDir) {
+    return new HgRepository(hgDir);
   }
 
   /**
@@ -75,7 +82,7 @@ public class HgRepository {
    * @return the new HgRepository
    * @throws RepoException if the directory cannot be created
    */
-  public HgRepository init() throws Exception {
+  public HgRepository init() throws RepoException, ValidationException {
     try {
       Files.createDirectories(hgDir);
     }
@@ -94,20 +101,87 @@ public class HgRepository {
    *
    * @param url remote hg repository url
    */
-  public void pull(String url) throws RepoException, ValidationException {
-    pull(url,true);
+  public void pullAll(String url) throws RepoException, ValidationException {
+    pull(url,/*force*/ true, /*ref*/ null);
   }
 
-  public void pull(String url, boolean force) throws RepoException, ValidationException {
+  /**
+   * Finds a single reference from a repository at {@code url} and adds to the current repository.
+   * Defaults to forced pull.
+   *
+   * <p>This does not update the copy of the project in the working directory.
+   *
+   * @param url remote hg repository url
+   * @param ref the remote revision to add
+   */
+  public void pullFromRef(String url, String ref) throws RepoException, ValidationException {
+    pull(url, /*force*/ true, /*ref*/ ref);
+  }
+
+
+  public void pull(String url, boolean force, String ref)
+      throws RepoException, ValidationException {
     ImmutableList.Builder<String> builder = ImmutableList.builder();
 
     builder.add("pull", url);
 
     if (force) {
-      builder.add("-f");
+      builder.add("--force");
+    }
+
+    if (!Strings.isNullOrEmpty(ref)) {
+      builder.add("--rev", ref);
     }
 
     hg(hgDir, builder.build());
+  }
+
+  /**
+   * Updates the working directory to the revision given at {@code ref} in the repository
+   * and discards local changes.
+   */
+  public CommandOutput cleanUpdate(String ref) throws RepoException, ValidationException {
+    return hg(hgDir, "update", ref, "--clean");
+  }
+
+  /**
+   * Returns a revision object given a reference.
+   *
+   * <p> A reference can be any of the following:
+   * <ul>
+   *   <li> A global identifier for a revision. Example:
+   *   <li> A local identifier for a revision in the repository
+   *   <li> A bookmark in the repository
+   *   <li> A tag in the repository
+   * </ul>
+   *
+   */
+  public HgRevision identify(String reference) throws RepoException, ValidationException{
+    try {
+      CommandOutput commandOutput =
+          hg(hgDir, "identify", "--debug", "--id", "--rev", reference);
+
+      String globalId = commandOutput.getStdout().trim();
+
+      return new HgRevision(this, globalId);
+    }
+    catch (RepoException e) {
+      String output = e.getMessage();
+
+      if (UNKNOWN_REVISION.matcher(output).find()) {
+        throw new ValidationException(
+            String.format("Reference %s is unknown", reference));
+      }
+
+      throw e;
+    }
+  }
+
+  /**
+   * Creates an archive of the current working directory in the location {@code archivePath}.
+   */
+  public void archive(String archivePath) throws RepoException, ValidationException {
+    hg(hgDir, "archive", archivePath, "--type", "files");
   }
 
   /**
@@ -127,7 +201,7 @@ public class HgRepository {
    * @param params the argv to pass to Hg, excluding the initial {@code hg}
    */
   @VisibleForTesting
-  public CommandOutput hg(Path cwd, String... params) throws Exception {
+  public CommandOutput hg(Path cwd, String... params) throws RepoException, ValidationException {
     return hg(cwd, Arrays.asList(params));
   }
 
@@ -148,7 +222,7 @@ public class HgRepository {
             String.format("Repository not found: %s", output.getStderr()));
       }
 
-      throw new RepoException(String.format("Error executing 'hg': %s", e.getMessage()), e);
+      throw new RepoException(String.format("Error executing 'hg': %s", output.getStderr()), e);
     }
     catch(CommandException e) {
       throw new RepoException(String.format("Error executing 'hg': %s", e.getMessage()), e);

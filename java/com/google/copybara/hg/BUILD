@@ -23,8 +23,11 @@ JAVACOPTS = [
 ]
 
 CORE = [
+    "HgModule.java",
     "HgRepository.java",
     "HgRevision.java",
+    "HgOptions.java",
+    "HgOrigin.java",
 ]
 
 java_library(
@@ -33,14 +36,19 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/jcommander:validators",
         "//java/com/google/copybara/util",
         "//third_party:flogger",
         "//third_party:google_http_client",  # TODO(jlliu): split
         "//third_party:guava",
+        "//third_party:jcommander",
         "//third_party:jsr305",
         "//third_party:re2j",
         "//third_party:shell",
+        "//third_party:skylark-lang",
     ],
 )

@@ -185,6 +185,7 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:exec_path",
+        "//java/com/google/copybara/hg",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/templatetoken",

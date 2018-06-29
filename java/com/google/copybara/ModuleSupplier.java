@@ -33,6 +33,8 @@ import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
+import com.google.copybara.hg.HgModule;
+import com.google.copybara.hg.HgOptions;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.console.Console;
@@ -77,10 +79,9 @@ public class ModuleSupplier {
   public ImmutableSet<Object> getModules(Options options) {
     return ImmutableSet.of(
         new Core(options.get(GeneralOptions.class), options.get(WorkflowOptions.class)),
-        new GitModule(options)
+        new GitModule(options), new HgModule(options)
     );
   }
-
   
   /** Returns a new list of {@link Option}s. */
   protected Options newOptions() {
@@ -100,6 +101,7 @@ public class ModuleSupplier {
         new GitHubDestinationOptions(),
         new GerritOptions(generalOptions, gitOptions),
         new GitMirrorOptions(generalOptions, gitOptions),
+        new HgOptions(generalOptions),
         new PatchingOptions(generalOptions),
         new WorkflowOptions()));
   }
