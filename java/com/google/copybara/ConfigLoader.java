@@ -22,6 +22,7 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.SkylarkParser;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 
@@ -57,7 +58,12 @@ public class ConfigLoader {
 
   protected Config loadForConfigFile(Console console, ConfigFile<?> configFile)
       throws IOException, ValidationException {
-    return skylarkParser.loadConfig(configFile, moduleSet, console);
+    console.progressFmt("Loading config %s", configFile.getIdentifier());
+
+    try (ProfilerTask ignore = moduleSet.getOptions().get(GeneralOptions.class).profiler()
+        .start("loading_config")){
+      return skylarkParser.loadConfig(configFile, moduleSet, console);
+    }
   }
 
   public Config loadForRevision(Console console, Revision revision)
