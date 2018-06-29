@@ -513,10 +513,17 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         sb.append("\n\n**Command line flags:**\n\n");
         tableHeader(sb, "Name", "Type", "Description");
         for (DocFlag field : flags) {
-          tableRow(sb, field.name, String.format("*%s*", field.type), field.description);
+          tableRow(sb, nowrap(field.name), String.format("*%s*", field.type), field.description);
         }
         sb.append("\n");
       }
+    }
+
+    /**
+     * Don't wrap this text. Also use '`' to show it as code.
+     */
+    private String nowrap(String text) {
+      return String.format("<nobr>`%s`</nobr>", text);
     }
   }
 
