@@ -140,7 +140,7 @@ public class PatchTransformationTest {
   @Test
   public void testParseSkylark() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
-    skylark.addExtraConfigFile("diff.patch", new String(patchFile.content(), UTF_8));
+    skylark.addConfigFile("diff.patch", new String(patchFile.content(), UTF_8));
     PatchTransformation transformation =
         skylark.eval("r",
             "r = patch.apply(\n"
@@ -156,8 +156,8 @@ public class PatchTransformationTest {
   @Test
   public void testParseSkylarkSeries() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
-    skylark.addExtraConfigFile("diff.patch", new String(patchFile.content(), UTF_8));
-    skylark.addExtraConfigFile("series", new String(seriesFile.content(), UTF_8));
+    skylark.addConfigFile("diff.patch", new String(patchFile.content(), UTF_8));
+    skylark.addConfigFile("series", new String(seriesFile.content(), UTF_8));
     PatchTransformation transformation =
         skylark.eval("r",
             "r = patch.apply(\n"

@@ -51,7 +51,7 @@ public final class SkylarkTestExecutorTest {
 
   @Test
   public void addExtraConfigFile() throws Exception {
-    skylark.addExtraConfigFile("foo_extra", "foo content 42");
+    skylark.addConfigFile("foo_extra", "foo content 42");
     String content = skylark.eval("c", "c = dummy.read_foo_extra()");
     assertThat(content).isEqualTo("foo content 42");
   }

@@ -90,7 +90,7 @@ public class SkylarkParserTest {
   }
 
   private String setUpInclusionTest() {
-    parser.addExtraConfigFile(
+    parser.addConfigFile(
         "foo/authoring.bara.sky",
         ""
             + "load('bar', 'bar')\n"
@@ -98,14 +98,14 @@ public class SkylarkParserTest {
             + "baz=bar\n"
             + "def copy_author():\n"
             + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
-    parser.addExtraConfigFile(
+    parser.addConfigFile(
         "foo/bar.bara.sky",
         ""
             + "bar=42\n"
             + "load('bar/foo', 'foobar')\n"
             + "def copy_author():\n"
             + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
-    parser.addExtraConfigFile("foo/bar/foo.bara.sky", "foobar=42\n");
+    parser.addConfigFile("foo/bar/foo.bara.sky", "foobar=42\n");
     return ""
         + "load('//foo/authoring','copy_author', 'baz')\n"
         + "some_url=\"https://so.me/random/url\"\n"
@@ -207,8 +207,8 @@ public class SkylarkParserTest {
 
   public void parseConfigCycleErrorTestHelper(Callable<?> callable) throws Exception {
     try {
-      parser.addExtraConfigFile("foo.bara.sky", "load('//bar', 'bar')");
-      parser.addExtraConfigFile("bar.bara.sky", "load('//copy', 'copy')");
+      parser.addConfigFile("foo.bara.sky", "load('//bar', 'bar')");
+      parser.addConfigFile("bar.bara.sky", "load('//copy', 'copy')");
       callable.call();
       fail();
     } catch (ValidationException e) {
@@ -282,8 +282,8 @@ public class SkylarkParserTest {
   }
 
   private String prepareResolveLabelTest() {
-    parser.addExtraConfigFile("foo", "stuff_in_foo");
-    parser.addExtraConfigFile("bar", "stuff_in_bar");
+    parser.addConfigFile("foo", "stuff_in_foo");
+    parser.addConfigFile("bar", "stuff_in_bar");
 
     return ""
         + "mock_labels_aware_module.read_foo()\n"
@@ -320,10 +320,10 @@ public class SkylarkParserTest {
    */
   @Test
   public void testCurrentConfigFileWithLoad() throws Exception {
-    parser.addExtraConfigFile("subfolder/foo.bara.sky",
-        "subfolder_val = mock_labels_aware_module.read_foo()\n");
-    parser.addExtraConfigFile("subfolder/foo", "subfolder_foo");
-    parser.addExtraConfigFile("foo", "main_foo");
+    parser.addConfigFile(
+        "subfolder/foo.bara.sky", "subfolder_val = mock_labels_aware_module.read_foo()\n");
+    parser.addConfigFile("subfolder/foo", "subfolder_foo");
+    parser.addConfigFile("foo", "main_foo");
 
     String content = ""
         + "load('subfolder/foo', 'subfolder_val')\n"
@@ -338,7 +338,7 @@ public class SkylarkParserTest {
 
   @Test
   public void testParentEnvInmutable() throws Exception {
-    parser.addExtraConfigFile("foo.bara.sky", "my_list = [1, 2, 3]\n");
+    parser.addConfigFile("foo.bara.sky", "my_list = [1, 2, 3]\n");
 
     String content = ""
         + "load('foo', 'my_list')\n"

@@ -76,10 +76,15 @@ public class SkylarkTestExecutor {
     skylarkParser = new SkylarkParser(moduleSupplierForTest.create().getStaticModules());
   }
 
-  public SkylarkTestExecutor addExtraConfigFile(String key, String content) {
+  public SkylarkTestExecutor addConfigFile(String key, String content) {
     if (extraConfigFiles.put(key, content.getBytes(UTF_8)) != null) {
       throw new IllegalArgumentException("Already have content for: " + key);
     }
+    return this;
+  }
+
+  public SkylarkTestExecutor addAllConfigFiles(Map<String, String> configFiles) {
+    configFiles.forEach(this::addConfigFile);
     return this;
   }
 
