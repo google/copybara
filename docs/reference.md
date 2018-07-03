@@ -1299,7 +1299,7 @@ include_results | `sequence of string`<br><p>What to include in the response. Se
 Get changes from Gerrit based on a query. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.
 
 
-`sequence of gerritapi.ChangeInfo gerrit_api_obj.list_changes_by_commit(commit)`
+`sequence of gerritapi.ChangeInfo gerrit_api_obj.list_changes_by_commit(commit, include_results=[])`
 
 
 #### Parameters:
@@ -1307,6 +1307,7 @@ Get changes from Gerrit based on a query. See https://gerrit-review.googlesource
 Parameter | Description
 --------- | -----------
 commit | `string`<br><p>The commit sha to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
+include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
 
 <a id="gerrit_api_obj.post_review" aria-hidden="true"></a>
 ### gerrit_api_obj.post_review

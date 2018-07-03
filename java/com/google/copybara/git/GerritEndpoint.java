@@ -97,19 +97,24 @@ public class GerritEndpoint implements Endpoint {
   public ChangeInfo getChange(String id, SkylarkList<?> includeResults, Location location)
       throws EvalException {
     try {
-      ImmutableSet.Builder<IncludeResult> enumResults = ImmutableSet.builder();
-      for (Object result : includeResults) {
-        enumResults.add(
-            SkylarkUtil.stringToEnum(
-                null, "include_results", (String) result, IncludeResult.class));
-      }
-      ChangeInfo changeInfo = doGetChange(id, enumResults.build());
+      ChangeInfo changeInfo = doGetChange(id, getIncludeResults(includeResults));
       ValidationException.checkCondition(
           !changeInfo.isMoreChanges(), "Pagination is not supported yet.");
       return changeInfo;
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, e);
     }
+  }
+
+  private ImmutableSet<IncludeResult> getIncludeResults(SkylarkList<?> includeResults)
+      throws EvalException {
+    ImmutableSet.Builder<IncludeResult> enumResults = ImmutableSet.builder();
+    for (Object result : includeResults) {
+      enumResults.add(
+          SkylarkUtil.stringToEnum(
+              null, "include_results", (String) result, IncludeResult.class));
+    }
+    return enumResults.build();
   }
 
   private ChangeInfo doGetChange(String changeId, ImmutableSet<IncludeResult> includeResults)
@@ -171,14 +176,28 @@ public class GerritEndpoint implements Endpoint {
             doc =
                 "The commit sha to list changes by."
                     + " See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search."),
+        @Param(
+            name = "include_results",
+            named = true,
+            type = SkylarkList.class,
+            generic1 = String.class,
+            doc =
+                ""
+                    + "What to include in the response. See "
+                    + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html"
+                    + "#query-options",
+            positional = false,
+            defaultValue = "[]"),
       },
       useLocation = true)
-  public SkylarkList<ChangeInfo> listChanges(String commit, Location location)
-      throws EvalException {
+  public SkylarkList<ChangeInfo> listChangesByCommit(
+      String commit, SkylarkList<?> includeResults, Location location) throws EvalException {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return SkylarkList.createImmutable(
-          gerritApi.getChanges(new ChangesQuery(String.format("commit:%s", commit))));
+          gerritApi.getChanges(
+              new ChangesQuery(String.format("commit:%s", commit))
+                  .withInclude(getIncludeResults(includeResults))));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, e);
     }

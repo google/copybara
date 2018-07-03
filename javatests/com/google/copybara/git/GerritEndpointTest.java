@@ -42,6 +42,7 @@ import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.CallableStatement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.Before;
@@ -447,7 +448,7 @@ public class GerritEndpointTest {
   }
 
   @Test
-  public void testListChanges() throws ValidationException {
+  public void testListChangesByCommit() throws ValidationException {
     String config =
         String.format(
             "git.gerrit_api(url = '%s')."
@@ -456,6 +457,20 @@ public class GerritEndpointTest {
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.of(
             "id", "copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61");
+    skylark.verifyFields(config + "[0]", expectedFieldValues);
+  }
+
+  @Test
+  public void testListChangesByCommit_withIncludeResults() throws ValidationException {
+    String config =
+        String.format(
+            "git.gerrit_api(url = '%s')."
+                + "list_changes_by_commit('7956f527ec8a23ebba9c3ebbcf88787aa3411425',"
+                + " include_results = ['LABELS', 'MESSAGES'])",
+            url);
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.of(
+            "id", "copybara-team%2Fcopybara~master~I16e447bb2bb51952021ec3ea50991d923dcbbf58");
     skylark.verifyFields(config + "[0]", expectedFieldValues);
   }
 
@@ -489,6 +504,13 @@ public class GerritEndpointTest {
 
     @Override
     public String getContent(String method, String url, MockLowLevelHttpRequest request) {
+      if (method.equals("GET")
+          && url.equals(
+              BASE_URL
+                  + "/changes/?q=commit:7956f527ec8a23ebba9c3ebbcf88787aa3411425"
+                  + "&o=LABELS&o=MESSAGES")) {
+        return listChangesWithIncludeResults();
+      }
       if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/?q=")) {
         return listChanges();
       } else if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/")) {
@@ -498,6 +520,12 @@ public class GerritEndpointTest {
         return postLabel();
       }
       throw new IllegalArgumentException(method + " " + url);
+    }
+
+    private String listChangesWithIncludeResults() {
+      return "[{"
+          + "\"id\": \"copybara-team%2Fcopybara~master~I16e447bb2bb51952021ec3ea50991d923dcbbf58\""
+          + "}]";
     }
 
     private String listChanges() {
