@@ -17,8 +17,8 @@ workspace(name = "copybara")
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava",
-    artifact = "com.google.guava:guava:21.0",
-    sha1 = "3a3d111be1be1b745edfa7d91678a12d7ed38709",
+    artifact = "com.google.guava:guava:25.1-jre",
+    sha1 = "6c57e4b22b44e89e548b5c9f70f0c45fe10fb0b4",
 )
 
 # LICENSE: The Apache Software License, Version 2.0
