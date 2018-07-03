@@ -33,9 +33,9 @@ import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
-import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport.RequestRecord;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.git.GitApiMockHttpTransport;
+import com.google.copybara.testing.git.GitApiMockHttpTransport.RequestRecord;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -71,39 +71,36 @@ public class GitHubEndpointTest {
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
           @Override
-          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
             if (url.contains("/status")) {
               return ("{\n"
-                      + "    state : 'success',\n"
-                      + "    target_url : 'https://github.com/google/example',\n"
-                      + "    description : 'Observed foo',\n"
-                      + "    context : 'test'\n"
-                      + "}")
-                  .getBytes(UTF_8);
+                  + "    state : 'success',\n"
+                  + "    target_url : 'https://github.com/google/example',\n"
+                  + "    description : 'Observed foo',\n"
+                  + "    context : 'test'\n"
+                  + "}");
             }
             if (url.contains("/git/refs/heads")) {
               return ("{\n"
-                      + "    ref : 'refs/heads/test',\n"
-                      + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-                      + "    object : { \n"
-                      + "       type : 'commit',\n"
-                      + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-                      + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
-                      + "   } \n"
-                      + "}")
-                  .getBytes(UTF_8);
+                  + "    ref : 'refs/heads/test',\n"
+                  + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+                  + "    object : { \n"
+                  + "       type : 'commit',\n"
+                  + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+                  + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                  + "   } \n"
+                  + "}");
             }
             if (url.contains("git/refs?per_page=100")) {
               return ("[{\n"
-                      + "    ref : 'refs/heads/test',\n"
-                      + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-                      + "    object : { \n"
-                      + "       type : 'commit',\n"
-                      + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-                      + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
-                      + "   } \n"
-                      + "}]")
-                  .getBytes(UTF_8);
+                  + "    ref : 'refs/heads/test',\n"
+                  + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+                  + "    object : { \n"
+                  + "       type : 'commit',\n"
+                  + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+                  + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                  + "   } \n"
+                  + "}]");
             }
             throw new RuntimeException("Unexpected url: " + url);
           }

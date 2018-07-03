@@ -34,8 +34,8 @@ import com.google.copybara.feedback.Feedback;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.git.GitApiMockHttpTransport;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Runtime;
@@ -58,7 +58,7 @@ public class GerritEndpointTest {
   private Path workdir;
   private DummyTrigger dummyTrigger;
   private String url;
-  private  GitApiMockHttpTransport gitApiMockHttpTransport;
+  private GitApiMockHttpTransport gitApiMockHttpTransport;
 
   @Before
   public void setup() throws Exception {
@@ -488,16 +488,15 @@ public class GerritEndpointTest {
   private class TestingGitApiHttpTransport extends GitApiMockHttpTransport {
 
     @Override
-    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+    public String getContent(String method, String url, MockLowLevelHttpRequest request) {
       if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/?q=")) {
-        return listChanges().getBytes(UTF_8);
+        return listChanges();
       } else if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/")) {
-        return getChange(url).getBytes(UTF_8);
+        return getChange(url);
       } else if (method.equals("POST")
           && url.matches(BASE_URL + "/changes/.*/revisions/.*/review")) {
-        return postLabel().getBytes(UTF_8);
+        return postLabel();
       }
-
       throw new IllegalArgumentException(method + " " + url);
     }
 

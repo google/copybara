@@ -54,8 +54,8 @@ import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.git.GitApiMockHttpTransport;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.Glob;
@@ -479,20 +479,17 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
-        if (url.contains("/status")) {
-          return ("{\n"
-              + "    state : 'success',\n"
-              + "    context : 'the_context'\n"
-              + "}"
-          ).getBytes(UTF_8);
-        }
-        return new MockPullRequest(123, ImmutableList.of(), "open")
-            .getContent(method, url, request);
-      }
-    };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
+            if (url.contains("/status")) {
+              return ("{\n" + "    state : 'success',\n" + "    context : 'the_context'\n" + "}");
+            }
+            return new MockPullRequest(123, ImmutableList.of(), "open")
+                .getContent(method, url, request);
+          }
+        };
     Path dest = Files.createTempDirectory("");
     options.folderDestination.localFolder = dest.toString();
     options.setWorkdirToRealTempDir();
@@ -619,49 +616,54 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
-        if (url.contains("/reviews")) {
-          return (toJson(ImmutableList.of(
-              ImmutableMap.of(
-                  "user", ImmutableMap.of(
-                      "login", "APPROVED_COLLABORATOR"
-                  ),
-                  "state", "APPROVED",
-                  "author_association", "COLLABORATOR",
-                  "commit_id", prHeadSha1
-              ),
-              ImmutableMap.of(
-                  "user", ImmutableMap.of(
-                      "login", "APPROVED_MEMBER"
-                  ),
-                  "state", "APPROVED",
-                  "author_association", "MEMBER",
-                  "commit_id", Strings.repeat("0", 40)
-              ),
-              ImmutableMap.of(
-                  "user", ImmutableMap.of(
-                      "login", "COMMENTED_OWNER"
-                  ),
-                  "state", "COMMENTED",
-                  "author_association", "OWNER",
-                  "commit_id", prHeadSha1
-              ),
-              ImmutableMap.of(
-                  "user", ImmutableMap.of(
-                      "login", "COMMENTED_OTHER"
-                  ),
-                  "state", "COMMENTED",
-                  "author_association", "NONE",
-                  "commit_id", prHeadSha1
-              )
-          ))).getBytes(UTF_8);
-        }
-        return new MockPullRequest(123, ImmutableList.of(), "open")
-            .getContent(method, url, request);
-      }
-    };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
+            if (url.contains("/reviews")) {
+              return (toJson(
+                  ImmutableList.of(
+                      ImmutableMap.of(
+                          "user",
+                          ImmutableMap.of("login", "APPROVED_COLLABORATOR"),
+                          "state",
+                          "APPROVED",
+                          "author_association",
+                          "COLLABORATOR",
+                          "commit_id",
+                          prHeadSha1),
+                      ImmutableMap.of(
+                          "user",
+                          ImmutableMap.of("login", "APPROVED_MEMBER"),
+                          "state",
+                          "APPROVED",
+                          "author_association",
+                          "MEMBER",
+                          "commit_id",
+                          Strings.repeat("0", 40)),
+                      ImmutableMap.of(
+                          "user",
+                          ImmutableMap.of("login", "COMMENTED_OWNER"),
+                          "state",
+                          "COMMENTED",
+                          "author_association",
+                          "OWNER",
+                          "commit_id",
+                          prHeadSha1),
+                      ImmutableMap.of(
+                          "user",
+                          ImmutableMap.of("login", "COMMENTED_OTHER"),
+                          "state",
+                          "COMMENTED",
+                          "author_association",
+                          "NONE",
+                          "commit_id",
+                          prHeadSha1))));
+            }
+            return new MockPullRequest(123, ImmutableList.of(), "open")
+                .getContent(method, url, request);
+          }
+        };
 
     GitHubPROrigin origin = createGitHubPrOrigin(configLines);
 
@@ -844,15 +846,19 @@ public class GitHubPrOriginTest {
     }
 
     @Override
-    public byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+    public String getContent(String method, String url, MockLowLevelHttpRequest request) {
       if (url.equals("https://api.github.com/repos/google/example/issues/" + prNumber)) {
-        return mockIssue(Integer.toString(prNumber), state).getBytes();
+        return mockIssue(Integer.toString(prNumber), state);
       } else if (url.startsWith(
           "https://api.github.com/repos/google/example/pulls/" + prNumber)) {
         return ("{\n"
             + "  \"id\": 1,\n"
-            + "  \"number\": " + prNumber + ",\n"
-            + "  \"state\": \"" + state + "\",\n"
+            + "  \"number\": "
+            + prNumber
+            + ",\n"
+            + "  \"state\": \""
+            + state
+            + "\",\n"
             + "  \"title\": \"test summary\",\n"
             + "  \"body\": \"test summary\n\nMore text\",\n"
             + "  \"head\": {\n"
@@ -874,7 +880,7 @@ public class GitHubPrOriginTest {
             + "      \"login\": \"assignee2\"\n"
             + "    }\n"
             + "  ]\n"
-            + "}").getBytes(UTF_8);
+            + "}");
       }
       fail(method + " " + url);
       throw new IllegalStateException();

@@ -44,9 +44,9 @@ import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.testing.git.GitApiMockHttpTransport;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.LogConsole;
@@ -89,12 +89,12 @@ public class GerritDestinationTest {
   private static final String CONSTANT_CHANGE_ID = "I" + Strings.repeat("a", 40);
   private static final GitApiMockHttpTransport NO_CHANGE_FOUND_MOCK =
       new GitApiMockHttpTransport() {
-    @Override
-    protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
-      // No changes found
-      return "[]".getBytes();
-    }
-  };
+        @Override
+        public String getContent(String method, String url, MockLowLevelHttpRequest request) {
+          // No changes found
+          return "[]";
+        }
+      };
 
   private String url;
   private String fetch;
@@ -141,17 +141,15 @@ public class GerritDestinationTest {
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
           @Override
-          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
             if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
-              String result =
-                  "["
-                      + "{"
-                      + "  change_id : \""
-                      + changeIdFromRequest(url)
-                      + "\","
-                      + "  status : \"NEW\""
-                      + "}]";
-              return result.getBytes(UTF_8);
+              return "["
+                  + "{"
+                  + "  change_id : \""
+                  + changeIdFromRequest(url)
+                  + "\","
+                  + "  status : \"NEW\""
+                  + "}]";
             }
             throw new IllegalArgumentException(method + " " + url);
           }
@@ -328,22 +326,26 @@ public class GerritDestinationTest {
 
     Files.write(workdir.resolve("file"), "some different content".getBytes());
 
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
-        String expected = "https://localhost:33333/changes/?q=change:%20" + labelFinder.getValue()
-            + "%20AND%20project:foo/bar";
-        if (method.equals("GET") && url.equals(expected)) {
-          String result = "["
-              + "{"
-              + "  change_id : \"" + labelFinder.getValue() + "\","
-              + "  status : \"NEW\""
-              + "}]";
-          return result.getBytes(UTF_8);
-        }
-        throw new IllegalArgumentException(method + " " + url);
-      }
-    };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
+            String expected =
+                "https://localhost:33333/changes/?q=change:%20"
+                    + labelFinder.getValue()
+                    + "%20AND%20project:foo/bar";
+            if (method.equals("GET") && url.equals(expected)) {
+              return "["
+                  + "{"
+                  + "  change_id : \""
+                  + labelFinder.getValue()
+                  + "\","
+                  + "  status : \"NEW\""
+                  + "}]";
+            }
+            throw new IllegalArgumentException(method + " " + url);
+          }
+        };
     // Allow to push again in a non-fastforward way.
     repo.simpleCommand("update-ref", "-d", "refs/for/master");
     process(new DummyRevision("origin_ref"));
@@ -537,20 +539,18 @@ public class GerritDestinationTest {
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
           @Override
-          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
             if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
               String change = changeIdFromRequest(url);
-              String result =
-                  "["
-                      + "{"
-                      + "  change_id : \""
-                      + change
-                      + "\","
-                      + "  status : \""
-                      + (change.equals(firstChangeId) ? "MERGED" : "NEW")
-                      + "\""
-                      + "}]";
-              return result.getBytes(UTF_8);
+              return "["
+                  + "{"
+                  + "  change_id : \""
+                  + change
+                  + "\","
+                  + "  status : \""
+                  + (change.equals(firstChangeId) ? "MERGED" : "NEW")
+                  + "\""
+                  + "}]";
             }
             throw new IllegalArgumentException(method + " " + url);
           }
@@ -581,18 +581,16 @@ public class GerritDestinationTest {
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
           @Override
-          protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request) {
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
             if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
               String change = changeIdFromRequest(url);
-              String result =
-                  "["
-                      + "{"
-                      + "  change_id : \""
-                      + change
-                      + "\","
-                      + "  status : \"MERGED\""
-                      + "}]";
-              return result.getBytes(UTF_8);
+              return "["
+                  + "{"
+                  + "  change_id : \""
+                  + change
+                  + "\","
+                  + "  status : \"MERGED\""
+                  + "}]";
             }
             throw new IllegalArgumentException(method + " " + url);
           }

@@ -19,14 +19,13 @@ package(default_visibility = ["//visibility:public"])
 java_library(
     name = "git",
     testonly = 1,
-    srcs = ["GitTestUtil.java"],
+    srcs = glob(["*.java"]),
     deps = [
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",
-        "//java/com/google/copybara/testing",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
         "//third_party:guava",

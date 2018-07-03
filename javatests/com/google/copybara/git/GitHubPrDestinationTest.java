@@ -34,9 +34,9 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.OptionsBuilder.GitApiMockHttpTransport;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.testing.git.GitApiMockHttpTransport;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
@@ -113,31 +113,33 @@ public class GitHubPrDestinationTest {
   public void testCustomTitleAndBody()
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-          throws IOException {
-        boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-        if ("GET".equals(method) && isPulls) {
-          return "[]".getBytes(UTF_8);
-        } else if ("POST".equals(method) && isPulls) {
-          assertThat(request.getContentAsString())
-              .isEqualTo("{\"base\":\"master\","
-                  + "\"body\":\"custom body\","
-                  + "\"head\":\"feature\","
-                  + "\"title\":\"custom title\"}");
-          return ("{\n"
-              + "  \"id\": 1,\n"
-              + "  \"number\": 12345,\n"
-              + "  \"state\": \"open\",\n"
-              + "  \"title\": \"custom title\",\n"
-              + "  \"body\": \"custom body\""
-              + "}").getBytes();
-        }
-        fail(method + " " + url);
-        throw new IllegalStateException();
-      }
-    };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request)
+              throws IOException {
+            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+            if ("GET".equals(method) && isPulls) {
+              return "[]";
+            } else if ("POST".equals(method) && isPulls) {
+              assertThat(request.getContentAsString())
+                  .isEqualTo(
+                      "{\"base\":\"master\","
+                          + "\"body\":\"custom body\","
+                          + "\"head\":\"feature\","
+                          + "\"title\":\"custom title\"}");
+              return ("{\n"
+                  + "  \"id\": 1,\n"
+                  + "  \"number\": 12345,\n"
+                  + "  \"state\": \"open\",\n"
+                  + "  \"title\": \"custom title\",\n"
+                  + "  \"body\": \"custom body\""
+                  + "}");
+            }
+            fail(method + " " + url);
+            throw new IllegalStateException();
+          }
+        };
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo', \n"
         + "    title = 'custom title',\n"
@@ -174,29 +176,31 @@ public class GitHubPrDestinationTest {
   public void testTrimMessageForPrTitle()
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-          throws IOException {
-        boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-        if ("GET".equals(method) && isPulls) {
-          return "[]".getBytes(UTF_8);
-        } else if ("POST".equals(method) && isPulls) {
-          assertThat(request.getContentAsString())
-              .isEqualTo("{\"base\":\"master\",\"body\":\"Internal change.\",\"head\":\"feature\","
-                  + "\"title\":\"Internal change.\"}");
-          return ("{\n"
-              + "  \"id\": 1,\n"
-              + "  \"number\": 12345,\n"
-              + "  \"state\": \"open\",\n"
-              + "  \"title\": \"test summary\",\n"
-              + "  \"body\": \"test summary\""
-              + "}").getBytes();
-        }
-        fail(method + " " + url);
-        throw new IllegalStateException();
-      }
-    };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request)
+              throws IOException {
+            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+            if ("GET".equals(method) && isPulls) {
+              return "[]";
+            } else if ("POST".equals(method) && isPulls) {
+              assertThat(request.getContentAsString())
+                  .isEqualTo(
+                      "{\"base\":\"master\",\"body\":\"Internal change.\",\"head\":\"feature\","
+                          + "\"title\":\"Internal change.\"}");
+              return ("{\n"
+                  + "  \"id\": 1,\n"
+                  + "  \"number\": 12345,\n"
+                  + "  \"state\": \"open\",\n"
+                  + "  \"title\": \"test summary\",\n"
+                  + "  \"body\": \"test summary\""
+                  + "}");
+            }
+            fail(method + " " + url);
+            throw new IllegalStateException();
+          }
+        };
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
@@ -215,28 +219,30 @@ public class GitHubPrDestinationTest {
 
   private void checkWrite(String groupId)
       throws ValidationException, RepoException, IOException {
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-          throws IOException {
-        boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-        if ("GET".equals(method) && isPulls) {
-          return "[]".getBytes(UTF_8);
-        } else if ("POST".equals(method) && isPulls) {
-          assertThat(request.getContentAsString())
-              .isEqualTo("{\"base\":\"master\",\"body\":\"test summary\",\"head\":\"feature\",\"title\":\"test summary\"}");
-          return ("{\n"
-              + "  \"id\": 1,\n"
-              + "  \"number\": 12345,\n"
-              + "  \"state\": \"open\",\n"
-              + "  \"title\": \"test summary\",\n"
-              + "  \"body\": \"test summary\""
-              + "}").getBytes();
-        }
-        fail(method + " " + url);
-        throw new IllegalStateException();
-      }
-    };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request)
+              throws IOException {
+            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+            if ("GET".equals(method) && isPulls) {
+              return "[]";
+            } else if ("POST".equals(method) && isPulls) {
+              assertThat(request.getContentAsString())
+                  .isEqualTo(
+                      "{\"base\":\"master\",\"body\":\"test summary\",\"head\":\"feature\",\"title\":\"test summary\"}");
+              return ("{\n"
+                  + "  \"id\": 1,\n"
+                  + "  \"number\": 12345,\n"
+                  + "  \"state\": \"open\",\n"
+                  + "  \"title\": \"test summary\",\n"
+                  + "  \"body\": \"test summary\""
+                  + "}");
+            }
+            fail(method + " " + url);
+            throw new IllegalStateException();
+          }
+        };
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
@@ -338,28 +344,30 @@ public class GitHubPrDestinationTest {
 
   @Test
   public void testWriteNoMaster() throws ValidationException, IOException, RepoException {
-    gitApiMockHttpTransport = new GitApiMockHttpTransport() {
-      @Override
-      protected byte[] getContent(String method, String url, MockLowLevelHttpRequest request)
-          throws IOException {
-        boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-        if ("GET".equals(method) && isPulls) {
-          return "[]".getBytes(UTF_8);
-        } else if ("POST".equals(method) && isPulls) {
-          assertThat(request.getContentAsString())
-              .isEqualTo("{\"base\":\"other\",\"body\":\"test summary\",\"head\":\"feature\",\"title\":\"test summary\"}");
-          return ("{\n"
-              + "  \"id\": 1,\n"
-              + "  \"number\": 12345,\n"
-              + "  \"state\": \"open\",\n"
-              + "  \"title\": \"test summary\",\n"
-              + "  \"body\": \"test summary\""
-              + "}").getBytes();
-        }
-        fail(method + " " + url);
-        throw new IllegalStateException();
-      }
-    };
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request)
+              throws IOException {
+            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+            if ("GET".equals(method) && isPulls) {
+              return "[]";
+            } else if ("POST".equals(method) && isPulls) {
+              assertThat(request.getContentAsString())
+                  .isEqualTo(
+                      "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\"feature\",\"title\":\"test summary\"}");
+              return ("{\n"
+                  + "  \"id\": 1,\n"
+                  + "  \"number\": 12345,\n"
+                  + "  \"state\": \"open\",\n"
+                  + "  \"title\": \"test summary\",\n"
+                  + "  \"body\": \"test summary\""
+                  + "}");
+            }
+            fail(method + " " + url);
+            throw new IllegalStateException();
+          }
+        };
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo',"
         + "    destination_ref = 'other',"
