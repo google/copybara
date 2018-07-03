@@ -22,6 +22,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.reflect.TypeToken;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.Command;
@@ -61,6 +62,8 @@ public class HgRepository {
       Pattern.compile("abort: repository .+ not found!");
   private static final Pattern UNKNOWN_REVISION =
       Pattern.compile("abort: unknown revision '.+'!");
+
+  private static final Pattern NOTHING_CHANGED = Pattern.compile("(.|\n)*nothing changed(.|\n)*");
 
   /**
    * The location of the {@code .hg} directory.
@@ -221,8 +224,12 @@ public class HgRepository {
         throw new ValidationException(
             String.format("Repository not found: %s", output.getStderr()));
       }
+      if (NOTHING_CHANGED.matches(output.getStdout())) {
+        throw new EmptyChangeException("Commit is empty");
+      }
 
-      throw new RepoException(String.format("Error executing 'hg': %s", output.getStderr()), e);
+      throw new RepoException(String.format("Error executing 'hg':\n%s\n%s",
+          output.getStdout(), output.getStderr()), e);
     }
     catch(CommandException e) {
       throw new RepoException(String.format("Error executing 'hg': %s", e.getMessage()), e);

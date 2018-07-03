@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.io.MoreFiles;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -31,6 +30,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -95,22 +95,16 @@ public class HgOrigin implements Origin<HgRevision> {
       repo.pullFromRef(repoUrl, revId);
       repo.cleanUpdate(revId);
       try {
+        FileUtil.deleteRecursively(workDir);
         repo.archive(workDir.toString()); // update the working directory
       }
       catch (RepoException e) {
         if (e.getMessage().contains("abort: no files match the archive pattern")) {
-          // if checked out empty working directory, then empty the archive
-          try {
-            MoreFiles.deleteDirectoryContents(workDir);
-          }
-          catch (IOException io) {
-            throw new RepoException(
-                String.format("Could not update working directory: %s", io.getMessage()));
-          }
+          throw new ValidationException(e, "The origin repository is empty");
         }
-        else {
-          throw new RepoException(e.getMessage());
-        }
+        throw e;
+      } catch (IOException e) {
+        throw new RepoException("Error checking out " + repoUrl, e);
       }
     }
 

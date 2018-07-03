@@ -17,6 +17,7 @@
 package com.google.copybara.hg;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -32,7 +33,6 @@ import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -125,34 +125,44 @@ public class HgOriginTest {
 
     Path workDir = Files.createTempDirectory("workDir");
 
-    Path newFile = Files.createTempFile(remotePath, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(remotePath, "add", fileName);
+    Files.write(remotePath.resolve("foo.txt"), "hello".getBytes(UTF_8));
+    Files.write(remotePath.resolve("bar.txt"), "hello".getBytes(UTF_8));
+
+    repository.hg(remotePath, "add", "foo.txt");
+    repository.hg(remotePath, "add", "bar.txt");
     repository.hg(remotePath, "commit", "-m", "foo");
 
-    Files.write(remotePath.resolve(fileName), "hello".getBytes(UTF_8));
-    repository.hg(remotePath, "commit", "-m", "hello");
-
-    Files.write(remotePath.resolve(fileName), "goodbye".getBytes(UTF_8));
+    Files.write(remotePath.resolve("foo.txt"), "goodbye".getBytes(UTF_8));
+    Files.write(remotePath.resolve("bar.txt"), "other".getBytes(UTF_8));
+    repository.hg(remotePath, "add", "foo.txt");
     repository.hg(remotePath, "commit", "-m", "bye");
 
-    repository.hg(remotePath, "rm", fileName);
+    repository.hg(remotePath, "rm", "foo.txt");
     repository.hg(remotePath, "commit", "-m", "rm foo");
 
     ImmutableList<HgLogEntry> commits = repository.log().run();
 
     reader.checkout(origin.resolve(commits.get(2).getGlobalId()), workDir);
-    assertThat(new String(Files.readAllBytes(newFile))).isEqualTo("hello");
+
+    assertThatPath(workDir)
+        .containsFile("foo.txt", "hello")
+        .containsFile("bar.txt", "hello")
+        .containsFiles(".hg_archival.txt")
+        .containsNoMoreFiles();
 
     reader.checkout(origin.resolve(commits.get(1).getGlobalId()), workDir);
-    assertThat(new String(Files.readAllBytes(newFile))).isEqualTo("goodbye");
 
-    File archive = new File(workDir.toString());
-    assertThat(archive.listFiles()).hasLength(2);
+    assertThatPath(workDir)
+        .containsFile("foo.txt", "goodbye")
+        .containsFile("bar.txt", "other")
+        .containsFiles(".hg_archival.txt")
+        .containsNoMoreFiles();
 
     reader.checkout(origin.resolve(commits.get(0).getGlobalId()), workDir);
-    assertThat(Files.exists(newFile)).isFalse();
 
-    assertThat(archive.listFiles()).hasLength(0);
+    assertThatPath(workDir)
+        .containsFile("bar.txt", "other")
+        .containsFiles(".hg_archival.txt")
+        .containsNoMoreFiles();
   }
 }
