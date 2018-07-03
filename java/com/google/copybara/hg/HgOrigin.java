@@ -21,12 +21,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
@@ -39,10 +41,10 @@ import javax.annotation.Nullable;
  */
 public class HgOrigin implements Origin<HgRevision> {
 
+  private final GeneralOptions generalOptions;
+  private final HgOptions hgOptions;
   private final String repoUrl;
   private final String branch;
-  private final HgOptions hgOptions;
-  private final GeneralOptions generalOptions;
 
   HgOrigin(GeneralOptions generalOptions, HgOptions hgOptions, String repoUrl, String branch) {
     this.generalOptions = generalOptions;
@@ -60,8 +62,13 @@ public class HgOrigin implements Origin<HgRevision> {
    * Resolves a hg changeset reference to a revision. Pulls revision into repo.
    */
   @Override
-  public HgRevision resolve(String reference) throws RepoException, ValidationException {
+  public HgRevision resolve(@Nullable String reference) throws RepoException, ValidationException {
     HgRepository repo = getRepository();
+
+    if (Strings.isNullOrEmpty(reference)) {
+      throw new CannotResolveRevisionException("Cannot resolve null or empty reference");
+    }
+
     repo.pullFromRef(repoUrl, reference);
     return repo.identify(reference);
   }

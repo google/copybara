@@ -18,6 +18,7 @@ package com.google.copybara.hg;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -25,6 +26,7 @@ import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.testing.OptionsBuilder;
@@ -63,7 +65,7 @@ public class HgOriginTest {
     url = remotePath.toAbsolutePath().toString();
 
     origin = skylark.eval("result",
-        String.format("result = hg.origin( url = '%s' )", url));
+        String.format("result = hg.origin( url = '%s')", url));
 
     repository = new HgRepository(remotePath);
     repository.init();
@@ -76,8 +78,7 @@ public class HgOriginTest {
   private HgOrigin origin() throws ValidationException {
     return skylark.eval("result",
         String.format("result = hg.origin(\n"
-            + "    url = '%s',\n"
-            + ")", url));
+            + "    url = '%s')", url));
   }
 
   @Test
@@ -96,6 +97,26 @@ public class HgOriginTest {
   @Test
   public void testEmptyUrl() throws Exception {
     skylark.evalFails("hg.origin(url = '')", "Invalid empty field 'url'");
+  }
+
+  @Test
+  public void testResolveNullReference() throws Exception {
+    String ref = null;
+    try {
+      origin.resolve(ref);
+      fail("Exception should have been thrown");
+    }
+    catch (CannotResolveRevisionException expected) {
+      assertThat(expected.getMessage()).isEqualTo("Cannot resolve null or empty reference");
+    }
+
+    try {
+      origin.resolve("");
+      fail("Exception should have been throw");
+    }
+    catch (CannotResolveRevisionException expected) {
+      assertThat(expected.getMessage()).isEqualTo("Cannot resolve null or empty reference");
+    }
   }
 
   @Test
