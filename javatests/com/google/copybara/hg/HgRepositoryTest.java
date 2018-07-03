@@ -22,7 +22,6 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.util.CommandOutput;
@@ -72,7 +71,7 @@ public class HgRepositoryTest {
     List<String> before = Splitter.on("\n").splitToList(commandOutput.getStdout());
     List<String> revIds = Splitter.on(":").splitToList(before.get(0));
 
-    HgRevision beforeRev = new HgRevision(repository, revIds.get(1));
+    HgRevision beforeRev = new HgRevision(revIds.get(1));
 
     Path remoteDir = Files.createTempDirectory("remotedir");
     HgRepository remoteRepo = new HgRepository(remoteDir);
@@ -87,7 +86,7 @@ public class HgRepositoryTest {
     List<String> remoteBefore = Splitter.on("\n").splitToList(remoteCommandOutput.getStdout());
     List<String> remoteRevIds = Splitter.on(":").splitToList(remoteBefore.get(0));
 
-    HgRevision remoteRev = new HgRevision(remoteRepo, remoteRevIds.get(1));
+    HgRevision remoteRev = new HgRevision(remoteRevIds.get(1));
 
     repository.pullAll(remoteDir.toString());
 
@@ -351,7 +350,8 @@ public class HgRepositoryTest {
     assertThat(Files.exists(newFile)).isTrue();
     assertThat(Files.notExists(newFile2)).isTrue();
 
-    /* Hg does not delete untracked files on update. In practice, this is ok because there should
+    /*
+    Hg does not delete untracked files on update. In practice, this is ok because there should
     be no untracked files as the workDir is deleted every time.
      */
     assertThat(Files.exists(newFile3)).isTrue();

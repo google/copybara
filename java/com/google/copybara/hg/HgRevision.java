@@ -26,18 +26,15 @@ import java.time.ZonedDateTime;
  */
 public class HgRevision implements Revision {
 
-  private final HgRepository repository;
   private final String globalId;
 
   /**
    * Creates a hg revision from a hexadecimal string identifier. Currently, Mercurial uses SHA1 to
    * hash revisions.
    *
-   * @param repository hg repository that contains the hash
    * @param globalId global identifier for the revision
    */
-  public HgRevision(HgRepository repository, String globalId) {
-    this.repository = Preconditions.checkNotNull(repository);
+  public HgRevision(String globalId) {
     this.globalId = Preconditions.checkNotNull(globalId);
   }
 
@@ -55,7 +52,6 @@ public class HgRevision implements Revision {
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .omitNullValues()
-        .add("repository path", repository.getHgDir().toString())
         .add("global ID", globalId)
         .toString();
   }

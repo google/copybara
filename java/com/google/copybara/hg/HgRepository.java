@@ -166,7 +166,7 @@ public class HgRepository {
 
       String globalId = commandOutput.getStdout().trim();
 
-      return new HgRevision(this, globalId);
+      return new HgRevision(globalId);
     }
     catch (RepoException e) {
       String output = e.getMessage();
