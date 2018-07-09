@@ -15,34 +15,35 @@
 """Bazel rule to generate copybara reference docs."""
 
 def _doc_impl(ctx):
-  jars = []
-  for dep in ctx.attr.deps:
-    for jar in dep.java.transitive_source_jars:
-      jars.append(jar)
-  tmp = ctx.new_file("tmp.md")
-  ctx.actions.run(
-      inputs = [ctx.executable._doc_tool] + jars,
-      outputs = [tmp],
-      progress_message = "Generating reference documentation for %s" % ctx.label,
-      use_default_shell_env = True,
-      executable = ctx.executable._doc_tool.path,
-      arguments = [tmp.path] + [f.path for f in jars],
-  )
-  # If suffix file exists, concat, copy otherwise
-  if ctx.attr.suffix_file != None:
-    ctx.actions.run_shell(
-        inputs = [ctx.files.suffix_file[0], tmp],
-        outputs = [ctx.outputs.out],
-        progress_message = "Appending suffix from %s" % ctx.files.suffix_file,
-        command = "cat %s %s >> %s" %  (tmp.path, ctx.files.suffix_file[0].path, ctx.outputs.out.path),
-    )
-  else:
+    jars = []
+    for dep in ctx.attr.deps:
+        for jar in dep.java.transitive_source_jars:
+            jars.append(jar)
+    tmp = ctx.new_file("tmp.md")
     ctx.actions.run(
-        inputs = [tmp],
-        outputs = [ctx.outputs.out],
-        executable = "/bin/cp",
-        arguments = [tmp.path, ctx.outputs.out.path],
+        inputs = [ctx.executable._doc_tool] + jars,
+        outputs = [tmp],
+        progress_message = "Generating reference documentation for %s" % ctx.label,
+        use_default_shell_env = True,
+        executable = ctx.executable._doc_tool.path,
+        arguments = [tmp.path] + [f.path for f in jars],
     )
+
+    # If suffix file exists, concat, copy otherwise
+    if ctx.attr.suffix_file != None:
+        ctx.actions.run_shell(
+            inputs = [ctx.files.suffix_file[0], tmp],
+            outputs = [ctx.outputs.out],
+            progress_message = "Appending suffix from %s" % ctx.files.suffix_file,
+            command = "cat %s %s >> %s" % (tmp.path, ctx.files.suffix_file[0].path, ctx.outputs.out.path),
+        )
+    else:
+        ctx.actions.run(
+            inputs = [tmp],
+            outputs = [ctx.outputs.out],
+            executable = "/bin/cp",
+            arguments = [tmp.path, ctx.outputs.out.path],
+        )
 
 # Generates documentation by scanning the transitive set of dependencies of a Java binary.
 doc_generator = rule(
@@ -57,7 +58,7 @@ doc_generator = rule(
             allow_files = True,
             default = Label("//java/com/google/copybara:doc_skylark.sh"),
         ),
-        "suffix_file": attr.label(mandatory=False, allow_files=True, single_file=True)
+        "suffix_file": attr.label(mandatory = False, allow_files = True, single_file = True),
     },
     outputs = {"out": "%{name}.md"},
     implementation = _doc_impl,

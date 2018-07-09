@@ -51,7 +51,7 @@ public class SkylarkTestExecutor {
   private final Map<String, byte[]> extraConfigFiles = new HashMap<>();
   private SkylarkParser skylarkParser;
   private ModuleSupplier moduleSupplierForTest;
-  private ImmutableSet<Class<?>> testModules = ImmutableSet.of();
+  private ImmutableSet<Class<?>> staticTestModules = ImmutableSet.of();
 
   public SkylarkTestExecutor(OptionsBuilder options) {
     this(options, new ModuleSupplier(options.general.getEnvironment(),
@@ -64,8 +64,8 @@ public class SkylarkTestExecutor {
     initParser();
   }
 
-  public SkylarkTestExecutor withStaticModules(ImmutableSet<Class<?>> testModules) {
-    this.testModules = Preconditions.checkNotNull(testModules);
+  public SkylarkTestExecutor withStaticModules(ImmutableSet<Class<?>> staticTestModules) {
+    this.staticTestModules = Preconditions.checkNotNull(staticTestModules);
     // TODO(malcon): Remove this once all the static modules are gone.
     initParser();
     return this;
@@ -236,15 +236,16 @@ public class SkylarkTestExecutor {
     protected ImmutableSet<Class<?>> getStaticModules() {
        return ImmutableSet.<Class<?>>builder()
            .addAll(moduleSupplier.create().getStaticModules())
-           // This is used too frequently to pass it in testModules.
-           .add(TestingModule.class)
-           .addAll(testModules)
+           .addAll(staticTestModules)
            .build();
     }
 
     @Override
     public ImmutableSet<Object> getModules(Options options) {
-      return moduleSupplier.getModules(options);
+      return ImmutableSet.builder()
+          .addAll(moduleSupplier.getModules(options))
+          .add(new TestingModule(options))
+          .build();
     }
 
     @Override

@@ -12,29 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def all_tests(tests, deps, tags=[], shard_count=1, data = []):
-  for file in tests:
-    # TODO(malcon): Skip files not ending as *Test.java
-    relative_target = file[:-5]
-    suffix = relative_target.replace("/", ".")
-    pos = native.package_name().rfind("javatests/") + len("javatests/")
-    test_class = native.package_name()[pos:].replace('/', '.',) + '.' + suffix
-    native.java_test(
-        name = file[:-5],
-        srcs = [file],
-        javacopts = [
-            "-Xlint:unchecked", "-source", "1.8",
-            "-Xep:FutureReturnValueIgnored:OFF",
-        ],
-        test_class = test_class,
-        data = data,
-        deps = deps + [
-            # These deps are automatically included with Bazel, but not with the
-            # internal BUILD system. So add them explicitly here.
-            "//third_party:guava",
-            "//third_party:jsr305",
-            "//third_party:junit",
-        ],
-        tags = tags,
-      shard_count = shard_count,
-    )
+def all_tests(tests, deps, tags = [], shard_count = 1, data = []):
+    for file in tests:
+        # TODO(malcon): Skip files not ending as *Test.java
+        relative_target = file[:-5]
+        suffix = relative_target.replace("/", ".")
+        pos = native.package_name().rfind("javatests/") + len("javatests/")
+        test_class = native.package_name()[pos:].replace("/", ".") + "." + suffix
+        native.java_test(
+            name = file[:-5],
+            srcs = [file],
+            javacopts = [
+                "-Xlint:unchecked",
+                "-source",
+                "1.8",
+                "-Xep:FutureReturnValueIgnored:OFF",
+            ],
+            test_class = test_class,
+            data = data,
+            deps = deps + [
+                # These deps are automatically included with Bazel, but not with the
+                # internal BUILD system. So add them explicitly here.
+                "//third_party:guava",
+                "//third_party:jsr305",
+                "//third_party:junit",
+            ],
+            tags = tags,
+            shard_count = shard_count,
+        )

@@ -16,105 +16,56 @@
 
 package com.google.copybara.testing;
 
-import com.google.copybara.GeneralOptions;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.copybara.Option;
 import com.google.copybara.Options;
-import com.google.copybara.config.OptionsAwareModule;
-import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
-import com.google.devtools.build.lib.syntax.BuiltinFunction;
-import com.google.devtools.build.lib.syntax.EvalException;
 
-/**
- * A Skylark module used by tests
- */
+/** A Skylark module used by tests */
 @SkylarkModule(
     name = "testing",
-    doc = "",
+    doc = "Module to use mock endpoints in tests.",
     category = SkylarkModuleCategory.BUILTIN)
-public class TestingModule implements OptionsAwareModule {
+public class TestingModule {
 
-  private TestingOptions testingOptions;
+  private final TestingOptions testingOptions;
 
-  @Override
-  public void setOptions(Options options) {
-    testingOptions = options.get(TestingOptions.class);
-    options.get(GeneralOptions.class);
+  public TestingModule(Options options) {
+    Options opts = checkNotNull(options, "Options cannot be null");
+    this.testingOptions = checkNotNull(opts.get(TestingOptions.class), "TestOptions not set");
   }
 
-  @SkylarkSignature(name = "origin", returnType = DummyOrigin.class,
-      doc = "A dummy origin",
-      parameters = {
-          @Param(name = "self", type = TestingModule.class, doc = "this object"),
-      },
-      objectType = TestingModule.class)
-  public static final BuiltinFunction ORIGIN = new BuiltinFunction("origin") {
-    public DummyOrigin invoke(TestingModule self) throws EvalException {
-      return self.testingOptions.origin;
-    }
-  };
+  @SkylarkCallable(name = "origin", doc = "A dummy origin")
+  public DummyOrigin origin() {
+    return testingOptions.origin;
+  }
 
-  @SkylarkSignature(name = "destination",
-      returnType = RecordsProcessCallDestination.class,
-      doc = "A dummy destination",
-      parameters = {
-          @Param(name = "self", type = TestingModule.class, doc = "this object"),
-      },
-      objectType = TestingModule.class)
-  public static final BuiltinFunction DESTINATION = new BuiltinFunction("destination") {
-    public RecordsProcessCallDestination invoke(TestingModule self) throws EvalException {
-      return self.testingOptions.destination;
-    }
-  };
+  @SkylarkCallable(name = "destination", doc = "A dummy destination")
+  public RecordsProcessCallDestination destination() {
+    return testingOptions.destination;
+  }
 
-  @SkylarkSignature(
-    name = "dummy_endpoint",
-    returnType = DummyEndpoint.class,
-    doc = "A dummy feedback endpoint",
-    parameters = {
-      @Param(name = "self", type = TestingModule.class, doc = "this object"),
-    },
-    objectType = TestingModule.class
-  )
-  public static final BuiltinFunction FEEDBACK_ENDPOINT =
-      new BuiltinFunction("dummy_endpoint") {
-        public DummyEndpoint invoke(TestingModule self) throws EvalException {
-          return self.testingOptions.feedbackTrigger;
-        }
-      };
+  @SkylarkCallable(name = "dummy_endpoint", doc = "A dummy feedback endpoint")
+  public DummyEndpoint dummyEndpoint() {
+    return testingOptions.feedbackTrigger;
+  }
 
-  @SkylarkSignature(
-      name = "dummy_trigger",
-      returnType = DummyTrigger.class,
-      doc = "A dummy feedback trigger",
-      parameters = {
-        @Param(name = "self", type = TestingModule.class, doc = "this object"),
-      },
-      objectType = TestingModule.class)
-  public static final BuiltinFunction FEEDBACK_TRIGGER =
-      new BuiltinFunction("dummy_trigger") {
-        public DummyTrigger invoke(TestingModule self) throws EvalException {
-          return self.testingOptions.feedbackTrigger;
-        }
-      };
+  @SkylarkCallable(name = "dummy_trigger", doc = "A dummy feedback trigger")
+  public DummyTrigger dummyTrigger() {
+    return testingOptions.feedbackTrigger;
+  }
 
-  @SkylarkSignature(
-      name = "dummy_checker",
-      returnType = DummyChecker.class,
-      doc = "A dummy checker",
-      parameters = {
-        @Param(name = "self", type = TestingModule.class, doc = "this object"),
-      },
-      objectType = TestingModule.class)
-  public static final BuiltinFunction CHECKER =
-      new BuiltinFunction("dummy_checker") {
-        public DummyChecker invoke(TestingModule self) throws EvalException {
-          return self.testingOptions.checker;
-        }
-      };
+  @SkylarkCallable(name = "dummy_checker", doc = "A dummy checker")
+  public DummyChecker dummyChecker() {
+    return testingOptions.checker;
+  }
 
+  /**
+   * Holder for options to adjust this module's behavior to the needs of a test.
+   */
   public final static class TestingOptions implements Option {
 
     public DummyOrigin origin;
