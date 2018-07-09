@@ -67,7 +67,7 @@ public class WorkflowOptions implements Option {
 
   @Parameter(names = "--iterative-limit-changes",
       description = "Import just a number of changes instead of all the pending ones")
-  int iterativeLimitChanges = Integer.MAX_VALUE;
+  public int iterativeLimitChanges = Integer.MAX_VALUE;
 
   @Parameter(names = "--ignore-noop",
       description = "Only warn about operations/transforms that didn't have any effect."
