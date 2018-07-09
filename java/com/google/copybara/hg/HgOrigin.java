@@ -17,23 +17,32 @@
 package com.google.copybara.hg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.Change;
+import com.google.copybara.ChangeGraph;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.hg.ChangeReader.HgChange;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -73,14 +82,23 @@ public class HgOrigin implements Origin<HgRevision> {
     return repo.identify(reference);
   }
 
+  private static ImmutableList<Change<HgRevision>> asChanges(Collection<HgChange> hgChanges) {
+    return hgChanges.stream().map(HgChange::getChange).collect(ImmutableList.toImmutableList());
+  }
+
   static class ReaderImpl implements Reader<HgRevision> {
 
     private final String repoUrl;
     private final HgOptions hgOptions;
+    private final Authoring authoring;
+    private final GeneralOptions generalOptions;
 
-    ReaderImpl(String repoUrl, HgOptions hgOptions) {
+    ReaderImpl(String repoUrl, HgOptions hgOptions, Authoring authoring,
+        GeneralOptions generalOptions) {
       this.repoUrl = checkNotNull(repoUrl);
       this.hgOptions = hgOptions;
+      this.authoring = authoring;
+      this.generalOptions = generalOptions;
     }
 
     protected HgRepository getRepository() throws RepoException, ValidationException {
@@ -109,13 +127,71 @@ public class HgOrigin implements Origin<HgRevision> {
     }
 
     @Override
-    public ChangesResponse<HgRevision> changes(@Nullable HgRevision fromRef, HgRevision toRef) {
-      throw new UnsupportedOperationException("Not implemented yet");
+    public ChangesResponse<HgRevision> changes(@Nullable HgRevision fromRef, HgRevision toRef)
+      throws RepoException {
+      String refRange = String.format("%s::%s",
+          fromRef == null ? "" : fromRef.getGlobalId(), toRef.getGlobalId());
+
+      ImmutableList<HgChange> hgChanges;
+
+      try {
+        ChangeReader reader = ChangeReader.Builder.forOrigin(getRepository(), authoring,
+            generalOptions.console()).build();
+        hgChanges = reader.run(refRange);
+      } catch (ValidationException e) {
+        throw new RepoException(
+            String.format("Error getting changes: %s", e.getMessage()), e.getCause());
+      }
+
+      if (!hgChanges.isEmpty()) {
+        return ChangesResponse.forChanges(toGraph(hgChanges));
+      }
+
+      return noChanges(EmptyReason.NO_CHANGES);
+    }
+
+    private ChangeGraph<Change<HgRevision>> toGraph(Iterable<HgChange> hgChanges) {
+      ChangeGraph.Builder<Change<HgRevision>> builder = ChangeGraph.builder();
+
+      Map<String, Change<HgRevision>> revisionMap = new HashMap<>();
+
+      for(HgChange change : hgChanges) {
+        builder.addChange(change.getChange());
+        revisionMap.put(change.getChange().getRevision().getGlobalId(), change.getChange());
+
+        for (HgRevision parent : change.getParents()) {
+          Change<HgRevision> parentChange = revisionMap.get(parent.getGlobalId());
+
+          if (parentChange != null) {
+            builder.addParent(change.getChange(), parentChange);
+          }
+        }
+      }
+      return builder.build();
     }
 
     @Override
-    public Change<HgRevision> change(HgRevision ref) {
-      throw new UnsupportedOperationException("Not implemented yet");
+    public Change<HgRevision> change(HgRevision ref) throws RepoException, EmptyChangeException {
+      ImmutableList<Change<HgRevision>> changes;
+
+      try {
+        ChangeReader reader = ChangeReader.Builder
+            .forOrigin(getRepository(), authoring, generalOptions.console()).setLimit(1).build();
+        changes = asChanges(reader.run(ref.getGlobalId()));
+      }
+      catch (ValidationException e){
+        throw new RepoException(String.format("Error getting change: %s", e.getMessage()));
+      }
+
+      if (changes.isEmpty()) {
+        throw new EmptyChangeException(
+            String.format("%s reference cannot be found", ref.asString()));
+      }
+
+      Change<HgRevision> rev = changes.get(0);
+
+      return new Change<>(ref, rev.getAuthor(), rev.getMessage(), rev.getDateTime(),
+          rev.getLabels(), rev.getChangeFiles());
     }
 
     @Override
@@ -126,7 +202,7 @@ public class HgOrigin implements Origin<HgRevision> {
 
   @Override
   public Reader<HgRevision> newReader(Glob originFiles, Authoring authoring) {
-    return new ReaderImpl(repoUrl, hgOptions);
+    return new ReaderImpl(repoUrl, hgOptions, authoring, generalOptions);
   }
 
   @Override
@@ -141,4 +217,5 @@ public class HgOrigin implements Origin<HgRevision> {
     return new HgOrigin(options.get(GeneralOptions.class), options.get(HgOptions.class), url,
         branch);
   }
+
 }

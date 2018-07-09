@@ -23,7 +23,9 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
+import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -35,6 +37,8 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -164,5 +168,106 @@ public class HgOriginTest {
         .containsFile("bar.txt", "other")
         .containsFiles(".hg_archival.txt")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testChanges() throws Exception {
+    ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
+    String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "one", "foo.txt", "one");
+    singleFileCommit(author, "two", "foo.txt", "two");
+    Path filePath = singleFileCommit(author, "three", "foo.txt", "three");
+
+    assertThat(Files.readAllBytes(filePath)).isEqualTo("three".getBytes(UTF_8));
+
+    ImmutableList<Change<HgRevision>> changes = newReader().changes(
+        origin.resolve("1"), origin.resolve("tip")).getChangesAsListForTest();
+
+    assertThat(changes).hasSize(2);
+
+    assertThat(changes.get(0).getMessage()).isEqualTo("two");
+    assertThat(changes.get(1).getMessage()).isEqualTo("three");
+
+
+    for (Change<HgRevision> change : changes) {
+      assertThat(change.getAuthor().getEmail()).isEqualTo("copy@bara.com");
+      assertThat(change.getChangeFiles()).hasSize(1);
+      assertThat(change.getChangeFiles()).containsExactly("foo.txt");
+      assertThat(change.getDateTime()).isAtLeast(beforeTime);
+      assertThat(change.getDateTime())
+          .isAtMost(ZonedDateTime.now(ZoneId.systemDefault()).plusSeconds(1));
+    }
+  }
+
+  @Test
+  public void testChangesNoFromRef() throws Exception {
+    String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "one", "foo.txt", "one");
+    singleFileCommit(author, "two", "foo.txt", "two");
+    singleFileCommit(author, "three", "foo.txt", "three");
+
+    ImmutableList<Change<HgRevision>> changes = newReader().changes(
+        null, origin.resolve("1")).getChangesAsListForTest();
+
+    assertThat(changes).hasSize(2);
+    assertThat(changes.get(0).getMessage()).isEqualTo("one");
+    assertThat(changes.get(1).getMessage()).isEqualTo("two");
+  }
+
+  @Test
+  public void testChangesEmptyRepo() throws Exception {
+    ChangesResponse<HgRevision> changes = newReader().changes(
+        origin.resolve("0"), origin.resolve("tip"));
+
+    assertThat(changes.isEmpty()).isTrue();
+  }
+
+  @Test
+  public void testUnknownChanges() throws Exception {
+    try {
+      ChangesResponse<HgRevision> changes = newReader().changes(
+          origin.resolve("4"), origin.resolve("7"));
+    }
+    catch (ValidationException expected) {
+      assertThat(expected.getMessage()).contains("Unknown revision");
+    }
+  }
+
+  @Test
+  public void testChange() throws Exception {
+    String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "one", "foo.txt", "one");
+
+    Change<HgRevision> change = newReader().change(origin.resolve("tip"));
+
+    assertThat(change.getAuthor().getEmail()).isEqualTo("copy@bara.com");
+    assertThat(change.getAuthor().getName()).isEqualTo("Copy Bara");
+
+    assertThat(change.getChangeFiles()).containsExactly("foo.txt");
+
+    assertThat(change.getMessage()).isEqualTo("one");
+  }
+
+  @Test
+  public void testUnknownChange() throws Exception {
+    try {
+      Change<HgRevision> change = newReader().change(origin.resolve("7"));
+      fail("Should have thrown exception");
+    }
+    catch (ValidationException expected) {
+      assertThat(expected.getMessage())
+          .contains("Unknown revision");
+    }
+  }
+
+  private Path singleFileCommit(String author, String commitMessage, String fileName,
+      String fileContent) throws Exception {
+    Path path = remotePath.resolve(fileName);
+    Files.createDirectories(path.getParent());
+    Files.write(path, fileContent.getBytes(UTF_8));
+    repository.hg(remotePath, "add", fileName);
+    repository.hg(remotePath, "--config", "ui.username=" + author, "commit"
+        ,"-m", commitMessage);
+    return path;
   }
 }

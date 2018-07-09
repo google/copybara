@@ -22,7 +22,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.reflect.TypeToken;
-import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.Command;
@@ -60,10 +59,14 @@ public class HgRepository {
 
   private static final Pattern INVALID_HG_REPOSITORY =
       Pattern.compile("abort: repository .+ not found!");
+
   private static final Pattern UNKNOWN_REVISION =
       Pattern.compile("abort: unknown revision '.+'!");
 
   private static final Pattern NOTHING_CHANGED = Pattern.compile("(.|\n)*nothing changed(.|\n)*");
+
+  private static final Pattern INVALID_REF_EXPRESSION =
+      Pattern.compile("syntax error in revset '.+'");
 
   /**
    * The location of the {@code .hg} directory.
@@ -85,7 +88,7 @@ public class HgRepository {
    * @return the new HgRepository
    * @throws RepoException if the directory cannot be created
    */
-  public HgRepository init() throws RepoException, ValidationException {
+  public HgRepository init() throws RepoException {
     try {
       Files.createDirectories(hgDir);
     }
@@ -136,15 +139,28 @@ public class HgRepository {
       builder.add("--rev", ref);
     }
 
-    hg(hgDir, builder.build());
+    try {
+      hg(hgDir, builder.build());
+    }
+    catch (RepoException e) {
+      if (INVALID_HG_REPOSITORY.matcher(e.getMessage()).find()){
+        throw new ValidationException(
+            String.format("Repository not found: %s", e.getMessage()));
+      }
+      if (UNKNOWN_REVISION.matcher(e.getMessage()).find()) {
+        throw new ValidationException(
+            String.format("Unknown revision: %s", e.getMessage()));
+      }
+      throw e;
+    }
   }
 
   /**
    * Updates the working directory to the revision given at {@code ref} in the repository
    * and discards local changes.
    */
-  public CommandOutput cleanUpdate(String ref) throws RepoException, ValidationException {
-    return hg(hgDir, "update", ref, "--clean");
+  public CommandOutput cleanUpdate(String ref) throws RepoException {
+      return hg(hgDir, "update", ref, "--clean");
   }
 
   /**
@@ -152,30 +168,26 @@ public class HgRepository {
    *
    * <p> A reference can be any of the following:
    * <ul>
-   *   <li> A global identifier for a revision. Example:
-   *   <li> A local identifier for a revision in the repository
-   *   <li> A bookmark in the repository
-   *   <li> A tag in the repository
+   *   <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72
+   *   <li> A local identifier for a revision in the repository. Example: 1
+   *   <li> A bookmark in the repository.
+   *   <li> A tag in the repository. Example: tip
    * </ul>
    *
    */
-  public HgRevision identify(String reference) throws RepoException, ValidationException{
+  public HgRevision identify(String reference) throws RepoException {
     try {
       CommandOutput commandOutput =
-          hg(hgDir, "identify", "--debug", "--id", "--rev", reference);
+          hg(hgDir, "identify", "--template", "{node}\n", "--id", "--rev", reference);
 
       String globalId = commandOutput.getStdout().trim();
-
       return new HgRevision(globalId);
     }
     catch (RepoException e) {
-      String output = e.getMessage();
-
-      if (UNKNOWN_REVISION.matcher(output).find()) {
-        throw new ValidationException(
-            String.format("Reference %s is unknown", reference));
+      if (UNKNOWN_REVISION.matcher(e.getMessage()).find()){
+        throw new RepoException(
+            String.format("Unknown revision: %s", e.getMessage()));
       }
-
       throw e;
     }
   }
@@ -183,12 +195,12 @@ public class HgRepository {
   /**
    * Creates an archive of the current working directory in the location {@code archivePath}.
    */
-  public void archive(String archivePath) throws RepoException, ValidationException {
+  public void archive(String archivePath) throws RepoException {
     hg(hgDir, "archive", archivePath, "--type", "files");
   }
 
   /**
-   * Creates a log command
+   * Creates a log command.
    */
   public LogCmd log() {
     return LogCmd.create(this);
@@ -204,7 +216,7 @@ public class HgRepository {
    * @param params the argv to pass to Hg, excluding the initial {@code hg}
    */
   @VisibleForTesting
-  public CommandOutput hg(Path cwd, String... params) throws RepoException, ValidationException {
+  public CommandOutput hg(Path cwd, String... params) throws RepoException {
     return hg(cwd, Arrays.asList(params));
   }
 
@@ -212,27 +224,15 @@ public class HgRepository {
     return hgDir;
   }
 
-  private CommandOutput hg(Path cwd, Iterable<String> params)
-      throws RepoException, ValidationException {
-    try{
+  private CommandOutput hg(Path cwd, Iterable<String> params) throws RepoException {
+    try {
       return executeHg(cwd, params, -1);
     }
     catch (BadExitStatusWithOutputException e) {
-      CommandOutputWithStatus output = e.getOutput();
-
-      if (INVALID_HG_REPOSITORY.matcher(output.getStderr()).find()) {
-        throw new ValidationException(
-            String.format("Repository not found: %s", output.getStderr()));
-      }
-      if (NOTHING_CHANGED.matches(output.getStdout())) {
-        throw new EmptyChangeException("Commit is empty");
-      }
-
-      throw new RepoException(String.format("Error executing 'hg':\n%s\n%s",
-          output.getStdout(), output.getStderr()), e);
+      throw new RepoException(String.format("Error executing hg: %s", e.getOutput().getStderr()));
     }
-    catch(CommandException e) {
-      throw new RepoException(String.format("Error executing 'hg': %s", e.getMessage()), e);
+    catch (CommandException e) {
+      throw new RepoException(String.format("Error executing hg: %s", e.getMessage()));
     }
   }
 
@@ -263,34 +263,61 @@ public class HgRepository {
     @Nullable
     private final String branch;
 
-    LogCmd(HgRepository repo, int limit, @Nullable String branch) {
+    @Nullable
+    private final String referenceExpression;
+
+    private LogCmd(HgRepository repo, int limit, @Nullable String branch,
+        @Nullable String referenceExpression) {
       this.repo = repo;
       this.limit = limit;
       this.branch = branch;
+      this.referenceExpression = referenceExpression;
     }
 
     static LogCmd create(HgRepository repo) {
       return new LogCmd(
-          Preconditions.checkNotNull(repo), /*limit*/0, /*branch*/null);
+          Preconditions.checkNotNull(repo), /*limit*/0, /*branch*/null,
+          /*referenceExpression*/ null);
     }
+
+    /**
+     * Limit the query to references that fit the {@code referenceExpression}.
+     *
+     * <p>The expression must be in a format that is supported by Mercurial. Mercurial supports a
+     * number of operators: for example, x::y represents all revisions that are descendants of x and
+     * ancestors of y, including x and y.
+     */
+    public LogCmd withReferenceExpression(String referenceExpression) throws RepoException{
+      if (Strings.isNullOrEmpty(referenceExpression.trim())){
+        throw new RepoException("Cannot log null or empty reference");
+      }
+      return new LogCmd(repo, limit, branch, referenceExpression.trim());
+    }
+
 
     /**
      * Limit the query to {@code limit} results. Should be > 0.
      */
     public LogCmd withLimit(int limit) {
       Preconditions.checkArgument(limit > 0);
-      return new LogCmd(repo, limit, branch);
+      return new LogCmd(repo, limit, branch, referenceExpression);
     }
 
     /**
      * Only query for revisions from the branch {@code branch}.
      */
     public LogCmd withBranch(String branch) {
-      return new LogCmd(repo, limit, branch);
+      return new LogCmd(repo, limit, branch, referenceExpression);
     }
 
     /**
      * Run "hg log' and return zero or more {@link HgLogEntry}.
+     *
+     * <p> The order of the log entries is by default in reverse chronological order, where the
+     * first element of the list is the most recent commit. However, if a reference expression is
+     * provided, log entries will be ordered with respect to the expression. For example, if the
+     * expression is "0:tip", entries will be ordered in chronological order, where the first
+     * element of the list is the first commit.
      */
     public ImmutableList<HgLogEntry> run() throws RepoException, ValidationException {
       ImmutableList.Builder<String> builder = ImmutableList.builder();
@@ -305,12 +332,29 @@ public class HgRepository {
         builder.add("--limit", String.valueOf(limit));
       }
 
+      if (referenceExpression != null) {
+        builder.add("--rev", referenceExpression);
+      }
+
       builder.add("-Tjson");
-      CommandOutput output = repo.hg(repo.getHgDir(), builder.build());
-      return parseLog(output.getStdout());
+      try {
+        CommandOutput output = repo.hg(repo.getHgDir(), builder.build());
+        return parseLog(output.getStdout());
+      }
+      catch (RepoException e) {
+        if (UNKNOWN_REVISION.matcher(e.getMessage()).find()) {
+          throw new ValidationException(
+              String.format("Unknown revision: %s", e.getMessage()));
+        }
+        if (INVALID_REF_EXPRESSION.matcher(e.getMessage()).find()) {
+          throw new RepoException(
+              String.format("Syntax error in reference expression: %s", e.getMessage()));
+        }
+        throw e;
+      }
     }
 
-    private ImmutableList<HgLogEntry> parseLog(String log) throws RepoException{
+    private ImmutableList<HgLogEntry> parseLog(String log) throws RepoException {
       if (log.isEmpty()) {
         return ImmutableList.of();
       }

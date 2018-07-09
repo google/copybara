@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.util.CommandOutput;
@@ -326,6 +327,32 @@ public class HgRepositoryTest {
   }
 
   @Test
+  public void testLogRefExpression() throws Exception {
+    repository.init();
+    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", "add foo");
+    Files.write(workDir.resolve(fileName), "hello".getBytes(UTF_8));
+    repository.hg(workDir, "commit", "-m", "say hello");
+    repository.hg(workDir, "rm", fileName);
+    repository.hg(workDir, "commit", "-m", "remove foo");
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+    ImmutableList<HgLogEntry> testCommits = repository.log().withReferenceExpression("1:2").run();
+    assertThat(testCommits).hasSize(2);
+
+    assertThat(testCommits.get(0).getGlobalId()).isEqualTo(commits.get(1).getGlobalId());
+    assertThat(testCommits.get(1).getGlobalId()).isEqualTo(commits.get(0).getGlobalId());
+
+    verifyThrowsValidationException("not_a_ref_expression","Unknown revision");
+    verifyThrowsRepoException("??","Syntax error");
+    verifyThrowsRepoException(" ","Cannot log null or empty reference");
+    verifyThrowsRepoException("invalid reference", "parse error");
+  }
+
+
+  @Test
   public void testCleanUpdate() throws Exception {
     repository.init();
     Path newFile = Files.createTempFile(workDir, "foo", ".txt");
@@ -357,6 +384,7 @@ public class HgRepositoryTest {
     assertThat(Files.exists(newFile3)).isTrue();
   }
 
+
   @Test
   public void testIdentify() throws Exception {
     repository.init();
@@ -375,9 +403,36 @@ public class HgRepositoryTest {
 
     try {
       repository.identify("not_a_branch");
+      fail("Should have thrown exception");
+    }
+    catch (RepoException expected) {
+      assertThat(expected.getMessage()).contains("Unknown revision");
+    }
+  }
+
+  private void verifyThrowsValidationException(String reference, String expectedMessage)
+      throws RepoException{
+    try {
+      ImmutableList<HgLogEntry> testCommits =
+          repository.log().withReferenceExpression(reference).run();
+      fail("Should have thrown exception");
     }
     catch (ValidationException expected) {
-      assertThat(expected.getMessage()).isEqualTo("Reference not_a_branch is unknown");
+      assertThat(expected.getMessage()).contains(expectedMessage);
+    }
+  }
+
+  private void verifyThrowsRepoException(String reference, String expectedMessage) {
+    try {
+      ImmutableList<HgLogEntry> testCommits =
+          repository.log().withReferenceExpression(reference).run();
+      fail("Should have thrown exception");
+    }
+    catch (ValidationException expected) {
+      fail("Not the right exception thrown");
+    }
+    catch (RepoException expected) {
+      assertThat(expected.getMessage()).contains(expectedMessage);
     }
   }
 }
