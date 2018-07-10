@@ -43,6 +43,7 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.FileConsole;
 import com.google.copybara.util.console.LogConsole;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -51,8 +52,10 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.logging.Level;
@@ -79,6 +82,8 @@ public class Main {
   protected Profiler profiler;
   protected JCommander jCommander;
 
+  private Console console;
+
   public Main() {
     this(System.getenv());
   }
@@ -94,7 +99,7 @@ public class Main {
   protected final ExitCode run(String[] args) {
     // We need a console before parsing the args because it could fail with wrong
     // arguments and we need to show the error.
-    Console console = getConsole(args);
+    this.console = getConsole(args);
     // Configure logs location correctly before anything else. We want to write to the
     // correct location in case of any error.
     FileSystem fs = FileSystems.getDefault();
@@ -122,6 +127,22 @@ public class Main {
   /** Helper to find out about verbose output before JCommander has been initialized .*/
   protected static boolean isVerbose(String[] args) {
     return Arrays.stream(args).anyMatch(Predicate.isEqual("-v"));
+  }
+
+  /**
+   * Finds a flag value before JCommander is initialized. Returns {@code Optional.empty()} if the
+   * flag is not present.
+   */
+  protected static Optional<String> findFlagValue(String[] args, String flagName) {
+    for (int index = 0; index < args.length - 1; index++) {
+      if (args[index].equals(flagName)) {
+        if (!args[index + 1].startsWith("-")) {
+          return Optional.of(args[index + 1]);
+        }
+        return Optional.empty();
+      }
+    }
+    return Optional.empty();
   }
 
   /** A wrapper of the exit code and the command executed */
@@ -336,15 +357,30 @@ public class Main {
   protected Console getConsole(String[] args) {
     boolean verbose = isVerbose(args);
     // If System.console() is not present, we are forced to use LogConsole
+    Console console;
     if (System.console() == null) {
-      return LogConsole.writeOnlyConsole(System.err, verbose);
-    }
-    if (Arrays.asList(args).contains(GeneralOptions.NOANSI)) {
+      console = LogConsole.writeOnlyConsole(System.err, verbose);
+    } else if (Arrays.asList(args).contains(GeneralOptions.NOANSI)) {
       // The System.console doesn't detect redirects/pipes, but at least we have
       // jobs covered.
-      return LogConsole.readWriteConsole(System.in, System.err, verbose);
+      console = LogConsole.readWriteConsole(System.in, System.err, verbose);
+    } else {
+      console = new AnsiConsole(System.in, System.err, verbose);
     }
-    return new AnsiConsole(System.in, System.err, verbose);
+    Optional<String> maybeConsoleFilePath = findFlagValue(args, GeneralOptions.CONSOLE_FILE_PATH);
+    if (!maybeConsoleFilePath.isPresent()) {
+      return console;
+    }
+    Path consoleFilePath = Paths.get(maybeConsoleFilePath.get());
+    try {
+      Files.createDirectories(consoleFilePath.getParent());
+    } catch (IOException e) {
+      logger.atSevere().withCause(e).log(
+          "Could not create parent directories to file: %s. Redirecting will be disabled.",
+          consoleFilePath);
+      return console;
+    }
+    return new FileConsole(console, consoleFilePath);
   }
 
   protected void configureLog(FileSystem fs) throws IOException {
@@ -402,6 +438,10 @@ public class Main {
    * @param result
    */
   protected void shutdown(CommandResult result) throws InterruptedException {
+    // Before profiler.stop()
+    if (console != null) {
+      console.close();
+    }
     if (profiler != null) {
       profiler.stop();
     }

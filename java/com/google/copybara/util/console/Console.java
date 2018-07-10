@@ -19,10 +19,8 @@ package com.google.copybara.util.console;
 import java.io.IOException;
 import javax.annotation.CheckReturnValue;
 
-/**
- * Write user messages to the console
- */
-public interface Console {
+/** Write user messages to the console */
+public interface Console extends AutoCloseable {
 
   /**
    * Print the Copybara welcome message.
@@ -130,4 +128,8 @@ public interface Console {
      */
     void print(String message);
   }
+
+  /** Close this console, freeing resources. */
+  @Override
+  default void close() {}
 }

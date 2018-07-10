@@ -86,7 +86,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testEOFReturnsFalse() throws Exception {
+  public void testEOFReturnsFalse() {
     Console console = LogConsole.readWriteConsole(
         new ByteArrayInputStream(
             new byte[]{}),new PrintStream(new ByteArrayOutputStream()), /*verbose=*/ false);
@@ -95,7 +95,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void logConsolePromtFailsOnMissingSystemConsole() throws Exception {
+  public void logConsolePromtFailsOnMissingSystemConsole() {
     Console console = LogConsole.writeOnlyConsole(
         new PrintStream(new ByteArrayOutputStream()), /*verbose=*/ false);
     thrown.expect(IllegalStateException.class);
@@ -104,7 +104,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void progressPrefix() throws Exception {
+  public void progressPrefix() {
     TestingConsole delegate = new TestingConsole();
     Console console = new ProgressPrefixConsole("FOO ", delegate);
     console.progress("bar");
@@ -126,18 +126,18 @@ public class ConsoleTest {
     console.progressFmt("This is %s", "progress");
     assertThat(console.promptConfirmationFmt("Do you want to %s?", "continue")).isTrue();
 
-    assertThat(console.getMessages()).containsExactly(
-        new Message(MessageType.ERROR, "This is error!"),
-        new Message(MessageType.WARNING, "This is warning"),
-        new Message(MessageType.INFO, "This is info"),
-        new Message(MessageType.PROGRESS, "This is progress"),
-        new Message(MessageType.PROMPT, "Do you want to continue?"));
+    assertThat(console.getMessages())
+        .containsExactly(
+            new Message(MessageType.ERROR, "This is error!"),
+            new Message(MessageType.WARNING, "This is warning"),
+            new Message(MessageType.INFO, "This is info"),
+            new Message(MessageType.PROGRESS, "This is progress"));
   }
 
   @Test
-  public void testVerbose() throws Exception {
+  public void testVerbose() {
     TestingConsole verboseDelegate = new TestingConsole();
-    CapturingConsole verboseConsole= CapturingConsole.captureAllConsole(verboseDelegate);
+    CapturingConsole verboseConsole = CapturingConsole.captureAllConsole(verboseDelegate);
 
     verboseConsole.verboseFmt("This is %s", "verbose!");
     verboseConsole.verboseFmt("This is also verbose");
@@ -150,7 +150,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void captureAllConsole() throws Exception {
+  public void captureAllConsole() {
     TestingConsole delegate = new TestingConsole()
         .respondYes();
     CapturingConsole console = CapturingConsole.captureAllConsole(delegate);
@@ -161,12 +161,12 @@ public class ConsoleTest {
     console.progress("This is progress");
     console.promptConfirmation("Do you want to continue?");
 
-    assertThat(console.getMessages()).containsExactly(
-        new Message(MessageType.ERROR, "This is error!"),
-        new Message(MessageType.WARNING, "This is warning"),
-        new Message(MessageType.INFO, "This is info"),
-        new Message(MessageType.PROGRESS, "This is progress"),
-        new Message(MessageType.PROMPT, "Do you want to continue?"));
+    assertThat(console.getMessages())
+        .containsExactly(
+            new Message(MessageType.ERROR, "This is error!"),
+            new Message(MessageType.WARNING, "This is warning"),
+            new Message(MessageType.INFO, "This is info"),
+            new Message(MessageType.PROGRESS, "This is progress"));
 
     delegate.assertThat()
         .matchesNext(MessageType.ERROR, "This is error!")

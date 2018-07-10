@@ -425,6 +425,7 @@ Core functionality for creating migrations, and basic transformations.
 Name | Type | Description
 ---- | ---- | -----------
 <nobr>`--config-root`</nobr> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
+<nobr>`--console-file-path`</nobr> | *string* | If set, write the console output also to the given file path.
 <nobr>`--disable-reversible-check`</nobr> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <nobr>`--force`</nobr> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <nobr>`--noansi`</nobr> | *boolean* | Don't use ANSI output for messages

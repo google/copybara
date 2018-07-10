@@ -16,7 +16,6 @@
 
 package com.google.copybara.util.console;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.Message.MessageType;
@@ -31,12 +30,11 @@ import java.util.Set;
  *
  * <p>Uses an {@link ArrayList} behind a lock and it's unbounded.
  */
-public class CapturingConsole implements Console {
+public class CapturingConsole extends DelegateConsole {
 
   protected static final ImmutableSet<MessageType> ALL_TYPES =
       ImmutableSet.copyOf(MessageType.values());
 
-  private final Console delegate;
   private final ArrayList<Message> messages = new ArrayList<>();
   private final Set<MessageType> captureTypes;
 
@@ -60,59 +58,8 @@ public class CapturingConsole implements Console {
   }
 
   protected CapturingConsole(Console delegate, Set<MessageType> captureTypes) {
-    this.delegate = Preconditions.checkNotNull(delegate);
+    super(delegate);
     this.captureTypes = captureTypes;
-  }
-
-  @Override
-  public void startupMessage(String version) {
-    delegate.startupMessage(version);
-  }
-
-  @Override
-  public void error(String message) {
-    addMessage(MessageType.ERROR, message);
-    delegate.error(message);
-  }
-
-  @Override
-  public void warn(String message) {
-    addMessage(MessageType.WARNING, message);
-    delegate.warn(message);
-  }
-
-  @Override
-  public void info(String message) {
-    addMessage(MessageType.INFO, message);
-    delegate.info(message);
-  }
-
-  @Override
-  public void verbose(String message) {
-    addMessage(MessageType.VERBOSE, message);
-    delegate.verbose(message);
-  }
-
-  @Override
-  public boolean isVerbose() {
-    return delegate.isVerbose();
-  }
-
-  @Override
-  public void progress(String message) {
-    addMessage(MessageType.PROGRESS, message);
-    delegate.progress(message);
-  }
-
-  @Override
-  public boolean promptConfirmation(String message) {
-    addMessage(MessageType.PROMPT, message);
-    return delegate.promptConfirmation(message);
-  }
-
-  @Override
-  public String colorize(AnsiColor ansiColor, String message) {
-    return delegate.colorize(ansiColor, message);
   }
 
   public ImmutableList<Message> getMessages() {
@@ -123,7 +70,8 @@ public class CapturingConsole implements Console {
     messages.clear();
   }
 
-  private synchronized void addMessage(MessageType type, String message) {
+  @Override
+  synchronized void handleMessage(MessageType type, String message) {
     if (captureTypes.contains(type)) {
       messages.add(new Message(type, message));
     }

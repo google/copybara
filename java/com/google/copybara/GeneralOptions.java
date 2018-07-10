@@ -310,4 +310,13 @@ public final class GeneralOptions implements Option {
                 + " Keep in mind that running in this mode will lead to an ever increasing disk"
                 + " usage.")
     boolean noCleanup = false;
+
+  static final String CONSOLE_FILE_PATH = "--console-file-path";
+
+  // This flag is read before we parse the arguments, because of the console lifecycle
+  @SuppressWarnings("unused")
+  @Parameter(
+      names = CONSOLE_FILE_PATH,
+      description = "If set, write the console output also to the given file path.")
+  String consoleFilePath;
 }
