@@ -45,6 +45,8 @@ public class ChangeMessageTest {
     assertThat(msg.getLabels().get(0).getName()).isEqualTo("GitOrigin-RevId");
   }
 
+
+
   private static final String CHANGE_MESSAGE_SKYLARK =
       ""
           + "First line\\n"
