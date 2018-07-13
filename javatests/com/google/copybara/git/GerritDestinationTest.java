@@ -670,11 +670,13 @@ public class GerritDestinationTest {
     GerritWriteHook process =
         new GerritWriteHook(
             options.general,
-            options.gerrit, "http://example.com/foo",
+            options.gerrit,
+            "http://example.com/foo",
             new Author("foo", "foo@example.com"),
-            ChangeIdPolicy.REPLACE, /*allowEmptyPatchSet=*/true);
+            ChangeIdPolicy.REPLACE,
+            /*allowEmptyDiffPatchSet=*/ true);
     fakeOneCommitInDestination();
-    
+
     ImmutableList<DestinationEffect> result = process.afterPush(
         GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/true,
             CONSTANT_CHANGE_ID),
@@ -711,9 +713,11 @@ public class GerritDestinationTest {
     GerritWriteHook process =
         new GerritWriteHook(
             options.general,
-            options.gerrit, "http://example.com/foo",
+            options.gerrit,
+            "http://example.com/foo",
             new Author("foo", "foo@example.com"),
-            ChangeIdPolicy.REPLACE, /*allowEmptyPatchSet=*/true);
+            ChangeIdPolicy.REPLACE,
+            /*allowEmptyDiffPatchSet=*/ true);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(

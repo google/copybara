@@ -22,9 +22,11 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -32,22 +34,37 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class FileConsoleTest {
 
+  private Path file;
+
+  @Before
+  public void setup() throws IOException {
+    file = Jimfs.newFileSystem().getPath("/tmp/foo.txt");
+    Files.createDirectories(file.getParent());
+  }
+
   @Test
-  public void testConsole() throws IOException {
+  public void testNewFile() throws IOException {
+    runTest(file);
+  }
+
+  @Test
+  public void testExistingFileIsTruncated() throws IOException {
+    Files.write(file, "Previous content".getBytes(StandardCharsets.UTF_8));
+    runTest(file);
+  }
+
+  private void runTest(Path file) throws IOException {
     TestingConsole delegate = new TestingConsole();
-    Path path = Jimfs.newFileSystem().getPath("/tmp/foo.txt");
-    Files.createDirectories(path.getParent());
-    FileConsole fileConsole = new FileConsole(delegate, path);
-    fileConsole.startupMessage("v1");
-    fileConsole.info("This is info");
-    fileConsole.warn("This is warning");
-    fileConsole.error("This is error");
-    fileConsole.verbose("This is verbose");
-    fileConsole.progress("This is progress");
+    try (FileConsole fileConsole = new FileConsole(delegate, file)) {
+      fileConsole.startupMessage("v1");
+      fileConsole.info("This is info");
+      fileConsole.warn("This is warning");
+      fileConsole.error("This is error");
+      fileConsole.verbose("This is verbose");
+      fileConsole.progress("This is progress");
+    }
 
-    fileConsole.close();
-
-    List<String> lines = Files.readAllLines(path);
+    List<String> lines = Files.readAllLines(file);
     assertThat(lines)
         .containsExactly(
             "INFO: Copybara source mover (Version: v1)",

@@ -87,8 +87,11 @@ public class FileConsole extends DelegateConsole {
   @Nullable
   private BufferedWriter initWriter() {
     try {
-      return Files.newBufferedWriter(
-          filePath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+      StandardOpenOption openOption =
+          Files.exists(filePath)
+              ? StandardOpenOption.TRUNCATE_EXISTING
+              : StandardOpenOption.CREATE_NEW;
+      return Files.newBufferedWriter(filePath, StandardCharsets.UTF_8, openOption);
     } catch (IOException e) {
       failed = true;
       logger.atSevere().withCause(e).log(
@@ -105,6 +108,7 @@ public class FileConsole extends DelegateConsole {
     }
     try {
       writer.close();
+      logger.atInfo().log("Closed file %s", filePath);
     } catch (IOException e) {
       failed = true;
       logger.atSevere().withCause(e).log(
