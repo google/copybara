@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.Reader.ChangesResponse;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -220,6 +221,42 @@ public class HgOriginTest {
         origin.resolve("0"), origin.resolve("tip"));
 
     assertThat(changes.isEmpty()).isTrue();
+    assertThat(changes.getEmptyReason()).isEqualTo(EmptyReason.NO_CHANGES);
+  }
+
+  @Test
+  public void testChangesUnrelatedRevisions() throws Exception {
+    String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "hello", "foo.txt", "hello");
+
+    Path otherDir = Files.createTempDirectory("otherdir");
+    HgRepository otherRepo = new HgRepository(otherDir);
+    otherRepo.init();
+    Path newFile2 = Files.createTempFile(otherDir, "bar", ".txt");
+    String fileName2 = newFile2.toString();
+    otherRepo.hg(otherDir, "add", fileName2);
+    otherRepo.hg(otherDir, "commit", "-m", "foo");
+
+    repository.pullFromRef(otherDir.toString(), "tip");
+
+    ChangesResponse<HgRevision> changes = newReader().changes(
+        origin.resolve("0"), origin.resolve("tip"));
+
+    assertThat(changes.isEmpty()).isTrue();
+    assertThat(changes.getEmptyReason()).isEqualTo(EmptyReason.UNRELATED_REVISIONS);
+  }
+
+  @Test
+  public void testChangesToIsAncestor() throws Exception {
+    String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "one", "foo.txt", "one");
+    singleFileCommit(author, "two", "foo.txt", "two");
+
+    ChangesResponse<HgRevision> changes = newReader().changes(
+        origin.resolve("tip"), origin.resolve("0"));
+
+    assertThat(changes.isEmpty()).isTrue();
+    assertThat(changes.getEmptyReason()).isEqualTo(EmptyReason.TO_IS_ANCESTOR);
   }
 
   @Test

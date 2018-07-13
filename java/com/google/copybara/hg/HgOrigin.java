@@ -36,6 +36,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.ChangeReader.HgChange;
+import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
@@ -63,7 +64,7 @@ public class HgOrigin implements Origin<HgRevision> {
   }
 
   @VisibleForTesting
-  public HgRepository getRepository() throws RepoException, ValidationException {
+  public HgRepository getRepository() throws RepoException {
     return hgOptions.cachedBareRepoForUrl(repoUrl);
   }
 
@@ -101,7 +102,7 @@ public class HgOrigin implements Origin<HgRevision> {
       this.generalOptions = generalOptions;
     }
 
-    protected HgRepository getRepository() throws RepoException, ValidationException {
+    protected HgRepository getRepository() throws RepoException {
       return hgOptions.cachedBareRepoForUrl(repoUrl);
     }
 
@@ -132,22 +133,22 @@ public class HgOrigin implements Origin<HgRevision> {
       String refRange = String.format("%s::%s",
           fromRef == null ? "" : fromRef.getGlobalId(), toRef.getGlobalId());
 
-      ImmutableList<HgChange> hgChanges;
-
       try {
         ChangeReader reader = ChangeReader.Builder.forOrigin(getRepository(), authoring,
             generalOptions.console()).build();
-        hgChanges = reader.run(refRange);
-      } catch (ValidationException e) {
+        ImmutableList<HgChange> hgChanges = reader.run(refRange);
+
+        if (!hgChanges.isEmpty()) {
+          return ChangesResponse.forChanges(toGraph(hgChanges));
+        }
+
+        return noChanges(getEmptyReason(fromRef.getGlobalId(), toRef.getGlobalId()));
+      }
+
+      catch (ValidationException e) {
         throw new RepoException(
-            String.format("Error getting changes: %s", e.getMessage()), e.getCause());
+            String.format("Error querying changes: %s", e.getMessage()), e.getCause());
       }
-
-      if (!hgChanges.isEmpty()) {
-        return ChangesResponse.forChanges(toGraph(hgChanges));
-      }
-
-      return noChanges(EmptyReason.NO_CHANGES);
     }
 
     private ChangeGraph<Change<HgRevision>> toGraph(Iterable<HgChange> hgChanges) {
@@ -168,6 +169,36 @@ public class HgOrigin implements Origin<HgRevision> {
         }
       }
       return builder.build();
+    }
+
+    private EmptyReason getEmptyReason(String fromRef, String toRef)
+        throws RepoException, ValidationException {
+      ImmutableList<HgLogEntry> logEntries = getRepository().log()
+          .withReferenceExpression(String.format("ancestor(%s, %s)", fromRef, toRef))
+          .run();
+
+      if (logEntries.isEmpty()) {
+        /* If fromRef equals toRef and there are no common ancestors, there must be no changes */
+        if (fromRef.equals(toRef)) {
+          return EmptyReason.NO_CHANGES;
+        }
+
+        /* No common ancestors */
+        return EmptyReason.UNRELATED_REVISIONS;
+      }
+
+      /* fromRef is an ancestor of toRef but changes are irrelevant */
+      if (logEntries.get(0).getGlobalId().equals(fromRef)) {
+        return EmptyReason.NO_CHANGES;
+      }
+
+      /* toRef is an ancestor of fromRef*/
+      if (logEntries.get(0).getGlobalId().equals(toRef)) {
+        return EmptyReason.TO_IS_ANCESTOR;
+      }
+
+      /* fromRef and toRef share an ancestor but are not directly related to each other*/
+      return EmptyReason.UNRELATED_REVISIONS;
     }
 
     @Override

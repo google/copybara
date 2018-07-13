@@ -42,7 +42,7 @@ public class HgOptions implements Option {
   }
 
   public final HgRepository cachedBareRepoForUrl(String url)
-      throws RepoException, ValidationException {
+      throws RepoException {
     Preconditions.checkNotNull(url);
     try {
       return createBareRepo(url, getRepoStorage());
@@ -57,7 +57,7 @@ public class HgOptions implements Option {
    * repository already exists in the location, returns that repository.
    */
   protected HgRepository createBareRepo(String url, Path path)
-      throws RepoException, ValidationException {
+      throws RepoException {
     Path repoPath = path.resolve(url);
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
