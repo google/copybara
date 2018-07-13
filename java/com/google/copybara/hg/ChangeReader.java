@@ -23,7 +23,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.authoring.Author;
@@ -46,24 +45,32 @@ class ChangeReader {
 
   private final HgRepository repository;
   private final int limit;
+  private final int skip;
   private final Console console;
   private final Optional<Authoring> authoring;
 
-  private ChangeReader(HgRepository repository, int limit, Console console,
+  private ChangeReader(HgRepository repository, int limit, int skip, Console console,
       Optional<Authoring> authoring) {
     this.repository = repository;
     this.limit = limit;
+    this.skip = skip;
     this.console = console;
     this.authoring = authoring;
   }
 
   ImmutableList<HgChange> run(String refExpression) throws RepoException, ValidationException {
-    LogCmd logCmd = repository.log().withReferenceExpression(refExpression);
-
+    LogCmd logCmd = repository.log();
     if (limit > 0) {
+      if (skip > 0) {
+        logCmd = logCmd.withReferenceExpression(
+            String.format("limit(%s::, %d, %d)", refExpression, limit, skip));
+        return parseChanges(logCmd.run());
+      }
+
       logCmd = logCmd.withLimit(limit);
     }
 
+    logCmd = logCmd.withReferenceExpression(refExpression);
     return parseChanges(logCmd.run());
   }
 
@@ -71,6 +78,7 @@ class ChangeReader {
 
     private final HgRepository repository;
     private int limit;
+    private int skip;
     private final Console console;
     private Authoring authoring = null;
 
@@ -78,6 +86,7 @@ class ChangeReader {
       this.repository = Preconditions.checkNotNull(repository);
       this.console = Preconditions.checkNotNull(console);
       this.limit = 0;
+      this.skip = 0;
     }
 
     static Builder forOrigin(HgRepository repository, Authoring authoring, Console console) {
@@ -91,13 +100,19 @@ class ChangeReader {
       return this;
     }
 
+    Builder setSkip(int skip) {
+      Preconditions.checkArgument(skip >= 0);
+      this.skip = skip;
+      return this;
+    }
+
     Builder setAuthoring(Authoring authoring) {
       this.authoring = checkNotNull(authoring, "authoring");
       return this;
     }
 
     ChangeReader build() {
-      return new ChangeReader(repository, limit, console, Optional.of(authoring));
+      return new ChangeReader(repository, limit, skip, console, Optional.of(authoring));
     }
   }
 

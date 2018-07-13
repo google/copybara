@@ -29,6 +29,7 @@ CORE = [
     "HgRevision.java",
     "HgOptions.java",
     "HgOrigin.java",
+    "HgVisitorUtil.java",
 ]
 
 java_library(
@@ -42,6 +43,7 @@ java_library(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jcommander:validators",
+        "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:flogger",

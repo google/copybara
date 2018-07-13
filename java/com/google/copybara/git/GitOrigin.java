@@ -21,12 +21,12 @@ import static com.google.copybara.Origin.Reader.ChangesResponse.forChanges;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.console.Consoles.logLines;
+import static com.google.copybara.util.OriginUtil.affectsRoots;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -141,23 +141,6 @@ public class GitOrigin implements Origin<GitRevision> {
       ref = reference;
     }
     return repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions);
-  }
-
-  private static boolean affectsRoots(ImmutableSet<String> roots,
-      ImmutableCollection<String> changedFiles) {
-    if (changedFiles == null || Glob.isEmptyRoot(roots)) {
-      return true;
-    }
-    // This is O(changes * files * roots) in the worse case. roots shouldn't be big and
-    // files shouldn't be big for 99% of the changes.
-    for (String file : changedFiles) {
-      for (String root : roots) {
-        if (file.equals(root) || file.startsWith(root + "/")) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   static class ReaderImpl implements Reader<GitRevision> {

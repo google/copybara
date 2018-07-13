@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
+import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
@@ -40,6 +41,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -295,6 +298,47 @@ public class HgOriginTest {
       assertThat(expected.getMessage())
           .contains("Unknown revision");
     }
+  }
+
+  @Test
+  public void testVisit() throws Exception {
+    String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "one", "foo.txt", "one");
+    singleFileCommit(author, "two", "foo.txt", "two");
+    singleFileCommit(author, "three", "foo.txt", "three");
+    singleFileCommit(author, "four", "foo.txt", "four");
+
+    List<Change<?>> visited = new ArrayList<>();
+    newReader().visitChanges(origin.resolve("0"),
+        input -> {
+          visited.add(input);
+          return input.firstLineMessage().equals("three")
+              ? VisitResult.TERMINATE
+              : VisitResult.CONTINUE;
+        });
+    assertThat(visited).hasSize(3);
+    assertThat(visited.get(0).firstLineMessage()).isEqualTo("one");
+    assertThat(visited.get(1).firstLineMessage()).isEqualTo("two");
+    assertThat(visited.get(2).firstLineMessage()).isEqualTo("three");
+  }
+
+  @Test
+  public void testVisitOutsideRoot() throws Exception {
+    String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "one", "foo/foo.txt", "one");
+    singleFileCommit(author, "two", "bar/foo.txt", "two");
+    singleFileCommit(author, "three", "foo/foo.txt", "three");
+
+    originFiles = Glob.createGlob(ImmutableList.of("bar/**"));
+
+    List<Change<?>> visited = new ArrayList<>();
+    newReader().visitChanges(origin.resolve("0"),
+        input -> {
+          visited.add(input);
+          return VisitResult.CONTINUE;
+        });
+    assertThat(visited).hasSize(1);
+    assertThat(visited.get(0).firstLineMessage()).isEqualTo("two");
   }
 
   private Path singleFileCommit(String author, String commitMessage, String fileName,

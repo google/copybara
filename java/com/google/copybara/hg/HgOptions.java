@@ -37,6 +37,12 @@ public class HgOptions implements Option {
 
   private final GeneralOptions generalOptions;
 
+  /**
+   * Depth of hg changes to visit at a time. For example, if depth is set to 2, visit the start
+   * change and at most 2 of its next descendants if they exist.
+   */
+  int visitChangeDepth = 200;
+
   public HgOptions(GeneralOptions generalOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
