@@ -1573,6 +1573,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_BASE_BRANCH_SHA1: The base branch SHA-1 used as baseline.
   - GITHUB_PR_TITLE: Title of the Pull Request.
   - GITHUB_PR_BODY: Body of the Pull Request.
+  - GITHUB_PR_HEAD_SHA: The SHA-1 of the head commit of the pull request.
   - GITHUB_PR_USER: The login of the author the pull request.
   - GITHUB_PR_ASSIGNEE: A repeated label with the login of the assigned users.
   - GITHUB_PR_REVIEWER_APPROVER: A repeated label with the login of users that have participated in the review and that can approve the import. Only populated if `review_state` field is set. Every reviewers type matching `review_approvers` will be added to this list.

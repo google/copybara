@@ -89,8 +89,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   public static final String GITHUB_PR_REVIEWER_OTHER = "GITHUB_PR_REVIEWER_OTHER";
   public static final String GITHUB_PR_REQUESTED_REVIEWER = "GITHUB_PR_REQUESTED_REVIEWER";
   private static final String LOCAL_PR_HEAD_REF = "refs/PR_HEAD";
+  public static final String GITHUB_PR_HEAD_SHA = "GITHUB_PR_HEAD_SHA";
   private static final String LOCAL_PR_MERGE_REF = "refs/PR_MERGE";
   private static final String LOCAL_PR_BASE_BRANCH = "refs/PR_BASE_BRANCH";
+
 
   private final String url;
   private final boolean useMerge;
@@ -276,11 +278,12 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     String refForMigration = useMerge ? LOCAL_PR_MERGE_REF : LOCAL_PR_HEAD_REF;
     GitRevision gitRevision = getRepository().resolveReference(refForMigration);
 
+    String headPrSha1 = getRepository().resolveReference(LOCAL_PR_HEAD_REF).getSha1();
     String integrateLabel = new GitHubPRIntegrateLabel(getRepository(), generalOptions,
         project, prNumber,
         prData.getHead().getLabel(),
         // The integrate SHA has to be HEAD of the PR not the merge ref, even if use_merge = True
-        getRepository().resolveReference(LOCAL_PR_HEAD_REF).getSha1())
+        headPrSha1)
         .toString();
 
     labels.putAll(GITHUB_PR_REQUESTED_REVIEWER, prData.getRequestedReviewers().stream()
@@ -289,6 +292,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     labels.put(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber));
     labels.put(GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel);
     labels.put(GITHUB_BASE_BRANCH, prData.getBase().getRef());
+    labels.put(GITHUB_PR_HEAD_SHA, headPrSha1);
 
     String mergeBase = getRepository().mergeBase(refForMigration, LOCAL_PR_BASE_BRANCH);
     labels.put(GITHUB_BASE_BRANCH_SHA1, mergeBase);
