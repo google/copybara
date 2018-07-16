@@ -31,9 +31,9 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.TransformResult;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.GitDestination.CommitGenerator;
-import com.google.copybara.git.GitDestination.ProcessPushOutput;
+import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.WriterImpl;
+import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.git.GitDestination.WriterState;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.GitHubApi;
@@ -57,19 +57,17 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final GitDestinationOptions destinationOptions;
   private final GitHubDestinationOptions gitHubDestinationOptions;
   private final GitOptions gitOptions;
-  private final CommitGenerator commitGenerator;
-  private final ProcessPushOutput processPushOutput;
+  private final WriteHook writeHook;
   private final Iterable<GitIntegrateChanges> integrates;
-  @Nullable private String title;
-  @Nullable private String body;
+  @Nullable private final String title;
+  @Nullable private final String body;
   private final boolean effectiveSkipPush;
   private final LazyResourceLoader<GitRepository> localRepo;
 
   public GitHubPrDestination(String url, String destinationRef, GeneralOptions generalOptions,
       GitHubOptions gitHubOptions,
       GitDestinationOptions destinationOptions, GitHubDestinationOptions gitHubDestinationOptions,
-      GitOptions gitOptions,
-      boolean skipPush, CommitGenerator commitGenerator, ProcessPushOutput processPushOutput,
+      GitOptions gitOptions, boolean skipPush, WriteHook writeHook,
       Iterable<GitIntegrateChanges> integrates, @Nullable String title, @Nullable String body) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
@@ -78,8 +76,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
     this.gitHubDestinationOptions = Preconditions.checkNotNull(gitHubDestinationOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
-    this.commitGenerator = Preconditions.checkNotNull(commitGenerator);
-    this.processPushOutput = Preconditions.checkNotNull(processPushOutput);
+    this.writeHook = Preconditions.checkNotNull(writeHook);
     this.integrates = Preconditions.checkNotNull(integrates);
     this.title = title;
     this.body = body;
@@ -124,9 +121,9 @@ public class GitHubPrDestination implements Destination<GitRevision> {
               : "copybara/push-" + UUID.randomUUID() + (dryRun ? "-dryrun" : ""));
     }
 
-    return new WriterImpl<GitHubWriterState>(destinationFiles, effectiveSkipPush, url,
+    return new WriterImpl<GitHubWriterState, MessageInfo>(destinationFiles, effectiveSkipPush, url,
         destinationRef, pushBranchName,
-        generalOptions, commitGenerator, processPushOutput,
+        generalOptions, writeHook,
         state, /*nonFastForwardPush=*/true, integrates,
         destinationOptions.lastRevFirstParent,
         destinationOptions.ignoreIntegrationErrors,

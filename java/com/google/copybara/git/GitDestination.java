@@ -43,10 +43,12 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
@@ -62,32 +64,10 @@ public final class GitDestination implements Destination<GitRevision> {
   private static final String ORIGIN_LABEL_SEPARATOR = ": ";
 
   static class MessageInfo {
-
-    final boolean newPush;
     final ImmutableList<LabelFinder> labelsToAdd;
 
-    MessageInfo(ImmutableList<LabelFinder> labelsToAdd, boolean newPush) {
+    MessageInfo(ImmutableList<LabelFinder> labelsToAdd) {
       this.labelsToAdd = checkNotNull(labelsToAdd);
-      this.newPush = newPush;
-    }
-  }
-
-  interface CommitGenerator {
-
-    /** Generates a commit message based on the uncommitted index stored in the given repository. */
-    MessageInfo message(TransformResult transformResult) throws RepoException, ValidationException;
-  }
-
-  static final class DefaultCommitGenerator implements CommitGenerator {
-
-    @Override
-    public MessageInfo message(TransformResult transformResult) {
-      Revision rev = transformResult.getCurrentRevision();
-      ImmutableList<LabelFinder> labels = transformResult.isSetRevId()
-          ? ImmutableList.of(
-              new LabelFinder(rev.getLabelName() + ORIGIN_LABEL_SEPARATOR + rev.asString()))
-          : ImmutableList.of();
-      return new MessageInfo(labels, /*newPush*/ true);
     }
   }
 
@@ -105,8 +85,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private final Iterable<GitIntegrateChanges> integrates;
   // Whether skip_push is set, either by command line or copy.bara.sky
   private final boolean effectiveSkipPush;
-  private final CommitGenerator commitGenerator;
-  private final ProcessPushOutput processPushOutput;
+  private final WriteHook writerHook;
   private final LazyResourceLoader<GitRepository> localRepo;
 
   GitDestination(
@@ -117,8 +96,7 @@ public final class GitDestination implements Destination<GitRevision> {
       GitOptions gitOptions,
       GeneralOptions generalOptions,
       boolean skipPush,
-      CommitGenerator commitGenerator,
-      ProcessPushOutput processPushOutput,
+      WriteHook writerHook,
       Iterable<GitIntegrateChanges> integrates) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
@@ -129,8 +107,7 @@ public final class GitDestination implements Destination<GitRevision> {
     this.skipPush = skipPush;
     this.integrates = Preconditions.checkNotNull(integrates);
     this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
-    this.commitGenerator = checkNotNull(commitGenerator);
-    this.processPushOutput = checkNotNull(processPushOutput);
+    this.writerHook = checkNotNull(writerHook);
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl));
   }
 
@@ -170,12 +147,12 @@ public final class GitDestination implements Destination<GitRevision> {
     }
 
     return new WriterImpl<>(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
-                            generalOptions, commitGenerator, processPushOutput,
-                            state, destinationOptions.nonFastForwardPush, integrates,
-                            destinationOptions.lastRevFirstParent, destinationOptions.ignoreIntegrationErrors,
-                            destinationOptions.localRepoPath, destinationOptions.committerName,
-                            destinationOptions.committerEmail, destinationOptions.rebaseWhenBaseline(),
-                            gitOptions.visitChangePageSize);
+        generalOptions, writerHook,
+        state, destinationOptions.nonFastForwardPush, integrates,
+        destinationOptions.lastRevFirstParent, destinationOptions.ignoreIntegrationErrors,
+        destinationOptions.localRepoPath, destinationOptions.committerName,
+        destinationOptions.committerEmail, destinationOptions.rebaseWhenBaseline(),
+        gitOptions.visitChangePageSize);
   }
 
   /**
@@ -198,7 +175,8 @@ public final class GitDestination implements Destination<GitRevision> {
    * A writer for git.*destination destinations. Note that this is not a public interface and
    * shouldn't be used directly.
    */
-  public static class WriterImpl<S extends WriterState> implements Writer<GitRevision> {
+  public static class WriterImpl<S extends WriterState, M extends MessageInfo>
+      implements Writer<GitRevision> {
 
     private final Glob destinationFiles;
     final boolean skipPush;
@@ -209,8 +187,7 @@ public final class GitDestination implements Destination<GitRevision> {
     // Only use this console when you don't receive one as a parameter.
     private final Console baseConsole;
     private final GeneralOptions generalOptions;
-    private final CommitGenerator commitGenerator;
-    private final ProcessPushOutput processPushOutput;
+    private final WriteHook writeHook;
     final S state;
     // We could get it from destinationOptions but this is in preparation of a GH PR destination.
     private final boolean nonFastForwardPush;
@@ -227,11 +204,10 @@ public final class GitDestination implements Destination<GitRevision> {
      * Create a new git.destination writer
      */
     WriterImpl(Glob destinationFiles, boolean skipPush, String repoUrl, String remoteFetch,
-        String remotePush, GeneralOptions generalOptions, CommitGenerator commitGenerator,
-        ProcessPushOutput processPushOutput, S state, boolean nonFastForwardPush,
-        Iterable<GitIntegrateChanges> integrates, boolean lastRevFirstParent,
-        boolean ignoreIntegrationErrors, String localRepoPath, String committerName,
-        String committerEmail, boolean rebase, int visitChangePageSize) {
+        String remotePush, GeneralOptions generalOptions, WriteHook writeHook,
+        S state, boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates,
+        boolean lastRevFirstParent, boolean ignoreIntegrationErrors, String localRepoPath,
+        String committerName, String committerEmail, boolean rebase, int visitChangePageSize) {
       this.destinationFiles = checkNotNull(destinationFiles);
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
@@ -240,8 +216,7 @@ public final class GitDestination implements Destination<GitRevision> {
       this.force = generalOptions.isForced();
       this.baseConsole = checkNotNull(generalOptions.console());
       this.generalOptions = generalOptions;
-      this.commitGenerator = checkNotNull(commitGenerator);
-      this.processPushOutput = checkNotNull(processPushOutput);
+      this.writeHook = checkNotNull(writeHook);
       this.state = checkNotNull(state);
       this.nonFastForwardPush = nonFastForwardPush;
       this.integrates = Preconditions.checkNotNull(integrates);
@@ -390,6 +365,62 @@ public final class GitDestination implements Destination<GitRevision> {
       return true;
     }
 
+    /**
+     * A write hook allows us to customize the behavior or git.destination writer for other
+     * implementations.
+     */
+    public interface WriteHook {
+
+      /** Customize the writer for a particular destination. */
+      MessageInfo generateMessageInfo(TransformResult transformResult)
+          throws ValidationException, RepoException;
+      
+      /**
+       * Validate or do modifications to the current change to be pushed.
+       *
+       * <p>{@code HEAD} commit should point to the commit to be pushed. Any change on the local
+       * git repo should keep current commit as HEAD or do the proper modifications to make HEAD to
+       * point to a new/modified changes(s).
+       */
+      default void beforePush(boolean skipPush) throws RepoException, ValidationException{ }
+
+      /**
+       * Process the server response from the push command and compute the effects that happened
+       */
+      ImmutableList<DestinationEffect> afterPush(String serverResponse, MessageInfo messageInfo,
+          GitRevision pushedRevision, List<? extends Change<?>> originChanges);
+
+    }
+
+    /**
+     * A Write hook for standard git repositories
+     */
+    public static class DefaultWriteHook implements WriteHook {
+
+      @Override
+      public MessageInfo generateMessageInfo(TransformResult transformResult) {
+          Revision rev = transformResult.getCurrentRevision();
+          return new MessageInfo(
+              transformResult.isSetRevId()
+                  ? ImmutableList.of(new LabelFinder(
+                  rev.getLabelName() + ORIGIN_LABEL_SEPARATOR + rev.asString()))
+                  : ImmutableList.of());
+      }
+
+      @Override
+      public ImmutableList<DestinationEffect> afterPush(String serverResponse,
+          MessageInfo messageInfo, GitRevision pushedRevision,
+          List<? extends Change<?>> originChanges) {
+        return ImmutableList.of(
+            new DestinationEffect(
+                DestinationEffect.Type.CREATED,
+                String.format("Created revision %s", pushedRevision.getSha1()),
+                originChanges,
+                new DestinationEffect.DestinationRef(
+                    pushedRevision.getSha1(), "commit", /*url=*/ null),
+                ImmutableList.of()));
+      }
+    }
 
     @Override
     public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
@@ -445,7 +476,7 @@ public final class GitDestination implements Destination<GitRevision> {
       excludedAdder.add();
 
       console.progress("Git Destination: Creating a local commit");
-      MessageInfo messageInfo = commitGenerator.message(transformResult);
+      MessageInfo messageInfo = writeHook.generateMessageInfo(transformResult);
 
       ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
       for (LabelFinder label : messageInfo.labelsToAdd) {
@@ -493,7 +524,14 @@ public final class GitDestination implements Destination<GitRevision> {
               "User aborted execution: did not confirm diff changes.");
         }
       }
+
+      // We run the hook before skip-push check so that we can do validations that should happen
+      // in dry-run mode.
+      writeHook.beforePush(skipPush);
+
       GitRevision head = scratchClone.resolveReference("HEAD");
+
+      SkylarkList<? extends Change<?>> originChanges = transformResult.getChanges().getCurrent();
       if (skipPush) {
         console.infoFmt(
             "Git Destination: skipped push to remote. Check the local commits at %s",
@@ -503,7 +541,7 @@ public final class GitDestination implements Destination<GitRevision> {
                 DestinationEffect.Type.CREATED,
                 String.format(
                     "Dry run commit '%s' created locally at %s", head, scratchClone.getGitDir()),
-                transformResult.getChanges().getCurrent(),
+                originChanges,
                 new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null),
                 ImmutableList.of()));
       }
@@ -520,11 +558,7 @@ public final class GitDestination implements Destination<GitRevision> {
                   (nonFastForwardPush ? "+" : "") + "HEAD:" + getCompleteRef(remotePush))))
               .run()
       );
-      return processPushOutput.process(
-          serverResponse,
-          messageInfo.newPush,
-          alternate,
-          transformResult.getChanges().getCurrent());
+      return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
     }
 
     /**
@@ -620,50 +654,6 @@ public final class GitDestination implements Destination<GitRevision> {
         .add("push", push)
         .add("skip_push", skipPush)
         .toString();
-  }
-
-  /**
-   * Process the server response from the push command
-   */
-  interface ProcessPushOutput {
-
-    /**
-     * @param output - the message for the commit
-     * @param newPush - true if is the first time we are pushing to the origin ref
-     * @param alternateRepo - The alternate repo used for staging commits, if any
-     * @param current
-     */
-    ImmutableList<DestinationEffect> process(
-        String output,
-        boolean newPush,
-        GitRepository alternateRepo,
-        List<? extends Change<?>> current);
-  }
-
-  static class ProcessPushStructuredOutput implements ProcessPushOutput {
-
-    @Override
-    public ImmutableList<DestinationEffect> process(
-        String output,
-        boolean newPush,
-        GitRepository alternateRepo,
-        List<? extends Change<?>> current) {
-      try {
-        String sha1 = alternateRepo.parseRef("HEAD");
-
-        return ImmutableList.of(
-            new DestinationEffect(
-                DestinationEffect.Type.CREATED,
-                String.format("Created revision %s", sha1),
-                current,
-                new DestinationEffect.DestinationRef(sha1, "commit", /*url=*/ null),
-                ImmutableList.of()));
-
-      } catch (RepoException | CannotResolveRevisionException e) {
-        // We should always be able to resolve HEAD. Otherwise we have something really wrong.
-        throw new RuntimeException("Internal bug. Please fill a bug", e);
-      }
-    }
   }
 
   /**

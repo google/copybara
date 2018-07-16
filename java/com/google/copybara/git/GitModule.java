@@ -47,8 +47,7 @@ import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
-import com.google.copybara.git.GitDestination.DefaultCommitGenerator;
-import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
+import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
 import com.google.copybara.git.GitHubPROrigin.ReviewState;
 import com.google.copybara.git.GitHubPROrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
@@ -503,8 +502,7 @@ public class GitModule implements LabelsAwareModule {
         options.get(GitOptions.class),
         generalOptions,
         skipPush,
-        new DefaultCommitGenerator(),
-        new ProcessPushStructuredOutput(),
+        new DefaultWriteHook(),
         SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"));
   }
@@ -555,8 +553,7 @@ public class GitModule implements LabelsAwareModule {
         options.get(GitHubDestinationOptions.class),
         options.get(GitOptions.class),
         skipPush,
-        new DefaultCommitGenerator(),
-        new ProcessPushStructuredOutput(),
+        new DefaultWriteHook(),
         SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"),
         SkylarkUtil.convertFromNoneable(title, null),
@@ -606,14 +603,20 @@ public class GitModule implements LabelsAwareModule {
                   + "  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>"
                   + "  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>"
                   + "  <li>`'REPLACE'`: Replace with a new one if found</li>"
-                  + "</ul>")
+                  + "</ul>"),
+          @Param(name = "allow_empty_patchset", type = Boolean.class,
+              named = true,
+              doc = "By default Copybara will upload a new PatchSet to Gerrit without checking the"
+                  + " previous one. If this set to false, Copybara will download current PatchSet"
+                  + " and check the diff against the new diff.",
+              defaultValue = "True"),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   @DocDefault(field = "push_to_refs_for", value = "fetch value")
   public GerritDestination gerritDestination(
-      String url, String fetch, Object pushToRefsFor, Boolean submit,
-      String changeIdPolicy, Location location) throws EvalException {
+      String url, String fetch, Object pushToRefsFor, Boolean submit, String changeIdPolicy,
+      Boolean allowEmptyPatchSet, Location location) throws EvalException {
     return GerritDestination.newGerritDestination(
         options,
         checkNotEmpty(url, "url", location),
@@ -626,8 +629,8 @@ public class GitModule implements LabelsAwareModule {
                 fetch),
             "push_to_refs_for", location),
         submit,
-        stringToEnum(location, "change_id_policy", changeIdPolicy,
-            ChangeIdPolicy.class));
+        stringToEnum(location, "change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
+        allowEmptyPatchSet);
   }
 
   @SuppressWarnings("unused")

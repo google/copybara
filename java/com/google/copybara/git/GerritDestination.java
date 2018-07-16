@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.git.GitModule.DEFAULT_GIT_INTEGRATES;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -40,7 +41,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
-import com.google.copybara.git.GitDestination.ProcessPushStructuredOutput;
+import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
@@ -63,22 +64,40 @@ public final class GerritDestination implements Destination<GitRevision> {
 
   static final String CHANGE_ID_LABEL = "Change-Id";
 
-  private static final class CommitGenerator implements GitDestination.CommitGenerator {
+  private final GitDestination gitDestination;
+  private final boolean submit;
+
+  private GerritDestination(GitDestination gitDestination, boolean submit) {
+    this.gitDestination = Preconditions.checkNotNull(gitDestination);
+    this.submit = submit;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("gitDestination", gitDestination)
+        .toString();
+  }
+
+  static class GerritWriteHook implements WriteHook {
+
+    private static final Pattern GERRIT_URL_LINE = Pattern.compile(".*: *(http(s)?://[^ ]+)( .*)?");
 
     private final GerritOptions gerritOptions;
     private final String repoUrl;
     private final Author committer;
     private final Console console;
     private final ChangeIdPolicy changeIdPolicy;
+    private final boolean allowEmptyPatchSet;
 
-    private CommitGenerator(
-        GerritOptions gerritOptions, String repoUrl, Author committer, Console console,
-        ChangeIdPolicy changeIdPolicy) {
+    GerritWriteHook(GerritOptions gerritOptions, String repoUrl, Author committer,
+        Console console, ChangeIdPolicy changeIdPolicy, boolean allowEmptyPatchSet) {
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
       this.committer = Preconditions.checkNotNull(committer);
       this.console = Preconditions.checkNotNull(console);
       this.changeIdPolicy = Preconditions.checkNotNull(changeIdPolicy);
+      this.allowEmptyPatchSet = allowEmptyPatchSet;
     }
 
     /**
@@ -96,9 +115,10 @@ public final class GerritDestination implements Destination<GitRevision> {
      * Gerrit or not.
      */
     @Override
-    public MessageInfo message(TransformResult result) throws RepoException, ValidationException {
+    public MessageInfo generateMessageInfo(TransformResult result)
+        throws ValidationException, RepoException {
       if (!Strings.isNullOrEmpty(gerritOptions.gerritChangeId)) {
-        return createMessageInfo(result, /*newPush=*/false, gerritOptions.gerritChangeId,
+        return createMessageInfo(result, /*newReview=*/false, gerritOptions.gerritChangeId,
             // CLI flag always wins.
             ChangeIdPolicy.REPLACE);
       }
@@ -112,17 +132,70 @@ public final class GerritDestination implements Destination<GitRevision> {
         List<ChangeInfo> changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
             "change: " + changeId + " AND project:" + gerritOptions.getProject(repoUrl)));
         if (changes.isEmpty()) {
-          return createMessageInfo(result, /*newPush=*/true, changeId, changeIdPolicy);
+          return createMessageInfo(result, /*newReview=*/true, changeId, changeIdPolicy);
         }
         if (changes.get(0).getStatus().equals(ChangeStatus.NEW)) {
-          return createMessageInfo(result, /*newPush=*/false, changes.get(0).getChangeId(),
+          return createMessageInfo(result, /*newReview=*/false, changes.get(0).getChangeId(),
               changeIdPolicy);
         }
         attempt++;
       }
       throw new RepoException(
           String.format("Unable to find unmerged change for '%s', committer '%s'.",
-                        workflowId, committer));
+              workflowId, committer));
+    }
+
+    @Override
+    public void beforePush(boolean skipPush) throws RepoException, ValidationException {
+       if (!allowEmptyPatchSet) {
+         throw new ValidationException("allow_empty_patchset check is still not implemented");
+       }
+    }
+
+    @Override
+    public ImmutableList<DestinationEffect> afterPush(String serverResponse,
+        MessageInfo messageInfo, GitRevision pushedRevision,
+        List<? extends Change<?>> originChanges) {
+      // Should be the message info returned by generateMessageInfo
+      GerritMessageInfo gerritMessageInfo = (GerritMessageInfo) messageInfo;
+      ImmutableList.Builder<DestinationEffect> result = ImmutableList.<DestinationEffect>builder()
+              .add(new DestinationEffect(
+                  DestinationEffect.Type.CREATED,
+                  String.format("Created revision %s", pushedRevision.getSha1()),
+                  originChanges,
+                  new DestinationEffect.DestinationRef(
+                      pushedRevision.getSha1(), "commit", /*url=*/ null),
+                  ImmutableList.of()));
+
+      List<String> lines = Splitter.on("\n").splitToList(serverResponse);
+      for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
+        String line = iterator.next();
+        if ((line.contains("New Changes") || line.contains("Updated Changes"))
+            && iterator.hasNext()) {
+          String next = iterator.next();
+          Matcher matcher = GERRIT_URL_LINE.matcher(next);
+          if (matcher.matches()) {
+            String message = gerritMessageInfo.newReview
+                ? "New Gerrit review created at "
+                : "Updated existing Gerrit review at ";
+            String url = matcher.group(1);
+            String changeNum = url.substring(url.lastIndexOf("/") + 1);
+            message = message + url;
+            console.info(message);
+            result.add(
+                new DestinationEffect(
+                    gerritMessageInfo.newReview
+                        ? DestinationEffect.Type.CREATED
+                        : DestinationEffect.Type.UPDATED,
+                    message,
+                    originChanges,
+                    new DestinationEffect.DestinationRef(changeNum, "gerrit_review", url),
+                    ImmutableList.of()));
+            break;
+          }
+        }
+      }
+      return result.build();
     }
 
     @Nullable
@@ -135,7 +208,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       return null;
     }
 
-    private MessageInfo createMessageInfo(TransformResult result, boolean newPush,
+    private GerritMessageInfo createMessageInfo(TransformResult result, boolean newReview,
         String gerritChangeId, ChangeIdPolicy changeIdPolicy) throws ValidationException {
       Revision rev = result.getCurrentRevision();
       ImmutableList.Builder<LabelFinder> labels = ImmutableList.builder();
@@ -168,7 +241,7 @@ public final class GerritDestination implements Destination<GitRevision> {
           throw new UnsupportedOperationException("Unsupported policy: " + changeIdPolicy);
       }
 
-      return new MessageInfo(labels.build(), newPush);
+      return new GerritMessageInfo(labels.build(), newReview);
     }
 
     @SuppressWarnings("deprecation")
@@ -183,25 +256,22 @@ public final class GerritDestination implements Destination<GitRevision> {
     }
   }
 
-  private final GitDestination gitDestination;
-  private final boolean submit;
-
-  private GerritDestination(GitDestination gitDestination, boolean submit) {
-    this.gitDestination = Preconditions.checkNotNull(gitDestination);
-    this.submit = submit;
-  }
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("gitDestination", gitDestination)
-        .toString();
-  }
-
   @Override
   public Writer<GitRevision> newWriter(Glob destinationFiles, boolean dryRun,
       @Nullable String groupId, @Nullable Writer<GitRevision> oldWriter) {
     return gitDestination.newWriter(destinationFiles, dryRun, groupId, oldWriter);
+  }
+
+  /** A message info that contains also information if the change is a new review */
+  @VisibleForTesting
+  static class GerritMessageInfo extends MessageInfo {
+
+    private final boolean newReview;
+
+    GerritMessageInfo(ImmutableList<LabelFinder> labelsToAdd, boolean newReview) {
+      super(labelsToAdd);
+      this.newReview = newReview;
+    }
   }
 
   @Override
@@ -215,7 +285,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       String fetch,
       String pushToRefsFor,
       boolean submit,
-      ChangeIdPolicy changeIdPolicy) {
+      ChangeIdPolicy changeIdPolicy,
+      boolean allowEmptyPatchSet) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     String push;
@@ -237,65 +308,16 @@ public final class GerritDestination implements Destination<GitRevision> {
             options.get(GitOptions.class),
             generalOptions,
             /*skipPush=*/ false,
-            new CommitGenerator(
+            new GerritWriteHook(
                 gerritOptions,
                 url,
                 destinationOptions.getCommitter(),
                 generalOptions.console(),
-                changeIdPolicy),
-            new GerritProcessPushOutput(generalOptions.console()),
+                changeIdPolicy,
+                allowEmptyPatchSet),
             DEFAULT_GIT_INTEGRATES),
-        submit);
-  }
-
-  static class GerritProcessPushOutput extends ProcessPushStructuredOutput {
-
-    private static final Pattern GERRIT_URL_LINE = Pattern.compile(
-        ".*: *(http(s)?://[^ ]+)( .*)?");
-    private final Console console;
-
-    GerritProcessPushOutput(Console console) {
-      this.console = Preconditions.checkNotNull(console);
-    }
-
-    @Override
-    public ImmutableList<DestinationEffect> process(
-        String output,
-        boolean newReview,
-        GitRepository localRepo,
-        List<? extends Change<?>> current) {
-      ImmutableList.Builder<DestinationEffect> result =
-          ImmutableList.<DestinationEffect>builder()
-              .addAll(super.process(output, newReview, localRepo, current));
-
-      List<String> lines = Splitter.on("\n").splitToList(output);
-      for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
-        String line = iterator.next();
-        if ((line.contains("New Changes") || line.contains("Updated Changes"))
-            && iterator.hasNext()) {
-          String next = iterator.next();
-          Matcher matcher = GERRIT_URL_LINE.matcher(next);
-          if (matcher.matches()) {
-            String message = newReview
-                ? "New Gerrit review created at "
-                : "Updated existing Gerrit review at ";
-            String url = matcher.group(1);
-            String changeNum = url.substring(url.lastIndexOf("/") + 1);
-            message = message + url;
-            console.info(message);
-            result.add(
-                new DestinationEffect(
-                    newReview ? DestinationEffect.Type.CREATED : DestinationEffect.Type.UPDATED,
-                    message,
-                    current,
-                    new DestinationEffect.DestinationRef(changeNum, "gerrit_review", url),
-                    ImmutableList.of()));
-            break;
-          }
-        }
-      }
-      return result.build();
-    }
+        submit
+    );
   }
 
   @Override

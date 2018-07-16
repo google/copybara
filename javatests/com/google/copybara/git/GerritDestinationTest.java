@@ -35,9 +35,12 @@ import com.google.copybara.Changes;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.LabelFinder;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.GerritDestination.GerritProcessPushOutput;
+import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
+import com.google.copybara.git.GerritDestination.GerritMessageInfo;
+import com.google.copybara.git.GerritDestination.GerritWriteHook;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
 import com.google.copybara.git.testing.GitTesting;
@@ -664,13 +667,16 @@ public class GerritDestinationTest {
   @Test
   public void testProcessPushOutput_new() throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    GerritProcessPushOutput process =
-        new GerritProcessPushOutput(
-            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false));
+    GerritWriteHook process =
+        new GerritWriteHook(options.gerrit, "http://example.com/foo",
+            new Author("foo", "foo@example.com"),
+            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
+            ChangeIdPolicy.REPLACE, /*allowEmptyPatchSet=*/true);
     fakeOneCommitInDestination();
     
-    ImmutableList<DestinationEffect> result = process.process(
-        GERRIT_RESPONSE, /*newReview*/ true, repo(), Changes.EMPTY.getCurrent());
+    ImmutableList<DestinationEffect> result = process.afterPush(
+        GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/true),
+        repo().resolveReference("HEAD"), Changes.EMPTY.getCurrent());
 
     assertThat(out.toString())
         .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
@@ -700,13 +706,17 @@ public class GerritDestinationTest {
   @Test
   public void testProcessPushOutput_existing() throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    GerritProcessPushOutput process = new GerritProcessPushOutput(
-        LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false));
-
+    GerritWriteHook process =
+        new GerritWriteHook(options.gerrit, "http://example.com/foo",
+            new Author("foo", "foo@example.com"),
+            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
+            ChangeIdPolicy.REPLACE, /*allowEmptyPatchSet=*/true);
     fakeOneCommitInDestination();
 
-    ImmutableList<DestinationEffect> result =
-        process.process(GERRIT_RESPONSE, /*newReview*/false, repo(), Changes.EMPTY.getCurrent());
+    ImmutableList<DestinationEffect> result = process.afterPush(
+        GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/ false),
+        repo().resolveReference("HEAD"), Changes.EMPTY.getCurrent());
+
 
     assertThat(out.toString())
         .contains("INFO: Updated existing Gerrit review at https://some.url.google.com/1234");
