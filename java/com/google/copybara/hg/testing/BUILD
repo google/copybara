@@ -19,7 +19,9 @@ package(default_visibility = ["//visibility:public"])
 java_library(
     name = "testing",
     testonly = 1,
-    srcs = glob(["HgTesting.java"]),
+    srcs = [
+        "HgTesting.java",
+    ],
     javacopts = [
         "-Xlint:unchecked",
         "-source",
