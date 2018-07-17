@@ -147,3 +147,11 @@ java_library(
         "@flogger_system_backend//jar"
     ]
 )
+
+java_library(
+    name = "hg_testing",
+    testonly = 1,
+    exports = [
+        "//java/com/google/copybara/hg/testing",
+    ]
+)
