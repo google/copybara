@@ -141,6 +141,7 @@ public class GitRepository {
    * repo folder name.
    */
   private static final int REPO_FOLDER_NAME_LIMIT = 100;
+  private static final int  DEFAULT_MAX_LOG_LINES = -1;
 
   /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
@@ -876,6 +877,28 @@ public class GitRepository {
     return git(getCwd(), addGitDirAndWorkTreeParams(Arrays.asList(argv)));
   }
 
+  public CommandOutput simpleCommandNoRedirectOutput(String... argv) throws RepoException {
+    Iterable<String> params = addGitDirAndWorkTreeParams(Arrays.asList(argv));
+    try {
+      // Use maxLoglines 0 and verbose=false to avoid redirection
+      return executeGit(getCwd(), params, environment, /*verbose*/ false, /*maxLoglines*/ 0);
+    } catch (BadExitStatusWithOutputException e) {
+      CommandOutputWithStatus output = e.getOutput();
+
+      for (Pattern error : REF_NOT_FOUND_ERRORS) {
+        Matcher matcher = error.matcher(output.getStderr());
+        if (matcher.find()) {
+          throw new RepoException(
+              "Cannot find reference '" + matcher.group(1) + "'");
+        }
+      }
+
+      throw throwUnknownGitError(output, params);
+    } catch (CommandException e) {
+      throw new RepoException("Error executing 'git': " + e.getMessage(), e);
+    }
+  }
+
   /**
    * Execute git apply.
    *
@@ -983,7 +1006,7 @@ public class GitRepository {
 
   private static CommandOutputWithStatus executeGit(Path cwd, Iterable<String> params,
       Map<String, String> env, boolean verbose) throws CommandException {
-    return executeGit(cwd, params, env, verbose, /*maxLogLines*/-1);
+    return executeGit(cwd, params, env, verbose, DEFAULT_MAX_LOG_LINES);
   }
 
   private static CommandOutputWithStatus executeGit(Path cwd, Iterable<String> params,

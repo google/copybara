@@ -182,7 +182,7 @@ public class GitIntegrateChanges {
         GitLogEntry head = getHeadCommit(repository);
 
         // Create a patch of the changes from main_branch..feature head.
-        byte[] diff = repository.simpleCommand("diff",
+        byte[] diff = repository.simpleCommandNoRedirectOutput("diff",
             head.getCommit().getSha1() + ".." + integrateLabel.getRevision().getSha1())
             .getStdoutBytes();
 
