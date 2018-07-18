@@ -1176,7 +1176,7 @@ public class WorkflowTest {
 
     w.run(workdir, ImmutableList.of("2"));
 
-    change = destination.processed.get(destination.processed.size() -1);
+    change = destination.processed.get(destination.processed.size() - 1);
     assertThat(change.getChangesSummary()).isEqualTo("Second Change");
     assertThat(change.getBaseline()).isEqualTo("1");
   }
