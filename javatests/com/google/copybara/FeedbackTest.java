@@ -224,7 +224,7 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testNoopSuccesReturnsSuccess() throws Exception {
+  public void testNoopSuccessReturnsSuccess() throws Exception {
     Feedback feedback = feedback(
         ""
             + "def test_action_1(ctx):\n"
