@@ -1967,7 +1967,43 @@ public class WorkflowTest {
     } catch (ValidationException expected) {
       assertThat(expected.getMessage()).contains("Error loading config file");
     }
+  }
 
+  @Test
+  public void testOnFinishHookNotRunForDryRun() throws Exception {
+    options.workflowOptions.dryRunMode = true;
+    checkOnFinishHookNotRunForDryRun();
+  }
+
+  @Test
+  public void testOnFinishHookNotRunForDryRun_false() throws Exception {
+    options.workflowOptions.dryRunMode = false;
+    try {
+      checkOnFinishHookNotRunForDryRun();
+      fail();
+    } catch (ValidationException ignored) {
+      assertThat(ignored).hasMessageThat().contains(
+          "Error while executing the skylark transformation other");
+    }
+  }
+
+  private void checkOnFinishHookNotRunForDryRun()
+      throws IOException, RepoException, ValidationException {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+    String config = ""
+        + "def other(ctx):\n"
+        + "  a = 3 + 'cannot add int to string!'\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "  name = 'default',\n"
+        + "  origin = testing.origin(),\n"
+        + "  destination = testing.destination(),\n"
+        + "  transformations = [],\n"
+        + "  authoring = " + authoring + ",\n"
+        + "  after_migration = [other]"
+        + ")\n";
+
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
   }
 
   @Test

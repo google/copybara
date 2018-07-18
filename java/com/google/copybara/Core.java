@@ -206,7 +206,7 @@ public class Core implements LabelsAwareModule {
                   + " main branch.",
               defaultValue = "False", positional = false),
           @Param(name = "after_migration", named = true, type = SkylarkList.class,
-              doc = "Run a feedback workflow after one migration happens. STILL WIP",
+              doc = "Run a feedback workflow after one migration happens.",
               defaultValue = "[]", positional = false),
           @Param(name = "change_identity", named = true, type = String.class,
               doc = "By default, Copybara hashes several fields so that each change has an"

@@ -290,7 +290,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       throw e;
     } finally {
       eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
-      if (callPerMigrationHook) {
+      if (callPerMigrationHook && !workflowOptions().dryRunMode) {
         SkylarkConsole console = new SkylarkConsole(getConsole());
         try (ProfilerTask ignored = profiler().start("finish_hooks")) {
 
@@ -308,6 +308,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             }
           }
         }
+      } else if (workflowOptions().dryRunMode && !workflow.getAfterMigrationActions().isEmpty()) {
+        getConsole().infoFmt("Not calling 'after_migration' actions because of %s mode",
+            WorkflowOptions.DRY_RUN_FLAG);
       }
     }
   }
