@@ -31,7 +31,6 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.TransformResult;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.WriterImpl;
 import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.git.GitDestination.WriterState;
@@ -121,7 +120,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
               : "copybara/push-" + UUID.randomUUID() + (dryRun ? "-dryrun" : ""));
     }
 
-    return new WriterImpl<GitHubWriterState, MessageInfo>(destinationFiles, effectiveSkipPush, url,
+    return new WriterImpl<GitHubWriterState>(destinationFiles, effectiveSkipPush, url,
         destinationRef, pushBranchName,
         generalOptions, writeHook,
         state, /*nonFastForwardPush=*/true, integrates,

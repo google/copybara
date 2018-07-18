@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.flogger.FluentLogger;
 import com.google.common.hash.Hashing;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
@@ -38,13 +39,17 @@ import com.google.copybara.Options;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
+import com.google.copybara.git.gerritapi.IncludeResult;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
@@ -53,6 +58,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.UUID;
 import javax.annotation.Nullable;
 
 /**
@@ -61,6 +67,8 @@ import javax.annotation.Nullable;
 public final class GerritDestination implements Destination<GitRevision> {
 
   private static final int MAX_FIND_ATTEMPTS = 100;
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   static final String CHANGE_ID_LABEL = "Change-Id";
 
@@ -88,16 +96,18 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final Author committer;
     private final Console console;
     private final ChangeIdPolicy changeIdPolicy;
-    private final boolean allowEmptyPatchSet;
+    private final boolean allowEmptyDiffPatchSet;
+    private final GeneralOptions generalOptions;
 
-    GerritWriteHook(GerritOptions gerritOptions, String repoUrl, Author committer,
-        Console console, ChangeIdPolicy changeIdPolicy, boolean allowEmptyPatchSet) {
+    GerritWriteHook(GeneralOptions generalOptions, GerritOptions gerritOptions, String repoUrl,
+        Author committer, ChangeIdPolicy changeIdPolicy, boolean allowEmptyDiffPatchSet) {
+      this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
       this.committer = Preconditions.checkNotNull(committer);
-      this.console = Preconditions.checkNotNull(console);
+      this.console = Preconditions.checkNotNull(generalOptions.console());
       this.changeIdPolicy = Preconditions.checkNotNull(changeIdPolicy);
-      this.allowEmptyPatchSet = allowEmptyPatchSet;
+      this.allowEmptyDiffPatchSet = allowEmptyDiffPatchSet;
     }
 
     /**
@@ -128,9 +138,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       int attempt = 0;
       while (attempt <= MAX_FIND_ATTEMPTS) {
         String changeId = computeChangeId(workflowId, committer.getEmail(), attempt);
-        console.progressFmt("Querying Gerrit ('%s') for change '%s'", repoUrl, changeId);
-        List<ChangeInfo> changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
-            "change: " + changeId + " AND project:" + gerritOptions.getProject(repoUrl)));
+        List<ChangeInfo> changes = findChanges(changeId, ImmutableList.of());
         if (changes.isEmpty()) {
           return createMessageInfo(result, /*newReview=*/true, changeId, changeIdPolicy);
         }
@@ -145,11 +153,88 @@ public final class GerritDestination implements Destination<GitRevision> {
               workflowId, committer));
     }
 
+    private List<ChangeInfo> findChanges(String changeId, Iterable<IncludeResult> includes)
+        throws RepoException, ValidationException {
+      console.progressFmt("Querying Gerrit ('%s') for change '%s'", repoUrl, changeId);
+      return gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
+          "change: " + changeId + " AND project:" + gerritOptions.getProject(repoUrl))
+          .withInclude(includes));
+    }
+
     @Override
-    public void beforePush(boolean skipPush) throws RepoException, ValidationException {
-       if (!allowEmptyPatchSet) {
-         throw new ValidationException("allow_empty_patchset check is still not implemented");
-       }
+    public void beforePush(GitRepository repo, MessageInfo messageInfo,
+        boolean skipPush) throws RepoException, ValidationException {
+      GerritMessageInfo gerritMessageInfo = (GerritMessageInfo) messageInfo;
+      if (allowEmptyDiffPatchSet || gerritMessageInfo.newReview) {
+        return;
+      }
+
+      // Keep old HEAD state, prefer the symbolic-ref (branch name) if possible so that it works
+      // with local repos.
+      String oldHead;
+      try {
+        oldHead = repo.simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
+      } catch (RepoException e) {
+        oldHead = repo.resolveReference("HEAD").getSha1();
+      }
+
+      try (ProfilerTask ignore = generalOptions.profiler().start("previous_patchset_check")) {
+        List<ChangeInfo> changes = findChanges(gerritMessageInfo.changeId,
+            ImmutableList.of(IncludeResult.CURRENT_REVISION));
+        if (changes.isEmpty()) {
+          return; // Probably CLI flag
+        }
+
+        ChangeInfo changeInfo = changes.get(0);
+
+        try (ProfilerTask ignore2 = generalOptions.profiler().start("fetch_previous_patchset")) {
+          repo.fetch(repoUrl, /*prune=*/ false, /*force=*/ true,
+              ImmutableList.of(changeInfo.getCurrentRevision()));
+        } catch (RepoException | ValidationException e) {
+          // Don't fail if we cannot find the previous patchset
+          logger.atWarning().withCause(e).log("Cannot download previous patchset: %s", changeInfo);
+          console.warnFmt("Cannot download previous patchset for change %s (%s)",
+              changeInfo.getNumber(), changeInfo.getChangeId());
+          return;
+        }
+
+        GitLogEntry newChange = Iterables.getLast(repo.log("HEAD").withLimit(1).run());
+        repo.simpleCommand("stash");
+        repo.simpleCommand("checkout", "-b", "cherry_pick" + UUID.randomUUID().toString(),
+            "HEAD~1");
+        if (tryToCherryPick(repo, changeInfo.getCurrentRevision(),
+            changeInfo.getNumber())) {
+          GitLogEntry oldWithCherryPick = Iterables.getLast(repo.log("HEAD").withLimit(1).run());
+
+          if (oldWithCherryPick.getTree().equals(newChange.getTree())) {
+            throw new EmptyChangeException(String.format(
+                "Skipping creating a new Gerrit PatchSet for change %s since the diff is the"
+                    + " same from the previous PatchSet (%s)",
+                changeInfo.getNumber(),
+                changeInfo.getCurrentRevision()));
+          }
+        }
+
+      } finally {
+        repo.forceCheckout(oldHead);
+        repo.simpleCommand("stash", "pop");
+      }
+    }
+
+    private boolean tryToCherryPick(GitRepository repo, String commit, long changeNumber) {
+      try {
+        repo.simpleCommand("cherry-pick", commit);
+        return true;
+      } catch (RepoException e) {
+        logger.atSevere().withCause(e).log("Couldn't compare previous PatchSet for change %s"
+            + " (%s)", changeNumber, commit);
+        // Abort the cherry-pick
+        try {
+          repo.simpleCommand("cherry-pick", "--abort");
+        } catch (RepoException ignore) {
+        }
+        return false;
+      }
     }
 
     @Override
@@ -216,6 +301,7 @@ public final class GerritDestination implements Destination<GitRevision> {
         labels.add(new LabelFinder(rev.getLabelName() + ": " + rev.asString()));
       }
       String existingChangeId = getExistingChangeId(result.getSummary());
+      String effectiveChangeId = existingChangeId;
       switch (changeIdPolicy) {
         case REQUIRE:
           ValidationException.checkCondition(existingChangeId != null,
@@ -228,20 +314,23 @@ public final class GerritDestination implements Destination<GitRevision> {
                   + " git.gerrit_destination(change_id_policy = ...) to change this behavior",
               CHANGE_ID_LABEL, result.getSummary());
           labels.add(new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId));
+          effectiveChangeId = gerritChangeId;
           break;
         case REUSE:
           if (existingChangeId == null) {
             labels.add(new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId));
+            effectiveChangeId = gerritChangeId;
           }
           break;
         case REPLACE:
           labels.add(new LabelFinder(CHANGE_ID_LABEL + ": " + gerritChangeId));
+          effectiveChangeId = gerritChangeId;
           break;
         default:
           throw new UnsupportedOperationException("Unsupported policy: " + changeIdPolicy);
       }
 
-      return new GerritMessageInfo(labels.build(), newReview);
+      return new GerritMessageInfo(labels.build(), newReview, effectiveChangeId);
     }
 
     @SuppressWarnings("deprecation")
@@ -267,10 +356,12 @@ public final class GerritDestination implements Destination<GitRevision> {
   static class GerritMessageInfo extends MessageInfo {
 
     private final boolean newReview;
+    private final String changeId;
 
-    GerritMessageInfo(ImmutableList<LabelFinder> labelsToAdd, boolean newReview) {
+    GerritMessageInfo(ImmutableList<LabelFinder> labelsToAdd, boolean newReview, String changeId) {
       super(labelsToAdd);
       this.newReview = newReview;
+      this.changeId = Preconditions.checkNotNull(changeId);
     }
   }
 
@@ -309,10 +400,10 @@ public final class GerritDestination implements Destination<GitRevision> {
             generalOptions,
             /*skipPush=*/ false,
             new GerritWriteHook(
+                generalOptions,
                 gerritOptions,
                 url,
                 destinationOptions.getCommitter(),
-                generalOptions.console(),
                 changeIdPolicy,
                 allowEmptyPatchSet),
             DEFAULT_GIT_INTEGRATES),

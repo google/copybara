@@ -604,7 +604,7 @@ public class GitModule implements LabelsAwareModule {
                   + "  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>"
                   + "  <li>`'REPLACE'`: Replace with a new one if found</li>"
                   + "</ul>"),
-          @Param(name = "allow_empty_patchset", type = Boolean.class,
+          @Param(name = "allow_empty_diff_patchset", type = Boolean.class,
               named = true,
               doc = "By default Copybara will upload a new PatchSet to Gerrit without checking the"
                   + " previous one. If this set to false, Copybara will download current PatchSet"

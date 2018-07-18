@@ -175,7 +175,7 @@ public final class GitDestination implements Destination<GitRevision> {
    * A writer for git.*destination destinations. Note that this is not a public interface and
    * shouldn't be used directly.
    */
-  public static class WriterImpl<S extends WriterState, M extends MessageInfo>
+  public static class WriterImpl<S extends WriterState>
       implements Writer<GitRevision> {
 
     private final Glob destinationFiles;
@@ -382,7 +382,8 @@ public final class GitDestination implements Destination<GitRevision> {
        * git repo should keep current commit as HEAD or do the proper modifications to make HEAD to
        * point to a new/modified changes(s).
        */
-      default void beforePush(boolean skipPush) throws RepoException, ValidationException{ }
+      default void beforePush(GitRepository repo, MessageInfo messageInfo, boolean skipPush)
+          throws RepoException, ValidationException { }
 
       /**
        * Process the server response from the push command and compute the effects that happened
@@ -527,7 +528,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
       // We run the hook before skip-push check so that we can do validations that should happen
       // in dry-run mode.
-      writeHook.beforePush(skipPush);
+      writeHook.beforePush(scratchClone, messageInfo, skipPush);
 
       GitRevision head = scratchClone.resolveReference("HEAD");
 

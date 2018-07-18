@@ -36,6 +36,7 @@ import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
@@ -52,11 +53,10 @@ import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitApiMockHttpTransport;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.console.LogConsole;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -668,18 +668,21 @@ public class GerritDestinationTest {
   public void testProcessPushOutput_new() throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     GerritWriteHook process =
-        new GerritWriteHook(options.gerrit, "http://example.com/foo",
+        new GerritWriteHook(
+            options.general,
+            options.gerrit, "http://example.com/foo",
             new Author("foo", "foo@example.com"),
-            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
             ChangeIdPolicy.REPLACE, /*allowEmptyPatchSet=*/true);
     fakeOneCommitInDestination();
     
     ImmutableList<DestinationEffect> result = process.afterPush(
-        GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/true),
+        GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/true,
+            CONSTANT_CHANGE_ID),
         repo().resolveReference("HEAD"), Changes.EMPTY.getCurrent());
 
-    assertThat(out.toString())
-        .contains("INFO: New Gerrit review created at https://some.url.google.com/1234");
+    console.assertThat().onceInLog(MessageType.INFO,
+        "New Gerrit review created at https://some.url.google.com/1234");
+
     assertThat(result).hasSize(2);
     assertThat(result.get(0).getErrors()).isEmpty();
     assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
@@ -705,21 +708,21 @@ public class GerritDestinationTest {
 
   @Test
   public void testProcessPushOutput_existing() throws Exception {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
     GerritWriteHook process =
-        new GerritWriteHook(options.gerrit, "http://example.com/foo",
+        new GerritWriteHook(
+            options.general,
+            options.gerrit, "http://example.com/foo",
             new Author("foo", "foo@example.com"),
-            LogConsole.readWriteConsole(System.in, new PrintStream(out), /*verbose=*/ false),
             ChangeIdPolicy.REPLACE, /*allowEmptyPatchSet=*/true);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(
-        GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/ false),
+        GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/ false,
+            CONSTANT_CHANGE_ID),
         repo().resolveReference("HEAD"), Changes.EMPTY.getCurrent());
 
-
-    assertThat(out.toString())
-        .contains("INFO: Updated existing Gerrit review at https://some.url.google.com/1234");
+    console.assertThat().onceInLog(MessageType.INFO,
+        "Updated existing Gerrit review at https://some.url.google.com/1234");
 
     assertThat(result).hasSize(2);
     assertThat(result.get(0).getErrors()).isEmpty();
@@ -766,18 +769,175 @@ public class GerritDestinationTest {
     fetch = "master";
 
     Path scratchWorkTree = Files.createTempDirectory("GitDestinationTest-scratchWorkTree");
-    Files.write(scratchWorkTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
+    writeFile(scratchWorkTree, "excluded.txt", "some content");
     repo().withWorkTree(scratchWorkTree)
         .add().files("excluded.txt").run();
     repo().withWorkTree(scratchWorkTree)
         .simpleCommand("commit", "-m", "message");
 
-    Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
+    writeFile(workdir, "normal_file.txt", "some more content");
     excludedDestinationPaths = ImmutableList.of("excluded.txt");
     process(new DummyRevision("ref"));
     GitTesting.assertThatCheckout(repo(), "refs/for/master")
         .containsFile("excluded.txt", "some content")
         .containsFile("normal_file.txt", "some more content")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testNoAllowEmptyPatchSet() throws Exception {
+    // TODO(b/111567027): Add a test setting options.gitDestination.localRepoPath = some_folder.
+    // Currently it doesn't work for unrelated reasons (refs/for/master is not a branch name
+    // so we gene
+    Path workTree = Files.createTempDirectory("populate");
+    GitRepository repo = repo().withWorkTree(workTree);
+
+    writeFile(workTree, "foo.txt", ""
+        + "Base file\n"
+        + "This is the original content\n"
+        + "\n"
+        + "This is a common part\n"
+        + "That needs to be changed\n"
+        + "And this remains constant\n");
+
+    writeFile(workTree, "non_relevant.txt", "foo");
+
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Old parent");
+    GitRevision oldParent = repo.resolveReference("HEAD");
+
+    String firstChange = ""
+        + "Base file\n"
+        + "This is the original content\n"
+        + "\n"
+        + "This is a common part\n"
+        + "The content is changed\n"
+        + "And this remains constant\n";
+    writeFile(workdir, "foo.txt", firstChange);
+
+    writeFile(workdir, "non_relevant.txt", "foo");
+
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
+            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
+              return "[]";
+            }
+            throw new IllegalArgumentException(method + " " + url);
+          }
+        };
+
+    runAllowEmptyPatchSetFalse(oldParent.getSha1());
+
+    GitTesting.assertThatCheckout(repo(), "refs/for/master")
+        .containsFile("non_relevant.txt", "foo")
+        .containsFile("foo.txt", firstChange)
+        .containsNoMoreFiles();
+
+    GitRevision currentRev = repo.resolveReference("refs/for/master");
+    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getSha1());
+    // To avoid the non-fastforward. In real Gerrit this is not a problem
+    repo.simpleCommand("update-ref", "-d", "refs/for/master");
+
+    repo.forceCheckout("master");
+
+    writeFile(workTree, "foo.txt", ""
+        + "Base file modified\n"
+        + "This is the modified content\n"
+        + "This is the modified content\n"
+        + "This is the modified content\n"
+        + "\n"
+        + "This is a common part\n"
+        + "That needs to be changed\n"
+        + "And this remains constant\n");
+
+    writeFile(workTree, "non_relevant.txt", "bar");
+
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "New parent");
+
+    GitRevision newParent = repo.resolveReference("HEAD");
+
+    String secondChange = ""
+        + "Base file modified\n"
+        + "This is the modified content\n"
+        + "This is the modified content\n"
+        + "This is the modified content\n"
+        + "\n"
+        + "This is a common part\n"
+        + "The content is changed\n"
+        + "And this remains constant\n";
+
+    writeFile(workdir, "foo.txt", secondChange);
+    writeFile(workdir, "non_relevant.txt", "bar");
+
+
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
+            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
+              String change = changeIdFromRequest(url);
+              return String.format("[{"
+                      + "change_id : '%s',"
+                      + "status : 'NEW',"
+                      + "_number : '12310',"
+                      + "current_revision = '%s'}]",
+                  change, currentRev.getSha1());
+            }
+            throw new IllegalArgumentException(method + " " + url);
+          }
+        };
+    try {
+      runAllowEmptyPatchSetFalse(newParent.getSha1());
+      fail();
+    } catch (EmptyChangeException e) {
+      assertThat(e).hasMessageThat().contains(
+          "Skipping creating a new Gerrit PatchSet for change 12310 since the diff is the same from"
+              + " the previous PatchSet");
+    }
+
+    // No push happened
+    assertThat(repo().refExists("refs/for/master")).isFalse();
+
+    String thirdChange = ""
+        + "Base file modified\n"
+        + "This is the modified content\n"
+        + "This is the modified content\n"
+        + "This is the modified content\n"
+        + "\n"
+        + "This is a common part--> But we are changing it now\n"
+        + "The content is changed\n"
+        + "And this remains constant\n";
+    writeFile(workdir, "foo.txt", thirdChange);
+
+    writeFile(workdir, "non_relevant.txt", "bar");
+    runAllowEmptyPatchSetFalse(newParent.getSha1());
+
+    GitTesting.assertThatCheckout(repo(), "refs/for/master")
+        .containsFile("non_relevant.txt", "bar")
+        .containsFile("foo.txt", thirdChange)
+        .containsNoMoreFiles();
+  }
+
+  private void runAllowEmptyPatchSetFalse(String baseline)
+      throws ValidationException, RepoException, IOException {
+    fetch = "master";
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    ImmutableList<DestinationEffect> result = destination("allow_empty_diff_patchset = False")
+        .newWriter(Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
+            /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
+        .write(
+            TransformResults.of(workdir, originRef)
+                .withIdentity(originRef.asString())
+                .withBaseline(baseline),
+            console);
+    assertThat(result).hasSize(1);
+  }
+
+  private void writeFile(Path workTree, String path, String content) throws IOException {
+    Files.createDirectories(workTree.resolve(path).getParent());
+    Files.write(workTree.resolve(path), content.getBytes(UTF_8));
   }
 }
