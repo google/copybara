@@ -335,11 +335,23 @@ public class GitDestinationIntegrateTest {
     GitDestination destination = destinationWithDefaultIntegrates();
     GitLogEntry previous = createBaseDestinationChange(destination);
 
+    //test failedLabel with empty space
+    String failedLabelWithEmptySpace = new GitHubPRIntegrateLabel(repo, options.general,
+        "example/test_repo", 20, "some_user:345-abc.abc test.sample.test", secondChange.getSha1()).toString();
+    assertThat(failedLabelWithEmptySpace).isNotEqualTo("https://github.com/example/test_repo/pull/20"
+        + " from some_user:20869-tf.contrib.lookup.HashTable " + secondChange.getSha1());
+
+    //test failedLabel with new line
+    String failedLabelWithNewLine = new GitHubPRIntegrateLabel(repo, options.general,
+        "example/test_repo", 20, "some_user:345-abc.abc test\n.sample.test", secondChange.getSha1()).toString();
+    assertThat(failedLabelWithNewLine).isNotEqualTo("https://github.com/example/test_repo/pull/20"
+        + " from some_user:20869-tf.contrib.lookup.HashTable " + secondChange.getSha1());
+
     String label = new GitHubPRIntegrateLabel(repo, options.general,
-        "example/test_repo", 20, "some_user:branch", secondChange.getSha1()).toString();
+        "example/test_repo", 20, "some_user:20869-tf.contrib.lookup.HashTable", secondChange.getSha1()).toString();
 
     assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
-        + " from some_user:branch " + secondChange.getSha1());
+        + " from some_user:20869-tf.contrib.lookup.HashTable " + secondChange.getSha1());
 
     migrateOriginChange(destination, "Test change\n"
         + "\n"
@@ -358,7 +370,7 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry merge = getLastMigratedChange("master");
-    assertThat(merge.getBody()).isEqualTo("Merge pull request #20 from some_user:branch\n"
+    assertThat(merge.getBody()).isEqualTo("Merge pull request #20 from some_user:20869-tf.contrib.lookup.HashTable\n"
         + "\n"
         + "DummyOrigin-RevId: test\n");
 

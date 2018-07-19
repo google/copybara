@@ -36,10 +36,9 @@ import javax.annotation.Nullable;
  */
 class GitHubPRIntegrateLabel implements IntegrateLabel {
 
-  private static final Pattern LABEL_PATTERN = Pattern.compile(
-      "https://github.com/([a-zA-Z0-9_/-]+)/pull/([0-9]+)"
-          + " from ((?:[a-zA-Z0-9_/-]+)(?::(?:[a-zA-Z0-9_/-]+))?)"
-          + "(?: ([0-9a-f]{7,40}))?");
+  private static final Pattern LABEL_PATTERN =
+      Pattern.compile(
+          "https://github.com/([a-zA-Z0-9_/-]+)/pull/([0-9]+) from ([^\\s\\r\\n]*)(?: ([0-9a-f]{7,40}))?");
 
   private final GitRepository repository;
   private final GeneralOptions generalOptions;
