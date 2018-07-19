@@ -199,7 +199,6 @@ public final class GerritDestination implements Destination<GitRevision> {
         }
 
         GitLogEntry newChange = Iterables.getLast(repo.log("HEAD").withLimit(1).run());
-        repo.simpleCommand("stash");
         repo.simpleCommand("checkout", "-b", "cherry_pick" + UUID.randomUUID().toString(),
             "HEAD~1");
         if (tryToCherryPick(repo, changeInfo.getCurrentRevision(),
@@ -217,7 +216,6 @@ public final class GerritDestination implements Destination<GitRevision> {
 
       } finally {
         repo.forceCheckout(oldHead);
-        repo.simpleCommand("stash", "pop");
       }
     }
 

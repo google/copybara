@@ -496,21 +496,20 @@ public final class GitDestination implements Destination<GitRevision> {
             transformResult, ignoreIntegrationErrors);
       }
 
+      // Don't leave unstaged/untracked files in the work-tree. This is a problem for rebase
+      // and in general any inspection of the directory after Copybara execution.
+      // Clean unstaged:
+      scratchClone.simpleCommand("reset", "--hard");
+      // ...and untracked ones:
+      scratchClone.simpleCommand("clean", "-f");
+
       if (baseline != null && rebase) {
-        // Our current implementation (That we should change) leaves unstaged files in the
-        // work-tree. This is fine for commit/push but not for rebase, since rebase could fail
-        // and needs to create a conflict resolution work-tree.
+        // Note that it is a different work-tree from the previous reset
         alternate.simpleCommand("reset", "--hard");
         alternate.rebase(localBranchRevision.getSha1());
       }
 
       if (localRepoPath != null) {
-
-        // If the user provided a directory for the local repo we don't want to leave changes
-        // in the checkout dir. Remove tracked changes:
-        scratchClone.simpleCommand("reset", "--hard");
-        // ...and untracked ones:
-        scratchClone.simpleCommand("clean", "-f");
         scratchClone.simpleCommand("checkout", state.localBranch);
       }
 
