@@ -19,19 +19,21 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.beust.jcommander.internal.Lists;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
+import com.google.common.base.Strings;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -42,49 +44,72 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class CommandRunnerTest {
 
+  private static final int LINES_SIZE = 100000;
+
   private ByteArrayOutputStream outContent = new ByteArrayOutputStream();
   private ByteArrayOutputStream errContent = new ByteArrayOutputStream();
-
-  @Before
-  public void setUpStreams() {
-    System.setOut(new PrintStream(outContent));
-    System.setErr(new PrintStream(errContent));
-  }
-
-  @After
-  public void restoreStreams() {
-    System.setOut(System.out);
-    System.setErr(System.err);
-  }
+  private final List<String> logLines = Lists.newLinkedList();
 
   @Test
-  public void testCommand() throws CommandException {
+  public void testCommand() throws Exception {
     Command command = new Command(new String[]{"echo", "hello", "world"});
-    CommandOutputWithStatus result = new CommandRunner(command).execute();
+    CommandOutputWithStatus result = runCommand(new CommandRunner(command));
     assertThat(result.getTerminationStatus().success()).isTrue();
     assertThat(result.getStdout()).isEqualTo("hello world\n");
     assertThat(outContent.toByteArray()).isEmpty();
     assertThat(errContent.toByteArray()).isEmpty();
+    assertLogContains(
+        "Executing [echo hello world]", "'echo' STDOUT: hello world", "Command 'echo' finished");
   }
 
   @Test
-  public void testCommandWithVerbose() throws CommandException {
+  public void testCommandWithVerbose() throws Exception {
     Command command = new Command(new String[]{"echo", "hello", "world"});
-    CommandOutputWithStatus result = new CommandRunner(command)
-        .withVerbose(true)
-        .execute();
+    CommandOutputWithStatus result = runCommand(new CommandRunner(command).withVerbose(true));
     assertThat(result.getTerminationStatus().success()).isTrue();
     assertThat(result.getStdout()).isEqualTo("hello world\n");
     assertThat(outContent.toByteArray()).isEmpty();
     String stderr = new String(errContent.toByteArray(), StandardCharsets.UTF_8);
     // Using contains() because stderr also gets all the logs
     assertThat(stderr).contains("hello world\n");
+    // Verify that logging is redirected, even with verbose
+    assertLogContains(
+        "Executing [echo hello world]", "'echo' STDOUT: hello world", "Command 'echo' finished");
   }
 
   @Test
-  public void testCommandWithMaxLogLines() throws CommandException {
+  public void testCommandWithMaxLogLines() throws Exception {
+    Command command = new Command(new String[]{"echo", "hello\n", "world"});
+    CommandOutputWithStatus result = runCommand(new CommandRunner(command).withMaxStdOutLogLines(1));
+    assertThat(result.getTerminationStatus().success()).isTrue();
+    assertThat(result.getStdout()).isEqualTo("hello\n world\n");
+    assertThat(outContent.toByteArray()).isEmpty();
+    assertLogContains("Executing [echo 'hello\n' world]",
+        "'echo' STDOUT: hello",
+        "'echo' STDOUT: ... truncated after 1 line(s)");
+  }
+
+  @Test
+  public void testCommandWithVerboseLargeOutput() throws Exception {
+    Path largeFile = Files.createTempDirectory("test").resolve("large_file.txt");
+    String singleLine = Strings.repeat("A", 100);
+    try (BufferedWriter writer = Files.newBufferedWriter(largeFile)) {
+      for (int i = 0; i < LINES_SIZE; i++) {
+        writer.write(singleLine + "\n");
+      }
+    }
+    Command command = new Command(new String[]{"cat", largeFile.toAbsolutePath().toString()});
+    CommandOutputWithStatus result = runCommand(new CommandRunner(command).withVerbose(true));
+    assertThat(result.getTerminationStatus().success()).isTrue();
+
+    for (int i = 1; i < LINES_SIZE - 1; i++) {
+      assertThat(logLines.get(i)).endsWith(singleLine);
+    }
+  }
+
+
+  private CommandOutputWithStatus runCommand(CommandRunner commandRunner) throws CommandException {
     Logger logger = Logger.getLogger(CommandRunner.class.getName());
-    List<String> logLines = Lists.newLinkedList();
     StreamHandler handler = new StreamHandler() {
       @Override
       public synchronized void publish(LogRecord record) {
@@ -92,21 +117,24 @@ public class CommandRunnerTest {
       }
     };
     logger.addHandler(handler);
+    PrintStream outRestore = System.out;
+    PrintStream errRestore = System.err;
+    System.setOut(new PrintStream(outContent));
+    System.setErr(new PrintStream(errContent));
     try {
-      Command command = new Command(new String[]{"echo", "hello\n", "world"});
-      CommandOutputWithStatus result = new CommandRunner(command)
-          .withMaxStdOutLogLines(1)
-          .execute();
-      assertThat(result.getTerminationStatus().success()).isTrue();
-      assertThat(result.getStdout()).isEqualTo("hello\n world\n");
-      assertThat(outContent.toByteArray()).isEmpty();
-      assertThat(logLines).hasSize(4);
-
-      assertThat(logLines).containsAllOf("Executing [echo 'hello\n' world]",
-          "'echo' STDOUT: hello",
-          "'echo' STDOUT: ... truncated after 1 line(s)");
+      return commandRunner.execute();
     } finally {
+      System.setOut(outRestore);
+      System.setErr(errRestore);
       logger.removeHandler(handler);
+    }
+  }
+
+  private void assertLogContains(String... messages) {
+    int i = 0;
+    for (String message : messages) {
+      assertThat(logLines.get(i)).contains(message);
+      i++;
     }
   }
 }
