@@ -166,8 +166,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                     String.format("Pull Request %s updated", pr.getHtmlUrl()),
                     transformResult.getChanges().getCurrent(),
                     new DestinationEffect.DestinationRef(Long.toString(pr.getNumber()),
-                                                         "pull_request", pr.getHtmlUrl()),
-                    ImmutableList.of()));
+                                                         "pull_request", pr.getHtmlUrl())));
             return result.build();
           }
         }
@@ -190,8 +189,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 String.format("Pull Request %s created", pr.getHtmlUrl()),
                 transformResult.getChanges().getCurrent(),
                 new DestinationEffect.DestinationRef(Long.toString(pr.getNumber()),
-                                                     "pull_request", pr.getHtmlUrl()),
-                ImmutableList.of()));
+                                                     "pull_request", pr.getHtmlUrl())));
         return result.build();
       }
     };

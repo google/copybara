@@ -131,8 +131,7 @@ public class FolderDestination implements Destination<Revision> {
               String.format("Folder '%s' contains the output files of the migration", localFolder),
               transformResult.getChanges().getCurrent(),
               new DestinationEffect.DestinationRef(
-                  localFolder.toString(), "local_folder", localFolder.toString()),
-              ImmutableList.of()));
+                  localFolder.toString(), "local_folder", localFolder.toString())));
     }
   }
 

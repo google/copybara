@@ -955,7 +955,7 @@ msg | `string`<br><p>The no op message</p>
 
 Records an effect of the current action.
 
-`feedback.context.record_effect(summary, origin_refs, destination_ref)`
+`feedback.context.record_effect(summary, origin_refs, destination_ref, errors=[])`
 
 
 #### Parameters:
@@ -965,6 +965,7 @@ Parameter | Description
 summary | `string`<br><p>The summary of this effect</p>
 origin_refs | `sequence of origin_ref`<br><p>The origin refs</p>
 destination_ref | `destination_ref`<br><p>The destination ref</p>
+errors | `sequence of string`<br><p>An optional list of errors</p>
 
 <a id="feedback.context.success" aria-hidden="true"></a>
 ### feedback.context.success

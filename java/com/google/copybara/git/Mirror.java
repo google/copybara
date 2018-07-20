@@ -86,8 +86,7 @@ public class Mirror implements Migration {
                         // TODO(danielromero): Populate OriginRef here
                         ImmutableList.of(),
                         new DestinationRef(
-                            getOriginDestinationRef(destination), "mirror", /*url=*/ null),
-                        ImmutableList.of()))));
+                            getOriginDestinationRef(destination), "mirror", /*url=*/ null)))));
   }
 
   private static String getOriginDestinationRef(String url) throws ValidationException {

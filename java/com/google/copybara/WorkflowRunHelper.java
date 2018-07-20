@@ -274,8 +274,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   Type.NOOP,
                   empty.getMessage(),
                   changes.getCurrent(),
-                  /*destinationRef=*/ null,
-                  ImmutableList.of()));
+                  /*destinationRef=*/ null));
       throw empty;
     } catch (ValidationException | IOException | RepoException | RuntimeException e) {
       effects =

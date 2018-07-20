@@ -247,8 +247,7 @@ public final class GerritDestination implements Destination<GitRevision> {
                   String.format("Created revision %s", pushedRevision.getSha1()),
                   originChanges,
                   new DestinationEffect.DestinationRef(
-                      pushedRevision.getSha1(), "commit", /*url=*/ null),
-                  ImmutableList.of()));
+                      pushedRevision.getSha1(), "commit", /*url=*/ null)));
 
       List<String> lines = Splitter.on("\n").splitToList(serverResponse);
       for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
@@ -272,8 +271,7 @@ public final class GerritDestination implements Destination<GitRevision> {
                         : DestinationEffect.Type.UPDATED,
                     message,
                     originChanges,
-                    new DestinationEffect.DestinationRef(changeNum, "gerrit_review", url),
-                    ImmutableList.of()));
+                    new DestinationEffect.DestinationRef(changeNum, "gerrit_review", url)));
             break;
           }
         }

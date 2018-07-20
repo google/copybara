@@ -279,16 +279,33 @@ public class FeedbackTest {
 
   @Test
   public void testDestinationEffects() throws Exception {
+    runAndVerifyDestinationEffects(""
+        + "def test_action(ctx):\n"
+        + "    ctx.record_effect("
+        + "      'Some effect',\n"
+        + "      [ctx.origin.new_origin_ref('foo')],\n"
+        + "      ctx.destination.new_destination_ref('bar'))\n"
+        + "    return ctx.success()\n"
+        + "\n", ImmutableList.of());
+  }
+
+  @Test
+  public void testDestinationEffectsWithErrors() throws Exception {
+    runAndVerifyDestinationEffects(
+        ""
+            + "def test_action(ctx):\n"
+            + "    ctx.record_effect("
+            + "      'Some effect',\n"
+            + "      [ctx.origin.new_origin_ref('foo')],\n"
+            + "      ctx.destination.new_destination_ref('bar'), ['error1', 'error2'])\n"
+            + "    return ctx.success()\n"
+            + "\n", ImmutableList.of("error1", "error2"));
+  }
+
+  private void runAndVerifyDestinationEffects(
+      String actionsCode, ImmutableList<String> expectedErrors) throws Exception {
     Feedback feedback = feedback(
-          ""
-              + "def test_action(ctx):\n"
-              + "    ctx.record_effect("
-              + "      'Some effect',\n"
-              + "      [ctx.origin.new_origin_ref('foo')],\n"
-              + "      ctx.destination.new_destination_ref('bar'))\n"
-              + "    return ctx.success()\n"
-              + "\n",
-        "test_action");
+        actionsCode, "test_action");
     feedback.run(workdir, ImmutableList.of());
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
 
@@ -305,7 +322,7 @@ public class FeedbackTest {
     assertThat(destinationRef.getId()).isEqualTo("bar");
     assertThat(destinationRef.getType()).isEqualTo("dummy_endpoint");
     assertThat(destinationRef.getUrl()).isNull();
-    assertThat(effect.getErrors()).isEmpty();
+    assertThat(effect.getErrors()).containsExactlyElementsIn(expectedErrors);
   }
 
   private Feedback loggingFeedback() throws IOException, ValidationException {

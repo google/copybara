@@ -193,12 +193,18 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
             generic1 = OriginRef.class,
             doc = "The origin refs"),
         @Param(name = "destination_ref", type = DestinationRef.class, doc = "The destination ref"),
+        @Param(
+            name = "errors",
+            type = SkylarkList.class,
+            generic1 = String.class,
+            defaultValue = "[]",
+            doc = "An optional list of errors"),
       })
   public void recordEffect(
-      String summary, List<OriginRef> originRefs, DestinationRef destinationRef) {
+      String summary, List<OriginRef> originRefs, DestinationRef destinationRef,
+      List<String> errors) {
     effects.add(
-        new DestinationEffect(
-            Type.UPDATED, summary, originRefs, destinationRef, ImmutableList.of()));
+        new DestinationEffect(Type.UPDATED, summary, originRefs, destinationRef, errors));
   }
 
   public ImmutableList<DestinationEffect> getEffects() {

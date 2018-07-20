@@ -418,8 +418,7 @@ public final class GitDestination implements Destination<GitRevision> {
                 String.format("Created revision %s", pushedRevision.getSha1()),
                 originChanges,
                 new DestinationEffect.DestinationRef(
-                    pushedRevision.getSha1(), "commit", /*url=*/ null),
-                ImmutableList.of()));
+                    pushedRevision.getSha1(), "commit", /*url=*/ null)));
       }
     }
 
@@ -542,8 +541,7 @@ public final class GitDestination implements Destination<GitRevision> {
                 String.format(
                     "Dry run commit '%s' created locally at %s", head, scratchClone.getGitDir()),
                 originChanges,
-                new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null),
-                ImmutableList.of()));
+                new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null)));
       }
 
       console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, remotePush));

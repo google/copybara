@@ -47,6 +47,14 @@ public class DestinationEffect implements SkylarkValue {
       Type type,
       String summary,
       Iterable<? extends OriginRef> originRefs,
+      @Nullable DestinationRef destinationRef) {
+    this(type, summary, originRefs, destinationRef, ImmutableList.of());
+  }
+
+  public DestinationEffect(
+      Type type,
+      String summary,
+      Iterable<? extends OriginRef> originRefs,
       @Nullable DestinationRef destinationRef,
       Iterable<String> errors) {
     this.type = Preconditions.checkNotNull(type);
