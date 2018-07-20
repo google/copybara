@@ -41,6 +41,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -53,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 
 /**
@@ -325,6 +327,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
     public Glob getDestinationFiles() {
       return destinationFiles;
+    }
+
+    public ImmutableList<? extends Change<?>> getOriginChanges() {
+      return transformResult.getChanges().getCurrent().getImmutableList();
     }
 
     @Override

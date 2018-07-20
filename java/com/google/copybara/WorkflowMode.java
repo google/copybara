@@ -44,6 +44,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.ProgressPrefixConsole;
+
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nullable;
 
 /**
@@ -461,7 +463,9 @@ public enum WorkflowMode {
       }
       if (naiveKeep.contains(current)) {
         keep.add(current);
-        keep.addAll(Collections2.filter(Graphs.reachableNodes(detectedChanges, current),
+        keep.addAll(Collections2.filter(Graphs.reachableNodes(
+            // Transpose since reachableNodes returns successors
+            Graphs.transpose(detectedChanges), current),
             naiveKeep::contains));
       }
 

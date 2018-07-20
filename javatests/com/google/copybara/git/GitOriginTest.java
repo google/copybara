@@ -60,6 +60,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -706,32 +708,59 @@ public class GitOriginTest {
 
   @Test
   public void testChangesMergeNoop() throws Exception {
-    checkChangesMergeNoop(false);
+    ImmutableList<? extends Change<?>> includedChanges = checkChangesMergeNoop(false);
+    assertThat(includedChanges.stream().map(Change::getMessage).collect(Collectors.toList()))
+        .containsExactly(
+            "Merge branch 'feature1'\n",
+            "feature1\n",
+            "main_branch_change\n");
   }
 
   @Test
   public void testChangesMergeNoop_importNoopChanges() throws Exception {
-    checkChangesMergeNoop(true);
+    ImmutableList<? extends Change<?>> includedChanges = checkChangesMergeNoop(true);
+    assertThat(includedChanges.stream().map(Change::getMessage).collect(Collectors.toList()))
+        .containsExactly(
+            "Merge branch 'feature1'\n",
+            "feature1\n",
+            "main_branch_change\n",
+            "change1\n",
+            "change2\n",
+            "change3\n",
+            "exclude1\n",
+            "Merge branch 'feature2'\n");
   }
 
   @SuppressWarnings("unchecked")
-  private void checkChangesMergeNoop(boolean importNoopChanges) throws Exception {
+  private ImmutableList<? extends Change<?>> checkChangesMergeNoop(boolean importNoopChanges)
+      throws Exception {
     RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
     options.testingOptions.destination = destination;
 
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "base", "base.txt", "");
     options.setLastRevision(repo.parseRef("master"));
-    git("branch", "feature");
+    // Don't remove or add an include change before this commit. This allow us to test that we
+    // traverse parents and not children:
+    singleFileCommit(author, "exclude1", "exclude1", "");
+    git("branch", "feature1");
+    git("branch", "feature2");
     singleFileCommit(author, "main_branch_change", "one.txt", "");
-    String mainBranchChangeSha1 = repo.parseRef("master");
     Thread.sleep(1100); // Make sure one_change is shown before in git log.
-    git("checkout", "feature");
+    git("checkout", "feature1");
+    singleFileCommit(author, "feature1", "feature1.txt", "");
+    git("checkout", "master");
+    git("merge", "master", "feature1");
+
+    String feature1Merge = repo.parseRef("master");
+
+    Thread.sleep(1100); // Make sure one_change is shown before in git log.
+    git("checkout", "feature2");
     singleFileCommit(author, "change1", "base.txt", "base");
     singleFileCommit(author, "change2", "base.txt", ""); // Revert
     singleFileCommit(author, "change3", "exclude.txt", "I should be excluded");
     git("checkout", "master");
-    git("merge", "master", "feature");
+    git("merge", "master", "feature2");
     String headSha1 = repo.parseRef("master");
 
     Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
@@ -749,12 +778,13 @@ public class GitOriginTest {
 
     wf.run(checkoutDir, ImmutableList.of("master"));
 
-    String expected = importNoopChanges ? headSha1 : mainBranchChangeSha1;
+    String expected = importNoopChanges ? headSha1 : feature1Merge;
     String actual = Iterables.getLast(destination.processed).getOriginRef().asString();
     assertWithMessage(String.format("Expected:\n%s\nBut found:\n%s",
         Iterables.getOnlyElement(repo.log(expected).withLimit(1).run()),
         Iterables.getOnlyElement(repo.log(actual).withLimit(1).run())))
         .that(actual).isEqualTo(expected);
+    return Iterables.getLast(destination.processed).getOriginChanges();
   }
 
   private void createBranchMerge(String author) throws Exception {
