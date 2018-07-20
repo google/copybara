@@ -309,17 +309,18 @@ public class HgOriginTest {
     singleFileCommit(author, "four", "foo.txt", "four");
 
     List<Change<?>> visited = new ArrayList<>();
-    newReader().visitChanges(origin.resolve("0"),
+
+    newReader().visitChanges(origin.resolve("tip"),
         input -> {
           visited.add(input);
           return input.firstLineMessage().equals("three")
               ? VisitResult.TERMINATE
               : VisitResult.CONTINUE;
         });
-    assertThat(visited).hasSize(3);
-    assertThat(visited.get(0).firstLineMessage()).isEqualTo("one");
-    assertThat(visited.get(1).firstLineMessage()).isEqualTo("two");
-    assertThat(visited.get(2).firstLineMessage()).isEqualTo("three");
+
+    assertThat(visited).hasSize(2);
+    assertThat(visited.get(0).firstLineMessage()).isEqualTo("four");
+    assertThat(visited.get(1).firstLineMessage()).isEqualTo("three");
   }
 
   @Test
@@ -332,7 +333,7 @@ public class HgOriginTest {
     originFiles = Glob.createGlob(ImmutableList.of("bar/**"));
 
     List<Change<?>> visited = new ArrayList<>();
-    newReader().visitChanges(origin.resolve("0"),
+    newReader().visitChanges(origin.resolve("tip"),
         input -> {
           visited.add(input);
           return VisitResult.CONTINUE;

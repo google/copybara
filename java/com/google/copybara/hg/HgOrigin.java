@@ -24,7 +24,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
@@ -83,6 +82,7 @@ public class HgOrigin implements Origin<HgRevision> {
     }
 
     repo.pullFromRef(repoUrl, reference);
+
     return repo.identify(reference);
   }
 

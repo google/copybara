@@ -61,15 +61,14 @@ class ChangeReader {
   ImmutableList<HgChange> run(String refExpression) throws RepoException, ValidationException {
     LogCmd logCmd = repository.log();
     if (limit > 0) {
-      if (skip > 0) {
+      if (skip >= 0) {
         logCmd = logCmd.withReferenceExpression(
-            String.format("limit(%s::, %d, %d)", refExpression, limit, skip));
+            String.format("limit(::%s, %d, %d)", refExpression, limit, skip));
         return parseChanges(logCmd.run());
       }
 
       logCmd = logCmd.withLimit(limit);
     }
-
     logCmd = logCmd.withReferenceExpression(refExpression);
     return parseChanges(logCmd.run());
   }
@@ -86,7 +85,7 @@ class ChangeReader {
       this.repository = Preconditions.checkNotNull(repository);
       this.console = Preconditions.checkNotNull(console);
       this.limit = 0;
-      this.skip = 0;
+      this.skip = -1;
     }
 
     static Builder forOrigin(HgRepository repository, Authoring authoring, Console console) {

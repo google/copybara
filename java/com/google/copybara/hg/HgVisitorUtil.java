@@ -61,7 +61,8 @@ public class HgVisitorUtil {
                     .setSkip(offset)
                     .setLimit(visitChangePageSize)
                     .build()
-                    .run(start.getGlobalId());
+                    .run(start.getGlobalId())
+                    .reverse();
           } catch (ValidationException e) {
             throw new RepoException(
                 String.format("Error querying changes: %s", e.getMessage()), e.getCause());

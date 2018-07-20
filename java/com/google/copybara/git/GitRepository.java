@@ -37,8 +37,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.flogger.FluentLogger;
-import com.google.common.hash.Hashing;
-import com.google.common.net.PercentEscaper;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
@@ -128,8 +126,6 @@ public class GitRepository {
    * Label to be used for marking the original revision id (Git SHA-1) for migrated commits.
    */
   public static final String GIT_ORIGIN_REV_ID = "GitOrigin-RevId";
-  private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
-      "-_", /*plusForSpace=*/ true);
 
   // Git exits with 128 in several circumstances. For example failed rebase.
   private static final ImmutableRangeSet<Integer> NON_CRASH_ERROR_EXIT_CODES =
@@ -140,7 +136,6 @@ public class GitRepository {
    * We cannot control the repo storage location, but we can limit the number of characters of the
    * repo folder name.
    */
-  private static final int REPO_FOLDER_NAME_LIMIT = 100;
   private static final int  DEFAULT_MAX_LOG_LINES = -1;
 
   /**
@@ -165,20 +160,6 @@ public class GitRepository {
     this.workTree = workTree;
     this.verbose = verbose;
     this.environment = checkNotNull(environment);
-  }
-
-  static Path createGitDirInCache(String url, Path repoStorage) {
-    String escapedUrl = PERCENT_ESCAPER.escape(url);
-    // This is to avoid "Filename too long" errors, mainly in tests. We cannot change the repo
-    // storage path (we use JAVA_IO_TMPDIR), which is the right thing to do for tests to be
-    // hermetic.
-    if (escapedUrl.length() > REPO_FOLDER_NAME_LIMIT + 40) {
-      escapedUrl = escapedUrl.substring(0, REPO_FOLDER_NAME_LIMIT - 1)
-          + "_"
-          + Hashing.sha1().hashString(
-          escapedUrl.substring(REPO_FOLDER_NAME_LIMIT), StandardCharsets.UTF_8);
-    }
-    return repoStorage.resolve(escapedUrl);
   }
 
   /**

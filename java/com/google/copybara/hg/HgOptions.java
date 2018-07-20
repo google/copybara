@@ -16,6 +16,8 @@
 
 package com.google.copybara.hg;
 
+import static com.google.copybara.util.FileUtil.createDirInCache;
+
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -64,12 +66,12 @@ public class HgOptions implements Option {
    */
   protected HgRepository createBareRepo(String url, Path path)
       throws RepoException {
-    Path repoPath = path.resolve(url);
+    Path repoPath = createDirInCache(url, path);
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
     HgRepository repo = HgRepository.newRepository(hgDir);
     if (Files.notExists(hgDir)) {
-      return repo.init();
+      repo.init();
     }
 
     repo.cleanUpdate("null");

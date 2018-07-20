@@ -24,11 +24,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
+import com.google.common.hash.Hashing;
 import com.google.common.io.InsecureRecursiveDeleteException;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
+import com.google.common.net.PercentEscaper;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -407,6 +410,25 @@ public final class FileUtil {
         }
       }
     }
+  }
+
+  private static final int REPO_FOLDER_NAME_LIMIT = 100;
+  private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
+      "-_", /*plusForSpace=*/ true);
+
+  public static Path createDirInCache(String url, Path repoStorage) {
+    String escapedUrl = PERCENT_ESCAPER.escape(url);
+
+    // This is to avoid "Filename too long" errors, mainly in tests. We cannot change the repo
+    // storage path (we use JAVA_IO_TMPDIR), which is the right thing to do for tests to be
+    // hermetic.
+    if (escapedUrl.length() > REPO_FOLDER_NAME_LIMIT + 40) {
+      escapedUrl = escapedUrl.substring(0, REPO_FOLDER_NAME_LIMIT - 1)
+          + "_"
+          + Hashing.sha1().hashString(
+          escapedUrl.substring(REPO_FOLDER_NAME_LIMIT), StandardCharsets.UTF_8);
+    }
+    return repoStorage.resolve(escapedUrl);
   }
 
   private static class AnyPathMatcher implements PathMatcher {
