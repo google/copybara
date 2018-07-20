@@ -335,23 +335,19 @@ public class GitDestinationIntegrateTest {
     GitDestination destination = destinationWithDefaultIntegrates();
     GitLogEntry previous = createBaseDestinationChange(destination);
 
-    //test failedLabel with empty space
-    String failedLabelWithEmptySpace = new GitHubPRIntegrateLabel(repo, options.general,
-        "example/test_repo", 20, "some_user:345-abc.abc test.sample.test", secondChange.getSha1()).toString();
-    assertThat(failedLabelWithEmptySpace).isNotEqualTo("https://github.com/example/test_repo/pull/20"
-        + " from some_user:20869-tf.contrib.lookup.HashTable " + secondChange.getSha1());
+    GitHubPRIntegrateLabel labelObj = new GitHubPRIntegrateLabel(repo, options.general,
+        "example/test_repo", 20, "some_user:1234-foo.bar.baz%3", secondChange.getSha1());
 
-    //test failedLabel with new line
-    String failedLabelWithNewLine = new GitHubPRIntegrateLabel(repo, options.general,
-        "example/test_repo", 20, "some_user:345-abc.abc test\n.sample.test", secondChange.getSha1()).toString();
-    assertThat(failedLabelWithNewLine).isNotEqualTo("https://github.com/example/test_repo/pull/20"
-        + " from some_user:20869-tf.contrib.lookup.HashTable " + secondChange.getSha1());
+    assertThat(labelObj.getProjectId()).isEqualTo("example/test_repo");
+    assertThat(labelObj.getPrNumber()).isEqualTo(20L);
+    assertThat(labelObj.getOriginBranch()).isEqualTo("some_user:1234-foo.bar.baz%3");
+    assertThat(labelObj.mergeMessage(ImmutableList.of()))
+        .isEqualTo("Merge pull request #20 from some_user:1234-foo.bar.baz%3\n");
 
-    String label = new GitHubPRIntegrateLabel(repo, options.general,
-        "example/test_repo", 20, "some_user:20869-tf.contrib.lookup.HashTable", secondChange.getSha1()).toString();
+    String label = labelObj.toString();
 
     assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
-        + " from some_user:20869-tf.contrib.lookup.HashTable " + secondChange.getSha1());
+        + " from some_user:1234-foo.bar.baz%3 " + secondChange.getSha1());
 
     migrateOriginChange(destination, "Test change\n"
         + "\n"
@@ -370,7 +366,8 @@ public class GitDestinationIntegrateTest {
         .containsNoMoreFiles();
 
     GitLogEntry merge = getLastMigratedChange("master");
-    assertThat(merge.getBody()).isEqualTo("Merge pull request #20 from some_user:20869-tf.contrib.lookup.HashTable\n"
+    assertThat(merge.getBody()).isEqualTo(
+        "Merge pull request #20 from some_user:1234-foo.bar.baz%3\n"
         + "\n"
         + "DummyOrigin-RevId: test\n");
 

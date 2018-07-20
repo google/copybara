@@ -101,4 +101,16 @@ class GitHubPRIntegrateLabel implements IntegrateLabel {
             + " Not all changes might be migrated", pr, sha1, gitRevision.getSha1()));
     return repository.resolveReferenceWithContext(sha1, gitRevision.contextReference(), repoUrl);
   }
+
+  public String getProjectId() {
+    return projectId;
+  }
+
+  public long getPrNumber() {
+    return prNumber;
+  }
+
+  public String getOriginBranch() {
+    return originBranch;
+  }
 }
