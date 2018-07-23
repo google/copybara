@@ -88,13 +88,7 @@ public class GitMirrorTest {
     profiler.init(ImmutableList.of(recordingCallback));
     options.general.withProfiler(profiler);
 
-    Migration mirror = loadMigration(""
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + ")",
-        "default");
+    Migration mirror = createMirrorObj();
     mirror.run(workdir, ImmutableList.of());
     String orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
     String dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
@@ -108,6 +102,41 @@ public class GitMirrorTest {
         .assertMatchesNext(EventType.START, "//copybara/run/default/push")
         .assertMatchesNext(EventType.END, "//copybara/run/default/push")
         .assertMatchesNext(EventType.END, "//copybara/run/default");
+  }
+
+  @Test
+  public void testMirrorDryRun() throws Exception {
+    Migration mirror = createMirrorObj();
+    mirror.run(workdir, ImmutableList.of());
+    String orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
+    String dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
+    assertThat(dest).isEqualTo(orig);
+
+    options.general.dryRunMode = true;
+
+    mirror = createMirrorObj();
+
+    String destOld = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
+
+    Files.write(originRepo.getWorkTree().resolve("test.txt"), "updated content".getBytes());
+    originRepo.add().files("test.txt").run();
+    originRepo.simpleCommand("commit", "-m", "first file");
+
+    mirror.run(workdir, ImmutableList.of());
+    orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
+    dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
+    assertThat(dest).isNotEqualTo(orig);
+    assertThat(dest).isEqualTo(destOld);
+  }
+
+  private Migration createMirrorObj() throws IOException, ValidationException {
+    return loadMigration(String.format(""
+            + "git.mirror("
+            + "    name = 'default',"
+            + "    origin = 'file://%s',"
+            + "    destination = 'file://%s')",
+        originRepo.getGitDir().toAbsolutePath(), destRepo.getGitDir().toAbsolutePath()),
+        "default");
   }
 
   /**

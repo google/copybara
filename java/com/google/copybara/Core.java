@@ -331,7 +331,7 @@ public class Core implements LabelsAwareModule {
         askForConfirmation,
         mainConfigFile,
         allConfigFiles,
-        workflowOptions.dryRunMode || dryRunMode,
+        generalOptions.dryRunMode || dryRunMode,
         checkLastRevState || workflowOptions.checkLastRevState,
         convertFeedbackActions(afterMigrations, location, dynamicEnvironment),
         changeIdentity,

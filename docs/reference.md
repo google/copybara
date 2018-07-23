@@ -427,6 +427,7 @@ Name | Type | Description
 <nobr>`--config-root`</nobr> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
 <nobr>`--console-file-path`</nobr> | *string* | If set, write the console output also to the given file path.
 <nobr>`--disable-reversible-check`</nobr> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
+<nobr>`--dry-run`</nobr> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <nobr>`--force`</nobr> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <nobr>`--noansi`</nobr> | *boolean* | Don't use ANSI output for messages
 <nobr>`--nocleanup`</nobr> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
@@ -889,7 +890,6 @@ Name | Type | Description
 <nobr>`--change_request_parent`</nobr> | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 <nobr>`--check-last-rev-state`</nobr> | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 <nobr>`--default-author`</nobr> | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
-<nobr>`--dry-run`</nobr> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <nobr>`--ignore-noop`</nobr> | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
 <nobr>`--import-noop-changes`</nobr> | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
 <nobr>`--init-history`</nobr> | *boolean* | Import all the changes from the beginning of the history up to the resolved ref. For 'ITERATIVE' workflows this will import individual changes since the first one. For 'SQUASH' it will import the squashed change up to the resolved ref. WARNING: Use with care, this flag should be used only for the very first run of Copybara for a workflow.

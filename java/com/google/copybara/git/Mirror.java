@@ -81,8 +81,10 @@ public class Mirror implements Migration {
             new ChangeMigrationFinishedEvent(
                 ImmutableList.of(
                     new DestinationEffect(
-                        Type.UPDATED,
-                        "Refspecs " + refspec + " mirrored successfully",
+                        generalOptions.dryRunMode ? Type.NOOP : Type.UPDATED,
+                        generalOptions.dryRunMode
+                            ? "Refspecs " + refspec + " can be mirrored"
+                            : "Refspecs " + refspec + " mirrored successfully",
                         // TODO(danielromero): Populate OriginRef here
                         ImmutableList.of(),
                         new DestinationRef(

@@ -41,7 +41,6 @@ public class WorkflowOptions implements Option {
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
   static final String READ_CONFIG_FROM_CHANGE = "--read-config-from-change";
   protected static final String CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG = "--change-request-from-sot-limit";
-  public static final String DRY_RUN_FLAG = "--dry-run";
 
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
       description = "Commit revision to be used as parent when importing a commit using"
@@ -103,12 +102,6 @@ public class WorkflowOptions implements Option {
           + " since last-rev import for destination_files. Note that this"
           + " flag doesn't work for CHANGE_REQUEST mode.")
   public boolean checkLastRevState = false;
-
-  @Parameter(names = DRY_RUN_FLAG,
-      description = "Run the migration in dry-run mode. Some destination implementations might"
-          + " have some side effects (like creating a code review), but never submit to a main"
-          + " branch.")
-  public boolean dryRunMode = false;
 
   @Parameter(names = "--threads",
       description = "Number of threads to use when running transformations that change lot of files")

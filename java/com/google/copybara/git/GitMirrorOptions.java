@@ -60,6 +60,12 @@ public class GitMirrorOptions implements Option {
       repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
     }
 
+    if (generalOptions.dryRunMode) {
+      generalOptions.console().progressFmt("Skipping push to to %s. You can check the"
+          + " commits to push in: %s", destination, repo.getGitDir());
+      return;
+    }
+
     generalOptions.console().progressFmt("Pushing to %s", destination);
     List<Refspec> pushRefspecs = forcePush
         ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())

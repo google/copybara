@@ -125,7 +125,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return workdir;
   }
 
-  protected O getResolvedRef() {
+  O getResolvedRef() {
     return resolvedRef;
   }
 
@@ -148,6 +148,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    */
   WorkflowOptions workflowOptions() {
     return workflow.getWorkflowOptions();
+  }
+
+  /**
+   * General Copbyara options
+   */
+  private GeneralOptions generalOptions() {
+    return workflow.getGeneralOptions();
   }
 
   boolean isForce() {
@@ -289,7 +296,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       throw e;
     } finally {
       eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
-      if (callPerMigrationHook && !workflowOptions().dryRunMode) {
+      if (callPerMigrationHook && !generalOptions().dryRunMode) {
         SkylarkConsole console = new SkylarkConsole(getConsole());
         try (ProfilerTask ignored = profiler().start("finish_hooks")) {
 
@@ -307,9 +314,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             }
           }
         }
-      } else if (workflowOptions().dryRunMode && !workflow.getAfterMigrationActions().isEmpty()) {
+      } else if (generalOptions().dryRunMode && !workflow.getAfterMigrationActions().isEmpty()) {
         getConsole().infoFmt("Not calling 'after_migration' actions because of %s mode",
-            WorkflowOptions.DRY_RUN_FLAG);
+            GeneralOptions.DRY_RUN_FLAG);
       }
     }
   }

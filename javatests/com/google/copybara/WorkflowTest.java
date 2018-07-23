@@ -1971,13 +1971,13 @@ public class WorkflowTest {
 
   @Test
   public void testOnFinishHookNotRunForDryRun() throws Exception {
-    options.workflowOptions.dryRunMode = true;
+    options.general.dryRunMode = true;
     checkOnFinishHookNotRunForDryRun();
   }
 
   @Test
   public void testOnFinishHookNotRunForDryRun_false() throws Exception {
-    options.workflowOptions.dryRunMode = false;
+    options.general.dryRunMode = false;
     try {
       checkOnFinishHookNotRunForDryRun();
       fail();

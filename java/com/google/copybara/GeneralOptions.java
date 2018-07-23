@@ -52,6 +52,7 @@ public final class GeneralOptions implements Option {
   public static final String CONFIG_ROOT_FLAG = "--config-root";
   public static final String OUTPUT_ROOT_FLAG = "--output-root";
   public static final String OUTPUT_LIMIT_FLAG = "--output-limit";
+  public static final String DRY_RUN_FLAG = "--dry-run";
 
   private Map<String, String> environment;
   private FileSystem fileSystem;
@@ -319,4 +320,10 @@ public final class GeneralOptions implements Option {
       names = CONSOLE_FILE_PATH,
       description = "If set, write the console output also to the given file path.")
   String consoleFilePath;
+
+  @Parameter(names = DRY_RUN_FLAG,
+      description = "Run the migration in dry-run mode. Some destination implementations might"
+          + " have some side effects (like creating a code review), but never submit to a main"
+          + " branch.")
+  public boolean dryRunMode = false;
 }
