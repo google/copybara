@@ -56,13 +56,14 @@ public class HgOrigin implements Origin<HgRevision> {
   private final GeneralOptions generalOptions;
   private final HgOptions hgOptions;
   private final String repoUrl;
-  private final String branch;
+  @Nullable private final String configRef;
 
-  HgOrigin(GeneralOptions generalOptions, HgOptions hgOptions, String repoUrl, String branch) {
+  HgOrigin(GeneralOptions generalOptions, HgOptions hgOptions, String repoUrl,
+      @Nullable String ref) {
     this.generalOptions = generalOptions;
     this.hgOptions = hgOptions;
     this.repoUrl = CharMatcher.is('/').trimTrailingFrom(checkNotNull(repoUrl));
-    this.branch = Preconditions.checkNotNull(branch);
+    this.configRef = ref;
   }
 
   @VisibleForTesting
@@ -76,14 +77,16 @@ public class HgOrigin implements Origin<HgRevision> {
   @Override
   public HgRevision resolve(@Nullable String reference) throws RepoException, ValidationException {
     HgRepository repo = getRepository();
-
-    if (Strings.isNullOrEmpty(reference)) {
-      throw new CannotResolveRevisionException("Cannot resolve null or empty reference");
+    String ref = reference;
+    if (Strings.isNullOrEmpty(ref)) {
+      if (Strings.isNullOrEmpty(configRef)) {
+        throw new CannotResolveRevisionException("No source reference was passed through the"
+            + " command line and the default reference is empty");
+      }
+      ref = configRef;
     }
-
-    repo.pullFromRef(repoUrl, reference);
-
-    return repo.identify(reference);
+    repo.pullFromRef(repoUrl, ref);
+    return repo.identify(ref);
   }
 
   private static ImmutableList<Change<HgRevision>> asChanges(Collection<HgChange> hgChanges) {
@@ -262,9 +265,9 @@ public class HgOrigin implements Origin<HgRevision> {
   /**
    * Builds a new {@link HgOrigin}
    */
-  static HgOrigin newHgOrigin(Options options, String url, String branch) {
+  static HgOrigin newHgOrigin(Options options, String url, String ref) {
     return new HgOrigin(options.get(GeneralOptions.class), options.get(HgOptions.class), url,
-        branch);
+        ref);
   }
 
 }

@@ -26,6 +26,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Type;
 
 /**
  * Main module for Mercurial (Hg) origins and destinations
@@ -49,14 +50,25 @@ public class HgModule implements LabelsAwareModule{
               type = String.class,
               named = true,
               doc = "Indicates the URL of the Hg repository"),
-          @Param(name = "branch",
+          @Param(name = "ref",
               type = String.class,
               named = true,
               defaultValue = "'default'",
-              doc = "Represents the branch that will be used to read from the repository. "
-                  + "The branch defaults to 'default'.")},
+              doc = "Represents the default reference that will be used to read a revision "
+                  + "from the repository. The reference defaults to 'default', the most recent"
+                  + "revision on the default branch. References can be in a variety of "
+                  + "formats:<br>"
+                  + "<ul> "
+                  + "<li> A global identifier for a revision."
+                  + " Example: f4e0e692208520203de05557244e573e981f6c72</li>"
+                  + "<li> A bookmark in the repository.</li>"
+                  + "<li> A branch in the repository, which returns the tip of that branch."
+                  + " Example: default</li>"
+                  + "<li> A tag in the repository. Example: tip</li>"
+                  + "</ul>")},
           useLocation = true)
-  public HgOrigin origin(String url, String branch, Location location) throws EvalException {
-    return HgOrigin.newHgOrigin(options, checkNotEmpty(url, "url", location), branch);
+  public HgOrigin origin(String url, String ref, Location location) throws EvalException {
+    return HgOrigin.newHgOrigin(options, checkNotEmpty(url, "url", location),
+        Type.STRING.convertOptional(ref, "ref"));
   }
 }

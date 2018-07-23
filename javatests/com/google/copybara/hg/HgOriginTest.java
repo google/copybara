@@ -32,6 +32,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.testing.OptionsBuilder;
@@ -62,6 +63,7 @@ public class HgOriginTest {
   private HgRepository repository;
   private Path remotePath;
   private String url;
+  private String configRef;
 
   @Before
   public void setup() throws Exception {
@@ -71,9 +73,8 @@ public class HgOriginTest {
 
     remotePath = Files.createTempDirectory("remote");
     url = remotePath.toAbsolutePath().toString();
-
-    origin = skylark.eval("result",
-        String.format("result = hg.origin( url = '%s')", url));
+    configRef = "tip";
+    origin = origin();
 
     repository = new HgRepository(remotePath);
     repository.init();
@@ -86,7 +87,8 @@ public class HgOriginTest {
   private HgOrigin origin() throws ValidationException {
     return skylark.eval("result",
         String.format("result = hg.origin(\n"
-            + "    url = '%s')", url));
+            + "    url = '%s', \n"
+            + "    ref = '%s')", url, configRef));
   }
 
   @Test
@@ -103,27 +105,56 @@ public class HgOriginTest {
   }
 
   @Test
-  public void testEmptyUrl() throws Exception {
+  public void testEmptyUrl() {
     skylark.evalFails("hg.origin(url = '')", "Invalid empty field 'url'");
   }
 
   @Test
-  public void testResolveNullReference() throws Exception {
-    String ref = null;
+  public void testResolveNonExistentReference() throws Exception {
+    String ref = "not_a_ref";
     try {
       origin.resolve(ref);
       fail("Exception should have been thrown");
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage()).contains("unknown revision 'not_a_ref'");
     }
-    catch (CannotResolveRevisionException expected) {
-      assertThat(expected.getMessage()).isEqualTo("Cannot resolve null or empty reference");
+  }
+
+  @Test
+  public void testResolveNullOrEmptyReference() throws Exception {
+    Files.write(remotePath.resolve("bar.txt"), "bara".getBytes(UTF_8));
+    repository.hg(remotePath, "add", "bar.txt");
+    repository.hg(remotePath, "commit", "-m", "copy");
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+
+    assertThat(origin.resolve(null).getGlobalId())
+        .isEqualTo(commits.get(0).getGlobalId());
+
+    assertThat(origin.resolve("").getGlobalId())
+        .isEqualTo(commits.get(0).getGlobalId());
+  }
+
+  @Test
+  public void testResolveNullOrEmptyReferenceNoSourceRef() throws Exception {
+    origin = skylark.eval("result",
+        String.format("result = hg.origin(\n"
+            + "    url = '%s', \n"
+            + "    ref = '')", url));
+    try {
+      origin.resolve(null);
+      fail("Should have thrown exception");
+    } catch (CannotResolveRevisionException expected) {
+      assertThat(expected.getMessage()).isEqualTo("No source reference was passed through the"
+          + " command line and the default reference is empty");
     }
 
     try {
       origin.resolve("");
-      fail("Exception should have been throw");
-    }
-    catch (CannotResolveRevisionException expected) {
-      assertThat(expected.getMessage()).isEqualTo("Cannot resolve null or empty reference");
+      fail("Should have thrown exception");
+    } catch (CannotResolveRevisionException expected) {
+      assertThat(expected.getMessage()).isEqualTo("No source reference was passed through the"
+          + " command line and the default reference is empty");
     }
   }
 

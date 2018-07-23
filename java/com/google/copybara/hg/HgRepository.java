@@ -171,6 +171,7 @@ public class HgRepository {
    *   <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72
    *   <li> A local identifier for a revision in the repository. Example: 1
    *   <li> A bookmark in the repository.
+   *   <li> A branch in the repository, which returns the tip of that branch. Example: default
    *   <li> A tag in the repository. Example: tip
    * </ul>
    *
