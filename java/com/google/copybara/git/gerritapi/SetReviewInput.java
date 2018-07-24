@@ -22,8 +22,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input.
@@ -35,7 +38,7 @@ import java.util.Map;
             + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input",
     category = SkylarkModuleCategory.BUILTIN
 )
-public class SetReviewInput {
+public class SetReviewInput implements SkylarkValue {
 
   @Key String message;
   @VisibleForTesting
@@ -57,6 +60,32 @@ public class SetReviewInput {
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this).add("labels", labels).toString();
+    return MoreObjects.toStringHelper(this)
+        .add("message", message)
+        .add("labels", labels)
+        .toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    SetReviewInput setReviewInput = (SetReviewInput) o;
+    return Objects.equals(message, setReviewInput.message)
+        && Objects.equals(labels, setReviewInput.labels);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(message, labels);
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
   }
 }
