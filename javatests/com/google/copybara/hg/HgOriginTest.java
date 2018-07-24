@@ -97,10 +97,9 @@ public class HgOriginTest {
             + "url = 'https://my-server.org/copybara'"
             + ")");
 
-    assertThat(origin.getLabelName())
+    assertThat(origin.toString())
         .isEqualTo("HgOrigin{"
-          + "url = https://my-server.org/copybara"
-          + "}");
+          + "url = https://my-server.org/copybara, ref = default}");
   }
 
   @Test

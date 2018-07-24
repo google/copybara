@@ -258,8 +258,13 @@ public class HgOrigin implements Origin<HgRevision> {
   }
 
   @Override
+  public String toString() {
+    return String.format("HgOrigin{url = %s, ref = %s}", repoUrl, configRef);
+  }
+
+  @Override
   public String getLabelName() {
-    return String.format("HgOrigin{url = %s}", repoUrl);
+    return HgRepository.HG_ORIGIN_REV_ID;
   }
 
   /**

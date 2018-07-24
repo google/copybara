@@ -49,6 +49,7 @@ DEPS = [
     "//third_party:jimfs",
     "//third_party:mockito",
     "//third_party:shell",
+    "//java/com/google/copybara/hg",
     "//third_party:skylark-lang",
     "//third_party:truth",
 ]

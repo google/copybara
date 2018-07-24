@@ -53,6 +53,8 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.hg.HgRepository;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -2165,6 +2167,54 @@ public class WorkflowTest {
 
     Info<Revision> info = (Info<Revision>) loadConfig(config).getMigration("default").getInfo();
     verifyInfo(info, "change1\n");
+  }
+
+
+  @Test
+  public void testHgOriginNoFlags() throws Exception {
+    Path originPath = Files.createTempDirectory("origin");
+    HgRepository origin = HgRepository.newRepository(originPath, true).init();
+
+    Path destinationPath = Files.createTempDirectory("destination");
+    GitRepository destRepo = GitRepository
+        .newBareRepo(destinationPath, getGitEnv(), true)
+        .init();
+
+    String config = "core.workflow("
+        + "    name = 'default',"
+        + "    origin = hg.origin( url = 'file://" + origin.getHgDir() + "', ref = 'default'),\n"
+        + "    destination = git.destination( url = 'file://" + destRepo.getGitDir() + "'),\n"
+        + "    authoring = " + authoring + ","
+        + "    mode = '" + WorkflowMode.ITERATIVE + "',"
+        + ")\n";
+
+    Files.write(originPath.resolve("foo.txt"), "testing foo".getBytes(UTF_8));
+    origin.hg(originPath, "add", "foo.txt");
+    origin.hg(originPath, "commit", "-m", "add foo");
+
+    options.gitDestination.committerName = "Foo";
+    options.gitDestination.committerEmail = "foo@foo.com";
+    options.setWorkdirToRealTempDir();
+    options.setHomeDir(Files.createTempDirectory("home").toString());
+    options.workflowOptions.initHistory = true;
+    Migration workflow = loadConfig(config).getMigration("default");
+    workflow.run(workdir, ImmutableList.of());
+
+    ImmutableList<GitLogEntry> destCommits = destRepo.log("HEAD").run();
+    assertThat(destCommits).hasSize(1);
+    assertThat(destCommits.get(0).getBody()).contains("add foo");
+
+    Files.write(originPath.resolve("bar.txt"), "testing bar".getBytes(UTF_8));
+    origin.hg(originPath, "add", "bar.txt");
+    origin.hg(originPath, "commit", "-m", "add bar");
+
+    options.workflowOptions.initHistory = false;
+    workflow.run(workdir, ImmutableList.of());
+
+    destCommits = destRepo.log("HEAD").run();
+    assertThat(destCommits).hasSize(2);
+    assertThat(destCommits.get(0).getBody()).contains("add bar");
+    assertThat(destCommits.get(1).getBody()).contains("add foo");
   }
 
   @Test
