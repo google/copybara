@@ -47,7 +47,7 @@ public class HgRepositoryTest {
   @Before
   public void setup() throws Exception {
     workDir = Files.createTempDirectory("workdir");
-    repository = new HgRepository(workDir);
+    repository = new HgRepository(workDir, /*verbose*/ false);
   }
 
   @Test
@@ -75,7 +75,7 @@ public class HgRepositoryTest {
     HgRevision beforeRev = new HgRevision(revIds.get(1));
 
     Path remoteDir = Files.createTempDirectory("remotedir");
-    HgRepository remoteRepo = new HgRepository(remoteDir);
+    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false);
     remoteRepo.init();
     Path newFile2 = Files.createTempFile(remoteDir, "bar", ".txt");
     String fileName2 = newFile2.toString();
@@ -116,7 +116,7 @@ public class HgRepositoryTest {
     repository.hg(workDir, "commit", "-m", "bar");
 
     Path remoteDir = Files.createTempDirectory("remotedir");
-    HgRepository remoteRepo = new HgRepository(remoteDir);
+    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false);
     remoteRepo.init();
     Path newFile2 = Files.createTempFile(remoteDir, "bar", ".txt");
     String fileName2 = newFile2.toString();
@@ -193,7 +193,7 @@ public class HgRepositoryTest {
     repository.hg(workDir, "commit", "-u", user, "-d", date2.toString(), "-m", desc2);
 
     Path remoteDir = Files.createTempDirectory("remotedir");
-    HgRepository remoteRepo = new HgRepository(remoteDir);
+    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/false);
     remoteRepo.init();
     Path newFile2 = Files.createTempFile(remoteDir, "bar", ".txt");
     String fileName2 = newFile2.toString();
@@ -257,7 +257,7 @@ public class HgRepositoryTest {
     repository.hg(workDir, "commit", "-m", "foo");
 
     Path remoteDir = Files.createTempDirectory("remotedir");
-    HgRepository remoteRepo = new HgRepository(remoteDir);
+    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false);
     remoteRepo.init();
     Path newFile2 = Files.createTempFile(remoteDir, "foo", ".txt");
     String fileName2 = newFile2.toString();

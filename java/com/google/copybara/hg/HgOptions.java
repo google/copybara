@@ -68,7 +68,7 @@ public class HgOptions implements Option {
     Path repoPath = createDirInCache(url, path);
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
-    HgRepository repo = HgRepository.newRepository(hgDir);
+    HgRepository repo = HgRepository.newRepository(hgDir, generalOptions.isVerbose());
     if (Files.notExists(hgDir)) {
       repo.init();
     }

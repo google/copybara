@@ -72,15 +72,17 @@ public class HgRepository {
    * The location of the {@code .hg} directory.
    */
   private final Path hgDir;
+  private final boolean verbose;
 
 
-  protected HgRepository(Path hgDir) {
+  protected HgRepository(Path hgDir, boolean verbose) {
     this.hgDir = hgDir;
+    this.verbose = verbose;
   }
 
 
-  public static HgRepository newRepository(Path hgDir) {
-    return new HgRepository(hgDir);
+  public static HgRepository newRepository(Path hgDir, boolean verbose) {
+    return new HgRepository(hgDir, verbose);
   }
 
   /**
@@ -237,7 +239,7 @@ public class HgRepository {
     }
   }
 
-  private static CommandOutputWithStatus executeHg(Path cwd, Iterable<String> params,
+  private CommandOutputWithStatus executeHg(Path cwd, Iterable<String> params,
       int maxLogLines) throws CommandException {
     List<String> allParams = new ArrayList<>(Iterables.size(params) + 1);
     allParams.add("hg"); //TODO(jlliu): resolve Hg binary here
@@ -245,7 +247,7 @@ public class HgRepository {
     Command cmd = new Command(
         Iterables.toArray(allParams, String.class), null, cwd.toFile());
         //TODO(jlliu): have environment vars
-    CommandRunner runner = new CommandRunner(cmd);
+    CommandRunner runner = new CommandRunner(cmd).withVerbose(verbose);
     return
         maxLogLines >= 0 ? runner.withMaxStdOutLogLines(maxLogLines).execute() : runner.execute();
   }

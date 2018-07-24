@@ -32,7 +32,6 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.exception.CannotResolveRevisionException;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.testing.OptionsBuilder;
@@ -76,7 +75,7 @@ public class HgOriginTest {
     configRef = "tip";
     origin = origin();
 
-    repository = new HgRepository(remotePath);
+    repository = new HgRepository(remotePath, /*verbose*/ false);
     repository.init();
   }
 
@@ -264,7 +263,7 @@ public class HgOriginTest {
     singleFileCommit(author, "hello", "foo.txt", "hello");
 
     Path otherDir = Files.createTempDirectory("otherdir");
-    HgRepository otherRepo = new HgRepository(otherDir);
+    HgRepository otherRepo = new HgRepository(otherDir, /*verbose*/ false);
     otherRepo.init();
     Path newFile2 = Files.createTempFile(otherDir, "bar", ".txt");
     String fileName2 = newFile2.toString();
