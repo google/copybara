@@ -218,7 +218,9 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
       })
   public void writePath(CheckoutPath path, String content)
       throws FuncallException, IOException {
-      Files.write(asCheckoutPath(path), content.getBytes(StandardCharsets.UTF_8));
+    Path normalizedPath = asCheckoutPath(path);
+    Files.createDirectories(normalizedPath.getParent());
+    Files.write(normalizedPath, content.getBytes(StandardCharsets.UTF_8));
   }
 
   @SkylarkCallable(

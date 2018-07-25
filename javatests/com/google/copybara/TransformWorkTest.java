@@ -442,7 +442,7 @@ public class TransformWorkTest {
   }
 
   @Test
-  public void testReadAndWrite() throws IOException, ValidationException, RepoException {
+  public void testReadAndWrite() throws Exception {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("testRunDynamicTransforms");
     writeFile(base, "folder/file.txt", "foo");
@@ -456,11 +456,30 @@ public class TransformWorkTest {
     runWorkflow("test", ""
         + "def test(ctx):\n"
         + "    path = ctx.new_path('folder/file.txt')\n"
-        + "    ctx.read_path(path)\n"
         + "    ctx.write_path(path, ctx.read_path(path) + ctx.now_as_string())");
 
     assertThat(destination.processed.get(0).getWorkdir())
         .containsEntry("folder/file.txt", "foo" + now);
+  }
+
+  @Test
+  public void testWriteCreatesSubdirs() throws Exception {
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base = fileSystem.getPath("testRunDynamicTransforms");
+    writeFile(base, "folder/file.txt", "foo");
+
+    Files.createDirectories(workdir.resolve("folder"));
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
+
+    runWorkflow("test", ""
+        + "def test(ctx):\n"
+        + "    path = ctx.new_path('folder/file.txt')\n"
+        + "    contents = ctx.read_path(path)\n"
+        + "    ctx.write_path(ctx.new_path('other_folder/other_file.txt'), contents)");
+
+    assertThat(destination.processed.get(0).getWorkdir())
+        .containsEntry("other_folder/other_file.txt", "foo");
+
   }
 
   @Test
@@ -603,6 +622,7 @@ public class TransformWorkTest {
 
     try {
       transformation.transform(TransformWorks.of(workdir, "test", console));
+      fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains("points to a file outside the checkout dir");
     }
