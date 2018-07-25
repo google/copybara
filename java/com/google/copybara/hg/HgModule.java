@@ -20,6 +20,7 @@ import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Options;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -34,8 +35,8 @@ import com.google.devtools.build.lib.syntax.Type;
 @SkylarkModule(
     name = "hg",
     doc = "Set of functions to define Mercurial (Hg) origins and destinations.",
-    documented = false,
     category = SkylarkModuleCategory.BUILTIN)
+@UsesFlags(HgOptions.class)
 public class HgModule implements LabelsAwareModule{
 
   protected final Options options;

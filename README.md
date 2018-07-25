@@ -27,8 +27,8 @@ Examples uses of Copybara include:
     authoritative repository. Any merge conflicts are dealt with in the same way as an out-of-date
     change within the authoritative repository.
 
-Currently, the only supported type of repository is Git. Support for other repositories types (such
-as Hg) will be added in the future.
+Currently, the only supported type of repository is Git. Copybara also supports reading from Mercurial repositories, but the feature is still experimental.
+Support for other repositories types will be added in the future.
 
 ## Example
 

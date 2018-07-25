@@ -41,6 +41,7 @@ java_library(
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jcommander:validators",
         "//java/com/google/copybara/profiler",

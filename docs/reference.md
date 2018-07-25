@@ -77,6 +77,8 @@
   - [Globals](#globals)
     - [glob](#glob)
     - [parse_message](#parse_message)
+  - [hg](#hg)
+    - [hg.origin](#hg.origin)
   - [metadata](#metadata)
     - [metadata.add_header](#metadata.add_header)
     - [metadata.expose_label](#metadata.expose_label)
@@ -1874,6 +1876,27 @@ Returns a ChangeMessage parsed from a well formed string.
 Parameter | Description
 --------- | -----------
 message | `string`<br><p>The contents of the change message</p>
+
+
+
+## hg
+
+Set of functions to define Mercurial (Hg) origins and destinations.
+
+<a id="hg.origin" aria-hidden="true"></a>
+### hg.origin
+
+<b>EXPERIMENTAL:</b> Defines a standard Mercurial (Hg) origin.
+
+`hgOrigin hg.origin(url, ref='default')`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url | `string`<br><p>Indicates the URL of the Hg repository</p>
+ref | `string`<br><p>Represents the default reference that will be used to read a revision from the repository. The reference defaults to 'default', the most recentrevision on the default branch. References can be in a variety of formats:<br><ul> <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72</li><li> A bookmark in the repository.</li><li> A branch in the repository, which returns the tip of that branch. Example: default</li><li> A tag in the repository. Example: tip</li></ul></p>
 
 
 
