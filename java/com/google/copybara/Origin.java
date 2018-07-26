@@ -176,16 +176,6 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
     Change<R> change(R ref) throws RepoException, EmptyChangeException;
 
     /**
-     * Given a revision, compute if possible an identity for the group of changes to be migrated.
-     * For example for Github this would be the pull request number, for Gerrit it could be a
-     * topic.
-     */
-    @Nullable
-    default String getGroupIdentity(R rev) throws RepoException{
-      return null;
-    }
-
-    /**
      * Finds the baseline of startRevision. Most of the implementations will use the label to
      * look for the closest parent with that label, but there might be other kind of implementations
      * that ignore it.
