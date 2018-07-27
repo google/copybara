@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.SkylarkParser;
+import com.google.copybara.config.SkylarkParser.ConfigWithDependencies;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -54,6 +55,20 @@ public class ConfigLoader {
    */
   public Config load(Console console) throws ValidationException, IOException {
     return loadForConfigFile(console, configFile);
+  }
+
+  /**
+   * Loads the configuration using this loader.
+   * @param console the console to use for reporting progress/errors
+   */
+  public ConfigWithDependencies<?> loadWithDependencies(Console console)
+      throws ValidationException, IOException {
+    console.progressFmt("Loading config and dependencies %s", configFile.getIdentifier());
+
+    try (ProfilerTask ignore = moduleSet.getOptions().get(GeneralOptions.class).profiler()
+        .start("loading_config_with_deps")){
+      return skylarkParser.getConfigWithTransitiveImports(configFile, moduleSet, console);
+    }
   }
 
   protected Config loadForConfigFile(Console console, ConfigFile<?> configFile)
