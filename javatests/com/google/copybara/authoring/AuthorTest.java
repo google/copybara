@@ -40,6 +40,17 @@ public class AuthorTest {
   }
 
   @Test
+  public void testParseEquals() throws Exception {
+    new EqualsTester()
+        .addEqualityGroup(
+            Author.parse(/*location*/ null, "Foo Bar <foo@bar.com>"),
+            Author.parse(/*location*/ null, "'Foo Bar <foo@bar.com>'"),
+            Author.parse(/*location*/ null, "\"Foo Bar <foo@bar.com>\"")
+        )
+        .testEquals();
+  }
+
+  @Test
   public void testParse_emptyEmail() throws Exception {
     Author fooBar = Author.parse(/*location*/ null, "Foo Bar <>");
     assertThat(fooBar.getEmail()).isEqualTo("");
@@ -77,8 +88,6 @@ public class AuthorTest {
             new Author("Foo Bar", ""),
             new Author("Foo Bar", "")
         )
-        .addEqualityGroup(new Author("Bar Foo", "bar@foo.com"))
-        .addEqualityGroup(new Author("Bar Foo", ""))
         .testEquals();
   }
 }

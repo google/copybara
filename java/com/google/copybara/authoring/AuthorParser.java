@@ -21,7 +21,7 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 
 /**
- * A parser for the standard autor format {@code "Name <email>"}.
+ * A parser for the standard author format {@code "Name <email>"}.
  *
  * <p>This is the format used by most VCS (Git, Mercurial) and also by the Copybara configuration
  * itself. The parser is lenient: {@code email} can be empty, and it doesn't validate that is an
@@ -31,17 +31,22 @@ public class AuthorParser {
 
   private static final Pattern AUTHOR_PATTERN =
       Pattern.compile("(?P<name>[^<]+)<(?P<email>[^>]*)>");
+  private static final Pattern IN_QUOTES =
+      Pattern.compile("(\".+\")|(\'.+\')");
 
   /**
    * Parses a Git author {@code string} into an {@link Author}.
    */
   public static Author parse(String author) throws InvalidAuthorException {
     Preconditions.checkNotNull(author);
-    Matcher matcher = AUTHOR_PATTERN.matcher(author);
-    if (!matcher.matches()) {
-      throw new InvalidAuthorException(
-          String.format("Invalid author '%s'. Must be in the form of 'Name <email>'", author));
+    if (IN_QUOTES.matcher(author).matches()) {
+      author = author.substring(1, author.length() - 1); //strip quotes
     }
-    return new Author(matcher.group(1).trim(), matcher.group(2).trim());
+    Matcher matcher = AUTHOR_PATTERN.matcher(author);
+    if (matcher.matches()) {
+      return new Author(matcher.group(1).trim(), matcher.group(2).trim());
+    }
+    throw new InvalidAuthorException(
+        String.format("Invalid author '%s'. Must be in the form of 'Name <email>'", author));
   }
 }
