@@ -541,8 +541,8 @@ public class GitModule implements LabelsAwareModule {
       Boolean skipPush, Object title, Object body, Object integrates, Location location)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    // We don't restrict to github.com domain so that we can support GH Enterprise
-    // in the future.
+    // This restricts to github.com, we will have to revisit this to support setups like GitHub
+    // Enterprise.
     SkylarkUtil.check(location, GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
     return new GitHubPrDestination(
         url,
