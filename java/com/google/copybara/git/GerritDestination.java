@@ -38,7 +38,6 @@ import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
-import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -343,9 +342,9 @@ public final class GerritDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer<GitRevision> newWriter(WriterContext<GitRevision> writerContext)
-      throws ValidationException {
-    return gitDestination.newWriter(writerContext);
+  public Writer<GitRevision> newWriter(Glob destinationFiles, boolean dryRun,
+      @Nullable String groupId, @Nullable Writer<GitRevision> oldWriter) {
+    return gitDestination.newWriter(destinationFiles, dryRun, groupId, oldWriter);
   }
 
   /** A message info that contains also information if the change is a new review */

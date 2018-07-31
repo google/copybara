@@ -39,7 +39,6 @@ import com.google.copybara.LabelFinder;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
-import com.google.copybara.WriterContext;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.RepoException;
@@ -134,37 +133,25 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer<GitRevision> newWriter(WriterContext<GitRevision> writerContext) {
-    WriterImpl<?> gitOldWriter = (WriterImpl) writerContext.getOldWriter();
+  public Writer<GitRevision> newWriter(Glob destinationFiles, boolean dryRun,
+      @Nullable String groupId, @Nullable Writer<GitRevision> oldWriter) {
+    WriterImpl gitOldWriter = (WriterImpl) oldWriter;
 
-    boolean effectiveSkipPush = GitDestination.this.effectiveSkipPush || writerContext.isDryRun();
+    boolean effectiveSkipPush = GitDestination.this.effectiveSkipPush || dryRun;
 
     WriterState state;
-    if (writerContext.getOldWriter() != null && gitOldWriter.skipPush == effectiveSkipPush) {
-      state = ((WriterImpl) writerContext.getOldWriter()).state;
+    if (oldWriter != null && gitOldWriter.skipPush == effectiveSkipPush) {
+      state = ((WriterImpl) oldWriter).state;
     } else {
-      state =
-          new WriterState(
-              localRepo, destinationOptions.getLocalBranch(push, writerContext.isDryRun()));
+      state = new WriterState(localRepo, destinationOptions.getLocalBranch(push, dryRun));
     }
 
-    return new WriterImpl<>(
-        writerContext.getDestinationFiles(),
-        effectiveSkipPush,
-        repoUrl,
-        fetch,
-        push,
-        generalOptions,
-        writerHook,
-        state,
-        destinationOptions.nonFastForwardPush,
-        integrates,
-        destinationOptions.lastRevFirstParent,
-        destinationOptions.ignoreIntegrationErrors,
-        destinationOptions.localRepoPath,
-        destinationOptions.committerName,
-        destinationOptions.committerEmail,
-        destinationOptions.rebaseWhenBaseline(),
+    return new WriterImpl<>(destinationFiles, effectiveSkipPush, repoUrl, fetch, push,
+        generalOptions, writerHook,
+        state, destinationOptions.nonFastForwardPush, integrates,
+        destinationOptions.lastRevFirstParent, destinationOptions.ignoreIntegrationErrors,
+        destinationOptions.localRepoPath, destinationOptions.committerName,
+        destinationOptions.committerEmail, destinationOptions.rebaseWhenBaseline(),
         gitOptions.visitChangePageSize);
   }
 

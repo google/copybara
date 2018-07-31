@@ -96,6 +96,15 @@ public class GerritOrigin extends GitOrigin {
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new GitOrigin.ReaderImpl(repoUrl, originFiles, authoring, gitOptions, gitOriginOptions,
         generalOptions, includeBranchCommitLogs, submoduleStrategy, firstParent) {
+      /**
+       * Group identity is the individual change identity for now. If we want to group a list of
+       * commits we would add Gerrit topic support and an option to git.gerrit_origin to enable it.
+       */
+      @Nullable
+      @Override
+      public String getGroupIdentity(GitRevision rev) throws RepoException {
+        return rev.contextReference();
+      }
 
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(

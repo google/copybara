@@ -270,6 +270,15 @@ public class DummyOrigin implements Origin<DummyRevision> {
                           start.asString(), Joiner.on("\n  ").join(changes)));
       }
     }
+
+    @Nullable
+    @Override
+    public String getGroupIdentity(DummyRevision rev) throws RepoException {
+      if (changeIdToGroup.containsKey(rev.asString())) {
+        return changeIdToGroup.get(rev.asString());
+      }
+      return null;
+    }
   }
 
   @Override

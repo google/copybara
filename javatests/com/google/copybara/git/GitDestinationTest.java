@@ -34,7 +34,6 @@ import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.TransformResult;
-import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -390,11 +389,10 @@ public class GitDestinationTest {
         "A fake merge\n\n" + DummyOrigin.LABEL_NAME + ": foo");
 
     destinationFiles = Glob.createGlob(ImmutableList.of("dir/**"));
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("piper_to_github", "TEST", destinationFiles,
-            /*dryRun=*/ false, new DummyRevision("feature"), /*oldWriter=*/null);
-    DestinationStatus status =
-        destination().newWriter(writerContext).getDestinationStatus(DummyOrigin.LABEL_NAME);
+
+    DestinationStatus status = destination().newWriter(destinationFiles,
+        /*dryRun=*/false,/*groupId=*/null, /*oldWriter=*/null)
+        .getDestinationStatus(DummyOrigin.LABEL_NAME);
 
     assertThat(status).isNotNull();
     assertThat(status.getBaseline()).isEqualTo("foo");
@@ -507,32 +505,15 @@ public class GitDestinationTest {
 
     Files.write(workdir.resolve("baz/one"), "content2".getBytes(UTF_8));
     DummyRevision ref2 = new DummyRevision("second");
-    WriterContext<GitRevision> writerContext1 =
-        new WriterContext<>(
-            "piper_to_github",
-            "test",
-            Glob.createGlob(ImmutableList.of("baz/**")),
-            /*dryRun=*/ false,
-            new DummyRevision("test"),
-            writer1);
-    Writer<GitRevision> writer2 = destination().newWriter(writerContext1);
+
+    Writer<GitRevision> writer2 = destination().newWriter(
+        Glob.createGlob(ImmutableList.of("baz/**")),/*dryRun=*/false, /*groupId=*/null, writer1);
     process(writer2, ref2);
 
     // Recreate the writer since a destinationFirstCommit writer never looks
     // for a previous ref.
-    WriterContext<GitRevision> writerContext2 =
-        new WriterContext<>(
-            "piper_to_github",
-            "test",
-            firstGlob,
-            /*dryRun=*/ false,
-            new DummyRevision("test"),
-            writer2);
-    assertThat(
-            destination()
-                .newWriter(writerContext2)
-                .getDestinationStatus(ref1.getLabelName())
-                .getBaseline())
+    assertThat(destination().newWriter(firstGlob, /*dryRun=*/false, /*groupId=*/null, writer2)
+        .getDestinationStatus(ref1.getLabelName()).getBaseline())
         .isEqualTo(ref1.asString());
     assertThat(writer2.getDestinationStatus(ref2.getLabelName()).getBaseline())
         .isEqualTo(ref2.asString());
@@ -1282,15 +1263,9 @@ public class GitDestinationTest {
     Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
     repo().withWorkTree(scratchTree).add().force().files("foo").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>(
-            "piper_to_github",
-            "test",
-            destinationFiles,
-            /*dryRun=*/ true,
-            new DummyRevision("origin_ref1"),
-            /*oldWriter=*/ null);
-    Writer<GitRevision> writer = destination().newWriter(writerContext);
+
+    Writer<GitRevision> writer = destination().newWriter(destinationFiles, /*dryRun=*/ true,
+                                            /*groupId=*/null, /*oldWriter=*/null);
     process(writer, new DummyRevision("origin_ref1"));
 
     GitTesting.assertThatCheckout(repo(), "master")
@@ -1519,18 +1494,13 @@ public class GitDestinationTest {
 
   private Writer<GitRevision> newWriter(
       Glob destinationFiles, @Nullable Writer<GitRevision> oldWriter) throws ValidationException {
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>( "piper_to_github", /*workflowIdentityUser=*/ "TEST",
-            destinationFiles, false, new DummyRevision("test"), oldWriter);
-    return destination().newWriter(writerContext);
+    return destination().newWriter(destinationFiles, /*dryRun=*/ false, /*groupId=*/null,
+        oldWriter);
   }
 
   private Writer<GitRevision> firstCommitWriter() throws ValidationException {
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>( "piper_to_github", /*workflowIdentityUser=*/"TEST",
-            destinationFiles, /*dryRun=*/false, new DummyRevision("test"),  /*oldWriter=*/null);
-
-    return destinationFirstCommit().newWriter(writerContext);
+    return destinationFirstCommit().newWriter(destinationFiles, /*dryRun=*/ false,
+                                              /*groupId=*/null, /*oldWriter=*/null);
   }
 
   private void verifyDestinationStatus(Glob destinationFiles, DummyRevision revision)

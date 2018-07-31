@@ -39,9 +39,9 @@ import javax.annotation.Nullable;
  * from the origin location provided.
  *
  * <p>How it works is with the method {@link Workflow#newRunHelper(Path, Revision, String)} and
- * {@link WorkflowRunHelper}. The core implementation returns a regular run helper that always
- * returns {@code this} for any changes, which means that no config is read and the workflow remains
- * immutable.
+ * {@link WorkflowRunHelper#forChanges(Iterable)}. The core implementation returns a regular run
+ * helper that always returns {@code this} for any changes, which means that no config is read and
+ * the workflow remains immutable.
  *
  * <p>The service uses this implementation to provide a {@link ReloadingRunHelper} that is capable
  * of reading the configuration for the current change being migrated, perform some security and
@@ -96,16 +96,10 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       String rawSourceRef)
       throws ValidationException, RepoException {
     Reader<O> reader = this.getOrigin().newReader(this.getOriginFiles(), this.getAuthoring());
+    String groupId = computeGroupIdentity(reader.getGroupIdentity(resolvedRef));
     return new ReloadingRunHelper(
-        this,
-        options,
-        getName(),
-        workdir,
-        resolvedRef,
-        this.isDryRunMode(),
-        /*oldWriter=*/ null,
-        reader,
-        rawSourceRef);
+        this, options, getName(), workdir, resolvedRef, this.isDryRunMode(), /*oldWriter=*/null,
+        reader, groupId, rawSourceRef);
   }
 
   @Override
@@ -118,38 +112,21 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
    * the configuration from the origin, after performing security and validation checks.
    */
   private class ReloadingRunHelper extends WorkflowRunHelper<O, D> {
+
     private final Workflow<O, D> workflow;
     private final Options options;
     private final String workflowName;
 
     private ReloadingRunHelper(
-        Workflow<O, D> workflow,
-        Options options,
-        String workflowName,
-        Path workdir,
-        O resolvedRef,
-        boolean dryRun,
-        @Nullable Writer<D> oldWriter,
-        Reader<O> originReader,
-        @Nullable String rawSourceRef)
+        Workflow<O, D> workflow, Options options, String workflowName, Path workdir, O resolvedRef,
+        boolean dryRun, @Nullable Writer<D> oldWriter, Reader<O> originReader,
+        @Nullable String groupId, @Nullable String rawSourceRef)
         throws ValidationException, RepoException {
-
-      super(
-          workflow,
-          workdir,
-          resolvedRef,
-          originReader,
-          workflow
-              .getDestination()
-              .newWriter(
-                  new WriterContext<>(
-                      workflowName,
-                      workflow.getWorkflowOptions().workflowIdentityUser,
-                      workflow.getDestinationFiles(),
-                      dryRun,
-                      resolvedRef,
-                      oldWriter)),
-          rawSourceRef);
+      super(workflow, workdir, resolvedRef,
+            originReader,
+            workflow.getDestination()
+                    .newWriter(workflow.getDestinationFiles(), dryRun, groupId, oldWriter),
+            groupId, rawSourceRef);
       this.workflow = workflow;
       this.options = checkNotNull(options, "options");
       this.workflowName = checkNotNull(workflowName, "workflowName");
@@ -186,19 +163,12 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       @SuppressWarnings("unchecked")
       Workflow<O, D> workflowForChange = (Workflow<O, D>) migration;
       //noinspection unchecked
-      ReloadingRunHelper helper =
-          new ReloadingRunHelper(
-              workflowForChange,
-              options,
-              workflowName,
-              getWorkdir(),
-              getResolvedRef(),
-              workflowForChange.isDryRunMode(),
-              lastWriter,
-              workflowForChange
-                  .getOrigin()
-                  .newReader(workflowForChange.getOriginFiles(), workflowForChange.getAuthoring()),
-              rawSourceRef);
+      ReloadingRunHelper helper = new ReloadingRunHelper(
+          workflowForChange, options, workflowName, getWorkdir(), getResolvedRef(),
+          workflowForChange.isDryRunMode(), lastWriter,
+          workflowForChange.getOrigin()
+              .newReader(workflowForChange.getOriginFiles(), workflowForChange.getAuthoring()),
+          getGroupId(), rawSourceRef);
       lastWriter = helper.writer;
       return helper;
     }
@@ -207,16 +177,11 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
     protected WorkflowRunHelper<O, D> withDryRun()
         throws RepoException, ValidationException, IOException {
       return new ReloadingRunHelper(
-          workflow,
-          options,
-          workflowName,
-          getWorkdir(),
-          getResolvedRef(),
+          workflow, options, workflowName, getWorkdir(), getResolvedRef(),
           // Not sharing old writer status on purpose for dry run to avoid accidents.
-          /*dryRun=*/ true,
-          /*oldWriter=*/ writer,
+          /*dryRun=*/true, /*oldWriter=*/writer,
           workflow.getOrigin().newReader(workflow.getOriginFiles(), workflow.getAuthoring()),
-          rawSourceRef);
+          getGroupId(), rawSourceRef);
     }
   }
 }

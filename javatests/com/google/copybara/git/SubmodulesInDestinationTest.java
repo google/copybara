@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
-import com.google.copybara.WriterContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.testing.GitTesting;
@@ -116,10 +115,8 @@ public final class SubmodulesInDestinationTest {
     scratchRepo.simpleCommand("commit", "-m", "commit submodule");
 
     Files.write(workdir.resolve("test42"), new byte[] {42});
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("SubmodulesInDestinationTest","Test",
-            destinationFiles,false, new DummyRevision("test"), /*oldWriter=*/ null);
-    Destination.Writer<GitRevision> writer = destination().newWriter(writerContext);
+    Destination.Writer<?> writer = destination().newWriter(destinationFiles, /*dryRun=*/false,
+                                                        /*groupId=*/null, /*oldWriter=*/ null);
     ImmutableList<DestinationEffect> result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
         console);
@@ -174,10 +171,10 @@ public final class SubmodulesInDestinationTest {
     // Create a commit that removes foo/a and adds foo/c
     Files.createDirectories(workdir.resolve("foo"));
     Files.write(workdir.resolve("foo/c"), new byte[] {1});
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("SubmodulesInDestinationTest","Test",
-            destinationFiles,false, new DummyRevision("test"), /*oldWriter=*/ null);
-    Destination.Writer<GitRevision> writer = destination().newWriter(writerContext);
+
+    Destination.Writer<?> writer =
+        destination().newWriter(destinationFiles, /*dryRun=*/false,
+                                /*groupId=*/null, /*oldWriter=*/ null);
     ImmutableList<DestinationEffect> result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
         console);

@@ -97,7 +97,6 @@ BASE_SRCS = [
     "treestate/TreeState.java",
     "treestate/TreeStateUtil.java",
     "WorkflowOptions.java",
-    "WriterContext.java",
 ]
 
 java_library(

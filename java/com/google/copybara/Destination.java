@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -94,12 +95,21 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    * <p>This method should only do trivial initialization of the writer, since it does not have
    * access to a {@link Console}.
    *
-   * @param writerContext Contains all the information for writing to destination, including
-   *     workflowName, destinationFiles, * dryRun, revision, and oldWriter
+   * @param destinationFiles A path matcher which matches files in the destination that should be
+   * deleted if they don't exist in the source.
+   * @param dryRun if the writer should be created in dry-run mode. Dry-run modes might vary
+   * between implementations. Some implementations might chose to create a side effect as far as
+   * it is not in the main branch.
+   * @param groupId an optional identifier for the group of changes that will be migrated
+   * (For example if the all the changes are from a Github pull request).
+   * @param oldWriter workflows might create several writers for the same invocation so that
+   * they can run with different config per change migrated. This allows the writer to maintain
+   * state for the whole workflow execution scope.
    * @throws ValidationException if the writer could not be created because of a user error. For
-   *     instance, the destination cannot be used with the given {@code destinationFiles}.
+   * instance, the destination cannot be used with the given {@code destinationFiles}.
    */
-  Writer<R> newWriter(WriterContext<R> writerContext) throws ValidationException;
+  Writer<R> newWriter(Glob destinationFiles, boolean dryRun, @Nullable String groupId,
+      @Nullable Writer<R> oldWriter) throws ValidationException;
 
   /**
    * Given a reverse workflow with an {@code Origin} than is of the same type as this destination,

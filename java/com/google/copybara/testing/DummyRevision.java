@@ -28,10 +28,10 @@ import com.google.common.collect.Maps;
 import com.google.copybara.Change;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Origin;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.exception.RepoException;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -70,19 +70,6 @@ public class DummyRevision implements Revision {
         Paths.get("/DummyReference", reference), /*timestamp=*/null,
         /*contextReference=*/ null, /*referenceLabels=*/ ImmutableListMultimap.of(),
          /*matchesGlob=*/true, /*previousPath=*/null);
-  }
-
-  public DummyRevision(String reference, @Nullable String contextReference) {
-    this(
-        reference,
-        "DummyReference message",
-        DEFAULT_AUTHOR,
-        Paths.get("/DummyReference", reference),
-        /*timestamp=*/ null,
-        /*contextReference=*/ contextReference,
-        /*referenceLabels=*/ ImmutableListMultimap.of(),
-        /*matchesGlob=*/ true,
-        /*previousPath=*/ null);
   }
 
   DummyRevision(

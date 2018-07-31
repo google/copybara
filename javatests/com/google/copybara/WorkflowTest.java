@@ -437,23 +437,22 @@ public class WorkflowTest {
       origin.addSimpleChange(timestamp);
     }
     // Override destination with one that always throws EmptyChangeException.
-    options.testingOptions.destination =
-        new RecordsProcessCallDestination() {
+    options.testingOptions.destination = new RecordsProcessCallDestination() {
+      @Override
+      public Writer newWriter(Glob destinationFiles, boolean dryRun, @Nullable String groupId,
+          @Nullable Writer oldWriter) {
+        return new WriterImpl(destinationFiles, dryRun) {
           @Override
-          public Writer newWriter(WriterContext writerContext) {
-            return new WriterImpl(writerContext.getDestinationFiles(), writerContext.isDryRun()) {
-              @Override
-              public ImmutableList<DestinationEffect> write(
-                  TransformResult transformResult, Console console)
-                  throws ValidationException, RepoException, IOException {
-                assert exception != null;
-                Throwables.propagateIfPossible(
-                    exception, ValidationException.class, RepoException.class);
-                throw new RuntimeException(exception);
-              }
-            };
+          public ImmutableList<DestinationEffect> write(TransformResult transformResult,
+              Console console) throws ValidationException, RepoException, IOException {
+            assert exception != null;
+            Throwables.propagateIfPossible(exception, ValidationException.class,
+                RepoException.class);
+            throw new RuntimeException(exception);
           }
         };
+      }
+    };
     Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/"1");
 
     try {
@@ -677,6 +676,7 @@ public class WorkflowTest {
 
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("1");
+    assertThat(destination.processed.get(0).getGroupIdentity()).isNotNull();
 
     origin.singleFileChange(4, "pending2", "file.txt", "c");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
@@ -684,6 +684,8 @@ public class WorkflowTest {
 
     assertThat(destination.processed).hasSize(2);
     assertThat(destination.processed.get(1).getBaseline()).isEqualTo("3");
+    assertThat(destination.processed.get(1).getGroupIdentity()).isEqualTo(
+        destination.processed.get(1).getGroupIdentity());
   }
 
   @Test
@@ -871,20 +873,15 @@ public class WorkflowTest {
 
     options.setForce(true);
     workflow().run(workdir, ImmutableList.of(HEAD));
-    WriterContext<Revision> writerContext =
-        new WriterContext<>("piper_to_github", "TEST", Glob.ALL_FILES,  /*dryRun=*/ false, new DummyRevision("test"),  /*oldWriter=*/null);
-    assertThat(
-            destination
-                .newWriter(writerContext)
-                .getDestinationStatus(origin.getLabelName())
-                .getBaseline())
+
+    assertThat(destination.newWriter(Glob.ALL_FILES, /*dryRun=*/false, /*groupId=*/null,
+        /*oldWriter=*/null)
+        .getDestinationStatus(origin.getLabelName()).getBaseline())
         .isEqualTo("3");
     workflow().run(workdir, ImmutableList.of(oldRef));
-    assertThat(
-            destination
-                .newWriter(writerContext)
-                .getDestinationStatus(origin.getLabelName())
-                .getBaseline())
+    assertThat(destination.newWriter(Glob.ALL_FILES, /*dryRun=*/false, /*groupId=*/null,
+        /*oldWriter=*/null)
+        .getDestinationStatus(origin.getLabelName()).getBaseline())
         .isEqualTo("0");
   }
 

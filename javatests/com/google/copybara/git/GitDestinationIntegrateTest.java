@@ -31,7 +31,6 @@ import com.google.common.collect.Lists;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.TransformResult;
-import com.google.copybara.WriterContext;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -218,11 +217,10 @@ public class GitDestinationIntegrateTest {
     assertThat(featureMerge.getBody()).isEqualTo("Merge of " + feature.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": the_rev\n");
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>(
-            "piper_to_github", "TEST", destinationFiles, /*dryRun=*/false, new DummyRevision("feature"), /*oldWriter=*/null);
-    DestinationStatus destinationStatus =
-        destination.newWriter(writerContext).getDestinationStatus(DummyOrigin.LABEL_NAME);
+
+    DestinationStatus destinationStatus = destination.newWriter(destinationFiles,
+        /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null).getDestinationStatus(
+        DummyOrigin.LABEL_NAME);
     assertWithMessage(gitDir.toString()).that(destinationStatus.getBaseline()).isEqualTo("the_rev");
   }
 
@@ -576,10 +574,8 @@ public class GitDestinationIntegrateTest {
   private void migrateOriginChange(GitDestination destination, String summary,
       String file, String content,
       String originRef) throws IOException, RepoException, ValidationException {
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("piper_to_github", "TEST", destinationFiles,
-            /*dryRun=*/false, new DummyRevision("test"), /*oldWriter=*/null);
-    Writer<GitRevision> writer = destination.newWriter(writerContext);
+    Writer<GitRevision> writer = destination.newWriter(destinationFiles,
+        /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null);
 
     Files.createDirectories(workdir.resolve(file).getParent());
     Files.write(workdir.resolve(file), content.getBytes());
