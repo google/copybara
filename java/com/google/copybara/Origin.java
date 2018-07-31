@@ -120,6 +120,9 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
         return new ChangesResponse<>(null, emptyReason);
       }
 
+     /**
+      * Returns true if there are no changes.
+      */
       public boolean isEmpty() {
         return changes == null;
       }
