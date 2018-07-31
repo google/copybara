@@ -126,7 +126,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
         "" + changes.size(), message, author, path,
         ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
         /*contextReference=*/ null, /*referenceLabels=*/ ImmutableListMultimap.of(),
-        matchesGlob, previousChanges));
+        matchesGlob, previousChanges, ""));
     return this;
   }
 

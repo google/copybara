@@ -80,4 +80,11 @@ public interface Revision {
   default ImmutableListMultimap<String, String> associatedLabels() {
     return ImmutableListMultimap.of();
   }
+
+  /**
+   * The url of the revision repository .
+   */
+  @Nullable default String getUrl() {
+    return null;
+  }
 }
