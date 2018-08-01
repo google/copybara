@@ -19,10 +19,8 @@ package com.google.copybara;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.EmptyChangeException;
@@ -82,7 +80,8 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
      * @param toRef current revision to transform.
      * @throws RepoException if any error happens during the computation of the diff.
      */
-    ChangesResponse<R> changes(@Nullable R fromRef, R toRef) throws RepoException;
+    ChangesResponse<R> changes(@Nullable R fromRef, R toRef)
+        throws RepoException, ValidationException;
 
     class ChangesResponse<R extends Revision> {
 

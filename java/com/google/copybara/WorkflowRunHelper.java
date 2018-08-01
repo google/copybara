@@ -491,7 +491,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   }
 
 
-  ChangesResponse<O> getChanges(@Nullable O from, O to) throws RepoException {
+  ChangesResponse<O> getChanges(@Nullable O from, O to) throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler().start("get_changes")) {
       return originReader.changes(from, to);
     }
