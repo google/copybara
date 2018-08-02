@@ -11,6 +11,8 @@ log "Fetching dependencies"
 # Mercurial does not have an up-to-date .deb package
 # The official release needs to be installed with pip.
 apt-get -y install python-pip
+apt-get update
+apt-get install locales
 pip install mercurial
 
 log "Extracting Bazel"
@@ -24,8 +26,14 @@ git --version | sed 's/git version/Git:/'
 bazel version | grep "Build label" | sed 's/Build label:/Bazel:/'
 echo "-----------------------------------"
 
-log "Running Bazel"
+log "Setting Locale"
+export LANGUAGE=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
 
+log "Running Bazel"
 bazel "$@"
 
 log "Done"

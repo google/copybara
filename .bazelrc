@@ -1,0 +1,10 @@
+# Options applied to all Bazel invocations in the workspace.
+# Enforces UTF-8 encoding in bazel tests.
+test --test_env='LC_ALL=en_US.UTF-8'
+test --test_env='LANG=en_US.UTF-8'
+test --jvmopt='-Dsun.jnu.encoding=UTF-8'
+test --jvmopt='-Dfile.encoding=UTF-8'
+build --test_env='LC_ALL=en_US.UTF-8'
+build --jvmopt='-Dsun.jnu.encoding=UTF-8'
+build --jvmopt='-Dfile.encoding=UTF-8'
+build --test_env='LANG=en_US.UTF-8'
