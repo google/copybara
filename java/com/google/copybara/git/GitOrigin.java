@@ -20,8 +20,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.Origin.Reader.ChangesResponse.forChanges;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.exception.ValidationException.checkCondition;
-import static com.google.copybara.util.console.Consoles.logLines;
 import static com.google.copybara.util.OriginUtil.affectsRoots;
+import static com.google.copybara.util.OriginUtil.runCheckoutHook;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -45,13 +45,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
-import com.google.copybara.util.BadExitStatusWithOutputException;
-import com.google.copybara.util.CommandOutputWithStatus;
-import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -195,31 +190,12 @@ public class GitOrigin implements Origin<GitRevision> {
       checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref,
           /*topLevelCheckout=*/true);
       if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
-        runCheckoutHook(workdir);
+        runCheckoutHook(workdir, gitOriginOptions.originCheckoutHook,
+            generalOptions.getEnvironment(), generalOptions.isVerbose(), generalOptions.console(),
+            /*originType*/ "git.origin");
       }
     }
-
-    void runCheckoutHook(Path workdir) throws RepoException {
-      try {
-        Command cmd = new Command(new String[]{gitOriginOptions.originCheckoutHook},
-            generalOptions.getEnvironment(), workdir.toFile());
-        CommandOutputWithStatus result = new CommandRunner(cmd)
-            .withVerbose(generalOptions.isVerbose())
-            .execute();
-        logLines(generalOptions.console(), "git.origin hook (Stdout): ", result.getStdout());
-        logLines(generalOptions.console(), "git.origin hook (Stderr): ", result.getStderr());
-      } catch (BadExitStatusWithOutputException e) {
-        logLines(generalOptions.console(), "git.origin hook (Stdout): ", e.getOutput().getStdout());
-        logLines(generalOptions.console(), "git.origin hook (Stderr): ", e.getOutput().getStderr());
-        throw new RepoException(
-            "Error executing the git checkout hook: " + gitOriginOptions.originCheckoutHook, e);
-      } catch (CommandException e) {
-        throw new RepoException(
-            "Error executing the git checkout hook: " + gitOriginOptions.originCheckoutHook, e);
-      }
-    }
-
-
+    
     /**
      * Checks out the repository, and rebases to a ref if necessary.
      *

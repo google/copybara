@@ -19,10 +19,10 @@ package com.google.copybara.hg;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.util.OriginUtil.affectsRoots;
+import static com.google.copybara.util.OriginUtil.runCheckoutHook;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -57,13 +57,15 @@ public class HgOrigin implements Origin<HgRevision> {
   private final HgOptions hgOptions;
   private final String repoUrl;
   @Nullable private final String configRef;
+  private final HgOriginOptions hgOriginOptions;
 
   HgOrigin(GeneralOptions generalOptions, HgOptions hgOptions, String repoUrl,
-      @Nullable String ref) {
+      @Nullable String ref, HgOriginOptions hgOriginOptions) {
     this.generalOptions = generalOptions;
     this.hgOptions = hgOptions;
     this.repoUrl = CharMatcher.is('/').trimTrailingFrom(checkNotNull(repoUrl));
     this.configRef = ref;
+    this.hgOriginOptions = hgOriginOptions;
   }
 
   @VisibleForTesting
@@ -99,14 +101,16 @@ public class HgOrigin implements Origin<HgRevision> {
     private final HgOptions hgOptions;
     private final Authoring authoring;
     private final GeneralOptions generalOptions;
+    private final HgOriginOptions hgOriginOptions;
     final Glob originFiles;
 
     ReaderImpl(String repoUrl, HgOptions hgOptions, Authoring authoring,
-        GeneralOptions generalOptions, Glob originFiles) {
+        GeneralOptions generalOptions, HgOriginOptions hgOriginOptions, Glob originFiles) {
       this.repoUrl = checkNotNull(repoUrl);
       this.hgOptions = hgOptions;
       this.authoring = authoring;
       this.generalOptions = generalOptions;
+      this.hgOriginOptions = hgOriginOptions;
       this.originFiles = originFiles;
     }
 
@@ -136,6 +140,12 @@ public class HgOrigin implements Origin<HgRevision> {
         throw e;
       } catch (IOException e) {
         throw new RepoException("Error checking out " + repoUrl, e);
+      }
+
+      if (!Strings.isNullOrEmpty(hgOriginOptions.originCheckoutHook)) {
+        runCheckoutHook(workDir, hgOriginOptions.originCheckoutHook,
+            generalOptions.getEnvironment(), generalOptions.isVerbose(),
+            generalOptions.console(), /*originType*/ "hg.origin");
       }
     }
 
@@ -254,7 +264,8 @@ public class HgOrigin implements Origin<HgRevision> {
 
   @Override
   public Reader<HgRevision> newReader(Glob originFiles, Authoring authoring) {
-    return new ReaderImpl(repoUrl, hgOptions, authoring, generalOptions, originFiles);
+    return new ReaderImpl(
+        repoUrl, hgOptions, authoring, generalOptions, hgOriginOptions, originFiles);
   }
 
   @Override
@@ -272,7 +283,7 @@ public class HgOrigin implements Origin<HgRevision> {
    */
   static HgOrigin newHgOrigin(Options options, String url, String ref) {
     return new HgOrigin(options.get(GeneralOptions.class), options.get(HgOptions.class), url,
-        ref);
+        ref, options.get(HgOriginOptions.class));
   }
 
 }

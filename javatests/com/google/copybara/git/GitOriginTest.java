@@ -435,9 +435,12 @@ public class GitOriginTest {
     options.gitOrigin.originCheckoutHook = hook.toAbsolutePath().toString();
     origin = origin();
     Reader<GitRevision> reader = newReader();
-    thrown.expect(RepoException.class);
-    thrown.expectMessage("Error executing the git checkout hook");
-    reader.checkout(origin.resolve("master"), checkoutDir);
+    try {
+      reader.checkout(origin.resolve("master"), checkoutDir);
+      fail("Should have thrown exception");
+    } catch (RepoException expected) {
+      assertThat(expected.getMessage()).contains("Error executing the checkout hook");
+    }
   }
 
   @Test

@@ -35,6 +35,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
+import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.modules.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.util.console.Console;
@@ -102,6 +103,7 @@ public class ModuleSupplier {
         new GerritOptions(generalOptions, gitOptions),
         new GitMirrorOptions(generalOptions, gitOptions),
         new HgOptions(generalOptions),
+        new HgOriginOptions(),
         new PatchingOptions(generalOptions),
         new WorkflowOptions()));
   }

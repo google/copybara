@@ -29,6 +29,7 @@ CORE = [
     "HgRevision.java",
     "HgOptions.java",
     "HgOrigin.java",
+    "HgOriginOptions.java",
     "HgVisitorUtil.java",
 ]
 

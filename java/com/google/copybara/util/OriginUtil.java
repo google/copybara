@@ -16,8 +16,16 @@
 
 package com.google.copybara.util;
 
+import static com.google.copybara.util.console.Consoles.logLines;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
+import com.google.copybara.util.console.Console;
+import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Utility methods for managing origins
@@ -44,5 +52,31 @@ public class OriginUtil {
       }
     }
     return false;
+  }
+
+  public static void runCheckoutHook(Path workDir, String checkoutHook,
+      Map<String, String> environment, boolean isVerbose, Console console, String originType)
+      throws RepoException {
+    try {
+      Command cmd = new Command(new String[]{checkoutHook}, environment,
+          workDir.toFile());
+      CommandOutputWithStatus result = new CommandRunner(cmd)
+          .withVerbose(isVerbose)
+          .execute();
+      logLines(
+          console, String.format("%s hook (Stdout): ", originType), result.getStdout());
+      logLines(
+          console, String.format("%s hook (Stderr): ", originType), result.getStderr());
+    } catch (BadExitStatusWithOutputException e) {
+      logLines(console,
+          String.format("%s hook (Stdout): ", originType), e.getOutput().getStdout());
+      logLines(console,
+          String.format("%s hook (Stderr): ", originType), e.getOutput().getStderr());
+      throw new RepoException(
+          "Error executing the checkout hook: " + checkoutHook, e);
+    } catch (CommandException e) {
+      throw new RepoException(
+          "Error executing the checkout hook: " + checkoutHook, e);
+    }
   }
 }

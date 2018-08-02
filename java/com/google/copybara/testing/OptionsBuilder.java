@@ -37,6 +37,7 @@ import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgOptions;
+import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -85,6 +86,7 @@ public class OptionsBuilder {
           /*checkLastRevState=*/false);
 
   public HgOptions hg = new HgOptions(general);
+  public HgOriginOptions hgOrigin = new HgOriginOptions();
 
   public TestingOptions testingOptions = new TestingOptions();
 
@@ -139,7 +141,7 @@ public class OptionsBuilder {
   protected Iterable<Option> allOptions() {
     return ImmutableList
         .of(general, folderDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
-            gitDestination, gitMirrorOptions, gerrit, github, githubDestination, hg,
+            gitDestination, gitMirrorOptions, gerrit, github, githubDestination, hg, hgOrigin,
             workflowOptions, testingOptions, patch);
   }
 

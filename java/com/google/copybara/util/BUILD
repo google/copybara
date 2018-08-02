@@ -25,6 +25,7 @@ java_library(
         "1.8",
     ],
     deps = [
+        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:exec_path",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util/console",
