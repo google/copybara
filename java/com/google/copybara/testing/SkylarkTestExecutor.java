@@ -126,7 +126,7 @@ public class SkylarkTestExecutor {
       throws ValidationException {
     Object result = eval("e", String.format(
         // Support lists
-        fieldName.startsWith("[") ?"e = %s%s" : "e = %s.%s", var, fieldName));
+        fieldName.startsWith("[") ? "e = %s%s" : "e = %s.%s", var, fieldName));
     if (!result.equals(expectedValue)) {
       throw new RuntimeException(
           String.format("Invalid field %s. Got: %s. Want: %s", fieldName, result, expectedValue));
@@ -186,7 +186,7 @@ public class SkylarkTestExecutor {
       throws IOException, ValidationException {
     return skylarkParser.getConfigWithTransitiveImports(
             config, createModuleSet(), options.general.console())
-        .files;
+        .getFiles();
   }
 
   public ConfigFile<String> createConfigFile(String filename, String configContent) {

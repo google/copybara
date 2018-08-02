@@ -180,12 +180,20 @@ public class SkylarkParser {
    * accessed during the parsing.
    */
   public static class ConfigWithDependencies <T> {
-    public final ImmutableMap<String, ConfigFile<T>> files;
-    public final Config config;
+    private final ImmutableMap<String, ConfigFile<T>> files;
+    private final Config config;
 
     private ConfigWithDependencies(ImmutableMap<String, ConfigFile<T>> files, Config config) {
       this.config = config;
       this.files = files;
+    }
+
+    public Config getConfig() {
+      return config;
+    }
+
+    public ImmutableMap<String, ConfigFile<T>> getFiles() {
+      return files;
     }
   }
 
@@ -273,7 +281,7 @@ public class SkylarkParser {
   }
 
   /**
-   * Create a global enviroment to be used per file loaded. As a side effect it mutates the
+   * Create a global environment to be used per file loaded. As a side effect it mutates the
    * module globals with information about the current file loaded.
    */
   private GlobalFrame createGlobalsForConfigFile(
