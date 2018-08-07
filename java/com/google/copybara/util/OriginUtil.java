@@ -21,6 +21,7 @@ import static com.google.copybara.util.console.Consoles.logLines;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.console.Console;
@@ -56,9 +57,16 @@ public class OriginUtil {
 
   public static void runCheckoutHook(Path workDir, String checkoutHook,
       Map<String, String> environment, boolean isVerbose, Console console, String originType)
-      throws RepoException {
+      throws RepoException, ValidationException {
     try {
-      Command cmd = new Command(new String[]{checkoutHook}, environment,
+      checkoutHook = FileUtil.checkNormalizedRelative(checkoutHook);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException(
+          String.format("Invalid checkout hook path: %s", e.getMessage()));
+    }
+    try {
+      Command cmd = new Command(new String[]{
+          workDir.resolve(checkoutHook).toAbsolutePath().toString()}, environment,
           workDir.toFile());
       CommandOutputWithStatus result = new CommandRunner(cmd)
           .withVerbose(isVerbose)

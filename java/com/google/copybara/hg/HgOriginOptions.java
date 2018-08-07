@@ -25,9 +25,10 @@ import com.google.copybara.Option;
  */
 @Parameters(separators = "=")
 public class HgOriginOptions implements Option {
+
   @Parameter(names = "--hg-origin-checkout-hook",
-      description = "A command to be executed when a checkout happens for a hg origin. Only intended"
-        + "to run tools that update the repository to latest sources",
+      description = "A command to be executed when a checkout happens for a hg origin. Only"
+        + " intended to run tools that update the repository to latest sources",
       hidden = true)
   String originCheckoutHook = null;
 }

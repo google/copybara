@@ -32,7 +32,6 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.exception.CannotResolveRevisionException;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.testing.OptionsBuilder;
@@ -111,49 +110,23 @@ public class HgOriginTest {
 
   @Test
   public void testHgOriginWithHook() throws Exception {
-    Path hook = Files.createTempFile("script", "script");
-    Files.write(hook, "touch hook.txt".getBytes(UTF_8));
+    Path hook = Files.createTempFile(remotePath, "script", "script");
+    Files.write(hook, "touch output.txt".getBytes(UTF_8));
 
     Files.setPosixFilePermissions(hook, ImmutableSet.<PosixFilePermission>builder()
         .addAll(Files.getPosixFilePermissions(hook))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
+    repository.hg(remotePath, "add", hook.toString());
+    repository.hg(remotePath, "commit", "-m", "add hook");
 
-    options.hgOrigin.originCheckoutHook = hook.toAbsolutePath().toString();
+    options.hgOrigin.originCheckoutHook = hook.toFile().getName();
     origin = origin();
-    Files.write(remotePath.resolve("bar.txt"), "bara".getBytes(UTF_8));
-    repository.hg(remotePath, "add", "bar.txt");
-    repository.hg(remotePath, "commit", "-m", "copy");
 
     Path checkoutDir = Files.createTempDirectory("checkout");
     newReader().checkout(origin.resolve("tip"), checkoutDir);
-    assertThatPath(checkoutDir).containsFile("hook.txt", "");
-    assertThatPath(remotePath).containsNoFiles("hook.txt");
+    assertThatPath(checkoutDir).containsFile("output.txt", "");
+    assertThatPath(remotePath).containsNoFiles("output.txt");
   }
-
-  @Test
-  public void testHgOriginWithHookExitError() throws Exception {
-    Path hook = Files.createTempFile("script", "script");
-    Files.write(hook, "exit 1".getBytes(UTF_8));
-
-    Files.setPosixFilePermissions(hook, ImmutableSet.<PosixFilePermission>builder()
-        .addAll(Files.getPosixFilePermissions(hook))
-        .add(PosixFilePermission.OWNER_EXECUTE).build());
-
-    options.hgOrigin.originCheckoutHook = hook.toAbsolutePath().toString();
-    origin = origin();
-
-    Files.write(remotePath.resolve("bar.txt"), "bara".getBytes(UTF_8));
-    repository.hg(remotePath, "add", "bar.txt");
-    repository.hg(remotePath, "commit", "-m", "copy");
-    Reader<HgRevision> reader = newReader();
-    try {
-      reader.checkout(origin.resolve("tip"), remotePath);
-      fail("Should have thrown exception");
-    } catch (RepoException expected) {
-      assertThat(expected.getMessage()).contains("Error executing the checkout hook");
-    }
-  }
-
 
   @Test
   public void testResolveNonExistentReference() throws Exception {

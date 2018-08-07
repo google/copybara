@@ -427,37 +427,20 @@ public class GitOriginTest {
 
   @Test
   public void testGitOriginWithHook() throws Exception {
-    Path hook = Files.createTempFile("script", "script");
-    Files.write(hook, "touch hook.txt".getBytes(UTF_8));
+    Path hook = Files.createTempFile(remote,"script", "script");
+    Files.write(hook, "touch output.txt".getBytes(UTF_8));
 
     Files.setPosixFilePermissions(hook, ImmutableSet.<PosixFilePermission>builder()
         .addAll(Files.getPosixFilePermissions(hook))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
+    repo.add().files(hook.toString()).run();
+    git("commit", "-m", "add script");
 
-    options.gitOrigin.originCheckoutHook = hook.toAbsolutePath().toString();
+    options.gitOrigin.originCheckoutHook = hook.toFile().getName();
     origin = origin();
+
     newReader().checkout(origin.resolve("master"), checkoutDir);
-    assertThatPath(checkoutDir).containsFile("hook.txt", "");
-  }
-
-  @Test
-  public void testGitOriginWithHookExitError() throws Exception {
-    Path hook = Files.createTempFile("script", "script");
-    Files.write(hook, "exit 1".getBytes(UTF_8));
-
-    Files.setPosixFilePermissions(hook, ImmutableSet.<PosixFilePermission>builder()
-        .addAll(Files.getPosixFilePermissions(hook))
-        .add(PosixFilePermission.OWNER_EXECUTE).build());
-
-    options.gitOrigin.originCheckoutHook = hook.toAbsolutePath().toString();
-    origin = origin();
-    Reader<GitRevision> reader = newReader();
-    try {
-      reader.checkout(origin.resolve("master"), checkoutDir);
-      fail("Should have thrown exception");
-    } catch (RepoException expected) {
-      assertThat(expected.getMessage()).contains("Error executing the checkout hook");
-    }
+    assertThatPath(checkoutDir).containsFile("output.txt", "");
   }
 
   @Test
