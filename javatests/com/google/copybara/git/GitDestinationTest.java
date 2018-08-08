@@ -141,6 +141,14 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testHttpUrl() throws Exception {
+    GitDestination d = skylark.eval("r", "r = git.destination("
+        + "    url = 'http://github.com/foo', \n"
+        + ")");
+    assertThat(d.describe(Glob.ALL_FILES).get("url")).contains("https://github.com/foo");
+  }
+
+  @Test
   public void defaultPushBranch() throws ValidationException {
     GitDestination d = skylark.eval("result", "result = git.destination('file:///foo')");
     assertThat(d.getPush()).isEqualTo("master");
@@ -391,7 +399,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("dir/**"));
 
     DestinationStatus status = destination().newWriter(destinationFiles,
-        /*dryRun=*/false,/*groupId=*/null, /*oldWriter=*/null)
+        /*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
         .getDestinationStatus(DummyOrigin.LABEL_NAME);
 
     assertThat(status).isNotNull();
@@ -507,7 +515,7 @@ public class GitDestinationTest {
     DummyRevision ref2 = new DummyRevision("second");
 
     Writer<GitRevision> writer2 = destination().newWriter(
-        Glob.createGlob(ImmutableList.of("baz/**")),/*dryRun=*/false, /*groupId=*/null, writer1);
+        Glob.createGlob(ImmutableList.of("baz/**")), /*dryRun=*/false, /*groupId=*/null, writer1);
     process(writer2, ref2);
 
     // Recreate the writer since a destinationFirstCommit writer never looks
@@ -1050,7 +1058,7 @@ public class GitDestinationTest {
 
   @Test
   public void processWithBaseline_noRebase() throws Exception {
-    options.gitDestination.noRebase =true;
+    options.gitDestination.noRebase = true;
     options.setForce(true);
     fetch = "master";
     push = "master";

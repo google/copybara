@@ -46,6 +46,7 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
 import com.google.copybara.git.GitHubPROrigin.ReviewState;
@@ -55,6 +56,7 @@ import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.util.RepositoryUtil;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -70,6 +72,7 @@ import com.google.devtools.build.lib.syntax.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import javax.annotation.CheckReturnValue;
 
 /**
  * Main module that groups all the functions that create Git origins and destinations.
@@ -138,8 +141,9 @@ public class GitModule implements LabelsAwareModule {
   public GitOrigin origin(String url, Object ref, String submodules,
       Boolean includeBranchCommitLogs, Boolean firstParent, Location location)
       throws EvalException {
+    checkNotEmpty(url, "url", location);
     return GitOrigin.newGitOrigin(
-        options, checkNotEmpty(url, "url", location), Type.STRING.convertOptional(ref, "ref"),
+        options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
         GitRepoType.GIT, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
         includeBranchCommitLogs, firstParent);
@@ -231,10 +235,19 @@ public class GitModule implements LabelsAwareModule {
         throw new EvalException(location, e);
       }
     }
-    GlobalMigrations.getGlobalMigrations(env).addMigration(location, name,
-        new Mirror(generalOptions, options.get(GitOptions.class),
-            name, origin, destination, refspecs,
-            options.get(GitMirrorOptions.class), prune, mainConfigFile));
+    GlobalMigrations.getGlobalMigrations(env).addMigration(
+        location,
+        name,
+        new Mirror(
+            generalOptions,
+            options.get(GitOptions.class),
+            name,
+            fixHttp(origin, location),
+            fixHttp(destination, location),
+            refspecs,
+            options.get(GitMirrorOptions.class),
+            prune,
+            mainConfigFile));
     return Runtime.NONE;
   }
 
@@ -267,6 +280,7 @@ public class GitModule implements LabelsAwareModule {
       Boolean firstParent,
       Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
+    url = fixHttp(url, location);
     String refField = Type.STRING.convertOptional(ref, "ref");
     if (!Strings.isNullOrEmpty(refField)) {
       options.get(GeneralOptions.class).console().warn(
@@ -405,7 +419,9 @@ public class GitModule implements LabelsAwareModule {
     }
 
     GitHubPrOriginOptions gitHubPrOriginOptions = options.get(GitHubPrOriginOptions.class);
-    return new GitHubPROrigin(url, merge,
+    return new GitHubPROrigin(
+        fixHttp(url, location),
+        merge,
         options.get(GeneralOptions.class),
         options.get(GitOptions.class),
         options.get(GitOriginOptions.class),
@@ -448,8 +464,8 @@ public class GitModule implements LabelsAwareModule {
 
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
     return GitOrigin.newGitOrigin(
-        options, url, Type.STRING.convertOptional(ref, "ref"), GitRepoType.GITHUB,
-        stringToEnum(location, "submodules",
+        options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
+        GitRepoType.GITHUB, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
         /*includeBranchCommitLogs=*/false, firstParent);
   }
@@ -490,8 +506,8 @@ public class GitModule implements LabelsAwareModule {
         "push", location);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     return new GitDestination(
-        checkNotEmpty(firstNotNull(destinationOptions.url, url),
-            "url", location),
+        fixHttp(checkNotEmpty(
+            firstNotNull(destinationOptions.url, url), "url", location), location),
         checkNotEmpty(
             firstNotNull(destinationOptions.fetch,
                 convertFromNoneable(fetch, null),
@@ -545,7 +561,7 @@ public class GitModule implements LabelsAwareModule {
     // Enterprise.
     SkylarkUtil.check(location, GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
     return new GitHubPrDestination(
-        url,
+        fixHttp(url, location),
         destinationRef,
         generalOptions,
         options.get(GitHubOptions.class),
@@ -617,9 +633,10 @@ public class GitModule implements LabelsAwareModule {
   public GerritDestination gerritDestination(
       String url, String fetch, Object pushToRefsFor, Boolean submit, String changeIdPolicy,
       Boolean allowEmptyPatchSet, Location location) throws EvalException {
+    checkNotEmpty(url, "url", location);
     return GerritDestination.newGerritDestination(
         options,
-        checkNotEmpty(url, "url", location),
+        fixHttp(url, location),
         checkNotEmpty(firstNotNull(
             options.get(GitDestinationOptions.class).fetch,
             fetch), "fetch", location),
@@ -652,6 +669,7 @@ public class GitModule implements LabelsAwareModule {
   public GitHubEndPoint githubApi(String url, Object checkerObj, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
+    url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(location, checker, GITHUB_API);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
@@ -684,6 +702,7 @@ public class GitModule implements LabelsAwareModule {
   public GerritEndpoint gerritApi(String url, Object checkerObj, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
+    url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(location, checker, GERRIT_API);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
@@ -706,6 +725,7 @@ public class GitModule implements LabelsAwareModule {
   public GerritTrigger gerritTrigger(String url, Object checkerObj, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
+    url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(location, checker, GERRIT_TRIGGER);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
@@ -742,6 +762,20 @@ public class GitModule implements LabelsAwareModule {
   @Override
   public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
     this.mainConfigFile = mainConfigFile;
+  }
+
+  @CheckReturnValue
+  private String fixHttp(String url, Location location) {
+    try {
+      RepositoryUtil.validateNotHttp(url);
+    } catch (ValidationException e) {
+      String fixed = "https" + url.substring("http".length());
+      options.get(GeneralOptions.class).console().warnFmt(
+          "%s: Url '%s' does not use https - please change the URL. Proceeding with '%s'.",
+          location.print(), url, fixed);
+      return fixed;
+    }
+    return url;
   }
 
   /**

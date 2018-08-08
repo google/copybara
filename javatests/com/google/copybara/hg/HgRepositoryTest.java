@@ -150,8 +150,7 @@ public class HgRepositoryTest {
     try {
       repository.pullAll(invalidPath);
       fail("Cannot pull from invalid path");
-    }
-    catch (ValidationException e) {
+    } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains("Repository not found");
     }
   }
@@ -163,11 +162,23 @@ public class HgRepositoryTest {
     try {
       repository.pullAll(invalidRepo.toString());
       fail("Cannot pull from invalid repository");
-    }
-    catch (ValidationException e) {
+    } catch (ValidationException e) {
       assertThat(e)
           .hasMessageThat()
           .contains("Repository not found");
+    }
+  }
+
+  @Test
+  public void testPullHttp() throws Exception {
+    repository.init();
+    try {
+      repository.pullAll("http://copybara.com");
+      fail("Cannot pull from invalid repository");
+    } catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .contains("URL 'http://copybara.com' is not valid - should be using https.");
     }
   }
 
@@ -321,8 +332,8 @@ public class HgRepositoryTest {
     try {
       repository.log().withLimit(0).run();
       fail("Cannot have limit of 0");
-    }
-    catch (IllegalArgumentException expected) {
+    } catch (IllegalArgumentException expected) {
+      // ignored
     }
   }
 
@@ -345,9 +356,9 @@ public class HgRepositoryTest {
     assertThat(testCommits.get(0).getGlobalId()).isEqualTo(commits.get(1).getGlobalId());
     assertThat(testCommits.get(1).getGlobalId()).isEqualTo(commits.get(0).getGlobalId());
 
-    verifyThrowsValidationException("not_a_ref_expression","Unknown revision");
-    verifyThrowsRepoException("??","Syntax error");
-    verifyThrowsRepoException(" ","Cannot log null or empty reference");
+    verifyThrowsValidationException("not_a_ref_expression", "Unknown revision");
+    verifyThrowsRepoException("??", "Syntax error");
+    verifyThrowsRepoException(" ", "Cannot log null or empty reference");
     verifyThrowsRepoException("invalid reference", "parse error");
   }
 
@@ -404,8 +415,7 @@ public class HgRepositoryTest {
     try {
       repository.identify("not_a_branch");
       fail("Should have thrown exception");
-    }
-    catch (RepoException expected) {
+    } catch (RepoException expected) {
       assertThat(expected.getMessage()).contains("Unknown revision");
     }
   }
@@ -416,8 +426,7 @@ public class HgRepositoryTest {
       ImmutableList<HgLogEntry> testCommits =
           repository.log().withReferenceExpression(reference).run();
       fail("Should have thrown exception");
-    }
-    catch (ValidationException expected) {
+    } catch (ValidationException expected) {
       assertThat(expected.getMessage()).contains(expectedMessage);
     }
   }
@@ -427,11 +436,9 @@ public class HgRepositoryTest {
       ImmutableList<HgLogEntry> testCommits =
           repository.log().withReferenceExpression(reference).run();
       fail("Should have thrown exception");
-    }
-    catch (ValidationException expected) {
+    } catch (ValidationException unExpected) {
       fail("Not the right exception thrown");
-    }
-    catch (RepoException expected) {
+    } catch (RepoException expected) {
       assertThat(expected.getMessage()).contains(expectedMessage);
     }
   }

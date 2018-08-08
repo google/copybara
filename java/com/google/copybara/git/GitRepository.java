@@ -45,6 +45,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
@@ -329,7 +330,12 @@ public class GitRepository {
       throws RepoException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
-    List<String> args = Lists.newArrayList("ls-remote", validateUrl(url));
+    List<String> args;
+    try {
+      args = Lists.newArrayList("ls-remote", validateUrl(url));
+    } catch (ValidationException e) {
+      throw new RepoException("Invalid url: " + url, e);
+    }
     args.addAll(refs);
 
     CommandOutputWithStatus output;
@@ -366,7 +372,9 @@ public class GitRepository {
     return lsRemote(url, refs, environment, /*maxlogLines*/ -1);
   }
 
-  static String validateUrl(String url) throws RepoException {
+  @CheckReturnValue
+  protected static String validateUrl(String url) throws RepoException, ValidationException {
+    RepositoryUtil.validateNotHttp(url);
     if (FULL_URI.matcher(url).matches()) {
       return url;
     }
@@ -465,7 +473,7 @@ public class GitRepository {
     }
 
     if (pushCmd.url != null) {
-      cmd.add(pushCmd.url);
+      cmd.add(validateUrl(pushCmd.url));
       for (Refspec refspec : pushCmd.refspecs) {
         cmd.add(refspec.toString());
       }
@@ -751,13 +759,17 @@ public class GitRepository {
       } else if (url.startsWith("./")) {
         url = siblingUrl(currentRemoteUrl, submoduleName, url.substring(2));
       }
-      GitRepository.validateUrl(url);
-      result.add(new Submodule(url, submoduleName, branch, path));
+      try {
+        result.add(new Submodule(validateUrl(url), submoduleName, branch, path));
+      } catch (ValidationException e) {
+        throw new RepoException("Invalid url: " + url, e);
+      }
     }
     return result.build();
   }
 
-  public ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish) throws RepoException {
+  public ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish)
+      throws RepoException {
     ImmutableList.Builder<TreeElement> result = ImmutableList.builder();
     String stdout = simpleCommand("ls-tree", reference.getSha1(), "--", treeish).getStdout();
     for (String line : Splitter.on('\n').split(stdout)) {
@@ -1145,7 +1157,7 @@ public class GitRepository {
     }
   }
 
-  public static class TreeElement {
+  static class TreeElement {
 
     private final GitObjectType type;
     private final String ref;
@@ -1186,7 +1198,7 @@ public class GitRepository {
     TREE
   }
 
-  public static final class StatusFile {
+  static final class StatusFile {
 
     private final String file;
     @Nullable
@@ -1249,7 +1261,7 @@ public class GitRepository {
     }
   }
 
-  public enum StatusCode {
+  enum StatusCode {
     UNMODIFIED(' '),
     MODIFIED('M'),
     ADDED('A'),

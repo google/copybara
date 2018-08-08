@@ -39,7 +39,6 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
-import com.google.copybara.util.CommandOutput;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -55,9 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -66,9 +63,6 @@ public class GitRepositoryTest {
 
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
   private static final int SOME_LARGE_INPUT_SIZE = 256_000;
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   private GitRepository repository;
   private Path workdir;
@@ -306,7 +300,7 @@ public class GitRepositoryTest {
         .firstParent(false)
         .run();
 
-    // Three entries for the same commmit. One per each branch merged
+    // Three entries for the same commit. One per each branch merged
     assertThat(result.get(0).getCommit()).isEqualTo(result.get(1).getCommit());
     assertThat(result.get(1).getCommit()).isEqualTo(result.get(2).getCommit());
     assertThat(result.get(2).getCommit()).isNotEqualTo(result.get(3).getCommit());
@@ -490,6 +484,7 @@ public class GitRepositoryTest {
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
       fail();
     } catch (CannotResolveRevisionException ignore) {
+      // ignored
     }
 
     // This is the important part of the test: We do two fetches, the first ones for the default
@@ -518,9 +513,12 @@ public class GitRepositoryTest {
 
   @Test
   public void testCheckoutLocalBranch() throws Exception {
-    thrown.expect(RepoException.class);
-    thrown.expectMessage("Cannot find reference 'foo'");
-    repository.simpleCommand("checkout", "foo");
+    try {
+      repository.simpleCommand("checkout", "foo");
+      fail("Expected an exception");
+    } catch (RepoException expected) {
+      assertThat(expected).hasMessageThat().contains("Cannot find reference 'foo'");
+    }
   }
 
   @Test
@@ -532,21 +530,39 @@ public class GitRepositoryTest {
   }
 
   @Test
-  public void validateUrl() throws RepoException {
-    GitRepository.validateUrl("ssh://git@github.com:foo/foo.git");
-    GitRepository.validateUrl("https://github.com/foo/foo");
-    GitRepository.validateUrl("protocol://some/url");
-    GitRepository.validateUrl("git@github.com:foo/foo.git");
+  public void validateUrl() throws Exception {
+    doValidateUrl("ssh://git@github.com:foo/foo.git");
+    doValidateUrl("https://github.com/foo/foo");
+    doValidateUrl("protocol://some/url");
+    doValidateUrl("git@github.com:foo/foo.git");
     // A folder is a valid url. We do a sanity check internally that the directory exist. See
     // #invalidUrl test for a failure case.
-    GitRepository.validateUrl(workdir.toString());
+    doValidateUrl(workdir.toString());
   }
 
   @Test
-  public void invalidUrl() throws RepoException {
-    thrown.expect(RepoException.class);
-    thrown.expectMessage("URL 'lalala' is not valid");
-    GitRepository.validateUrl("lalala");
+  public void invalidUrl() throws Exception {
+    try {
+      String result = GitRepository.validateUrl("lalala");
+      fail("Expected an exception, got: "  + result);
+    } catch (RepoException expected) {
+      assertThat(expected).hasMessageThat().contains("URL 'lalala' is not valid");
+    }
+  }
+
+  @Test
+  public void httpUrl() throws RepoException {
+    try {
+      String result = GitRepository.validateUrl("http://github.com/foo/foo");
+      fail("Expected an exception, got: "  + result);
+    } catch (ValidationException expected) {
+      assertThat(expected).hasMessageThat()
+          .contains("URL 'http://github.com/foo/foo' is not valid - should be using https");
+    }
+  }
+
+  private void doValidateUrl(String url) throws Exception {
+    assertThat(GitRepository.validateUrl(url)).isEqualTo(url);
   }
 
   @Test

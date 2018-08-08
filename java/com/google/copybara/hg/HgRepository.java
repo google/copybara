@@ -16,6 +16,8 @@
 
 package com.google.copybara.hg;
 
+import static com.google.copybara.util.RepositoryUtil.validateNotHttp;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -93,8 +95,7 @@ public class HgRepository {
   public HgRepository init() throws RepoException {
     try {
       Files.createDirectories(hgDir);
-    }
-    catch (IOException e) {
+    } catch (IOException e) {
       throw new RepoException("Cannot create directory: " + e.getMessage(), e);
     }
     hg(hgDir, ImmutableList.of("init"));
@@ -110,7 +111,7 @@ public class HgRepository {
    * @param url remote hg repository url
    */
   public void pullAll(String url) throws RepoException, ValidationException {
-    pull(url,/*force*/ true, /*ref*/ null);
+    pull(url, /*force*/ true, /*ref*/ null);
   }
 
   /**
@@ -131,7 +132,7 @@ public class HgRepository {
       throws RepoException, ValidationException {
     ImmutableList.Builder<String> builder = ImmutableList.builder();
 
-    builder.add("pull", url);
+    builder.add("pull", validateNotHttp(url));
 
     if (force) {
       builder.add("--force");
@@ -143,8 +144,7 @@ public class HgRepository {
 
     try {
       hg(hgDir, builder.build());
-    }
-    catch (RepoException e) {
+    } catch (RepoException e) {
       if (INVALID_HG_REPOSITORY.matcher(e.getMessage()).find()){
         throw new ValidationException(
             String.format("Repository not found: %s", e.getMessage()));
@@ -185,8 +185,7 @@ public class HgRepository {
 
       String globalId = commandOutput.getStdout().trim();
       return new HgRevision(globalId);
-    }
-    catch (RepoException e) {
+    } catch (RepoException e) {
       if (UNKNOWN_REVISION.matcher(e.getMessage()).find()){
         throw new RepoException(
             String.format("Unknown revision: %s", e.getMessage()));
@@ -230,11 +229,9 @@ public class HgRepository {
   private CommandOutput hg(Path cwd, Iterable<String> params) throws RepoException {
     try {
       return executeHg(cwd, params, -1);
-    }
-    catch (BadExitStatusWithOutputException e) {
+    } catch (BadExitStatusWithOutputException e) {
       throw new RepoException(String.format("Error executing hg: %s", e.getOutput().getStderr()));
-    }
-    catch (CommandException e) {
+    } catch (CommandException e) {
       throw new RepoException(String.format("Error executing hg: %s", e.getMessage()));
     }
   }
@@ -343,8 +340,7 @@ public class HgRepository {
       try {
         CommandOutput output = repo.hg(repo.getHgDir(), builder.build());
         return parseLog(output.getStdout());
-      }
-      catch (RepoException e) {
+      } catch (RepoException e) {
         if (UNKNOWN_REVISION.matcher(e.getMessage()).find()) {
           throw new ValidationException(
               String.format("Unknown revision: %s", e.getMessage()));
@@ -368,8 +364,7 @@ public class HgRepository {
       try {
         List<HgLogEntry> logEntries = gson.fromJson(log.trim(), logListType);
         return ImmutableList.copyOf(logEntries);
-      }
-      catch (JsonParseException e) {
+      } catch (JsonParseException e) {
         throw new RepoException(String.format("Cannot parse log output: %s", e.getMessage()));
       }
     }

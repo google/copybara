@@ -72,7 +72,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitOriginTest {
 
-  private static final String commitTime = "2037-02-16T13:00:00Z";
+  private static final String COMMIT_TIME = "2037-02-16T13:00:00Z";
   private String url;
   private String ref;
   private GitOrigin origin;
@@ -117,7 +117,7 @@ public class GitOriginTest {
 
     Files.write(remote.resolve("test.txt"), "some content".getBytes(UTF_8));
     repo.add().files("test.txt").run();
-    git("commit", "-m", "first file", "--date", commitTime);
+    git("commit", "-m", "first file", "--date", COMMIT_TIME);
     firstCommitRef = repo.parseRef("HEAD");
 
     originFiles = Glob.ALL_FILES;
@@ -160,6 +160,23 @@ public class GitOriginTest {
                 + "ref=master, "
                 + "repoType=GIT"
                 + "}");
+  }
+
+  @Test
+  public void testGitOriginHttp() throws Exception {
+    origin = skylark.eval("result",
+        "result = git.origin(\n"
+            + "    url = 'http://my-server.org/copybara',\n"
+            + "    ref = 'master'\n"
+            + ")");
+    assertThat(origin.toString())
+        .isEqualTo(
+            "GitOrigin{"
+                + "repoUrl=https://my-server.org/copybara, "
+                + "ref=master, "
+                + "repoType=GIT"
+                + "}");
+    console.assertThat().onceInLog(MessageType.WARNING, ".*does not use https.*");
   }
 
   @Test
@@ -837,7 +854,7 @@ public class GitOriginTest {
 
     Instant instant = origin.resolve("0.1").readTimestamp().toInstant();
 
-    assertThat(instant).isEqualTo(Instant.parse(commitTime));
+    assertThat(instant).isEqualTo(Instant.parse(COMMIT_TIME));
   }
 
   @SuppressWarnings("unchecked")
@@ -845,7 +862,7 @@ public class GitOriginTest {
   public void doNotCountCommitsOutsideOfOriginFileRoots() throws Exception {
     Files.write(remote.resolve("excluded_file.txt"), "some content".getBytes(UTF_8));
     repo.add().files("excluded_file.txt").run();
-    git("commit", "-m", "excluded_file", "--date", commitTime);
+    git("commit", "-m", "excluded_file", "--date", COMMIT_TIME);
     // Note that one of the roots looks like a flag for "git log"
     originFiles = createGlob(ImmutableList.of("include/**", "--parents/**"), ImmutableList.of());
     RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
@@ -881,7 +898,7 @@ public class GitOriginTest {
     Files.createDirectories(remote.resolve("--parents"));
     Files.write(remote.resolve("--parents/included_file.txt"), "some content".getBytes(UTF_8));
     repo.add().files("--parents/included_file.txt").run();
-    git("commit", "-m", "included_file", "--date", commitTime);
+    git("commit", "-m", "included_file", "--date", COMMIT_TIME);
     String firstExpected = repo.parseRef("HEAD");
     skylark.loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
 
@@ -893,7 +910,7 @@ public class GitOriginTest {
     // Add an excluded file, and make sure the commit is skipped.
     Files.write(remote.resolve("excluded_file_2.txt"), "some content".getBytes(UTF_8));
     repo.add().files("excluded_file_2.txt").run();
-    git("commit", "-m", "excluded_file_2", "--date", commitTime);
+    git("commit", "-m", "excluded_file_2", "--date", COMMIT_TIME);
 
     destination.processed.clear();
 
@@ -908,7 +925,7 @@ public class GitOriginTest {
     // intervening excluded one is absent.
     Files.write(remote.resolve("--parents/included_file_2.txt"), "some content".getBytes(UTF_8));
     repo.add().files("--parents/included_file_2.txt").run();
-    git("commit", "-m", "included_file_2", "--date", commitTime);
+    git("commit", "-m", "included_file_2", "--date", COMMIT_TIME);
 
     String secondExpected = repo.parseRef("HEAD");
 
@@ -927,7 +944,7 @@ public class GitOriginTest {
     // For legacy compatibility, if origin_files includes the repo root (roots = [""]), we still
     // include commits even if they don't change the tree. We exclude such commits if the roots are
     // limited.
-    git("commit", "-m", "empty_commit", "--date", commitTime, "--allow-empty");
+    git("commit", "-m", "empty_commit", "--date", COMMIT_TIME, "--allow-empty");
     GitRevision firstRef = origin.resolve(firstCommitRef);
     List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
         .getChangesAsListForTest();
@@ -1054,7 +1071,7 @@ public class GitOriginTest {
 
   private GitRevision getLastCommitRef() throws RepoException, ValidationException {
     String head = repo.parseRef("HEAD");
-    String lastCommit = head.substring(0, head.length() -1);
+    String lastCommit = head.substring(0, head.length() - 1);
     return origin.resolve(lastCommit);
   }
 

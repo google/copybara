@@ -610,6 +610,16 @@ public class GitHubPrOriginTest {
         .containsExactly("APPROVED_MEMBER", "COMMENTED_OTHER", "APPROVED_COLLABORATOR");
   }
 
+
+  @Test
+  public void testHttprUrl() throws Exception {
+    GitHubPROrigin val = skylark.eval("origin", "origin = "
+        + "git.github_pr_origin(url = 'http://github.com/google/example')\n");
+    assertThat(val.describe(Glob.ALL_FILES).get("url"))
+        .contains("https://github.com/google/example");
+  }
+
+
   private GitRevision checkReviewApprovers(String... configLines)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = localHubRepo("google/example");

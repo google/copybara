@@ -217,6 +217,16 @@ public class GitHubPrDestinationTest {
         .withSummary("\n\n\n\n\nInternal change."), console);
   }
 
+  @Test
+  public void testHttpUrl() throws Exception {
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'http://github.com/foo', \n"
+        + "    title = 'custom title',\n"
+        + "    body = 'custom body',\n"
+        + ")");
+    assertThat(d.describe(Glob.ALL_FILES).get("name")).contains("https://github.com/foo");
+  }
+
   private void checkWrite(String groupId)
       throws ValidationException, RepoException, IOException {
     gitApiMockHttpTransport =
@@ -228,9 +238,9 @@ public class GitHubPrDestinationTest {
             if ("GET".equals(method) && isPulls) {
               return "[]";
             } else if ("POST".equals(method) && isPulls) {
-              assertThat(request.getContentAsString())
-                  .isEqualTo(
-                      "{\"base\":\"master\",\"body\":\"test summary\",\"head\":\"feature\",\"title\":\"test summary\"}");
+              assertThat(request.getContentAsString()).isEqualTo(
+                  "{\"base\":\"master\",\"body\":\"test summary\",\"head\":\"feature\","
+                      + "\"title\":\"test summary\"}");
               return ("{\n"
                   + "  \"id\": 1,\n"
                   + "  \"number\": 12345,\n"
@@ -355,7 +365,8 @@ public class GitHubPrDestinationTest {
             } else if ("POST".equals(method) && isPulls) {
               assertThat(request.getContentAsString())
                   .isEqualTo(
-                      "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\"feature\",\"title\":\"test summary\"}");
+                      "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\"feature\","
+                          + "\"title\":\"test summary\"}");
               return ("{\n"
                   + "  \"id\": 1,\n"
                   + "  \"number\": 12345,\n"
@@ -419,7 +430,7 @@ public class GitHubPrDestinationTest {
     writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
 
     // New writer since after changes it keeps state internally for ITERATIVE mode
-    status = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, "feature",/*oldWriter=*/null)
+    status = d.newWriter(Glob.ALL_FILES, /*dryRun=*/false, "feature", /*oldWriter=*/null)
         .getDestinationStatus("DummyOrigin-RevId");
 
     assertThat(status.getBaseline()).isEqualTo("baseline");
