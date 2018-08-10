@@ -32,7 +32,7 @@ public class GitHubApiException extends RepoException {
 
   private final ResponseCode responseCode;
   private final int httpCode;
-  private final ClientError error;
+  @Nullable private final ClientError error;
   private String httpMethod;
   private String path;
   @Nullable private String request;
@@ -40,7 +40,7 @@ public class GitHubApiException extends RepoException {
 
   public GitHubApiException(
       int httpCode,
-      ClientError error,
+      @Nullable ClientError error,
       String httpMethod,
       String path,
       @Nullable String request,

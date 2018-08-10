@@ -104,6 +104,9 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   }
 
   private ClientError parseErrorOrIgnore(HttpResponseException e) {
+    if (e.getContent() == null) {
+      return null;
+    }
     try {
       return JSON_FACTORY.createJsonParser(e.getContent()).parse(ClientError.class);
     } catch (IOException ignore) {
