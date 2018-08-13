@@ -67,7 +67,9 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
               type = SkylarkList.class, generic1 = String.class, defaultValue = "[]",
               doc = "The list of patchfiles to apply, relative to the current config file."
                   + "The files will be applied relative to the checkout dir and the leading path"
-                  + "component will be stripped (-p1)."),
+                  + "component will be stripped (-p1).<br><br>"
+                  + "This field can be combined with 'series'. Both 'patches' and 'series' will "
+                  + "be applied in order (patches first)."),
           @Param(name = "excluded_patch_paths",
               type = SkylarkList.class, generic1 = String.class, defaultValue = "[]",
               doc = "The list of paths to exclude from each of the patches. Each of the paths will "
@@ -80,7 +82,9 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
                   + "The <i>series</i> file contains names of the patch files one per line. "
                   + "The names of the patch files are relative to the <i>series</i> config file. "
                   + "The files will be applied relative to the checkout dir and the leading path "
-                  + "component will be stripped (-p1)."),
+                  + "component will be stripped (-p1).:<br>:<br>"
+                  + "This field can be combined with 'patches'. Both 'patches' and 'series' will "
+                  + "be applied in order (patches first)."),
       },
       objectType = PatchModule.class, useLocation = true)
   public static final BuiltinFunction APPLY = new BuiltinFunction("apply") {
