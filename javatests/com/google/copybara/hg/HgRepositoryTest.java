@@ -17,6 +17,7 @@
 package com.google.copybara.hg;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -26,6 +27,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.util.CommandOutput;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
@@ -48,24 +50,17 @@ public class HgRepositoryTest {
   public void setup() throws Exception {
     workDir = Files.createTempDirectory("workdir");
     repository = new HgRepository(workDir, /*verbose*/ false);
+    repository.init();
   }
 
   @Test
-  public void testInit() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "bar");
+  public void testInit() {
+    assertThatPath(workDir).containsFiles(".hg");
   }
 
   @Test
   public void testPullAll() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "bar");
+    addAndCommitFile("foo");
 
     CommandOutput commandOutput = repository.hg(workDir, "log", "--template",
         "{rev}:{node}\n");
@@ -109,11 +104,7 @@ public class HgRepositoryTest {
 
   @Test
   public void testPullFromRef() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "bar");
+    addAndCommitFile("foo");
 
     Path remoteDir = Files.createTempDirectory("remotedir");
     HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false);
@@ -145,7 +136,6 @@ public class HgRepositoryTest {
 
   @Test
   public void testPullInvalidPath() throws Exception {
-    repository.init();
     String invalidPath = "/not/a/path";
     try {
       repository.pullAll(invalidPath);
@@ -157,7 +147,6 @@ public class HgRepositoryTest {
 
   @Test
   public void testPullInvalidRepo() throws Exception {
-    repository.init();
     Path invalidRepo = Files.createTempDirectory("notRepo");
     try {
       repository.pullAll(invalidRepo.toString());
@@ -171,7 +160,6 @@ public class HgRepositoryTest {
 
   @Test
   public void testPullHttp() throws Exception {
-    repository.init();
     try {
       repository.pullAll("http://copybara.com");
       fail("Cannot pull from invalid repository");
@@ -184,8 +172,6 @@ public class HgRepositoryTest {
 
   @Test
   public void testLog() throws Exception {
-    repository.init();
-
     String user = "Copy Bara <copy@bara.com>";
     ZonedDateTime date = ZonedDateTime.now(ZoneId.of("+11:00")).truncatedTo(ChronoUnit.SECONDS);
     ZonedDateTime date2 = date.plus(1, ChronoUnit.SECONDS);
@@ -261,11 +247,7 @@ public class HgRepositoryTest {
 
   @Test
   public void testLogTwoParents() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "foo");
+    Path newFile = addAndCommitFile("foo");
 
     Path remoteDir = Files.createTempDirectory("remotedir");
     HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false);
@@ -278,7 +260,7 @@ public class HgRepositoryTest {
 
     repository.pullAll(remoteDir.toString());
     repository.hg(workDir, "merge");
-    Files.write(workDir.resolve(fileName), "hello".getBytes(UTF_8));
+    Files.write(workDir.resolve(newFile.toString()), "hello".getBytes(UTF_8));
     repository.hg(workDir, "commit", "-m", "merge");
 
     ImmutableList<HgLogEntry> commits = repository.log().run();
@@ -288,12 +270,8 @@ public class HgRepositoryTest {
 
   @Test
   public void testLogNoFiles() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "foo");
-    repository.hg(workDir, "rm", fileName);
+    Path newFile = addAndCommitFile("foo");
+    repository.hg(workDir, "rm", newFile.toString());
     repository.hg(workDir, "commit", "--amend", "-m", "amend");
 
     ImmutableList<HgLogEntry> commits = repository.log().run();
@@ -302,7 +280,6 @@ public class HgRepositoryTest {
 
   @Test
   public void testLogMultipleFiles() throws Exception {
-    repository.init();
     Path newFile = Files.createTempFile(workDir, "foo", ".txt");
     Path newFile2 = Files.createTempFile(workDir, "bar", ".txt");
     String fileName = newFile.toString();
@@ -317,13 +294,9 @@ public class HgRepositoryTest {
 
   @Test
   public void testLogLimit() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "foo");
-    Files.write(workDir.resolve(fileName), "hello".getBytes(UTF_8));
-    repository.hg(workDir, "add", fileName);
+    Path newFile = addAndCommitFile("foo");
+    Files.write(workDir.resolve(newFile.toString()), "hello".getBytes(UTF_8));
+    repository.hg(workDir, "add", newFile.toString());
     repository.hg(workDir, "commit", "-m", "hello");
 
     ImmutableList<HgLogEntry> commits = repository.log().withLimit(1).run();
@@ -339,14 +312,10 @@ public class HgRepositoryTest {
 
   @Test
   public void testLogRefExpression() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "add foo");
-    Files.write(workDir.resolve(fileName), "hello".getBytes(UTF_8));
+    Path newFile = addAndCommitFile("foo");
+    Files.write(workDir.resolve(newFile.toString()), "hello".getBytes(UTF_8));
     repository.hg(workDir, "commit", "-m", "say hello");
-    repository.hg(workDir, "rm", fileName);
+    repository.hg(workDir, "rm", newFile.toString());
     repository.hg(workDir, "commit", "-m", "remove foo");
 
     ImmutableList<HgLogEntry> commits = repository.log().run();
@@ -365,16 +334,8 @@ public class HgRepositoryTest {
 
   @Test
   public void testCleanUpdate() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "foo");
-
-    Path newFile2 = Files.createTempFile(workDir, "bar", ".txt");
-    String fileName2 = newFile2.toString();
-    repository.hg(workDir, "add", fileName2);
-    repository.hg(workDir, "commit", "-m", "bar");
+    Path newFile = addAndCommitFile("foo");
+    Path newFile2 = addAndCommitFile("bar");
 
     Path newFile3 = Files.createTempFile(workDir, "foobar", ".txt");
     String fileName3 = newFile3.toString();
@@ -398,11 +359,7 @@ public class HgRepositoryTest {
 
   @Test
   public void testIdentify() throws Exception {
-    repository.init();
-    Path newFile = Files.createTempFile(workDir, "foo", ".txt");
-    String fileName = newFile.toString();
-    repository.hg(workDir, "add", fileName);
-    repository.hg(workDir, "commit", "-m", "foo");
+    addAndCommitFile("foo");
 
     ImmutableList<HgLogEntry> commits = repository.log().run();
     String globalId = commits.get(0).getGlobalId();
@@ -420,21 +377,74 @@ public class HgRepositoryTest {
     }
   }
 
+  @Test
+  public void testArchive() throws Exception {
+    Path fooFile = addAndCommitFile("foo");
+    Path archivePath = Files.createTempDirectory("archive");
+    repository.archive(archivePath.toAbsolutePath().toString());
+    assertThatPath(archivePath).containsFile(fooFile.toString(), "");
+  }
+
+  @Test
+  public void testArchiveSubrepos() throws Exception {
+    Path fooFile = addAndCommitFile("foo");
+
+    Path subrepoPath = Files.createTempDirectory(workDir,"subrepo");
+    String subrepoName = subrepoPath.toFile().getName();
+    HgRepository subrepo = new HgRepository(subrepoPath, /*verbose*/ true);
+    subrepo.init();
+
+    Path subFile = Files.createTempFile(subrepoPath, "bar", ".txt");
+    subrepo.hg(subrepoPath, "add", subFile.toString());
+    subrepo.hg(subrepoPath, "commit", "-m", "bar");
+
+    // this repository will not be added as a subrepo in .hgsub
+    Path untrackedRepoPath = Files.createTempDirectory(workDir,"untracked");
+    String untrackedName = untrackedRepoPath.toFile().getName();
+    HgRepository untrackedRepo = new HgRepository(untrackedRepoPath, /*verbose*/ true);
+    untrackedRepo.init();
+
+    Path untrackedFile = Files.createTempFile(untrackedRepoPath, "no", ".txt");
+    untrackedRepo.hg(untrackedRepoPath, "add", untrackedFile.toString());
+    untrackedRepo.hg(untrackedRepoPath, "commit", "-m", "no");
+
+    // mark subrepo as a subrepository in .hgsub file
+    Files.write(workDir.resolve(".hgsub"),
+        String.format("%s = %s", subrepoName, subrepoPath.toString()).getBytes(UTF_8));
+    repository.hg(workDir, "add");
+    repository.hg(workDir, "commit", "-m", "add subrepo");
+
+    Path archivePath = Files.createTempDirectory(workDir,"archive");
+    repository.archive(archivePath.toFile().getName());
+
+    assertThatPath(archivePath).containsFile(fooFile.toFile().getName(), "");
+    assertThatPath(archivePath.resolve(subrepoName))
+        .containsFile(subFile.toFile().getName(), "");
+    assertThatPath(archivePath.resolve(untrackedName))
+        .containsNoFiles(untrackedFile.toFile().getName());
+  }
+
   private void verifyThrowsValidationException(String reference, String expectedMessage)
       throws RepoException{
     try {
-      ImmutableList<HgLogEntry> testCommits =
-          repository.log().withReferenceExpression(reference).run();
+      repository.log().withReferenceExpression(reference).run();
       fail("Should have thrown exception");
     } catch (ValidationException expected) {
       assertThat(expected.getMessage()).contains(expectedMessage);
     }
   }
 
+  private Path addAndCommitFile(String filePrefix) throws RepoException, IOException {
+    Path newFile = Files.createTempFile(workDir, filePrefix, ".txt");
+    String fileName = newFile.toString();
+    repository.hg(workDir, "add", fileName);
+    repository.hg(workDir, "commit", "-m", filePrefix);
+    return newFile;
+  }
+
   private void verifyThrowsRepoException(String reference, String expectedMessage) {
     try {
-      ImmutableList<HgLogEntry> testCommits =
-          repository.log().withReferenceExpression(reference).run();
+      repository.log().withReferenceExpression(reference).run();
       fail("Should have thrown exception");
     } catch (ValidationException unExpected) {
       fail("Not the right exception thrown");

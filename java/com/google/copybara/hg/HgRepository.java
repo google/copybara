@@ -195,10 +195,11 @@ public class HgRepository {
   }
 
   /**
-   * Creates an archive of the current working directory in the location {@code archivePath}.
+   * Creates an unversioned archive of the current working directory and subrepositories
+   * in the location {@code archivePath}.
    */
   public void archive(String archivePath) throws RepoException {
-    hg(hgDir, "archive", archivePath, "--type", "files");
+    hg(hgDir, "archive", archivePath, "--type", "files", "--subrepos");
   }
 
   /**
