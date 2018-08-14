@@ -112,6 +112,15 @@ public class GerritApi {
     }
   }
 
+  public void addReviewer(String changeId, ReviewerInput reviewerInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_add_reviewer")) {
+      transport.post(
+          "/changes/" + changeId + "/reviewers",
+          reviewerInput, Empty.class);
+    }
+  }
+
   public AccountInfo getSelfAccount()
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_get_self")) {

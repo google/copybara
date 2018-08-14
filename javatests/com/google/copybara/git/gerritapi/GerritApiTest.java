@@ -26,6 +26,7 @@ import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_REVISION;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_LABELS;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.LowLevelHttpRequest;
@@ -211,6 +212,23 @@ public class GerritApiTest {
     }
   }
 
+  @Test
+  public void testAddReviewer() throws Exception {
+    mockResponse(new CheckRequest("POST", "/changes/" + CHANGE_ID + "/reviewers"), ""
+        + ")]}'\n" + mockAddReviewerResult());
+    gerritApi.addReviewer(CHANGE_ID, new ReviewerInput("test@google.com"));
+  }
+
+  @Test
+  public void testAddReviewerFail() throws Exception {
+    try {
+      gerritApi.addReviewer(CHANGE_ID, new ReviewerInput("test@google.com"));
+      fail();
+    } catch (GerritApiException e) {
+      assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
+    }
+  }
+
   private void validateChangeInfoCommon(ChangeInfo change) {
     assertThat(change.getChangeId()).isEqualTo(CHANGE_ID);
     assertThat(change.getNumber()).isEqualTo(1082);
@@ -241,7 +259,7 @@ public class GerritApiTest {
     mockResponse(s -> false, "");
     try {
       gerritApi.getChange(CHANGE_ID, new GetChangeInput());
-      Assert.fail();
+      fail();
     } catch (GerritApiException e) {
       assertThat(e.getExitCode()).isEqualTo(404);
     }
@@ -478,6 +496,11 @@ public class GerritApiTest {
     }
   }
 
+  private String mockAddReviewerResult(){
+    return "{\n"
+        + "    \"input\": \"test@google.com\"\n"
+        + "  }";
+  }
   @Test
   public void testGetAccessInfo() throws Exception {
     JsonObject response = new JsonObject();
