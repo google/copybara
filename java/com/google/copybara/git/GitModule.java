@@ -92,6 +92,7 @@ public class GitModule implements LabelsAwareModule {
               /*ignoreErrors=*/true)));
   protected static final String GERRIT_TRIGGER = "gerrit_trigger";
   protected static final String GERRIT_API = "gerrit_api";
+  protected static final String GITHUB_TRIGGER = "github_trigger";
   protected static final String GITHUB_API = "github_api";
 
   protected final Options options;
@@ -730,6 +731,36 @@ public class GitModule implements LabelsAwareModule {
     validateEndpointChecker(location, checker, GERRIT_TRIGGER);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     return new GerritTrigger(gerritOptions.newGerritApiSupplier(url, checker), url);
+  }
+
+  @SuppressWarnings("unused")
+  @SkylarkCallable(
+      name = GITHUB_TRIGGER,
+      doc = "[EXPERIMENTAL] Defines a feedback trigger based on updates on a GitHub PR.",
+      parameters = {
+        @Param(
+            name = "url",
+            type = String.class,
+            doc = "Indicates the GitHub repo URL.",
+            named = true),
+        @Param(
+            name = "checker",
+            type = Checker.class,
+            defaultValue = "None",
+            doc = "A checker for the GitHub API transport provided by this trigger.",
+            named = true,
+            noneable = true),
+      },
+      useLocation = true, documented = false)
+  @UsesFlags(GitHubOptions.class)
+  public GitHubTrigger gitHubTrigger(String url, Object checkerObj, Location location)
+      throws EvalException {
+    checkNotEmpty(url, "url", location);
+    url = fixHttp(url, location);
+    Checker checker = convertFromNoneable(checkerObj, null);
+    validateEndpointChecker(location, checker, GITHUB_TRIGGER);
+    GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
+    return new GitHubTrigger(gitHubOptions.newGitHubApiSupplier(url, checker), url);
   }
 
   @SuppressWarnings("unused")
