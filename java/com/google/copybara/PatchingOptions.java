@@ -214,7 +214,11 @@ public class PatchingOptions implements Option {
     ImmutableList.Builder<String> params = ImmutableList.builder();
 
     // Show verbose output unconditionally since it is helpful for debugging issues with patches.
-    params.add(patchBin, "-t", "-p" + stripSlashes);
+    // When the patch file doesn't match the file exactly, GNU patch creates backup files, but we
+    // disable creating those as they don't make sense for Copybara and otherwise they would need
+    // to be excluded
+    // See: http://b/112639930
+    params.add(patchBin, "--no-backup-if-mismatch", "-t", "-p" + stripSlashes);
     if (reverse) {
       params.add("-R");
     }

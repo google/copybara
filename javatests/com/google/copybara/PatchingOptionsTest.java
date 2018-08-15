@@ -333,6 +333,58 @@ public class PatchingOptionsTest {
     }
   }
 
+  // Regression test for http://b/112639930
+  @Test
+  public void testApplyFileDoesntMatch() throws Exception {
+    setDefaultPatchImplementation();
+
+    writeFile(
+        left,
+        "file.txt",
+        "mmm\n"
+            + "zzzzzzzzz\n"
+            + "zzzzzzzzzzzzzz\n"
+            + "zzzzzzzzzzzzzzzzzzzz\n"
+            + "bar\n"
+            + "foo\n"
+            + "bar");
+    writeFile(
+        right,
+        "file.txt",
+        "mmm\n"
+            + "zzzzzzzzz\n"
+            + "zzzzzzzzzzzzzz\n"
+            + "zzzzzzzzzzzzzzzzzzzz\n"
+            + "bar\n"
+            + "xxx\n"
+            + "bar");
+    writeFile(
+        destination,
+        "file.txt",
+        "" // Does not have the first line as left and right. Patch won't match the file entirely.
+            + "zzzzzzzzz\n"
+            + "zzzzzzzzzzzzzz\n"
+            + "zzzzzzzzzzzzzzzzzzzz\n"
+            + "bar\n"
+            + "foo\n"
+            + "bar");
+
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
+
+    runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
+
+    assertThatPath(destination)
+        .containsFile(
+            "file.txt",
+            "zzzzzzzzz\n"
+                + "zzzzzzzzzzzzzz\n"
+                + "zzzzzzzzzzzzzzzzzzzz\n"
+                + "bar\n"
+                + "xxx\n"
+                + "bar")
+        .containsNoMoreFiles();
+  }
+
   @Test
   public void negativeSlashesFail() throws Exception {
     try {
