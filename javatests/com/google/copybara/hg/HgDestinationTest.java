@@ -57,6 +57,7 @@ public class HgDestinationTest {
   private String url;
   private String fetch;
   private String push;
+  private Writer<HgRevision> writer;
 
   @Before
   public void setup() throws Exception {
@@ -77,15 +78,16 @@ public class HgDestinationTest {
     Files.write(hgDestPath.resolve("file.txt"), "first write".getBytes());
     remoteRepo.hg(hgDestPath, "add");
     remoteRepo.hg(hgDestPath, "commit", "-m", "first commit");
+
+    fetch = "tip";
+    push = "default";
+    destination = HgDestination.newHgDestination(url, fetch, push, options.general, options.hg);
+    writer = newWriter();
   }
 
   @Test
   public void testWrite() throws Exception {
-    fetch = "tip";
-    push = "default";
-    destination = HgDestination.newHgDestination(url, fetch, push, options.general);
-
-    remoteRepo.archive(workdir.toAbsolutePath().toString());
+    Files.write(workdir.resolve("file.txt"), "first write".getBytes());
     Files.write(workdir.resolve("test.txt"), "test".getBytes());
 
     ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(
@@ -95,8 +97,6 @@ public class HgDestinationTest {
         .withAuthor(new Author("Copy Bara", "copy@bara.com"))
         .withTimestamp(zonedDateTime);
     TransformResult result = TransformResults.of(workdir, originRef);
-
-    Writer<HgRevision> writer = newWriter();
 
     ImmutableList<DestinationEffect> destinationResult = writer.write(result, console);
     assertThat(destinationResult).hasSize(1);
@@ -113,19 +113,16 @@ public class HgDestinationTest {
         + "DummyOrigin-RevId: origin_ref");
     assertThat(commits).hasSize(2);
     assertThat(commits.get(0).getZonedDate()).isEqualTo(zonedDateTime);
-    assertThat(commits.get(0).getFiles()).hasSize(2);
-    assertThat(commits.get(0).getFiles().get(0)).isEqualTo(".hg_archival.txt");
-    assertThat(commits.get(0).getFiles().get(1)).isEqualTo("test.txt");
+    assertThat(commits.get(0).getFiles()).hasSize(1);
+    assertThat(commits.get(0).getFiles().get(0)).isEqualTo("test.txt");
+
     assertThat(commits.get(1).getFiles()).hasSize(1);
     assertThat(commits.get(1).getFiles().get(0)).isEqualTo("file.txt");
   }
 
   @Test
   public void testEmptyChange() throws Exception {
-    fetch = "tip";
-    push = "default";
-    destination = HgDestination.newHgDestination(url, fetch, push, options.general);
-    Writer<HgRevision> writer = newWriter();
+    remoteRepo.archive(workdir.toString());
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     TransformResult result = TransformResults.of(workdir, originRef);
@@ -137,6 +134,51 @@ public class HgDestinationTest {
       assertThat(expected.getMessage()).contains("Error executing hg");
       //TODO(jlliu): better exception for commits of empty changes
     }
+  }
+
+  @Test
+  public void testWriteDeletesAndAddsFiles() throws Exception {
+    Files.write(workdir.resolve("delete_me.txt"), "deleted content".getBytes());
+    DummyRevision deletedRef = new DummyRevision("delete_ref");
+    TransformResult result = TransformResults.of(workdir, deletedRef);
+    writer.write(result, console);
+
+    workdir = Files.createTempDirectory("testWriteDeletesAndAddsFiles-workdir");
+    Files.write(workdir.resolve("add_me.txt"), "added content".getBytes());
+    DummyRevision addedRef = new DummyRevision("add_ref");
+    TransformResult addedResult = TransformResults.of(workdir, addedRef);
+    writer.write(addedResult, console);
+
+    remoteRepo.cleanUpdate("tip");
+
+    ImmutableList<HgLogEntry> commits = remoteRepo.log().run();
+    assertThat(commits).hasSize(3);
+
+    assertThat(commits.get(0).getFiles()).hasSize(2);
+    assertThat(commits.get(0).getFiles().get(0)).isEqualTo("add_me.txt");
+    assertThat(commits.get(0).getFiles().get(1)).isEqualTo("delete_me.txt");
+
+    assertThat(commits.get(1).getFiles()).hasSize(2);
+    assertThat(commits.get(1).getFiles().get(0)).isEqualTo("delete_me.txt");
+    assertThat(commits.get(1).getFiles().get(1)).isEqualTo("file.txt");
+
+    assertThatPath(hgDestPath).containsFile("add_me.txt", "added content");
+    assertThatPath(hgDestPath).containsNoFiles("delete_me.txt");
+    assertThatPath(hgDestPath).containsNoFiles("file.txt");
+  }
+
+  @Test
+  public void testWriteModifyFiles() throws Exception {
+    Files.write(workdir.resolve("file.txt"), "modified content".getBytes());
+    DummyRevision modifiedRef = new DummyRevision("modified_ref");
+    TransformResult result = TransformResults.of(workdir, modifiedRef);
+    writer.write(result, console);
+
+    remoteRepo.cleanUpdate("tip");
+
+    ImmutableList<HgLogEntry> commits = remoteRepo.log().run();
+    assertThat(commits).hasSize(2);
+    assertThatPath(hgDestPath).containsFile("file.txt", "modified content");
   }
 
   private Writer<HgRevision> newWriter() {
