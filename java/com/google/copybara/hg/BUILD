@@ -31,6 +31,7 @@ CORE = [
     "HgOrigin.java",
     "HgOriginOptions.java",
     "HgVisitorUtil.java",
+    "HgDestination.java",
 ]
 
 java_library(

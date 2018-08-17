@@ -27,12 +27,14 @@ DEPS = [
     "//third_party:skylark-lang",
     "//java/com/google/copybara:base",
     "//java/com/google/copybara/testing",
+    "//java/com/google/copybara/util/console/testing",
     "//third_party:truth",
 ]
 
 all_tests(
     tags = ["local"],
     tests = [
+        "HgDestinationTest.java",
         "HgOriginTest.java",
         "HgRepositoryTest.java",
     ],
