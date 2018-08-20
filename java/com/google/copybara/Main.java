@@ -75,8 +75,9 @@ public class Main {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
   /**
    * Represents the environment, typically {@code System.getEnv()}. Injected to make easier tests.
-   *
+   * 
    * <p>Should not be mutated.
+   * test
    */
   protected final ImmutableMap<String, String> environment;
   protected Profiler profiler;
