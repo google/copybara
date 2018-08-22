@@ -27,12 +27,15 @@ import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.TransformResult;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -143,11 +146,9 @@ public class HgDestinationTest {
     TransformResult result = TransformResults.of(workdir, deletedRef);
     writer.write(result, console);
 
-    workdir = Files.createTempDirectory("testWriteDeletesAndAddsFiles-workdir");
+    workdir = options.general.getDirFactory().newTempDir("testWriteDeletesAndAddsFiles-workdir");
     Files.write(workdir.resolve("add_me.txt"), "added content".getBytes());
-    DummyRevision addedRef = new DummyRevision("add_ref");
-    TransformResult addedResult = TransformResults.of(workdir, addedRef);
-    writer.write(addedResult, console);
+    createRevisionAndWrite("add_ref");
 
     remoteRepo.cleanUpdate("tip");
 
@@ -170,15 +171,73 @@ public class HgDestinationTest {
   @Test
   public void testWriteModifyFiles() throws Exception {
     Files.write(workdir.resolve("file.txt"), "modified content".getBytes());
-    DummyRevision modifiedRef = new DummyRevision("modified_ref");
-    TransformResult result = TransformResults.of(workdir, modifiedRef);
-    writer.write(result, console);
+    createRevisionAndWrite("modified_ref");
 
     remoteRepo.cleanUpdate("tip");
 
     ImmutableList<HgLogEntry> commits = remoteRepo.log().run();
     assertThat(commits).hasSize(2);
     assertThatPath(hgDestPath).containsFile("file.txt", "modified content");
+  }
+
+  @Test
+  public void testWriteModifyExcluded() throws Exception {
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("file.txt"));
+    writer = newWriter();
+
+    Files.write(workdir.resolve("file.txt"), "modified content".getBytes());
+    Files.write(workdir.resolve("other.txt"), "other content".getBytes());
+    createRevisionAndWrite("origin_ref");
+
+    remoteRepo.cleanUpdate("tip");
+
+    ImmutableList<HgLogEntry> commits = remoteRepo.log().run();
+    assertThat(commits).hasSize(2);
+    assertThatPath(hgDestPath).containsFile("file.txt", "first write");
+    assertThatPath(hgDestPath).containsFile("other.txt", "other content");
+  }
+
+  @Test
+  public void testWriteAddExcluded() throws Exception {
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
+    writer = newWriter();
+
+    Files.write(workdir.resolve("file.txt"), "modified content".getBytes());
+    Files.write(workdir.resolve("excluded.txt"), "excluded content".getBytes());
+    createRevisionAndWrite("origin_ref");
+
+    remoteRepo.cleanUpdate("tip");
+
+    ImmutableList<HgLogEntry> commits = remoteRepo.log().run();
+    assertThat(commits).hasSize(2);
+    assertThatPath(hgDestPath).containsFile("file.txt", "modified content");
+
+    // File that was excluded is still written because it didn't originally exist in the destination
+    assertThatPath(hgDestPath).containsFile("excluded.txt", "excluded content");
+  }
+
+  @Test
+  public void testWriteDeleteExcluded() throws Exception {
+    Files.write(hgDestPath.resolve("excluded.txt"), "content".getBytes(StandardCharsets.UTF_8));
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
+    writer = newWriter();
+
+    Files.write(workdir.resolve("file.txt"), "file".getBytes());
+    createRevisionAndWrite("origin_ref");
+
+    remoteRepo.cleanUpdate("tip");
+
+    ImmutableList<HgLogEntry> commits = remoteRepo.log().run();
+    assertThat(commits).hasSize(2);
+    assertThatPath(hgDestPath).containsFile("file.txt", "file");
+    assertThatPath(hgDestPath).containsFile("excluded.txt", "content");
+  }
+
+  private void createRevisionAndWrite(String referenceName)
+      throws RepoException, ValidationException, IOException {
+    DummyRevision originRef = new DummyRevision(referenceName);
+    TransformResult result = TransformResults.of(workdir, originRef);
+    writer.write(result, console);
   }
 
   private Writer<HgRevision> newWriter() {

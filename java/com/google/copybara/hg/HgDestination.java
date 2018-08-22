@@ -39,10 +39,16 @@ import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -78,7 +84,7 @@ public class HgDestination implements Destination<HgRevision> {
   @Override
   public Writer<HgRevision> newWriter (Glob destinationFiles, boolean dryRun,
       @Nullable String groupId, @Nullable Writer<HgRevision> oldWriter) {
-    return new WriterImpl(repoUrl, fetch, push, generalOptions, hgOptions);
+    return new WriterImpl(repoUrl, fetch, push, generalOptions, hgOptions, destinationFiles);
   }
 
   @Override
@@ -93,15 +99,17 @@ public class HgDestination implements Destination<HgRevision> {
     private final GeneralOptions generalOptions;
     private final HgOptions hgOptions;
     private final boolean force;
+    private final Glob destinationFiles;
 
     WriterImpl(String repoUrl, String remoteFetch, String remotePush,
-        GeneralOptions generalOptions, HgOptions hgOptions) {
+        GeneralOptions generalOptions, HgOptions hgOptions, Glob destinationFiles) {
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
       this.remotePush = checkNotNull(remotePush);
       this.generalOptions = generalOptions;
       this.hgOptions = hgOptions;
       this.force = generalOptions.isForced();
+      this.destinationFiles = checkNotNull(destinationFiles);
     }
 
     @Nullable
@@ -161,14 +169,20 @@ public class HgDestination implements Destination<HgRevision> {
      * <p> This is required to write files from the {@param workdir} to the destination because
      * there is no built-in option to set the working directory of a repository. Thus, we need to
      * manually add changes to a {@param localRepo}, changing its working directory directly so it
-     * contains exactly the same files as that of the {@param workdir}. Changes are staged to be
-     * pushed to a remote repository.
+     * contains exactly the same files as that of the {@param workdir}, but not modifying or
+     * deleting files excluded in {@code destinationFiles}. Changes are staged to be pushed to a
+     * remote repository.
      */
     private void getDiffAndStageChanges(Path workDir, HgRepository localRepo)
         throws RepoException, IOException {
       // Create a temp archive of the remote repository to compute diff with
-      Path tempArchivePath = Files.createTempDirectory(workDir.getParent(), "tempArchive");
+      Path tempArchivePath = generalOptions.getDirFactory().newTempDir("tempArchive");
       localRepo.archive(tempArchivePath.toString());
+
+      // Find excluded files in the archive
+      HgExcludesFinder visitor =
+          new HgExcludesFinder(tempArchivePath, destinationFiles.relativeTo(tempArchivePath));
+      Files.walkFileTree(tempArchivePath, visitor);
 
       try {
         // Compute the diff between an archive of the remote repo and the workdir
@@ -177,6 +191,10 @@ public class HgDestination implements Destination<HgRevision> {
                 generalOptions.getEnvironment());
 
         for (DiffFile diff : diffFiles) {
+          if (visitor.excluded.contains(diff.getName())) {
+            continue;
+          }
+
           Operation diffOp = diff.getOperation();
 
           if (diffOp.equals(Operation.ADD)) {
@@ -226,8 +244,6 @@ public class HgDestination implements Destination<HgRevision> {
       Files.write(localRepo.getHgDir().resolve(".hg/hgrc"),
           String.format("[paths]\ndefault = %s\n", repoUrl).getBytes(StandardCharsets.UTF_8));
 
-      //TODO(jlliu): include/exclude destinationFiles
-
       console.progress("Hg Destination: Computing diff");
       getDiffAndStageChanges(workdir, localRepo);
 
@@ -258,6 +274,25 @@ public class HgDestination implements Destination<HgRevision> {
     public void visitChanges(@Nullable HgRevision start, ChangesVisitor visitor)
       throws RepoException, ValidationException {
       throw new UnsupportedOperationException("Not implemented yet");
+    }
+  }
+
+  private static final class HgExcludesFinder extends SimpleFileVisitor<Path> {
+    private final Path directory;
+    private final PathMatcher destinationFiles;
+    private final Set<String> excluded = new HashSet<>();
+
+    private HgExcludesFinder(Path directory, PathMatcher destinationFiles) {
+      this.directory = directory;
+      this.destinationFiles = destinationFiles;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+      if (!destinationFiles.matches(file)) {
+        excluded.add(directory.relativize(file).toString());
+      }
+      return FileVisitResult.CONTINUE;
     }
   }
 
