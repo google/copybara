@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -64,6 +65,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Rule;
@@ -108,6 +110,7 @@ public class GerritDestinationTest {
   private TestingConsole console;
   private ImmutableList<String> excludedDestinationPaths;
   private SkylarkTestExecutor skylark;
+  private ImmutableList<String> reviewerTemplates;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -140,6 +143,7 @@ public class GerritDestinationTest {
     repo().init();
 
     skylark = new SkylarkTestExecutor(options);
+    reviewerTemplates = ImmutableList.of();
 
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
@@ -504,6 +508,139 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testReviewerFieldWithTopic() throws Exception {
+    pushToRefsFor = "master";
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    List<DestinationEffect> result = destination
+        .newWriter(glob,/*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
+        .write(
+            TransformResults.of(workdir, originRef)
+                .withSummary("Test message")
+                .withIdentity(originRef.asString())
+                .withLabelFinder (e-> e.equals("SOME_REVIEWER")
+                                  ? ImmutableList.of("foo@example.com")
+                                  : ImmutableList.of()),
+            console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    boolean correctMessage =
+        console
+            .getMessages()
+            .stream()
+            .anyMatch(message -> message.getText().contains("refs/for/master%topic=testTopic,r=foo@example.com"));
+    assertThat(correctMessage).isTrue();
+  }
+
+
+  @Test
+  public void testReviewerFieldWithNoTopic() throws Exception {
+    pushToRefsFor = "master";
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+    fetch = "master";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    List<DestinationEffect> result = destination
+        .newWriter(glob,/*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
+        .write(
+            TransformResults.of(workdir, originRef)
+                .withSummary("Test message")
+                .withIdentity(originRef.asString())
+                .withLabelFinder (e-> e.equals("SOME_REVIEWER")
+                    ? ImmutableList.of("foo@example.com")
+                    : ImmutableList.of()),
+            console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    boolean correctMessage =
+        console
+            .getMessages()
+            .stream()
+            .anyMatch(message -> message.getText().contains("refs/for/master%r=foo@example.com"));
+    assertThat(correctMessage).isTrue();
+  }
+
+  @Test
+  public void testReviewersFieldWithTopic() throws Exception {
+    pushToRefsFor = "master";
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    List<DestinationEffect> result = destination
+        .newWriter(glob,/*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
+        .write(
+            TransformResults.of(workdir, originRef)
+                .withSummary("Test message")
+                .withIdentity(originRef.asString())
+                .withLabelFinder(e-> e.equals("SOME_REVIEWER")
+                    ? ImmutableList.of("foo@example.com", "bar@example.com")
+                    : ImmutableList.of()),
+            console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    boolean correctMessage =
+        console
+            .getMessages()
+            .stream()
+            .anyMatch(message -> message.getText().contains("refs/for/master%topic=testTopic,r=foo@example.com,r=bar@example.com"));
+    assertThat(correctMessage).isTrue();
+  }
+
+  @Test
+  public void testEmptyReviewersField() throws Exception {
+    pushToRefsFor = "master";
+    Files.write(workdir.resolve("file"), "some content".getBytes());
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    List<DestinationEffect> result = destination
+        .newWriter(glob,/*dryRun=*/false, /*groupId=*/null, /*oldWriter=*/null)
+        .write(
+            TransformResults.of(workdir, originRef)
+                .withSummary("Test message")
+                .withIdentity(originRef.asString()),
+            console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    boolean correctMessage =
+        console
+            .getMessages()
+            .stream()
+            .anyMatch(message -> message.getText().contains("refs/for/master%topic=testTopic"));
+    assertThat(correctMessage).isTrue();
+  }
+
+  @Test
   public void changeExists() throws Exception {
     fetch = "master";
 
@@ -673,6 +810,7 @@ public class GerritDestinationTest {
             options.gerrit,
             "http://example.com/foo",
             new Author("foo", "foo@example.com"),
+            reviewerTemplates,
             ChangeIdPolicy.REPLACE,
             /*allowEmptyDiffPatchSet=*/ true);
     fakeOneCommitInDestination();
@@ -716,6 +854,7 @@ public class GerritDestinationTest {
             options.gerrit,
             "http://example.com/foo",
             new Author("foo", "foo@example.com"),
+            reviewerTemplates,
             ChangeIdPolicy.REPLACE,
             /*allowEmptyDiffPatchSet=*/ true);
     fakeOneCommitInDestination();

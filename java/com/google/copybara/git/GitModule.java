@@ -627,14 +627,22 @@ public class GitModule implements LabelsAwareModule {
                   + " previous one. If this set to false, Copybara will download current PatchSet"
                   + " and check the diff against the new diff.",
               defaultValue = "True"),
+          @Param(name = "reviewers", type = SkylarkList.class, named = true,
+              defaultValue = "[]",
+              doc = "The list of the reviewers will be added to gerrit change reviewer list"
+                  + "The element in the list is: an email, for example: \"foo@example.com\" or label "
+                  + "for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of "
+                  + "assuming that users have registered to gerrit repos"),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   @DocDefault(field = "push_to_refs_for", value = "fetch value")
   public GerritDestination gerritDestination(
       String url, String fetch, Object pushToRefsFor, Boolean submit, String changeIdPolicy,
-      Boolean allowEmptyPatchSet, Location location) throws EvalException {
+      Boolean allowEmptyPatchSet, SkylarkList<String> reviewers, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
+    List<String> newReviewers =
+            Type.STRING_LIST.convert(reviewers, "reviewers");
     return GerritDestination.newGerritDestination(
         options,
         fixHttp(url, location),
@@ -648,7 +656,8 @@ public class GitModule implements LabelsAwareModule {
             "push_to_refs_for", location),
         submit,
         stringToEnum(location, "change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
-        allowEmptyPatchSet);
+        allowEmptyPatchSet,
+        newReviewers);
   }
 
   @SuppressWarnings("unused")

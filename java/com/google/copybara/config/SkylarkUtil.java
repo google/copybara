@@ -18,15 +18,25 @@ package com.google.copybara.config;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.copybara.LabelFinder;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 /**
  * Utilities for dealing with Skylark parameter objects and converting them to Java ones.
  */
 public final class SkylarkUtil {
+  private static final Pattern LABEL_VAR = Pattern
+      .compile("\\$\\{(" + LabelFinder.VALID_LABEL.pattern() + ")}");
 
   private SkylarkUtil() {
   }
@@ -83,5 +93,27 @@ public final class SkylarkUtil {
     if (!condition) {
       throw new EvalException(location, String.format(errorFmt, (Object[]) params));
     }
+  }
+
+  /**
+   * A utility for resolving list of string labels to values
+   */
+  public static ImmutableList<String> mapLabels(
+      Function<String, ? extends Collection<String>> labelsMapper, List<String> list) {
+    ImmutableList.Builder<String> result = ImmutableList.builder();
+    for (String element : list) {
+      Matcher matcher = LABEL_VAR.matcher(element);
+      if (!matcher.matches()) {
+        result.add(element);
+        continue;
+      }
+      String label = matcher.group(1);
+      Collection<String> values = labelsMapper.apply(label);
+      if (values == null) {
+        continue;
+      }
+      result.addAll(Objects.requireNonNull(values));
+    }
+    return result.build();
   }
 }

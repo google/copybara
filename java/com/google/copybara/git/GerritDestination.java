@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.copybara.git.GitModule.DEFAULT_GIT_INTEGRATES;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -39,6 +40,7 @@ import com.google.copybara.Options;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -55,6 +57,7 @@ import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -94,13 +97,14 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final GerritOptions gerritOptions;
     private final String repoUrl;
     private final Author committer;
+    private final List<String> reviewersTemplate;
     private final Console console;
     private final ChangeIdPolicy changeIdPolicy;
     private final boolean allowEmptyDiffPatchSet;
     private final GeneralOptions generalOptions;
 
     GerritWriteHook(GeneralOptions generalOptions, GerritOptions gerritOptions, String repoUrl,
-        Author committer, ChangeIdPolicy changeIdPolicy, boolean allowEmptyDiffPatchSet) {
+        Author committer, List<String> reviewersTemplate, ChangeIdPolicy changeIdPolicy, boolean allowEmptyDiffPatchSet) {
       this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -108,6 +112,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       this.console = Preconditions.checkNotNull(generalOptions.console());
       this.changeIdPolicy = Preconditions.checkNotNull(changeIdPolicy);
       this.allowEmptyDiffPatchSet = allowEmptyDiffPatchSet;
+      this.reviewersTemplate = Preconditions.checkNotNull(reviewersTemplate);
     }
 
     /**
@@ -217,6 +222,23 @@ public final class GerritDestination implements Destination<GitRevision> {
       } finally {
         repo.forceCheckout(oldHead);
       }
+    }
+
+    @Override
+    public String getPushReference(String pushToRefsFor, TransformResult transformResult) {
+      ImmutableList<String> reviewers =
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate);
+      if (reviewers.isEmpty()) {
+        return pushToRefsFor;
+      }
+      List<String> newReviewers = new ArrayList<>();
+      for(String reviewer : reviewers) {
+        newReviewers.add(String.format("r=%s", reviewer));
+      }
+      String reviewersToString =  Joiner.on(",").join(newReviewers);
+      return pushToRefsFor.contains("%")
+              ? String.format("%s,%s", pushToRefsFor, reviewersToString)
+              : String.format("%s%%%s", pushToRefsFor, reviewersToString);
     }
 
     private boolean tryToCherryPick(GitRepository repo, String commit, long changeNumber) {
@@ -373,7 +395,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       String pushToRefsFor,
       boolean submit,
       ChangeIdPolicy changeIdPolicy,
-      boolean allowEmptyPatchSet) {
+      boolean allowEmptyPatchSet,
+      List<String> reviewers) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     String push;
@@ -400,6 +423,7 @@ public final class GerritDestination implements Destination<GitRevision> {
                 gerritOptions,
                 url,
                 destinationOptions.getCommitter(),
+                reviewers,
                 changeIdPolicy,
                 allowEmptyPatchSet),
             DEFAULT_GIT_INTEGRATES),

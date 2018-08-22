@@ -386,6 +386,12 @@ public final class GitDestination implements Destination<GitRevision> {
           throws RepoException, ValidationException { }
 
       /**
+       * Construct the reference to push based on the pushToRefsFor reference. Implementations of
+       * this method can change the reference to a different reference.
+       */
+      String getPushReference(String pushToRefsFor, TransformResult transformResult);
+
+      /**
        * Process the server response from the push command and compute the effects that happened
        */
       ImmutableList<DestinationEffect> afterPush(String serverResponse, MessageInfo messageInfo,
@@ -419,6 +425,11 @@ public final class GitDestination implements Destination<GitRevision> {
                 originChanges,
                 new DestinationEffect.DestinationRef(
                     pushedRevision.getSha1(), "commit", /*url=*/ null)));
+      }
+
+      @Override
+      public String getPushReference(String pushToRefsFor, TransformResult transformResult) {
+        return pushToRefsFor;
       }
     }
 
@@ -543,8 +554,8 @@ public final class GitDestination implements Destination<GitRevision> {
                 originChanges,
                 new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null)));
       }
-
-      console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, remotePush));
+      String push = writeHook.getPushReference(getCompleteRef(remotePush), transformResult);
+      console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
       checkCondition(!nonFastForwardPush
           || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
           + " allowed when fetch != push");
@@ -553,7 +564,7 @@ public final class GitDestination implements Destination<GitRevision> {
           "push",
           () -> scratchClone.push()
               .withRefspecs(repoUrl, ImmutableList.of(scratchClone.createRefSpec(
-                  (nonFastForwardPush ? "+" : "") + "HEAD:" + getCompleteRef(remotePush))))
+                  (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
               .run()
       );
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
