@@ -16,7 +16,9 @@
 
 package com.google.copybara.hg;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.ChangeMessage.parseMessage;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.junit.Assert.fail;
 
@@ -29,6 +31,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
+import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
@@ -233,11 +236,63 @@ public class HgDestinationTest {
     assertThatPath(hgDestPath).containsFile("excluded.txt", "content");
   }
 
+  @Test
+  public void testPreviousImportReference() throws Exception {
+    Path file = workdir.resolve("test.txt");
+    Files.write(file, "first write".getBytes(StandardCharsets.UTF_8));
+    writer = newWriter();
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME)).isNull();
+    createRevisionAndWrite("first_commit");
+    assertCommitHasOrigin(getLastCommit(fetch), "first_commit");
+
+    Files.write(file, "second write".getBytes(StandardCharsets.UTF_8));
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
+        .isEqualTo("first_commit");
+    createRevisionAndWrite("second_commit");
+    assertCommitHasOrigin(getLastCommit(fetch), "second_commit");
+
+    Path otherFile = workdir.resolve("other.txt");
+    Files.write(otherFile, "third write".getBytes(StandardCharsets.UTF_8));
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
+        .isEqualTo("second_commit");
+    createRevisionAndWrite("third_commit");
+    assertCommitHasOrigin(getLastCommit(fetch), "third_commit");
+  }
+
+  @Test
+  public void testPreviousImportReference_nonCopybaraCommitsSinceLastMigrate() throws Exception {
+    Files.write(workdir.resolve("file.txt"), "test write".getBytes(StandardCharsets.UTF_8));
+    writer = newWriter();
+    createRevisionAndWrite("first_commit");
+
+    // update the remote repo workdir to have new changes
+    remoteRepo.cleanUpdate(push);
+
+    Path scratchTree = Files.createTempDirectory(hgDestPath,"HgDestinationTest-scratchTree");
+    for (int i = 0; i < 20; i++) {
+      Path excludedFile = Files.write(scratchTree.resolve("excluded.dat"), new byte[] {(byte) i});
+      remoteRepo.hg(hgDestPath, "add", excludedFile.toString());
+      remoteRepo.hg(hgDestPath, "commit", "-m", "excluded #" + i);
+    }
+
+    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
+        .isEqualTo("first_commit");
+  }
+
   private void createRevisionAndWrite(String referenceName)
       throws RepoException, ValidationException, IOException {
     DummyRevision originRef = new DummyRevision(referenceName);
     TransformResult result = TransformResults.of(workdir, originRef);
     writer.write(result, console);
+  }
+
+  private void assertCommitHasOrigin(HgLogEntry commit, String originRef) throws RepoException {
+    assertThat(parseMessage(commit.getDescription())
+        .labelsAsMultimap()).containsEntry(DummyOrigin.LABEL_NAME, originRef);
+  }
+
+  private HgLogEntry getLastCommit(String ref) throws RepoException, ValidationException {
+    return getOnlyElement(remoteRepo.log().withReferenceExpression(ref).withLimit(1).run());
   }
 
   private Writer<HgRevision> newWriter() {

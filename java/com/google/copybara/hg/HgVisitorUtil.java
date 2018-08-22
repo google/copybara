@@ -44,7 +44,7 @@ public class HgVisitorUtil {
       GeneralOptions generalOptions,
       String type,
       int visitChangePageSize)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException {
     Preconditions.checkNotNull(start);
     int offset = 0;
     boolean finished = false;
@@ -70,12 +70,9 @@ public class HgVisitorUtil {
         }
 
         if (result.isEmpty()) {
-          if (offset == 0) {
-            throw new CannotResolveRevisionException(
-                "Cannot resolve reference " + start.getGlobalId());
-          }
           break;
         }
+
         offset += result.size();
         for (HgChange current : result) {
           if (visitor.visit(current.getChange()) == VisitResult.TERMINATE) {

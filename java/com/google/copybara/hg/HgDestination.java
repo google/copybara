@@ -23,6 +23,7 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationStatusVisitor;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.TransformResult;
@@ -43,6 +44,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -84,7 +86,8 @@ public class HgDestination implements Destination<HgRevision> {
   @Override
   public Writer<HgRevision> newWriter (Glob destinationFiles, boolean dryRun,
       @Nullable String groupId, @Nullable Writer<HgRevision> oldWriter) {
-    return new WriterImpl(repoUrl, fetch, push, generalOptions, hgOptions, destinationFiles);
+    return new WriterImpl(repoUrl, fetch, push, generalOptions, hgOptions, destinationFiles,
+        hgOptions.visitChangeDepth);
   }
 
   @Override
@@ -100,9 +103,12 @@ public class HgDestination implements Destination<HgRevision> {
     private final HgOptions hgOptions;
     private final boolean force;
     private final Glob destinationFiles;
+    private final int visitChangePageSize;
+    private final Console baseConsole;
 
     WriterImpl(String repoUrl, String remoteFetch, String remotePush,
-        GeneralOptions generalOptions, HgOptions hgOptions, Glob destinationFiles) {
+        GeneralOptions generalOptions, HgOptions hgOptions, Glob destinationFiles,
+        int visitChangePageSize) {
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
       this.remotePush = checkNotNull(remotePush);
@@ -110,13 +116,50 @@ public class HgDestination implements Destination<HgRevision> {
       this.hgOptions = hgOptions;
       this.force = generalOptions.isForced();
       this.destinationFiles = checkNotNull(destinationFiles);
+      this.visitChangePageSize = visitChangePageSize;
+      this.baseConsole = checkNotNull(generalOptions.console());
+    }
+
+    @Nullable
+    private HgRevision getStartRef(HgRepository repo) throws RepoException {
+      try {
+        return repo.identify(remoteFetch);
+      } catch (CannotResolveRevisionException e) {
+          if (force) {
+            return null;
+          }
+          throw new RepoException(String.format("Could not find %s in %s and '%s' was not used",
+              remoteFetch, repoUrl, GeneralOptions.FORCE));
+      }
     }
 
     @Nullable
     @Override
     public DestinationStatus getDestinationStatus(String labelName)
         throws RepoException, ValidationException {
-      throw new UnsupportedOperationException("Not implemented yet");
+      HgRepository localRepo = getRepository();
+      pullFromRemote(baseConsole, localRepo, repoUrl, remoteFetch);
+      HgRevision startRef = getStartRef(localRepo);
+
+      if (startRef == null) {
+        return null;
+      }
+
+      PathMatcher pathMatcher = destinationFiles.relativeTo(Paths.get(""));
+      DestinationStatusVisitor visitor = new DestinationStatusVisitor(pathMatcher, labelName);
+      ChangeReader.Builder changeReader =
+          ChangeReader.Builder
+              .forDestination(localRepo, baseConsole)
+              .setKeyword(labelName + ORIGIN_LABEL_SEPARATOR);
+
+      HgVisitorUtil.visitChanges(
+          startRef,
+          visitor,
+          changeReader,
+          generalOptions,
+          "get_destination_status",
+          visitChangePageSize);
+      return visitor.getDestinationStatus();
     }
 
     @Override

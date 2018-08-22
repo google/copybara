@@ -36,6 +36,7 @@ import com.google.copybara.hg.HgRepository.LogCmd;
 import com.google.copybara.util.console.Console;
 import java.time.ZonedDateTime;
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 /**
  * Utility class to introspect the log of a Mercurial (Hg) repository.
@@ -48,18 +49,25 @@ class ChangeReader {
   private final int skip;
   private final Console console;
   private final Optional<Authoring> authoring;
+  private final Optional<String> keyword;
 
   private ChangeReader(HgRepository repository, int limit, int skip, Console console,
-      Optional<Authoring> authoring) {
+      Optional<Authoring> authoring, Optional<String> keyword) {
     this.repository = repository;
     this.limit = limit;
     this.skip = skip;
     this.console = console;
     this.authoring = authoring;
+    this.keyword = keyword;
   }
 
   ImmutableList<HgChange> run(String refExpression) throws RepoException, ValidationException {
     LogCmd logCmd = repository.log();
+
+    if (keyword.isPresent()) {
+      logCmd = logCmd.withKeyword(keyword.get());
+    }
+
     if (limit > 0) {
       if (skip >= 0) {
         logCmd = logCmd.withReferenceExpression(
@@ -76,9 +84,10 @@ class ChangeReader {
   static class Builder {
 
     private final HgRepository repository;
+    private final Console console;
     private int limit;
     private int skip;
-    private final Console console;
+    private String keyword = null;
     private Authoring authoring = null;
 
     private Builder(HgRepository repository, Console console) {
@@ -86,6 +95,10 @@ class ChangeReader {
       this.console = Preconditions.checkNotNull(console);
       this.limit = 0;
       this.skip = -1;
+    }
+
+    static Builder forDestination(HgRepository repository, Console console) {
+      return new Builder(repository, console);
     }
 
     static Builder forOrigin(HgRepository repository, Authoring authoring, Console console) {
@@ -105,13 +118,19 @@ class ChangeReader {
       return this;
     }
 
+    Builder setKeyword(String keyword) {
+      this.keyword = checkNotNull(keyword, "keyword");
+      return this;
+    }
+
     Builder setAuthoring(Authoring authoring) {
       this.authoring = checkNotNull(authoring, "authoring");
       return this;
     }
 
     ChangeReader build() {
-      return new ChangeReader(repository, limit, skip, console, Optional.of(authoring));
+      return new ChangeReader(repository, limit, skip, console,
+          Optional.ofNullable(authoring), Optional.ofNullable(keyword));
     }
   }
 

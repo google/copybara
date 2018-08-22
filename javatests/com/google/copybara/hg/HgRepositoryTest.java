@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
@@ -331,6 +332,19 @@ public class HgRepositoryTest {
     verifyThrowsRepoException("invalid reference", "parse error");
   }
 
+  @Test
+  public void testLogKeyword() throws Exception {
+    addAndCommitFile("copy bara");
+    addAndCommitFile("COPY BARA");
+    addAndCommitFile("test");
+
+    ImmutableList<HgLogEntry> commits = repository.log().run();
+    ImmutableList<HgLogEntry> testCommits = repository.log().withKeyword("copy bara").run();
+    assertThat(testCommits).hasSize(2);
+
+    assertThat(testCommits.get(0).getDescription()).contains("COPY BARA");
+    assertThat(testCommits.get(1).getDescription()).contains("copy bara");
+  }
 
   @Test
   public void testCleanUpdate() throws Exception {
@@ -372,7 +386,7 @@ public class HgRepositoryTest {
     try {
       repository.identify("not_a_branch");
       fail("Should have thrown exception");
-    } catch (RepoException expected) {
+    } catch (CannotResolveRevisionException expected) {
       assertThat(expected.getMessage()).contains("Unknown revision");
     }
   }

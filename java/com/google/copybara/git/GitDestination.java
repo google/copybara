@@ -26,14 +26,13 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationStatusVisitor;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.LazyResourceLoader;
@@ -306,45 +305,6 @@ public final class GitDestination implements Destination<GitRevision> {
         return null;
       }
       return visitor.getDestinationStatus();
-    }
-
-    /**
-     * A visitor that computes the {@link DestinationStatus} matching the actual files affected by
-     * the changes with the destination files glob.
-     */
-    private static class DestinationStatusVisitor implements ChangesVisitor {
-
-      private final PathMatcher pathMatcher;
-      private final String labelName;
-
-      private DestinationStatus destinationStatus = null;
-
-      DestinationStatusVisitor(PathMatcher pathMatcher, String labelName) {
-        this.pathMatcher = pathMatcher;
-        this.labelName = labelName;
-      }
-
-      @Override
-      public VisitResult visit(Change<? extends Revision> change) {
-        ImmutableSet<String> changeFiles = change.getChangeFiles();
-        if (changeFiles != null) {
-          if (change.getLabels().containsKey(labelName)) {
-            for (String file : changeFiles) {
-              if (pathMatcher.matches(Paths.get('/' + file))) {
-                String lastRev = Iterables.getLast(change.getLabels().get(labelName));
-                destinationStatus = new DestinationStatus(lastRev, ImmutableList.of());
-                return VisitResult.TERMINATE;
-              }
-            }
-          }
-        }
-        return VisitResult.CONTINUE;
-      }
-
-      @Nullable
-      DestinationStatus getDestinationStatus() {
-        return destinationStatus;
-      }
     }
 
     @Nullable

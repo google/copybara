@@ -24,6 +24,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.reflect.TypeToken;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.Command;
@@ -178,7 +179,8 @@ public class HgRepository {
    * </ul>
    *
    */
-  public HgRevision identify(String reference) throws RepoException {
+  public HgRevision identify(String reference)
+      throws RepoException, CannotResolveRevisionException {
     try {
       CommandOutput commandOutput =
           hg(hgDir, "identify", "--template", "{node}\n", "--id", "--rev", reference);
@@ -187,7 +189,7 @@ public class HgRepository {
       return new HgRevision(globalId);
     } catch (RepoException e) {
       if (UNKNOWN_REVISION.matcher(e.getMessage()).find()){
-        throw new RepoException(
+        throw new CannotResolveRevisionException(
             String.format("Unknown revision: %s", e.getMessage()));
       }
       throw e;
@@ -267,18 +269,22 @@ public class HgRepository {
     @Nullable
     private final String referenceExpression;
 
+    @Nullable
+    private final String keyword;
+
     private LogCmd(HgRepository repo, int limit, @Nullable String branch,
-        @Nullable String referenceExpression) {
+        @Nullable String referenceExpression, @Nullable String keyword) {
       this.repo = repo;
       this.limit = limit;
       this.branch = branch;
       this.referenceExpression = referenceExpression;
+      this.keyword = keyword;
     }
 
     static LogCmd create(HgRepository repo) {
       return new LogCmd(
           Preconditions.checkNotNull(repo), /*limit*/0, /*branch*/null,
-          /*referenceExpression*/ null);
+          /*referenceExpression*/ null, /*keyword*/ null);
     }
 
     /**
@@ -292,7 +298,7 @@ public class HgRepository {
       if (Strings.isNullOrEmpty(referenceExpression.trim())){
         throw new RepoException("Cannot log null or empty reference");
       }
-      return new LogCmd(repo, limit, branch, referenceExpression.trim());
+      return new LogCmd(repo, limit, branch, referenceExpression.trim(), keyword);
     }
 
 
@@ -301,14 +307,21 @@ public class HgRepository {
      */
     public LogCmd withLimit(int limit) {
       Preconditions.checkArgument(limit > 0);
-      return new LogCmd(repo, limit, branch, referenceExpression);
+      return new LogCmd(repo, limit, branch, referenceExpression, keyword);
     }
 
     /**
      * Only query for revisions from the branch {@code branch}.
      */
     public LogCmd withBranch(String branch) {
-      return new LogCmd(repo, limit, branch, referenceExpression);
+      return new LogCmd(repo, limit, branch, referenceExpression, keyword);
+    }
+
+    /**
+     * Only query for revisions with the keyword {@code keyword}.
+     */
+    public LogCmd withKeyword(String keyword) {
+      return new LogCmd(repo, limit, branch, referenceExpression, keyword);
     }
 
     /**
@@ -335,6 +348,10 @@ public class HgRepository {
 
       if (referenceExpression != null) {
         builder.add("--rev", referenceExpression);
+      }
+
+      if (keyword != null) {
+        builder.add("--keyword", keyword);
       }
 
       builder.add("-Tjson");

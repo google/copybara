@@ -75,6 +75,7 @@ BASE_SRCS = [
     "ConfigItemDescription.java",
     "Destination.java",
     "DestinationEffect.java",
+    "DestinationStatusVisitor.java",
     "Endpoint.java",
     "Info.java",
     "LazyResourceLoader.java",
