@@ -237,6 +237,14 @@ public class GerritOriginTest {
     assertThat(actual.get("repoType")).containsExactly("GERRIT");
   }
 
+  @Test
+  public void testFeedbackEndpoint() throws ValidationException {
+    GerritOrigin origin = skylark.eval("g", "g = git.gerrit_origin(url = 'rpc://some/host')");
+    Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, AUTHORING);
+    // We already have enough coverage of this class plus core wiring of endpoints.
+    assertThat(reader.getFeedbackEndPoint()).isInstanceOf(GerritEndpoint.class);
+  }
+
   private void validateSameGitRevision(GitRevision resolved, GitRevision expected) {
     assertThat(resolved.asString()).isEqualTo(expected.asString());
     assertThat(resolved.getSha1()).isEqualTo(expected.getSha1());

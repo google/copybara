@@ -16,15 +16,18 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.BaselinesWithoutLabelVisitor;
+import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -40,8 +43,10 @@ public class GerritOrigin extends GitOrigin {
   private final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
   private final GitOriginOptions gitOriginOptions;
+  private final GerritOptions gerritOptions;
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
+  @Nullable private final Checker endpointChecker;
 
   private GerritOrigin(
       GeneralOptions generalOptions,
@@ -49,9 +54,11 @@ public class GerritOrigin extends GitOrigin {
       @Nullable String configRef,
       GitOptions gitOptions,
       GitOriginOptions gitOriginOptions,
+      GerritOptions gerritOptions,
       SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs,
-      boolean firstParent) {
+      boolean firstParent,
+      @Nullable Checker endpointChecker) {
     super(
         generalOptions,
         repoUrl,
@@ -62,11 +69,13 @@ public class GerritOrigin extends GitOrigin {
         submoduleStrategy,
         includeBranchCommitLogs,
         firstParent);
-    this.generalOptions = generalOptions;
-    this.gitOptions = gitOptions;
-    this.gitOriginOptions = gitOriginOptions;
-    this.submoduleStrategy = submoduleStrategy;
+    this.generalOptions = checkNotNull(generalOptions);
+    this.gitOptions = checkNotNull(gitOptions);
+    this.gitOriginOptions = checkNotNull(gitOriginOptions);
+    this.gerritOptions = checkNotNull(gerritOptions);
+    this.submoduleStrategy = checkNotNull(submoduleStrategy);
     this.includeBranchCommitLogs = includeBranchCommitLogs;
+    this.endpointChecker = endpointChecker;
   }
 
   @Override
@@ -79,7 +88,8 @@ public class GerritOrigin extends GitOrigin {
 
   /** Builds a new {@link GerritOrigin}. */
   static GerritOrigin newGerritOrigin(
-      Options options, String url, SubmoduleStrategy submoduleStrategy, boolean firstParent) {
+      Options options, String url, SubmoduleStrategy submoduleStrategy, boolean firstParent,
+      @Nullable Checker endpointChecker) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -87,9 +97,11 @@ public class GerritOrigin extends GitOrigin {
         /* configRef= */ null,
         options.get(GitOptions.class),
         options.get(GitOriginOptions.class),
+        options.get(GerritOptions.class),
         submoduleStrategy,
         /*includeBranchCommitLogs=*/ false,
-        firstParent);
+        firstParent,
+        endpointChecker);
   }
 
   @Override
@@ -116,6 +128,14 @@ public class GerritOrigin extends GitOrigin {
             new BaselinesWithoutLabelVisitor<>(originFiles, limit, /*skipFirst=*/ true);
         visitChanges(startRevision, visitor);
         return visitor.getResult();
+      }
+
+      @Override
+      public Endpoint getFeedbackEndPoint() throws ValidationException {
+        gerritOptions.validateEndpointChecker(endpointChecker, repoUrl);
+        return new GerritEndpoint(
+            gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker),
+            repoUrl);
       }
     };
   }

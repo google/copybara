@@ -275,11 +275,15 @@ public class GitModule implements LabelsAwareModule {
               doc = "If true, it only uses the first parent when looking for changes. Note that"
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                   + " change of the merged branch.", positional = false),
+          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
+              doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
+                  + "This field is not used if the workflow doesn't have hooks.",
+              named = true, positional = false,
+              noneable = true),
       },
       useLocation = true)
   public GitOrigin gerritOrigin(String url, Object ref, String submodules,
-      Boolean firstParent,
-      Location location) throws EvalException {
+      Boolean firstParent, Object checkerObj, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
     String refField = Type.STRING.convertOptional(ref, "ref");
@@ -296,7 +300,8 @@ public class GitModule implements LabelsAwareModule {
 
     return GerritOrigin.newGerritOrigin(
         options, url, stringToEnum(location, "submodules",
-            submodules, GitOrigin.SubmoduleStrategy.class), firstParent);
+            submodules, GitOrigin.SubmoduleStrategy.class), firstParent,
+        convertFromNoneable(checkerObj, null));
   }
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";

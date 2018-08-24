@@ -179,4 +179,11 @@ public class GerritOptions implements Option {
   protected HttpTransport getHttpTransport() {
     return new NetHttpTransport();
   }
+
+
+  /** Validate if a {@link Checker} is valid to use with a Gerrit endpoint for repoUrl. */
+  public void validateEndpointChecker(@Nullable Checker checker, String repoUrl)
+      throws ValidationException {
+    // Accept any by default
+  }
 }
