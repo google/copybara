@@ -38,6 +38,7 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
@@ -165,7 +166,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
     }
 
     @Override
-    public Endpoint getFeedbackEndPoint() {
+    public Endpoint getFeedbackEndPoint(Console console) {
       return endpoint;
     }
 

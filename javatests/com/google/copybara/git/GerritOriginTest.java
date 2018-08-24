@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
+import com.google.copybara.Endpoint;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -39,6 +40,8 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -74,11 +77,12 @@ public class GerritOriginTest {
   private GitRevision thirdRevision;
   private String baseline;
   private SkylarkTestExecutor skylark;
+  private TestingConsole console;
 
   @Before
   public void setup() throws Exception {
     options = new OptionsBuilder();
-    TestingConsole console = new TestingConsole();
+    console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
@@ -242,7 +246,7 @@ public class GerritOriginTest {
     GerritOrigin origin = skylark.eval("g", "g = git.gerrit_origin(url = 'rpc://some/host')");
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, AUTHORING);
     // We already have enough coverage of this class plus core wiring of endpoints.
-    assertThat(reader.getFeedbackEndPoint()).isInstanceOf(GerritEndpoint.class);
+    assertThat(reader.getFeedbackEndPoint(console)).isInstanceOf(GerritEndpoint.class);
   }
 
   private void validateSameGitRevision(GitRevision resolved, GitRevision expected) {

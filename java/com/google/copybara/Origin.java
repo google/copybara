@@ -27,6 +27,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.nio.file.Path;
@@ -249,8 +250,9 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
 
     /**
      * Utility endpoint for accessing and adding feedback data.
+     * @param console
      */
-    default Endpoint getFeedbackEndPoint() throws ValidationException {
+    default Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
       return Endpoint.NOOP_ENDPOINT;
     }
   }

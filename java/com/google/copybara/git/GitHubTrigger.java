@@ -23,6 +23,7 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Trigger;
 import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.util.console.Console;
 
 /**
  * A feedback trigger based on updates on a GitHub PR.
@@ -31,15 +32,17 @@ public class GitHubTrigger implements Trigger {
 
   private final LazyResourceLoader<GitHubApi> apiSupplier;
   private final String url;
+  private final Console console;
 
-  GitHubTrigger(LazyResourceLoader<GitHubApi> apiSupplier, String url) {
+  GitHubTrigger(LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
+    this.console = Preconditions.checkNotNull(console);
   }
 
   @Override
   public Endpoint getEndpoint() {
-    return new GitHubEndPoint(apiSupplier, url);
+    return new GitHubEndPoint(apiSupplier, url, console);
   }
 
   @Override

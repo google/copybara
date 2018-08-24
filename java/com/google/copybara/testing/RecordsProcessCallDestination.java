@@ -41,7 +41,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -54,7 +53,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
 
 /**
@@ -129,7 +127,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     }
 
     @Override
-    public Endpoint getFeedbackEndPoint() {
+    public Endpoint getFeedbackEndPoint(Console console) {
       return endpoint;
     }
 

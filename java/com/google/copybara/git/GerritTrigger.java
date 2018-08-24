@@ -23,6 +23,7 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Trigger;
 import com.google.copybara.git.gerritapi.GerritApi;
+import com.google.copybara.util.console.Console;
 
 /** A  feedback trigger based on updates on a Gerrit change.
  */
@@ -30,15 +31,17 @@ public class GerritTrigger implements Trigger {
 
   private final LazyResourceLoader<GerritApi> apiSupplier;
   private final String url;
+  private final Console console;
 
-  GerritTrigger(LazyResourceLoader<GerritApi> apiSupplier, String url) {
+  GerritTrigger(LazyResourceLoader<GerritApi> apiSupplier, String url, Console console) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
+    this.console = console;
   }
 
   @Override
   public Endpoint getEndpoint() {
-    return new GerritEndpoint(apiSupplier, url);
+    return new GerritEndpoint(apiSupplier, url, console);
   }
 
   @Override

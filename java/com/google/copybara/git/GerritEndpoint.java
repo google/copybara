@@ -40,7 +40,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import javax.annotation.Nullable;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -55,16 +54,9 @@ public class GerritEndpoint implements Endpoint {
 
   private final LazyResourceLoader<GerritApi> apiSupplier;
   private final String url;
-  @Nullable
   private final Console console;
 
-  GerritEndpoint(LazyResourceLoader<GerritApi> apiSupplier, String url) {
-    this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
-    this.url = Preconditions.checkNotNull(url);
-    this.console = null;
-  }
-
-  private GerritEndpoint(LazyResourceLoader<GerritApi> apiSupplier, String url, Console console) {
+  GerritEndpoint(LazyResourceLoader<GerritApi> apiSupplier, String url, Console console) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.console = Preconditions.checkNotNull(console);

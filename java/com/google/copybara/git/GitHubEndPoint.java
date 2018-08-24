@@ -55,17 +55,11 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 )
 public class GitHubEndPoint implements Endpoint {
 
-  private LazyResourceLoader<GitHubApi> apiSupplier;
-  private String url;
-  private Console console;
+  private final LazyResourceLoader<GitHubApi> apiSupplier;
+  private final String url;
+  private final Console console;
 
-  GitHubEndPoint(LazyResourceLoader<GitHubApi> apiSupplier, String url) {
-    this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
-    this.url = Preconditions.checkNotNull(url);
-    this.console = null;
-  }
-
-  private GitHubEndPoint(LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console) {
+  GitHubEndPoint(LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.console = Preconditions.checkNotNull(console);

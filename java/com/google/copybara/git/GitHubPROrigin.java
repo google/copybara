@@ -362,10 +362,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       }
 
       @Override
-      public Endpoint getFeedbackEndPoint() throws ValidationException {
+      public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         gitHubOptions.validateEndpointChecker(endpointChecker);
-        return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, endpointChecker), url)
-            .withConsole(console);
+        return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, endpointChecker), url,
+            console);
       }
 
       /**

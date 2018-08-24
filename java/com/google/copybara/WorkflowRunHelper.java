@@ -306,8 +306,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               action.run(
                   new FinishHookContext(
                       action,
-                      getOriginReader().getFeedbackEndPoint(),
-                      getDestinationWriter().getFeedbackEndPoint(),
+                      getOriginReader().getFeedbackEndPoint(console),
+                      getDestinationWriter().getFeedbackEndPoint(console),
                       effects,
                       resolvedRef,
                       console));

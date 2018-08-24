@@ -32,6 +32,7 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Console;
 import javax.annotation.Nullable;
 
 /**
@@ -131,11 +132,10 @@ public class GerritOrigin extends GitOrigin {
       }
 
       @Override
-      public Endpoint getFeedbackEndPoint() throws ValidationException {
+      public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         gerritOptions.validateEndpointChecker(endpointChecker, repoUrl);
         return new GerritEndpoint(
-            gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker),
-            repoUrl);
+            gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker), repoUrl, console);
       }
     };
   }

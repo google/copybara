@@ -57,6 +57,7 @@ import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.RepositoryUtil;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -90,10 +91,10 @@ public class GitModule implements LabelsAwareModule {
           new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
               Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
               /*ignoreErrors=*/true)));
-  protected static final String GERRIT_TRIGGER = "gerrit_trigger";
-  protected static final String GERRIT_API = "gerrit_api";
-  protected static final String GITHUB_TRIGGER = "github_trigger";
-  protected static final String GITHUB_API = "github_api";
+  private static final String GERRIT_TRIGGER = "gerrit_trigger";
+  private static final String GERRIT_API = "gerrit_api";
+  private static final String GITHUB_TRIGGER = "github_trigger";
+  private static final String GITHUB_API = "github_api";
 
   protected final Options options;
   private ConfigFile<?> mainConfigFile;
@@ -288,7 +289,7 @@ public class GitModule implements LabelsAwareModule {
     url = fixHttp(url, location);
     String refField = Type.STRING.convertOptional(ref, "ref");
     if (!Strings.isNullOrEmpty(refField)) {
-      options.get(GeneralOptions.class).console().warn(
+      getGeneralConsole().warn(
           "'ref' field detected in configuration. git.gerrit_origin"
               + " is deprecating its usage for submitted changes. Use git.origin instead.");
       return GitOrigin.newGitOrigin(
@@ -688,7 +689,8 @@ public class GitModule implements LabelsAwareModule {
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(location, checker, GITHUB_API);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, checker), url);
+    return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, checker), url,
+        getGeneralConsole());
   }
 
   @SuppressWarnings("unused")
@@ -721,7 +723,12 @@ public class GitModule implements LabelsAwareModule {
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(location, checker, GERRIT_API);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
-    return new GerritEndpoint(gerritOptions.newGerritApiSupplier(url, checker), url);
+    return new GerritEndpoint(gerritOptions.newGerritApiSupplier(url, checker), url,
+        getGeneralConsole());
+  }
+
+  private Console getGeneralConsole() {
+    return options.get(GeneralOptions.class).console();
   }
 
   @SuppressWarnings("unused")
@@ -744,7 +751,8 @@ public class GitModule implements LabelsAwareModule {
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(location, checker, GERRIT_TRIGGER);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
-    return new GerritTrigger(gerritOptions.newGerritApiSupplier(url, checker), url);
+    return new GerritTrigger(gerritOptions.newGerritApiSupplier(url, checker), url,
+        getGeneralConsole());
   }
 
   @SuppressWarnings("unused")
@@ -774,7 +782,8 @@ public class GitModule implements LabelsAwareModule {
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(location, checker, GITHUB_TRIGGER);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    return new GitHubTrigger(gitHubOptions.newGitHubApiSupplier(url, checker), url);
+    return new GitHubTrigger(gitHubOptions.newGitHubApiSupplier(url, checker), url,
+        getGeneralConsole());
   }
 
   @SuppressWarnings("unused")
@@ -801,7 +810,7 @@ public class GitModule implements LabelsAwareModule {
       Location location) throws EvalException {
     return SetReviewInput.create(SkylarkUtil.convertFromNoneable(message, null),
         SkylarkDict.castSkylarkDictOrNoneToDict(
-            labels, String.class, Integer.class, "Gerrit review  labels"));
+            labels, String.class, Integer.class, "Gerrit review labels"));
   }
 
   @Override
@@ -815,7 +824,7 @@ public class GitModule implements LabelsAwareModule {
       RepositoryUtil.validateNotHttp(url);
     } catch (ValidationException e) {
       String fixed = "https" + url.substring("http".length());
-      options.get(GeneralOptions.class).console().warnFmt(
+      getGeneralConsole().warnFmt(
           "%s: Url '%s' does not use https - please change the URL. Proceeding with '%s'.",
           location.print(), url, fixed);
       return fixed;
