@@ -1196,6 +1196,36 @@ public class WorkflowTest {
         ".*Couldn't find a change in the destination.*Retrying in.*");
   }
 
+  @Test
+  public void changeRequest_sot_no_origin_files_match() throws Exception {
+    options.workflowOptions.changeRequestFromSotLimit = 1;
+    origin
+        .addSimpleChange(0, "Base Change")
+        .addSimpleChange(1, "First Change")
+        .addSimpleChange(2, "Second Change");
+
+    Workflow<?, ?> workflow = iterativeWorkflow("0");
+    workflow.run(workdir, ImmutableList.of("1"));
+    ProcessedChange change = destination.processed.get(0);
+
+    assertThat(change.getBaseline()).isNull();
+    assertThat(change.getChangesSummary()).isEqualTo("First Change");
+
+    origin.singleFileChange(3, "pending", "I_dont_exist/file.txt", "content");
+    originFiles = "glob(['I_dont_exist/**'])";
+    Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
+
+    try {
+      w.run(workdir, ImmutableList.of("3"));
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains(
+          "Couldn't find any parent change for 3"
+              + " and origin_files = glob(include = [\"I_dont_exist/**\"])");
+      assertThat(e.isRetryable()).isFalse();
+    }
+  }
+
   private void checkChangeRequest_sot_ahead_sot()
       throws IOException, ValidationException, RepoException {
     options.workflowOptions.changeRequestFromSotLimit = 1;
