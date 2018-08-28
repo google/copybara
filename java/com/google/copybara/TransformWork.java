@@ -20,12 +20,14 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.exception.ValidationException;
@@ -33,6 +35,7 @@ import com.google.copybara.treestate.FileSystemTreeState;
 import com.google.copybara.treestate.TreeState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -47,6 +50,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -73,6 +77,8 @@ import javax.annotation.Nullable;
         + "transformations</code> functions used in <code>core.workflow</code>")
 @DocSignaturePrefix("ctx")
 public final class TransformWork implements SkylarkContext<TransformWork> {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   static final String COPYBARA_CONTEXT_REFERENCE_LABEL = "COPYBARA_CONTEXT_REFERENCE";
   static final String COPYBARA_LAST_REV = "COPYBARA_LAST_REV";
@@ -210,6 +216,50 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   }
 
   @SkylarkCallable(
+      name = "create_symlink", doc = "Create a symlink",
+      parameters = {
+          @Param(name = "link", type = CheckoutPath.class, doc = "The link path"),
+          @Param(name = "target", type = CheckoutPath.class, doc = "The target path"),
+      },
+      useLocation = true)
+  public void createSymlink(CheckoutPath link, CheckoutPath target, Location location)
+      throws FuncallException, EvalException {
+    try {
+      Path linkFullPath = asCheckoutPath(link);
+      // Verify target is inside checkout dir
+      asCheckoutPath(target);
+
+      if (Files.exists(linkFullPath)) {
+        throw new FuncallException(String.format("'%s' already exist%s",
+            link.getPath(),
+            Files.isDirectory(linkFullPath) ?
+                " and is a directory"
+                : Files.isSymbolicLink(linkFullPath) ?
+                    " and is a symlink"
+                    : Files.isRegularFile(linkFullPath)
+                        ? " and is a regular file"
+                        // Shouldn't happen:
+                        : " and we don't know what kind of file is"));
+      }
+
+      Path relativized = link.getPath().getParent() == null
+          ? target.getPath()
+          : link.getPath().getParent().relativize(target.getPath());
+      Files.createDirectories(linkFullPath.getParent());
+
+      // Shouldn't happen.
+      Verify.verify(
+          linkFullPath.getParent().resolve(relativized).normalize().startsWith(checkoutDir),
+          "%s path escapes the checkout dir", relativized);
+      Files.createSymbolicLink(linkFullPath, relativized);
+    } catch (IOException e) {
+      String msg = "Cannot create symlink: " + e.getMessage();
+      logger.atSevere().withCause(e).log(msg);
+      throw new EvalException(location, msg, e);
+    }
+  }
+
+  @SkylarkCallable(
       name = "write_path", doc = "Write an arbitrary string to a path (UTF-8 will be used)",
       parameters = {
           @Param(name = "path", type = CheckoutPath.class,
@@ -218,9 +268,11 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
       })
   public void writePath(CheckoutPath path, String content)
       throws FuncallException, IOException {
-    Path normalizedPath = asCheckoutPath(path);
-    Files.createDirectories(normalizedPath.getParent());
-    Files.write(normalizedPath, content.getBytes(StandardCharsets.UTF_8));
+    Path fullPath = asCheckoutPath(path);
+    if (fullPath.getParent() != null) {
+      Files.createDirectories(fullPath.getParent());
+    }
+    Files.write(fullPath, content.getBytes(StandardCharsets.UTF_8));
   }
 
   @SkylarkCallable(
@@ -235,7 +287,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
 
   private Path asCheckoutPath(CheckoutPath path) throws FuncallException {
     Path normalized = checkoutDir.resolve(path.getPath()).normalize();
-    if (!normalized.startsWith(normalized)) {
+    if (!normalized.startsWith(checkoutDir)) {
       throw new FuncallException(path + " is not inside the checkout directory");
     }
     return normalized;

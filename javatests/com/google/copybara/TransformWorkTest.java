@@ -29,11 +29,13 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.transform.ExplicitReversal;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -419,6 +421,79 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testCreateSymlink() throws Exception {
+    checkCreateSymlink("a/b/c/d1", "a/b/c/d2");
+    checkCreateSymlink("a/b/c/d1", "a/b/d/d2");
+    checkCreateSymlink("a/b/c/d1", "a/d/e/d2");
+    checkCreateSymlink("a/d1", "a/b/c/d1");
+    checkCreateSymlink("f1", "f2");
+    checkCreateSymlink("a/d1", "d2");
+    checkCreateSymlink("d1", "b/d2");
+    try {
+      checkCreateSymlink("d1", "d1");
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat()
+          .contains("'d1' already exist and is a regular file");
+    }
+    try {
+      checkCreateSymlink("d1", "../d1");
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat()
+          .contains("../d1 is not inside the checkout directory");
+    }
+  }
+
+  @Test
+  public void testCreateSymlinkDir() throws Exception {
+
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    FileUtil.deleteRecursively(workdir);
+    Path base = fileSystem.getPath("testRunGlob");
+    writeFile(base, "b/test.txt", "FOOOO");
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
+
+    Path[] workdir = new Path[]{null};
+    destination.onWrite(transformResult -> workdir[0] = transformResult.getPath());
+
+    runWorkflow("test", ""
+            + "def test(ctx):\n"
+            + "    ctx.create_symlink(ctx.new_path('a'), ctx.new_path('b'))\n");
+
+    assertThat(workdir[0] != null).isTrue();
+
+    FileSubjects.assertThatPath(workdir[0])
+        .containsFile("b/test.txt", "FOOOO")
+        .containsFile("a/test.txt", "FOOOO")
+        .containsSymlink("a", "b")
+        .containsNoMoreFiles();
+  }
+
+  private void checkCreateSymlink(String link, String target)
+      throws IOException, RepoException, ValidationException {
+
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    FileUtil.deleteRecursively(workdir);
+    Path base = fileSystem.getPath("testRunGlob");
+    writeFile(base, target, "FOOOO");
+    origin.addChange(0, base, "message", /*matchesGlob=*/true);
+
+    Path[] workdir = new Path[]{null};
+    destination.onWrite(transformResult -> workdir[0] = transformResult.getPath());
+
+    runWorkflow("test", String.format(""
+            + "def test(ctx):\n"
+            + "    ctx.create_symlink(ctx.new_path('%s'), ctx.new_path('%s'))\n",
+        link, target));
+
+    assertThat(workdir[0] != null).isTrue();
+
+    FileSubjects.assertThatPath(workdir[0])
+        .containsFile(target, "FOOOO")
+        .containsSymlink(link, target)
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testRunDynamicTransforms() throws IOException, ValidationException, RepoException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("testRunDynamicTransforms");
@@ -442,7 +517,7 @@ public class TransformWorkTest {
   }
 
   @Test
-  public void testReadAndWrite() throws Exception {
+  public void testReadAndWrite() throws IOException, ValidationException, RepoException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("testRunDynamicTransforms");
     writeFile(base, "folder/file.txt", "foo");
@@ -456,6 +531,7 @@ public class TransformWorkTest {
     runWorkflow("test", ""
         + "def test(ctx):\n"
         + "    path = ctx.new_path('folder/file.txt')\n"
+        + "    ctx.read_path(path)\n"
         + "    ctx.write_path(path, ctx.read_path(path) + ctx.now_as_string())");
 
     assertThat(destination.processed.get(0).getWorkdir())

@@ -51,6 +51,8 @@ import java.time.ZonedDateTime;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -65,6 +67,9 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
   public final List<ProcessedChange> processed = new ArrayList<>();
 
+  @Nullable
+  private Consumer<TransformResult> hook;
+
   public RecordsProcessCallDestination() {
     this(ImmutableList.of());
   }
@@ -78,6 +83,13 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
   public DummyEndpoint getEndpoint() {
     return endpoint;
+  }
+
+  /**
+   * Execute this consumer everytime write is called.
+   */
+  public void onWrite(Consumer<TransformResult> hook) {
+    this.hook = hook;
   }
 
   public class WriterImpl implements Writer<Revision> {
@@ -139,6 +151,9 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     @Override
     public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
         throws ValidationException, RepoException, IOException {
+      if (hook != null) {
+        hook.accept(transformResult);
+      }
       if (failOnEmptyChange
           && !processed.isEmpty()
           && processed.get(processed.size() - 1).workdir
@@ -210,8 +225,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
         @Override
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-          result.put(workdir.relativize(file).toString(),
-                     new String(Files.readAllBytes(file), UTF_8));
+          if (Files.isRegularFile(file)) {
+            result.put(workdir.relativize(file).toString(),
+                       new String(Files.readAllBytes(file), UTF_8));
+          }
           return FileVisitResult.CONTINUE;
         }
       });

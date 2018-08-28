@@ -105,6 +105,7 @@
     - [ctx.add_label](#ctx.add_label)
     - [ctx.add_or_replace_label](#ctx.add_or_replace_label)
     - [ctx.add_text_before_labels](#ctx.add_text_before_labels)
+    - [ctx.create_symlink](#ctx.create_symlink)
     - [ctx.find_all_labels](#ctx.find_all_labels)
     - [ctx.find_label](#ctx.find_label)
     - [ctx.new_path](#ctx.new_path)
@@ -2666,6 +2667,21 @@ Add a text to the description before the labels paragraph
 Parameter | Description
 --------- | -----------
 text | `string`<br><p></p>
+
+<a id="ctx.create_symlink" aria-hidden="true"></a>
+### ctx.create_symlink
+
+Create a symlink
+
+`ctx.create_symlink(link, target)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+link | `Path`<br><p>The link path</p>
+target | `Path`<br><p>The target path</p>
 
 <a id="ctx.find_all_labels" aria-hidden="true"></a>
 ### ctx.find_all_labels
