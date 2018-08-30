@@ -16,6 +16,7 @@
 
 package com.google.copybara.util;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -40,7 +41,17 @@ public class UnionGlob extends Glob {
   public PathMatcher relativeTo(Path base) {
     PathMatcher leftMatcher = lval.relativeTo(base);
     PathMatcher rightMatcher = rval.relativeTo(base);
-    return path -> leftMatcher.matches(path) || rightMatcher.matches(path);
+    return new PathMatcher() {
+      @Override
+      public boolean matches(Path path) {
+        return leftMatcher.matches(path) || rightMatcher.matches(path);
+      }
+
+      @Override
+      public String toString() {
+        return UnionGlob.this.toString();
+      }
+    };
   }
 
   @Override

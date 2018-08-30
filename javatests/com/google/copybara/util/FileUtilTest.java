@@ -18,6 +18,7 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -110,6 +111,44 @@ public class FileUtilTest {
     FileUtil.checkNormalizedRelative("foo/bar.baz");
   }
 
+
+  @Test
+  public void testCopyFilesRecursively_symlink_to_other_root() throws Exception{
+    Path orig = Files.createDirectory(temp.resolve("orig"));
+    Path dest = Files.createDirectory(temp.resolve("dest"));
+
+    Files.createDirectory(orig.resolve("foo"));
+    Files.createDirectory(orig.resolve("bar"));
+
+    Files.write(orig.resolve("bar/bar.txt"), new byte[]{});
+    Files.createSymbolicLink(orig.resolve("foo/foo.txt"),
+        orig.getFileSystem().getPath("../bar/bar.txt"));
+
+    FileUtil.copyFilesRecursively(orig, dest, FAIL_OUTSIDE_SYMLINKS,
+        Glob.createGlob(ImmutableList.of("foo/**", "bar/**")));
+
+  }
+
+  /**
+   * Regression test for folder.origin refs that contain '..' and globs that wouldn't match
+   * globs like foo/../foo/file if we didn't normalize symlinks before.
+   */
+  @Test
+  public void testCopyFilesRecursively_symlink_with_dot_dot() throws Exception {
+    Path orig = Files.createDirectory(temp.resolve("orig"));
+    Path dest = Files.createDirectory(temp.resolve("dest"));
+
+    Files.createDirectory(orig.resolve("foo"));
+    Files.createDirectory(orig.resolve("bar"));
+
+    Files.write(orig.resolve("bar/bar.txt"), new byte[]{});
+    Files.createSymbolicLink(orig.resolve("foo/foo.txt"),
+        orig.getFileSystem().getPath("../bar/bar.txt"));
+
+    FileUtil.copyFilesRecursively(orig.resolve("../" + orig.getFileName()), dest,
+        FAIL_OUTSIDE_SYMLINKS, Glob.createGlob(ImmutableList.of("foo/*", "bar/*")));
+  }
+
   @Test
   public void testCopyMaterializeAbsolutePaths() throws Exception {
     Path one = Files.createDirectory(temp.resolve("one"));
@@ -189,7 +228,7 @@ public class FileUtilTest {
     Files.createSymbolicLink(folder.resolve("absolute"), absoluteTarget);
 
     try {
-      FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+      FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS);
       fail("Should have thrown");
     } catch (AbsoluteSymlinksNotAllowed expected) {
       assertThat(expected.getMessage()).isNotNull();
@@ -230,7 +269,7 @@ public class FileUtilTest {
     touch(one.resolve("foo/exclude.txt"));
     touch(one.resolve("bar/nonono.txt"));
 
-    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS,
+    FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS,
                                   Glob.createGlob(
                                       ImmutableList.of("foo/**"),
                                       ImmutableList.of("foo/exclude.txt")));
@@ -249,7 +288,7 @@ public class FileUtilTest {
     touch(one.resolve("foo/exclude.txt"));
     touch(one.resolve("bar/nonono.txt"));
 
-    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS);
 
     assertThatPath(two)
         .containsFiles("foo/include.txt", "foo/exclude.txt", "bar/nonono.txt")
@@ -264,7 +303,7 @@ public class FileUtilTest {
     Files.createDirectories(one.resolve("foo"));
     touch(one.resolve("foo/include.txt"));
 
-    FileUtil.copyFilesRecursively(one, two, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS,
+    FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS,
         Glob.createGlob(ImmutableList.of("foo/**", "bar/**")));
 
     assertThatPath(two).containsFiles("foo/include.txt")

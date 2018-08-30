@@ -39,8 +39,11 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
 import org.junit.Before;
@@ -154,6 +157,31 @@ public class FolderOriginTest {
     assertThatPath(workdir)
         .containsFile("foo/file1", "one")
         .containsFile("file4", "four")
+        .containsNoMoreFiles();
+  }
+
+  /**
+   * Regression test for folder.origin refs that contain '..' and globs that wouldn't match
+   * globs like foo/../foo/file if we didn't normalize symlinks before.
+   */
+  @Test
+  public void testDotDot() throws Exception {
+    Path localFolder = Files.createDirectory(
+        Files.createTempDirectory("local_folder").resolve("root"));
+
+    touch(localFolder.resolve("file1"), "one");
+    Files.createSymbolicLink(localFolder.resolve("file2"),
+        localFolder.getFileSystem().getPath("file1"));
+
+    FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
+
+    Reader<FolderRevision> reader = origin.newReader(
+        Glob.createGlob(ImmutableSet.of("root/file*")), authoring);
+    FolderRevision ref = origin.resolve(localFolder.resolve("..").toString());
+    reader.checkout(ref, workdir);
+    assertThatPath(workdir)
+        .containsFile("root/file1", "one")
+        .containsSymlink("root/file2", "root/file1")
         .containsNoMoreFiles();
   }
 

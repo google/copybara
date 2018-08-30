@@ -94,8 +94,8 @@ public final class FileUtil {
     return path;
   }
 
-  public static void copyFilesRecursively(final Path from, final Path to,
-      CopySymlinkStrategy symlinkStrategy) throws IOException {
+  public static void copyFilesRecursively(Path from, Path to, CopySymlinkStrategy symlinkStrategy)
+      throws IOException {
     copyFilesRecursively(from, to, symlinkStrategy, Glob.ALL_FILES);
   }
 
@@ -127,10 +127,11 @@ public final class FileUtil {
       Files.walkFileTree(
           rootElement,
           new CopyVisitor(rootElement, to.resolve(root), symlinkStrategy,
+                          glob.relativeTo(from.normalize()),
                           // The PathMatcher matches destination files so that it can work with
                           // absolute symlink materialization (We create a new CopyVisitor with the
                           // resolved symlink as origin.
-                          glob.relativeTo(to)));
+                          glob.relativeTo(to.normalize())));
     }
   }
 
@@ -209,7 +210,7 @@ public final class FileUtil {
   }
 
   /**
-   * Returns {@link PathMatcher} that negates {@code pathMatcher}
+   * Returns {@link PathMatcher} that negates {@code athMatcher}
    */
   public static PathMatcher notPathMatcher(PathMatcher pathMatcher) {
     return new PathMatcher() {
@@ -249,19 +250,23 @@ public final class FileUtil {
     private final Path to;
     private final Path from;
     private final CopySymlinkStrategy symlinkStrategy;
-    private final PathMatcher pathMatcher;
+    private final PathMatcher originPathMatcher;
+    private final PathMatcher destPathMatcher;
 
-    CopyVisitor(Path from, Path to, CopySymlinkStrategy symlinkStrategy, PathMatcher pathMatcher) {
+    CopyVisitor(Path from, Path to, CopySymlinkStrategy symlinkStrategy,
+        PathMatcher originPathMatcher,
+        PathMatcher destPathMatcher) {
       this.to = to;
       this.from = from;
       this.symlinkStrategy = symlinkStrategy;
-      this.pathMatcher = pathMatcher;
+      this.originPathMatcher = originPathMatcher;
+      this.destPathMatcher = destPathMatcher;
     }
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      Path destFile = to.resolve(from.relativize(file));
-      if (!pathMatcher.matches(destFile)) {
+      Path destFile = to.resolve(from.relativize(file)).normalize();
+      if (!destPathMatcher.matches(destFile)) {
         return FileVisitResult.CONTINUE;
       }
       Files.createDirectories(destFile.getParent());
@@ -270,7 +275,7 @@ public final class FileUtil {
       if (symlink) {
         // If the symlink remains under 'from' we keep the symlink as relative.
         // Otherwise we copy it as a regular file.
-        ResolvedSymlink resolvedSymlink = resolveSymlink(from, file);
+        ResolvedSymlink resolvedSymlink = resolveSymlink(originPathMatcher, file);
         boolean escapedRoot = !resolvedSymlink.allUnderRoot;
         if (escapedRoot) {
           String msg = String.format(
@@ -289,7 +294,7 @@ public final class FileUtil {
             Files.createDirectory(destFile);
             Files.walkFileTree(resolvedSymlink.regularFile,
                 new CopyVisitor(resolvedSymlink.regularFile, destFile,
-                    CopySymlinkStrategy.MATERIALIZE_ALL, pathMatcher));
+                    CopySymlinkStrategy.MATERIALIZE_ALL, originPathMatcher, destPathMatcher));
             return FileVisitResult.CONTINUE;
           }
         } else {
@@ -333,50 +338,41 @@ public final class FileUtil {
 
   /**
    * Resolves {@code symlink} recursively until it finds a regular file or directory. It also
-   * checks that all its intermediate paths jumps are under {@code root}.
+   * checks that all its intermediate paths jumps are under {@code matcher}.
    */
-  public static ResolvedSymlink resolveSymlink(Path root, Path symlink) throws IOException {
-    checkArgument(symlink.startsWith(root), "%s doesn't start with %s", symlink, root);
-    checkArgument(root.isAbsolute(), "%s is not absolute", root);
+  public static ResolvedSymlink resolveSymlink(PathMatcher matcher, Path symlink)
+      throws IOException {
+    // Normalize since matcher glob:foo/bar/file* doesn't match foo/bar/../bar/file*
+    Path path = symlink.normalize();
+    checkArgument(matcher.matches(path), "%s doesn't match %s", path, matcher);
 
-    Path relativeLink = root.relativize(symlink).normalize();
-    Path realLink = symlink;
-    boolean insideRoot = true;
     Set<Path> visited = new LinkedHashSet<>();
-    while (true) {
-      if (visited.contains(relativeLink)) {
+    while(Files.isSymbolicLink(path)) {
+      visited.add(path);
+      // Avoid 'dot' -> . like traps by capping to a sane limit
+      if (visited.size() > 50) {
         throw new IOException("Symlink cycle detected:\n  "
-            + Joiner.on("\n  ").join(
-            Iterables.concat(visited, ImmutableList.of(relativeLink))));
+            + Joiner.on("\n  ").join(Iterables.concat(visited, ImmutableList.of(symlink))));
       }
-      visited.add(relativeLink);
-
-      if (insideRoot && (relativeLink.isAbsolute()
-          || relativeLink.getNameCount() == 0
-          // Because it is normalized, '..' is the first segment if it goes outside root.
-          || relativeLink.getName(0).toString().equals(".."))) {
-        insideRoot = false;
-      }
-
-      if (Files.isSymbolicLink(realLink)) {
-        // Read the symlink. Could be '/foo/bar', '../../baz' or 'some' for example.
-        Path resolved = Files.readSymbolicLink(realLink);
-        // Resolve to absolute path. We use sibling because 'some' should be resolved
-        // to the directory containing realLink + the link.
-        realLink = realLink.resolveSibling(resolved).normalize();
-        if (insideRoot) {
-          // Now we have a possibly absolute path. Resolve relative to root and normalize
-          // so '..' is the first segment.
-          relativeLink = root.relativize(realLink).normalize();
-        } else {
-          relativeLink = realLink;
-        }
+      Path newPath = Files.readSymbolicLink(path);
+      if (!newPath.isAbsolute()) {
+        newPath = path.resolveSibling(newPath).toAbsolutePath().normalize();
       } else {
-        // We reach to the regular file/directory.
-        break;
+        newPath = newPath.normalize();
       }
+      if (!matcher.matches(newPath)) {
+        if (!Files.isDirectory(newPath)
+            // Special support for symlinks in the form of ROOT/symlink -> '.'. Technically we
+            // shouldn't allow this because of our glob implementation, but this is a regression
+            // from the old code and the correct behavior is difficult to understand by our users.
+            || !matcher.matches(newPath.resolve("copybara_random_path.txt"))) {
+          Path realPath = newPath.toRealPath();
+          return new ResolvedSymlink(realPath, /*allUnderRoot=*/ false);
+        }
+      }
+      path = newPath;
     }
-    return new ResolvedSymlink(realLink, insideRoot);
+    return new ResolvedSymlink(path, /*allUnderRoot=*/ true);
   }
 
   /**
