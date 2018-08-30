@@ -21,7 +21,6 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.ResolvedSymlink;
-import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -166,8 +165,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
         throw new FuncallException(String.format("%s is not a symlink", path));
       }
 
-      ResolvedSymlink resolvedSymlink =
-          FileUtil.resolveSymlink(Glob.ALL_FILES.relativeTo(checkoutDir), symlinkPath);
+      ResolvedSymlink resolvedSymlink = FileUtil.resolveSymlink(checkoutDir, symlinkPath);
       if (!resolvedSymlink.isAllUnderRoot()) {
         throw new FuncallException(String.format(
             "Symlink %s points to a file outside the checkout dir: %s",
