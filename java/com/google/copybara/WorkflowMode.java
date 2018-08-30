@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.copybara.GeneralOptions.FORCE;
+import static com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason.NO_CHANGES;
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG;
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 import static com.google.copybara.exception.ValidationException.checkCondition;
@@ -97,6 +98,9 @@ public enum WorkflowMode {
 
       // Remove changes that don't affect origin_files
       ImmutableList<Change<O>> changes = flattenChanges(detectedChanges, helperForChanges);
+      if(changes.isEmpty() && isHistorySupported(runHelper)) {
+        manageNoChangesDetectedForSquash(runHelper, current, lastRev, NO_CHANGES);
+      }
 
       // Try to use the latest change that affected the origin_files roots instead of the
       // current revision, that could be an unrelated change.

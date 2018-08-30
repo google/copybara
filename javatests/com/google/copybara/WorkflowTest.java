@@ -2326,6 +2326,35 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testSquashEmptyChangeWithForceTrue() throws Exception {
+    originFiles = "glob(['foo/**'], exclude = ['copy.bara.sky', 'excluded/**'])";
+    transformations = ImmutableList.of();
+    origin.singleFileChange(0, "change 1", "bar/file.txt", "a");
+    options.workflowOptions.initHistory = true;
+    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("0"));
+    console().assertThat()
+        .onceInLog(MessageType.WARNING,
+            "No changes up to 0 match any origin_files. Migrating anyway because of --force");
+
+  }
+
+  @Test
+  public void testSquashEmptyChangeWithForceFalse() throws Exception {
+    originFiles = "glob(['foo/**'], exclude = ['copy.bara.sky', 'excluded/**'])";
+    transformations = ImmutableList.of();
+    options.workflowOptions.initHistory = true;
+    origin.singleFileChange(0, "change 1", "bar/file.txt", "a");
+    options.setForce(false);
+    try{
+      skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("0"));
+      fail();
+    } catch(EmptyChangeException e) {
+      assertThat(e).hasMessageThat().contains("No changes up to 0 match any origin_files. "
+          + "Use --force if you really want to run the migration anyway.");
+    }
+  }
+
+  @Test
   public void changeRequestInitHistory() throws Exception {
     options.workflowOptions.initHistory = true;
     options.general.withEventMonitor(eventMonitor);
