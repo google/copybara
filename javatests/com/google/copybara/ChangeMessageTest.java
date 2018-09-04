@@ -45,6 +45,8 @@ public class ChangeMessageTest {
     assertThat(msg.getLabels().get(0).getName()).isEqualTo("GitOrigin-RevId");
   }
 
+
+
   private static final String CHANGE_MESSAGE_SKYLARK =
       ""
           + "First line\\n"
@@ -60,7 +62,7 @@ public class ChangeMessageTest {
 
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.<String, Object>builder()
-            .put("first_line", "First line")
+            .put("first_line", "First linea")
             .put("text", "First line\nSecond line")
             .put("label_values('GitOrigin-RevId')[0]", "12345")
             .put("label_values('Other-label')[0]", "AA")
