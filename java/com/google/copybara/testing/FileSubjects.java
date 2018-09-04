@@ -31,6 +31,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Truth subjects for file assertions.
@@ -97,6 +98,17 @@ public class FileSubjects {
       String realContents = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
       if (!realContents.equals(fileContents)) {
         failWithCustomSubject(filename + " file content equals", fileContents, realContents);
+      }
+      return this;
+    }
+
+    public PathSubject containsFileMatching(String filename, String contentMatcher)
+        throws IOException {
+      Path filePath = checkFile(filename);
+      String realContents = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
+      if (!Pattern.compile(contentMatcher).matcher(realContents).matches()) {
+        failWithCustomSubject(filename + " file content doesn't match", contentMatcher,
+            realContents);
       }
       return this;
     }
