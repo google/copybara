@@ -1458,6 +1458,25 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testFailFunction() throws Exception {
+    String config = ""
+        + "def some_library(value):\n"
+        + "    if value == 42:\n"
+        + "         core.fail(\"I don't like \" + str(value))\n"
+        + "\n"
+        + "some_library(1)\n"
+        + "some_library(42)\n";
+
+    try {
+      loadConfig(config);
+      fail();
+    } catch (ValidationException e) {
+      console().assertThat().onceInLog(MessageType.ERROR, "(\n|.)*I don't like 42(\n|.)*");
+    }
+  }
+
+
+  @Test
   public void changeRequestEmptyChanges() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();

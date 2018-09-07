@@ -847,6 +847,21 @@ public class Core implements LabelsAwareModule {
         dynamicEnvironment);
   }
 
+  @SkylarkCallable(
+      name = "fail",
+      doc = "An utility for library creators to validate conditions on exposed functions."
+          + " The error will be reported as configuration error and Copybara will stop execution.",
+      parameters = {
+          @Param(
+              name = "msg",
+              doc = "The error message",
+              named = true
+          )
+      }, useLocation = true)
+  public void fail(String msg, Location location) throws EvalException {
+    throw new EvalException(location, msg);
+  }
+
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "feedback",
