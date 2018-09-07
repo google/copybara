@@ -992,7 +992,8 @@ public class WorkflowTest {
     try {
       workflow().run(workdir, ImmutableList.of(HEAD));
       fail();
-    } catch (VoidOperationException ignored) {
+    } catch (VoidOperationException e) {
+      assertThat(e.getMessage().contains("Use --ignore-noop if you want to ignore this error")).isTrue();
     }
   }
 

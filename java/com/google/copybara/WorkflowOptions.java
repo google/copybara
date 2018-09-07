@@ -184,7 +184,8 @@ public class WorkflowOptions implements Option {
         console.warn("NOOP: " + message);
       }
     } else {
-      throw new VoidOperationException(message);
+      throw new VoidOperationException(
+          String.format("%s. Use --ignore-noop if you want to ignore this error", message));
     }
   }
 
@@ -214,7 +215,7 @@ public class WorkflowOptions implements Option {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof WorkflowOptions)) {
       return false;
     }
     WorkflowOptions that = (WorkflowOptions) o;
