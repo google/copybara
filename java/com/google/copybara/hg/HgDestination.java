@@ -27,6 +27,7 @@ import com.google.copybara.DestinationStatusVisitor;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.TransformResult;
+import com.google.copybara.WriterContext;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -84,10 +85,9 @@ public class HgDestination implements Destination<HgRevision> {
   }
 
   @Override
-  public Writer<HgRevision> newWriter (Glob destinationFiles, boolean dryRun,
-      @Nullable String groupId, @Nullable Writer<HgRevision> oldWriter) {
-    return new WriterImpl(repoUrl, fetch, push, generalOptions, hgOptions, destinationFiles,
-        hgOptions.visitChangeDepth);
+  public Writer<HgRevision> newWriter (WriterContext<HgRevision> writerContext) {
+    return new WriterImpl(repoUrl, fetch, push, generalOptions,
+        hgOptions, writerContext.getDestinationFiles(), hgOptions.visitChangeDepth);
   }
 
   @Override

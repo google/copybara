@@ -98,6 +98,7 @@ BASE_SRCS = [
     "treestate/TreeState.java",
     "treestate/TreeStateUtil.java",
     "WorkflowOptions.java",
+    "WriterContext.java",
 ]
 
 java_library(
@@ -186,7 +187,6 @@ java_library(
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
-        "//java/com/google/copybara/git:exec_path",
         "//java/com/google/copybara/hg",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",

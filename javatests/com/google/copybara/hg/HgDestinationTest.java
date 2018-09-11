@@ -27,6 +27,7 @@ import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.TransformResult;
+import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -296,7 +297,9 @@ public class HgDestinationTest {
   }
 
   private Writer<HgRevision> newWriter() {
-    return destination.newWriter(destinationFiles, /*dryRun*/ false, /*groupId*/ null,
-        /*oldWriter*/ null);
+    WriterContext<HgRevision> writerContext =
+        new WriterContext<>("","Test",
+            destinationFiles,false, new HgRevision("test"), /*oldWriter=*/ null);
+    return destination.newWriter(writerContext);
   }
 }

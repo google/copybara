@@ -19,14 +19,10 @@ package com.google.copybara;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Preconditions;
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.hash.Hashing;
-import com.google.common.io.BaseEncoding;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
@@ -45,9 +41,9 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.templatetoken.Token;
 import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -266,11 +262,16 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
     Reader<O> reader = getOrigin()
         .newReader(getOriginFiles(), getAuthoring());
-    String groupId = computeGroupIdentity(reader.getGroupIdentity(resolvedRef));
-    Writer<D> writer = getDestination().newWriter(getDestinationFiles(), dryRunMode, groupId,
-        /*oldWriter=*/ null);
-    return new WorkflowRunHelper<>(this, workdir, resolvedRef, reader, writer,
-        groupId, rawSourceRef);
+    WriterContext<D> writerContext =
+        new WriterContext<>(
+            name,
+            workflowOptions.workflowIdentityUser,
+            getDestinationFiles(),
+            dryRunMode,
+            resolvedRef,
+            /*oldWriter=*/null);
+    Writer<D> writer = getDestination().newWriter(writerContext);
+    return new WorkflowRunHelper<>(this, workdir, resolvedRef, reader, writer, rawSourceRef);
   }
 
   /**
@@ -294,10 +295,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       "origin.last_resolved", () -> origin.resolve(/* reference= */ null));
 
               Reader<O> oReader = origin.newReader(originFiles, authoring);
-              String groupIdentity = oReader.getGroupIdentity(lastResolved);
               DestinationStatus destinationStatus =
-                  generalOptions.repoTask(
-                      "destination.previous_ref", () -> getDestinationStatus(groupIdentity));
+                  generalOptions.repoTask("destination.previous_ref", () -> getDestinationStatus(lastResolved));
 
               O lastMigrated =
                   generalOptions.repoTask(
@@ -320,9 +319,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               ImmutableList<Change<O>> changes =
                   allChanges
                       .stream()
-                      .filter(
-                          change ->
-                              !WorkflowRunHelper.shouldSkipChange(change, this, console))
+                      .filter(change -> !WorkflowRunHelper.shouldSkipChange(change, this, console))
                       .collect(ImmutableList.toImmutableList());
               MigrationReference<O> migrationRef =
                   MigrationReference.create(
@@ -332,20 +329,17 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Nullable
-  private DestinationStatus getDestinationStatus(String groupIdentity)
-      throws RepoException, ValidationException {
+  private DestinationStatus getDestinationStatus(O revision) throws RepoException, ValidationException {
     if (getLastRevisionFlag() != null) {
       return new DestinationStatus(getLastRevisionFlag(), ImmutableList.of());
     }
     // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
     // Should be K since info doesn't write but only read.
-    return destination
-        .newWriter(
-            destinationFiles,
-            /* dryRun= */ false,
-            computeGroupIdentity(groupIdentity),
-            /*oldWriter=*/ null)
-        .getDestinationStatus(origin.getLabelName());
+    WriterContext<D> writerContext =
+        new WriterContext<>(
+            name, workflowOptions.workflowIdentityUser, getDestinationFiles(),  /*dryRun=*/false,
+            revision, /*oldWriter=*/null);
+    return destination.newWriter(writerContext).getDestinationStatus(origin.getLabelName());
   }
 
   @Override
@@ -423,10 +417,21 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
    */
   String getMigrationIdentity(Revision requestedRevision, TransformWork transformWork) {
     boolean contextRefDefined = requestedRevision.contextReference() != null;
-    String ctxRef =
-        contextRefDefined ? requestedRevision.contextReference() : requestedRevision.asString();
+    // In iterative mode we want to use the revision, since we could have an export from
+    // git.origin(master) -> git.gerrit_destination. In that case we want to create one change
+    // per origin commit. We are loosing some destination change reuse on cases like rebase (for
+    // example git.github_pr_origin -> gerrit. But we can fix this kind of issues in the future
+    // if we want to support it (for example with a custom identity using labels).
+    String ctxRef = contextRefDefined  && mode != WorkflowMode.ITERATIVE
+        ? requestedRevision.contextReference()
+        : requestedRevision.asString();
     if (changeIdentity.isEmpty()) {
-      return computeIdentity("ChangeIdentity", ctxRef);
+      return Identity.computeIdentity(
+          "ChangeIdentity",
+          ctxRef,
+          this.name,
+          mainConfigFile.getIdentifier(),
+          workflowOptions.workflowIdentityUser);
     }
     StringBuilder sb = new StringBuilder();
     for (Token token : changeIdentity) {
@@ -444,44 +449,19 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         if (labelValue == null) {
           console.warn(String.format(
               "Couldn't find label '%s'. Using the default identity algorithm", label));
-          return computeIdentity("ChangeIdentity", ctxRef);
+          return Identity.computeIdentity(
+              "ChangeIdentity",
+              ctxRef,
+              this.name,
+              mainConfigFile.getIdentifier(),
+              workflowOptions.workflowIdentityUser);
         }
         sb.append(labelValue);
       }
     }
-    return hashIdentity(MoreObjects.toStringHelper("custom_identity").add("text", sb.toString()));
-  }
-
-  /**
-   * Visible for extension
-   */
-  @Nullable
-  String computeGroupIdentity(@Nullable String originGroupId) {
-    return originGroupId == null ? null : computeIdentity("OriginGroupIdentity", originGroupId);
-  }
-
-  private String computeIdentity(String type, String ref) {
-    ToStringHelper helper = MoreObjects.toStringHelper(type)
-        .add("type", "workflow")
-        .add("config_path", mainConfigFile.getIdentifier())
-        .add("workflow_name", this.name)
-        .add("context_ref", ref);
-    return hashIdentity(helper);
-  }
-
-  private String hashIdentity(ToStringHelper helper) {
-    helper.add("user", workflowOptions.workflowIdentityUser != null
-        ? workflowOptions.workflowIdentityUser
-        : StandardSystemProperty.USER_NAME.value());
-    String identity = helper.toString();
-    String hash = BaseEncoding.base16().encode(
-        Hashing.md5()
-            .hashString(identity, StandardCharsets.UTF_8)
-            .asBytes());
-
-    // Important to log the source of the hash and the hash for debugging purposes.
-    logger.info("Computed migration identity hash for " + identity + " as " + hash);
-    return hash;
+    return Identity.hashIdentity(
+        MoreObjects.toStringHelper("custom_identity").add("text", sb.toString()),
+        workflowOptions.workflowIdentityUser);
   }
 
   @Override

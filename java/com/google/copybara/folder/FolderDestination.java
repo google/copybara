@@ -23,9 +23,10 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
+import com.google.copybara.WriterContext;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
@@ -64,12 +65,11 @@ public class FolderDestination implements Destination<Revision> {
   }
 
   @Override
-  public Writer<Revision> newWriter(Glob destinationFiles, boolean dryRun,
-      @Nullable String groupId, @Nullable Writer<Revision> oldWriter) {
-    if (dryRun) {
+  public Writer<Revision> newWriter(WriterContext<Revision> writerContext) {
+    if (writerContext.isDryRun()) {
       generalOptions.console().warn("--dry-run does not have any effect for folder.destination");
     }
-    return new WriterImpl(destinationFiles);
+    return new WriterImpl(writerContext.getDestinationFiles());
   }
 
   private class WriterImpl implements Writer<Revision> {

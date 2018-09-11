@@ -73,12 +73,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private final O resolvedRef;
   private final Origin.Reader<O> originReader;
   protected final Destination.Writer<D> writer;
-  @Nullable
-  private final String groupId;
   @Nullable final String rawSourceRef;
 
-  WorkflowRunHelper(Workflow<O, D> workflow, Path workdir, O resolvedRef,
-      Reader<O> originReader, Writer<D> destinationWriter, @Nullable String groupId,
+  WorkflowRunHelper(
+      Workflow<O, D> workflow,
+      Path workdir,
+      O resolvedRef,
+      Reader<O> originReader,
+      Writer<D> destinationWriter,
       @Nullable String rawSourceRef)
       throws ValidationException, RepoException {
     this.workflow = Preconditions.checkNotNull(workflow);
@@ -86,7 +88,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
     this.originReader = Preconditions.checkNotNull(originReader);
     this.writer = Preconditions.checkNotNull(destinationWriter);
-    this.groupId = groupId;
     this.rawSourceRef = rawSourceRef;
   }
 
@@ -110,16 +111,20 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   protected WorkflowRunHelper<O, D> withDryRun()
       throws RepoException, ValidationException, IOException {
+    WriterContext<D> writerContext =
+        new WriterContext<>(
+            workflow.getName(),
+            workflow.getWorkflowOptions().workflowIdentityUser,
+            workflow.getDestinationFiles(),
+            /*dryRun=*/ true,
+            resolvedRef,
+            /*oldWriter=*/null);
     return new WorkflowRunHelper<>(
         workflow,
         workdir,
         resolvedRef,
         originReader,
-        workflow
-            .getDestination()
-            .newWriter(
-                workflow.getDestinationFiles(), /*dryRun=*/ true, groupId, /*oldWriter=*/ null),
-        groupId,
+        workflow.getDestination().newWriter(writerContext),
         rawSourceRef);
   }
 
@@ -509,11 +514,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     try (ProfilerTask ignore = profiler().start("get_changes")) {
       return originReader.changes(from, to);
     }
-  }
-
-  @Nullable
-  public String getGroupId() {
-    return groupId;
   }
 
   /**

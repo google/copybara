@@ -101,6 +101,28 @@ public class DummyOrigin implements Origin<DummyRevision> {
     return this;
   }
 
+  public DummyOrigin addSimpleChangeWithContextReference(int timestamp, String contextRef)
+      throws IOException {
+    Path path = fs.getPath("" + changes.size());
+    Files.createDirectories(path);
+    if (changes.size() > 1) {
+      // Copy files from previous change folder to emulate history
+      Path previousChangePath = fs.getPath("" + (changes.size() - 1));
+      FileUtil.copyFilesRecursively(previousChangePath, path, FAIL_OUTSIDE_SYMLINKS);
+    }
+    Path writePath = path.resolve("file.txt");
+    Files.createDirectories(writePath.getParent());
+    Files.write(writePath, String.valueOf(changes.size()).getBytes(StandardCharsets.UTF_8));
+    /*matchesGlob=*/
+    Path previousChanges = changes.isEmpty() ? null : Iterables.getLast(changes).changesBase;
+    changes.add(new DummyRevision(
+        "" + changes.size(), changes.size() + " change", author, path,
+        ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
+        contextRef, /*referenceLabels=*/ ImmutableListMultimap.of(),
+        true, previousChanges, null));
+    return this;
+  }
+
   public DummyOrigin addSimpleChange(int timestamp, String message) throws IOException {
     return singleFileChange(timestamp, message, "file.txt", String.valueOf(changes.size()));
   }
@@ -270,15 +292,6 @@ public class DummyOrigin implements Origin<DummyRevision> {
                               + "  %s",
                           start.asString(), Joiner.on("\n  ").join(changes)));
       }
-    }
-
-    @Nullable
-    @Override
-    public String getGroupIdentity(DummyRevision rev) throws RepoException {
-      if (changeIdToGroup.containsKey(rev.asString())) {
-        return changeIdToGroup.get(rev.asString());
-      }
-      return null;
     }
   }
 
