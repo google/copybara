@@ -17,19 +17,20 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])  # Apache 2.0
 
 all_tests(
+    tags = ["local"],
     tests = glob(["**/*Test.java"]),
     deps = [
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara/transform/patch",
-        "//java/com/google/copybara/git",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/testing/git",
         "//java/com/google/copybara/transform",
+        "//java/com/google/copybara/transform/patch",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
@@ -38,5 +39,4 @@ all_tests(
         "//third_party:skylark-lang",
         "//third_party:truth",
     ],
-    tags = ["local"],
 )

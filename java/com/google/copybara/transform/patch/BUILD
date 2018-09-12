@@ -27,7 +27,7 @@ java_library(
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/doc:annotations", # Keep it, needed for doc generation
+        "//java/com/google/copybara/doc:annotations",  # Keep it, needed for doc generation
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:exec_path",
         "//java/com/google/copybara/util",
@@ -35,7 +35,7 @@ java_library(
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
-        "//third_party:skylark-lang",
         "//third_party:shell",
+        "//third_party:skylark-lang",
     ],
 )

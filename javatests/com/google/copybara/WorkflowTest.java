@@ -40,6 +40,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.config.Config;
@@ -55,6 +56,7 @@ import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.hg.HgRepository;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -1991,6 +1993,41 @@ public class WorkflowTest {
         .containsExactly("0 created destination/1 example2",
             "0 created destination/1 other42",
             "constant");
+  }
+
+  @Test
+  public void testOnFinishHookCreatesEffects() throws Exception {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+
+    String config = ""
+        + "def test(ctx):\n"
+        + "  origin_refs = [ctx.origin.new_origin_ref('1111')]\n"
+        + "  dest_ref = ctx.destination.new_destination_ref('9999')\n"
+        + "  ctx.record_effect('New effect', origin_refs, dest_ref)\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "  name = 'default',\n"
+        + "  origin = testing.origin(),\n"
+        + "  destination = testing.destination(),\n"
+        + "  transformations = [],\n"
+        + "  authoring = " + authoring + ",\n"
+        + "  after_migration = [test]"
+        + ")\n";
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
+
+    assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(1);
+    ChangeMigrationFinishedEvent event =
+        Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents);
+    assertThat(event.getDestinationEffects()).hasSize(2);
+    DestinationEffect firstEffect = event.getDestinationEffects().get(0);
+    assertThat(firstEffect.getSummary()).isEqualTo("Change created");
+    assertThat(firstEffect.getOriginRefs().get(0).getRef()).isEqualTo("0");
+    assertThat(firstEffect.getDestinationRef().getId()).isEqualTo("destination/1");
+    DestinationEffect secondEffect = event.getDestinationEffects().get(1);
+    assertThat(secondEffect.getSummary()).isEqualTo("New effect");
+    assertThat(secondEffect.getType()).isEqualTo(Type.UPDATED);
+    assertThat(secondEffect.getOriginRefs().get(0).getRef()).isEqualTo("1111");
+    assertThat(secondEffect.getDestinationRef().getId()).isEqualTo("9999");
   }
 
   @Test

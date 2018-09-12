@@ -55,6 +55,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -273,7 +275,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           doMigrate(
               rev, lastRev, processConsole, metadata, changes, destinationBaseline,
               changeIdentityRevision);
-      return effects;
     } catch (EmptyChangeException empty) {
       effects =
           ImmutableList.of(
@@ -295,30 +296,43 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       callPerMigrationHook = e instanceof ValidationException;
       throw e;
     } finally {
-      eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
-      if (callPerMigrationHook && !generalOptions().dryRunMode) {
-        SkylarkConsole console = new SkylarkConsole(getConsole());
-        try (ProfilerTask ignored = profiler().start("finish_hooks")) {
-
-          for (Action action : workflow.getAfterMigrationActions()) {
-            try (ProfilerTask ignored2 = profiler().start(action.getName())) {
-              logger.log(Level.INFO, "Running after migration hook: " + action.getName());
-              action.run(
-                  new FinishHookContext(
-                      action,
-                      getOriginReader().getFeedbackEndPoint(console),
-                      getDestinationWriter().getFeedbackEndPoint(console),
-                      effects,
-                      resolvedRef,
-                      console));
+      try {
+        if (callPerMigrationHook && !generalOptions().dryRunMode) {
+          SkylarkConsole console = new SkylarkConsole(getConsole());
+          try (ProfilerTask ignored = profiler().start("finish_hooks")) {
+            List<DestinationEffect> hookDestinationEffects = new ArrayList<>();
+            for (Action action : workflow.getAfterMigrationActions()) {
+              try (ProfilerTask ignored2 = profiler().start(action.getName())) {
+                logger.log(Level.INFO, "Running after migration hook: " + action.getName());
+                FinishHookContext context =
+                    new FinishHookContext(
+                        action,
+                        getOriginReader().getFeedbackEndPoint(console),
+                        getDestinationWriter().getFeedbackEndPoint(console),
+                        ImmutableList.copyOf(effects),
+                        resolvedRef,
+                        console);
+                action.run(context);
+                hookDestinationEffects.addAll(context.getNewDestinationEffects());
+              }
             }
+            effects =
+                ImmutableList.<DestinationEffect>builder()
+                    .addAll(effects)
+                    .addAll(hookDestinationEffects)
+                    .build();
           }
+        } else if (generalOptions().dryRunMode && !workflow.getAfterMigrationActions().isEmpty()) {
+          getConsole()
+              .infoFmt(
+                  "Not calling 'after_migration' actions because of %s mode",
+                  GeneralOptions.DRY_RUN_FLAG);
         }
-      } else if (generalOptions().dryRunMode && !workflow.getAfterMigrationActions().isEmpty()) {
-        getConsole().infoFmt("Not calling 'after_migration' actions because of %s mode",
-            GeneralOptions.DRY_RUN_FLAG);
+      } finally {
+        eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
       }
     }
+    return effects;
   }
 
   private ImmutableList<DestinationEffect> doMigrate(

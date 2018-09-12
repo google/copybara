@@ -148,7 +148,6 @@ public class FeedbackContext implements SkylarkContext<FeedbackContext> {
     // Populate effects registered in the action context. This is required because SkylarkAction
     // makes a copy of the context to inject the parameters, but that instance is not visible from
     // the caller
-    FeedbackContext context = (FeedbackContext) actionContext;
     this.effects.addAll(((FeedbackContext) actionContext).effects);
   }
 
