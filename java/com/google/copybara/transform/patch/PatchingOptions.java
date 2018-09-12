@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.transform.patch;
 
 import static com.google.copybara.git.GitExecPath.resolveGitBinary;
 import static com.google.copybara.util.DiffUtil.checkNotInsideGitRepo;
@@ -25,6 +25,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.GeneralOptions;
+import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
@@ -38,6 +40,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 /**
  * Options related to applying patches to directories (non-git).
@@ -60,35 +63,36 @@ public class PatchingOptions implements Option {
   String patchBin = "patch";
 
   @Parameter(names = SKIP_VERSION_CHECK_FLAG, description =
-      "Skip checking the version of patch and assume it is fine") public
-  boolean skipVersionCheck = false;
+      "Skip checking the version of patch and assume it is fine")
+  public boolean skipVersionCheck = false;
 
   @Parameter(names = "--patch-use-git-apply", description =
       "Don't use GNU Patch and instead use 'git apply'",
       // TODO(malcon): Remove arity. This is to have the flexiblity to switch on/off internally
       // until it is well tested.
-      arity = 1) public
-  boolean useGitApply = true;
+      arity = 1)
+  public boolean useGitApply = true;
 
   /**
    * Applies the diff into a directory tree.
    *
    * <p>{@code diffContents} is the result of invoking {@link DiffUtil#diff}.
    */
-  public void patch(
-      Path rootDir, byte[] diffContents, ImmutableList<String> excludedPaths, int stripSlashes,
-      boolean reverse) throws IOException, InsideGitDirException, ValidationException {
+  public void patch(Path rootDir, byte[] diffContents, ImmutableList<String> excludedPaths,
+      int stripSlashes, boolean reverse, @Nullable Path gitDir)
+      throws IOException, InsideGitDirException, ValidationException {
     if (diffContents.length == 0) {
       return;
     }
     Preconditions.checkArgument(stripSlashes >= 0, "stripSlashes must be >= 0.");
     boolean verbose = generalOptions.isVerbose();
     Map<String, String> env = generalOptions.getEnvironment();
-    if (shouldUsePatch(excludedPaths)) {
+    if (shouldUsePatch(gitDir, excludedPaths)) {
       Preconditions.checkState(excludedPaths.isEmpty(), "Not supported by GNU Patch");
       patchWithGnuPatch(rootDir, diffContents, stripSlashes, verbose, reverse, env);
     } else {
-      patchWithGitApply(rootDir, diffContents, excludedPaths, stripSlashes, verbose, reverse, env);
+      patchWithGitApply(
+          rootDir, diffContents, excludedPaths, stripSlashes, verbose, reverse, env, gitDir);
     }
   }
 
@@ -114,8 +118,12 @@ public class PatchingOptions implements Option {
     }
   }
 
-  private boolean shouldUsePatch(ImmutableList<String> excludedPaths)
+  private boolean shouldUsePatch(@Nullable Path gitDir, ImmutableList<String> excludedPaths)
       throws ValidationException {
+    // We are going to patch a git checkout dir. We should use git apply three way.
+    if (gitDir != null) {
+      return false;
+    }
     if (skipVersionCheck) {
       ValidationException.checkCondition(excludedPaths.isEmpty(),
           "%s is incompatible with patch transformations that uses excluded paths: %s",
@@ -179,19 +187,30 @@ public class PatchingOptions implements Option {
 
   private static void patchWithGitApply(Path rootDir, byte[] diffContents,
       ImmutableList<String> excludedPaths, int stripSlashes, boolean verbose, boolean reverse,
-      Map<String, String> environment) throws IOException, InsideGitDirException {
-    checkNotInsideGitRepo(rootDir, verbose, environment);
+      Map<String, String> environment, @Nullable Path gitDir)
+      throws IOException, InsideGitDirException {
+
+    if (gitDir == null) {
+      checkNotInsideGitRepo(rootDir, verbose, environment);
+    }
     ImmutableList.Builder<String> params = ImmutableList.builder();
 
     // Show verbose output unconditionally since it is helpful for debugging issues with patches.
-    params.add(resolveGitBinary(environment),
-        "apply", "-v", "--stat", "--apply", "-p" + stripSlashes);
+    params.add(resolveGitBinary(environment));
+    if (gitDir != null) {
+      params.add("--git-dir=" + gitDir.normalize().toAbsolutePath());
+    }
+    params.add("apply", "-v", "--stat", "--apply", "-p" + stripSlashes);
+    if (gitDir != null) {
+      params.add("--3way");
+    }
     for (String excludedPath : excludedPaths) {
       params.add("--exclude", excludedPath);
     }
     if (reverse) {
       params.add("-R");
     }
+
     params.add("-");
     Command cmd =
         new Command(params.build().toArray(new String[0]), environment, rootDir.toFile());

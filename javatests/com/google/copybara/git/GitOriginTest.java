@@ -299,6 +299,27 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testPatch() throws Exception {
+    String patch = "diff --git a/foo.txt b/foo.txt\n"
+        + "new file mode 100644\n"
+        + "index 0000000..1f0d200\n"
+        + "--- /dev/null\n"
+        + "+++ b/foo.txt\n"
+        + "@@ -0,0 +1 @@\n"
+        + "+some test\n";
+    skylark.addConfigFile("some/patch.patch", patch);
+
+    moreOriginArgs = "patch = patch.apply(['some/patch.patch'])";
+    origin().newReader(originFiles, authoring).checkout(origin.resolve("master"), checkoutDir);
+    Path testFile = checkoutDir.resolve("test.txt");
+
+    assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+
+    assertThat(
+        new String(Files.readAllBytes(checkoutDir.resolve("foo.txt")))).isEqualTo("some test\n");
+  }
+
+  @Test
   public void testMergeIncludeFiles() throws Exception {
     repo.simpleCommand("branch", "foo");
     repo.forceCheckout("foo");

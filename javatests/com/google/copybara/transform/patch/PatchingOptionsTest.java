@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.transform.patch;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.DiffUtil;
@@ -136,7 +137,7 @@ public class PatchingOptionsTest {
       ImmutableList<String> excluded)
       throws InsideGitDirException, IOException, ValidationException {
     options.build().get(PatchingOptions.class).patch(root, diffContents, excluded, stripSlashes,
-        reverse);
+        reverse, /*gitDir=*/null);
   }
 
   @Test

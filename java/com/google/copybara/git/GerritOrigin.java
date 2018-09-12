@@ -31,6 +31,7 @@ import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import javax.annotation.Nullable;
@@ -48,6 +49,7 @@ public class GerritOrigin extends GitOrigin {
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
   @Nullable private final Checker endpointChecker;
+  @Nullable private final PatchTransformation patchTransformation;
 
   private GerritOrigin(
       GeneralOptions generalOptions,
@@ -59,7 +61,8 @@ public class GerritOrigin extends GitOrigin {
       SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs,
       boolean firstParent,
-      @Nullable Checker endpointChecker) {
+      @Nullable Checker endpointChecker,
+      @Nullable PatchTransformation patchTransformation) {
     super(
         generalOptions,
         repoUrl,
@@ -69,7 +72,8 @@ public class GerritOrigin extends GitOrigin {
         gitOriginOptions,
         submoduleStrategy,
         includeBranchCommitLogs,
-        firstParent);
+        firstParent,
+        patchTransformation);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
@@ -77,6 +81,7 @@ public class GerritOrigin extends GitOrigin {
     this.submoduleStrategy = checkNotNull(submoduleStrategy);
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.endpointChecker = endpointChecker;
+    this.patchTransformation = patchTransformation;
   }
 
   @Override
@@ -90,7 +95,7 @@ public class GerritOrigin extends GitOrigin {
   /** Builds a new {@link GerritOrigin}. */
   static GerritOrigin newGerritOrigin(
       Options options, String url, SubmoduleStrategy submoduleStrategy, boolean firstParent,
-      @Nullable Checker endpointChecker) {
+      @Nullable Checker endpointChecker, @Nullable PatchTransformation patchTransformation) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -102,13 +107,15 @@ public class GerritOrigin extends GitOrigin {
         submoduleStrategy,
         /*includeBranchCommitLogs=*/ false,
         firstParent,
-        endpointChecker);
+        endpointChecker,
+        patchTransformation);
   }
 
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new GitOrigin.ReaderImpl(repoUrl, originFiles, authoring, gitOptions, gitOriginOptions,
-        generalOptions, includeBranchCommitLogs, submoduleStrategy, firstParent) {
+        generalOptions, includeBranchCommitLogs, submoduleStrategy, firstParent,
+        patchTransformation) {
       /**
        * Group identity is the individual change identity for now. If we want to group a list of
        * commits we would add Gerrit topic support and an option to git.gerrit_origin to enable it.

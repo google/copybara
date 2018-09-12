@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.modules;
+package com.google.copybara.transform.patch;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
@@ -22,11 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.PatchingOptions;
+import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.transform.patch.PatchModule;
+import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;

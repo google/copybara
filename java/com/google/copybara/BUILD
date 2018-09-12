@@ -192,6 +192,7 @@ java_library(
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/transform",
+        "//java/com/google/copybara/transform/patch",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:flogger",

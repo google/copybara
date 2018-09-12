@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package com.google.copybara.modules;
+package com.google.copybara.transform.patch;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
-import com.google.copybara.PatchingOptions;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.OptionsAwareModule;

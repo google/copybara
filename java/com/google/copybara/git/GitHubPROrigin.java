@@ -58,6 +58,7 @@ import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.User;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.git.github.util.GitHubUtil.GitHubPrUrl;
+import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -111,13 +112,15 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final ImmutableSet<AuthorAssociation> reviewApprovers;
   @Nullable
   private final Checker endpointChecker;
+  @Nullable private final PatchTransformation patchTransformation;
 
   GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
       Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
       boolean baselineFromBranch, Boolean firstParent, StateFilter requiredState,
       @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers,
-      @Nullable Checker endpointChecker) {
+      @Nullable Checker endpointChecker,
+      @Nullable PatchTransformation patchTransformation) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -134,6 +137,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     this.reviewState = reviewState;
     this.reviewApprovers = Preconditions.checkNotNull(reviewApprovers);
     this.endpointChecker = endpointChecker;
+    this.patchTransformation = patchTransformation;
   }
 
   @Override
@@ -323,7 +327,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring)
       throws ValidationException {
     return new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
-        generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy, firstParent) {
+        generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy, firstParent,
+        patchTransformation) {
 
       /**
        * Disable rebase since this is controlled by useMerge field.

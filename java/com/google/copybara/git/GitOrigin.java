@@ -45,7 +45,9 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
+import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -91,11 +93,13 @@ public class GitOrigin implements Origin<GitRevision> {
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
   boolean firstParent;
+  @Nullable private final PatchTransformation patchTransformation;
 
   GitOrigin(GeneralOptions generalOptions, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
       GitOriginOptions gitOriginOptions, SubmoduleStrategy submoduleStrategy,
-      boolean includeBranchCommitLogs, boolean firstParent) {
+      boolean includeBranchCommitLogs, boolean firstParent,
+      @Nullable PatchTransformation patchTransformation) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -109,6 +113,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.submoduleStrategy = submoduleStrategy;
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.firstParent = firstParent;
+    this.patchTransformation = patchTransformation;
   }
 
   @VisibleForTesting
@@ -120,7 +125,7 @@ public class GitOrigin implements Origin<GitRevision> {
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(repoUrl, originFiles, authoring,
         gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy,
-        firstParent);
+        firstParent, patchTransformation);
   }
 
   @Override
@@ -149,6 +154,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final boolean includeBranchCommitLogs;
     private final SubmoduleStrategy submoduleStrategy;
     private final boolean firstParent;
+    @Nullable private final PatchTransformation patchTransformation;
 
     ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
         GitOptions gitOptions,
@@ -156,7 +162,8 @@ public class GitOrigin implements Origin<GitRevision> {
         GeneralOptions generalOptions,
         boolean includeBranchCommitLogs,
         SubmoduleStrategy submoduleStrategy,
-        boolean firstParent) {
+        boolean firstParent,
+        @Nullable PatchTransformation patchTransformation) {
       this.repoUrl = checkNotNull(repoUrl);
       this.originFiles = checkNotNull(originFiles, "originFiles");
       this.authoring = checkNotNull(authoring, "authoring");
@@ -166,6 +173,7 @@ public class GitOrigin implements Origin<GitRevision> {
       this.includeBranchCommitLogs = includeBranchCommitLogs;
       this.submoduleStrategy = checkNotNull(submoduleStrategy);
       this.firstParent = firstParent;
+      this.patchTransformation = patchTransformation;
     }
 
     private ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
@@ -193,6 +201,15 @@ public class GitOrigin implements Origin<GitRevision> {
         runCheckoutHook(workdir, gitOriginOptions.originCheckoutHook,
             generalOptions.getEnvironment(), generalOptions.isVerbose(), generalOptions.console(),
             /*originType*/ "git.origin");
+      }
+      if (patchTransformation != null) {
+        generalOptions.console().progress("Patching the checkout directory");
+        try {
+          patchTransformation.patch(generalOptions.console(), workdir, getRepository().getGitDir());
+        } catch (InsideGitDirException e) {
+          throw new IllegalStateException(
+              "This shouldn't happen. Patching always happens inside a git directory here", e);
+        }
       }
     }
     
@@ -385,11 +402,12 @@ public class GitOrigin implements Origin<GitRevision> {
    * Builds a new {@link GitOrigin}.
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
-      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent) {
+      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent,
+      @Nullable PatchTransformation patchTransformation) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
-        submoduleStrategy, includeBranchCommitLogs, firstParent);
+        submoduleStrategy, includeBranchCommitLogs, firstParent, patchTransformation);
   }
 
   @Override

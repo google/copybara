@@ -18,8 +18,6 @@ licenses(["notice"])  # Apache 2.0
 
 LOCAL_TESTS = [
     "WorkflowTest.java",
-    "modules/PatchTransformationTest.java",
-    "PatchingOptionsTest.java",
     "util/DiffUtilTest.java",
 ]
 

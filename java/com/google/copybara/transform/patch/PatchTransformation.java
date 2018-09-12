@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-package com.google.copybara.modules;
+package com.google.copybara.transform.patch;
 
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.PatchingOptions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.InsideGitDirException;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /**
  * Transformation for applying patch file during a workflow. Instantiated by {@link PatchModule}.
  */
-class PatchTransformation implements Transformation {
+public class PatchTransformation implements Transformation {
 
   private final ImmutableList<ConfigFile<?>> patches;
   private final ImmutableList<String> excludedPaths;
@@ -52,22 +54,27 @@ class PatchTransformation implements Transformation {
 
   @Override
   public void transform(TransformWork work) throws ValidationException, IOException {
+    try {
+      patch(work.getConsole(), work.getCheckoutDir(), /*gitDir=*/null);
+    } catch (InsideGitDirException e) {
+      throw new ValidationException(
+          "Cannot use patch.apply because Copybara temporary directory (%s) is inside a git"
+              + " directory (%s). Please remove the git repository or use %s flag.",
+          e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG);
+    }
+  }
+
+  public void patch(Console console, Path checkoutDir, @Nullable Path gitDir)
+      throws ValidationException, InsideGitDirException {
+    try {
     for (int i = 0; i < patches.size(); i++) {
       ConfigFile<?> patch = patches.get(i);
-      work.getConsole().info(
-          String.format("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path()));
-      try {
-        options.patch(work.getCheckoutDir(), patch.content(), excludedPaths, SLASHES_TO_STRIP,
-            reverse);
-      } catch (IOException ioException) {
-        work.getConsole().error("Error applying patch: " + ioException.getMessage());
-        throw new ValidationException(ioException, "Error applying patch.");
-      } catch (InsideGitDirException e) {
-        throw new ValidationException(
-            "Cannot use patch.apply because Copybara temporary directory (%s) is inside a git"
-                + " directory (%s). Please remove the git repository or use %s flag.",
-            e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG);
-      }
+      console.infoFmt("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path());
+      options.patch(checkoutDir, patch.content(), excludedPaths, SLASHES_TO_STRIP, reverse, gitDir);
+    }
+    } catch (IOException ioException) {
+      console.errorFmt("Error applying patch: %s", ioException.getMessage());
+      throw new ValidationException(ioException, "Error applying patch.");
     }
   }
 

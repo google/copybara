@@ -24,7 +24,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
-import com.google.copybara.PatchingOptions;
+import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderOriginOptions;

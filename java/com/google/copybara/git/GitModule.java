@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Transformation;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
@@ -56,6 +57,7 @@ import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -65,6 +67,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
@@ -74,6 +77,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 
 /**
  * Main module that groups all the functions that create Git origins and destinations.
@@ -95,6 +99,10 @@ public class GitModule implements LabelsAwareModule {
   private static final String GERRIT_API = "gerrit_api";
   private static final String GITHUB_TRIGGER = "github_trigger";
   private static final String GITHUB_API = "github_api";
+  private static final String PATCH_FIELD = "patch";
+  public static final String PATCH_FIELD_DESC =
+      "Patch the checkout dir. The difference with `patch.apply` transformation is"
+          + " that here we can apply it using three-way";
 
   protected final Options options;
   private ConfigFile<?> mainConfigFile;
@@ -139,16 +147,32 @@ public class GitModule implements LabelsAwareModule {
               doc = "If true, it only uses the first parent when looking for changes. Note that"
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                   + " change of the merged branch."),
+          @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
+              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC)
       }, useLocation = true)
   public GitOrigin origin(String url, Object ref, String submodules,
-      Boolean includeBranchCommitLogs, Boolean firstParent, Location location)
+      Boolean includeBranchCommitLogs, Boolean firstParent, Object patch,
+      Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
+
     return GitOrigin.newGitOrigin(
         options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
         GitRepoType.GIT, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
-        includeBranchCommitLogs, firstParent);
+        includeBranchCommitLogs, firstParent, patchTransformation);
+  }
+
+  @Nullable
+  private PatchTransformation maybeGetPatchTransformation(Object patch, Location location)
+      throws EvalException {
+    if (EvalUtils.isNullOrNone(patch)) {
+      return null;
+    }
+    SkylarkUtil.check(location, patch instanceof PatchTransformation,
+        "'%s' is not a patch.apply(...) transformation", PATCH_FIELD);
+    return  (PatchTransformation) patch;
   }
 
   @SuppressWarnings("unused")
@@ -281,13 +305,19 @@ public class GitModule implements LabelsAwareModule {
                   + "This field is not used if the workflow doesn't have hooks.",
               named = true, positional = false,
               noneable = true),
+          @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
+              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC)
       },
       useLocation = true)
   public GitOrigin gerritOrigin(String url, Object ref, String submodules,
-      Boolean firstParent, Object checkerObj, Location location) throws EvalException {
+      Boolean firstParent, Object checkerObj, Object patch, Location location)
+      throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
     String refField = Type.STRING.convertOptional(ref, "ref");
+
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
+
     if (!Strings.isNullOrEmpty(refField)) {
       getGeneralConsole().warn(
           "'ref' field detected in configuration. git.gerrit_origin"
@@ -296,13 +326,12 @@ public class GitModule implements LabelsAwareModule {
           options, url, refField, GitRepoType.GERRIT,
           stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
-          /*includeBranchCommitLogs=*/false, firstParent);
+          /*includeBranchCommitLogs=*/false, firstParent, patchTransformation);
     }
-
     return GerritOrigin.newGerritOrigin(
         options, url, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class), firstParent,
-        convertFromNoneable(checkerObj, null));
+        convertFromNoneable(checkerObj, null), patchTransformation);
   }
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
@@ -386,6 +415,8 @@ public class GitModule implements LabelsAwareModule {
                   + "This field is not used if the workflow doesn't have hooks.",
               named = true, positional = false,
               noneable = true),
+          @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
+              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC)
       },
       useLocation = true)
   @UsesFlags(GitHubPrOriginOptions.class)
@@ -393,12 +424,14 @@ public class GitModule implements LabelsAwareModule {
   public GitHubPROrigin githubPrOrigin(String url, Boolean merge,
       SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
       Boolean baselineFromBranch, Boolean firstParent, String state,
-      Object reviewStateParam, Object reviewApproversParam, Object checkerObj, Location location)
-      throws EvalException {
+      Object reviewStateParam, Object reviewApproversParam, Object checkerObj, Object patch,
+      Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
     if (!url.contains("github.com")) {
       throw new EvalException(location, "Invalid Github URL: " + url);
     }
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
+
     String reviewStateString = SkylarkUtil.convertFromNoneable(reviewStateParam, null);
     SkylarkList<String> reviewApproversStrings =
         SkylarkUtil.convertFromNoneable(reviewApproversParam, null);
@@ -440,7 +473,8 @@ public class GitModule implements LabelsAwareModule {
         stringToEnum(location, "state", state, StateFilter.class),
         reviewState,
         reviewApprovers,
-        convertFromNoneable(checkerObj, null));
+        convertFromNoneable(checkerObj, null),
+        patchTransformation);
   }
 
   @SuppressWarnings("unused")
@@ -460,21 +494,24 @@ public class GitModule implements LabelsAwareModule {
               doc = "If true, it only uses the first parent when looking for changes. Note that"
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                   + " change of the merged branch.", positional = false),
-
+          @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
+              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC)
       },
       useLocation = true)
   public GitOrigin githubOrigin(String url, Object ref, String submodules,
-      Boolean firstParent, Location location) throws EvalException {
+      Boolean firstParent, Object patch, Location location) throws EvalException {
     if (!GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location))) {
       throw new EvalException(location, "Invalid Github URL: " + url);
     }
+
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
 
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
     return GitOrigin.newGitOrigin(
         options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
         GitRepoType.GITHUB, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
-        /*includeBranchCommitLogs=*/false, firstParent);
+        /*includeBranchCommitLogs=*/false, firstParent, patchTransformation);
   }
 
   @SuppressWarnings("unused")
