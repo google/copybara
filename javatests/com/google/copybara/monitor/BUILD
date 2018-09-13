@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2018s Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,27 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package(default_visibility = ["//visibility:public"])
+load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
 
-java_library(
-    name = "monitor",
-    srcs = glob(["**/*.java"]),
-    javacopts = [
-        "-Xlint:unchecked",
-        "-source",
-        "1.8",
-    ],
+all_tests(
+    tests = glob(["*Test.java"]),
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/monitor",
+        "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
-        "//third_party:autovalue",
-        "//third_party:guava",
-        "//third_party:jsr305",
-        "//third_party:re2j",
-        "//third_party:shell",
-        "//third_party:skylark-lang",
+        "//java/com/google/copybara/util/console/testing",
+        "//third_party:guava_testlib",
     ],
 )

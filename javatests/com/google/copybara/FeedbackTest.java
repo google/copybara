@@ -57,7 +57,7 @@ public class FeedbackTest {
   @Before
   public void setup() throws Exception {
     workdir = Jimfs.newFileSystem().getPath("/");
-    console = new TestingConsole();
+    console = new TestingConsole(/*verbose=*/ false);
     eventMonitor = new TestingEventMonitor();
     OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console);

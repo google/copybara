@@ -28,6 +28,7 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.monitor.ConsoleEventMonitor;
 import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -57,6 +58,7 @@ public final class GeneralOptions implements Option {
   private Map<String, String> environment;
   private FileSystem fileSystem;
   private Console console;
+  private EventMonitor eventMonitor;
   private Path configRootPath;
   private Path outputRootPath;
 
@@ -66,6 +68,7 @@ public final class GeneralOptions implements Option {
     this.environment = environment;
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.console = Preconditions.checkNotNull(console);
+    this.eventMonitor = new ConsoleEventMonitor(console, EventMonitor.EMPTY_MONITOR);
   }
 
   @VisibleForTesting
@@ -74,6 +77,7 @@ public final class GeneralOptions implements Option {
       boolean noCleanup, boolean disableReversibleCheck, boolean force, int outputLimit) {
     this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
     this.console = Preconditions.checkNotNull(console);
+    this.eventMonitor = new ConsoleEventMonitor(console, EventMonitor.EMPTY_MONITOR);
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.verbose = verbose;
     this.configRootPath = configRoot;
@@ -83,15 +87,6 @@ public final class GeneralOptions implements Option {
     this.force = force;
     this.outputLimit = outputLimit;
   }
-
-  // Default implementation does not show up in the console (unless verbose is used)
-  private EventMonitor eventMonitor =
-      new EventMonitor() {
-        @Override
-        public void onMigrationFinished(MigrationFinishedEvent event) {
-          console().verboseFmt("Migration finished: %s", event);
-        }
-      };
 
   public GeneralOptions withForce(boolean force) throws ValidationException {
     return new GeneralOptions(environment, fileSystem, verbose, console, getConfigRoot(),
@@ -257,60 +252,68 @@ public final class GeneralOptions implements Option {
   }
 
   public GeneralOptions withEventMonitor(EventMonitor eventMonitor) {
-    this.eventMonitor = Preconditions.checkNotNull(eventMonitor);
+    this.eventMonitor = new ConsoleEventMonitor(console(), eventMonitor);
     return this;
   }
 
-    @Parameter(names = {"-v", "--verbose"}, description = "Verbose output.")
-    boolean verbose;
+  @Parameter(
+      names = {"-v", "--verbose"},
+      description = "Verbose output.")
+  boolean verbose;
 
-    // We don't use JCommander for parsing this flag but we do it manually since
-    // the parsing could fail and we need to report errors using one console
-    @SuppressWarnings("unused")
-    @Parameter(names = NOANSI, description = "Don't use ANSI output for messages")
-    boolean noansi = false;
+  // We don't use JCommander for parsing this flag but we do it manually since
+  // the parsing could fail and we need to report errors using one console
+  @SuppressWarnings("unused")
+  @Parameter(names = NOANSI, description = "Don't use ANSI output for messages")
+  boolean noansi = false;
 
-    @Parameter(names = FORCE, description = "Force the migration even if Copybara cannot find in"
-        + " the destination a change that is an ancestor of the one(s) being migrated. This should"
-        + " be used with care, as it could lose changes when migrating a previous/conflicting"
-        + " change.")
-    boolean force = false;
+  @Parameter(
+      names = FORCE,
+      description =
+          "Force the migration even if Copybara cannot find in"
+              + " the destination a change that is an ancestor of the one(s) being migrated. This should"
+              + " be used with care, as it could lose changes when migrating a previous/conflicting"
+              + " change.")
+  boolean force = false;
 
-    @Parameter(names = CONFIG_ROOT_FLAG,
-        description = "Configuration root path to be used for resolving absolute config labels"
-            + " like '//foo/bar'")
-    String configRoot;
+  @Parameter(
+      names = CONFIG_ROOT_FLAG,
+      description =
+          "Configuration root path to be used for resolving absolute config labels"
+              + " like '//foo/bar'")
+  String configRoot;
 
-    @Parameter(names = "--disable-reversible-check",
-        description = "If set, all workflows will be executed without reversible_check, overriding"
-            + " the  workflow config and the normal behavior for CHANGE_REQUEST mode.")
-    boolean disableReversibleCheck = false;
+  @Parameter(
+      names = "--disable-reversible-check",
+      description =
+          "If set, all workflows will be executed without reversible_check, overriding"
+              + " the  workflow config and the normal behavior for CHANGE_REQUEST mode.")
+  boolean disableReversibleCheck = false;
 
-    @Parameter(
+  @Parameter(
       names = OUTPUT_ROOT_FLAG,
       description =
           "The root directory where to generate output files. If not set, ~/copybara/out is used "
               + "by default. Use with care, Copybara might remove files inside this root if "
               + "necessary.")
-    String outputRoot = null;
+  String outputRoot = null;
 
-    @Parameter(
+  @Parameter(
       names = OUTPUT_LIMIT_FLAG,
       description =
           "Limit the output in the console to a number of records. Each subcommand might use this "
-              + "flag differently. Defaults to 0, which shows all the output."
-    )
-    int outputLimit = 0;
+              + "flag differently. Defaults to 0, which shows all the output.")
+  int outputLimit = 0;
 
-    @Parameter(
-        names = "--nocleanup",
-        description =
-            "Cleanup the output directories. This includes the workdir, scratch clones of Git"
-                + " repos, etc. By default is set to false and directories will be cleaned prior to"
-                + " the execution. If set to true, the previous run output will not be cleaned up."
-                + " Keep in mind that running in this mode will lead to an ever increasing disk"
-                + " usage.")
-    boolean noCleanup = false;
+  @Parameter(
+      names = "--nocleanup",
+      description =
+          "Cleanup the output directories. This includes the workdir, scratch clones of Git"
+              + " repos, etc. By default is set to false and directories will be cleaned prior to"
+              + " the execution. If set to true, the previous run output will not be cleaned up."
+              + " Keep in mind that running in this mode will lead to an ever increasing disk"
+              + " usage.")
+  boolean noCleanup = false;
 
   static final String CONSOLE_FILE_PATH = "--console-file-path";
 

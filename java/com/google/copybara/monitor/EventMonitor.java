@@ -16,6 +16,7 @@
 
 package com.google.copybara.monitor;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.DestinationEffect;
@@ -25,8 +26,12 @@ import com.google.copybara.util.ExitCode;
 
 /**
  * A monitor that allows triggering actions when high-level actions take place during the execution.
+ *
+ * <p>Default implementation logs in the console the events in verbose mode only.
  */
 public interface EventMonitor {
+
+  EventMonitor EMPTY_MONITOR = new EventMonitor() {};
 
   /** Invoked when the migration starts, only once at the beginning of the execution */
   default void onMigrationStarted(MigrationStartedEvent event) {}
@@ -44,10 +49,20 @@ public interface EventMonitor {
   default void onInfoFinished(InfoFinishedEvent event) {};
 
   /** Event that happens for every migration that is started. */
-  class MigrationStartedEvent {}
+  class MigrationStartedEvent {
+    @Override
+    public String toString() {
+      return "MigrationStartedEvent";
+    }
+  }
 
   /** Event that happens for every change migration that is started. */
-  class ChangeMigrationStartedEvent {}
+  class ChangeMigrationStartedEvent {
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this).toString();
+    }
+  }
 
   /** Event that happens for every change migration that is finished. */
   class ChangeMigrationFinishedEvent {
@@ -59,6 +74,13 @@ public interface EventMonitor {
 
     public ImmutableList<DestinationEffect> getDestinationEffects() {
       return destinationEffects;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("destinationEffects", destinationEffects)
+          .toString();
     }
   }
 
@@ -74,6 +96,11 @@ public interface EventMonitor {
     public ExitCode getExitCode() {
       return exitCode;
     }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this).add("exitCode", exitCode).toString();
+    }
   }
 
   /** Event that happens for every info subcommand that is finished. */
@@ -88,5 +115,13 @@ public interface EventMonitor {
     public Info<? extends Revision> getInfo() {
       return info;
     }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("info", info)
+          .toString();
+    }
+
   }
 }

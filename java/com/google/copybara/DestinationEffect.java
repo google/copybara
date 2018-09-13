@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -209,7 +210,8 @@ public class DestinationEffect implements SkylarkValue {
   public static class OriginRef implements SkylarkValue {
     private final String ref;
 
-    OriginRef(String id) {
+    @VisibleForTesting
+    public OriginRef(String id) {
       this.ref = Preconditions.checkNotNull(id);
     }
 

@@ -17,11 +17,18 @@
 package com.google.copybara.util.console.testing;
 
 import static com.google.common.truth.Truth.assertAbout;
+import static com.google.copybara.util.console.Message.MessageType.ERROR;
+import static com.google.copybara.util.console.Message.MessageType.INFO;
+import static com.google.copybara.util.console.Message.MessageType.PROGRESS;
+import static com.google.copybara.util.console.Message.MessageType.PROMPT;
+import static com.google.copybara.util.console.Message.MessageType.WARNING;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.CapturingConsole;
 import com.google.copybara.util.console.LogConsole;
+import com.google.copybara.util.console.Message.MessageType;
 import java.util.ArrayDeque;
 
 /**
@@ -45,9 +52,12 @@ public final class TestingConsole extends CapturingConsole {
         LogConsole.writeOnlyConsole(System.out, /*verbose=*/ true)), ALL_TYPES);
   }
 
+  private static final ImmutableSet<MessageType> ALL_BUT_VERBOSE =
+      ImmutableSet.of(ERROR, INFO, WARNING, PROGRESS, PROMPT);
+
   public TestingConsole(boolean verbose) {
     super(CapturingConsole.captureAllConsole(
-        LogConsole.writeOnlyConsole(System.out, verbose)), ALL_TYPES);
+        LogConsole.writeOnlyConsole(System.out, verbose)), ALL_BUT_VERBOSE);
   }
 
   public TestingConsole respondYes() {
