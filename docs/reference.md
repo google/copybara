@@ -926,7 +926,7 @@ Name | Type | Description
 
 ## feedback.context
 
-Gives access to the feedback migration information and utilities.
+Gives access to the feedback migration information and utilities. This context is a concrete implementation for feedback migrations.
 
 
 #### Fields:
@@ -974,7 +974,7 @@ msg | `string`<br><p>The no op message</p>
 
 Records an effect of the current action.
 
-`feedback.context.record_effect(summary, origin_refs, destination_ref, errors=[])`
+`feedback.context.record_effect(summary, origin_refs, destination_ref, errors=[], type="UPDATED")`
 
 
 #### Parameters:
@@ -985,6 +985,7 @@ summary | `string`<br><p>The summary of this effect</p>
 origin_refs | `sequence of origin_ref`<br><p>The origin refs</p>
 destination_ref | `destination_ref`<br><p>The destination ref</p>
 errors | `sequence of string`<br><p>An optional list of errors</p>
+type | `string`<br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. </ul></p>
 
 <a id="feedback.context.success" aria-hidden="true"></a>
 ### feedback.context.success
@@ -997,17 +998,18 @@ Returns a successful action result.
 
 ## feedback.finish_hook_context
 
-Gives access to the feedback migration information and utilities.
+Gives access to the feedback migration information and utilities. This context is a concrete implementation for 'after_migration' hooks.
 
 
 #### Fields:
 
 Name | Description
 ---- | -----------
+action_name | The name of the current action.
 console | Get an instance of the console to report errors or warnings
 destination | An object representing the destination. Can be used to query or modify the destination state
 effects | The list of effects that happened in the destination
-origin | An object representing the origin. Can be used to query about the state
+origin | An object representing the origin. Can be used to query about the ref or modifying the origin state
 params | Parameters for the function if created with core.dynamic_feedback
 revision | Get the requested/resolved revision
 

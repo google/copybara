@@ -37,7 +37,6 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Collections;
 import javax.annotation.Nullable;
 
@@ -106,9 +105,10 @@ public class Feedback implements Migration {
         try (ProfilerTask ignore2 = profiler().start(action.getName())) {
           SkylarkConsole console = new SkylarkConsole(generalOptions.console());
           eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
-          FeedbackContext context = new FeedbackContext(this, action, sourceRef, console);
+          FeedbackMigrationContext context =
+              new FeedbackMigrationContext(this, action, sourceRef, console);
           action.run(context);
-          effects = context.getEffects();
+          effects = context.getNewDestinationEffects();
           ActionResult actionResult = context.getActionResult();
           allResults.add(actionResult);
           // First error aborts the execution of the other actions
