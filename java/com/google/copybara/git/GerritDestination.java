@@ -81,9 +81,7 @@ public final class GerritDestination implements Destination<GitRevision> {
   private final GitDestination gitDestination;
   private final boolean submit;
 
-  private GerritDestination(
-      GitDestination gitDestination, boolean submit,
-      GerritOptions gerritOptions, String url, @Nullable Checker endpointChecker) {
+  private GerritDestination(GitDestination gitDestination, boolean submit) {
     this.gitDestination = Preconditions.checkNotNull(gitDestination);
     this.submit = submit;
   }
@@ -445,10 +443,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 allowEmptyPatchSet,
                 endpointChecker),
             DEFAULT_GIT_INTEGRATES),
-        submit,
-        gerritOptions,
-        url,
-        endpointChecker);
+        submit
+    );
   }
 
   @Override

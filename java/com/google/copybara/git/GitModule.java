@@ -606,7 +606,8 @@ public class GitModule implements LabelsAwareModule {
       useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
   public GitHubPrDestination githubPrDestination(String url, String destinationRef,
-      Boolean skipPush, Object title, Object body, Object integrates, Object checkerObj, Location location)
+      Boolean skipPush, Object title, Object body, Object integrates, Object checkerObj,
+      Location location)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     // This restricts to github.com, we will have to revisit this to support setups like GitHub
@@ -685,8 +686,8 @@ public class GitModule implements LabelsAwareModule {
           @Param(name = "reviewers", type = SkylarkList.class, named = true,
               defaultValue = "[]",
               doc = "The list of the reviewers will be added to gerrit change reviewer list"
-                  + "The element in the list is: an email, for example: \"foo@example.com\" or label "
-                  + "for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of "
+                  + "The element in the list is: an email, for example: \"foo@example.com\" or "
+                  + "label for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of "
                   + "assuming that users have registered to gerrit repos"),
           @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
               doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
