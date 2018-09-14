@@ -34,6 +34,7 @@ import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
+import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Options;
@@ -41,6 +42,7 @@ import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -79,7 +81,9 @@ public final class GerritDestination implements Destination<GitRevision> {
   private final GitDestination gitDestination;
   private final boolean submit;
 
-  private GerritDestination(GitDestination gitDestination, boolean submit) {
+  private GerritDestination(
+      GitDestination gitDestination, boolean submit,
+      GerritOptions gerritOptions, String url, @Nullable Checker endpointChecker) {
     this.gitDestination = Preconditions.checkNotNull(gitDestination);
     this.submit = submit;
   }
@@ -99,13 +103,16 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final String repoUrl;
     private final Author committer;
     private final List<String> reviewersTemplate;
+    @Nullable
+    private final Checker endpointChecker;
     private final Console console;
     private final ChangeIdPolicy changeIdPolicy;
     private final boolean allowEmptyDiffPatchSet;
     private final GeneralOptions generalOptions;
 
     GerritWriteHook(GeneralOptions generalOptions, GerritOptions gerritOptions, String repoUrl,
-        Author committer, List<String> reviewersTemplate, ChangeIdPolicy changeIdPolicy, boolean allowEmptyDiffPatchSet) {
+        Author committer, List<String> reviewersTemplate, ChangeIdPolicy changeIdPolicy,
+        boolean allowEmptyDiffPatchSet, @Nullable Checker endpointChecker) {
       this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -114,6 +121,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       this.changeIdPolicy = Preconditions.checkNotNull(changeIdPolicy);
       this.allowEmptyDiffPatchSet = allowEmptyDiffPatchSet;
       this.reviewersTemplate = Preconditions.checkNotNull(reviewersTemplate);
+      this.endpointChecker = endpointChecker;
     }
 
     /**
@@ -362,6 +370,13 @@ public final class GerritDestination implements Destination<GitRevision> {
           .putInt(attempt)
           .hash();
     }
+
+    @Override
+    public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
+      gerritOptions.validateEndpointChecker(endpointChecker, repoUrl);
+      return new GerritEndpoint(
+          gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker), repoUrl, console);
+    }
   }
 
   @Override
@@ -397,7 +412,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       boolean submit,
       ChangeIdPolicy changeIdPolicy,
       boolean allowEmptyPatchSet,
-      List<String> reviewers) {
+      List<String> reviewers,
+      @Nullable Checker endpointChecker) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     String push;
@@ -426,10 +442,13 @@ public final class GerritDestination implements Destination<GitRevision> {
                 destinationOptions.getCommitter(),
                 reviewers,
                 changeIdPolicy,
-                allowEmptyPatchSet),
+                allowEmptyPatchSet,
+                endpointChecker),
             DEFAULT_GIT_INTEGRATES),
-        submit
-    );
+        submit,
+        gerritOptions,
+        url,
+        endpointChecker);
   }
 
   @Override

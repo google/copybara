@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -66,7 +65,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Rule;
@@ -870,7 +868,7 @@ public class GerritDestinationTest {
             new Author("foo", "foo@example.com"),
             reviewerTemplates,
             ChangeIdPolicy.REPLACE,
-            /*allowEmptyDiffPatchSet=*/ true);
+            /*allowEmptyDiffPatchSet=*/ true, /*endpointChecker=*/ null);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(
@@ -914,7 +912,7 @@ public class GerritDestinationTest {
             new Author("foo", "foo@example.com"),
             reviewerTemplates,
             ChangeIdPolicy.REPLACE,
-            /*allowEmptyDiffPatchSet=*/ true);
+            /*allowEmptyDiffPatchSet=*/ true, /*endpointChecker=*/ null);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(

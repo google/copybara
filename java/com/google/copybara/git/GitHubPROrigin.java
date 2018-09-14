@@ -110,8 +110,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final StateFilter requiredState;
   @Nullable private final ReviewState reviewState;
   private final ImmutableSet<AuthorAssociation> reviewApprovers;
-  @Nullable
-  private final Checker endpointChecker;
+  @Nullable private final Checker endpointChecker;
   @Nullable private final PatchTransformation patchTransformation;
 
   GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,

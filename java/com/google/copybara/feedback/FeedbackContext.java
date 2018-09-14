@@ -37,6 +37,7 @@ import java.util.List;
 /**
  * Abstract context for feedback migrations.
  */
+@SuppressWarnings("unused")
 public abstract class FeedbackContext implements SkylarkContext<FeedbackContext> {
 
   final Action currentAction;
@@ -53,11 +54,11 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
 
   @SkylarkCallable(name = "origin", doc = "An object representing the origin. Can be used to"
       + " query about the ref or modifying the origin state", structField = true)
-  public abstract Endpoint getOrigin();
+  public abstract Endpoint getOrigin() throws EvalException;
 
   @SkylarkCallable(name = "destination", doc = "An object representing the destination. Can be used"
       + " to query or modify the destination state", structField = true)
-  public abstract Endpoint getDestination();
+  public abstract Endpoint getDestination() throws EvalException;
 
   @SkylarkCallable(
       name = "action_name",

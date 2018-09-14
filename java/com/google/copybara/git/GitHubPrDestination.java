@@ -26,11 +26,13 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
+import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -67,8 +69,9 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final boolean effectiveSkipPush;
   private final LazyResourceLoader<GitRepository> localRepo;
   private final ConfigFile<?> mainConfigFile;
+  @Nullable private final Checker endpointChecker;
 
-  public GitHubPrDestination(
+  GitHubPrDestination(
       String url,
       String destinationRef,
       GeneralOptions generalOptions,
@@ -81,7 +84,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       Iterable<GitIntegrateChanges> integrates,
       @Nullable String title,
       @Nullable String body,
-      ConfigFile<?> mainConfigFile) {
+      ConfigFile<?> mainConfigFile,
+      @Nullable Checker endpointChecker) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -96,6 +100,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
+    this.endpointChecker = endpointChecker;
   }
 
   @Override
@@ -230,6 +235,13 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 new DestinationEffect.DestinationRef(
                     Long.toString(pr.getNumber()), "pull_request", pr.getHtmlUrl())));
         return result.build();
+      }
+
+      @Override
+      public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
+        gitHubOptions.validateEndpointChecker(endpointChecker);
+        return new GitHubEndPoint(
+            gitHubOptions.newGitHubApiSupplier(url, endpointChecker), url, console);
       }
     };
   }

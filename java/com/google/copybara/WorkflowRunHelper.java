@@ -306,14 +306,21 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           SkylarkConsole console = new SkylarkConsole(getConsole());
           try (ProfilerTask ignored = profiler().start("finish_hooks")) {
             List<DestinationEffect> hookDestinationEffects = new ArrayList<>();
+            // Only do this once for all the actions
+            LazyResourceLoader<Endpoint> originEndpoint =
+                LazyResourceLoader.memoized(
+                    (console1) -> getOriginReader().getFeedbackEndPoint(console1));
+            LazyResourceLoader<Endpoint> destinationEndpoint =
+                LazyResourceLoader.memoized(
+                    (console1) -> getDestinationWriter().getFeedbackEndPoint(console1));
             for (Action action : workflow.getAfterMigrationActions()) {
               try (ProfilerTask ignored2 = profiler().start(action.getName())) {
                 logger.log(Level.INFO, "Running after migration hook: " + action.getName());
                 FinishHookContext context =
                     new FinishHookContext(
                         action,
-                        getOriginReader().getFeedbackEndPoint(console),
-                        getDestinationWriter().getFeedbackEndPoint(console),
+                        originEndpoint,
+                        destinationEndpoint,
                         ImmutableList.copyOf(effects),
                         resolvedRef,
                         console);

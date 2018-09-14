@@ -1448,7 +1448,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[])`
+`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], api_checker=None)`
 
 
 #### Parameters:
@@ -1462,6 +1462,7 @@ submit | `boolean`<br><p>If true, skip the push thru Gerrit refs/for/branch and 
 change_id_policy | `string`<br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
 allow_empty_diff_patchset | `boolean`<br><p>By default Copybara will upload a new PatchSet to Gerrit without checking the previous one. If this set to false, Copybara will download current PatchSet and check the diff against the new diff.</p>
 reviewers | `sequence`<br><p>The list of the reviewers will be added to gerrit change reviewer listThe element in the list is: an email, for example: "foo@example.com" or label for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of assuming that users have registered to gerrit repos</p>
+api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 
 
 
@@ -1505,7 +1506,7 @@ url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not used if the workflow doesn't have hooks.</p>
+api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 
 <a id="git.gerrit_trigger" aria-hidden="true"></a>
@@ -1571,7 +1572,7 @@ patch | `transformation`<br><p>Patch the checkout dir. The difference with `patc
 
 Creates changes in a new pull request in the destination.
 
-`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", skip_push=False, title=None, body=None, integrates=None)`
+`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", skip_push=False, title=None, body=None, integrates=None, api_checker=None)`
 
 
 #### Parameters:
@@ -1584,6 +1585,7 @@ skip_push | `boolean`<br><p>If set, copybara will not actually push the result t
 title | `string`<br><p>When creating a pull request, use this title. By default it uses the change first line.</p>
 body | `string`<br><p>When creating a pull request, use this body. By default it uses the change summary.</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
+api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 
 
 
@@ -1642,7 +1644,7 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 state | `string`<br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
 review_state | `string`<br><p>Required state of the reviews associated with the Pull Request Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`, `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
 review_approvers | `sequence of string`<br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/reference/enum/commentauthorassociation/</p>
-api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not used if the workflow doesn't have hooks.</p>
+api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 
 

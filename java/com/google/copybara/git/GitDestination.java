@@ -33,6 +33,7 @@ import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationStatusVisitor;
+import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.LazyResourceLoader;
@@ -320,6 +321,11 @@ public final class GitDestination implements Destination<GitRevision> {
       return visitor.getDestinationStatus();
     }
 
+    @Override
+    public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
+      return writeHook.getFeedbackEndPoint(console);
+    }
+
     @Nullable
     private GitRevision getLocalBranchRevision(GitRepository gitRepository) throws RepoException {
       try {
@@ -370,6 +376,9 @@ public final class GitDestination implements Destination<GitRevision> {
       ImmutableList<DestinationEffect> afterPush(String serverResponse, MessageInfo messageInfo,
           GitRevision pushedRevision, List<? extends Change<?>> originChanges);
 
+      default Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
+        return Endpoint.NOOP_ENDPOINT;
+      }
     }
 
     /**

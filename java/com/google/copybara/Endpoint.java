@@ -50,7 +50,7 @@ public interface Endpoint extends SkylarkValue {
   Endpoint NOOP_ENDPOINT = new Endpoint() {
     @Override
     public ImmutableSetMultimap<String, String> describe() {
-      throw new IllegalStateException("Instance shouldn't be use for core.feedback");
+      throw new IllegalStateException("Instance shouldn't be used for core.feedback");
     }
 
     @Override

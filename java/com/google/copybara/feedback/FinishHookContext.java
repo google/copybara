@@ -22,13 +22,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.Endpoint;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Revision;
 import com.google.copybara.SkylarkContext;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
@@ -47,20 +50,30 @@ import java.util.stream.Collectors;
             + "concrete implementation for 'after_migration' hooks.")
 public class FinishHookContext extends FeedbackContext {
 
-  private final Endpoint origin;
-  private final Endpoint destination;
+  private final LazyResourceLoader<Endpoint> origin;
+  private final LazyResourceLoader<Endpoint> destination;
   private final SkylarkRevision resolvedRevision;
   private final ImmutableList<DestinationEffect> destinationEffects;
 
-  public FinishHookContext(Action action, Endpoint origin, Endpoint destination,
+  public FinishHookContext(
+      Action action,
+      LazyResourceLoader<Endpoint> origin,
+      LazyResourceLoader<Endpoint> destination,
       ImmutableList<DestinationEffect> destinationEffects,
-      Revision resolvedRevision, SkylarkConsole console) {
-    this(action, origin, destination, destinationEffects, console, SkylarkDict.empty(),
+      Revision resolvedRevision,
+      SkylarkConsole console) {
+    this(
+        action,
+        origin,
+        destination,
+        destinationEffects,
+        console,
+        SkylarkDict.empty(),
         new SkylarkRevision(resolvedRevision));
   }
 
-  private FinishHookContext(Action currentAction, Endpoint origin,
-      Endpoint destination,
+  private FinishHookContext(Action currentAction, LazyResourceLoader<Endpoint> origin,
+      LazyResourceLoader<Endpoint> destination,
       ImmutableList<DestinationEffect> destinationEffects,
       SkylarkConsole console, SkylarkDict<?, ?> params, SkylarkRevision resolvedRevision) {
     super(currentAction, console, params);
@@ -71,13 +84,21 @@ public class FinishHookContext extends FeedbackContext {
   }
 
   @Override
-  public Endpoint getOrigin() {
-    return origin;
+  public Endpoint getOrigin() throws EvalException {
+    try {
+      return origin.load(console);
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(/*location=*/ null, e);
+    }
   }
 
   @Override
-  public Endpoint getDestination() {
-    return destination;
+  public Endpoint getDestination() throws EvalException {
+    try {
+      return destination.load(console);
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(/*location=*/ null, e);
+    }
   }
 
   @SkylarkCallable(name = "effects",

@@ -83,7 +83,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
      * Utility endpoint for accessing and adding feedback data.
      * @param console
      */
-    default Endpoint getFeedbackEndPoint(Console console) {
+    default Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
       return Endpoint.NOOP_ENDPOINT;
     }
   }

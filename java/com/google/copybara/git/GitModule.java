@@ -302,7 +302,8 @@ public class GitModule implements LabelsAwareModule {
                   + " change of the merged branch.", positional = false),
           @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
               doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
-                  + "This field is not used if the workflow doesn't have hooks.",
+                  + "This field is not required if the workflow hooks don't use the "
+                  + "origin/destination endpoints.",
               named = true, positional = false,
               noneable = true),
           @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
@@ -412,7 +413,8 @@ public class GitModule implements LabelsAwareModule {
                   + " https://developer.github.com/v4/reference/enum/commentauthorassociation/"),
           @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
               doc = "A checker for the GitHub API endpoint provided for after_migration hooks. "
-                  + "This field is not used if the workflow doesn't have hooks.",
+                  + "This field is not required if the workflow hooks don't use the "
+                  + "origin/destination endpoints.",
               named = true, positional = false,
               noneable = true),
           @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
@@ -594,11 +596,17 @@ public class GitModule implements LabelsAwareModule {
               doc = "Integrate changes from a url present in the migrated change"
                   + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
                   + " present in the message", positional = false, noneable = true),
+          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
+              doc = "A checker for the GitHub API endpoint provided for after_migration hooks. "
+                  + "This field is not required if the workflow hooks don't use the "
+                  + "origin/destination endpoints.",
+              named = true, positional = false,
+              noneable = true),
       },
       useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
   public GitHubPrDestination githubPrDestination(String url, String destinationRef,
-      Boolean skipPush, Object title, Object body, Object integrates, Location location)
+      Boolean skipPush, Object title, Object body, Object integrates, Object checkerObj, Location location)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     // This restricts to github.com, we will have to revisit this to support setups like GitHub
@@ -620,7 +628,8 @@ public class GitModule implements LabelsAwareModule {
             "integrates"),
         SkylarkUtil.convertFromNoneable(title, null),
         SkylarkUtil.convertFromNoneable(body, null),
-        mainConfigFile);
+        mainConfigFile,
+        convertFromNoneable(checkerObj, null));
   }
 
   private static String firstNotNull(String... values) {
@@ -679,13 +688,20 @@ public class GitModule implements LabelsAwareModule {
                   + "The element in the list is: an email, for example: \"foo@example.com\" or label "
                   + "for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of "
                   + "assuming that users have registered to gerrit repos"),
+          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
+              doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
+                  + "This field is not required if the workflow hooks don't use the "
+                  + "origin/destination endpoints.",
+              named = true, positional = false,
+              noneable = true),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   @DocDefault(field = "push_to_refs_for", value = "fetch value")
   public GerritDestination gerritDestination(
       String url, String fetch, Object pushToRefsFor, Boolean submit, String changeIdPolicy,
-      Boolean allowEmptyPatchSet, SkylarkList<String> reviewers, Location location) throws EvalException {
+      Boolean allowEmptyPatchSet, SkylarkList<String> reviewers, Object checkerObj,
+      Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
     List<String> newReviewers =
             Type.STRING_LIST.convert(reviewers, "reviewers");
@@ -703,7 +719,8 @@ public class GitModule implements LabelsAwareModule {
         submit,
         stringToEnum(location, "change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
         allowEmptyPatchSet,
-        newReviewers);
+        newReviewers,
+        convertFromNoneable(checkerObj, null));
   }
 
   @SuppressWarnings("unused")
