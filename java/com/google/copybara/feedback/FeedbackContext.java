@@ -84,19 +84,29 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
       name = "record_effect",
       doc = "Records an effect of the current action.",
       parameters = {
-        @Param(name = "summary", type = String.class, doc = "The summary of this effect"),
+        @Param(
+            name = "summary",
+            type = String.class,
+            doc = "The summary of this effect",
+            named = true),
         @Param(
             name = "origin_refs",
             type = SkylarkList.class,
             generic1 = OriginRef.class,
-            doc = "The origin refs"),
-        @Param(name = "destination_ref", type = DestinationRef.class, doc = "The destination ref"),
+            doc = "The origin refs",
+            named = true),
+        @Param(
+            name = "destination_ref",
+            type = DestinationRef.class,
+            doc = "The destination ref",
+            named = true),
         @Param(
             name = "errors",
             type = SkylarkList.class,
             generic1 = String.class,
             defaultValue = "[]",
-            doc = "An optional list of errors"),
+            doc = "An optional list of errors",
+            named = true),
         @Param(
             name = "type",
             type = String.class,
@@ -117,7 +127,8 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
                     + "GitHub back to the Gerrit change.\n"
                     + "This effect would be created on the former one.</li>"
                     + "</ul>",
-            defaultValue = "\"UPDATED\"")
+            defaultValue = "\"UPDATED\"",
+            named = true)
       })
   public void recordEffect(
       String summary,
