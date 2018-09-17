@@ -157,15 +157,6 @@ http_archive(
     strip_prefix = "bazel-" + bazel_version + "/third_party/protobuf/3.6.1",
 )
 
-new_http_archive(
-    name = "com_google_protobuf_java",
-    url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
-    strip_prefix = "bazel-"+ bazel_version + "/third_party/protobuf/3.6.1",
-    # We cannot use this because of https://github.com/bazelbuild/bazel/issues/3364 :
-    # build_file = "@com_google_protobuf_java//:com_google_protobuf_java.BUILD"
-    build_file = "@com_google_protobuf//:com_google_protobuf_java.BUILD"
-)
-
 # LICENSE: New BSD
 maven_jar(
     name = "re2j",
