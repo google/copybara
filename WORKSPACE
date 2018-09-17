@@ -142,7 +142,7 @@ maven_jar(
     sha1 = "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
 )
 
-bazel_version="fb9215a78d8063ad65c789a8f55e1bc83656e7ba"
+bazel_version="126d16a47da7ad12a3d09f0830b14e0eed4e9efd"
 
 # LICENSE: The Apache Software License, Version 2.0
 http_archive(
@@ -154,7 +154,16 @@ http_archive(
 http_archive(
     name = "com_google_protobuf",
     url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
-    strip_prefix = "bazel-" + bazel_version + "/third_party/protobuf/3.4.0",
+    strip_prefix = "bazel-" + bazel_version + "/third_party/protobuf/3.6.1",
+)
+
+new_http_archive(
+    name = "com_google_protobuf_java",
+    url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+    strip_prefix = "bazel-"+ bazel_version + "/third_party/protobuf/3.6.1",
+    # We cannot use this because of https://github.com/bazelbuild/bazel/issues/3364 :
+    # build_file = "@com_google_protobuf_java//:com_google_protobuf_java.BUILD"
+    build_file = "@com_google_protobuf//:com_google_protobuf_java.BUILD"
 )
 
 # LICENSE: New BSD
