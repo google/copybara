@@ -27,6 +27,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.EvalUtils;
 
 /**
  * A feedback API endpoint of an origin or destination.
@@ -77,18 +78,44 @@ public interface Endpoint extends SkylarkValue {
     return new OriginRef(ref);
   }
 
-
   @SkylarkCallable(
       name = "new_destination_ref",
       doc = "Creates a new destination reference out of this endpoint.",
       parameters = {
-          @Param(name = "ref", type = String.class, named = true, doc = "The reference."),
+        @Param(name = "ref", type = String.class, named = true, doc = "The reference."),
+        @Param(
+            name = "type",
+            type = String.class,
+            named = true,
+            noneable = true,
+            doc =
+                "The type of this reference. "
+                    + "If not set, it defaults to the type of this endpoint.",
+            defaultValue = "None"),
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            noneable = true,
+            doc =
+                "The url associated with this reference. "
+                    + "If not set, it defaults to the URL of this endpoint.",
+            defaultValue = "None"),
       })
-  default DestinationRef newDestinationRef(String ref) {
+  default DestinationRef newDestinationRef(String ref, Object typeObj, Object urlObj) {
     ImmutableSetMultimap<String, String> describe = describe();
-    String type = Iterables.getOnlyElement(describe.get("type"));
+    // TODO(danielromero): At some point replace by SkylarkUtil (requires removing cyclic
+    // dependencies)
+    String type =
+        EvalUtils.isNullOrNone(typeObj)
+            ? Iterables.getOnlyElement(describe.get("type"))
+            : (String) typeObj;
     String url =
-        describe.containsKey("url") ? Iterables.getOnlyElement(describe.get("url"), null) : null;
+        EvalUtils.isNullOrNone(urlObj)
+            ? (describe.containsKey("url")
+                ? Iterables.getOnlyElement(describe.get("url"), null)
+                : null)
+            : (String) urlObj;
     return new DestinationRef(ref, type, url);
   }
 

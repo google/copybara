@@ -29,6 +29,7 @@ import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
@@ -40,6 +41,7 @@ import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Path;
+import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -278,7 +280,7 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testDestinationEffects() throws Exception {
+  public void testDestinationEffectsWithDefaults() throws Exception {
     runAndVerifyDestinationEffects(""
         + "def test_action(ctx):\n"
         + "    ctx.record_effect("
@@ -302,10 +304,46 @@ public class FeedbackTest {
             + "\n", ImmutableList.of("error1", "error2"));
   }
 
+  @Test
+  public void testDestinationEffectsWithExplicitValues() throws Exception {
+    runAndVerifyDestinationEffects(""
+        + "def test_action(ctx):\n"
+        + "    ctx.record_effect("
+        + "      'Some other effect',\n"
+        + "      [ctx.origin.new_origin_ref('origin_ref')],\n"
+        + "      ctx.destination.new_destination_ref("
+            + "    'dest_ref', 'custom_type', 'https://foo.bar'))\n"
+        + "    return ctx.success()\n"
+        + "\n", ImmutableList.of(),
+        "Some other effect",
+        "origin_ref",
+        "dest_ref",
+        "custom_type",
+        "https://foo.bar");
+  }
+
   private void runAndVerifyDestinationEffects(
       String actionsCode, ImmutableList<String> expectedErrors) throws Exception {
-    Feedback feedback = feedback(
-        actionsCode, "test_action");
+    runAndVerifyDestinationEffects(
+        actionsCode,
+        expectedErrors,
+        "Some effect",
+        "foo",
+        "bar",
+        "dummy_endpoint",
+        /*expectedDestUrl=*/ null);
+  }
+
+  private void runAndVerifyDestinationEffects(
+      String actionsCode,
+      ImmutableList<String> expectedErrors,
+      String expectedSummary,
+      String expectedOriginRef,
+      String expectedDestRef,
+      String expectedDestType,
+      @Nullable String expectedDestUrl)
+      throws IOException, ValidationException, RepoException {
+    Feedback feedback = feedback(actionsCode, "test_action");
     feedback.run(workdir, ImmutableList.of());
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
 
@@ -315,13 +353,17 @@ public class FeedbackTest {
     ChangeMigrationFinishedEvent event =
         Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents);
     DestinationEffect effect = Iterables.getOnlyElement(event.getDestinationEffects());
-    assertThat(effect.getSummary()).isEqualTo("Some effect");
+    assertThat(effect.getSummary()).isEqualTo(expectedSummary);
     assertThat(effect.getOriginRefs()).hasSize(1);
-    assertThat(effect.getOriginRefs().get(0).getRef()).isEqualTo("foo");
+    assertThat(effect.getOriginRefs().get(0).getRef()).isEqualTo(expectedOriginRef);
     DestinationRef destinationRef = effect.getDestinationRef();
-    assertThat(destinationRef.getId()).isEqualTo("bar");
-    assertThat(destinationRef.getType()).isEqualTo("dummy_endpoint");
-    assertThat(destinationRef.getUrl()).isNull();
+    assertThat(destinationRef.getId()).isEqualTo(expectedDestRef);
+    assertThat(destinationRef.getType()).isEqualTo(expectedDestType);
+    if (expectedDestUrl == null) {
+      assertThat(destinationRef.getUrl()).isNull();
+    } else {
+      assertThat(destinationRef.getUrl()).isEqualTo(expectedDestUrl);
+    }
     assertThat(effect.getErrors()).containsExactlyElementsIn(expectedErrors);
   }
 
