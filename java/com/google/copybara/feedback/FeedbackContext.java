@@ -84,39 +84,48 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
       name = "record_effect",
       doc = "Records an effect of the current action.",
       parameters = {
-          @Param(name = "summary", type = String.class, doc = "The summary of this effect"),
-          @Param(
-              name = "origin_refs",
-              type = SkylarkList.class,
-              generic1 = OriginRef.class,
-              doc = "The origin refs"),
-          @Param(name = "destination_ref", type = DestinationRef.class, doc = "The destination ref"),
-          @Param(
-              name = "errors",
-              type = SkylarkList.class,
-              generic1 = String.class,
-              defaultValue = "[]",
-              doc = "An optional list of errors"),
-          @Param(
-              name = "type",
-              type = String.class,
-              doc =
-                  "The type of migration effect:<br>"
-                      + "<ul>"
-                      + "<li><b>'CREATED'</b>: A new review or change was created.</li>"
-                      + "<li><b>'UPDATED'</b>: An existing review or change was updated.</li>"
-                      + "<li><b>'NOOP'</b>: The change was a noop.</li>"
-                      + "<li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because "
-                      + "the change doesn't have enough approvals.</li>"
-                      + "<li><b>'ERROR'</b>: A user attributable error happened that prevented "
-                      + "the destination from creating/updating the change. "
-                      + "</ul>",
-              defaultValue = "\"UPDATED\""
-          )
+        @Param(name = "summary", type = String.class, doc = "The summary of this effect"),
+        @Param(
+            name = "origin_refs",
+            type = SkylarkList.class,
+            generic1 = OriginRef.class,
+            doc = "The origin refs"),
+        @Param(name = "destination_ref", type = DestinationRef.class, doc = "The destination ref"),
+        @Param(
+            name = "errors",
+            type = SkylarkList.class,
+            generic1 = String.class,
+            defaultValue = "[]",
+            doc = "An optional list of errors"),
+        @Param(
+            name = "type",
+            type = String.class,
+            doc =
+                "The type of migration effect:<br>"
+                    + "<ul>"
+                    + "<li><b>'CREATED'</b>: A new review or change was created.</li>"
+                    + "<li><b>'UPDATED'</b>: An existing review or change was updated.</li>"
+                    + "<li><b>'NOOP'</b>: The change was a noop.</li>"
+                    + "<li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because "
+                    + "the change doesn't have enough approvals.</li>"
+                    + "<li><b>'ERROR'</b>: A user attributable error happened that prevented "
+                    + "the destination from creating/updating the change. "
+                    + "<li><b>'STARTED'</b>: The initial effect of a migration that depends on a "
+                    + "previous one. This allows to have 'dependant' migrations defined by users.\n"
+                    + "An example of this: a workflow migrates code from a Gerrit review to a "
+                    + "GitHub PR, and a feedback migration migrates the test results from a CI in "
+                    + "GitHub back to the Gerrit change.\n"
+                    + "This effect would be created on the former one.</li>"
+                    + "</ul>",
+            defaultValue = "\"UPDATED\"")
       })
   public void recordEffect(
-      String summary, List<OriginRef> originRefs, DestinationRef destinationRef,
-      List<String> errors, String typeStr) throws EvalException {
+      String summary,
+      List<OriginRef> originRefs,
+      DestinationRef destinationRef,
+      List<String> errors,
+      String typeStr)
+      throws EvalException {
     DestinationEffect.Type type =
         SkylarkUtil.stringToEnum(null, "type", typeStr, DestinationEffect.Type.class);
     newDestinationEffects.add(

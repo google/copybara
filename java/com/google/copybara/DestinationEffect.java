@@ -198,6 +198,14 @@ public class DestinationEffect implements SkylarkValue {
      * change.
      */
     ERROR,
+    /**
+     * A starting effect of a migration that is eventually expected to trigger another migration
+     * asynchronously. This allows to have 'dependant' migrations defined by users.
+     * An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a
+     * feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.
+     * This effect would be created on the former one.
+     */
+    STARTED,
   }
 
   /** Reference to the change/review read from the origin. */
