@@ -280,13 +280,13 @@ public class FeedbackTest {
   }
 
   @Test
-  public void testDestinationEffectsWithDefaults() throws Exception {
+  public void testDestinationEffects() throws Exception {
     runAndVerifyDestinationEffects(""
         + "def test_action(ctx):\n"
         + "    ctx.record_effect("
         + "      'Some effect',\n"
         + "      [ctx.origin.new_origin_ref('foo')],\n"
-        + "      ctx.destination.new_destination_ref('bar'))\n"
+        + "      ctx.destination.new_destination_ref(ref = 'bar', type = 'some_type'))\n"
         + "    return ctx.success()\n"
         + "\n", ImmutableList.of());
   }
@@ -299,13 +299,14 @@ public class FeedbackTest {
             + "    ctx.record_effect("
             + "      'Some effect',\n"
             + "      [ctx.origin.new_origin_ref('foo')],\n"
-            + "      ctx.destination.new_destination_ref('bar'), ['error1', 'error2'])\n"
+            + "      ctx.destination.new_destination_ref(ref = 'bar', type = 'some_type'), "
+            + "      ['error1', 'error2'])\n"
             + "    return ctx.success()\n"
             + "\n", ImmutableList.of("error1", "error2"));
   }
 
   @Test
-  public void testDestinationEffectsWithExplicitValues() throws Exception {
+  public void testDestinationEffectsWithUrl() throws Exception {
     runAndVerifyDestinationEffects(""
         + "def test_action(ctx):\n"
         + "    ctx.record_effect("
@@ -330,7 +331,7 @@ public class FeedbackTest {
         "Some effect",
         "foo",
         "bar",
-        "dummy_endpoint",
+        "some_type",
         /*expectedDestUrl=*/ null);
   }
 

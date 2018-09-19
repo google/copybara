@@ -42,7 +42,6 @@ import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.CallableStatement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.Before;
@@ -172,19 +171,6 @@ public class GerritEndpointTest {
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.<String, Object>builder()
             .put("ref", "12345")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
-  }
-
-  @Test
-  public void testDestinationRef() throws ValidationException {
-    String var =
-        "git.gerrit_api(url = 'https://test.googlesource.com/example').new_destination_ref('abcd')";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("id", "abcd")
-            .put("type", "gerrit_api")
-            .put("url", "https://test.googlesource.com/example")
             .build();
     skylark.verifyFields(var, expectedFieldValues);
   }

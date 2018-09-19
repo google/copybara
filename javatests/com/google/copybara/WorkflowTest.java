@@ -2027,7 +2027,7 @@ public class WorkflowTest {
     String config = ""
         + "def test(ctx):\n"
         + "  origin_refs = [ctx.origin.new_origin_ref('1111')]\n"
-        + "  dest_ref = ctx.destination.new_destination_ref('9999')\n"
+        + "  dest_ref = ctx.destination.new_destination_ref(ref = '9999', type = 'some_type')\n"
         + "  ctx.record_effect('New effect', origin_refs, dest_ref)\n"
         + "\n"
         + "core.workflow(\n"

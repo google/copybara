@@ -17,7 +17,6 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.util.console.Console;
@@ -87,35 +86,17 @@ public interface Endpoint extends SkylarkValue {
             name = "type",
             type = String.class,
             named = true,
-            noneable = true,
-            doc =
-                "The type of this reference. "
-                    + "If not set, it defaults to the type of this endpoint.",
-            defaultValue = "None"),
+            doc = "The type of this reference."),
         @Param(
             name = "url",
             type = String.class,
             named = true,
             noneable = true,
-            doc =
-                "The url associated with this reference. "
-                    + "If not set, it defaults to the URL of this endpoint.",
+            doc = "The url associated with this reference, if any.",
             defaultValue = "None"),
       })
-  default DestinationRef newDestinationRef(String ref, Object typeObj, Object urlObj) {
-    ImmutableSetMultimap<String, String> describe = describe();
-    // TODO(danielromero): At some point replace by SkylarkUtil (requires removing cyclic
-    // dependencies)
-    String type =
-        EvalUtils.isNullOrNone(typeObj)
-            ? Iterables.getOnlyElement(describe.get("type"))
-            : (String) typeObj;
-    String url =
-        EvalUtils.isNullOrNone(urlObj)
-            ? (describe.containsKey("url")
-                ? Iterables.getOnlyElement(describe.get("url"), null)
-                : null)
-            : (String) urlObj;
+  default DestinationRef newDestinationRef(String ref, String type, Object urlObj) {
+    String url = EvalUtils.isNullOrNone(urlObj) ? null : (String) urlObj;
     return new DestinationRef(ref, type, url);
   }
 

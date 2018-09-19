@@ -202,19 +202,6 @@ public class GitHubEndpointTest {
     skylark.verifyFields(var, expectedFieldValues);
   }
 
-  @Test
-  public void testDestinationRef() throws ValidationException {
-    String var =
-        "git.github_api(url = 'https://github.com/google/example').new_destination_ref('abcd')";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("id", "abcd")
-            .put("type", "github_api")
-            .put("url", "https://github.com/google/example")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
-  }
-
   /**
    * A test that uses feedback.
    *
