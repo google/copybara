@@ -172,7 +172,8 @@ public final class FileUtil {
   public static int deleteFilesRecursively(Path path, PathMatcher pathMatcher)
       throws IOException {
     AtomicInteger counter = new AtomicInteger();
-    Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+    // Normalize so that the patchMatcher works
+    Files.walkFileTree(path.normalize(), new SimpleFileVisitor<Path>() {
 
       @Override
       public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {

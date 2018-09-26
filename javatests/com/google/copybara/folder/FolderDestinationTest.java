@@ -18,6 +18,7 @@ package com.google.copybara.folder;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.StandardSystemProperty;
@@ -100,6 +101,37 @@ public class FolderDestinationTest {
 
     assertThatPath(localFolder)
         .containsFiles("file1.txt")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testRelativePaths() throws Exception {
+    Path dest = Files.createDirectories(Files.createTempDirectory("workdir").resolve("one"));
+    workdir = Files.createTempDirectory("local_folder");
+
+    Files.write(Files.createDirectories(dest.resolve("folder")).resolve("file1.txt"),
+        "foo".getBytes(UTF_8));
+    Files.write(Files.createDirectories(workdir.resolve("folder")).resolve("file1.txt"),
+        "bar".getBytes(UTF_8));
+
+    options.setWorkdirToRealTempDir();
+    options.folderDestination.localFolder = dest.resolve("../one").toString();
+
+    WriterContext<Revision> writerContext =
+        new WriterContext<>(
+            "not_important",
+            "not_important",
+            Glob.createGlob(ImmutableList.of("folder/file1.txt"), ImmutableList.of()),
+            /*dryRun=*/ false,
+            new DummyRevision("not_important"),
+            /*oldWriter=*/ null);
+    skylark.<FolderDestination>eval("dest", "dest = folder.destination()")
+        .newWriter(writerContext)
+        .write(TransformResults.of(workdir, new DummyRevision("not_important")),
+            options.general.console());
+
+    assertThatPath(dest)
+        .containsFile("folder/file1.txt", "bar")
         .containsNoMoreFiles();
   }
 

@@ -152,7 +152,9 @@ public class FolderDestination implements Destination<Revision> {
         localFolder = generalOptions.getCwd().resolve(localFolder);
       }
     }
-    return localFolder;
+
+    // Normalize for console and other stuff that might require normalized paths
+    return localFolder.normalize();
   }
 
   @Override
