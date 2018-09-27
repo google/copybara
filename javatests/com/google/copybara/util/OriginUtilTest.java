@@ -16,9 +16,8 @@
 
 package com.google.copybara.util;
 
-import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static com.google.copybara.util.OriginUtil.runCheckoutHook;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -26,8 +25,8 @@ import static org.junit.Assert.fail;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.util.OriginUtil.CheckoutHook;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -48,40 +47,19 @@ public class OriginUtilTest {
     options = new OptionsBuilder();
   }
 
-  private void verifyHookThrowsValidationException(String checkoutHook) throws RepoException {
-    try {
-      runCheckoutHook(workDir, checkoutHook, options.general.getEnvironment(),
-          options.general.isVerbose(), options.general.console(), "some.origin");
-      fail("Should have thrown exception");
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage()).contains("Invalid checkout hook path");
-    }
-  }
-
-  @Test
-  public void testInvalidCheckoutHookPath() throws Exception {
-    String checkoutHook = "../";
-    verifyHookThrowsValidationException(checkoutHook);
-
-    checkoutHook = "./";
-    verifyHookThrowsValidationException(checkoutHook);
-
-    checkoutHook = "/hook.sh";
-    verifyHookThrowsValidationException(checkoutHook);
-  }
-
   @Test
   public void testCheckoutHookWithExitError() throws Exception {
-    Path checkoutHook = Files.createTempFile(workDir, "script", "script");
-    Files.write(checkoutHook, "exit 42".getBytes(UTF_8));
+    Path script = Files.createTempFile("script", "script");
+    Files.write(script, "exit 42".getBytes(UTF_8));
 
-    Files.setPosixFilePermissions(checkoutHook, ImmutableSet.<PosixFilePermission>builder()
-        .addAll(Files.getPosixFilePermissions(checkoutHook))
+    Files.setPosixFilePermissions(script, ImmutableSet.<PosixFilePermission>builder()
+        .addAll(Files.getPosixFilePermissions(script))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
 
+    CheckoutHook checkoutHook =
+        new CheckoutHook(script.toString(), options.general, "some.origin");
     try {
-      runCheckoutHook(workDir, checkoutHook.toFile().getName(), options.general.getEnvironment(),
-          options.general.isVerbose(), options.general.console(), "some.origin");
+      checkoutHook.run(workDir);
       fail("Should have thrown exception");
     } catch (RepoException expected) {
       assertThat(expected.getMessage()).contains("Error executing the checkout hook");
@@ -92,15 +70,16 @@ public class OriginUtilTest {
 
   @Test
   public void testCheckoutHook() throws Exception {
-    Path checkoutHook = Files.createTempFile(workDir, "script", "script");
-    Files.write(checkoutHook, "touch hook.txt".getBytes(UTF_8));
+    Path script = Files.createTempFile("script", "script");
+    Files.write(script, "touch hook.txt".getBytes(UTF_8));
 
-    Files.setPosixFilePermissions(checkoutHook, ImmutableSet.<PosixFilePermission>builder()
-        .addAll(Files.getPosixFilePermissions(checkoutHook))
+    Files.setPosixFilePermissions(script, ImmutableSet.<PosixFilePermission>builder()
+        .addAll(Files.getPosixFilePermissions(script))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
 
-    runCheckoutHook(workDir, checkoutHook.toFile().getName(), options.general.getEnvironment(),
-        options.general.isVerbose(), options.general.console(), "some.origin");
+    CheckoutHook checkoutHook =
+        new CheckoutHook(script.toString(), options.general, "some.origin");
+    checkoutHook.run(workDir);
 
     assertThatPath(workDir).containsFile("hook.txt", "");
   }

@@ -18,7 +18,12 @@ licenses(["notice"])  # Apache 2.0
 
 java_library(
     name = "util",
-    srcs = glob(["**/*.java"]),
+    srcs = glob(
+        ["**/*.java"],
+        exclude = [
+            "OriginUtil.java",
+        ],
+    ),
     javacopts = [
         "-Xlint:unchecked",
         "-source",
@@ -27,7 +32,6 @@ java_library(
     deps = [
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:exec_path",
-        "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util/console",
         "//third_party:autovalue",
         "//third_party:flogger",
@@ -36,5 +40,24 @@ java_library(
         "//third_party:re2j",
         "//third_party:shell",
         "//third_party:skylark-lang",
+    ],
+)
+
+java_library(
+    name = "origin_util",
+    srcs = ["OriginUtil.java"],
+    javacopts = [
+        "-Xlint:unchecked",
+        "-source",
+        "1.8",
+    ],
+    deps = [
+        "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
+        "//third_party:guava",
+        "//third_party:jsr305",
+        "//third_party:shell",
     ],
 )

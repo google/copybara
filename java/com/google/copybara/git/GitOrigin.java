@@ -21,7 +21,6 @@ import static com.google.copybara.Origin.Reader.ChangesResponse.forChanges;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.OriginUtil.affectsRoots;
-import static com.google.copybara.util.OriginUtil.runCheckoutHook;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -197,11 +196,7 @@ public class GitOrigin implements Origin<GitRevision> {
     public void checkout(GitRevision ref, Path workdir) throws RepoException, ValidationException {
       checkoutRepo(getRepository(), repoUrl, workdir, submoduleStrategy, ref,
           /*topLevelCheckout=*/true);
-      if (!Strings.isNullOrEmpty(gitOriginOptions.originCheckoutHook)) {
-        runCheckoutHook(workdir, gitOriginOptions.originCheckoutHook,
-            generalOptions.getEnvironment(), generalOptions.isVerbose(), generalOptions.console(),
-            /*originType*/ "git.origin");
-      }
+      gitOriginOptions.maybeRunCheckoutHook(workdir, generalOptions);
       if (patchTransformation != null) {
         generalOptions.console().progress("Patching the checkout directory");
         try {

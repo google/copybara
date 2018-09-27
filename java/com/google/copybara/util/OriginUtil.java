@@ -18,15 +18,14 @@ package com.google.copybara.util;
 
 import static com.google.copybara.util.console.Consoles.logLines;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
-import com.google.copybara.util.console.Console;
 import java.nio.file.Path;
-import java.util.Map;
 
 /**
  * Utility methods for managing origins
@@ -55,36 +54,42 @@ public class OriginUtil {
     return false;
   }
 
-  public static void runCheckoutHook(Path workDir, String checkoutHook,
-      Map<String, String> environment, boolean isVerbose, Console console, String originType)
-      throws RepoException, ValidationException {
-    try {
-      checkoutHook = FileUtil.checkNormalizedRelative(checkoutHook);
-    } catch (IllegalArgumentException e) {
-      throw new ValidationException(
-          String.format("Invalid checkout hook path: %s", e.getMessage()));
+  /**
+   * A {@link CheckoutHook} executes a script on a checkout directory.
+   */
+  public static class CheckoutHook {
+
+    private final String checkoutHook;
+    private final GeneralOptions generalOptions;
+    private final String originType;
+
+    public CheckoutHook(String checkoutHook, GeneralOptions generalOptions, String originType) {
+      this.checkoutHook = Preconditions.checkNotNull(checkoutHook);
+      this.generalOptions = Preconditions.checkNotNull(generalOptions);
+      this.originType = Preconditions.checkNotNull(originType);
     }
-    try {
-      Command cmd = new Command(new String[]{
-          workDir.resolve(checkoutHook).toAbsolutePath().toString()}, environment,
-          workDir.toFile());
-      CommandOutputWithStatus result = new CommandRunner(cmd)
-          .withVerbose(isVerbose)
-          .execute();
-      logLines(
-          console, String.format("%s hook (Stdout): ", originType), result.getStdout());
-      logLines(
-          console, String.format("%s hook (Stderr): ", originType), result.getStderr());
-    } catch (BadExitStatusWithOutputException e) {
-      logLines(console,
-          String.format("%s hook (Stdout): ", originType), e.getOutput().getStdout());
-      logLines(console,
-          String.format("%s hook (Stderr): ", originType), e.getOutput().getStderr());
-      throw new RepoException(
-          "Error executing the checkout hook: " + checkoutHook, e);
-    } catch (CommandException e) {
-      throw new RepoException(
-          "Error executing the checkout hook: " + checkoutHook, e);
+
+    public void run(Path checkoutDir) throws RepoException {
+      try {
+        Command cmd =
+            new Command(
+                new String[] {checkoutHook}, generalOptions.getEnvironment(), checkoutDir.toFile());
+        CommandOutputWithStatus result = new CommandRunner(cmd)
+            .withVerbose(generalOptions.isVerbose())
+            .execute();
+        logLines(generalOptions.console(), getPrefix("Stdout"), result.getStdout());
+        logLines(generalOptions.console(), getPrefix("Stderr"), result.getStderr());
+      } catch (BadExitStatusWithOutputException e) {
+        logLines(generalOptions.console(), getPrefix("Stdout"), e.getOutput().getStdout());
+        logLines(generalOptions.console(), getPrefix("Sderr"), e.getOutput().getStderr());
+        throw new RepoException("Error executing the checkout hook: " + checkoutHook, e);
+      } catch (CommandException e) {
+        throw new RepoException("Error executing the checkout hook: " + checkoutHook, e);
+      }
+    }
+
+    private String getPrefix(String channel) {
+      return String.format("%s hook (%s): ", channel, originType);
     }
   }
 }

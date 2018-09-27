@@ -56,6 +56,7 @@ java_library(
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/transform/patch",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util:origin_util",
         "//java/com/google/copybara/util/console",
         "//third_party:flogger",
         "//third_party:google_http_client",

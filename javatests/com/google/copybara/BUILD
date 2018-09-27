@@ -40,6 +40,7 @@ DEPS = [
     "//java/com/google/copybara/testing/profiler",
     "//java/com/google/copybara/transform",
     "//java/com/google/copybara/util",
+    "//java/com/google/copybara/util:origin_util",
     "//java/com/google/copybara/util/console",
     "//java/com/google/copybara/util/console/testing",
     "//third_party:guava_testlib",

@@ -19,7 +19,6 @@ package com.google.copybara.hg;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.util.OriginUtil.affectsRoots;
-import static com.google.copybara.util.OriginUtil.runCheckoutHook;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
@@ -59,8 +58,12 @@ public class HgOrigin implements Origin<HgRevision> {
   @Nullable private final String configRef;
   private final HgOriginOptions hgOriginOptions;
 
-  HgOrigin(GeneralOptions generalOptions, HgOptions hgOptions, String repoUrl,
-      @Nullable String ref, HgOriginOptions hgOriginOptions) {
+  private HgOrigin(
+      GeneralOptions generalOptions,
+      HgOptions hgOptions,
+      String repoUrl,
+      @Nullable String ref,
+      HgOriginOptions hgOriginOptions) {
     this.generalOptions = generalOptions;
     this.hgOptions = hgOptions;
     this.repoUrl = CharMatcher.is('/').trimTrailingFrom(checkNotNull(repoUrl));
@@ -142,11 +145,7 @@ public class HgOrigin implements Origin<HgRevision> {
         throw new RepoException("Error checking out " + repoUrl, e);
       }
 
-      if (!Strings.isNullOrEmpty(hgOriginOptions.originCheckoutHook)) {
-        runCheckoutHook(workDir, hgOriginOptions.originCheckoutHook,
-            generalOptions.getEnvironment(), generalOptions.isVerbose(),
-            generalOptions.console(), /*originType*/ "hg.origin");
-      }
+      hgOriginOptions.maybeRunCheckoutHook(workDir, generalOptions);
     }
 
     @Override

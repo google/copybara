@@ -110,22 +110,26 @@ public class HgOriginTest {
 
   @Test
   public void testHgOriginWithHook() throws Exception {
-    Path hook = Files.createTempFile(remotePath, "script", "script");
-    Files.write(hook, "touch output.txt".getBytes(UTF_8));
+    Files.write(remotePath.resolve("foo.txt"), "hello".getBytes(UTF_8));
+    Files.write(remotePath.resolve("bar.txt"), "hello".getBytes(UTF_8));
+
+    repository.hg(remotePath, "add", "foo.txt");
+    repository.hg(remotePath, "add", "bar.txt");
+    repository.hg(remotePath, "commit", "-m", "foo");
+
+    Path hook = Files.createTempFile("script", "script");
+    Files.write(hook, "touch hook.txt".getBytes(UTF_8));
 
     Files.setPosixFilePermissions(hook, ImmutableSet.<PosixFilePermission>builder()
         .addAll(Files.getPosixFilePermissions(hook))
         .add(PosixFilePermission.OWNER_EXECUTE).build());
-    repository.hg(remotePath, "add", hook.toString());
-    repository.hg(remotePath, "commit", "-m", "add hook");
 
-    options.hgOrigin.originCheckoutHook = hook.toFile().getName();
+    options.hgOrigin.originCheckoutHook = hook.toString();
     origin = origin();
 
     Path checkoutDir = Files.createTempDirectory("checkout");
     newReader().checkout(origin.resolve("tip"), checkoutDir);
-    assertThatPath(checkoutDir).containsFile("output.txt", "");
-    assertThatPath(remotePath).containsNoFiles("output.txt");
+    assertThatPath(checkoutDir).containsFile("hook.txt", "");
   }
 
   @Test
