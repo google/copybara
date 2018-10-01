@@ -378,8 +378,7 @@ public final class GerritDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer<GitRevision> newWriter(WriterContext<GitRevision> writerContext)
-      throws ValidationException {
+  public Writer<GitRevision> newWriter(WriterContext writerContext) {
     return gitDestination.newWriter(writerContext);
   }
 

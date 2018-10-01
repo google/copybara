@@ -116,12 +116,12 @@ public final class SubmodulesInDestinationTest {
     scratchRepo.simpleCommand("commit", "-m", "commit submodule");
 
     Files.write(workdir.resolve("test42"), new byte[] {42});
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("SubmodulesInDestinationTest","Test",
-            destinationFiles,false, new DummyRevision("test"), /*oldWriter=*/ null);
+    WriterContext writerContext =
+        new WriterContext("SubmodulesInDestinationTest", "Test", false, new DummyRevision("test"));
     Destination.Writer<GitRevision> writer = destination().newWriter(writerContext);
     ImmutableList<DestinationEffect> result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
+        destinationFiles,
         console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
@@ -174,13 +174,11 @@ public final class SubmodulesInDestinationTest {
     // Create a commit that removes foo/a and adds foo/c
     Files.createDirectories(workdir.resolve("foo"));
     Files.write(workdir.resolve("foo/c"), new byte[] {1});
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("SubmodulesInDestinationTest","Test",
-            destinationFiles,false, new DummyRevision("test"), /*oldWriter=*/ null);
+    WriterContext writerContext =
+        new WriterContext("SubmodulesInDestinationTest", "Test", false, new DummyRevision("test"));
     Destination.Writer<GitRevision> writer = destination().newWriter(writerContext);
     ImmutableList<DestinationEffect> result = writer.write(
-        TransformResults.of(workdir, new DummyRevision("ref1")),
-        console);
+        TransformResults.of(workdir, new DummyRevision("ref1")), destinationFiles, console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
     assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);

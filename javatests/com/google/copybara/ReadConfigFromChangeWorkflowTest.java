@@ -16,8 +16,9 @@
 
 package com.google.copybara;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
-import com.google.common.truth.Truth;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.ValidationResult;
@@ -25,12 +26,10 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
-import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,21 +54,13 @@ public class ReadConfigFromChangeWorkflowTest {
   }
 
   /**
-   * Validates that when running Copybara in ITERATIVE mode with read config from change,
-   * we pass the old writer to the newWriter method so that writers can maintain state
-   * despite new instances being requested.
+   * A test that check that we can mutate the glob in iterative mode
    */
   @SuppressWarnings("unchecked")
   @Test
   public void testWriterStateMaintained() throws Exception {
     options.workflowOptions.lastRevision = "0";
-    String configCode = "core.workflow("
-        + "    name = 'default',"
-        + "    origin = testing.origin(),"
-        + "    mode = 'ITERATIVE',"
-        + "    destination = testing.destination(),"
-        + "    authoring = authoring.pass_thru('foo <foo@foo.com>')"
-        + ")";
+    String configCode = mutatingWorkflow("*");
     Config cfg = skylark.loadConfig(configCode);
     ConfigLoader constantConfigLoader =
         new ConfigLoader(
@@ -79,7 +70,7 @@ public class ReadConfigFromChangeWorkflowTest {
           public Config loadForRevision(Console console, Revision revision)
               throws ValidationException {
             try {
-              return super.load(console);
+              return skylark.loadConfig(mutatingWorkflow(revision.asString()));
             } catch (IOException e) {
               throw new AssertionError("Should not fail", e);
             }
@@ -95,17 +86,30 @@ public class ReadConfigFromChangeWorkflowTest {
       }
     });
 
-    origin.addSimpleChange(0);
-    origin.addSimpleChange(1);
-    origin.addSimpleChange(2);
-    origin.addSimpleChange(3);
+    origin.singleFileChange(0, "base", "fileB", "b");
+    origin.singleFileChange(1, "one", "file1", "b");
+    origin.singleFileChange(2, "two", "file2", "b");
+    origin.singleFileChange(3, "three", "file3", "b");
 
     wf.run(Files.createTempDirectory("workdir"), ImmutableList.of("3"));
-    // We are able to maintain state between invocations despite asking for new
-    // writers.
-    Truth.assertThat(destination.processed.stream()
-                         .map(ProcessedChange::getState)
-                         .collect(Collectors.toSet()))
-        .containsExactly(0, 1, 2);
+    assertThat(destination.processed).hasSize(3);
+    assertThat(destination.processed.get(0).getDestinationFiles().toString()).contains("file1");
+    assertThat(destination.processed.get(0).getWorkdir()).containsExactly("file1", "b");
+    assertThat(destination.processed.get(1).getDestinationFiles().toString()).contains("file2");
+    assertThat(destination.processed.get(1).getWorkdir()).containsExactly("file2", "b");
+    assertThat(destination.processed.get(2).getDestinationFiles().toString()).contains("file3");
+    assertThat(destination.processed.get(2).getWorkdir()).containsExactly("file3", "b");
+  }
+
+  private String mutatingWorkflow(String suffix) {
+    return "core.workflow("
+        + "    name = 'default',"
+        + "    origin = testing.origin(),"
+        + "    mode = 'ITERATIVE',"
+        + "    origin_files = glob(['file" + suffix + "']),"
+        + "    destination_files = glob(['file" + suffix + "']),"
+        + "    destination = testing.destination(),"
+        + "    authoring = authoring.pass_thru('foo <foo@foo.com>')"
+        + ")";
   }
 }

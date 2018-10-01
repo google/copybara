@@ -218,11 +218,11 @@ public class GitDestinationIntegrateTest {
     assertThat(featureMerge.getBody()).isEqualTo("Merge of " + feature.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": the_rev\n");
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>(
-            "piper_to_github", "TEST", destinationFiles, /*dryRun=*/false, new DummyRevision("feature"), /*oldWriter=*/null);
-    DestinationStatus destinationStatus =
-        destination.newWriter(writerContext).getDestinationStatus(DummyOrigin.LABEL_NAME);
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github", "TEST",  /*dryRun=*/false, new DummyRevision("feature"));
+    DestinationStatus destinationStatus = destination.newWriter(writerContext)
+        .getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME);
     assertWithMessage(gitDir.toString()).that(destinationStatus.getBaseline()).isEqualTo("the_rev");
   }
 
@@ -520,7 +520,6 @@ public class GitDestinationIntegrateTest {
   }
 
   private GitLogEntry getLastMigratedChange(String ref) throws RepoException {
-    GitRepository repo = repo();
     return getLastMigratedChange(ref, repo());
   }
 
@@ -576,9 +575,9 @@ public class GitDestinationIntegrateTest {
   private void migrateOriginChange(GitDestination destination, String summary,
       String file, String content,
       String originRef) throws IOException, RepoException, ValidationException {
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("piper_to_github", "TEST", destinationFiles,
-            /*dryRun=*/false, new DummyRevision("test"), /*oldWriter=*/null);
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST",
+            /*dryRun=*/false, new DummyRevision("test"));
     Writer<GitRevision> writer = destination.newWriter(writerContext);
 
     Files.createDirectories(workdir.resolve(file).getParent());
@@ -586,7 +585,7 @@ public class GitDestinationIntegrateTest {
     TransformResult result = TransformResults.of(workdir, new DummyRevision(originRef))
         .withSummary(summary);
 
-    writer.write(result, console);
+    writer.write(result, destinationFiles, console);
   }
 
   private GitRepository repo() {

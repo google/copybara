@@ -134,22 +134,14 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer<GitRevision> newWriter(WriterContext<GitRevision> writerContext) {
-    WriterImpl<?> gitOldWriter = (WriterImpl) writerContext.getOldWriter();
+  public Writer<GitRevision> newWriter(WriterContext writerContext) {
 
     boolean effectiveSkipPush = GitDestination.this.effectiveSkipPush || writerContext.isDryRun();
 
-    WriterState state;
-    if (writerContext.getOldWriter() != null && gitOldWriter.skipPush == effectiveSkipPush) {
-      state = ((WriterImpl) writerContext.getOldWriter()).state;
-    } else {
-      state =
-          new WriterState(
+    WriterState state = new WriterState(
               localRepo, destinationOptions.getLocalBranch(push, writerContext.isDryRun()));
-    }
 
     return new WriterImpl<>(
-        writerContext.getDestinationFiles(),
         effectiveSkipPush,
         repoUrl,
         fetch,
@@ -171,7 +163,7 @@ public final class GitDestination implements Destination<GitRevision> {
   /**
    * State to be maintained between writer instances.
    */
-  public static class WriterState {
+  static class WriterState {
 
     boolean alreadyFetched;
     boolean firstWrite = true;
@@ -191,7 +183,6 @@ public final class GitDestination implements Destination<GitRevision> {
   public static class WriterImpl<S extends WriterState>
       implements Writer<GitRevision> {
 
-    private final Glob destinationFiles;
     final boolean skipPush;
     private final String repoUrl;
     private final String remoteFetch;
@@ -216,12 +207,11 @@ public final class GitDestination implements Destination<GitRevision> {
     /**
      * Create a new git.destination writer
      */
-    WriterImpl(Glob destinationFiles, boolean skipPush, String repoUrl, String remoteFetch,
+    WriterImpl(boolean skipPush, String repoUrl, String remoteFetch,
         String remotePush, GeneralOptions generalOptions, WriteHook writeHook,
         S state, boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates,
         boolean lastRevFirstParent, boolean ignoreIntegrationErrors, String localRepoPath,
         String committerName, String committerEmail, boolean rebase, int visitChangePageSize) {
-      this.destinationFiles = checkNotNull(destinationFiles);
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
@@ -285,7 +275,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
     @Nullable
     @Override
-    public DestinationStatus getDestinationStatus(String labelName)
+    public DestinationStatus getDestinationStatus(Glob destinationFiles, String labelName)
         throws RepoException, ValidationException {
       GitRepository repo = getRepository(baseConsole);
       try {
@@ -416,7 +406,8 @@ public final class GitDestination implements Destination<GitRevision> {
     }
 
     @Override
-    public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
+    public ImmutableList<DestinationEffect> write(TransformResult transformResult,
+        Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
       logger.atInfo().log("Exporting from %s to: %s", transformResult.getPath(), this);
       String baseline = transformResult.getBaseline();
@@ -599,7 +590,7 @@ public final class GitDestination implements Destination<GitRevision> {
       return fetch.startsWith("refs/") ? fetch : "refs/heads/" + fetch;
     }
 
-    private GitRepository configForPush(GitRepository repo, String repoUrl, String push)
+    private void configForPush(GitRepository repo, String repoUrl, String push)
         throws RepoException, ValidationException {
 
       if (localRepoPath != null) {
@@ -618,7 +609,6 @@ public final class GitDestination implements Destination<GitRevision> {
       }
       verifyUserInfoConfigured(repo);
 
-      return repo;
     }
   }
 

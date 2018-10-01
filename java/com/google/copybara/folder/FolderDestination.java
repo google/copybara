@@ -65,31 +65,25 @@ public class FolderDestination implements Destination<Revision> {
   }
 
   @Override
-  public Writer<Revision> newWriter(WriterContext<Revision> writerContext) {
+  public Writer<Revision> newWriter(WriterContext writerContext) {
     if (writerContext.isDryRun()) {
       generalOptions.console().warn("--dry-run does not have any effect for folder.destination");
     }
-    return new WriterImpl(writerContext.getDestinationFiles());
+    return new WriterImpl();
   }
 
   private class WriterImpl implements Writer<Revision> {
 
-    final Glob destinationFiles;
-
-    WriterImpl(Glob destinationFiles) {
-      this.destinationFiles = destinationFiles;
-    }
-
     @Nullable
     @Override
-    public DestinationStatus getDestinationStatus(String labelName)
-        throws RepoException, ValidationException {
+    public DestinationStatus getDestinationStatus(Glob destinationFiles, String labelName)
+        throws ValidationException {
       throw new ValidationException(HISTORY_NOT_SUPPORTED);
     }
 
     @Override
     public void visitChanges(Revision start, ChangesVisitor visitor)
-        throws RepoException, ValidationException {
+        throws ValidationException {
       throw new ValidationException(HISTORY_NOT_SUPPORTED);
     }
 
@@ -99,7 +93,8 @@ public class FolderDestination implements Destination<Revision> {
     }
 
     @Override
-    public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
+    public ImmutableList<DestinationEffect> write(TransformResult transformResult,
+        Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
       Path localFolder = getFolderPath(console);
       console.progress("FolderDestination: creating " + localFolder);

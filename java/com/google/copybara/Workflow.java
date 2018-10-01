@@ -45,6 +45,9 @@ import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
@@ -262,14 +265,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
     Reader<O> reader = getOrigin()
         .newReader(getOriginFiles(), getAuthoring());
-    WriterContext<D> writerContext =
-        new WriterContext<>(
+    WriterContext writerContext = new WriterContext(
             name,
             workflowOptions.workflowIdentityUser,
-            getDestinationFiles(),
             dryRunMode,
-            resolvedRef,
-            /*oldWriter=*/null);
+        resolvedRef);
     Writer<D> writer = getDestination().newWriter(writerContext);
     return new WorkflowRunHelper<>(this, workdir, resolvedRef, reader, writer, rawSourceRef);
   }
@@ -315,15 +315,22 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                             ? ImmutableList.of()
                             : ImmutableList.copyOf(changes.getChanges().nodes());
                       });
+              WorkflowRunHelper<O, D> helper = newRunHelper(
+                  // We shouldn't use this path for info
+                  Paths.get("shouldnt_be_used"),
+                  lastResolved, /*rawSourceRef=*/null);
 
-              ImmutableList<Change<O>> changes =
-                  allChanges
-                      .stream()
-                      .filter(change -> !WorkflowRunHelper.shouldSkipChange(change, this, console))
-                      .collect(ImmutableList.toImmutableList());
-              MigrationReference<O> migrationRef =
-                  MigrationReference.create(
-                      String.format("workflow_%s", name), lastMigrated, changes);
+              List<Change<O>> affectedChanges = new ArrayList<>();
+              for (Change<O> change : allChanges) {
+                if (helper.getMigratorForChange(change, /*dryRun=*/true).shouldSkipChange(change)) {
+                  continue;
+                }
+                affectedChanges.add(change);
+              }
+              MigrationReference<O> migrationRef = MigrationReference.create(
+                  String.format("workflow_%s", name),
+                  lastMigrated,
+                  affectedChanges);
               return Info.create(ImmutableList.of(migrationRef));
             });
   }
@@ -335,11 +342,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     }
     // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
     // Should be K since info doesn't write but only read.
-    WriterContext<D> writerContext =
-        new WriterContext<>(
-            name, workflowOptions.workflowIdentityUser, getDestinationFiles(),  /*dryRun=*/false,
-            revision, /*oldWriter=*/null);
-    return destination.newWriter(writerContext).getDestinationStatus(origin.getLabelName());
+    WriterContext writerContext = new WriterContext(
+        name, workflowOptions.workflowIdentityUser, /*dryRun=*/false, revision);
+    return destination.newWriter(writerContext)
+        .getDestinationStatus(getDestinationFiles(), origin.getLabelName());
   }
 
   @Override
@@ -373,7 +379,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Nullable
-  public Transformation getReverseTransformForCheck() {
+  Transformation getReverseTransformForCheck() {
     return reverseTransformForCheck;
   }
 
@@ -382,11 +388,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Nullable
-  public String getLastRevisionFlag() {
+  String getLastRevisionFlag() {
     return lastRevisionFlag;
   }
 
-  public boolean isInitHistory() {
+  boolean isInitHistory() {
     return initHistoryFlag;
   }
 
@@ -399,11 +405,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return mode.toString();
   }
 
-  public boolean isCheckLastRevState() {
+  boolean isCheckLastRevState() {
     return checkLastRevState;
   }
 
-  public boolean isDryRunMode() {
+  boolean isDryRunMode() {
     return dryRunMode;
   }
 
@@ -477,7 +483,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return generalOptions.eventMonitor();
   }
 
-  public Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> getAllConfigFiles() {
+  Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> getAllConfigFiles() {
     return allConfigFiles;
   }
 
@@ -485,11 +491,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return generalOptions;
   }
 
-  public ImmutableList<Action> getAfterMigrationActions() {
+  ImmutableList<Action> getAfterMigrationActions() {
     return afterMigrationActions;
   }
 
-  protected ImmutableList<Token> getChangeIdentity() {
+  ImmutableList<Token> getChangeIdentity() {
     return changeIdentity;
   }
 
@@ -497,11 +503,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return setRevId;
   }
 
-  public boolean isSmartPrune() {
+  boolean isSmartPrune() {
     return smartPrune;
   }
 
-  public boolean isMigrateNoopChanges() {
+  boolean isMigrateNoopChanges() {
     return migrateNoopChanges;
   }
 }

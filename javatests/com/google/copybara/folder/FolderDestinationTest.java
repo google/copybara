@@ -58,7 +58,7 @@ public class FolderDestinationTest {
   private SkylarkTestExecutor skylark;
 
   @Before
-  public void setup() throws IOException, RepoException {
+  public void setup() throws IOException {
     workdir = Files.createTempDirectory("workdir");
     options = new OptionsBuilder()
         .setWorkdirToRealTempDir()
@@ -71,19 +71,18 @@ public class FolderDestinationTest {
   }
 
   private void write() throws ValidationException, RepoException, IOException {
-    WriterContext<Revision> writerContext =
-        new WriterContext<>(
+    WriterContext writerContext =
+        new WriterContext(
             "FolderDestinationTest",
             "test",
-            Glob.createGlob(ImmutableList.of("**"), excludedPathsForDeletion),
             /*dryRun=*/ false,
-            new DummyRevision("origin_ref"),
-            /*oldWriter=*/null);
+            new DummyRevision("origin_ref"));
     skylark
         .<Destination<Revision>>eval("dest", "dest = folder.destination()")
         .newWriter(writerContext)
         .write(
             TransformResults.of(workdir, new DummyRevision("origin_ref")),
+            Glob.createGlob(ImmutableList.of("**"), excludedPathsForDeletion),
             options.general.console());
   }
 
@@ -117,17 +116,16 @@ public class FolderDestinationTest {
     options.setWorkdirToRealTempDir();
     options.folderDestination.localFolder = dest.resolve("../one").toString();
 
-    WriterContext<Revision> writerContext =
-        new WriterContext<>(
+    WriterContext writerContext =
+        new WriterContext(
             "not_important",
             "not_important",
-            Glob.createGlob(ImmutableList.of("folder/file1.txt"), ImmutableList.of()),
             /*dryRun=*/ false,
-            new DummyRevision("not_important"),
-            /*oldWriter=*/ null);
+            new DummyRevision("not_important"));
     skylark.<FolderDestination>eval("dest", "dest = folder.destination()")
         .newWriter(writerContext)
         .write(TransformResults.of(workdir, new DummyRevision("not_important")),
+            Glob.createGlob(ImmutableList.of("folder/file1.txt"), ImmutableList.of()),
             options.general.console());
 
     assertThatPath(dest)

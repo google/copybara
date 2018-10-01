@@ -23,14 +23,16 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Origin.Reader;
+import com.google.copybara.WorkflowRunHelper.ChangeMigrator;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import java.io.IOException;
+import com.google.copybara.util.Glob;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
@@ -51,16 +53,10 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
     extends Workflow<O, D> {
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
-  private final Options options;
   private final ConfigLoader configLoader;
   private final ConfigValidator configValidator;
-  /**
-   * Last writer returned by the workflow so that we can maintain state in ITERATIVE mode.
-   */
-  @Nullable
-  private Writer<D> lastWriter;
 
-  public ReadConfigFromChangeWorkflow(Workflow<O, D> workflow, Options options,
+  ReadConfigFromChangeWorkflow(Workflow<O, D> workflow, Options options,
       ConfigLoader configLoader, ConfigValidator configValidator) {
     super(
         workflow.getName(),
@@ -86,7 +82,6 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.isSetRevId(),
         workflow.isSmartPrune(),
         workflow.isMigrateNoopChanges());
-    this.options = checkNotNull(options, "options");
     this.configLoader = checkNotNull(configLoader, "configLoaderProvider");
     this.configValidator = checkNotNull(configValidator, "configValidator");
   }
@@ -96,14 +91,17 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       String rawSourceRef)
       throws ValidationException, RepoException {
     Reader<O> reader = this.getOrigin().newReader(this.getOriginFiles(), this.getAuthoring());
+    WriterContext writerContext = new WriterContext(
+        getName(),
+        getWorkflowOptions().workflowIdentityUser,
+        isDryRunMode(),
+        resolvedRef);
     return new ReloadingRunHelper(
         this,
-        options,
         getName(),
         workdir,
         resolvedRef,
-        this.isDryRunMode(),
-        /*oldWriter=*/ null,
+        getDestination().newWriter(writerContext),
         reader,
         rawSourceRef);
   }
@@ -119,17 +117,14 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
    */
   private class ReloadingRunHelper extends WorkflowRunHelper<O, D> {
     private final Workflow<O, D> workflow;
-    private final Options options;
     private final String workflowName;
 
     private ReloadingRunHelper(
         Workflow<O, D> workflow,
-        Options options,
         String workflowName,
         Path workdir,
         O resolvedRef,
-        boolean dryRun,
-        @Nullable Writer<D> oldWriter,
+        Writer<D> writer,
         Reader<O> originReader,
         @Nullable String rawSourceRef)
         throws ValidationException, RepoException {
@@ -139,24 +134,14 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
           workdir,
           resolvedRef,
           originReader,
-          workflow
-              .getDestination()
-              .newWriter(
-                  new WriterContext<>(
-                      workflowName,
-                      workflow.getWorkflowOptions().workflowIdentityUser,
-                      workflow.getDestinationFiles(),
-                      dryRun,
-                      resolvedRef,
-                      oldWriter)),
+          writer,
           rawSourceRef);
       this.workflow = workflow;
-      this.options = checkNotNull(options, "options");
       this.workflowName = checkNotNull(workflowName, "workflowName");
     }
 
     @Override
-    protected WorkflowRunHelper<O, D> forChange(Change<?> change)
+    protected ChangeMigrator<O, D> getMigratorForChange(Change<?> change, boolean dryRun)
         throws RepoException, ValidationException {
       Preconditions.checkNotNull(change);
 
@@ -185,38 +170,56 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       }
       @SuppressWarnings("unchecked")
       Workflow<O, D> workflowForChange = (Workflow<O, D>) migration;
-      //noinspection unchecked
-      ReloadingRunHelper helper =
-          new ReloadingRunHelper(
-              workflowForChange,
-              options,
-              workflowName,
-              getWorkdir(),
-              getResolvedRef(),
-              workflowForChange.isDryRunMode(),
-              lastWriter,
-              workflowForChange
-                  .getOrigin()
-                  .newReader(workflowForChange.getOriginFiles(), workflowForChange.getAuthoring()),
-              rawSourceRef);
-      lastWriter = helper.writer;
-      return helper;
+      Reader<O> newReader = workflowForChange
+          .getOrigin()
+          .newReader(workflowForChange.getOriginFiles(), workflowForChange.getAuthoring());
+      return new ReloadingChangeMigrator<>(
+          workflow,
+          workflowForChange,
+          getWorkdir(),
+          newReader,
+          dryRun ? createDryRunWriter() : writer,
+          getResolvedRef(),
+          rawSourceRef);
+    }
+  }
+
+  private static final class
+  ReloadingChangeMigrator<O extends Revision, D extends Revision> extends ChangeMigrator<O, D> {
+
+    private final Workflow<O, D> changeWorkflow;
+
+    ReloadingChangeMigrator(Workflow<O, D> headWorkflow, Workflow<O, D> changeWorkflow,
+        Path workdir, Reader<O> reader,
+        Writer<D> writer, O resolvedRef, @Nullable String rawSourceRef) {
+      super(headWorkflow, workdir, reader, writer, resolvedRef, rawSourceRef);
+      this.changeWorkflow = Preconditions.checkNotNull(changeWorkflow);
     }
 
     @Override
-    protected WorkflowRunHelper<O, D> withDryRun()
-        throws RepoException, ValidationException, IOException {
-      return new ReloadingRunHelper(
-          workflow,
-          options,
-          workflowName,
-          getWorkdir(),
-          getResolvedRef(),
-          // Not sharing old writer status on purpose for dry run to avoid accidents.
-          /*dryRun=*/ true,
-          /*oldWriter=*/ writer,
-          workflow.getOrigin().newReader(workflow.getOriginFiles(), workflow.getAuthoring()),
-          rawSourceRef);
+    protected Set<String> getConfigFiles() {
+      return changeWorkflow.configPaths();
+    }
+
+    @Override
+    protected Glob getOriginFiles() {
+      return changeWorkflow.getOriginFiles();
+    }
+
+    @Override
+    protected Glob getDestinationFiles() {
+      return changeWorkflow.getDestinationFiles();
+    }
+
+    @Override
+    protected Transformation getTransformation() {
+      return changeWorkflow.getTransformation();
+    }
+
+    @Override
+    @Nullable
+    protected Transformation getReverseTransformForCheck() {
+      return changeWorkflow.getReverseTransformForCheck();
     }
   }
 }

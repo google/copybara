@@ -465,11 +465,11 @@ public class WorkflowTest {
         new RecordsProcessCallDestination() {
           @Override
           public Writer newWriter(WriterContext writerContext) {
-            return new WriterImpl(writerContext.getDestinationFiles(), writerContext.isDryRun()) {
+            return new WriterImpl(writerContext.isDryRun()) {
               @Override
               public ImmutableList<DestinationEffect> write(
-                  TransformResult transformResult, Console console)
-                  throws ValidationException, RepoException, IOException {
+                  TransformResult transformResult, Glob destinationFiles, Console console)
+                  throws ValidationException, RepoException {
                 assert exception != null;
                 Throwables.propagateIfPossible(
                     exception, ValidationException.class, RepoException.class);
@@ -895,19 +895,19 @@ public class WorkflowTest {
 
     options.setForce(true);
     workflow().run(workdir, ImmutableList.of(HEAD));
-    WriterContext<Revision> writerContext =
-        new WriterContext<>("piper_to_github", "TEST", Glob.ALL_FILES,  /*dryRun=*/ false, new DummyRevision("test"),  /*oldWriter=*/null);
+    WriterContext writerContext = new WriterContext(
+        "piper_to_github", "TEST",   /*dryRun=*/ false, new DummyRevision("test"));
     assertThat(
             destination
                 .newWriter(writerContext)
-                .getDestinationStatus(origin.getLabelName())
+                .getDestinationStatus(Glob.ALL_FILES, origin.getLabelName())
                 .getBaseline())
         .isEqualTo("3");
     workflow().run(workdir, ImmutableList.of(oldRef));
     assertThat(
             destination
                 .newWriter(writerContext)
-                .getDestinationStatus(origin.getLabelName())
+                .getDestinationStatus(Glob.ALL_FILES, origin.getLabelName())
                 .getBaseline())
         .isEqualTo("0");
   }
@@ -1020,7 +1020,8 @@ public class WorkflowTest {
       workflow().run(workdir, ImmutableList.of(HEAD));
       fail();
     } catch (VoidOperationException e) {
-      assertThat(e.getMessage().contains("Use --ignore-noop if you want to ignore this error")).isTrue();
+      assertThat(e.getMessage().contains("Use --ignore-noop if you want to ignore this error"))
+          .isTrue();
     }
   }
 
@@ -2084,16 +2085,16 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testOnFinishHookNotRunForDryRun() throws Exception {
+  public void testDryRun() throws Exception {
     options.general.dryRunMode = true;
-    checkOnFinishHookNotRunForDryRun();
+    checkDryRun(ImmutableList.of());
   }
 
   @Test
-  public void testOnFinishHookNotRunForDryRun_false() throws Exception {
+  public void testDryRun_false() throws Exception {
     options.general.dryRunMode = false;
     try {
-      checkOnFinishHookNotRunForDryRun();
+      checkDryRun(ImmutableList.of());
       fail();
     } catch (ValidationException ignored) {
       assertThat(ignored).hasMessageThat().contains(
@@ -2101,7 +2102,15 @@ public class WorkflowTest {
     }
   }
 
-  private void checkOnFinishHookNotRunForDryRun()
+  @Test
+  public void testDryRun_no_changes() throws Exception {
+    options.general.dryRunMode = true;
+    options.setForce(true);
+    options.setLastRevision("0");
+    checkDryRun(ImmutableList.of("0"));
+  }
+
+  private void checkDryRun(ImmutableList<String> refs)
       throws IOException, RepoException, ValidationException {
     origin.singleFileChange(0, "one commit", "foo.txt", "1");
     String config = ""
@@ -2117,7 +2126,11 @@ public class WorkflowTest {
         + "  after_migration = [other]"
         + ")\n";
 
-    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
+    try {
+      loadConfig(config).getMigration("default").run(workdir, refs);
+    } finally {
+      assertThat(destination.processed.get(0).isDryRun()).isEqualTo(options.general.dryRunMode);
+    }
   }
 
   @Test

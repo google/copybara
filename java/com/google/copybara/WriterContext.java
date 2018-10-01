@@ -17,41 +17,32 @@
 package com.google.copybara;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.copybara.Destination.Writer;
-import com.google.copybara.util.Glob;
-import javax.annotation.Nullable;
 import com.google.common.base.Preconditions;
+import javax.annotation.Nullable;
 
 /**
- * Writer context which includes workflowName, destinationFiles, dryRun, revision, and oldWriter of
- * a migration.
+ * Writer context which includes all the information for creating a writer
  */
-public class WriterContext<D extends Revision> {
+public class WriterContext {
 
   private final String workflowName;
   private final String workflowIdentityUser;
-  private final Glob destinationFiles;
   private final boolean dryRun;
   private final Revision originalRevision;
-  @Nullable private final Writer<D> oldWriter;
 
   @VisibleForTesting
   public WriterContext(
       String workflowName,
       @Nullable String workflowIdentityUser,
-      Glob destinationFiles,
       boolean dryRun,
-      Revision originalRevision,
-      @Nullable Writer<D> oldWriter) {
+      Revision originalRevision) {
 
     this.workflowName = Preconditions.checkNotNull(workflowName);
     this.workflowIdentityUser = workflowIdentityUser != null
         ? workflowIdentityUser
         : System.getProperty("user.name");
-    this.destinationFiles = Preconditions.checkNotNull(destinationFiles);
     this.dryRun = dryRun;
     this.originalRevision = Preconditions.checkNotNull(originalRevision);
-    this.oldWriter = oldWriter;
   }
 
   public Revision getOriginalRevision() {
@@ -68,13 +59,5 @@ public class WriterContext<D extends Revision> {
 
   public boolean isDryRun() {
     return dryRun;
-  }
-
-  public Glob getDestinationFiles() {
-    return destinationFiles;
-  }
-
-  public Writer<D> getOldWriter() {
-    return oldWriter;
   }
 }

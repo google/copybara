@@ -75,7 +75,7 @@ public class HgDestination implements Destination<HgRevision> {
   private final GeneralOptions generalOptions;
   private final HgOptions hgOptions;
 
-  HgDestination(String repoUrl, String fetch, String push, GeneralOptions generalOptions,
+  private HgDestination(String repoUrl, String fetch, String push, GeneralOptions generalOptions,
       HgOptions hgOptions) {
     this.repoUrl = repoUrl;
     this.fetch = fetch;
@@ -85,9 +85,9 @@ public class HgDestination implements Destination<HgRevision> {
   }
 
   @Override
-  public Writer<HgRevision> newWriter (WriterContext<HgRevision> writerContext) {
+  public Writer<HgRevision> newWriter(WriterContext writerContext) {
     return new WriterImpl(repoUrl, fetch, push, generalOptions,
-        hgOptions, writerContext.getDestinationFiles(), hgOptions.visitChangeDepth);
+        hgOptions, hgOptions.visitChangeDepth);
   }
 
   @Override
@@ -102,20 +102,17 @@ public class HgDestination implements Destination<HgRevision> {
     private final GeneralOptions generalOptions;
     private final HgOptions hgOptions;
     private final boolean force;
-    private final Glob destinationFiles;
     private final int visitChangePageSize;
     private final Console baseConsole;
 
     WriterImpl(String repoUrl, String remoteFetch, String remotePush,
-        GeneralOptions generalOptions, HgOptions hgOptions, Glob destinationFiles,
-        int visitChangePageSize) {
+        GeneralOptions generalOptions, HgOptions hgOptions, int visitChangePageSize) {
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
       this.remotePush = checkNotNull(remotePush);
       this.generalOptions = generalOptions;
       this.hgOptions = hgOptions;
       this.force = generalOptions.isForced();
-      this.destinationFiles = checkNotNull(destinationFiles);
       this.visitChangePageSize = visitChangePageSize;
       this.baseConsole = checkNotNull(generalOptions.console());
     }
@@ -135,7 +132,7 @@ public class HgDestination implements Destination<HgRevision> {
 
     @Nullable
     @Override
-    public DestinationStatus getDestinationStatus(String labelName)
+    public DestinationStatus getDestinationStatus(Glob destinationFiles, String labelName)
         throws RepoException, ValidationException {
       HgRepository localRepo = getRepository();
       pullFromRemote(baseConsole, localRepo, repoUrl, remoteFetch);
@@ -174,7 +171,7 @@ public class HgDestination implements Destination<HgRevision> {
     /**
      * Returns the message for a change with any labels, if set
      */
-    public static ChangeMessage getChangeMessage(
+    static ChangeMessage getChangeMessage(
         TransformResult transformResult, String originLabelSeparator) {
       MessageInfo messageInfo = new MessageInfo(transformResult.isSetRevId()
           ? ImmutableList.of(new LabelFinder(
@@ -216,7 +213,8 @@ public class HgDestination implements Destination<HgRevision> {
      * deleting files excluded in {@code destinationFiles}. Changes are staged to be pushed to a
      * remote repository.
      */
-    private void getDiffAndStageChanges(Path workDir, HgRepository localRepo)
+    private void getDiffAndStageChanges(Glob destinationFiles,
+        Path workDir, HgRepository localRepo)
         throws RepoException, IOException {
       // Create a temp archive of the remote repository to compute diff with
       Path tempArchivePath = generalOptions.getDirFactory().newTempDir("tempArchive");
@@ -273,7 +271,8 @@ public class HgDestination implements Destination<HgRevision> {
      * Writes the changes in {@param transformResult} to the destination repository.
      */
     @Override
-    public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
+    public ImmutableList<DestinationEffect> write(TransformResult transformResult,
+        Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
       Path workdir = transformResult.getPath();
       logger.atInfo().log("Exporting from %s to: %s", workdir, this);
@@ -288,7 +287,7 @@ public class HgDestination implements Destination<HgRevision> {
           String.format("[paths]\ndefault = %s\n", repoUrl).getBytes(StandardCharsets.UTF_8));
 
       console.progress("Hg Destination: Computing diff");
-      getDiffAndStageChanges(workdir, localRepo);
+      getDiffAndStageChanges(destinationFiles, workdir, localRepo);
 
       console.progress("Hg Destination: Creating a local commit");
 

@@ -20,7 +20,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doThrow;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
@@ -108,11 +107,10 @@ public class GitHubPrDestinationTest {
   }
 
   @Test
-  public void testWrite_noContextReference()
-      throws ValidationException, IOException, RepoException {
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("piper_to_github_pr","TEST", Glob.ALL_FILES,
-            false,  new DummyRevision("feature", null),null);
+  public void testWrite_noContextReference() throws ValidationException {
+    WriterContext writerContext =
+        new WriterContext("piper_to_github_pr", "TEST",
+            false, new DummyRevision("feature", null));
     GitHubPrDestination d = skylark.eval(
         "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'" + ")");
     thrown.expect(ValidationException.class);
@@ -157,21 +155,20 @@ public class GitHubPrDestinationTest {
         + "    title = 'custom title',\n"
         + "    body = 'custom body',\n"
         + ")");
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>(
+    WriterContext writerContext =
+        new WriterContext(
             /*workflowName=*/"piper_to_github",
             /*workflowIdentityUser=*/"TEST",
-            Glob.ALL_FILES,
             /*dryRun=*/false,
-            new DummyRevision("feature", "feature"),
-            /*oldWriter=*/null);
+            new DummyRevision("feature", "feature"));
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = localHubRepo("foo");
     addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "").build());
 
     Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
-    writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
   }
 
   @Test
@@ -214,14 +211,12 @@ public class GitHubPrDestinationTest {
         + "    url = 'https://github.com/foo'"
         + ")");
 
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>(
+    WriterContext writerContext =
+        new WriterContext(
             "piper_to_github",
             "test",
-            Glob.ALL_FILES,
             /*dryRun=*/false,
-            new DummyRevision("feature", "feature"),
-            /*oldWriter=*/null);
+            new DummyRevision("feature", "feature"));
 
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
@@ -230,8 +225,10 @@ public class GitHubPrDestinationTest {
         .put("foo.txt", "").build());
 
     Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
-    writer.write(TransformResults.of(this.workdir, new DummyRevision("one"))
-        .withSummary("\n\n\n\n\nInternal change."), console);
+    writer.write(TransformResults.of(this.workdir,
+        new DummyRevision("one")).withSummary("\n\n\n\n\nInternal change."),
+        Glob.ALL_FILES,
+        console);
   }
 
   @Test
@@ -275,26 +272,27 @@ public class GitHubPrDestinationTest {
     GitHubPrDestination d =
         skylark.eval(
             "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'" + ")");
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>(/*workflowName=*/"piper_to_github_pr", /*workflowIdentityUser=*/"TEST", Glob.ALL_FILES, /*dryRun=*/false, revision, /*oldWriter=*/null);
-    Writer<GitRevision> writer = d.newWriter(writerContext);
+
+    Writer<GitRevision> writer = d.newWriter(new WriterContext(
+        /*workflowName=*/"piper_to_github_pr",
+        /*workflowIdentityUser=*/"TEST",
+        /*dryRun=*/false,
+        revision));
 
     GitRepository remote = localHubRepo("foo");
     addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "").build());
 
     Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
-    writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
     Files.write(this.workdir.resolve("test.txt"), "other content".getBytes());
-    writer.write(TransformResults.of(this.workdir, new DummyRevision("two")), console);
-
-    // Use a new writer that shares the old state
-    writerContext = new WriterContext<>(/*workflowName=*/"piper_to_github_pr", /*workflowIdentityUser=*/"TEST",
-        Glob.ALL_FILES, /*dryRun=*/false, revision, writer);
-    writer = d.newWriter(writerContext);
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("two")), Glob.ALL_FILES, console);
 
     Files.write(this.workdir.resolve("test.txt"), "and content".getBytes());
-    writer.write(TransformResults.of(this.workdir, new DummyRevision("three")), console);
+    writer.write(TransformResults.of(this.workdir, new DummyRevision("three")),
+        Glob.ALL_FILES, console);
 
     console.assertThat().timesInLog(1, MessageType.INFO,
         "Pull Request https://github.com/foo/pull/12345 created using branch 'feature'.");
@@ -314,12 +312,15 @@ public class GitHubPrDestinationTest {
 
     // If we don't keep writer state (same as a new migration). We do a rebase of
     // all the changes.
-    writerContext = new WriterContext<>( /*workflowName=*/"piper_to_github_pr",
-        /*workflowIdentityUser=*/"TEST", Glob.ALL_FILES, false, revision,  /*oldWriter=*/null);
-    writer = d.newWriter(writerContext);
+    writer = d.newWriter(new WriterContext(
+        /*workflowName=*/"piper_to_github_pr",
+        /*workflowIdentityUser=*/"TEST",
+        /*dryRun=*/ false,
+        revision));
 
     Files.write(this.workdir.resolve("test.txt"), "and content".getBytes());
-    writer.write(TransformResults.of(this.workdir, new DummyRevision("four")), console);
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("four")), Glob.ALL_FILES, console);
 
     assertThat(Iterables.transform(remote.log("feature").run(), GitLogEntry::getBody))
         .containsExactly("first change\n", "test summary\n" + "\n" + "DummyOrigin-RevId: four\n");
@@ -402,9 +403,9 @@ public class GitHubPrDestinationTest {
             throw new IllegalStateException();
           }
         };
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>( /*workflowName=*/"piper_to_github_pr", /*workflowIdentityUser=*/"TEST",
-            Glob.ALL_FILES, /*dryRun=*/false, dummyRevision,  /*oldWriter=*/null);
+    WriterContext writerContext =
+        new WriterContext( /*workflowName=*/"piper_to_github_pr", /*workflowIdentityUser=*/"TEST",
+            /*dryRun=*/false, dummyRevision);
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = localHubRepo("foo");
     addFiles(remote, "master", "first change", ImmutableMap.<String, String>builder()
@@ -414,7 +415,8 @@ public class GitHubPrDestinationTest {
         .put("foo.txt", "test").build());
 
     Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
-    writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
 
     assertThat(remote.refExists(branchName)).isTrue();
     assertThat(Iterables.transform(remote.log(branchName).run(), GitLogEntry::getBody))
@@ -431,9 +433,8 @@ public class GitHubPrDestinationTest {
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
-    WriterContext<GitRevision> writerContext =
-        new WriterContext<>("piper_to_github", "TEST", Glob.ALL_FILES,
-            /*dryRun=*/false, new DummyRevision("feature", "feature"),  /*oldWriter=*/null);
+    WriterContext writerContext = new WriterContext(
+        "piper_to_github", "TEST", /*dryRun=*/false, new DummyRevision("feature", "feature"));
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
     GitRepository remote = localHubRepo("foo");
@@ -441,16 +442,17 @@ public class GitHubPrDestinationTest {
         ImmutableMap.<String, String>builder()
             .put("foo.txt", "").build());
 
-    DestinationStatus status = writer.getDestinationStatus("DummyOrigin-RevId");
+    DestinationStatus status = writer.getDestinationStatus(Glob.ALL_FILES, "DummyOrigin-RevId");
 
     assertThat(status.getBaseline()).isEqualTo("baseline");
     assertThat(status.getPendingChanges()).isEmpty();
 
     Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
-    writer.write(TransformResults.of(this.workdir, new DummyRevision("one")), console);
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
 
     // New writer since after changes it keeps state internally for ITERATIVE mode
-    status = d.newWriter(writerContext).getDestinationStatus("DummyOrigin-RevId");
+    status = d.newWriter(writerContext).getDestinationStatus(Glob.ALL_FILES, "DummyOrigin-RevId");
     assertThat(status.getBaseline()).isEqualTo("baseline");
     // Not supported for now as we rewrite the whole branch history.
     assertThat(status.getPendingChanges()).isEmpty();

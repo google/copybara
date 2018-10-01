@@ -123,34 +123,26 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer<GitRevision> newWriter(WriterContext<GitRevision> writerContext)
-      throws ValidationException {
-    WriterImpl<?> gitOldWriter = (WriterImpl) writerContext.getOldWriter();
+  public Writer<GitRevision> newWriter(WriterContext writerContext) throws ValidationException {
 
     boolean effectiveSkipPush =
         GitHubPrDestination.this.effectiveSkipPush || writerContext.isDryRun();
 
-    GitHubWriterState state;
     String pushBranchName =
         branchFromContextReference(
             writerContext.getOriginalRevision(),
             writerContext.getWorkflowName(),
             writerContext.getWorkflowIdentityUser());
-    if (writerContext.getOldWriter() != null && gitOldWriter.skipPush == effectiveSkipPush) {
-      state = (GitHubWriterState) ((WriterImpl) writerContext.getOldWriter()).state;
-    } else {
-      state =
-          new GitHubWriterState(
-              localRepo,
-              destinationOptions.localRepoPath != null
-                  ? pushBranchName
-                  : "copybara/push-"
-                      + UUID.randomUUID()
-                      + (writerContext.isDryRun() ? "-dryrun" : ""));
-    }
+
+    GitHubWriterState state = new GitHubWriterState(
+        localRepo,
+        destinationOptions.localRepoPath != null
+            ? pushBranchName
+            : "copybara/push-"
+                + UUID.randomUUID()
+                + (writerContext.isDryRun() ? "-dryrun" : ""));
 
     return new WriterImpl<GitHubWriterState>(
-        writerContext.getDestinationFiles(),
         effectiveSkipPush,
         url,
         destinationRef,
@@ -169,11 +161,11 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         gitOptions.visitChangePageSize) {
       @Override
       public ImmutableList<DestinationEffect> write(
-          TransformResult transformResult, Console console)
+          TransformResult transformResult, Glob destinationFiles, Console console)
           throws ValidationException, RepoException, IOException {
         ImmutableList.Builder<DestinationEffect> result =
             ImmutableList.<DestinationEffect>builder()
-                .addAll(super.write(transformResult, console));
+                .addAll(super.write(transformResult, destinationFiles, console));
         if (effectiveSkipPush || state.pullRequestNumber != null) {
           return result.build();
         }
@@ -261,7 +253,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   }
 
   @VisibleForTesting
-  public String branchFromContextReference(
+  String branchFromContextReference(
       @Nullable Revision changeRevision, String workflowName, String workflowIdentityUser)
       throws ValidationException {
     if (!Strings.isNullOrEmpty(gitHubDestinationOptions.destinationPrBranch)) {

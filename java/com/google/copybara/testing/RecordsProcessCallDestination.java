@@ -59,7 +59,8 @@ import javax.annotation.Nullable;
 
 /**
  * A destination for testing which doesn't write the workdir anywhere and simply records when
- * {@link Destination.Writer#write(TransformResult, Console)} is called and with what arguments.
+ * {@link Destination.Writer#write(TransformResult, Glob, Console)} is called and with what
+ * arguments.
  */
 public class RecordsProcessCallDestination implements Destination<Revision> {
 
@@ -94,31 +95,23 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
   public class WriterImpl implements Writer<Revision> {
 
-    final Glob destinationFiles;
     @Nullable
     private final String contextReference;
     private final boolean dryRun;
-    private final int state;
 
-
-    public WriterImpl(Glob destinationFiles, boolean dryRun) {
-      this.destinationFiles = destinationFiles;
+    protected WriterImpl(boolean dryRun) {
       this.dryRun = dryRun;
-      this.state = 0;
       this.contextReference = null;
     }
 
-    public WriterImpl(Glob destinationFiles, boolean dryRun, @Nullable String contextReference,
-        @Nullable WriterImpl old) {
-      this.destinationFiles = destinationFiles;
+    protected WriterImpl(boolean dryRun, @Nullable String contextReference) {
       this.dryRun = dryRun;
       this.contextReference = contextReference;
-      this.state = old != null && old.dryRun == dryRun ? old.state + 1 : 0;
     }
 
     @Nullable
     @Override
-    public DestinationStatus getDestinationStatus(String labelName) throws RepoException {
+    public DestinationStatus getDestinationStatus(Glob destinationFiles, String labelName) {
       ProcessedChange lastSubmitted = Lists.reverse(processed).stream()
           .filter(c -> !c.pending)
           .findFirst().orElse(null);
@@ -152,7 +145,8 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     }
 
     @Override
-    public ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
+    public ImmutableList<DestinationEffect> write(
+        TransformResult transformResult, Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
       if (hook != null) {
         hook.accept(transformResult);
@@ -169,8 +163,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
               copyWorkdir(transformResult.getPath()),
               transformResult.getBaseline(),
               destinationFiles,
-              dryRun,
-              state);
+              dryRun);
       processed.add(change);
       return ImmutableList.of(
           new DestinationEffect(
@@ -246,12 +239,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
   }
 
   @Override
-  public Writer<Revision> newWriter(WriterContext<Revision> writerContext) {
+  public Writer<Revision> newWriter(WriterContext writerContext) {
     return new WriterImpl(
-        writerContext.getDestinationFiles(),
         writerContext.isDryRun(),
-        writerContext.getOriginalRevision().contextReference(),
-        (WriterImpl) writerContext.getOldWriter());
+        writerContext.getOriginalRevision().contextReference());
   }
 
   @Override
@@ -266,7 +257,6 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     private final String baseline;
     private final Glob destinationFiles;
     private final boolean dryRun;
-    private final int state;
     public boolean pending;
 
     private ProcessedChange(
@@ -274,14 +264,12 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
         ImmutableMap<String, String> workdir,
         String baseline,
         Glob destinationFiles,
-        boolean dryRun,
-        int state) {
+        boolean dryRun) {
       this.transformResult = Preconditions.checkNotNull(transformResult);
       this.workdir = Preconditions.checkNotNull(workdir);
       this.baseline = baseline;
       this.destinationFiles = destinationFiles;
       this.dryRun = dryRun;
-      this.state = state;
     }
 
     public ZonedDateTime getTimestamp() {
@@ -365,13 +353,6 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
           .add("changesSummary", getChangesSummary())
           .add("workdir", workdir)
           .toString();
-    }
-
-    /**
-     * This is used to simulate multiple writers creation that can maintain state between them.
-     */
-    public int getState() {
-      return state;
     }
   }
 }

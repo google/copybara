@@ -105,7 +105,8 @@ public class HgDestinationTest {
         .withTimestamp(zonedDateTime);
     TransformResult result = TransformResults.of(workdir, originRef);
 
-    ImmutableList<DestinationEffect> destinationResult = writer.write(result, console);
+    ImmutableList<DestinationEffect> destinationResult =
+        writer.write(result, destinationFiles, console);
     assertThat(destinationResult).hasSize(1);
     assertThat(destinationResult.get(0).getErrors()).isEmpty();
     assertThat(destinationResult.get(0).getType()).isEqualTo(Type.CREATED);
@@ -135,7 +136,7 @@ public class HgDestinationTest {
     TransformResult result = TransformResults.of(workdir, originRef);
 
     try {
-      writer.write(result, console);
+      writer.write(result, destinationFiles, console);
       fail("Should have failed");
     } catch (RepoException expected) {
       assertThat(expected.getMessage()).contains("Error executing hg");
@@ -148,7 +149,7 @@ public class HgDestinationTest {
     Files.write(workdir.resolve("delete_me.txt"), "deleted content".getBytes());
     DummyRevision deletedRef = new DummyRevision("delete_ref");
     TransformResult result = TransformResults.of(workdir, deletedRef);
-    writer.write(result, console);
+    writer.write(result, destinationFiles, console);
 
     workdir = options.general.getDirFactory().newTempDir("testWriteDeletesAndAddsFiles-workdir");
     Files.write(workdir.resolve("add_me.txt"), "added content".getBytes());
@@ -242,19 +243,19 @@ public class HgDestinationTest {
     Path file = workdir.resolve("test.txt");
     Files.write(file, "first write".getBytes(StandardCharsets.UTF_8));
     writer = newWriter();
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME)).isNull();
+    assertThat(writer.getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME)).isNull();
     createRevisionAndWrite("first_commit");
     assertCommitHasOrigin(getLastCommit(fetch), "first_commit");
 
     Files.write(file, "second write".getBytes(StandardCharsets.UTF_8));
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
+    assertThat(writer.getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo("first_commit");
     createRevisionAndWrite("second_commit");
     assertCommitHasOrigin(getLastCommit(fetch), "second_commit");
 
     Path otherFile = workdir.resolve("other.txt");
     Files.write(otherFile, "third write".getBytes(StandardCharsets.UTF_8));
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
+    assertThat(writer.getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo("second_commit");
     createRevisionAndWrite("third_commit");
     assertCommitHasOrigin(getLastCommit(fetch), "third_commit");
@@ -276,7 +277,7 @@ public class HgDestinationTest {
       remoteRepo.hg(hgDestPath, "commit", "-m", "excluded #" + i);
     }
 
-    assertThat(writer.getDestinationStatus(DummyOrigin.LABEL_NAME).getBaseline())
+    assertThat(writer.getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo("first_commit");
   }
 
@@ -284,10 +285,10 @@ public class HgDestinationTest {
       throws RepoException, ValidationException, IOException {
     DummyRevision originRef = new DummyRevision(referenceName);
     TransformResult result = TransformResults.of(workdir, originRef);
-    writer.write(result, console);
+    writer.write(result, destinationFiles, console);
   }
 
-  private void assertCommitHasOrigin(HgLogEntry commit, String originRef) throws RepoException {
+  private void assertCommitHasOrigin(HgLogEntry commit, String originRef) {
     assertThat(parseMessage(commit.getDescription())
         .labelsAsMultimap()).containsEntry(DummyOrigin.LABEL_NAME, originRef);
   }
@@ -297,9 +298,7 @@ public class HgDestinationTest {
   }
 
   private Writer<HgRevision> newWriter() {
-    WriterContext<HgRevision> writerContext =
-        new WriterContext<>("","Test",
-            destinationFiles,false, new HgRevision("test"), /*oldWriter=*/ null);
+    WriterContext writerContext = new WriterContext("", "Test", false, new HgRevision("test"));
     return destination.newWriter(writerContext);
   }
 }

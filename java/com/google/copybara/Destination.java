@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -52,16 +53,17 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
      * Returns the status of the import at the destination.
      *
      * <p>This method may have undefined behavior if called after {@link #write(TransformResult,
-     * Console)}.
+     * Glob, Console)}.
      *
      * @param labelName the label used in the destination for storing the last migrated ref
+     * @param destinationFiles the glob to use for filtering changes (optional)
      */
     @Nullable
-    DestinationStatus getDestinationStatus(String labelName)
+    DestinationStatus getDestinationStatus(Glob destinationFiles, String labelName)
         throws RepoException, ValidationException;
     /**
      * Returns true if this destination stores revisions in the repository so that
-     * {@link #getDestinationStatus(String)}  can be used for discovering the state of the
+     * {@link #getDestinationStatus(Glob, String)}  can be used for discovering the state of the
      * destination and we can use the methods in {@link ChangeVisitable}.
      */
     boolean supportsHistory();
@@ -69,6 +71,9 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
     /**
      * Writes the fully-transformed repository stored at {@code workdir} to this destination.
      * @param transformResult what to write to the destination
+     * @param destinationFiles the glob to use for write. This glob might be different from the
+     * one received in {@code {@link #getDestinationStatus(Glob, String)}} due to read config from
+     * change configuration.
      * @param console console to be used for printing messages
      * @return one or more destination effects
      *
@@ -76,12 +81,12 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
      * @throws RepoException if there was an issue with the destination repository
      * @throws IOException if a file access error happens during the write
      */
-    ImmutableList<DestinationEffect> write(TransformResult transformResult, Console console)
-        throws ValidationException, RepoException, IOException;
+    ImmutableList<DestinationEffect> write(TransformResult transformResult, Glob destinationFiles,
+        Console console) throws ValidationException, RepoException, IOException;
 
     /**
      * Utility endpoint for accessing and adding feedback data.
-     * @param console
+     * @param console console to use for reporting information to the user
      */
     default Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
       return Endpoint.NOOP_ENDPOINT;
@@ -100,7 +105,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription {
    * @throws ValidationException if the writer could not be created because of a user error. For
    *     instance, the destination cannot be used with the given {@code destinationFiles}.
    */
-  Writer<R> newWriter(WriterContext<R> writerContext) throws ValidationException;
+  Writer<R> newWriter(WriterContext writerContext) throws ValidationException;
 
   /**
    * Given a reverse workflow with an {@code Origin} than is of the same type as this destination,

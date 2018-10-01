@@ -37,6 +37,7 @@ import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
+import com.google.copybara.WorkflowRunHelper.ChangeMigrator;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
@@ -92,9 +93,9 @@ public enum WorkflowMode {
 
       // Don't replace helperForChanges with runHelper since origin_files could
       // be potentially different in the helper for the current change.
-      WorkflowRunHelper<O, D> helperForChanges = detectedChanges.nodes().isEmpty()
-          ? runHelper
-          : runHelper.forChange(Iterables.getLast(detectedChanges.nodes()));
+      ChangeMigrator<O, D> helperForChanges = detectedChanges.nodes().isEmpty()
+          ? runHelper.getDefaultMigrator()
+          : runHelper.getMigratorForChange(Iterables.getLast(detectedChanges.nodes()));
 
       // Remove changes that don't affect origin_files
       ImmutableList<Change<O>> changes = flattenChanges(detectedChanges, helperForChanges);
@@ -166,11 +167,11 @@ public enum WorkflowMode {
         boolean errors = false;
         try (ProfilerTask ignored = runHelper.profiler().start(change.getRef())) {
           ImmutableList<Change<O>> current = ImmutableList.of(change);
-          WorkflowRunHelper<O, D> currentHelper = runHelper.forChange(change);
-          if (currentHelper.skipChange(change)) {
+          ChangeMigrator<O, D> migrator = runHelper.getMigratorForChange(change);
+          if (migrator.skipChange(change)) {
             continue;
           }
-          result = currentHelper.migrate(
+          result = migrator.migrate(
                       change.getRevision(),
                       lastRev,
                       new ProgressPrefixConsole(prefix, runHelper.getConsole()),
@@ -361,16 +362,17 @@ public enum WorkflowMode {
       }
       logger.atInfo().log("Found baseline %s", baseline.get().getBaseline());
 
-      // If --change_request_parent was used, we don't have information about the origin changes
-      // included in the CHANGE_REQUEST so we assume the last change is the only change
-      ImmutableList<Change<O>> changes;
-      if (baseline.get().getOriginRevision() == null) {
+    ChangeMigrator<O, D> migrator = runHelper.getDefaultMigrator();
+    // If --change_request_parent was used, we don't have information about the origin changes
+    // included in the CHANGE_REQUEST so we assume the last change is the only change
+    ImmutableList<Change<O>> changes;
+    if (baseline.get().getOriginRevision() == null) {
         changes = ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()));
       } else {
         ChangesResponse<O> changesResponse = runHelper.getOriginReader()
             .changes(baseline.get().getOriginRevision(),
                 runHelper.getResolvedRef());
-        changes = flattenChanges(changesResponse.getChanges(), runHelper);
+      changes = flattenChanges(changesResponse.getChanges(), migrator);
         if (changes.isEmpty()) {
           throw new EmptyChangeException(String
               .format("Change '%s' doesn't include any change for origin_files = %s",
@@ -379,7 +381,7 @@ public enum WorkflowMode {
       }
 
     // --read-config-from-change is not implemented in CHANGE_REQUEST mode
-    runHelper.migrate(
+    migrator.migrate(
               runHelper.getResolvedRef(),
               /*lastRev=*/null,
               runHelper.getConsole(),
@@ -449,11 +451,11 @@ public enum WorkflowMode {
   }
 
   static <O extends Revision, D extends Revision> ImmutableList<Change<O>> flattenChanges(
-      Graph<Change<O>> detectedChanges, WorkflowRunHelper<O, D> helperForChanges) {
+      Graph<Change<O>> detectedChanges, ChangeMigrator<O, D> changeMigrator) {
 
     // Doesn't take into account merges
     ImmutableSet<Change<O>> naiveKeep = detectedChanges.nodes().stream()
-        .filter(currentChange -> !helperForChanges.skipChange(currentChange))
+        .filter(currentChange -> !changeMigrator.skipChange(currentChange))
         .collect(ImmutableSet.toImmutableSet());
 
     // Find nodes without children commits.

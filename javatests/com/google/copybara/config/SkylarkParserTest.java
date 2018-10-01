@@ -484,7 +484,7 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public Writer<Revision> newWriter(WriterContext<Revision> writerContext) {
+    public Writer<Revision> newWriter(WriterContext writerContext) {
       throw new UnsupportedOperationException();
     }
 
