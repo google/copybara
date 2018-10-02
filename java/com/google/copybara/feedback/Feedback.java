@@ -21,6 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
@@ -130,6 +131,20 @@ public class Feedback implements Migration {
   @Override
   public ImmutableSetMultimap<String, String> getDestinationDescription() {
     return destination.describe();
+  }
+
+  /**
+   * Returns a multimap containing enough data to fingerprint the actions for validation
+   * purposes.
+   */
+  public ImmutableSetMultimap<String, ImmutableSetMultimap<String, String>>
+      getActionsDescription() {
+    Builder<String, ImmutableSetMultimap<String, String>> descriptionBuilder =
+        ImmutableSetMultimap.builder();
+    for (Action action : actions) {
+      descriptionBuilder.put(action.getName(), action.describe());
+    }
+    return descriptionBuilder.build();
   }
 
   Trigger getTrigger() {

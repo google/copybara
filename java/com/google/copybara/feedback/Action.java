@@ -16,6 +16,7 @@
 
 package com.google.copybara.feedback;
 
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -35,4 +36,7 @@ public interface Action {
   void run(SkylarkContext<?> context) throws ValidationException, RepoException;
 
   String getName();
+
+  /** Returns a key-value ist of the options the action was instantiated with. */
+  ImmutableSetMultimap<String, String> describe();
 }

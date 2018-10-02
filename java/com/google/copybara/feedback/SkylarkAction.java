@@ -19,6 +19,7 @@ package com.google.copybara.feedback;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -74,6 +75,15 @@ public class SkylarkAction implements Action {
   @Override
   public String getName() {
     return function.getName();
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe() {
+    ImmutableSetMultimap.Builder<String, String> builder = ImmutableSetMultimap.builder();
+    for (Object paramKey : params.keySet()) {
+      builder.put(paramKey.toString(), params.get(paramKey).toString());
+    }
+    return builder.build();
   }
 
   @Override

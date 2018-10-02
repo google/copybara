@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.DestinationEffect.DestinationRef;
@@ -77,6 +78,44 @@ public class FeedbackTest {
     assertThat(feedback.getMainConfigFile()).isNotNull();
     assertThat(feedback.getOriginDescription()).isEqualTo(dummyTrigger.describe());
     assertThat(feedback.getDestinationDescription()).isEqualTo(dummyTrigger.describe());
+    assertThat(feedback.getActionsDescription())
+        .containsEntry("test_action", ImmutableSetMultimap.of());
+  }
+
+  @Test
+  public void testDescribeActions() throws Exception {
+    Feedback feedback = feedback(
+        ""
+            + "def _action1(ctx):\n"
+            + "  return ctx.success()\n"
+            + "\n"
+            + "def _action2(ctx):\n"
+            + "  return ctx.success()\n"
+            + "\n"
+            + "def action1(param1):\n"
+            + "  return core.dynamic_feedback(\n"
+            + "      impl = _action1,\n"
+            + "      params = {\n"
+            + "          'param1': param1,\n"
+            + "      },\n"
+            + "  )"
+            + "\n"
+            + "def action2(param1, param2):\n"
+            + "  return core.dynamic_feedback(\n"
+            + "      impl = _action2,\n"
+            + "      params = {\n"
+            + "          'param1': param1,\n"
+            + "          'param2': param2,\n"
+            + "      },\n"
+            + "  )"
+            + "\n",
+        "action1(param1 = 'foo')", "action2(param1 = True, param2 = 'Bar')");
+    assertThat(feedback.getActionsDescription())
+        .isEqualTo(
+            ImmutableSetMultimap.builder()
+                .put("_action1", ImmutableSetMultimap.of("param1", "foo"))
+                .put("_action2", ImmutableSetMultimap.of("param1", "true", "param2", "Bar"))
+                .build());
   }
 
   @Test
