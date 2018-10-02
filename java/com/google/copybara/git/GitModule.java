@@ -27,6 +27,7 @@ import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_HEAD_SHA;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_URL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
@@ -352,6 +353,7 @@ public class GitModule implements LabelsAwareModule {
           + "  - " + GITHUB_BASE_BRANCH_SHA1 + ": The base branch SHA-1 used as baseline.\n"
           + "  - " + GITHUB_PR_TITLE + ": Title of the Pull Request.\n"
           + "  - " + GITHUB_PR_BODY + ": Body of the Pull Request.\n"
+          + "  - " + GITHUB_PR_URL + ": GitHub url of the Pull Request.\n"
           + "  - " + GITHUB_PR_HEAD_SHA + ": The SHA-1 of the head commit of the pull request.\n"
           + "  - " + GITHUB_PR_USER + ": The login of the author the pull request.\n"
           + "  - " + GITHUB_PR_ASSIGNEE + ": A repeated label with the login of the assigned"

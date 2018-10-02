@@ -24,6 +24,7 @@ import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_BODY;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_HEAD_SHA;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_NUMBER_LABEL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_URL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -445,6 +446,8 @@ public class GitHubPrOriginTest {
     assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_PR_TITLE, "test summary");
     assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_PR_BODY,
         "test summary\n\nMore text");
+    assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_PR_URL,
+        "http://some/pr/url/123");
 
     reader = origin.newReader(Glob.ALL_FILES, authoring);
     baselineObj = reader.findBaseline(mergePrRevision, "RevId");
@@ -872,11 +875,11 @@ public class GitHubPrOriginTest {
             + "  \"number\": "
             + prNumber
             + ",\n"
-            + "  \"state\": \""
-            + state
+            + "  \"state\": \"" + state
             + "\",\n"
             + "  \"title\": \"test summary\",\n"
             + "  \"body\": \"test summary\n\nMore text\",\n"
+            + "  \"html_url\": \"http://some/pr/url/" + prNumber + "\",\n"
             + "  \"head\": {\n"
             + "    \"label\": \"googletestuser:example-branch\",\n"
             + "    \"ref\": \"example-branch\"\n"

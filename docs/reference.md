@@ -1624,6 +1624,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_BASE_BRANCH_SHA1: The base branch SHA-1 used as baseline.
   - GITHUB_PR_TITLE: Title of the Pull Request.
   - GITHUB_PR_BODY: Body of the Pull Request.
+  - GITHUB_PR_URL: GitHub url of the Pull Request.
   - GITHUB_PR_HEAD_SHA: The SHA-1 of the head commit of the pull request.
   - GITHUB_PR_USER: The login of the author the pull request.
   - GITHUB_PR_ASSIGNEE: A repeated label with the login of the assigned users.

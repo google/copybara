@@ -83,6 +83,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   public static final String GITHUB_BASE_BRANCH = "GITHUB_BASE_BRANCH";
   public static final String GITHUB_BASE_BRANCH_SHA1 = "GITHUB_BASE_BRANCH_SHA1";
   public static final String GITHUB_PR_TITLE = "GITHUB_PR_TITLE";
+  public static final String GITHUB_PR_URL = "GITHUB_PR_URL";
   public static final String GITHUB_PR_BODY = "GITHUB_PR_BODY";
   public static final String GITHUB_PR_USER = "GITHUB_PR_USER";
   public static final String GITHUB_PR_ASSIGNEE = "GITHUB_PR_ASSIGNEE";
@@ -302,6 +303,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
     labels.put(GITHUB_PR_TITLE, prData.getTitle());
     labels.put(GITHUB_PR_BODY, prData.getBody());
+    labels.put(GITHUB_PR_URL, prData.getHtmlUrl());
     labels.put(GITHUB_PR_USER, prData.getUser().getLogin());
     labels.putAll(GITHUB_PR_ASSIGNEE, prData.getAssignees().stream()
         .map(User::getLogin)
