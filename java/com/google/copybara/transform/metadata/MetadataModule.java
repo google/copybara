@@ -413,7 +413,6 @@ public class MetadataModule {
           + "COPYBARA CHANGE FOR https://github.com/myproject/foo/pull/1234\n"
           + "Example description for\n"
           + "documentation\n\n"
-          + "GIT_URL=http://foo.com/1234"
           + "```\n\n"
           + "Assuming the PR number is 1234. But any change without that label will not be"
           + " transformed.")

@@ -2032,7 +2032,7 @@ COPYBARA CHANGE FOR https://github.com/myproject/foo/pull/1234
 Example description for
 documentation
 
-GIT_URL=http://foo.com/1234```
+```
 
 Assuming the PR number is 1234. But any change without that label will not be transformed.
 
