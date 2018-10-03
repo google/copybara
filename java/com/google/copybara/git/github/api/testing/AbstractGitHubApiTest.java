@@ -17,6 +17,7 @@
 package com.google.copybara.git.github.api.testing;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.api.client.json.gson.GsonFactory;
@@ -24,6 +25,7 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -67,10 +69,10 @@ public abstract class AbstractGitHubApiTest {
   public abstract GitHubApiTransport getTransport() throws Exception;
 
   public abstract void trainMockGetWithHeaders(String apiPath, byte[] response,
-      ImmutableMap<String, String> headers);
+      ImmutableMap<String, String> headers, int status);
 
   private void trainMockGet(String apiPath, byte[] response) {
-    trainMockGetWithHeaders(apiPath, response, ImmutableMap.of());
+    trainMockGetWithHeaders(apiPath, response, ImmutableMap.of(), /*status=*/200);
   }
 
   public abstract void trainMockPost(String apiPath, Predicate<String> validator, byte[] response);
@@ -158,7 +160,7 @@ public abstract class AbstractGitHubApiTest {
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=2>; rel=\"next\", "
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=3>; rel=\"last\", "
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=1>; rel=\"first\""
-        ));
+        ), 200);
 
     trainMockGetWithHeaders("/repositories/123/pulls?per_page=100&page=2",
         getResource("pulls_12345_reviews_testdata.json"),
@@ -167,7 +169,7 @@ public abstract class AbstractGitHubApiTest {
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=3>; rel=\"next\", "
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=3>; rel=\"last\", "
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=1>; rel=\"first\""
-        ));
+        ), 200);
 
     trainMockGetWithHeaders("/repositories/123/pulls?per_page=100&page=3",
         getResource("pulls_12345_reviews_testdata.json"),
@@ -175,7 +177,7 @@ public abstract class AbstractGitHubApiTest {
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=2>; rel=\"prev\","
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=3>; rel=\"last\", "
             + "<https://api.github.com/repositories/123/pulls?per_page=100&page=1>; rel=\"first\""
-        ));
+        ), 200);
     List<Review> reviews = api.getReviews("octocat/Hello-World", 12);
 
     assertThat(reviews).hasSize(3);
@@ -209,6 +211,35 @@ public abstract class AbstractGitHubApiTest {
     assertThat(refs.get(1).getSha()).isEqualTo("1234567890123456789012345678901234567890");
     assertThat(refs.get(2).getRef()).isEqualTo("refs/pull/1/merge");
     assertThat(refs.get(2).getSha()).isEqualTo("abcdefabcdefabcdefabcdefabcdefabcdefabcd");
+  }
+
+  @Test
+  public void testGetLsRemote_empty() throws Exception {
+    trainMockGetWithHeaders("/repos/copybara-test/copybara/git/refs?per_page=100",
+        ("{\n"
+            + "  \"message\": \"Git Repository is empty.\",\n"
+            + "  \"documentation_url\":"
+            + " \"https://developer.github.com/v3/git/refs/#get-all-references\"\n"
+            + "}").getBytes(UTF_8), ImmutableMap.of(),
+        409 // Http conflict
+    );
+    ImmutableList<Ref> refs = api.getLsRemote("copybara-test/copybara");
+
+    assertThat(refs).hasSize(0);
+  }
+
+  @Test
+  public void testGetLsRemote_fail() throws Exception {
+    trainMockGetWithHeaders("/repos/copybara-test/copybara/git/refs?per_page=100",
+        ("{\n"
+            + "  \"message\": \"Whatever you are looking for doesn't exist!!\"\n"
+            + "}").getBytes(UTF_8), ImmutableMap.of(),
+        404);
+    try {
+      api.getLsRemote("copybara-test/copybara");
+    } catch (GitHubApiException e) {
+      assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
+    }
   }
 
   @Test

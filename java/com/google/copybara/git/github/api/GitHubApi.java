@@ -16,6 +16,8 @@
 
 package com.google.copybara.git.github.api;
 
+import static com.google.copybara.git.github.api.GitHubApiException.ResponseCode.CONFLICT;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
@@ -145,6 +147,13 @@ public class GitHubApi {
               }.getType());
 
       return ImmutableList.copyOf(result);
+    } catch (GitHubApiException e) {
+      // Per https://developer.github.com/v3/git/, GH returns 409 - conflict if the repo is empty
+      // or in the process of being created
+      if (e.getResponseCode() == CONFLICT) {
+        return ImmutableList.of();
+      }
+      throw e;
     }
   }
 

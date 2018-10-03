@@ -106,12 +106,13 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
 
   @Override
   public void trainMockGetWithHeaders(String apiPath, byte[] response,
-      ImmutableMap<String, String> headers) {
+      ImmutableMap<String, String> headers, int status) {
     String path = String.format("GET https://api.github.com%s", apiPath);
     MockLowLevelHttpResponse httpResponse = new MockLowLevelHttpResponse().setContent(response);
     for (Entry<String, String> entry : headers.entrySet()) {
       httpResponse.addHeader(entry.getKey(), entry.getValue());
     }
+    httpResponse.setStatusCode(status);
     requestToResponse.put(path, httpResponse);
     requestValidators.put(path, (r) -> true);
   }
