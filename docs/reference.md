@@ -1576,7 +1576,7 @@ patch | `transformation`<br><p>Patch the checkout dir. The difference with `patc
 
 Creates changes in a new pull request in the destination.
 
-`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", skip_push=False, title=None, body=None, integrates=None, api_checker=None)`
+`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_branch=None, skip_push=False, title=None, body=None, integrates=None, api_checker=None)`
 
 
 #### Parameters:
@@ -1585,11 +1585,54 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
 destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
+pr_branch | `string`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
 skip_push | `boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
 title | `string`<br><p>When creating a pull request, use this title. By default it uses the change first line.</p>
 body | `string`<br><p>When creating a pull request, use this body. By default it uses the change summary.</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+
+
+#### Examples:
+
+
+##### Common usage:
+
+Create a branch by using copybara's computerIdentity algorithm:
+
+```python
+git.github_pr_destination(
+        url = github_url,
+        destination_ref = "master",
+    )
+```
+
+
+##### Using pr_branch with label:
+
+Customize pr_branch with context reference:
+
+```python
+git.github_pr_destination(
+         url = github_url,
+         destination_ref = "master",
+         pr_branch = 'test_${CONTEXT_REFERENCE}',
+    )
+```
+
+
+##### Using pr_branch with constant string:
+
+Customize pr_branch with a constant string:
+
+```python
+git.github_pr_destination(
+        url = github_url,
+        destination_ref = "master",
+        pr_branch = 'test_my_branch',
+    )
+```
+
 
 
 

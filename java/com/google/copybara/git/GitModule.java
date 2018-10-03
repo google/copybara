@@ -572,43 +572,124 @@ public class GitModule implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "github_pr_destination",
+  @SkylarkCallable(
+      name = "github_pr_destination",
       doc = "Creates changes in a new pull request in the destination.",
       parameters = {
-          @Param(name = "url", type = String.class, named = true,
-              doc = "Url of the GitHub project. For example"
-                  + " \"https://github.com/google/copybara'\""),
-          @Param(name = "destination_ref", type = String.class, named = true,
-              doc = "Destination reference for the change. By default 'master'",
-              defaultValue = "\"master\""),
-          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False", named = true,
-              positional = false,
-              doc = "If set, copybara will not actually push the result to the destination. This is"
-                  + " meant for testing workflows and dry runs."),
-          @Param(name = "title", type = String.class, defaultValue = "None", noneable = true,
-              named = true, positional = false,
-              doc = "When creating a pull request, use this title. By default it uses the change"
-                  + " first line."),
-          @Param(name = "body", type = String.class, defaultValue = "None", noneable = true,
-              named = true, positional = false,
-              doc = "When creating a pull request, use this body. By default it uses the change"
-                  + " summary."),
-          @Param(name = "integrates", type = SkylarkList.class, named = true,
-              generic1 = GitIntegrateChanges.class, defaultValue = "None",
-              doc = "Integrate changes from a url present in the migrated change"
-                  + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
-                  + " present in the message", positional = false, noneable = true),
-          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
-              doc = "A checker for the GitHub API endpoint provided for after_migration hooks. "
-                  + "This field is not required if the workflow hooks don't use the "
-                  + "origin/destination endpoints.",
-              named = true, positional = false,
-              noneable = true),
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc =
+                "Url of the GitHub project. For example"
+                    + " \"https://github.com/google/copybara'\""),
+        @Param(
+            name = "destination_ref",
+            type = String.class,
+            named = true,
+            doc = "Destination reference for the change. By default 'master'",
+            defaultValue = "\"master\""),
+        @Param(
+            name = "pr_branch",
+            type = String.class,
+            defaultValue = "None",
+            noneable = true,
+            named = true,
+            positional = false,
+            doc =
+                "Customize the pull request branch. Any variable present in the message in the "
+                    + "form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable "
+                    + "reference (head, PR number, Gerrit change number, etc.)."),
+        @Param(
+            name = "skip_push",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "If set, copybara will not actually push the result to the destination. This is"
+                    + " meant for testing workflows and dry runs."),
+        @Param(
+            name = "title",
+            type = String.class,
+            defaultValue = "None",
+            noneable = true,
+            named = true,
+            positional = false,
+            doc =
+                "When creating a pull request, use this title. By default it uses the change"
+                    + " first line."),
+        @Param(
+            name = "body",
+            type = String.class,
+            defaultValue = "None",
+            noneable = true,
+            named = true,
+            positional = false,
+            doc =
+                "When creating a pull request, use this body. By default it uses the change"
+                    + " summary."),
+        @Param(
+            name = "integrates",
+            type = SkylarkList.class,
+            named = true,
+            generic1 = GitIntegrateChanges.class,
+            defaultValue = "None",
+            doc =
+                "Integrate changes from a url present in the migrated change"
+                    + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                    + " present in the message",
+            positional = false,
+            noneable = true),
+        @Param(
+            name = "api_checker",
+            type = Checker.class,
+            defaultValue = "None",
+            doc =
+                "A checker for the GitHub API endpoint provided for after_migration hooks. "
+                    + "This field is not required if the workflow hooks don't use the "
+                    + "origin/destination endpoints.",
+            named = true,
+            positional = false,
+            noneable = true),
       },
       useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
-  public GitHubPrDestination githubPrDestination(String url, String destinationRef,
-      Boolean skipPush, Object title, Object body, Object integrates, Object checkerObj,
+  @Example(
+      title = "Common usage",
+      before = "Create a branch by using copybara's computerIdentity algorithm:",
+      code =
+          "git.github_pr_destination(\n"
+              + "        url = github_url,\n"
+              + "        destination_ref = \"master\",\n"
+              + "    )")
+  @Example(
+      title = "Using pr_branch with label",
+      before = "Customize pr_branch with context reference:",
+      code =
+          "git.github_pr_destination(\n"
+              + "         url = github_url,\n"
+              + "         destination_ref = \"master\",\n"
+              + "         pr_branch = 'test_${CONTEXT_REFERENCE}',\n"
+              + "    )")
+  @Example(
+      title = "Using pr_branch with constant string",
+      before = "Customize pr_branch with a constant string:",
+      code =
+          "git.github_pr_destination(\n"
+              + "        url = github_url,\n"
+              + "        destination_ref = \"master\",\n"
+              + "        pr_branch = 'test_my_branch',\n"
+              + "    )")
+  public GitHubPrDestination githubPrDestination(
+      String url,
+      String destinationRef,
+      Object prBranch,
+      Boolean skipPush,
+      Object title,
+      Object body,
+      Object integrates,
+      Object checkerObj,
       Location location)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -618,6 +699,7 @@ public class GitModule implements LabelsAwareModule {
     return new GitHubPrDestination(
         fixHttp(url, location),
         destinationRef,
+        SkylarkUtil.convertFromNoneable(prBranch, null),
         generalOptions,
         options.get(GitHubOptions.class),
         options.get(GitDestinationOptions.class),

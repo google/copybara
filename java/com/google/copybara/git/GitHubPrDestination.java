@@ -43,6 +43,8 @@ import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.transform.metadata.LabelTemplate;
+import com.google.copybara.transform.metadata.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
@@ -57,6 +59,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
 
   private final String url;
   private final String destinationRef;
+  private final String prBranch;
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
   private final GitDestinationOptions destinationOptions;
@@ -74,6 +77,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   GitHubPrDestination(
       String url,
       String destinationRef,
+      @Nullable String prBranch,
       GeneralOptions generalOptions,
       GitHubOptions gitHubOptions,
       GitDestinationOptions destinationOptions,
@@ -88,6 +92,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       @Nullable Checker endpointChecker) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
+    this.prBranch = prBranch;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
     this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
@@ -128,8 +133,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     boolean effectiveSkipPush =
         GitHubPrDestination.this.effectiveSkipPush || writerContext.isDryRun();
 
-    String pushBranchName =
-        branchFromContextReference(
+    String prBranch =
+        getPullRequestBranchName(
             writerContext.getOriginalRevision(),
             writerContext.getWorkflowName(),
             writerContext.getWorkflowIdentityUser());
@@ -137,7 +142,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     GitHubWriterState state = new GitHubWriterState(
         localRepo,
         destinationOptions.localRepoPath != null
-            ? pushBranchName
+            ? prBranch
             : "copybara/push-"
                 + UUID.randomUUID()
                 + (writerContext.isDryRun() ? "-dryrun" : ""));
@@ -146,7 +151,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         effectiveSkipPush,
         url,
         destinationRef,
-        pushBranchName,
+        prBranch,
         generalOptions,
         writeHook,
         state,
@@ -174,17 +179,17 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           console.infoFmt(
               "Please create a PR manually following this link: %s/compare/%s...%s"
                   + " (Only needed once)",
-              asHttpsUrl(), destinationRef, pushBranchName);
+              asHttpsUrl(), destinationRef, prBranch);
           state.pullRequestNumber = -1L;
           return result.build();
         }
 
         GitHubApi api = gitHubOptions.newGitHubApi(GitHubUtil.getProjectNameFromUrl(url));
         for (PullRequest pr : api.getPullRequests(getProjectName())) {
-          if (pr.isOpen() && pr.getHead().getRef().equals(pushBranchName)) {
+          if (pr.isOpen() && pr.getHead().getRef().equals(prBranch)) {
             console.infoFmt(
                 "Pull request for branch %s already exists as %s/pull/%s",
-                pushBranchName, asHttpsUrl(), pr.getNumber());
+                prBranch, asHttpsUrl(), pr.getNumber());
             if (!pr.getBase().getRef().equals(destinationRef)) {
               // TODO(malcon): Update PR or create a new one?
               console.warnFmt(
@@ -214,10 +219,10 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             api.createPullRequest(
                 getProjectName(),
                 new CreatePullRequest(
-                    title, body == null ? msg.getText() : body, pushBranchName, destinationRef));
+                    title, body == null ? msg.getText() : body, prBranch, destinationRef));
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",
-            asHttpsUrl(), pr.getNumber(), pushBranchName);
+            asHttpsUrl(), pr.getNumber(), prBranch);
         state.pullRequestNumber = pr.getNumber();
         result.add(
             new DestinationEffect(
@@ -253,13 +258,13 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   }
 
   @VisibleForTesting
-  String branchFromContextReference(
+  private String getPullRequestBranchName(
       @Nullable Revision changeRevision, String workflowName, String workflowIdentityUser)
       throws ValidationException {
     if (!Strings.isNullOrEmpty(gitHubDestinationOptions.destinationPrBranch)) {
       return gitHubDestinationOptions.destinationPrBranch;
     }
-    String contextReference = changeRevision != null ? changeRevision.contextReference() : null;
+    String contextReference = changeRevision.contextReference();
     // We could do more magic here with the change identity. But this is already complex so we
     // require  a group identity either provided by the origin or the workflow (Will be implemented
     // later.
@@ -267,9 +272,31 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         "git.github_pr_destination is incompatible with the current origin. Origin has to be"
             + " able to provide the contextReference or use '%s' flag",
         GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
-    String branchName = Identity.computeIdentity("OriginGroupIdentity", contextReference,
-        workflowName, mainConfigFile.getIdentifier(), workflowIdentityUser);
+    String branchNameFromUser = getCustomBranchName(contextReference);
+    String branchName =
+        branchNameFromUser != null
+            ? branchNameFromUser
+            : Identity.computeIdentity(
+                "OriginGroupIdentity",
+                contextReference,
+                workflowName,
+                mainConfigFile.getIdentifier(),
+                workflowIdentityUser);
     return branchName.replaceAll("[^A-Za-z0-9_-]", "_");
+  }
+
+  @Nullable
+  private String getCustomBranchName(String contextReference) throws ValidationException {
+    if (prBranch == null) {
+      return null;
+    }
+    try {
+      return new LabelTemplate(prBranch)
+          .resolve(e -> e.equals("CONTEXT_REFERENCE") ? contextReference : prBranch);
+    } catch (LabelNotFoundException e) {
+      throw new ValidationException(
+          e, "Cannot find some labels in the GitHub PR branch name field: %s", e.getMessage());
+    }
   }
 
   @Override

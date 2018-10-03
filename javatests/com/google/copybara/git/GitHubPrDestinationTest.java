@@ -42,6 +42,7 @@ import com.google.copybara.testing.git.GitApiMockHttpTransport;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -378,7 +379,10 @@ public class GitHubPrDestinationTest {
         + "    destination_ref = 'other',"
         + ")");
     DummyRevision dummyRevision = new DummyRevision("dummyReference", "feature");
-    String branchName = d.branchFromContextReference(dummyRevision, "piper_to_github_pr", "TEST");
+    WriterContext writerContext =
+        new WriterContext( /*workflowName=*/"piper_to_github_pr", /*workflowIdentityUser=*/"TEST",
+            /*dryRun=*/false, dummyRevision);
+    String branchName = Identity.computeIdentity("OriginGroupIdentity", dummyRevision.contextReference(), writerContext.getWorkflowName(), "copy.bara.sky", writerContext.getWorkflowIdentityUser());
     gitApiMockHttpTransport =
         new GitApiMockHttpTransport() {
           @Override
@@ -403,9 +407,7 @@ public class GitHubPrDestinationTest {
             throw new IllegalStateException();
           }
         };
-    WriterContext writerContext =
-        new WriterContext( /*workflowName=*/"piper_to_github_pr", /*workflowIdentityUser=*/"TEST",
-            /*dryRun=*/false, dummyRevision);
+
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = localHubRepo("foo");
     addFiles(remote, "master", "first change", ImmutableMap.<String, String>builder()
@@ -424,6 +426,84 @@ public class GitHubPrDestinationTest {
         "test summary\n"
             + "\n"
             + "DummyOrigin-RevId: one\n");
+  }
+
+  @Test
+  public void testBranchNameFromUserWithLabel() throws ValidationException, IOException, RepoException {
+    testBranchNameFromUser("test${CONTEXT_REFERENCE}", "test_feature", "&feature");
+  }
+
+  @Test
+  public void testBranchNameFromUserWithConstantString() throws ValidationException, IOException, RepoException {
+    testBranchNameFromUser("test_my_branch", "test_my_branch", "feature");
+  }
+
+  @Test
+  public void testBranchNameFromUserWithAbnormalCharacters() throws ValidationException, IOException, RepoException {
+    testBranchNameFromUser("test*my&special%characters^branch@name", "test_my_special_characters_branch_name", "feature");
+  }
+
+  private void testBranchNameFromUser(String branchNameFromUser, String expectedBranchName, String contextReference) throws ValidationException, IOException, RepoException {
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_pr_destination("
+                + "    url = 'https://github.com/foo',"
+                + "    destination_ref = 'other',"
+                + "    pr_branch = " + "\'" + branchNameFromUser + "\',"
+                + ")");
+    DummyRevision dummyRevision = new DummyRevision("dummyReference", contextReference);
+    gitApiMockHttpTransport =
+        new GitApiMockHttpTransport() {
+          @Override
+          public String getContent(String method, String url, MockLowLevelHttpRequest request)
+              throws IOException {
+            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
+            if ("GET".equals(method) && isPulls) {
+              return "[]";
+            } else if ("POST".equals(method) && isPulls) {
+              assertThat(request.getContentAsString())
+                  .isEqualTo(
+                      "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\""
+                          + expectedBranchName
+                          + "\",\"title\":\"test summary\"}");
+              return ("{\n"
+                  + "  \"id\": 1,\n"
+                  + "  \"number\": 12345,\n"
+                  + "  \"state\": \"open\",\n"
+                  + "  \"title\": \"test summary\",\n"
+                  + "  \"body\": \"test summary\""
+                  + "}");
+            }
+            fail(method + " " + url);
+            throw new IllegalStateException();
+          }
+        };
+    WriterContext writerContext =
+        new WriterContext(
+            /*workflowName=*/ "piper_to_github_pr",
+            /*workflowIdentityUser=*/ "TEST",
+            /*dryRun=*/ false,
+            dummyRevision);
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+    GitRepository remote = localHubRepo("foo");
+    addFiles(
+        remote,
+        "master",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").build());
+
+    addFiles(
+        remote,
+        "other",
+        "second change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "test").build());
+
+    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
+
+    assertThat(remote.refExists(expectedBranchName)).isTrue();
   }
 
   @Test
