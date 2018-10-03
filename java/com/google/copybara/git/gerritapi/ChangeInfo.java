@@ -63,7 +63,7 @@ public class ChangeInfo implements SkylarkValue {
   @SkylarkCallable(
       name = "id",
       doc =
-          "The ID of the change in the format \"'<project>~<branch>~<Change-Id>'\", where "
+          "The ID of the change in the format \"`<project>~<branch>~<Change-Id>`\", where "
               + "'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the "
               + "refs/heads/ prefix is omitted.",
       structField = true,

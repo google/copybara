@@ -1167,7 +1167,7 @@ change_id | The Change-Id of the change.
 created | The timestamp of when the change was created.
 current_revision | The commit ID of the current patch set of this change.
 Only set if the current revision is requested or if all revisions are requested.
-id | The ID of the change in the format "'<project>~<branch>~<Change-Id>'", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.
+id | The ID of the change in the format "`<project>~<branch>~<Change-Id>`", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.
 labels | The labels of the change as a map that maps the label names to LabelInfo entries.
 Only set if labels or detailed labels are requested.
 messages | Messages associated with the change as a list of ChangeMessageInfo entities.
