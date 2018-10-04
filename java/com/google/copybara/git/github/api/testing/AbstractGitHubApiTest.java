@@ -25,7 +25,6 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -225,7 +224,7 @@ public abstract class AbstractGitHubApiTest {
     );
     ImmutableList<Ref> refs = api.getLsRemote("copybara-test/copybara");
 
-    assertThat(refs).hasSize(0);
+    assertThat(refs).isEmpty();
   }
 
   @Test
@@ -237,6 +236,7 @@ public abstract class AbstractGitHubApiTest {
         404);
     try {
       api.getLsRemote("copybara-test/copybara");
+      fail();
     } catch (GitHubApiException e) {
       assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
     }
