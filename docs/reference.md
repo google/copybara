@@ -21,7 +21,6 @@
   - [core](#core)
     - [core.copy](#core.copy)
     - [core.dynamic_transform](#core.dynamic_transform)
-    - [core.fail](#core.fail)
     - [core.feedback](#core.feedback)
     - [core.move](#core.move)
     - [core.remove](#core.remove)
@@ -521,20 +520,6 @@ def test(name, number = 2):
 
 After defining this function, you can use `test('example', 42)` as a transformation in `core.workflow`.
 
-
-<a id="core.fail" aria-hidden="true"></a>
-### core.fail
-
-An utility for library creators to validate conditions on exposed functions. The error will be reported as configuration error and Copybara will stop execution.
-
-`core.fail(msg)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-msg | `object`<br><p>The error message</p>
 
 <a id="core.feedback" aria-hidden="true"></a>
 ### core.feedback
