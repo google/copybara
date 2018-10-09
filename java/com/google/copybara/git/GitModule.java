@@ -572,6 +572,57 @@ public class GitModule implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
+  @SkylarkCallable(name = "github_destination",
+      doc = "Creates a commit in a GitHub repository branch (for example master). For creating Pull"
+          + "Request use git.github_pr_destination.",
+      parameters = {
+          @Param(name = "url", type = String.class, named = true,
+              doc = "Indicates the URL to push to as well as the URL from which to get the parent "
+                  + "commit"),
+          @Param(name = "push", type = String.class, named = true,
+              doc = "Reference to use for pushing the change, for example 'master'",
+              defaultValue = "'master'"),
+          @Param(name = "fetch", type = String.class, named = true,
+              doc = "Indicates the ref from which to get the parent commit. Defaults to push value"
+                  + " if None",
+              defaultValue = "None", noneable = true),
+          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False", named = true,
+              doc = "If set, copybara will not actually push the result to the destination. This is"
+                  + " meant for testing workflows and dry runs."),
+          @Param(name = "integrates", type = SkylarkList.class, named = true,
+              generic1 = GitIntegrateChanges.class, defaultValue = "None",
+              doc = "Integrate changes from a url present in the migrated change"
+                  + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                  + " present in the message", positional = false, noneable = true),
+      },
+      useLocation = true)
+  @UsesFlags(GitDestinationOptions.class)
+  public GitDestination gitHubDestination(String url, String push, Object fetch,
+      Boolean skipPush, Object integrates, Location location)
+      throws EvalException {
+    GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
+    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
+        "push", location);
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    return new GitDestination(
+        fixHttp(checkNotEmpty(
+            firstNotNull(destinationOptions.url, url), "url", location), location),
+        checkNotEmpty(
+            firstNotNull(destinationOptions.fetch,
+                convertFromNoneable(fetch, null),
+                resolvedPush),
+            "fetch", location),
+        resolvedPush,
+        destinationOptions,
+        options.get(GitOptions.class),
+        generalOptions,
+        skipPush,
+        new DefaultWriteHook(),
+        SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+            GitIntegrateChanges.class, "integrates"));
+  }
+
+  @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "github_pr_destination",
       doc = "Creates changes in a new pull request in the destination.",

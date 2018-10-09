@@ -64,6 +64,7 @@
     - [git.gerrit_origin](#git.gerrit_origin)
     - [git.gerrit_trigger](#git.gerrit_trigger)
     - [git.github_api](#git.github_api)
+    - [git.github_destination](#git.github_destination)
     - [git.github_origin](#git.github_origin)
     - [git.github_pr_destination](#git.github_pr_destination)
     - [git.github_pr_origin](#git.github_pr_origin)
@@ -1552,6 +1553,42 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the GitHub repo URL.</p>
 checker | `checker`<br><p>A checker for the GitHub API transport.</p>
+
+<a id="git.github_destination" aria-hidden="true"></a>
+### git.github_destination
+
+Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
+
+`gitDestination git.github_destination(url, push='master', fetch=None, skip_push=False, integrates=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
+push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
+fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
+skip_push | `boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<nobr>`--git-committer-email`</nobr> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+<nobr>`--git-committer-name`</nobr> | *string* | If set, overrides the committer name for the generated commits in git destination.
+<nobr>`--git-destination-fetch`</nobr> | *string* | If set, overrides the git destination fetch reference.
+<nobr>`--git-destination-ignore-integration-errors`</nobr> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+<nobr>`--git-destination-last-rev-first-parent`</nobr> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+<nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+<nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
+<nobr>`--git-destination-skip-push`</nobr> | *boolean* | If set, the tool will not push to the remote destination
+<nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
+<nobr>`--nogit-destination-rebase`</nobr> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.github_origin" aria-hidden="true"></a>
 ### git.github_origin
