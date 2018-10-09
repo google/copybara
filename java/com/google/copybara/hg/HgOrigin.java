@@ -25,6 +25,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeGraph;
 import com.google.copybara.GeneralOptions;
@@ -275,6 +276,23 @@ public class HgOrigin implements Origin<HgRevision> {
   @Override
   public String getLabelName() {
     return HgRepository.HG_ORIGIN_REV_ID;
+  }
+
+  @Override
+  public String getType() {
+    return "hg.origin";
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+    ImmutableSetMultimap.Builder<String, String> builder =
+        new ImmutableSetMultimap.Builder<String, String>()
+            .put("type", getType())
+            .put("url", repoUrl);
+    if (configRef != null) {
+      builder.put("ref", configRef);
+    }
+    return builder.build();
   }
 
   /**

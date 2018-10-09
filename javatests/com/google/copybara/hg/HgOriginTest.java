@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
@@ -394,6 +395,15 @@ public class HgOriginTest {
         });
     assertThat(visited).hasSize(1);
     assertThat(visited.get(0).firstLineMessage()).isEqualTo("two");
+  }
+
+  @Test
+  public void testDescribe() {
+    ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
+    assertThat(actual).hasSize(3);
+    assertThat(actual.get("type")).containsExactly("hg.origin");
+    assertThat(actual.get("url")).hasSize(1);
+    assertThat(actual.get("ref")).containsExactly("tip");
   }
 
   private Path singleFileCommit(String author, String commitMessage, String fileName,
