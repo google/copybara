@@ -44,7 +44,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class CommandRunnerTest {
 
-  private static final int LINES_SIZE = 100000;
+  private static final int LINES_SIZE = 1000;
 
   private ByteArrayOutputStream outContent = new ByteArrayOutputStream();
   private ByteArrayOutputStream errContent = new ByteArrayOutputStream();
