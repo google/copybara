@@ -2057,6 +2057,89 @@ public class WorkflowTest {
     assertThat(secondEffect.getDestinationRef().getId()).isEqualTo("9999");
   }
 
+  // Validates that the hook is executed when the workflow throws ValidationException, and that
+  // the correct effect is populated
+  @Test
+  public void testOnFinishHook_Error() throws Exception {
+    options.testingOptions.destination = new RecordsProcessCallDestination() {
+      @Override
+      public Writer<Revision> newWriter(WriterContext writerContext) {
+        return new RecordsProcessCallDestination.WriterImpl(false) {
+          @Override
+          public ImmutableList<DestinationEffect> write(TransformResult transformResult,
+              Glob destinationFiles, Console console) throws ValidationException {
+            throw new ValidationException("Validation exception!");
+          }
+        };
+      }
+    };
+    verifyHookForException(ValidationException.class, Type.ERROR, "Validation exception!");
+  }
+
+  // Validates that the hook is executed when the workflow throws an exception != VE, and that
+  // the correct effect is populated
+  @Test
+  public void testOnFinishHook_TemporaryError() throws Exception {
+    options.testingOptions.destination = new RecordsProcessCallDestination() {
+      @Override
+      public Writer<Revision> newWriter(WriterContext writerContext) {
+        return new RecordsProcessCallDestination.WriterImpl(false) {
+          @Override
+          public ImmutableList<DestinationEffect> write(TransformResult transformResult,
+              Glob destinationFiles, Console console) throws RepoException {
+            throw new RepoException("Repo exception!");
+          }
+        };
+      }
+    };
+    verifyHookForException(RepoException.class, Type.TEMPORARY_ERROR, "Repo exception!");
+  }
+
+  private <T extends Exception> void verifyHookForException(Class<T> expectedExceptionType,
+      Type expectedEffectType, String expectedErrorMsg)
+      throws IOException, ValidationException, RepoException {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+
+    String config = ""
+        + "def test(ctx):\n"
+        + "  origin_refs = [ctx.origin.new_origin_ref('1111')]\n"
+        + "  dest_ref = ctx.destination.new_destination_ref(ref = '9999', type = 'some_type')\n"
+        + "  ctx.record_effect('New effect', origin_refs, dest_ref)\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "  name = 'default',\n"
+        + "  origin = testing.origin(),\n"
+        + "  destination = testing.destination(),\n"
+        + "  transformations = [],\n"
+        + "  authoring = " + authoring + ",\n"
+        + "  after_migration = [test]"
+        + ")\n";
+    try {
+      loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
+      fail();
+    } catch (Exception expected) {
+      if (!expectedExceptionType.isInstance(expected)) {
+        throw expected;
+      }
+      assertThat(expected).hasMessageThat().contains(expectedErrorMsg);
+    }
+
+    assertThat(eventMonitor.changeMigrationFinishedEventCount()).isEqualTo(1);
+    ChangeMigrationFinishedEvent event =
+        Iterables.getOnlyElement(eventMonitor.changeMigrationFinishedEvents);
+    assertThat(event.getDestinationEffects()).hasSize(2);
+    DestinationEffect firstEffect = event.getDestinationEffects().get(0);
+    assertThat(firstEffect.getType()).isEqualTo(expectedEffectType);
+    assertThat(firstEffect.getSummary()).isEqualTo("Errors happened during the migration");
+    assertThat(firstEffect.getErrors()).contains(expectedErrorMsg);
+    // Effect from the hook is also created
+    DestinationEffect secondEffect = event.getDestinationEffects().get(1);
+    assertThat(secondEffect.getSummary()).isEqualTo("New effect");
+    assertThat(secondEffect.getType()).isEqualTo(Type.UPDATED);
+    assertThat(secondEffect.getOriginRefs().get(0).getRef()).isEqualTo("1111");
+    assertThat(secondEffect.getDestinationRef().getId()).isEqualTo("9999");
+  }
+
   @Test
   public void testOnFinishHookDoesNotReturnResult() throws Exception {
     origin.singleFileChange(0, "one commit", "foo.txt", "1");

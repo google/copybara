@@ -389,7 +389,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         @Nullable O changeIdentityRevision)
         throws IOException, RepoException, ValidationException {
       ImmutableList<DestinationEffect> effects = ImmutableList.of();
-      boolean callPerMigrationHook = true;
       try {
         workflow.eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
         effects =
@@ -406,20 +405,20 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                     /*destinationRef=*/ null));
         throw empty;
       } catch (ValidationException | IOException | RepoException | RuntimeException e) {
+        boolean userError = e instanceof ValidationException;
         effects =
             ImmutableList.of(
                 new DestinationEffect(
-                    Type.ERROR,
+                    userError ? Type.ERROR : Type.TEMPORARY_ERROR,
                     "Errors happened during the migration",
                     changes.getCurrent(),
                     /*destinationRef=*/ null,
                     ImmutableList.of(e.getMessage() != null ? e.getMessage() : e.toString())));
-        callPerMigrationHook = e instanceof ValidationException;
         throw e;
       } finally {
         try {
           boolean dryRunModeFlag = workflow.getGeneralOptions().dryRunMode;
-          if (callPerMigrationHook && !dryRunModeFlag) {
+          if (!dryRunModeFlag) {
             SkylarkConsole console = new SkylarkConsole(workflow.getConsole());
             try (ProfilerTask ignored = profiler().start("finish_hooks")) {
               List<DestinationEffect> hookDestinationEffects = new ArrayList<>();

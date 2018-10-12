@@ -199,6 +199,10 @@ public class DestinationEffect implements SkylarkValue {
      */
     ERROR,
     /**
+     * An error not attributable to the user that could be retried (RepoException, IOException...)
+     */
+    TEMPORARY_ERROR,
+    /**
      * A starting effect of a migration that is eventually expected to trigger another migration
      * asynchronously. This allows to have 'dependant' migrations defined by users.
      * An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a
