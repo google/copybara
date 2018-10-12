@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Change;
-import com.google.copybara.ChangeGraph;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -37,15 +36,11 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.hg.ChangeReader.HgChange;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -95,10 +90,6 @@ public class HgOrigin implements Origin<HgRevision> {
     return repo.identify(ref);
   }
 
-  private static ImmutableList<Change<HgRevision>> asChanges(Collection<HgChange> hgChanges) {
-    return hgChanges.stream().map(HgChange::getChange).collect(ImmutableList.toImmutableList());
-  }
-
   static class ReaderImpl implements Reader<HgRevision> {
 
     private final String repoUrl;
@@ -136,8 +127,7 @@ public class HgOrigin implements Origin<HgRevision> {
       try {
         FileUtil.deleteRecursively(workDir);
         repo.archive(workDir.toString()); // update the working directory
-      }
-      catch (RepoException e) {
+      } catch (RepoException e) {
         if (e.getMessage().contains("abort: no files match the archive pattern")) {
           throw new ValidationException(e, "The origin repository is empty");
         }
@@ -157,12 +147,12 @@ public class HgOrigin implements Origin<HgRevision> {
 
       try {
         ChangeReader reader = changeReaderBuilder().build();
-        ImmutableList<HgChange> hgChanges = reader.run(refRange);
+        ImmutableList<Change<HgRevision>> changes = reader.run(refRange);
 
-        if (!hgChanges.isEmpty()) {
-          return ChangesResponse.forChanges(toGraph(hgChanges));
+        if (!changes.isEmpty()) {
+          return ChangesResponse.forChangesWithMerges(changes);
         }
-
+        // TODO(malcon): This is wrong as fromRef can be null. Need to investigate
         return noChanges(getEmptyReason(fromRef.getGlobalId(), toRef.getGlobalId()));
       }
 
@@ -170,26 +160,6 @@ public class HgOrigin implements Origin<HgRevision> {
         throw new RepoException(
             String.format("Error querying changes: %s", e.getMessage()), e.getCause());
       }
-    }
-
-    private ChangeGraph<Change<HgRevision>> toGraph(Iterable<HgChange> hgChanges) {
-      ChangeGraph.Builder<Change<HgRevision>> builder = ChangeGraph.builder();
-
-      Map<String, Change<HgRevision>> revisionMap = new HashMap<>();
-
-      for(HgChange change : hgChanges) {
-        builder.addChange(change.getChange());
-        revisionMap.put(change.getChange().getRevision().getGlobalId(), change.getChange());
-
-        for (HgRevision parent : change.getParents()) {
-          Change<HgRevision> parentChange = revisionMap.get(parent.getGlobalId());
-
-          if (parentChange != null) {
-            builder.addParent(change.getChange(), parentChange);
-          }
-        }
-      }
-      return builder.build();
     }
 
     private EmptyReason getEmptyReason(String fromRef, String toRef)
@@ -228,9 +198,8 @@ public class HgOrigin implements Origin<HgRevision> {
 
       try {
         ChangeReader reader = changeReaderBuilder().setLimit(1).build();
-        changes = asChanges(reader.run(ref.getGlobalId()));
-      }
-      catch (ValidationException e){
+        changes = reader.run(ref.getGlobalId());
+      } catch (ValidationException e){
         throw new RepoException(String.format("Error getting change: %s", e.getMessage()));
       }
 
@@ -242,12 +211,11 @@ public class HgOrigin implements Origin<HgRevision> {
       Change<HgRevision> rev = changes.get(0);
 
       return new Change<>(ref, rev.getAuthor(), rev.getMessage(), rev.getDateTime(),
-          rev.getLabels(), rev.getChangeFiles());
+          rev.getLabels(), rev.getChangeFiles(), rev.isMerge(), rev.getParents());
     }
 
     @Override
-    public void visitChanges(HgRevision start, ChangesVisitor visitor) throws RepoException,
-    CannotResolveRevisionException {
+    public void visitChanges(HgRevision start, ChangesVisitor visitor) throws RepoException {
       ChangeReader.Builder queryChanges = changeReaderBuilder();
       ImmutableSet<String> roots = originFiles.roots();
 

@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
@@ -34,9 +33,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.hg.HgRepository.LogCmd;
 import com.google.copybara.util.console.Console;
-import java.time.ZonedDateTime;
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 /**
  * Utility class to introspect the log of a Mercurial (Hg) repository.
@@ -61,7 +58,8 @@ class ChangeReader {
     this.keyword = keyword;
   }
 
-  ImmutableList<HgChange> run(String refExpression) throws RepoException, ValidationException {
+  ImmutableList<Change<HgRevision>> run(String refExpression)
+      throws RepoException, ValidationException {
     LogCmd logCmd = repository.log();
 
     if (keyword.isPresent()) {
@@ -134,31 +132,9 @@ class ChangeReader {
     }
   }
 
-  /**
-   * A version of {@class Change} that contains the parents of a hg change.
-   */
-  static class HgChange {
-    private final Change<HgRevision> change;
-    private final ImmutableList<HgRevision> parents;
-
-    HgChange(Change<HgRevision> change, Iterable<HgRevision> parents) {
-      this.change = Preconditions.checkNotNull(change);
-      Preconditions.checkNotNull(parents);
-      this.parents = ImmutableList.copyOf(parents);
-    }
-
-    Change<HgRevision> getChange() {
-      return change;
-    }
-
-    ImmutableList<HgRevision> getParents() {
-      return parents;
-    }
-  }
-
-  private ImmutableList<HgChange> parseChanges(ImmutableList<HgLogEntry> logEntries)
+  private ImmutableList<Change<HgRevision>> parseChanges(ImmutableList<HgLogEntry> logEntries)
       throws RepoException {
-    ImmutableList.Builder<HgChange> result = ImmutableList.builder();
+    ImmutableList.Builder<Change<HgRevision>> result = ImmutableList.builder();
 
     for (HgLogEntry entry : logEntries) {
       HgRevision rev = new HgRevision(entry.getGlobalId());
@@ -169,30 +145,26 @@ class ChangeReader {
       Author user;
       try {
         user = AuthorParser.parse(entry.getUser());
-      }
-      catch (InvalidAuthorException e) {
+      } catch (InvalidAuthorException e) {
         console.warn(String.format("Cannot parse commit user and email: %s", e.getMessage()));
         user = authoring.orElseThrow(
-            () -> new RepoException(
-                String.format("No default author provided.")))
+            () -> new RepoException("No default author provided."))
             .getDefaultAuthor();
       }
 
-      ZonedDateTime date = entry.getZonedDate();
-      ImmutableListMultimap<String, String> labels =
-          ChangeMessage.parseAllAsLabels(entry.getDescription()).labelsAsMultimap();
+      ImmutableList<HgRevision> parents = entry.getParents().stream()
+          .map(HgRevision::new)
+          .collect(ImmutableList.toImmutableList());
 
-      ImmutableSet<String> files = ImmutableSet.copyOf(entry.getFiles());
-
-      Change<HgRevision> change =
-          new Change<>(rev, user, entry.getDescription(), date, labels, files);
-
-      ImmutableList.Builder<HgRevision> builder = ImmutableList.builder();
-      for (String parentId : entry.getParents()) {
-        builder.add(new HgRevision(parentId));
-      }
-
-      result.add(new HgChange(change, builder.build()));
+      result.add(new Change<>(
+          rev,
+          user,
+          entry.getDescription(),
+          entry.getZonedDate(),
+          ChangeMessage.parseAllAsLabels(entry.getDescription()).labelsAsMultimap(),
+          ImmutableSet.copyOf(entry.getFiles()),
+          parents.size() > 1,
+          parents));
     }
     return result.build();
   }

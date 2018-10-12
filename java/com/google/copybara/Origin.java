@@ -16,12 +16,14 @@
 
 package com.google.copybara;
 
-import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.collect.Queues.newArrayDeque;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -31,8 +33,15 @@ import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -86,45 +95,119 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
 
     class ChangesResponse<R extends Revision> {
 
-      @Nullable
-      private final ChangeGraph<Change<R>> changes;
+      private final ImmutableList<Change<R>> changes;
       @Nullable private final EmptyReason emptyReason;
 
-      private ChangesResponse(@Nullable ChangeGraph<Change<R>> changes,
+      /**
+       * Changes in key will only be included if the value is included. The usage is for non-linear
+       * histories like git where including a change depends if we end up including the merge
+       * commit.
+       */
+      private final ImmutableMap<Change<R>, Change<R>> conditionalChanges;
+
+      private ChangesResponse(ImmutableList<Change<R>> changes,
+          ImmutableMap<Change<R>, Change<R>> conditionalChanges,
           @Nullable EmptyReason emptyReason) {
-        Preconditions.checkArgument(changes == null ^ emptyReason == null, "Either we have"
-            + " changes or we have an empty reason");
-        this.changes = changes;
+        this.changes = Preconditions.checkNotNull(changes);
+        this.conditionalChanges = Preconditions.checkNotNull(conditionalChanges);
         this.emptyReason = emptyReason;
-        if (changes != null) {
-          Preconditions.checkArgument(!changes.nodes().isEmpty(), "Non-null empty graphs are not"
-              + "allowed. Use emptyReason instead");
-        }
+        Preconditions.checkArgument(changes.isEmpty() ^ emptyReason == null, "Either we have"
+            + " changes or we have an empty reason");
       }
 
       public static <T extends Revision> ChangesResponse<T> forChanges(
-          ChangeGraph<Change<T>> changes) {
-        Preconditions.checkArgument(!changes.nodes().isEmpty(), "Empty changes not allowed");
-        if (changes.nodes().size() > 1) {
-          for (Change<T> node : changes.nodes()) {
-            Preconditions.checkState(
-                !changes.predecessors(node).isEmpty() || !changes.successors(node).isEmpty(),
-                "Unconnected node: %s", node);
+          Iterable<Change<T>> changes) {
+        Preconditions.checkArgument(!Iterables.isEmpty(changes), "Empty changes not allowed");
+        return new ChangesResponse<>(ImmutableList.copyOf(changes),
+            ImmutableMap.copyOf(ImmutableMap.of()),
+            /*emptyReason=*/ null);
+      }
+
+      /**
+       * Build a ChangeResponse object with changes where some of them are conditional to their
+       * closest first-parent root being included (merge commit).
+       */
+      public static <R extends Revision> ChangesResponse<R> forChangesWithMerges(
+          Iterable<Change<R>> changes) {
+        Preconditions.checkArgument(!Iterables.isEmpty(changes),
+            "Shouldn't be called for empty changes");
+
+        Map<R, Change<R>> byRevision = new HashMap<>();
+        List<Change<R>> all = new ArrayList<>();
+        for (Change<R> e : changes) {
+          all.add(e);
+          byRevision.put(e.getRevision(), e);
+        }
+
+        List<Change<R>> firstParents = new ArrayList<>();
+        Set<R> toSkip = new HashSet<>();
+        Change<R> latest = Iterables.getLast(changes);
+
+        // Compute first parents and add them to toSkip so that they are not counted as conditional
+        // changes later.
+        while (true) {
+          firstParents.add(latest);
+          // We don't want to add first parents as conditional changes
+          toSkip.add(latest.getRevision());
+          if (parents(latest).isEmpty()) {
+            break;
+          }
+          R firstParent = parents(latest).get(0);
+          Change<R> firstParentChange = byRevision.get(firstParent);
+          if (firstParentChange == null) {
+            break;
+          }
+          latest = firstParentChange;
+        }
+
+        Map<Change<R>, Change<R>> conditionalChanges = new HashMap<>();
+
+        // Traverse from old to new so that we use oldest first-parent as the conditional change.
+        for (Change<R> firstParent : Lists.reverse(firstParents)) {
+          // Skip non-merges
+          if (parents(firstParent).size() < 2) {
+            continue;
+          }
+          Deque<R> toVisit = newArrayDeque(Iterables.skip(parents(firstParent), 1));
+          while (!toVisit.isEmpty()) {
+            R revision = toVisit.poll();
+            // Don't traverse again non-first parents already visited: This is for performance and
+            // correctness, the conditional changes is the oldest merge first-parent.
+            if (!toSkip.add(revision)) {
+              continue;
+            }
+            Change<R> change = byRevision.get(revision);
+            if (change == null) {
+              continue;
+            }
+            conditionalChanges.put(change, firstParent);
+            toVisit.addAll(parents(change));
           }
         }
-        return new ChangesResponse<>(changes, /*emptyReason*/ null);
+        return new ChangesResponse<>(ImmutableList.copyOf((Iterable<Change<R>>) all),
+            ImmutableMap.copyOf(conditionalChanges),
+            /*emptyReason=*/ null);
       }
 
+      private static <R extends Revision> ImmutableList<R> parents(Change<R> change) {
+        return Preconditions.checkNotNull(change.getParents(),
+            "Don't use forChangesWithParents for changes that don't support parents: ",
+            change);
+      }
+
+      /**
+       * Create a {@code ChangeResponse} that doesn't contain any change
+       */
       public static <T extends Revision> ChangesResponse<T> noChanges(EmptyReason emptyReason) {
         Preconditions.checkNotNull(emptyReason);
-        return new ChangesResponse<>(null, emptyReason);
+        return new ChangesResponse<>(ImmutableList.of(), ImmutableMap.of(), emptyReason);
       }
 
-     /**
+      /**
       * Returns true if there are no changes.
       */
       public boolean isEmpty() {
-        return changes == null;
+        return changes.isEmpty();
       }
 
       public EmptyReason getEmptyReason() {
@@ -133,23 +216,21 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
       }
 
       /**
-       * The changes that happen in the interval (fromRef, toRef] as a flatten list
+       * The changes that happen in the interval (fromRef, toRef].
+       *
+       * <p>The list might include changes that shouldn't be included in the final list of changes.
+       * Check conditionalChanges for changes that might not be included.
        */
-      @VisibleForTesting
-      public ImmutableList<Change<R>> getChangesAsListForTest() {
+      public ImmutableList<Change<R>> getChanges() {
         Preconditions.checkNotNull(changes, "Use isEmpty() first");
-        return ImmutableList.copyOf(changes.nodes());
+        return changes;
       }
 
       /**
-       * The changes that happen in the interval (fromRef, toRef].
-       *
-       * <p>The graph nodes are in order from oldest change to newest change.
-       * <code>graph.successors()</code> returns the parents of each change.
+       * Changes that should only be included if the change in the value is also included.
        */
-      public ChangeGraph<Change<R>> getChanges() {
-        Preconditions.checkNotNull(changes, "Use isEmpty() first");
-        return changes;
+      ImmutableMap<Change<R>, Change<R>> getConditionalChanges() {
+        return conditionalChanges;
       }
 
       /** Reason why {@link Origin.Reader#changes(Revision, Revision)} didn't return any change */

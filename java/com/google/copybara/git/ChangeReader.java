@@ -44,9 +44,9 @@ class ChangeReader {
   private final int limit;
   private final ImmutableList<String> roots;
   private final boolean includeBranchCommitLogs;
-  private String url;
-  private boolean firstParent;
-  private int skip;
+  private final String url;
+  private final boolean firstParent;
+  private final int skip;
   @Nullable private final String grepString;
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, int limit,
@@ -63,7 +63,7 @@ class ChangeReader {
     this.grepString = grepString;
   }
 
-  ImmutableList<GitChange> run(String refExpression) throws RepoException {
+  ImmutableList<Change<GitRevision>> run(String refExpression) throws RepoException {
     LogCmd logCmd = repository
         .log(refExpression)
         .firstParent(firstParent);
@@ -118,10 +118,10 @@ class ChangeReader {
             .collect(Collectors.toList()));
   }
 
-  private ImmutableList<GitChange> parseChanges(ImmutableList<GitLogEntry> logEntries)
+  private ImmutableList<Change<GitRevision>> parseChanges(ImmutableList<GitLogEntry> logEntries)
       throws RepoException {
 
-    ImmutableList.Builder<GitChange> result = ImmutableList.builder();
+    ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
     GitRevision last = null;
     for (GitLogEntry e : logEntries) {
       // Keep the first commit if repeated (merge commits).
@@ -129,14 +129,13 @@ class ChangeReader {
         continue;
       }
       last = e.getCommit();
-      result.add(new GitChange(new Change<>(
+      result.add(new Change<>(
           e.getCommit().withUrl(url),
           filterAuthor(e.getAuthor())
           , e.getBody() + branchCommitLog(e.getCommit(), e.getParents()),
           e.getAuthorDate(),
           ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap(),
-          e.getFiles(), e.getParents().size() > 1),
-          e.getParents()));
+          e.getFiles(), e.getParents().size() > 1, e.getParents()));
     }
     return result.build().reverse();
   }
@@ -145,28 +144,6 @@ class ChangeReader {
     return authoring == null || authoring.useAuthor(author.getEmail())
         ? author
         : authoring.getDefaultAuthor();
-  }
-
-  /**
-   * An enhanced version of Change that contains the git parents.
-   */
-  static class GitChange {
-
-    private final Change<GitRevision> change;
-    private final ImmutableList<GitRevision> parents;
-
-    GitChange(Change<GitRevision> change, Iterable<GitRevision> parents) {
-      this.change = change;
-      this.parents = ImmutableList.copyOf(parents);
-    }
-
-    Change<GitRevision> getChange() {
-      return change;
-    }
-
-    ImmutableList<GitRevision> getParents() {
-      return parents;
-    }
   }
 
   /**

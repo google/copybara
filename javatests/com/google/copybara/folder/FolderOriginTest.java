@@ -39,11 +39,8 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
 import org.junit.Before;
@@ -209,7 +206,7 @@ public class FolderOriginTest {
     Change<FolderRevision> change = reader.change(ref);
 
     assertThat(
-        Iterables.getOnlyElement(reader.changes(/*fromRef=*/ null, ref).getChangesAsListForTest()))
+        Iterables.getOnlyElement(reader.changes(/*fromRef=*/ null, ref).getChanges()))
         .isEqualTo(change);
     return change;
   }

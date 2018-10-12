@@ -65,7 +65,7 @@ public class DummyOriginTest {
         AuthoringMappingMode.OVERWRITE, ImmutableSet.of());
     Reader<DummyRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
     ImmutableList<Change<DummyRevision>> changes =
-        reader.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0")).getChangesAsListForTest();
+        reader.changes(/*fromRef*/ null, /*toRef*/ origin.resolve("0")).getChanges();
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getMessage()).isEqualTo("foo msg");
   }
@@ -101,7 +101,7 @@ public class DummyOriginTest {
     Authoring authoring = new Authoring(new Author("foo", "default.example.com"),
         AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
     ImmutableList<Change<DummyRevision>> changes = origin.newReader(Glob.ALL_FILES, authoring)
-        .changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1")).getChangesAsListForTest();
+        .changes(/*fromRef*/ null, /*toRef*/ origin.resolve("1")).getChanges();
 
     assertThat(changes).hasSize(2);
     assertThat(changes.get(0).getAuthor())

@@ -240,7 +240,7 @@ public class HgOriginTest {
     assertThat(Files.readAllBytes(filePath)).isEqualTo("three".getBytes(UTF_8));
 
     ImmutableList<Change<HgRevision>> changes = newReader().changes(
-        origin.resolve("1"), origin.resolve("tip")).getChangesAsListForTest();
+        origin.resolve("1"), origin.resolve("tip")).getChanges();
 
     assertThat(changes).hasSize(2);
 
@@ -266,7 +266,7 @@ public class HgOriginTest {
     singleFileCommit(author, "three", "foo.txt", "three");
 
     ImmutableList<Change<HgRevision>> changes = newReader().changes(
-        null, origin.resolve("1")).getChangesAsListForTest();
+        null, origin.resolve("1")).getChanges();
 
     assertThat(changes).hasSize(2);
     assertThat(changes.get(0).getMessage()).isEqualTo("one");

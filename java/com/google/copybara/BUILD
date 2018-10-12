@@ -66,7 +66,6 @@ doc_generator(
 BASE_SRCS = [
     "BaselinesWithoutLabelVisitor.java",
     "Change.java",
-    "ChangeGraph.java",
     "ChangeMessage.java",
     "Changes.java",
     "ChangeVisitable.java",

@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.copybara.Origin.Reader.ChangesResponse.forChanges;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.OriginUtil.affectsRoots;
@@ -31,7 +30,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
-import com.google.copybara.ChangeGraph;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
@@ -41,7 +39,6 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.ChangeReader.GitChange;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.transform.patch.PatchTransformation;
@@ -51,8 +48,6 @@ import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -292,10 +287,9 @@ public class GitOrigin implements Origin<GitRevision> {
       ChangeReader changeReader = changeReaderBuilder(repoUrl)
           .setFirstParent(firstParent)
           .build();
-      ImmutableList<GitChange> gitChanges = changeReader.run(refRange);
+      ImmutableList<Change<GitRevision>> gitChanges = changeReader.run(refRange);
       if (!gitChanges.isEmpty()) {
-
-        return forChanges(toGraph(gitChanges));
+        return ChangesResponse.forChangesWithMerges(gitChanges);
       }
       if (fromRef == null) {
         return noChanges(EmptyReason.NO_CHANGES);
@@ -310,25 +304,6 @@ public class GitOrigin implements Origin<GitRevision> {
       return noChanges(EmptyReason.UNRELATED_REVISIONS);
     }
 
-    private ChangeGraph<Change<GitRevision>> toGraph(Iterable<GitChange> gitChanges) {
-      ChangeGraph.Builder<Change<GitRevision>> builder = ChangeGraph.builder();
-
-      Map<GitRevision, Change<GitRevision>> byRevision = new HashMap<>();
-      for (GitChange e : gitChanges) {
-        builder.addChange(e.getChange());
-        byRevision.put(e.getChange().getRevision(), e.getChange());
-      }
-      for (GitChange gitChange : gitChanges) {
-        for (GitRevision parent : gitChange.getParents()) {
-          Change<GitRevision> parentChange = byRevision.get(parent);
-          if (parentChange != null) {
-            builder.addParent(gitChange.getChange(), parentChange);
-          }
-        }
-      }
-      return builder.build();
-    }
-
     @Override
     public Change<GitRevision> change(GitRevision ref) throws RepoException, EmptyChangeException {
       // The limit=1 flag guarantees that only one change is returned
@@ -336,8 +311,7 @@ public class GitOrigin implements Origin<GitRevision> {
           .setLimit(1)
           .setFirstParent(firstParent)
           .build();
-      ImmutableList<Change<GitRevision>> changes = changeReader.run(ref.getSha1())
-          .stream().map(GitChange::getChange).collect(ImmutableList.toImmutableList());
+      ImmutableList<Change<GitRevision>> changes = changeReader.run(ref.getSha1());
 
       if (changes.isEmpty()) {
         throw new EmptyChangeException(
@@ -354,7 +328,7 @@ public class GitOrigin implements Origin<GitRevision> {
       // means that extensions of GitOrigin need to implement changes if they want to provide
       // additional information.
       return new Change<>(ref, rev.getAuthor(), rev.getMessage(), rev.getDateTime(),
-          rev.getLabels(), rev.getChangeFiles(), rev.isMerge());
+          rev.getLabels(), rev.getChangeFiles(), rev.isMerge(), rev.getParents());
     }
 
     /**

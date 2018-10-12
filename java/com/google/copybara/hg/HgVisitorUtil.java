@@ -18,13 +18,12 @@ package com.google.copybara.hg;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.ChangesVisitor;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.hg.ChangeReader.HgChange;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 
 /**
@@ -51,7 +50,7 @@ public class HgVisitorUtil {
 
     try (ProfilerTask ignore = generalOptions.profiler().start(type + "/visit_changes")) {
       while (!finished) {
-        ImmutableList<HgChange> result;
+        ImmutableList<Change<HgRevision>> result;
         try (ProfilerTask ignore2 =
             generalOptions.profiler().start(
                 String.format("hg_log_%d_%d", offset, visitChangePageSize))) {
@@ -74,8 +73,8 @@ public class HgVisitorUtil {
         }
 
         offset += result.size();
-        for (HgChange current : result) {
-          if (visitor.visit(current.getChange()) == VisitResult.TERMINATE) {
+        for (Change<HgRevision> current : result) {
+          if (visitor.visit(current) == VisitResult.TERMINATE) {
             finished = true;
             break;
           }

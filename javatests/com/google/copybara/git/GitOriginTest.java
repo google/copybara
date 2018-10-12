@@ -334,7 +334,7 @@ public class GitOriginTest {
     repo.simpleCommand("merge", "foo");
 
     ImmutableList<Change<GitRevision>> changes = newReader().changes(/*fromRef=*/null,
-        origin.resolve("master")).getChangesAsListForTest();
+        origin.resolve("master")).getChanges();
 
     assertThat(changes.get(2).firstLineMessage()).contains("Merge");
     assertThat(changes.get(2).getChangeFiles()).containsExactly("bar.txt");
@@ -498,7 +498,7 @@ public class GitOriginTest {
     singleFileCommit(author, "change4", "test.txt", "some content4");
 
     ImmutableList<Change<GitRevision>> changes = newReader()
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChangesAsListForTest();
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
 
     assertThat(changes).hasSize(3);
     assertThat(changes.stream()
@@ -641,7 +641,7 @@ public class GitOriginTest {
     assertThat(visited.get(3).firstLineMessage()).isEqualTo("first file");
 
     ImmutableList<Change<GitRevision>> changes = reader.changes(/*fromRef=*/null, lastCommitRef)
-        .getChangesAsListForTest();
+        .getChanges();
     assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
         Lists.transform(visited, Change::getRevision));
     assertThat(changes.reverse().get(0).isMerge()).isTrue();
@@ -665,7 +665,7 @@ public class GitOriginTest {
     assertThat(Lists.transform(visited, Change::firstLineMessage)).containsExactly(
         "Merge branch 'feature'", "master2", "change3", "master1", "change2", "first file");
 
-    changes = reader.changes(/*fromRef=*/null, lastCommitRef).getChangesAsListForTest();
+    changes = reader.changes(/*fromRef=*/null, lastCommitRef).getChanges();
     assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
         Lists.transform(visited, Change::getRevision));
     assertThat(changes.reverse().get(0).isMerge()).isTrue();
@@ -713,7 +713,7 @@ public class GitOriginTest {
     createBranchMerge(author);
 
     ImmutableList<Change<GitRevision>> changes = newReader()
-        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChangesAsListForTest();
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
 
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
@@ -845,8 +845,8 @@ public class GitOriginTest {
 
     Reader<GitRevision> reader = newReader();
     assertThat(reader.change(firstRef).getMessage()).contains("first file");
-    assertThat(reader.changes(null, secondRef).getChangesAsListForTest()).hasSize(2);
-    assertThat(reader.changes(firstRef, secondRef).getChangesAsListForTest()).hasSize(1);
+    assertThat(reader.changes(null, secondRef).getChanges()).hasSize(2);
+    assertThat(reader.changes(firstRef, secondRef).getChanges()).hasSize(1);
   }
 
   @Test
@@ -948,7 +948,7 @@ public class GitOriginTest {
     git("commit", "-m", "empty_commit", "--date", COMMIT_TIME, "--allow-empty");
     GitRevision firstRef = origin.resolve(firstCommitRef);
     List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
-        .getChangesAsListForTest();
+        .getChanges();
     assertThat(Iterables.getOnlyElement(changes).getMessage()).contains("empty_commit");
   }
 
@@ -971,7 +971,7 @@ public class GitOriginTest {
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
     List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
-        .getChangesAsListForTest();
+        .getChanges();
     assertThat(changes).hasSize(2);
 
     assertThat(changes.get(0).getMessage())
@@ -1043,7 +1043,7 @@ public class GitOriginTest {
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
     List<Change<GitRevision>> changes = newReader().changes(firstRef, origin.resolve("HEAD"))
-        .getChangesAsListForTest();
+        .getChanges();
     String message = Iterables.getOnlyElement(changes).getMessage();
     assertThat(message).doesNotContain(ChangeReader.BRANCH_COMMIT_LOG_HEADING);
     assertThat(message).contains("i hope this is included in the migrated message!");

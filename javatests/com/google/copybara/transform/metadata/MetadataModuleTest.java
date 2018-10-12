@@ -178,7 +178,8 @@ public class MetadataModuleTest {
     Changes changes = new Changes(
         ImmutableList.of(
             new Change<>(new DummyRevision("3"), ORIGINAL_AUTHOR, "merge", fakeDate(),
-                ImmutableListMultimap.of(), /*changeFiles=*/null, /*merge=*/true),
+                ImmutableListMultimap.of(), /*changeFiles=*/null, /*merge=*/true,
+                ImmutableList.of(new DummyRevision("10"), new DummyRevision("20"))),
             new Change<>(new DummyRevision("2"), ORIGINAL_AUTHOR, "change2", fakeDate(),
                 ImmutableListMultimap.of()),
             new Change<>(new DummyRevision("1"), ORIGINAL_AUTHOR, "change1", fakeDate(),
@@ -215,7 +216,8 @@ public class MetadataModuleTest {
     Changes changes = new Changes(
         ImmutableList.of(
             new Change<>(new DummyRevision("3"), ORIGINAL_AUTHOR, "merge", fakeDate(),
-                ImmutableListMultimap.of(), /*changeFiles=*/null, /*merge=*/true),
+                ImmutableListMultimap.of(), /*changeFiles=*/null, /*merge=*/true,
+                ImmutableList.of(new DummyRevision("10"), new DummyRevision("20"))),
             new Change<>(new DummyRevision("2"), ORIGINAL_AUTHOR, "change2", fakeDate(),
                 ImmutableListMultimap.of()),
             new Change<>(new DummyRevision("1"), ORIGINAL_AUTHOR, "change1", fakeDate(),

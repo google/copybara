@@ -313,7 +313,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                         ChangesResponse<O> changes = oReader.changes(lastMigrated, lastResolved);
                         return changes.isEmpty()
                             ? ImmutableList.of()
-                            : ImmutableList.copyOf(changes.getChanges().nodes());
+                            : ImmutableList.copyOf(changes.getChanges());
                       });
               WorkflowRunHelper<O, D> helper = newRunHelper(
                   // We shouldn't use this path for info

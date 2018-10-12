@@ -28,7 +28,6 @@ import com.google.common.collect.Lists;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.Change;
-import com.google.copybara.ChangeGraph;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
@@ -236,7 +235,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
         if (rev.matchesGlob() && Objects.equals(changeIdToGroup.get(rev.asString()), group)) {
           result.add(rev.toChange(authoring));
         }
-        if (newRev == rev) {
+        if (newRev.equals(rev)) {
           break;
         }
         current++;
@@ -245,17 +244,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
       if (changes.isEmpty()) {
         return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
       }
-      ChangeGraph.Builder<Change<DummyRevision>> graph = ChangeGraph.builder();
-      Change<DummyRevision> parent = null;
-      for (Change<DummyRevision> change : changes) {
-        graph.addChange(change);
-        if (parent != null) {
-          graph.addParent(change, parent);
-        }
-        parent = change;
-      }
-
-      return ChangesResponse.forChanges(graph.build());
+      return ChangesResponse.forChanges(changes);
     }
 
     @Override

@@ -20,6 +20,7 @@ import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +53,8 @@ public final class Change<R extends Revision> extends OriginRef {
   private final ImmutableListMultimap<String, String> labels;
   private Author mappedAuthor;
   private final boolean merge;
+  @Nullable
+  private final ImmutableList<R> parents;
 
   @Nullable
   private final ImmutableSet<String> changeFiles;
@@ -63,12 +66,13 @@ public final class Change<R extends Revision> extends OriginRef {
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
       ImmutableListMultimap<String, String> labels, @Nullable Set<String> changeFiles) {
-    this(revision, author, message, dateTime, labels, changeFiles, /*merge=*/false);
+    this(revision, author, message, dateTime, labels, changeFiles, /*merge=*/false,
+        /*parents=*/ null);
   }
 
   public Change(R revision, Author author, String message, ZonedDateTime dateTime,
       ImmutableListMultimap<String, String> labels, @Nullable Set<String> changeFiles,
-      boolean merge) {
+      boolean merge, @Nullable ImmutableList<R> parents) {
     super(revision.asString());
     this.revision = Preconditions.checkNotNull(revision);
     this.author = Preconditions.checkNotNull(author);
@@ -77,6 +81,7 @@ public final class Change<R extends Revision> extends OriginRef {
     this.labels = labels;
     this.changeFiles = changeFiles == null ? null : ImmutableSet.copyOf(changeFiles);
     this.merge = merge;
+    this.parents = parents;
   }
 
   /**
@@ -84,6 +89,15 @@ public final class Change<R extends Revision> extends OriginRef {
    */
   public R getRevision() {
     return revision;
+  }
+
+  /**
+   * Return the parent revisions if the origin provides that information. Currently only for Git and
+   * Hg. Otherwise null.
+   */
+  @Nullable
+  public ImmutableList<R> getParents() {
+    return parents;
   }
 
   @SkylarkCallable(name = "original_author", doc = "The author of the change before any"
@@ -182,6 +196,8 @@ public final class Change<R extends Revision> extends OriginRef {
         .add("author", author)
         .add("dateTime", dateTime)
         .add("message", message)
+        .add("merge", merge)
+        .add("parents", parents)
         .toString();
   }
 

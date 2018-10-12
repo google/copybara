@@ -42,6 +42,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 
@@ -249,5 +250,23 @@ public class DummyRevision implements Revision {
         .add("descriptionLabels", descriptionLabels)
         .add("url", url)
         .toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof DummyRevision)) {
+      return false;
+    }
+    DummyRevision that = (DummyRevision) o;
+    return Objects.equals(reference, that.reference);
+  }
+
+  @Override
+  public int hashCode() {
+
+    return Objects.hash(reference);
   }
 }

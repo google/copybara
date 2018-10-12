@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
-import com.google.copybara.Endpoint;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -40,8 +39,6 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -201,8 +198,8 @@ public class GerritOriginTest {
         .isEqualTo(secondRevision.getReviewReference());
 
     ImmutableList<Change<GitRevision>> changes = reader.changes(
-            origin.resolve("http://foo.com/#/c/12345/1"),
-        origin.resolve("http://foo.com/#/c/12345/3")).getChangesAsListForTest();
+        origin.resolve("http://foo.com/#/c/12345/1"),
+        origin.resolve("http://foo.com/#/c/12345/3")).getChanges();
 
     assertThat(changes.get(0).getRevision().getUrl()).isNotNull();
     // Each ref is conceptually a rebase. Size is not really important for this test.

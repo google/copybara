@@ -1650,7 +1650,7 @@ public class GitRepository {
       return commit;
     }
 
-    public List<GitRevision> getParents() {
+    public ImmutableList<GitRevision> getParents() {
       return parents;
     }
 

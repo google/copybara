@@ -55,6 +55,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.GitRevision;
 import com.google.copybara.hg.HgRepository;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.testing.DummyOrigin;
@@ -2460,6 +2461,67 @@ public class WorkflowTest {
     } catch (ValidationException e) {
       assertThat(e.getMessage()).isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
     }
+  }
+
+  /**
+   * Regression that test that when using git.origin with first_parent = False, if the first parent
+   * of a merge is already imported and the merge is a no-op, we detect the import as
+   * EmptyChangeException instead of detecting the non-first parent as the change to import
+   */
+  @Test
+  public void testFirstParentAlreadyImportedInNoFirstParent() throws Exception {
+    Path originPath = Files.createTempDirectory("origin");
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    options.setOutputRootToTmpDir();
+    options.setForce(false);
+    options.workflowOptions.initHistory = true;
+
+    String config = "core.workflow("
+        + "    name = 'default',"
+        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "',\n"
+        + "                         ref = 'master',\n"
+        + "                         first_parent = False),\n"
+        + "    destination = testing.destination(),\n"
+        + "    authoring = " + authoring + ","
+        + "    origin_files = glob(['included/**']),"
+        + "    mode = '" + WorkflowMode.SQUASH + "',"
+        + ")\n";
+
+    Migration workflow = loadConfig(config).getMigration("default");
+
+    addGitFile(originPath, origin, "included/foo.txt", "");
+    GitRevision lastRev = commit(origin, "last_rev");
+    workflow.run(workdir, ImmutableList.of());
+    assertThat(destination.processed.get(0).getOriginRef()).isEqualTo(lastRev);
+
+    origin.simpleCommand("checkout", "-b", "feature");
+    addGitFile(originPath, origin, "included/foo.txt", "SHOULD NOT BE IN MASTER");
+    commit(origin, "feature commit");
+    origin.simpleCommand("revert", "HEAD");
+    addGitFile(originPath, origin, "excluded/bar.txt", "don't migrate!");
+    commit(origin, "excluded commit");
+    origin.simpleCommand("checkout", "master");
+    origin.simpleCommand("merge", "-s", "ours", "feature");
+    try {
+      workflow.run(workdir, ImmutableList.of());
+      fail();
+    } catch (EmptyChangeException e) {
+      assertThat(e).hasMessageThat()
+          .matches("No changes from " + lastRev.getSha1() + " up to .* match any origin_files.*");
+    }
+  }
+
+  private GitRevision commit(GitRepository origin, String msg)
+      throws RepoException, ValidationException {
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), msg);
+    return origin.resolveReference("HEAD");
+  }
+
+  private void addGitFile(Path originPath, GitRepository origin, String path, String content)
+      throws IOException, RepoException {
+    Files.createDirectories(originPath.resolve(path).getParent());
+    Files.write(originPath.resolve(path), content.getBytes(UTF_8));
+    origin.add().files(path).run();
   }
 
   private void checkLastRevStatus(WorkflowMode mode)
