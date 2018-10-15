@@ -412,7 +412,7 @@ public class GitModule implements LabelsAwareModule {
                   + " have any effect, `review_state` needs to be set. "
                   + GITHUB_PR_REVIEWER_APPROVER + "` will be populated for these types."
                   + " See the valid types here:"
-                  + " https://developer.github.com/v4/reference/enum/commentauthorassociation/"),
+                  + " https://developer.github.com/v4/enum/commentauthorassociation/"),
           @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
               doc = "A checker for the GitHub API endpoint provided for after_migration hooks. "
                   + "This field is not required if the workflow hooks don't use the "
