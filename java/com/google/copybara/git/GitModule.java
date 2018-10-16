@@ -420,7 +420,10 @@ public class GitModule implements LabelsAwareModule {
               named = true, positional = false,
               noneable = true),
           @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC)
+              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
+          @Param(name = "branch", type = String.class, named = true, positional = false,
+              defaultValue = "None", noneable = true,
+              doc = "If set, it will only migrate pull requests for this base branch"),
       },
       useLocation = true)
   @UsesFlags(GitHubPrOriginOptions.class)
@@ -429,7 +432,7 @@ public class GitModule implements LabelsAwareModule {
       SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
       Boolean baselineFromBranch, Boolean firstParent, String state,
       Object reviewStateParam, Object reviewApproversParam, Object checkerObj, Object patch,
-      Location location) throws EvalException {
+      Object branch, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
     if (!url.contains("github.com")) {
       throw new EvalException(location, "Invalid Github URL: " + url);
@@ -478,7 +481,8 @@ public class GitModule implements LabelsAwareModule {
         reviewState,
         reviewApprovers,
         convertFromNoneable(checkerObj, null),
-        patchTransformation);
+        patchTransformation,
+        SkylarkUtil.convertFromNoneable(branch, null));
   }
 
   @SuppressWarnings("unused")

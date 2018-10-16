@@ -242,6 +242,27 @@ public class GitHubPrOriginTest {
   }
 
   @Test
+  public void testLimitByBranch() throws Exception {
+    // This should work since it returns a PR for master.
+    checkResolve(githubPrOrigin(
+        "url = 'https://github.com/google/example'",
+        "branch = 'master'"),
+        "125", 125, ImmutableList.of("bar: yes"));
+
+    try {
+      checkResolve(githubPrOrigin(
+          "url = 'https://github.com/google/example'",
+          "branch = 'other'"),
+          "126", 126, ImmutableList.of("bar: yes"));
+      fail();
+    } catch (EmptyChangeException e) {
+      assertThat(e).hasMessageThat().contains(
+              "because its base branch is 'master', but the workflow is configured to only migrate"
+                  + " changes for branch 'other'");
+    }
+  }
+
+  @Test
   public void testGitResolveRequiredLabelsRetried() throws Exception {
     checkResolve(
         githubPrOrigin(

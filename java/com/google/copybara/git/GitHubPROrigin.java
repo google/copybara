@@ -64,6 +64,7 @@ import com.google.copybara.util.console.Console;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -112,6 +113,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final ImmutableSet<AuthorAssociation> reviewApprovers;
   @Nullable private final Checker endpointChecker;
   @Nullable private final PatchTransformation patchTransformation;
+  @Nullable private final String branch;
 
   GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
@@ -119,7 +121,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       boolean baselineFromBranch, Boolean firstParent, StateFilter requiredState,
       @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers,
       @Nullable Checker endpointChecker,
-      @Nullable PatchTransformation patchTransformation) {
+      @Nullable PatchTransformation patchTransformation,
+      @Nullable String branch) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -137,6 +140,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     this.reviewApprovers = Preconditions.checkNotNull(reviewApprovers);
     this.endpointChecker = endpointChecker;
     this.patchTransformation = patchTransformation;
+    this.branch = branch;
   }
 
   @Override
@@ -223,6 +227,15 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       prData = api.getPullRequest(project, prNumber);
     }
 
+    if (branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
+      throw new EmptyChangeException(String.format(
+          "Cannot migrate http://github.com/%s/pull/%d because its base branch is '%s', but"
+              + " the workflow is configured to only migrate changes for branch '%s'",
+          project,
+          prNumber,
+          prData.getBase().getRef(),
+          branch));
+    }
     if (reviewState != null) {
       ImmutableList<Review> reviews = api.getReviews(project, prNumber);
       if (!reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha())) {
