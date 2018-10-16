@@ -17,6 +17,7 @@
 package com.google.copybara.hg;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason.NO_CHANGES;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -259,6 +260,14 @@ public class HgOriginTest {
   }
 
   @Test
+  public void testFirstImportFromEmptyRepo() throws Exception {
+    ChangesResponse<HgRevision> changes = newReader()
+        .changes(/*fromRef=*/null, origin.resolve("tip"));
+    assertThat(changes.isEmpty()).isTrue();
+    assertThat(changes.getEmptyReason()).isEqualTo(NO_CHANGES);
+  }
+
+  @Test
   public void testChangesNoFromRef() throws Exception {
     String author = "Copy Bara <copy@bara.com>";
     singleFileCommit(author, "one", "foo.txt", "one");
@@ -279,7 +288,7 @@ public class HgOriginTest {
         origin.resolve("0"), origin.resolve("tip"));
 
     assertThat(changes.isEmpty()).isTrue();
-    assertThat(changes.getEmptyReason()).isEqualTo(EmptyReason.NO_CHANGES);
+    assertThat(changes.getEmptyReason()).isEqualTo(NO_CHANGES);
   }
 
   @Test

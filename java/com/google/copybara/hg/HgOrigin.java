@@ -22,6 +22,7 @@ import static com.google.copybara.util.OriginUtil.affectsRoots;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -152,7 +153,9 @@ public class HgOrigin implements Origin<HgRevision> {
         if (!changes.isEmpty()) {
           return ChangesResponse.forChangesWithMerges(changes);
         }
-        // TODO(malcon): This is wrong as fromRef can be null. Need to investigate
+        if (fromRef == null) {
+          return noChanges(EmptyReason.NO_CHANGES);
+        }
         return noChanges(getEmptyReason(fromRef.getGlobalId(), toRef.getGlobalId()));
       }
 
@@ -164,6 +167,8 @@ public class HgOrigin implements Origin<HgRevision> {
 
     private EmptyReason getEmptyReason(String fromRef, String toRef)
         throws RepoException, ValidationException {
+      Preconditions.checkNotNull(fromRef);
+      Preconditions.checkNotNull(toRef);
       ImmutableList<HgLogEntry> logEntries = getRepository().log()
           .withReferenceExpression(String.format("ancestor(%s, %s)", fromRef, toRef))
           .run();
