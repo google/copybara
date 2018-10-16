@@ -26,11 +26,13 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",
+        "//java/com/google/copybara/testing",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
         "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:junit",
+        "//third_party:mockito",
         "//third_party:truth",
     ],
 )

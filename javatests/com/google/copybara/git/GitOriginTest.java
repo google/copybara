@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.Glob.createGlob;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -115,7 +116,7 @@ public class GitOriginTest {
 
     origin = origin();
 
-    Files.write(remote.resolve("test.txt"), "some content".getBytes(UTF_8));
+    writeFile(remote, "test.txt", "some content");
     repo.add().files("test.txt").run();
     git("commit", "-m", "first file", "--date", COMMIT_TIME);
     firstCommitRef = repo.parseRef("HEAD");
@@ -280,7 +281,7 @@ public class GitOriginTest {
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
     // Check that we track new commits that modify files
-    Files.write(remote.resolve("test.txt"), "new content".getBytes(UTF_8));
+    writeFile(remote, "test.txt", "new content");
     repo.add().files("test.txt").run();
     git("commit", "-m", "second commit");
 
@@ -323,11 +324,11 @@ public class GitOriginTest {
   public void testMergeIncludeFiles() throws Exception {
     repo.simpleCommand("branch", "foo");
     repo.forceCheckout("foo");
-    Files.write(remote.resolve("bar.txt"), "".getBytes(UTF_8));
+    writeFile(remote, "bar.txt", "");
     repo.add().all().run();
     repo.simpleCommand("commit", "-m", "branch change");
     repo.forceCheckout("master");
-    Files.write(remote.resolve("foo.txt"), "modified".getBytes(UTF_8));
+    writeFile(remote, "foo.txt", "modified");
     Files.delete(remote.resolve("test.txt"));
     repo.add().all().run();
     repo.simpleCommand("commit", "-m", "second");
@@ -354,12 +355,12 @@ public class GitOriginTest {
     createBranch("mybranch");
     // Checkout master and modify file
     repo.forceCheckout("master");
-    Files.write(remote.resolve("test.txt"), "new content in master".getBytes(UTF_8));
+    writeFile(remote, "test.txt", "new content in master");
     repo.add().files("test.txt").run();
     git("commit", "-m", "Second version of file");
     // Checkout branch and commit other files
     repo.forceCheckout("mybranch");
-    Files.write(remote.resolve("foo.txt"), "Foo bar".getBytes(UTF_8));
+    writeFile(remote, "foo.txt", "Foo bar");
     repo.add().files("foo.txt").run();
     git("commit", "-m", "Branch commit");
 
@@ -378,7 +379,7 @@ public class GitOriginTest {
 
     // Create branch that will be the ref to use
     createBranch("mybranch");
-    Files.write(remote.resolve("foo.txt"), "Foo bar".getBytes(UTF_8));
+    writeFile(remote, "foo.txt", "Foo bar");
     repo.add().files("foo.txt").run();
     git("commit", "-m", "Branch commit");
 
@@ -395,12 +396,12 @@ public class GitOriginTest {
     createBranch("mybranch");
     // Checkout master and modify file
     repo.forceCheckout("master");
-    Files.write(remote.resolve("test.txt"), "new content in master".getBytes(UTF_8));
+    writeFile(remote, "test.txt", "new content in master");
     repo.add().files("test.txt").run();
     git("commit", "-m", "Second version of file");
     // Checkout branch and make changes to the same file
     repo.forceCheckout("mybranch");
-    Files.write(remote.resolve("test.txt"), "Content in my branch".getBytes(UTF_8));
+    writeFile(remote, "test.txt", "Content in my branch");
     repo.add().files("test.txt").run();
     git("commit", "-m", "Branch commit");
 
@@ -417,12 +418,12 @@ public class GitOriginTest {
     createBranch("mybranch");
     // Checkout master and modify file
     repo.forceCheckout("master");
-    Files.write(remote.resolve("test.txt"), "new content in master".getBytes(UTF_8));
+    writeFile(remote, "test.txt", "new content in master");
     repo.add().files("test.txt").run();
     git("commit", "-m", "Second version of file");
     // Checkout branch and commit other files
     repo.forceCheckout("mybranch");
-    Files.write(remote.resolve("foo.txt"), "Foo bar".getBytes(UTF_8));
+    writeFile(remote, "foo.txt", "Foo bar");
     repo.add().files("foo.txt").run();
     git("commit", "-m", "Branch commit");
 
@@ -679,7 +680,7 @@ public class GitOriginTest {
   public void testGitUrlOverwrite() throws Exception {
     createTestRepo(Files.createTempDirectory("cliremote"));
     git("init");
-    Files.write(remote.resolve("cli_remote.txt"), "some change".getBytes(UTF_8));
+    writeFile(remote, "cli_remote.txt", "some change");
     repo.add().files("cli_remote.txt").run();
     git("commit", "-m", "a change from somewhere");
 
@@ -823,7 +824,7 @@ public class GitOriginTest {
 
   @Test
   public void canReadTimestamp() throws Exception {
-    Files.write(remote.resolve("test2.txt"), "some more content".getBytes(UTF_8));
+    writeFile(remote, "test2.txt", "some more content");
     repo.add().files("test2.txt").run();
     git("commit", "-m", "second file", "--date=1400110011");
     GitRevision master = origin.resolve("master");
@@ -838,7 +839,7 @@ public class GitOriginTest {
 
     GitRevision firstRef = origin.resolve(firstCommitRef);
 
-    Files.write(remote.resolve("test.txt"), "new content".getBytes(UTF_8));
+    writeFile(remote, "test.txt", "new content");
     repo.add().files("test.txt").run();
     git("commit", "-m", "second commit");
     GitRevision secondRef = origin.resolve("HEAD");
@@ -861,7 +862,7 @@ public class GitOriginTest {
   @SuppressWarnings("unchecked")
   @Test
   public void doNotCountCommitsOutsideOfOriginFileRoots() throws Exception {
-    Files.write(remote.resolve("excluded_file.txt"), "some content".getBytes(UTF_8));
+    writeFile(remote, "excluded_file.txt", "some content");
     repo.add().files("excluded_file.txt").run();
     git("commit", "-m", "excluded_file", "--date", COMMIT_TIME);
     // Note that one of the roots looks like a flag for "git log"
@@ -897,7 +898,7 @@ public class GitOriginTest {
 
     // Now add a file in an included root and make sure we get that change from the Reader.
     Files.createDirectories(remote.resolve("--parents"));
-    Files.write(remote.resolve("--parents/included_file.txt"), "some content".getBytes(UTF_8));
+    writeFile(remote, "--parents/included_file.txt", "some content");
     repo.add().files("--parents/included_file.txt").run();
     git("commit", "-m", "included_file", "--date", COMMIT_TIME);
     String firstExpected = repo.parseRef("HEAD");
@@ -909,7 +910,7 @@ public class GitOriginTest {
     assertThat(firstIncludedRef.getSha1()).isEqualTo(firstExpected);
 
     // Add an excluded file, and make sure the commit is skipped.
-    Files.write(remote.resolve("excluded_file_2.txt"), "some content".getBytes(UTF_8));
+    writeFile(remote, "excluded_file_2.txt", "some content");
     repo.add().files("excluded_file_2.txt").run();
     git("commit", "-m", "excluded_file_2", "--date", COMMIT_TIME);
 
@@ -924,7 +925,7 @@ public class GitOriginTest {
 
     // Add another included file, and make sure we only get the 2 included changes, and the
     // intervening excluded one is absent.
-    Files.write(remote.resolve("--parents/included_file_2.txt"), "some content".getBytes(UTF_8));
+    writeFile(remote, "--parents/included_file_2.txt", "some content");
     repo.add().files("--parents/included_file_2.txt").run();
     git("commit", "-m", "included_file_2", "--date", COMMIT_TIME);
 

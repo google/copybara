@@ -19,12 +19,15 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.matches;
+import static org.mockito.Matchers.startsWith;
 
-import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -35,8 +38,8 @@ import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.testing.git.GitApiMockHttpTransport;
-import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
+import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
@@ -58,7 +61,7 @@ public class GerritEndpointTest {
   private Path workdir;
   private DummyTrigger dummyTrigger;
   private String url;
-  private GitApiMockHttpTransport gitApiMockHttpTransport;
+  private GitTestUtil gitUtil;
 
   @Before
   public void setup() throws Exception {
@@ -70,29 +73,16 @@ public class GerritEndpointTest {
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
     options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
-    Path urlMapper = Files.createTempDirectory("url_mapper");
-    options.git = new TestGitOptions(urlMapper, options.general);
-    url = BASE_URL + "/foo/bar";
-    gitApiMockHttpTransport = new TestingGitApiHttpTransport();
+    gitUtil = new GitTestUtil(options);
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, BASE_URL.getBytes(UTF_8));
     GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
         getGitEnv(), /*verbose=*/true)
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
-    options.gerrit =
-        new GerritOptions(options.general, options.git) {
-          @Override
-          protected HttpTransport getHttpTransport() {
-            return gitApiMockHttpTransport;
-          }
+    gitUtil.mockRemoteGitRepos(new Validator(), repo);
 
-          @Override
-          protected GitRepository getCredentialsRepo() {
-            return repo;
-          }
-        };
-
+    url = BASE_URL + "/foo/bar";
     skylark = new SkylarkTestExecutor(options);
   }
 
@@ -182,6 +172,7 @@ public class GerritEndpointTest {
    */
   @Test
   public void testFeedbackGetChange() throws Exception {
+    mockForTest();
     Feedback feedback = notifyChangeToOriginFeedback();
     feedback.run(workdir, ImmutableList.of("12345"));
     assertThat(dummyTrigger.messages).containsAllIn(ImmutableList.of("Change number 12345"));
@@ -189,12 +180,7 @@ public class GerritEndpointTest {
 
   @Test
   public void testFeedbackGetChange_malformedJson() throws Exception {
-    gitApiMockHttpTransport = new TestingGitApiHttpTransport() {
-      @Override
-      String getChange(String url) {
-        return "foo   bar";
-      }
-    };
+    gitUtil.mockApi(anyString(), anyString(), mockResponse("foo   bar"));
     Feedback feedback = notifyChangeToOriginFeedback();
     try {
       feedback.run(workdir, ImmutableList.of("12345"));
@@ -213,11 +199,11 @@ public class GerritEndpointTest {
    */
   @Test
   public void testGetChangeExhaustive() throws Exception {
-    gitApiMockHttpTransport =
-        new TestingGitApiHttpTransport() {
-          @Override
-          String getChange(String url) {
-            return "{\n"
+    gitUtil.mockApi(
+        eq("GET"),
+        startsWith(BASE_URL + "/changes/"),
+        mockResponse(
+            "{\n"
                 + "  'id': 'copybara-project~Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd',\n"
                 + "  'project': 'copybara-project',\n"
                 + "  'branch': 'master',\n"
@@ -333,9 +319,7 @@ public class GerritEndpointTest {
                 + "        '_revision_number': 1\n"
                 + "      }\n"
                 + "  ]\n"
-                + "}\n";
-          }
-        };
+                + "}\n"));
     String var =
         String.format(
             "git.gerrit_api(url = '%s').get_change('12345', include_results = ['LABELS'])", url);
@@ -404,17 +388,12 @@ public class GerritEndpointTest {
   }
 
   @Test
-  public void testGetChangePaginationNotSupported() {
-    gitApiMockHttpTransport = new TestingGitApiHttpTransport() {
-      @Override
-      String getChange(String url) {
-        return ""
-            + "{"
-            + "  id : '12345',"
-            + "  _more_changes : true"
-            + "}";
-      }
-    };
+  public void testGetChangePaginationNotSupported() throws IOException {
+    gitUtil.mockApi(
+        eq("GET"),
+        startsWith(BASE_URL + "/changes/"),
+        mockResponse("{" + "  id : '12345'," + "  _more_changes : true" + "}"));
+
     String config =
         String.format(
             "git.gerrit_api(url = '%s').get_change('12345', include_results = ['LABELS'])", url);
@@ -422,7 +401,8 @@ public class GerritEndpointTest {
   }
 
   @Test
-  public void testPostLabel() throws ValidationException {
+  public void testPostLabel() throws Exception {
+    mockForTest();
     String config =
         String.format(
             "git.gerrit_api(url = '%s')."
@@ -434,7 +414,8 @@ public class GerritEndpointTest {
   }
 
   @Test
-  public void testListChangesByCommit() throws ValidationException {
+  public void testListChangesByCommit() throws Exception {
+    mockForTest();
     String config =
         String.format(
             "git.gerrit_api(url = '%s')."
@@ -447,7 +428,8 @@ public class GerritEndpointTest {
   }
 
   @Test
-  public void testListChangesByCommit_withIncludeResults() throws ValidationException {
+  public void testListChangesByCommit_withIncludeResults() throws Exception {
+    mockForTest();
     String config =
         String.format(
             "git.gerrit_api(url = '%s')."
@@ -486,49 +468,38 @@ public class GerritEndpointTest {
     return (Feedback) skylark.loadConfig(config).getMigration("default");
   }
 
-  private class TestingGitApiHttpTransport extends GitApiMockHttpTransport {
+  private void mockForTest() throws IOException {
+    gitUtil.mockApi(
+        eq("GET"),
+        startsWith(BASE_URL + "/changes/?q="),
+        mockResponse(
+            "[{\"id\":"
+                + " \"copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61\""
+                + "}]"));
 
-    @Override
-    public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-      if (method.equals("GET")
-          && url.equals(
-              BASE_URL
-                  + "/changes/?q=commit:7956f527ec8a23ebba9c3ebbcf88787aa3411425"
-                  + "&o=LABELS&o=MESSAGES")) {
-        return listChangesWithIncludeResults();
-      }
-      if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/?q=")) {
-        return listChanges();
-      } else if (method.equals("GET") && url.startsWith(BASE_URL + "/changes/")) {
-        return getChange(url);
-      } else if (method.equals("POST")
-          && url.matches(BASE_URL + "/changes/.*/revisions/.*/review")) {
-        return postLabel();
-      }
-      throw new IllegalArgumentException(method + " " + url);
-    }
+    gitUtil.mockApi(
+        "GET",
+        BASE_URL
+            + "/changes/?q=commit:7956f527ec8a23ebba9c3ebbcf88787aa3411425"
+            + "&o=LABELS&o=MESSAGES",
+        mockResponse(
+            "[{"
+                + "\"id\":"
+                + " \"copybara-team%2Fcopybara~master~I16e447bb2bb51952021ec3ea50991d923dcbbf58\""
+                + "}]"));
 
-    private String listChangesWithIncludeResults() {
-      return "[{"
-          + "\"id\": \"copybara-team%2Fcopybara~master~I16e447bb2bb51952021ec3ea50991d923dcbbf58\""
-          + "}]";
-    }
+    gitUtil.mockApi(
+        eq("GET"),
+        matches(BASE_URL + "/changes/[0-9]+.*"),
+        mockResponse("" + "{" + "  id : \"12345\"," + "  status : \"NEW\"" + "}"));
 
-    private String listChanges() {
-      return "[{"
-          + "\"id\": \"copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61\""
-          + "}]";
-    }
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponse(postLabel()));
+  }
 
-    String getChange(String url) {
-      return ""
-          + "{"
-          + "  id : \"" + changeNumberFromRequest(url) + "\","
-          + "  status : \"NEW\""
-          + "}";
-    }
-
-    String postLabel() {
+  private String postLabel() {
       Map<String, Object> result = new LinkedHashMap<>();
       result.put("labels", ImmutableMap.of("Code-Review",  1));
       try {
@@ -537,5 +508,4 @@ public class GerritEndpointTest {
         throw new RuntimeException(e);
       }
     }
-  }
 }

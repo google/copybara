@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
@@ -74,7 +75,7 @@ public class GitHubOptions implements Option {
    */
   public GitHubApi newGitHubApi(String gitHubProject, @Nullable Checker checker, Console console)
       throws RepoException {
-    GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
+    GitRepository repo = getCredentialsRepo();
 
     String storePath = gitOptions.getCredentialHelperStorePath();
     if (storePath == null) {
@@ -85,6 +86,11 @@ public class GitHubOptions implements Option {
       transport = new GitHubApiTransportWithChecker(transport, checker, console);
     }
     return new GitHubApi(transport, generalOptions.profiler());
+  }
+
+  @VisibleForTesting
+  protected GitRepository getCredentialsRepo() throws RepoException {
+    return gitOptions.cachedBareRepoForUrl("just_for_github_api");
   }
 
   /** Validate if a {@link Checker} is valid to use with GitHub endpoints. */

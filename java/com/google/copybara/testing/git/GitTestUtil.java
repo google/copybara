@@ -16,10 +16,20 @@
 
 package com.google.copybara.testing.git;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.truth.Truth.assertWithMessage;
-import static org.junit.Assert.fail;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.LowLevelHttpRequest;
+import com.google.api.client.http.LowLevelHttpResponse;
+import com.google.api.client.json.Json;
+import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
+import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -29,9 +39,12 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.FetchResult;
+import com.google.copybara.git.GerritOptions;
+import com.google.copybara.git.GitHubOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.Refspec;
+import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,30 +52,142 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
+import org.mockito.stubbing.OngoingStubbing;
 
-/**
- * Common utilities for creating and working with git repos in test
- */
-public final class GitTestUtil {
+/** Common utilities for creating and working with git repos in test */
+public class GitTestUtil {
 
   private static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
-  public static final GitApiMockHttpTransport NO_GITHUB_API_CALLS =
-      new GitApiMockHttpTransport() {
-        @Override
-        public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-          fail();
-          throw new IllegalStateException();
-        }
-      };
+  protected MockHttpTransport mockHttpTransport = null;
 
-  private GitTestUtil() {
+  private final OptionsBuilder optionsBuilder;
+
+  public GitTestUtil(OptionsBuilder optionsBuilder) {
+    this.optionsBuilder = checkNotNull(optionsBuilder);
+  }
+
+  public static LowLevelHttpRequest mockResponse(String responseContent) {
+    return mockResponseWithStatus(responseContent, 200, any -> true);
+  }
+
+  public static LowLevelHttpRequest mockResponseAndValidateRequest(
+      String responseContent, Predicate<String> requestValidator) {
+    return mockResponseWithStatus(responseContent, 200, requestValidator);
+  }
+
+  public static LowLevelHttpRequest mockResponseWithStatus(
+      String responseContent, int status, Predicate<String> requestValidator) {
+    return new MockLowLevelHttpRequest() {
+      @Override
+      public LowLevelHttpResponse execute() throws IOException {
+        assertWithMessage("Request doesn't match predicate: <" + this.getContentAsString() + ">")
+            .that(requestValidator.test(this.getContentAsString()))
+            .isTrue();
+        // Responses contain a IntputStream for content. Cannot be reused between for two
+        // consecutive calls. We create new ones per call here.
+        return new MockLowLevelHttpResponse()
+            .setContentType(Json.MEDIA_TYPE)
+            .setContent(responseContent)
+            .setStatusCode(status);
+      }
+    };
+  }
+
+  public void mockRemoteGitRepos() throws IOException {
+    mockRemoteGitRepos(new Validator());
+  }
+
+  public void mockRemoteGitRepos(Validator validator) throws IOException {
+    mockRemoteGitRepos(validator, /*credentialsRepo=*/ null);
+  }
+
+  public void mockRemoteGitRepos(Validator validator, GitRepository credentialsRepo)
+      throws IOException {
+    mockHttpTransport =
+        mock(
+            MockHttpTransport.class,
+            withSettings()
+                .defaultAnswer(
+                    invocation -> {
+                      String method = (String) invocation.getArguments()[0];
+                      String url = (String) invocation.getArguments()[1];
+                      return mockResponseWithStatus(
+                          "not used",
+                          404,
+                          content -> {
+                            throw new AssertionError(
+                                String.format(
+                                    "Cannot find a programmed answer for: %s %s\n%s",
+                                    method, url, content));
+                          });
+                    }));
+
+    optionsBuilder.git = new GitOptionsForTest(optionsBuilder.general, validator);
+    optionsBuilder.github = mockGitHubOptions(credentialsRepo);
+    optionsBuilder.gerrit = mockGerritOptions(credentialsRepo);
+  }
+
+  protected GerritOptions mockGerritOptions(GitRepository credentialsRepo) {
+    return new GerritOptions(optionsBuilder.general, optionsBuilder.git) {
+      @Override
+      protected HttpTransport getHttpTransport() {
+        return mockHttpTransport;
+      }
+
+      @Override
+      protected GitRepository getCredentialsRepo() throws RepoException {
+        return credentialsRepo != null ? credentialsRepo : super.getCredentialsRepo();
+      }
+    };
+  }
+
+  protected GitHubOptions mockGitHubOptions(GitRepository credentialsRepo) {
+    return new GitHubOptions(optionsBuilder.general, optionsBuilder.git) {
+      @Override
+      protected HttpTransport newHttpTransport() {
+        return mockHttpTransport;
+      }
+
+      @Override
+      protected GitRepository getCredentialsRepo() throws RepoException {
+        return credentialsRepo != null ? credentialsRepo : super.getCredentialsRepo();
+      }
+    };
+  }
+
+  public GitRepository mockRemoteRepo(String url) throws RepoException {
+    // If this cast fails, it means you didn't call mockRemoteGitRepos first.
+    return ((GitOptionsForTest) optionsBuilder.git).mockRemoteRepo(url, getGitEnv());
+  }
+
+  public MockHttpTransport httpTransport() {
+    return Preconditions.checkNotNull(mockHttpTransport, "Call mockRemoteGitRepos() on setup");
+  }
+
+  public OngoingStubbing<LowLevelHttpRequest> mockApi(
+      String method, String url, LowLevelHttpRequest request, LowLevelHttpRequest... rest)
+      throws IOException {
+    OngoingStubbing<LowLevelHttpRequest> when =
+        when(httpTransport().buildRequest(method, url)).thenReturn(request);
+
+    for (LowLevelHttpRequest httpRequest : rest) {
+      when = when.thenReturn(httpRequest);
+    }
+    return when.thenReturn(request);
+  }
+
+  public Map<String, String> getGitEnvironment() {
+    return getGitEnv();
   }
 
   /**
-   * Returns an environment that contains the System environment and a set of variables
-   * needed so that test don't crash in environments where the author is not set
+   * Returns an environment that contains the System environment and a set of variables needed so
+   * that test don't crash in environments where the author is not set
+   *
+   * <p>TODO(malcon, danielromero): Remove once all tests use GitTestUtil and internal extension.
    */
   public static Map<String, String> getGitEnv() {
     HashMap<String, String> values = new HashMap<>(System.getenv());
@@ -125,21 +250,31 @@ public final class GitTestUtil {
     }
   }
 
-  public static class TestGitOptions extends GitOptions {
+  /**
+   * Test version of {@link GitOptions} that allow us to fake a remote repository. Instead of
+   * fetching from a remote uri it will use a local folder with repositories.
+   */
+  public static class GitOptionsForTest extends GitOptions {
 
     private final Path httpsRepos;
     private final Validator validator;
     private final Set<String> mappingPrefixes = Sets.newHashSet("https://");
+    private final GeneralOptions generalOptions;
     @Nullable private String forcePushForRefspec;
 
-    public TestGitOptions(Path httpsRepos, GeneralOptions generalOptions) {
-      this(httpsRepos, generalOptions, new Validator());
+    public GitOptionsForTest(GeneralOptions generalOptions, Validator validator)
+        throws IOException {
+      super(generalOptions);
+      this.generalOptions = checkNotNull(generalOptions);
+      this.validator = checkNotNull(validator);
+      this.httpsRepos = Files.createTempDirectory("remote_git_mocks");
     }
 
-    public TestGitOptions(Path httpsRepos, GeneralOptions generalOptions, Validator validator) {
-      super(generalOptions);
-      this.httpsRepos = Preconditions.checkNotNull(httpsRepos);
-      this.validator = Preconditions.checkNotNull(validator);
+    public GitRepository mockRemoteRepo(String url, Map<String, String> env) throws RepoException {
+      GitRepository repo =
+          GitRepository.newBareRepo(httpsRepos.resolve(url), env, generalOptions.isVerbose());
+      repo.init();
+      return repo;
     }
 
     @Override
@@ -150,17 +285,15 @@ public final class GitTestUtil {
                                                   forcePushForRefspec));
     }
 
-    /**
-     * Add additional prefixes that should be mapped for test.
-     */
+    /** Add additional prefixes that should be mapped for test. */
     @SuppressWarnings("unused")
-    public TestGitOptions addPrefix(String prefix) {
+    public GitOptionsForTest addPrefix(String prefix) {
       mappingPrefixes.add(prefix);
       return this;
     }
 
     @SuppressWarnings("unused")
-    public TestGitOptions forcePushForRefspecPrefix(String forcePushForRefspec) {
+    public GitOptionsForTest forcePushForRefspecPrefix(String forcePushForRefspec) {
       this.forcePushForRefspec = forcePushForRefspec;
       return this;
     }
@@ -232,5 +365,15 @@ public final class GitTestUtil {
       }
       return url;
     }
+  }
+
+  /**
+   * Write content to the path basePath + relativePath. Creating the parent directories if
+   * necessary.
+   */
+  public static void writeFile(Path basePath, String relativePath, String content)
+      throws IOException {
+    Files.createDirectories(basePath.resolve(relativePath).getParent());
+    Files.write(basePath.resolve(relativePath), content.getBytes(UTF_8));
   }
 }

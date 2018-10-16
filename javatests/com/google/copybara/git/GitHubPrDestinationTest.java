@@ -18,10 +18,16 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
+import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -33,14 +39,11 @@ import com.google.copybara.WriterContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
-import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
-import com.google.copybara.testing.git.GitApiMockHttpTransport;
 import com.google.copybara.testing.git.GitTestUtil;
-import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Message.MessageType;
@@ -64,39 +67,26 @@ public class GitHubPrDestinationTest {
   private OptionsBuilder options;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
+  private GitTestUtil gitUtil;
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
-  private Path localHub;
-  private final String expectedProject = "foo";
-  private GitApiMockHttpTransport gitApiMockHttpTransport;
 
   @Before
   public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("GitHubPrDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
-    localHub = Files.createTempDirectory("localHub");
 
     git("init", "--bare", repoGitDir.toString());
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-    options.git = new TestGitOptions(localHub, GitHubPrDestinationTest.this.options.general);
 
-    options.github = new GitHubOptions(options.general, options.git) {
-      @Override
-      public GitHubApi newGitHubApi(String project) throws RepoException {
-        assertThat(project).isEqualTo(expectedProject);
-        return super.newGitHubApi(project);
-      }
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
 
-      @Override
-      protected HttpTransport newHttpTransport() {
-        return gitApiMockHttpTransport;
-      }
-    };
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     options.git.credentialHelperStorePath = credentialsFile.toString();
@@ -124,33 +114,27 @@ public class GitHubPrDestinationTest {
   public void testCustomTitleAndBody()
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request)
-              throws IOException {
-            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-            if ("GET".equals(method) && isPulls) {
-              return "[]";
-            } else if ("POST".equals(method) && isPulls) {
-              assertThat(request.getContentAsString())
-                  .isEqualTo(
-                      "{\"base\":\"master\","
-                          + "\"body\":\"custom body\","
-                          + "\"head\":\"feature\","
-                          + "\"title\":\"custom title\"}");
-              return ("{\n"
-                  + "  \"id\": 1,\n"
-                  + "  \"number\": 12345,\n"
-                  + "  \"state\": \"open\",\n"
-                  + "  \"title\": \"custom title\",\n"
-                  + "  \"body\": \"custom body\""
-                  + "}");
-            }
-            fail(method + " " + url);
-            throw new IllegalStateException();
-          }
-        };
+
+    mockNoPullRequestsGet();
+
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/pulls",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"custom title\",\n"
+                + "  \"body\": \"custom body\""
+                + "}",
+            req ->
+                req.equals(
+                    "{\"base\":\"master\","
+                        + "\"body\":\"custom body\","
+                        + "\"head\":\"feature\","
+                        + "\"title\":\"custom title\"}")));
+
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo', \n"
         + "    title = 'custom title',\n"
@@ -163,13 +147,18 @@ public class GitHubPrDestinationTest {
             /*dryRun=*/false,
             new DummyRevision("feature", "feature"));
     Writer<GitRevision> writer = d.newWriter(writerContext);
-    GitRepository remote = localHubRepo("foo");
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "").build());
 
-    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(this.workdir, "test.txt", "some content");
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
+
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("GET", "https://api.github.com/repos/foo/pulls");
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("POST", "https://api.github.com/repos/foo/pulls");
   }
 
   @Test
@@ -183,31 +172,25 @@ public class GitHubPrDestinationTest {
   public void testTrimMessageForPrTitle()
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request)
-              throws IOException {
-            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-            if ("GET".equals(method) && isPulls) {
-              return "[]";
-            } else if ("POST".equals(method) && isPulls) {
-              assertThat(request.getContentAsString())
-                  .isEqualTo(
-                      "{\"base\":\"master\",\"body\":\"Internal change.\",\"head\":\"feature\","
-                          + "\"title\":\"Internal change.\"}");
-              return ("{\n"
-                  + "  \"id\": 1,\n"
-                  + "  \"number\": 12345,\n"
-                  + "  \"state\": \"open\",\n"
-                  + "  \"title\": \"test summary\",\n"
-                  + "  \"body\": \"test summary\""
-                  + "}");
-            }
-            fail(method + " " + url);
-            throw new IllegalStateException();
-          }
-        };
+
+    mockNoPullRequestsGet();
+
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/pulls",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"test summary\",\n"
+                + "  \"body\": \"test summary\""
+                + "}",
+            req ->
+                req.equals(
+                    "{\"base\":\"master\",\"body\":\"Internal change.\",\"head\":\"feature\","
+                        + "\"title\":\"Internal change.\"}")));
+
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
@@ -221,15 +204,24 @@ public class GitHubPrDestinationTest {
 
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
-    GitRepository remote = localHubRepo("foo");
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "").build());
 
-    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(this.workdir, "test.txt", "some content");
     writer.write(TransformResults.of(this.workdir,
         new DummyRevision("one")).withSummary("\n\n\n\n\nInternal change."),
         Glob.ALL_FILES,
         console);
+
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("GET", "https://api.github.com/repos/foo/pulls");
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("POST", "https://api.github.com/repos/foo/pulls");
+  }
+
+  private void mockNoPullRequestsGet() throws IOException {
+    gitUtil.mockApi("GET", "https://api.github.com/repos/foo/pulls", mockResponse("[]"));
   }
 
   @Test
@@ -244,32 +236,25 @@ public class GitHubPrDestinationTest {
 
   private void checkWrite(Revision revision)
       throws ValidationException, RepoException, IOException {
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request)
-              throws IOException {
-            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-            if ("GET".equals(method) && isPulls) {
-              return "[]";
-            } else if ("POST".equals(method) && isPulls) {
-              assertThat(request.getContentAsString())
-                  .isEqualTo(
-                      "{\"base\":\"master\",\"body\":\"test summary\",\"head\":\""
-                          + "feature"
-                          + "\",\"title\":\"test summary\"}");
-              return ("{\n"
-                  + "  \"id\": 1,\n"
-                  + "  \"number\": 12345,\n"
-                  + "  \"state\": \"open\",\n"
-                  + "  \"title\": \"test summary\",\n"
-                  + "  \"body\": \"test summary\""
-                  + "}");
-            }
-            fail(method + " " + url);
-            throw new IllegalStateException();
-          }
-        };
+    mockNoPullRequestsGet();
+
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/pulls",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"test summary\",\n"
+                + "  \"body\": \"test summary\"\n"
+                + "}",
+            req ->
+                req.equals(
+                    "{\"base\":\"master\",\"body\":\"test summary\",\"head\":\""
+                        + "feature"
+                        + "\",\"title\":\"test summary\"}")));
+
     GitHubPrDestination d =
         skylark.eval(
             "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'" + ")");
@@ -280,18 +265,18 @@ public class GitHubPrDestinationTest {
         /*dryRun=*/false,
         revision));
 
-    GitRepository remote = localHubRepo("foo");
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "").build());
 
-    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(this.workdir, "test.txt", "some content");
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
-    Files.write(this.workdir.resolve("test.txt"), "other content".getBytes());
+    writeFile(this.workdir, "test.txt", "other content");
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("two")), Glob.ALL_FILES, console);
 
-    Files.write(this.workdir.resolve("test.txt"), "and content".getBytes());
+    writeFile(this.workdir, "test.txt", "and content");
     writer.write(TransformResults.of(this.workdir, new DummyRevision("three")),
         Glob.ALL_FILES, console);
 
@@ -319,7 +304,23 @@ public class GitHubPrDestinationTest {
         /*dryRun=*/ false,
         revision));
 
-    Files.write(this.workdir.resolve("test.txt"), "and content".getBytes());
+    writeFile(this.workdir, "test.txt", "and content");
+
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/foo/pulls",
+        mockResponse(
+            ""
+                + "[{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"test summary\",\n"
+                + "  \"body\": \"test summary\","
+                + "  \"head\": { \"ref\": \"feature\"},"
+                + "  \"base\": { \"ref\": \"feature\"}"
+                + "}]"));
+
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("four")), Glob.ALL_FILES, console);
 
@@ -382,41 +383,42 @@ public class GitHubPrDestinationTest {
     WriterContext writerContext =
         new WriterContext( /*workflowName=*/"piper_to_github_pr", /*workflowIdentityUser=*/"TEST",
             /*dryRun=*/false, dummyRevision);
-    String branchName = Identity.computeIdentity("OriginGroupIdentity", dummyRevision.contextReference(), writerContext.getWorkflowName(), "copy.bara.sky", writerContext.getWorkflowIdentityUser());
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request)
-              throws IOException {
-            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-            if ("GET".equals(method) && isPulls) {
-              return "[]";
-            } else if ("POST".equals(method) && isPulls) {
-               assertThat(request.getContentAsString())
-                  .isEqualTo( "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\""
-                      + branchName + "\",\"title\":\"test summary\"}");
-              return ("{\n"
-                  + "  \"id\": 1,\n"
-                  + "  \"number\": 12345,\n"
-                  + "  \"state\": \"open\",\n"
-                  + "  \"title\": \"test summary\",\n"
-                  + "  \"body\": \"test summary\""
-                  + "}");
-            }
-            fail(method + " " + url);
-            throw new IllegalStateException();
-          }
-        };
+    String branchName =
+        Identity.computeIdentity(
+            "OriginGroupIdentity",
+            dummyRevision.contextReference(),
+            writerContext.getWorkflowName(),
+            "copy.bara.sky",
+            writerContext.getWorkflowIdentityUser());
+
+    mockNoPullRequestsGet();
+
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/pulls",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"test summary\",\n"
+                + "  \"body\": \"test summary\""
+                + "}",
+            req ->
+                req.equals(
+                    "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\""
+                        + branchName
+                        + "\",\"title\":\"test summary\"}")));
 
     Writer<GitRevision> writer = d.newWriter(writerContext);
-    GitRepository remote = localHubRepo("foo");
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(remote, "master", "first change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "").build());
 
     addFiles(remote, "other", "second change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "test").build());
 
-    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(this.workdir, "test.txt", "some content");
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
 
@@ -453,32 +455,26 @@ public class GitHubPrDestinationTest {
                 + "    pr_branch = " + "\'" + branchNameFromUser + "\',"
                 + ")");
     DummyRevision dummyRevision = new DummyRevision("dummyReference", contextReference);
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request)
-              throws IOException {
-            boolean isPulls = "https://api.github.com/repos/foo/pulls".equals(url);
-            if ("GET".equals(method) && isPulls) {
-              return "[]";
-            } else if ("POST".equals(method) && isPulls) {
-              assertThat(request.getContentAsString())
-                  .isEqualTo(
-                      "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\""
-                          + expectedBranchName
-                          + "\",\"title\":\"test summary\"}");
-              return ("{\n"
-                  + "  \"id\": 1,\n"
-                  + "  \"number\": 12345,\n"
-                  + "  \"state\": \"open\",\n"
-                  + "  \"title\": \"test summary\",\n"
-                  + "  \"body\": \"test summary\""
-                  + "}");
-            }
-            fail(method + " " + url);
-            throw new IllegalStateException();
-          }
-        };
+
+    mockNoPullRequestsGet();
+
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/pulls",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"test summary\",\n"
+                + "  \"body\": \"test summary\""
+                + "}",
+            req ->
+                req.equals(
+                    "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\""
+                        + expectedBranchName
+                        + "\",\"title\":\"test summary\"}")));
+
     WriterContext writerContext =
         new WriterContext(
             /*workflowName=*/ "piper_to_github_pr",
@@ -486,7 +482,7 @@ public class GitHubPrDestinationTest {
             /*dryRun=*/ false,
             dummyRevision);
     Writer<GitRevision> writer = d.newWriter(writerContext);
-    GitRepository remote = localHubRepo("foo");
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(
         remote,
         "master",
@@ -499,7 +495,7 @@ public class GitHubPrDestinationTest {
         "second change",
         ImmutableMap.<String, String>builder().put("foo.txt", "test").build());
 
-    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(this.workdir, "test.txt", "some content");
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
 
@@ -509,7 +505,16 @@ public class GitHubPrDestinationTest {
   @Test
   public void testDestinationStatus() throws ValidationException, IOException, RepoException {
     options.githubDestination.createPullRequest = false;
-    gitApiMockHttpTransport = GitTestUtil.NO_GITHUB_API_CALLS;
+    gitUtil.mockApi(
+        anyString(),
+        anyString(),
+        new MockLowLevelHttpRequest() {
+          @Override
+          public LowLevelHttpResponse execute() throws IOException {
+            throw new AssertionError("No API calls allowed for this test");
+          }
+        });
+
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
@@ -517,7 +522,7 @@ public class GitHubPrDestinationTest {
         "piper_to_github", "TEST", /*dryRun=*/false, new DummyRevision("feature", "feature"));
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
-    GitRepository remote = localHubRepo("foo");
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(remote, "master", "first change\n\nDummyOrigin-RevId: baseline",
         ImmutableMap.<String, String>builder()
             .put("foo.txt", "").build());
@@ -527,7 +532,7 @@ public class GitHubPrDestinationTest {
     assertThat(status.getBaseline()).isEqualTo("baseline");
     assertThat(status.getPendingChanges()).isEmpty();
 
-    Files.write(this.workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(this.workdir, "test.txt", "some content");
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
 
@@ -559,14 +564,6 @@ public class GitHubPrDestinationTest {
 
     tmpRepo.add().all().run();
     tmpRepo.simpleCommand("commit", "-m", msg);
-  }
-
-  private GitRepository localHubRepo(String name) throws RepoException {
-    GitRepository repo = GitRepository.newBareRepo(localHub.resolve("github.com/" + name),
-        getGitEnv(),
-        options.general.isVerbose());
-    repo.init();
-    return repo;
   }
 
   private String git(String... argv) throws RepoException {

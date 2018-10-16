@@ -72,7 +72,7 @@ import javax.annotation.Nullable;
  */
 public final class GerritDestination implements Destination<GitRevision> {
 
-  private static final int MAX_FIND_ATTEMPTS = 100;
+  static final int MAX_FIND_ATTEMPTS = 100;
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 

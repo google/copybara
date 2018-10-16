@@ -23,7 +23,6 @@ import static com.google.copybara.git.GitIntegrateChanges.Strategy.INCLUDE_FILES
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static org.junit.Assert.fail;
 
-import com.google.api.client.http.HttpTransport;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -44,7 +43,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
-import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -73,18 +71,15 @@ public class GitDestinationIntegrateTest {
   private Glob destinationFiles;
   private SkylarkTestExecutor skylark;
 
-
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
-  private Path localHub;
+  private GitTestUtil gitUtil;
 
   @Before
   public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
-
-    localHub = Files.createTempDirectory("localRepos");
 
     git("init", "--bare", repoGitDir.toString());
 
@@ -92,14 +87,9 @@ public class GitDestinationIntegrateTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-    options.git = new TestGitOptions(localHub, options.general);
 
-    options.github = new GitHubOptions(options.general, options.git) {
-      @Override
-      protected HttpTransport newHttpTransport() {
-        return GitTestUtil.NO_GITHUB_API_CALLS;
-      }
-    };
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
 
     options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
@@ -327,7 +317,8 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testGitHubSemiFakeMerge() throws ValidationException, IOException, RepoException {
     Path workTree = Files.createTempDirectory("test");
-    GitRepository repo = fakeHttpsRepo("github.com/example/test_repo").withWorkTree(workTree);
+    GitRepository repo =
+        gitUtil.mockRemoteRepo("github.com/example/test_repo").withWorkTree(workTree);
 
     GitRevision firstChange = singleChange(workTree, repo, "ignore_me", "Feature1 change");
     GitRevision secondChange = singleChange(workTree, repo, "ignore_me2", "Feature2 change");
@@ -401,7 +392,7 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testGerritSemiFakeMerge() throws ValidationException, IOException, RepoException {
     Path workTree = Files.createTempDirectory("test");
-    GitRepository repo = fakeHttpsRepo("example.com/gerrit").withWorkTree(workTree);
+    GitRepository repo = gitUtil.mockRemoteRepo("example.com/gerrit").withWorkTree(workTree);
 
     String label = new GerritIntegrateLabel(repo, options.general, "https://example.com/gerrit",
         1020, 1, CHANGE_ID).toString();
@@ -453,7 +444,7 @@ public class GitDestinationIntegrateTest {
   public void testGerritFakeMergeNoChangeId()
       throws ValidationException, IOException, RepoException {
     Path workTree = Files.createTempDirectory("test");
-    GitRepository repo = fakeHttpsRepo("example.com/gerrit").withWorkTree(workTree);
+    GitRepository repo = gitUtil.mockRemoteRepo("example.com/gerrit").withWorkTree(workTree);
 
     String label = new GerritIntegrateLabel(repo, options.general, "https://example.com/gerrit",
         1020, 1, /*changeId=*/null).toString();
@@ -594,14 +585,6 @@ public class GitDestinationIntegrateTest {
 
   private GitRepository repoForPath(Path path) {
     return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true);
-  }
-
-  private GitRepository fakeHttpsRepo(String name) throws RepoException {
-    GitRepository repo = GitRepository.newBareRepo(localHub.resolve(name),
-        getGitEnv(),
-        options.general.isVerbose());
-    repo.init();
-    return repo;
   }
 
   private String git(String... argv) throws RepoException {

@@ -19,11 +19,15 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.matches;
+import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.when;
 
-import com.google.api.client.testing.http.MockLowLevelHttpRequest;
-import com.google.common.base.Charsets;
+import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -44,20 +48,17 @@ import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GerritDestination.GerritMessageInfo;
 import com.google.copybara.git.GerritDestination.GerritWriteHook;
 import com.google.copybara.git.GitRepository.GitLogEntry;
-import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
-import com.google.copybara.testing.git.GitApiMockHttpTransport;
-import com.google.copybara.testing.git.GitTestUtil.TestGitOptions;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -71,6 +72,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.stubbing.Answer;
 
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
@@ -90,14 +92,6 @@ public class GerritDestinationTest {
       + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
       + "<o> [master] ~/dev/copybara$\n";
   private static final String CONSTANT_CHANGE_ID = "I" + Strings.repeat("a", 40);
-  private static final GitApiMockHttpTransport NO_CHANGE_FOUND_MOCK =
-      new GitApiMockHttpTransport() {
-        @Override
-        public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-          // No changes found
-          return "[]";
-        }
-      };
 
   private String url;
   private String fetch;
@@ -112,8 +106,7 @@ public class GerritDestinationTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-  private Path urlMapper;
-  private GitApiMockHttpTransport gitApiMockHttpTransport;
+  private GitTestUtil gitUtil;
 
   @Before
   public void setup() throws Exception {
@@ -123,42 +116,38 @@ public class GerritDestinationTest {
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
-    urlMapper = Files.createTempDirectory("url_mapper");
-    options.git = new TestGitOptions(urlMapper, options.general);
-    options.gerrit = new GerritOptions(options.general, options.git) {
-      @Override
-      protected GerritApiTransportImpl newGerritApiTransport(URI uri) {
-        return new GerritApiTransportImpl(repo(), uri, gitApiMockHttpTransport);
-      }
-    };
+
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
+
     options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     excludedDestinationPaths = ImmutableList.of();
 
-    repoGitDir = localGerritRepo("localhost:33333/foo/bar").getGitDir();
+    repoGitDir = gitUtil.mockRemoteRepo("localhost:33333/foo/bar").getGitDir();
     url = "https://localhost:33333/foo/bar";
     repo().init();
 
     skylark = new SkylarkTestExecutor(options);
     reviewerTemplates = ImmutableList.of();
 
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
-              return "["
-                  + "{"
-                  + "  change_id : \""
-                  + changeIdFromRequest(url)
-                  + "\","
-                  + "  status : \"NEW\""
-                  + "}]";
-            }
-            throw new IllegalArgumentException(method + " " + url);
-          }
-        };
+    when(gitUtil
+            .httpTransport()
+            .buildRequest(eq("GET"), startsWith("https://localhost:33333/changes/")))
+        .then(
+            (Answer<LowLevelHttpRequest>)
+                invocation -> {
+                  String change = changeIdFromRequest((String) invocation.getArguments()[1]);
+                  return mockResponse(
+                      "["
+                          + "{"
+                          + "  change_id : \""
+                          + change
+                          + "\","
+                          + "  status : \"NEW\""
+                          + "}]");
+                });
   }
 
   private String changeIdFromRequest(String url) {
@@ -234,14 +223,14 @@ public class GerritDestinationTest {
   public void gerritChangeIdChangesBetweenCommits() throws Exception {
     fetch = "master";
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
 
     options.setForce(true);
     process(new DummyRevision("origin_ref"));
 
     String firstChangeIdLine = lastCommitChangeIdLine("origin_ref", repo());
 
-    Files.write(workdir.resolve("file2"), "some more content".getBytes());
+    writeFile(workdir, "file2", "some more content");
     git("branch", "master", "refs/for/master");
     options.setForce(false);
     process(new DummyRevision("origin_ref2"));
@@ -254,7 +243,7 @@ public class GerritDestinationTest {
   public void specifyChangeId() throws Exception {
     fetch = "master";
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
 
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
     options.setForce(true);
@@ -265,7 +254,7 @@ public class GerritDestinationTest {
 
     git("branch", "master", "refs/for/master");
 
-    Files.write(workdir.resolve("file"), "some different content".getBytes());
+    writeFile(workdir, "file", "some different content");
 
     changeId = "Ibbbbbbbbbbccccccccccddddddddddeeeeeeeeee";
     options.setForce(false);
@@ -310,7 +299,7 @@ public class GerritDestinationTest {
   private String runForDefaults() throws IOException, ValidationException, RepoException {
     fakeOneCommitInDestination();
     git("branch", "foo");
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
 
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
     options.gerrit.gerritChangeId = changeId;
@@ -322,42 +311,38 @@ public class GerritDestinationTest {
   public void reuseChangeId() throws Exception {
     fetch = "master";
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
 
     options.setForce(true);
     options.gerrit.gerritChangeId = null;
 
     url = "https://localhost:33333/foo/bar";
-    GitRepository repo = localGerritRepo("localhost:33333/foo/bar");
-    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+    GitRepository repo = gitUtil.mockRemoteRepo("localhost:33333/foo/bar");
+    mockNoChangesFound();
 
     process(new DummyRevision("origin_ref"));
     String changeId = lastCommitChangeIdLine("origin_ref", repo);
     assertThat(changeId).matches(GerritDestination.CHANGE_ID_LABEL + ": I[a-z0-9]+");
     LabelFinder labelFinder = new LabelFinder(changeId);
 
-    Files.write(workdir.resolve("file"), "some different content".getBytes());
+    writeFile(workdir, "file", "some different content");
+    String expected =
+        "https://localhost:33333/changes/?q=change:%20"
+            + labelFinder.getValue()
+            + "%20AND%20project:foo/bar";
 
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-            String expected =
-                "https://localhost:33333/changes/?q=change:%20"
-                    + labelFinder.getValue()
-                    + "%20AND%20project:foo/bar";
-            if (method.equals("GET") && url.equals(expected)) {
-              return "["
-                  + "{"
-                  + "  change_id : \""
-                  + labelFinder.getValue()
-                  + "\","
-                  + "  status : \"NEW\""
-                  + "}]";
-            }
-            throw new IllegalArgumentException(method + " " + url);
-          }
-        };
+    gitUtil.mockApi(
+        "GET",
+        expected,
+        mockResponse(
+            "["
+                + "{"
+                + "  change_id : \""
+                + labelFinder.getValue()
+                + "\","
+                + "  status : \"NEW\""
+                + "}]"));
+
     // Allow to push again in a non-fastforward way.
     repo.simpleCommand("update-ref", "-d", "refs/for/master");
     process(new DummyRevision("origin_ref"));
@@ -365,6 +350,10 @@ public class GerritDestinationTest {
     GitTesting.assertThatCheckout(repo, "refs/for/master")
         .containsFile("file", "some different content")
         .containsNoMoreFiles();
+  }
+
+  private void mockNoChangesFound() throws IOException {
+    gitUtil.mockApi(eq("GET"), startsWith("https://localhost:33333/changes/"), mockResponse("[]"));
   }
 
   @Test
@@ -448,13 +437,13 @@ public class GerritDestinationTest {
   private String runChangeIdPolicy(String summary, String... config) throws Exception {
     fetch = "master";
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
 
     options.setForce(true);
 
     url = "https://localhost:33333/foo/bar";
-    GitRepository repo = localGerritRepo("localhost:33333/foo/bar");
-    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+    GitRepository repo = gitUtil.mockRemoteRepo("localhost:33333/foo/bar");
+    mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     WriterContext writerContext =
@@ -478,24 +467,18 @@ public class GerritDestinationTest {
     return lastCommitChangeIdLine("origin_ref", repo).replace("Change-Id: ", "").trim();
   }
 
-  private GitRepository localGerritRepo(String url) throws RepoException {
-    return GitRepository
-        .newBareRepo(urlMapper.resolve(url), getGitEnv(), options.general.isVerbose())
-        .init();
-  }
-
   @Test
   public void testGerritSubmit() throws Exception {
     options.gerrit.gerritChangeId = null;
     fetch = "master";
     pushToRefsFor = "master";
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
 
     options.setForce(true);
 
     url = "https://localhost:33333/foo/bar";
-    GitRepository repo = localGerritRepo("localhost:33333/foo/bar");
-    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+    GitRepository repo = gitUtil.mockRemoteRepo("localhost:33333/foo/bar");
+    mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     GerritDestination destination = destination("submit = True");
@@ -530,13 +513,13 @@ public class GerritDestinationTest {
   @Test
   public void testReviewerFieldWithTopic() throws Exception {
     pushToRefsFor = "master";
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
     fetch = "master";
     options.gerrit.gerritTopic = "testTopic";
     options.setForce(true);
 
     url = "https://localhost:33333/foo/bar";
-    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+    mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
@@ -572,12 +555,12 @@ public class GerritDestinationTest {
   @Test
   public void testReviewerFieldWithNoTopic() throws Exception {
     pushToRefsFor = "master";
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
     fetch = "master";
     options.setForce(true);
 
     url = "https://localhost:33333/foo/bar";
-    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+    mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
@@ -612,13 +595,13 @@ public class GerritDestinationTest {
   @Test
   public void testReviewersFieldWithTopic() throws Exception {
     pushToRefsFor = "master";
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
     fetch = "master";
     options.gerrit.gerritTopic = "testTopic";
     options.setForce(true);
 
     url = "https://localhost:33333/foo/bar";
-    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+    mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
@@ -653,13 +636,13 @@ public class GerritDestinationTest {
   @Test
   public void testEmptyReviewersField() throws Exception {
     pushToRefsFor = "master";
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
     fetch = "master";
     options.gerrit.gerritTopic = "testTopic";
     options.setForce(true);
 
     url = "https://localhost:33333/foo/bar";
-    gitApiMockHttpTransport = NO_CHANGE_FOUND_MOCK;
+    mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
@@ -692,7 +675,7 @@ public class GerritDestinationTest {
   public void changeExists() throws Exception {
     fetch = "master";
 
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
 
     options.setForce(true);
     String expectedChangeId = "I" + Hashing.sha1()
@@ -709,7 +692,7 @@ public class GerritDestinationTest {
   @Test
   public void changeAlreadyMergedOnce() throws Exception {
     fetch = "master";
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
     options.setForce(true);
     String firstChangeId = "I" + Hashing.sha1()
         .newHasher()
@@ -724,25 +707,16 @@ public class GerritDestinationTest {
         .putInt(1)
         .hash();
 
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
-              String change = changeIdFromRequest(url);
-              return "["
-                  + "{"
-                  + "  change_id : \""
-                  + change
-                  + "\","
-                  + "  status : \""
-                  + (change.equals(firstChangeId) ? "MERGED" : "NEW")
-                  + "\""
-                  + "}]";
-            }
-            throw new IllegalArgumentException(method + " " + url);
-          }
-        };
+    gitUtil.mockApi(
+        eq("GET"),
+        matches("https://localhost:33333/changes/.*" + firstChangeId + ".*"),
+        mockResponse(
+            String.format("[{  change_id : \"%s\",  status : \"MERGED\"}]", firstChangeId)));
+
+    gitUtil.mockApi(
+        eq("GET"),
+        matches("https://localhost:33333/changes/.*" + secondChangeId + ".*"),
+        mockResponse(String.format("[{  change_id : \"%s\",  status : \"NEW\"}]", secondChangeId)));
 
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref", repo()))
@@ -752,37 +726,22 @@ public class GerritDestinationTest {
   @Test
   public void changeAlreadyMergedTooOften() throws Exception {
     fetch = "master";
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
     options.setForce(true);
-    String firstChangeId = "I" + Hashing.sha1()
-        .newHasher()
-        .putString("origin_ref", StandardCharsets.UTF_8)
-        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
-        .putInt(0)
-        .hash();
-    String secondChangeId = "I" + Hashing.sha1()
-        .newHasher()
-        .putString("origin_ref", Charsets.UTF_8)
-        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
-        .putInt(1)
-        .hash();
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
-              String change = changeIdFromRequest(url);
-              return "["
-                  + "{"
-                  + "  change_id : \""
-                  + change
-                  + "\","
-                  + "  status : \"MERGED\""
-                  + "}]";
-            }
-            throw new IllegalArgumentException(method + " " + url);
-          }
-        };
+    for (int i = 0; i < GerritDestination.MAX_FIND_ATTEMPTS + 1; i++) {
+      String changeId =
+          "I"
+              + Hashing.sha1()
+                  .newHasher()
+                  .putString("origin_ref", StandardCharsets.UTF_8)
+                  .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
+                  .putInt(i)
+                  .hash();
+      gitUtil.mockApi(
+          eq("GET"),
+          matches("https://localhost:33333/changes/.*" + changeId + ".*"),
+          mockResponse(String.format("[{  change_id : \"%s\",  status : \"MERGED\"}]", changeId)));
+    }
 
     try {
       process(new DummyRevision("origin_ref"));
@@ -796,7 +755,7 @@ public class GerritDestinationTest {
   public void specifyTopic() throws Exception {
     fetch = "master";
     options.setForce(true);
-    Files.write(workdir.resolve("file"), "some content".getBytes());
+    writeFile(workdir, "file", "some content");
     options.gerrit.gerritTopic = "testTopic";
     process(new DummyRevision("origin_ref"));
     boolean correctMessage =
@@ -811,7 +770,7 @@ public class GerritDestinationTest {
   public void writesOriginTimestampToAuthorField() throws Exception {
     fetch = "master";
 
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(workdir, "test.txt", "some content");
     options.setForce(true);
 
     ZonedDateTime time1 = ZonedDateTime.ofInstant(Instant.ofEpochSecond(355558888),
@@ -821,7 +780,7 @@ public class GerritDestinationTest {
 
     git("branch", "master", "refs/for/master");
 
-    Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
+    writeFile(workdir, "test2.txt", "some more content");
     options.setForce(false);
     ZonedDateTime time2 = ZonedDateTime.ofInstant(Instant.ofEpochSecond(424242420),
                                                   ZoneId.of("-08:00"));
@@ -832,7 +791,7 @@ public class GerritDestinationTest {
   }
 
   @Test
-  public void validationErrorForMissingPullFromRef() throws Exception {
+  public void validationErrorForMissingPullFromRef() {
     skylark.evalFails(
         "git.gerrit_destination(\n"
             + "    url = 'file:///foo',\n"
@@ -841,7 +800,7 @@ public class GerritDestinationTest {
   }
 
   @Test
-  public void validationErrorForMissingUrl() throws Exception {
+  public void validationErrorForMissingUrl() {
     skylark.evalFails(
         "git.gerrit_destination(\n"
             + "    fetch = 'master',\n"
@@ -933,7 +892,7 @@ public class GerritDestinationTest {
   public void testPushToNonDefaultRef() throws Exception {
     fetch = "master";
     pushToRefsFor = "testPushToRef";
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(workdir, "test.txt", "some content");
     options.setForce(true);
     process(new DummyRevision("origin_ref"));
 
@@ -945,7 +904,7 @@ public class GerritDestinationTest {
   @Test
   public void testPushToNonMasterDefaultRef() throws Exception {
     fetch = "fooze";
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    writeFile(workdir, "test.txt", "some content");
     options.setForce(true);
     process(new DummyRevision("origin_ref"));
 
@@ -1007,16 +966,7 @@ public class GerritDestinationTest {
 
     writeFile(workdir, "non_relevant.txt", "foo");
 
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
-              return "[]";
-            }
-            throw new IllegalArgumentException(method + " " + url);
-          }
-        };
+    mockNoChangesFound();
 
     runAllowEmptyPatchSetFalse(oldParent.getSha1());
 
@@ -1062,23 +1012,23 @@ public class GerritDestinationTest {
     writeFile(workdir, "foo.txt", secondChange);
     writeFile(workdir, "non_relevant.txt", "bar");
 
+    when(gitUtil
+            .httpTransport()
+            .buildRequest(eq("GET"), startsWith("https://localhost:33333/changes/")))
+        .then(
+            (Answer<LowLevelHttpRequest>)
+                invocation -> {
+                  String change = changeIdFromRequest((String) invocation.getArguments()[1]);
+                  return mockResponse(
+                      String.format(
+                          "[{"
+                              + "change_id : '%s',"
+                              + "status : 'NEW',"
+                              + "_number : '12310',"
+                              + "current_revision = '%s'}]",
+                          change, currentRev.getSha1()));
+                });
 
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-            if (method.equals("GET") && url.startsWith("https://localhost:33333/changes/")) {
-              String change = changeIdFromRequest(url);
-              return String.format("[{"
-                      + "change_id : '%s',"
-                      + "status : 'NEW',"
-                      + "_number : '12310',"
-                      + "current_revision = '%s'}]",
-                  change, currentRev.getSha1());
-            }
-            throw new IllegalArgumentException(method + " " + url);
-          }
-        };
     try {
       runAllowEmptyPatchSetFalse(newParent.getSha1());
       fail();
@@ -1131,10 +1081,5 @@ public class GerritDestinationTest {
                 Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
                 console);
     assertThat(result).hasSize(1);
-  }
-
-  private void writeFile(Path workTree, String path, String content) throws IOException {
-    Files.createDirectories(workTree.resolve(path).getParent());
-    Files.write(workTree.resolve(path), content.getBytes(UTF_8));
   }
 }
