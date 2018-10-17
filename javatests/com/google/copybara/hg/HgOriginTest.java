@@ -54,9 +54,9 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class HgOriginTest {
 
-  private final Authoring authoring = new Authoring(new Author("Copy",
-      "copy@bara.com"),
-      AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
+  private final Authoring authoring =
+      new Authoring(
+          new Author("Copy", "copy@bara.com"), AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
 
   private HgOrigin origin;
   private OptionsBuilder options;
@@ -87,22 +87,20 @@ public class HgOriginTest {
   }
 
   private HgOrigin origin() throws ValidationException {
-    return skylark.eval("result",
-        String.format("result = hg.origin(\n"
-            + "    url = '%s', \n"
-            + "    ref = '%s')", url, configRef));
+    return skylark.eval(
+        "result",
+        String.format(
+            "result = hg.origin(\n" + "    url = '%s', \n" + "    ref = '%s')", url, configRef));
   }
 
   @Test
   public void testHgOrigin() throws Exception {
-    origin = skylark.eval("result",
-        "result = hg.origin(\n"
-            + "url = 'https://my-server.org/copybara'"
-            + ")");
+    origin =
+        skylark.eval(
+            "result", "result = hg.origin(\n" + "url = 'https://my-server.org/copybara'" + ")");
 
     assertThat(origin.toString())
-        .isEqualTo("HgOrigin{"
-          + "url = https://my-server.org/copybara, ref = default}");
+        .isEqualTo("HgOrigin{" + "url = https://my-server.org/copybara, ref = default}");
   }
 
   @Test
@@ -122,9 +120,12 @@ public class HgOriginTest {
     Path hook = Files.createTempFile("script", "script");
     Files.write(hook, "touch hook.txt".getBytes(UTF_8));
 
-    Files.setPosixFilePermissions(hook, ImmutableSet.<PosixFilePermission>builder()
-        .addAll(Files.getPosixFilePermissions(hook))
-        .add(PosixFilePermission.OWNER_EXECUTE).build());
+    Files.setPosixFilePermissions(
+        hook,
+        ImmutableSet.<PosixFilePermission>builder()
+            .addAll(Files.getPosixFilePermissions(hook))
+            .add(PosixFilePermission.OWNER_EXECUTE)
+            .build());
 
     options.hgOrigin.originCheckoutHook = hook.toString();
     origin = origin();
@@ -153,33 +154,35 @@ public class HgOriginTest {
 
     ImmutableList<HgLogEntry> commits = repository.log().run();
 
-    assertThat(origin.resolve(null).getGlobalId())
-        .isEqualTo(commits.get(0).getGlobalId());
+    assertThat(origin.resolve(null).getGlobalId()).isEqualTo(commits.get(0).getGlobalId());
 
-    assertThat(origin.resolve("").getGlobalId())
-        .isEqualTo(commits.get(0).getGlobalId());
+    assertThat(origin.resolve("").getGlobalId()).isEqualTo(commits.get(0).getGlobalId());
   }
 
   @Test
   public void testResolveNullOrEmptyReferenceNoSourceRef() throws Exception {
-    origin = skylark.eval("result",
-        String.format("result = hg.origin(\n"
-            + "    url = '%s', \n"
-            + "    ref = '')", url));
+    origin =
+        skylark.eval(
+            "result",
+            String.format("result = hg.origin(\n" + "    url = '%s', \n" + "    ref = '')", url));
     try {
       origin.resolve(null);
       fail("Should have thrown exception");
     } catch (CannotResolveRevisionException expected) {
-      assertThat(expected.getMessage()).isEqualTo("No source reference was passed through the"
-          + " command line and the default reference is empty");
+      assertThat(expected.getMessage())
+          .isEqualTo(
+              "No source reference was passed through the"
+                  + " command line and the default reference is empty");
     }
 
     try {
       origin.resolve("");
       fail("Should have thrown exception");
     } catch (CannotResolveRevisionException expected) {
-      assertThat(expected.getMessage()).isEqualTo("No source reference was passed through the"
-          + " command line and the default reference is empty");
+      assertThat(expected.getMessage())
+          .isEqualTo(
+              "No source reference was passed through the"
+                  + " command line and the default reference is empty");
     }
   }
 
@@ -240,14 +243,13 @@ public class HgOriginTest {
 
     assertThat(Files.readAllBytes(filePath)).isEqualTo("three".getBytes(UTF_8));
 
-    ImmutableList<Change<HgRevision>> changes = newReader().changes(
-        origin.resolve("1"), origin.resolve("tip")).getChanges();
+    ImmutableList<Change<HgRevision>> changes =
+        newReader().changes(origin.resolve("1"), origin.resolve("tip")).getChanges();
 
     assertThat(changes).hasSize(2);
 
     assertThat(changes.get(0).getMessage()).isEqualTo("two");
     assertThat(changes.get(1).getMessage()).isEqualTo("three");
-
 
     for (Change<HgRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("copy@bara.com");
@@ -261,8 +263,8 @@ public class HgOriginTest {
 
   @Test
   public void testFirstImportFromEmptyRepo() throws Exception {
-    ChangesResponse<HgRevision> changes = newReader()
-        .changes(/*fromRef=*/null, origin.resolve("tip"));
+    ChangesResponse<HgRevision> changes =
+        newReader().changes(/*fromRef=*/ null, origin.resolve("tip"));
     assertThat(changes.isEmpty()).isTrue();
     assertThat(changes.getEmptyReason()).isEqualTo(NO_CHANGES);
   }
@@ -274,8 +276,8 @@ public class HgOriginTest {
     singleFileCommit(author, "two", "foo.txt", "two");
     singleFileCommit(author, "three", "foo.txt", "three");
 
-    ImmutableList<Change<HgRevision>> changes = newReader().changes(
-        null, origin.resolve("1")).getChanges();
+    ImmutableList<Change<HgRevision>> changes =
+        newReader().changes(null, origin.resolve("1")).getChanges();
 
     assertThat(changes).hasSize(2);
     assertThat(changes.get(0).getMessage()).isEqualTo("one");
@@ -284,8 +286,8 @@ public class HgOriginTest {
 
   @Test
   public void testChangesEmptyRepo() throws Exception {
-    ChangesResponse<HgRevision> changes = newReader().changes(
-        origin.resolve("0"), origin.resolve("tip"));
+    ChangesResponse<HgRevision> changes =
+        newReader().changes(origin.resolve("0"), origin.resolve("tip"));
 
     assertThat(changes.isEmpty()).isTrue();
     assertThat(changes.getEmptyReason()).isEqualTo(NO_CHANGES);
@@ -306,8 +308,8 @@ public class HgOriginTest {
 
     repository.pullFromRef(otherDir.toString(), "tip");
 
-    ChangesResponse<HgRevision> changes = newReader().changes(
-        origin.resolve("0"), origin.resolve("tip"));
+    ChangesResponse<HgRevision> changes =
+        newReader().changes(origin.resolve("0"), origin.resolve("tip"));
 
     assertThat(changes.isEmpty()).isTrue();
     assertThat(changes.getEmptyReason()).isEqualTo(EmptyReason.UNRELATED_REVISIONS);
@@ -319,8 +321,8 @@ public class HgOriginTest {
     singleFileCommit(author, "one", "foo.txt", "one");
     singleFileCommit(author, "two", "foo.txt", "two");
 
-    ChangesResponse<HgRevision> changes = newReader().changes(
-        origin.resolve("tip"), origin.resolve("0"));
+    ChangesResponse<HgRevision> changes =
+        newReader().changes(origin.resolve("tip"), origin.resolve("0"));
 
     assertThat(changes.isEmpty()).isTrue();
     assertThat(changes.getEmptyReason()).isEqualTo(EmptyReason.TO_IS_ANCESTOR);
@@ -329,10 +331,9 @@ public class HgOriginTest {
   @Test
   public void testUnknownChanges() throws Exception {
     try {
-      ChangesResponse<HgRevision> changes = newReader().changes(
-          origin.resolve("4"), origin.resolve("7"));
-    }
-    catch (ValidationException expected) {
+      ChangesResponse<HgRevision> changes =
+          newReader().changes(origin.resolve("4"), origin.resolve("7"));
+    } catch (ValidationException expected) {
       assertThat(expected.getMessage()).contains("Unknown revision");
     }
   }
@@ -355,12 +356,10 @@ public class HgOriginTest {
   @Test
   public void testUnknownChange() throws Exception {
     try {
-      Change<HgRevision> change = newReader().change(origin.resolve("7"));
+      newReader().change(origin.resolve("7"));
       fail("Should have thrown exception");
-    }
-    catch (ValidationException expected) {
-      assertThat(expected.getMessage())
-          .contains("Unknown revision");
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage()).contains("Unknown revision");
     }
   }
 
@@ -374,13 +373,15 @@ public class HgOriginTest {
 
     List<Change<?>> visited = new ArrayList<>();
 
-    newReader().visitChanges(origin.resolve("tip"),
-        input -> {
-          visited.add(input);
-          return input.firstLineMessage().equals("three")
-              ? VisitResult.TERMINATE
-              : VisitResult.CONTINUE;
-        });
+    newReader()
+        .visitChanges(
+            origin.resolve("tip"),
+            input -> {
+              visited.add(input);
+              return input.firstLineMessage().equals("three")
+                  ? VisitResult.TERMINATE
+                  : VisitResult.CONTINUE;
+            });
 
     assertThat(visited).hasSize(2);
     assertThat(visited.get(0).firstLineMessage()).isEqualTo("four");
@@ -397,11 +398,13 @@ public class HgOriginTest {
     originFiles = Glob.createGlob(ImmutableList.of("bar/**"));
 
     List<Change<?>> visited = new ArrayList<>();
-    newReader().visitChanges(origin.resolve("tip"),
-        input -> {
-          visited.add(input);
-          return VisitResult.CONTINUE;
-        });
+    newReader()
+        .visitChanges(
+            origin.resolve("tip"),
+            input -> {
+              visited.add(input);
+              return VisitResult.CONTINUE;
+            });
     assertThat(visited).hasSize(1);
     assertThat(visited.get(0).firstLineMessage()).isEqualTo("two");
   }
@@ -415,14 +418,13 @@ public class HgOriginTest {
     assertThat(actual.get("ref")).containsExactly("tip");
   }
 
-  private Path singleFileCommit(String author, String commitMessage, String fileName,
-      String fileContent) throws Exception {
+  private Path singleFileCommit(
+      String author, String commitMessage, String fileName, String fileContent) throws Exception {
     Path path = remotePath.resolve(fileName);
     Files.createDirectories(path.getParent());
     Files.write(path, fileContent.getBytes(UTF_8));
     repository.hg(remotePath, "add", fileName);
-    repository.hg(remotePath, "--config", "ui.username=" + author, "commit"
-        ,"-m", commitMessage);
+    repository.hg(remotePath, "--config", "ui.username=" + author, "commit", "-m", commitMessage);
     return path;
   }
 }

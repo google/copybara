@@ -20,6 +20,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.copybara.Revision;
 import java.time.ZonedDateTime;
+import javax.annotation.Nullable;
 
 /**
  * A Hg repository revision (changeset)
@@ -27,6 +28,7 @@ import java.time.ZonedDateTime;
 public class HgRevision implements Revision {
 
   private final String globalId;
+  @Nullable private final String reference;
 
   /**
    * Creates a hg revision from a hexadecimal string identifier. Currently, Mercurial uses SHA1 to
@@ -36,25 +38,49 @@ public class HgRevision implements Revision {
    */
   public HgRevision(String globalId) {
     this.globalId = Preconditions.checkNotNull(globalId);
+    this.reference = null;
+  }
+
+  /**
+   * Creates a hg revision from a hexadecimal string identifier. Currently, Mercurial uses SHA1 to
+   * hash revisions.
+   *
+   * @param globalId global identifier for the revision
+   * @param reference The reference provided by the user (i.e. 'tip')
+   */
+  public HgRevision(String globalId, String reference) {
+    this.globalId = Preconditions.checkNotNull(globalId);
+    this.reference = Preconditions.checkNotNull(reference);
   }
 
   @Override
-  public String asString() { return globalId; }
+  public String asString() {
+    return globalId;
+  }
 
   @Override
-  public String getLabelName() { return HgRepository.HG_ORIGIN_REV_ID; }
+  public String getLabelName() {
+    return HgRepository.HG_ORIGIN_REV_ID;
+  }
+
+  @Nullable
+  @Override
+  public String contextReference() {
+    return reference;
+  }
 
   @Override
-  //TODO(jlliu): properly implement after LogCmd is implemented
-  public ZonedDateTime readTimestamp() { return null; }
+  // TODO(jlliu): properly implement after LogCmd is implemented
+  public ZonedDateTime readTimestamp() {
+    return null;
+  }
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .omitNullValues()
-        .add("global ID", globalId)
-        .toString();
+    return MoreObjects.toStringHelper(this).omitNullValues().add("global ID", globalId).toString();
   }
 
-  public String getGlobalId() { return globalId; }
+  String getGlobalId() {
+    return globalId;
+  }
 }

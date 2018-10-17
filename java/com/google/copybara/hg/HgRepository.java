@@ -66,8 +66,6 @@ public class HgRepository {
   private static final Pattern UNKNOWN_REVISION =
       Pattern.compile("abort: unknown revision '.+'!");
 
-  private static final Pattern NOTHING_CHANGED = Pattern.compile("(.|\n)*nothing changed(.|\n)*");
-
   private static final Pattern INVALID_REF_EXPRESSION =
       Pattern.compile("syntax error in revset '.+'");
 
@@ -186,7 +184,7 @@ public class HgRepository {
           hg(hgDir, "identify", "--template", "{node}\n", "--id", "--rev", reference);
 
       String globalId = commandOutput.getStdout().trim();
-      return new HgRevision(globalId);
+      return new HgRevision(globalId, reference);
     } catch (RepoException e) {
       if (UNKNOWN_REVISION.matcher(e.getMessage()).find()){
         throw new CannotResolveRevisionException(

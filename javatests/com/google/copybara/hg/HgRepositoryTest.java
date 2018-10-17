@@ -378,10 +378,11 @@ public class HgRepositoryTest {
     ImmutableList<HgLogEntry> commits = repository.log().run();
     String globalId = commits.get(0).getGlobalId();
 
-    assertThat(repository.identify(globalId).getGlobalId()).isEqualTo(globalId);
-    assertThat(repository.identify("tip").getGlobalId()).isEqualTo(globalId);
-    assertThat(repository.identify(String.valueOf(0)).getGlobalId()).isEqualTo(globalId);
-    assertThat(repository.identify("default").getGlobalId()).isEqualTo(globalId);
+    for (String reference : ImmutableList.of(globalId, "tip", String.valueOf(0), "default")) {
+      HgRevision revision = repository.identify(reference);
+      assertThat(revision.getGlobalId()).isEqualTo(globalId);
+      assertThat(revision.contextReference()).isEqualTo(reference);
+    }
 
     try {
       repository.identify("not_a_branch");
