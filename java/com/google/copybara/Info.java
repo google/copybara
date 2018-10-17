@@ -17,7 +17,6 @@
 package com.google.copybara;
 
 import com.google.auto.value.AutoValue;
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -43,13 +42,6 @@ public abstract class Info<O extends Revision> {
    * <p>Public so that it can be used programmatically.
    */
   public abstract Iterable<MigrationReference<O>> migrationReferences();
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("migrationReferences", migrationReferences())
-        .toString();
-  }
 
   @AutoValue
   public abstract static class MigrationReference<O extends Revision> {
@@ -101,13 +93,5 @@ public abstract class Info<O extends Revision> {
      */
     public abstract ImmutableList<Change<O>> getAvailableToMigrate();
 
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("label", getLabel())
-          .add("lastMigrated", getLastMigrated())
-          .add("availableToMigrate", getAvailableToMigrate())
-          .toString();
-    }
   }
 }
