@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.CannotResolveLabel;
-
 import java.io.IOException;
 import org.junit.Rule;
 import org.junit.Test;
