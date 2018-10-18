@@ -3,6 +3,6 @@
 steps:
 - name: gcr.io/cloud-builders/bazel
   entrypoint: "bash"
-  args: ["-c", "./cloudbuild.sh test ... --test_output=errors --sandbox_tmpfs_path=/tmp"]
+  args: ["-c", "./cloudbuild.sh test ... --test_output=errors --sandbox_tmpfs_path=/tmp -j 1000"]
 options:
-  machine_type: N1_HIGHCPU_8
+  machine_type: N1_HIGHCPU_32

@@ -32,6 +32,7 @@ DEPS = [
 ]
 
 all_tests(
+    shard_count = 6,
     tags = ["local"],
     tests = [
         "HgDestinationTest.java",
