@@ -54,7 +54,7 @@ DEPS = [
 ]
 
 all_tests(
-    shard_count = 5, # WorkflowTest is slow and it wont hurt DiffUtilTest
+    shard_count = 5,  # WorkflowTest is slow and it wont hurt DiffUtilTest
     tags = ["local"],
     tests = LOCAL_TESTS,
     deps = DEPS,

@@ -46,7 +46,7 @@ public final class Config {
    */
   public Migration getMigration(String migrationName) throws ValidationException {
     checkCondition(migrations.containsKey(migrationName),
-        String.format("No migration with '%s' name exists. Valid migrations: %s",
+        String.format("No migration with name '%s' exists. Valid migrations: %s",
         migrationName, migrations.keySet()));
     return migrations.get(migrationName);
   }
