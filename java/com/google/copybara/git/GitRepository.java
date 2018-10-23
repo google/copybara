@@ -45,7 +45,6 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
-import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
@@ -53,6 +52,7 @@ import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.RepositoryUtil;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -71,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -89,9 +90,9 @@ public class GitRepository {
 
   private static final java.util.regex.Pattern SPACES = java.util.regex.Pattern.compile("( |\t)+");
 
-  // TODO(malcon): Make this generic (Using URIish.java)
-  private static final Pattern FULL_URI = Pattern.compile(
-      "([a-z][a-z0-9+-]+@github.com.*|^[a-z][a-z0-9+-]+://.*)$");
+  private static final Pattern NETWORK_URI = Pattern.compile("^((.+://)?)((.+@)?)(([\\w\\-_\\.]+(:\\d+)?[/|:])?)([\\w\\-_]+)/([\\w\\-_]+)((.git){0,1})((/){0,1})((\\?.*){0,1})$");
+
+  private static final Pattern FILE_URI = Pattern.compile("^((file://)?)/([\\w\\.\\-_/:]+)$");
 
   private static final Pattern LS_TREE_ELEMENT = Pattern.compile(
       "([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40})\t(.*)");
@@ -375,14 +376,10 @@ public class GitRepository {
   @CheckReturnValue
   protected static String validateUrl(String url) throws RepoException, ValidationException {
     RepositoryUtil.validateNotHttp(url);
-    if (FULL_URI.matcher(url).matches()) {
+    if (FILE_URI.matcher(url).matches() || NETWORK_URI.matcher(url).matches()) {
       return url;
     }
 
-    // Support local folders
-    if (Files.isDirectory(Paths.get(url))) {
-      return url;
-    }
     throw new RepoException(String.format("URL '%s' is not valid", url));
   }
 

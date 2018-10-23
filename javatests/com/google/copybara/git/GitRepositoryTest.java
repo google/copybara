@@ -530,14 +530,30 @@ public class GitRepositoryTest {
   }
 
   @Test
-  public void validateUrl() throws Exception {
+  public void validateUrlTranslations() throws Exception {
     doValidateUrl("ssh://git@github.com:foo/foo.git");
     doValidateUrl("https://github.com/foo/foo");
+    doValidateUrl("https://localhost:33333/foo/bar");
+    doValidateUrl("https://localhost:33333/foo/bar?some_arg=1&other_arg=2");
     doValidateUrl("protocol://some/url");
     doValidateUrl("git@github.com:foo/foo.git");
+    doValidateUrl("ssh://git@private.com:foo/foo.git");
+    doValidateUrl("ssh://git@private.com/foo/foo.git");
+    doValidateUrl("git@internal-git.mycompany.net:client_repo/mobile-apps.git");
+    doValidateUrl("git@internal-git.mycompany.net:9811/client_repo/mobile-apps.git");
+    //not sure if this URL is valid..
+    doValidateUrl("git@internal-git.mycompany.net:9811:client_repo/mobile-apps.git");
+    doValidateUrl("https://internal-git.mycompany.net/client_repo/mobile-apps.git");
+    doValidateUrl("https://internal-git.mycompany.net/client_repo/mobile-apps");
+    doValidateUrl("https://internal-git.mycompany.net:8911/client_repo/mobile-apps");
+
     // A folder is a valid url. We do a sanity check internally that the directory exist. See
     // #invalidUrl test for a failure case.
-    doValidateUrl(workdir.toString());
+    doValidateUrl(workdir.toFile().getAbsolutePath());
+    doValidateUrl("file://" + workdir.toFile().getAbsolutePath());
+    doValidateUrl("file:///tmp/copybara-test/");
+    //not sure this is a valid filename
+    doValidateUrl("file:///tmp/localhost:3333/");
   }
 
   @Test
