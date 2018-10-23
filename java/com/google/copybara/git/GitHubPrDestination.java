@@ -71,7 +71,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   @Nullable private final String body;
   private final boolean effectiveSkipPush;
   private final LazyResourceLoader<GitRepository> localRepo;
-  private final ConfigFile<?> mainConfigFile;
+  private final ConfigFile mainConfigFile;
   @Nullable private final Checker endpointChecker;
 
   GitHubPrDestination(
@@ -88,7 +88,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       Iterable<GitIntegrateChanges> integrates,
       @Nullable String title,
       @Nullable String body,
-      ConfigFile<?> mainConfigFile,
+      ConfigFile mainConfigFile,
       @Nullable Checker endpointChecker) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
@@ -257,7 +257,6 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     return integrates;
   }
 
-  @VisibleForTesting
   private String getPullRequestBranchName(
       @Nullable Revision changeRevision, String workflowName, String workflowIdentityUser)
       throws ValidationException {

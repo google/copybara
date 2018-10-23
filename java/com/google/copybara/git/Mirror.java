@@ -51,11 +51,11 @@ public class Mirror implements Migration {
   private final List<Refspec> refspec;
   private final GitMirrorOptions mirrorOptions;
   private final boolean prune;
-  private final ConfigFile<?> mainConfigFile;
+  private final ConfigFile mainConfigFile;
 
   Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
       String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions, boolean prune,
-      ConfigFile<?> mainConfigFile) {
+      ConfigFile mainConfigFile) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.name = Preconditions.checkNotNull(name);
@@ -121,7 +121,7 @@ public class Mirror implements Migration {
   }
 
   @Override
-  public ConfigFile<?> getMainConfigFile() {
+  public ConfigFile getMainConfigFile() {
     return mainConfigFile;
   }
 

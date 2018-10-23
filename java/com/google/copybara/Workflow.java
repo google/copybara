@@ -92,8 +92,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean verbose;
   private final boolean askForConfirmation;
   private final boolean force;
-  private final ConfigFile<?> mainConfigFile;
-  private final Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
+  private final ConfigFile mainConfigFile;
+  private final Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
   private final boolean dryRunMode;
   private final ImmutableList<Action> afterMigrationActions;
   private final ImmutableList<Token> changeIdentity;
@@ -117,8 +117,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       WorkflowOptions workflowOptions,
       @Nullable Transformation reverseTransformForCheck,
       boolean askForConfirmation,
-      ConfigFile<?> mainConfigFile,
-      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles,
+      ConfigFile mainConfigFile,
+      Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles,
       boolean dryRunMode,
       boolean checkLastRevState,
       ImmutableList<Action> afterMigrationActions,
@@ -471,7 +471,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Override
-  public ConfigFile<?> getMainConfigFile() {
+  public ConfigFile getMainConfigFile() {
     return mainConfigFile;
   }
 
@@ -483,7 +483,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return generalOptions.eventMonitor();
   }
 
-  Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> getAllConfigFiles() {
+  Supplier<ImmutableMap<String, ConfigFile>> getAllConfigFiles() {
     return allConfigFiles;
   }
 

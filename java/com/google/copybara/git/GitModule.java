@@ -106,7 +106,7 @@ public class GitModule implements LabelsAwareModule {
           + " that here we can apply it using three-way";
 
   protected final Options options;
-  private ConfigFile<?> mainConfigFile;
+  private ConfigFile mainConfigFile;
 
   public GitModule(Options options) {
     this.options = Preconditions.checkNotNull(options);
@@ -1011,7 +1011,7 @@ public class GitModule implements LabelsAwareModule {
   }
 
   @Override
-  public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+  public void setConfigFile(ConfigFile mainConfigFile, ConfigFile currentConfigFile) {
     this.mainConfigFile = mainConfigFile;
   }
 

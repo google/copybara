@@ -17,7 +17,6 @@
 package com.google.copybara.testing;
 
 import static com.google.common.truth.Truth.assertThat;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.ConfigFile;
@@ -56,6 +55,7 @@ public final class SkylarkTestExecutorTest {
     assertThat(content).isEqualTo("foo content 42");
   }
 
+  @SuppressWarnings("unused")
   @SkylarkModule(
       name = "dummy",
       doc = "For testing.",
@@ -65,7 +65,7 @@ public final class SkylarkTestExecutorTest {
     private ConfigFile configFile;
 
     @Override
-    public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+    public void setConfigFile(ConfigFile mainConfigFile, ConfigFile currentConfigFile) {
       this.configFile = currentConfigFile;
     }
 
@@ -79,8 +79,8 @@ public final class SkylarkTestExecutorTest {
     public static final BuiltinFunction READ_FOO_EXTRA = new BuiltinFunction("read_foo_extra") {
       public String invoke(DummyModule self) {
         try {
-          return new String(self.configFile.resolve("foo_extra").content(), UTF_8);
-        } catch (CannotResolveLabel|IOException inconceivable) {
+          return self.configFile.resolve("foo_extra").readContent();
+        } catch (CannotResolveLabel | IOException inconceivable) {
           throw new AssertionError(inconceivable);
         }
       }

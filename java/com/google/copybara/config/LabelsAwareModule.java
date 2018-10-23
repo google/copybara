@@ -34,7 +34,7 @@ public interface LabelsAwareModule {
    *
    * TODO(copybara-team): Figure out how this works with concurrent loading.
    */
-  default void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+  default void setConfigFile(ConfigFile mainConfigFile, ConfigFile currentConfigFile) {
 
   }
 
@@ -42,8 +42,7 @@ public interface LabelsAwareModule {
    * A Supplier that returns all the files loaded by the configuration loading. The supplier
    * shouldn't be evaluated before loading finishes.
    */
-  default void setAllConfigResources(
-      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configs) {
+  default void setAllConfigResources(Supplier<ImmutableMap<String, ConfigFile>> configs) {
 
   }
 

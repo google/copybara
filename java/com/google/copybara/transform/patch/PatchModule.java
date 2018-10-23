@@ -16,8 +16,6 @@
 
 package com.google.copybara.transform.patch;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Options;
@@ -47,11 +45,11 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
   private static final Splitter LINES =
       Splitter.onPattern("\\r?\\n").omitEmptyStrings().trimResults();
 
-  private ConfigFile<?> configFile;
+  private ConfigFile configFile;
   private PatchingOptions patchingOptions;
 
   @Override
-  public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+  public void setConfigFile(ConfigFile mainConfigFile, ConfigFile currentConfigFile) {
     this.configFile = currentConfigFile;
   }
 
@@ -94,15 +92,15 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
         SkylarkList excludedPaths,
         Object seriesOrNone,
         Location location) throws EvalException {
-      ImmutableList.Builder<ConfigFile<?>> builder = ImmutableList.builder();
+      ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
       for (String patch : Type.STRING_LIST.convert(patches, "patches")) {
         builder.add(self.resolve(patch, location));
       }
       String series = Type.STRING.convertOptional(seriesOrNone, "series");
       if (series != null && !series.trim().isEmpty()) {
         try {
-          ConfigFile<?> seriesFile = self.resolve(series.trim(), location);
-          for (String line : LINES.split(new String(seriesFile.content(), UTF_8))) {
+          ConfigFile seriesFile = self.resolve(series.trim(), location);
+          for (String line : LINES.split(seriesFile.readContent())) {
             // Comment at the begining of the line or
             // a whitespace followed by the hash character.
             int comment = line.indexOf('#');
@@ -126,7 +124,7 @@ public class PatchModule implements LabelsAwareModule, OptionsAwareModule {
     }
   };
 
-  private ConfigFile<?> resolve(String path, Location location) throws EvalException {
+  private ConfigFile resolve(String path, Location location) throws EvalException {
     try {
       return configFile.resolve(path);
     } catch (CannotResolveLabel e) {

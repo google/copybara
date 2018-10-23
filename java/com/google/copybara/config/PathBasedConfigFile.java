@@ -16,16 +16,16 @@
 
 package com.google.copybara.config;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static com.google.copybara.config.ConfigFile.isAbsolute;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.flogger.FluentLogger;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.CannotResolveLabel;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
 
@@ -33,42 +33,45 @@ import javax.annotation.Nullable;
  * A Skylark dependency resolver that resolves relative paths and absolute paths if
  * {@code rootPath} is defined.
  */
-public class PathBasedConfigFile extends ConfigFile<Path> {
-
-  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+public class PathBasedConfigFile implements ConfigFile {
 
   private final Path path;
-  @Nullable
-  private final Path rootPath;
-  private final boolean logFileContent;
-  @Nullable
-  private String identifierPrefix;
+  @Nullable private final Path rootPath;
+  private final String identifierPrefix;
 
   public PathBasedConfigFile(
       Path path, @Nullable Path rootPath, @Nullable String identifierPrefix) {
-    this(path, rootPath, /*logFileContent=*/false);
+    /*logFileContent=*/
+    Preconditions.checkArgument(path.isAbsolute());
+    this.path = path;
+    this.rootPath = rootPath;
     this.identifierPrefix = identifierPrefix;
     if (identifierPrefix != null) {
-      // So that we don't generate weird identifers like identifierPrefix + "/absolute/path"
+      // Check we don't generate weird identifiers like identifierPrefix + "/absolute/path"
       Preconditions.checkNotNull(rootPath, "identifierPrefix requires a non null root");
     }
   }
 
-  private PathBasedConfigFile(Path path, @Nullable Path rootPath, boolean logFileContent) {
-    super(path.toString());
-    Preconditions.checkArgument(path.isAbsolute());
-    this.path = path;
-    this.rootPath = rootPath;
-    this.logFileContent = logFileContent;
+  @Override
+  public ConfigFile resolve(String path) throws CannotResolveLabel {
+    Path resolved = isAbsolute(path)
+        ? relativeToRoot(path)
+        : relativeToCurrentPath(path);
+
+    if (!Files.exists(resolved)) {
+      throw new CannotResolveLabel(
+          String.format("Cannot find '%s'. '%s' does not exist.", path, resolved));
+    }
+    if (!Files.isRegularFile(resolved)) {
+      throw new CannotResolveLabel(
+          String.format("Cannot find '%s'. '%s' is not a file.", path, resolved));
+    }
+    return new PathBasedConfigFile(resolved, rootPath, identifierPrefix);
   }
 
   @Override
-  protected Path relativeToRoot(String label) throws CannotResolveLabel {
-    if (rootPath == null) {
-      throw new CannotResolveLabel("Absolute paths are not allowed because the root config path"
-          + " couldn't be automatically detected. Use " + GeneralOptions.CONFIG_ROOT_FLAG);
-    }
-    return rootPath.resolve(label);
+  public String path() {
+    return path.toString();
   }
 
   @Override
@@ -81,36 +84,25 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
         + rootPath.relativize(path).toString();
   }
 
-  @Override
-  protected Path relativeToCurrentPath(String label) throws CannotResolveLabel {
+  private Path relativeToCurrentPath(String label) {
     return this.path.resolveSibling(label);
   }
 
-  @Override
-  protected ConfigFile<Path> createConfigFile(String label, Path resolved)
-      throws CannotResolveLabel {
-    if (!Files.exists(resolved)) {
-      throw new CannotResolveLabel(
-          String.format("Cannot find '%s'. '%s' does not exist.", label, resolved));
+  private Path relativeToRoot(String path) throws CannotResolveLabel {
+    if (rootPath == null) {
+      throw new CannotResolveLabel("Absolute paths are not allowed because the root config path"
+          + " couldn't be automatically detected. Use " + GeneralOptions.CONFIG_ROOT_FLAG);
     }
-    if (!Files.isRegularFile(resolved)) {
-      throw new CannotResolveLabel(
-          String.format("Cannot find '%s'. '%s' is not a file.", label, resolved));
-    }
-    return new PathBasedConfigFile(resolved, rootPath, identifierPrefix);
+    return rootPath.resolve(path.substring(2));
   }
-
-  public PathBasedConfigFile withContentLogging() {
-    return new PathBasedConfigFile(path, rootPath, /*logFileContent=*/true);
-  }
-
+  
   @Override
-  public byte[] content() throws IOException {
-    byte[] bytes = Files.readAllBytes(path);
-    if (logFileContent) {
-      logger.atInfo().log("Content of '%s':\n%s", path, new String(bytes, UTF_8));
+  public byte[] readContentBytes() throws IOException, CannotResolveLabel {
+    try {
+      return Files.readAllBytes(path);
+    } catch (NoSuchFileException e) {
+      throw new CannotResolveLabel("Cannot resolve " + path, e);
     }
-    return bytes;
   }
 
   @Override
@@ -118,6 +110,7 @@ public class PathBasedConfigFile extends ConfigFile<Path> {
     return MoreObjects.toStringHelper(this)
         .add("path", path)
         .add("rootPath", rootPath)
+        .add("identifierPrefix", identifierPrefix)
         .toString();
   }
 }

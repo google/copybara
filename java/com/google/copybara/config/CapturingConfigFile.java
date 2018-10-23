@@ -30,28 +30,29 @@ import java.util.Set;
  * A config file that records the children created from it. Useful for collecting dependencies in
  * dry runs.
  */
-class CapturingConfigFile<T> extends ConfigFile<T> {
-  private final Set<CapturingConfigFile<T>> children = new LinkedHashSet<>();
-  private final ConfigFile<T> wrapped;
+class CapturingConfigFile implements ConfigFile {
+  private final Set<CapturingConfigFile> children = new LinkedHashSet<>();
+  private final ConfigFile wrapped;
 
-  CapturingConfigFile(ConfigFile<T> config) {
-    super(config.path());
+  CapturingConfigFile(ConfigFile config) {
     this.wrapped = Preconditions.checkNotNull(config);
   }
 
   @Override
-  public byte[] content() throws IOException {
-    return wrapped.content();
+  public ConfigFile resolve(String path) throws CannotResolveLabel {
+    CapturingConfigFile resolved = new CapturingConfigFile(wrapped.resolve(path));
+    children.add(resolved);
+    return resolved;
   }
 
   @Override
-  protected T relativeToRoot(String label) throws CannotResolveLabel {
-    return wrapped.relativeToRoot(label);
+  public String path() {
+    return wrapped.path();
   }
 
   @Override
-  protected T relativeToCurrentPath(String label) throws CannotResolveLabel {
-    return wrapped.relativeToCurrentPath(label);
+  public byte[] readContentBytes() throws IOException, CannotResolveLabel {
+    return wrapped.readContentBytes();
   }
 
   @Override
@@ -64,25 +65,17 @@ class CapturingConfigFile<T> extends ConfigFile<T> {
    * @return A Map mapping the path to the wrapped ConfigFile for each ConfigFile created by this or
    *     one of its descendants. Includes this.
    */
-  ImmutableMap<String, ConfigFile<T>> getAllLoadedFiles() throws IOException {
-    Map<String, ConfigFile<T>> map = new HashMap<>();
+  ImmutableMap<String, ConfigFile> getAllLoadedFiles() {
+    Map<String, ConfigFile> map = new HashMap<>();
     getAllLoadedFiles(map);
     return ImmutableMap.copyOf(map);
   }
 
-  private void getAllLoadedFiles(Map<String, ConfigFile<T>> map) throws IOException {
+  private void getAllLoadedFiles(Map<String, ConfigFile> map) {
     map.put(path(), this.wrapped);
-    for (CapturingConfigFile<T> child : children) {
+    for (CapturingConfigFile child : children) {
       child.getAllLoadedFiles(map);
     }
-  }
-
-  @Override
-  protected ConfigFile<T> createConfigFile(String label, T resolved) throws CannotResolveLabel {
-    CapturingConfigFile<T> child =
-        new CapturingConfigFile<>(wrapped.createConfigFile(label, resolved));
-    children.add(child);
-    return child;
   }
 
   @Override

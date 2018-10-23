@@ -144,12 +144,16 @@ public class SkylarkTestExecutor {
     }
   }
 
+  public Config loadConfig(String configContent) throws IOException, ValidationException {
+    return loadConfig(DEFAULT_FILE, configContent);
+  }
+
   public Config loadConfig(String filename, String configContent)
       throws IOException, ValidationException {
     return loadConfig(createConfigFile(filename, configContent));
   }
 
-  public Config loadConfig(ConfigFile<String> configFile)
+  public Config loadConfig(ConfigFile configFile)
       throws IOException, ValidationException {
     try {
       return skylarkParser.loadConfig(configFile, createModuleSet(), options.general.console());
@@ -173,23 +177,19 @@ public class SkylarkTestExecutor {
     return moduleSupplierForTest.create();
   }
 
-  public Config loadConfig(String configContent) throws IOException, ValidationException {
-    return loadConfig(DEFAULT_FILE, configContent);
-  }
-
-  public Map<String, ConfigFile<String>> getConfigMap(String configContent)
+  public Map<String, ConfigFile> getConfigMap(String configContent)
       throws IOException, ValidationException {
     return getConfigMap(createConfigFile(DEFAULT_FILE, configContent));
   }
 
-  public <T> Map<String, ConfigFile<T>> getConfigMap(ConfigFile<T> config)
+  public Map<String, ConfigFile> getConfigMap(ConfigFile config)
       throws IOException, ValidationException {
     return skylarkParser.getConfigWithTransitiveImports(
             config, createModuleSet(), options.general.console())
         .getFiles();
   }
 
-  public ConfigFile<String> createConfigFile(String filename, String configContent) {
+  public ConfigFile createConfigFile(String filename, String configContent) {
     return new MapConfigFile(
         new ImmutableMap.Builder<String, byte[]>()
             .putAll(extraConfigFiles)

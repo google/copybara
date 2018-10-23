@@ -22,13 +22,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository;
-import com.google.copybara.transform.patch.PatchModule;
-import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
@@ -74,8 +71,8 @@ public class PatchTransformationTest {
   private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
-  private ConfigFile<String> patchFile;
-  private ConfigFile<String> seriesFile;
+  private ConfigFile patchFile;
+  private ConfigFile seriesFile;
   private final ImmutableList<String> excludedFromPatch = ImmutableList.of("excluded/*");
 
   @Rule
@@ -142,7 +139,7 @@ public class PatchTransformationTest {
   @Test
   public void testParseSkylark() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
-    skylark.addConfigFile("diff.patch", new String(patchFile.content(), UTF_8));
+    skylark.addConfigFile("diff.patch", patchFile.readContent());
     PatchTransformation transformation =
         skylark.eval("r",
             "r = patch.apply(\n"
@@ -158,8 +155,8 @@ public class PatchTransformationTest {
   @Test
   public void testParseSkylarkSeries() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
-    skylark.addConfigFile("diff.patch", new String(patchFile.content(), UTF_8));
-    skylark.addConfigFile("series", new String(seriesFile.content(), UTF_8));
+    skylark.addConfigFile("diff.patch", patchFile.readContent());
+    skylark.addConfigFile("series", seriesFile.readContent());
     PatchTransformation transformation =
         skylark.eval("r",
             "r = patch.apply(\n"

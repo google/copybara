@@ -17,7 +17,6 @@
 package com.google.copybara.config;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -95,13 +94,13 @@ public class SkylarkParser {
   }
 
   @SuppressWarnings("unchecked")
-  public Config loadConfig(ConfigFile<?> config, ModuleSet moduleSet, Console console)
+  public Config loadConfig(ConfigFile config, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException {
     return getConfigWithTransitiveImports(config, moduleSet, console).config;
   }
 
-  private Config loadConfigInternal(ConfigFile<?> content, ModuleSet moduleSet,
-      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier, Console console)
+  private Config loadConfigInternal(ConfigFile content, ModuleSet moduleSet,
+      Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier, Console console)
       throws IOException, ValidationException {
     GlobalMigrations globalMigrations;
     Environment env;
@@ -117,15 +116,15 @@ public class SkylarkParser {
   }
 
   @VisibleForTesting
-  public <T> Environment executeSkylark(ConfigFile<T> content, ModuleSet moduleSet, Console console)
+  public  Environment executeSkylark(ConfigFile content, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException, InterruptedException {
-    CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(content);
-    ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
+    CapturingConfigFile capturingConfigFile = new CapturingConfigFile(content);
+    ConfigFilesSupplier configFilesSupplier = new ConfigFilesSupplier();
 
     Environment eval = new Evaluator(moduleSet, content, configFilesSupplier, console)
         .eval(content);
 
-    ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
+    ImmutableMap<String, ConfigFile> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
     configFilesSupplier.setConfigFiles(allLoadedFiles);
     return eval;
   }
@@ -140,34 +139,34 @@ public class SkylarkParser {
    * @throws ValidationException If config is invalid, references an invalid file or contains
    *     dependency cycles.
    */
-  public <T> ConfigWithDependencies<T> getConfigWithTransitiveImports(
-      ConfigFile<T> config, ModuleSet moduleSet, Console console)
+  public  ConfigWithDependencies getConfigWithTransitiveImports(
+      ConfigFile config, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException {
-    CapturingConfigFile<T> capturingConfigFile = new CapturingConfigFile<>(config);
-    ConfigFilesSupplier<T> configFilesSupplier = new ConfigFilesSupplier<>();
+    CapturingConfigFile capturingConfigFile = new CapturingConfigFile(config);
+    ConfigFilesSupplier configFilesSupplier = new ConfigFilesSupplier();
 
     Config parsedConfig = loadConfigInternal(capturingConfigFile, moduleSet, configFilesSupplier,
         console);
 
-    ImmutableMap<String, ConfigFile<T>> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
+    ImmutableMap<String, ConfigFile> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
 
     configFilesSupplier.setConfigFiles(allLoadedFiles);
 
-    return new ConfigWithDependencies<>(allLoadedFiles, parsedConfig);
+    return new ConfigWithDependencies(allLoadedFiles, parsedConfig);
   }
 
-  private static class ConfigFilesSupplier<T>
-      implements Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> {
+  private static class ConfigFilesSupplier
+      implements Supplier<ImmutableMap<String, ConfigFile>> {
 
-    private ImmutableMap<String, ConfigFile<T>> configFiles = null;
+    private ImmutableMap<String, ConfigFile> configFiles = null;
 
-    void setConfigFiles(ImmutableMap<String, ConfigFile<T>> configFiles) {
+    void setConfigFiles(ImmutableMap<String, ConfigFile> configFiles) {
       Preconditions.checkState(this.configFiles == null, "Already set");
       this.configFiles = Preconditions.checkNotNull(configFiles);
     }
 
     @Override
-    public ImmutableMap<String, ? extends ConfigFile<?>> get() {
+    public ImmutableMap<String, ConfigFile> get() {
       // We need to load all the files before knowing the set of files in the config.
       Preconditions.checkNotNull(configFiles, "Don't call the supplier before loading"
           + " finishes.");
@@ -179,11 +178,11 @@ public class SkylarkParser {
    * A class that contains a loaded config and all the config files that were
    * accessed during the parsing.
    */
-  public static class ConfigWithDependencies <T> {
-    private final ImmutableMap<String, ConfigFile<T>> files;
+  public static class ConfigWithDependencies {
+    private final ImmutableMap<String, ConfigFile> files;
     private final Config config;
 
-    private ConfigWithDependencies(ImmutableMap<String, ConfigFile<T>> files, Config config) {
+    private ConfigWithDependencies(ImmutableMap<String, ConfigFile> files, Config config) {
       this.config = config;
       this.files = files;
     }
@@ -192,7 +191,7 @@ public class SkylarkParser {
       return config;
     }
 
-    public ImmutableMap<String, ConfigFile<T>> getFiles() {
+    public ImmutableMap<String, ConfigFile> getFiles() {
       return files;
     }
   }
@@ -205,14 +204,14 @@ public class SkylarkParser {
     private final LinkedHashSet<String> pending = new LinkedHashSet<>();
     private final Map<String, Environment> loaded = new HashMap<>();
     private final Console console;
-    private final ConfigFile<?> mainConfigFile;
+    private final ConfigFile mainConfigFile;
     private final EventHandler eventHandler;
     // Globals shared by all the files loaded
     private final GlobalFrame moduleGlobals;
     private final ModuleSet moduleSet;
 
-    private Evaluator(ModuleSet moduleSet, ConfigFile<?> mainConfigFile,
-        Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier,
+    private Evaluator(ModuleSet moduleSet, ConfigFile mainConfigFile,
+        Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier,
         Console console) {
       this.console = Preconditions.checkNotNull(console);
       this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
@@ -221,17 +220,18 @@ public class SkylarkParser {
       moduleGlobals = createModuleGlobals(eventHandler, this.moduleSet, configFilesSupplier);
     }
 
-    private Environment eval(ConfigFile<?> content)
+    private Environment eval(ConfigFile content)
         throws IOException, ValidationException, InterruptedException {
       if (pending.contains(content.path())) {
         throw throwCycleError(content.path());
-      } else if (loaded.containsKey(content.path())) {
+      }
+      if (loaded.containsKey(content.path())) {
         return loaded.get(content.path());
       }
       pending.add(content.path());
 
       BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
-          new InputSourceForConfigFile(content), eventHandler);
+          new InputSourceForConfigFile(content.path(), content.readContent()), eventHandler);
 
       Map<String, Extension> imports = new HashMap<>();
       for (StringLiteral anImport : buildFileAST.getRawImports()) {
@@ -285,7 +285,7 @@ public class SkylarkParser {
    * module globals with information about the current file loaded.
    */
   private GlobalFrame createGlobalsForConfigFile(
-      EventHandler eventHandler, ConfigFile<?> currentConfigFile, ConfigFile<?> mainConfigFile,
+      EventHandler eventHandler, ConfigFile currentConfigFile, ConfigFile mainConfigFile,
       GlobalFrame moduleGlobals, ModuleSet moduleSet) {
     Environment env = createEnvironment(eventHandler, moduleGlobals, ImmutableMap.of());
 
@@ -322,7 +322,7 @@ public class SkylarkParser {
    * files loaded).
    */
   private GlobalFrame createModuleGlobals(EventHandler eventHandler, ModuleSet moduleSet,
-      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> configFilesSupplier) {
+      Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier) {
     Environment env = createEnvironment(eventHandler, Environment.SKYLARK,
         ImmutableMap.of());
 
@@ -412,9 +412,9 @@ public class SkylarkParser {
     private final String content;
     private final String path;
 
-    private InputSourceForConfigFile(ConfigFile content) throws IOException {
-      this.content = new String(content.content(), UTF_8);
-      path = Preconditions.checkNotNull(content.path());
+    private InputSourceForConfigFile(String path, String content) {
+      this.path = Preconditions.checkNotNull(path);
+      this.content = Preconditions.checkNotNull(content);
     }
 
     @Override

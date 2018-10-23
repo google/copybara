@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
  */
 public class PatchTransformation implements Transformation {
 
-  private final ImmutableList<ConfigFile<?>> patches;
+  private final ImmutableList<ConfigFile> patches;
   private final ImmutableList<String> excludedPaths;
   private final boolean reverse;
   private final PatchingOptions options;
@@ -44,7 +44,7 @@ public class PatchTransformation implements Transformation {
 
 
   PatchTransformation(
-      ImmutableList<ConfigFile<?>> patches, ImmutableList<String> excludedPaths,
+      ImmutableList<ConfigFile> patches, ImmutableList<String> excludedPaths,
       PatchingOptions options, boolean reverse) {
     this.patches = patches;
     this.excludedPaths = excludedPaths;
@@ -68,9 +68,10 @@ public class PatchTransformation implements Transformation {
       throws ValidationException, InsideGitDirException {
     try {
     for (int i = 0; i < patches.size(); i++) {
-      ConfigFile<?> patch = patches.get(i);
+      ConfigFile patch = patches.get(i);
       console.infoFmt("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path());
-      options.patch(checkoutDir, patch.content(), excludedPaths, SLASHES_TO_STRIP, reverse, gitDir);
+      options.patch(
+          checkoutDir, patch.readContentBytes(), excludedPaths, SLASHES_TO_STRIP, reverse, gitDir);
     }
     } catch (IOException ioException) {
       console.errorFmt("Error applying patch: %s", ioException.getMessage());

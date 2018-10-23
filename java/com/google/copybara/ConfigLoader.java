@@ -33,10 +33,10 @@ import java.io.IOException;
 public class ConfigLoader {
 
   private final SkylarkParser skylarkParser;
-  private final ConfigFile<?> configFile;
+  private final ConfigFile configFile;
   private final ModuleSet moduleSet;
 
-  public ConfigLoader(ModuleSet moduleSet, ConfigFile<?> configFile) {
+  public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile) {
     this.moduleSet = moduleSet;
     this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules());
     this.configFile = Preconditions.checkNotNull(configFile);
@@ -61,7 +61,7 @@ public class ConfigLoader {
    * Loads the configuration using this loader.
    * @param console the console to use for reporting progress/errors
    */
-  public ConfigWithDependencies<?> loadWithDependencies(Console console)
+  public ConfigWithDependencies loadWithDependencies(Console console)
       throws ValidationException, IOException {
     console.progressFmt("Loading config and dependencies %s", configFile.getIdentifier());
 
@@ -71,7 +71,7 @@ public class ConfigLoader {
     }
   }
 
-  protected Config loadForConfigFile(Console console, ConfigFile<?> configFile)
+  protected Config loadForConfigFile(Console console, ConfigFile configFile)
       throws IOException, ValidationException {
     console.progressFmt("Loading config %s", configFile.getIdentifier());
 

@@ -46,7 +46,7 @@ import javax.annotation.Nullable;
 public class Feedback implements Migration {
 
   private final String name;
-  private final ConfigFile<?> configFile;
+  private final ConfigFile configFile;
   private final Trigger trigger;
   private final Endpoint destination;
   private final Iterable<Action> actions;
@@ -54,7 +54,7 @@ public class Feedback implements Migration {
 
   public Feedback(
       String name,
-      ConfigFile<?> configFile,
+      ConfigFile configFile,
       Trigger trigger,
       Endpoint destination,
       ImmutableList<Action> actions,
@@ -135,7 +135,7 @@ public class Feedback implements Migration {
   }
 
   @Override
-  public ConfigFile<?> getMainConfigFile() {
+  public ConfigFile getMainConfigFile() {
     return configFile;
   }
 

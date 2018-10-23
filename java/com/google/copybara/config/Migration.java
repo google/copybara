@@ -70,7 +70,7 @@ public interface Migration {
   /**
    * @return The migration's main config file.
    */
-  ConfigFile<?> getMainConfigFile();
+  ConfigFile getMainConfigFile();
 
   /**
    * Returns a multimap containing enough data to fingerprint the origin for validation purposes.

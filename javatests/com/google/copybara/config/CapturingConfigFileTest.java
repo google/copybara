@@ -34,7 +34,7 @@ public class CapturingConfigFileTest {
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
 
-  MapConfigFile baseWrap = new MapConfigFile(ImmutableMap.of(
+  private final MapConfigFile baseWrap = new MapConfigFile(ImmutableMap.of(
       "/foo", "foo".getBytes(UTF_8),
       "/bar", "bar".getBytes(UTF_8),
       "/baz/foo", "bazfoo".getBytes(UTF_8),
@@ -42,11 +42,11 @@ public class CapturingConfigFileTest {
 
   @Test
   public void testResolve() throws Exception {
-    CapturingConfigFile<String> capture = new CapturingConfigFile<>(baseWrap);
+    CapturingConfigFile capture = new CapturingConfigFile(baseWrap);
     assertThat(content(capture)).isEqualTo("foo");
     assertThat(capture.path()).isEqualTo("/foo");
     assertThat(content(capture.resolve("bar"))).isEqualTo("bar");
-    ConfigFile<?> bazFooConfig = capture.resolve("baz/foo");
+    ConfigFile bazFooConfig = capture.resolve("baz/foo");
     assertThat(content(bazFooConfig)).isEqualTo("bazfoo");
     assertThat(content(bazFooConfig.resolve("bar"))).isEqualTo("bazbar");
   }
@@ -54,25 +54,25 @@ public class CapturingConfigFileTest {
   @Test
   public void relativeToRootIsRelative() {
     Path root = Paths.get("/foo/bar");
-    CapturingConfigFile<Path> cfg = new CapturingConfigFile<>(
+    CapturingConfigFile cfg = new CapturingConfigFile(
         new PathBasedConfigFile(root.resolve("baz"), root, /*identifierPrefix=*/null));
     assertThat(cfg.getIdentifier()).isEqualTo("baz");
   }
 
   @Test
   public void testBuildMap() throws Exception {
-    CapturingConfigFile<String> capture = new CapturingConfigFile<>(baseWrap);
-    ConfigFile<?> child = capture.resolve("bar");
+    CapturingConfigFile capture = new CapturingConfigFile(baseWrap);
+    ConfigFile child = capture.resolve("bar");
     child.resolve("baz/foo"); // grandChild
     child.resolve("bar"); // repeat/self
-    Map<String, ConfigFile<String>> deps = capture.getAllLoadedFiles();
+    Map<String, ConfigFile> deps = capture.getAllLoadedFiles();
     assertThat(content(deps.get("/foo"))).isEqualTo("foo");
     assertThat(content(deps.get("/baz/foo"))).isEqualTo("bazfoo");
     assertThat(content(deps.get("/bar"))).isEqualTo("bar");
     assertThat(deps).hasSize(3);
   }
 
-  private String content(ConfigFile<?> file) throws Exception {
-    return new String(file.content(), UTF_8);
+  private String content(ConfigFile file) throws Exception {
+    return file.readContent();
   }
 }

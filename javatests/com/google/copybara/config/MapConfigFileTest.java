@@ -40,16 +40,16 @@ public class MapConfigFileTest {
         "/bar", "bar".getBytes(UTF_8),
         "/baz/foo", "bazfoo".getBytes(UTF_8),
         "/baz/bar", "bazbar".getBytes(UTF_8));
-    ConfigFile<?> fooConfig = new MapConfigFile(map, "/foo");
-    assertThat(new String(fooConfig.content(), UTF_8)).isEqualTo("foo");
+    ConfigFile fooConfig = new MapConfigFile(map, "/foo");
+    assertThat(fooConfig.readContent()).isEqualTo("foo");
     assertThat(fooConfig.path()).isEqualTo("/foo");
-    assertThat(new String(fooConfig.resolve("bar").content(), UTF_8)).isEqualTo("bar");
+    assertThat(fooConfig.resolve("bar").readContent()).isEqualTo("bar");
 
-    ConfigFile<?> bazFooConfig = fooConfig.resolve("baz/foo");
-    assertThat(new String(bazFooConfig.content(), UTF_8)).isEqualTo("bazfoo");
+    ConfigFile bazFooConfig = fooConfig.resolve("baz/foo");
+    assertThat(bazFooConfig.readContent()).isEqualTo("bazfoo");
 
     // Checks that the correct bar is resolved.
-    assertThat(new String(bazFooConfig.resolve("bar").content(), UTF_8)).isEqualTo("bazbar");
+    assertThat(bazFooConfig.resolve("bar").readContent()).isEqualTo("bazbar");
   }
 
   @Test
@@ -60,19 +60,19 @@ public class MapConfigFileTest {
         "baz/foo", "bazfoo".getBytes(UTF_8),
         "baz/bar", "bazbar".getBytes(UTF_8));
 
-    ConfigFile<?> fooConfig  = new MapConfigFile(map, "foo");
-    assertThat(new String(fooConfig.content(), UTF_8)).isEqualTo("foo");
+    ConfigFile fooConfig  = new MapConfigFile(map, "foo");
+    assertThat(fooConfig.readContent()).isEqualTo("foo");
     assertThat(fooConfig.path()).isEqualTo("foo");
 
-    ConfigFile<?> bazFooConfig = fooConfig.resolve("//baz/foo");
-    assertThat(new String(bazFooConfig.content(), UTF_8)).isEqualTo("bazfoo");
-    assertThat(new String(bazFooConfig.resolve("//baz/bar").content(), UTF_8)).isEqualTo("bazbar");
+    ConfigFile bazFooConfig = fooConfig.resolve("//baz/foo");
+    assertThat(bazFooConfig.readContent()).isEqualTo("bazfoo");
+    assertThat(bazFooConfig.resolve("//baz/bar").readContent()).isEqualTo("bazbar");
   }
 
   @Test
-  public void testResolveFailure() throws IOException, CannotResolveLabel {
+  public void testResolveFailure() throws CannotResolveLabel {
     ImmutableMap<String, byte[]> map = ImmutableMap.of("/foo", "foo".getBytes(UTF_8));
-    ConfigFile<?> fooConfig =  new MapConfigFile(ImmutableMap.copyOf(map), "/foo");
+    ConfigFile fooConfig =  new MapConfigFile(ImmutableMap.copyOf(map), "/foo");
     thrown.expect(CannotResolveLabel.class);
     thrown.expectMessage("Cannot resolve '/bar': does not exist.");
     fooConfig.resolve("bar");

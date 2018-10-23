@@ -16,7 +16,8 @@
 
 package com.google.copybara.config;
 
-import com.google.common.base.MoreObjects;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.FileUtil;
 import java.io.IOException;
@@ -25,37 +26,36 @@ import java.io.IOException;
  * An object representing a configuration file and that it can be used to resolve
  * other config files relative to this one.
  */
-public abstract class ConfigFile<T> {
-
-  private final String path;
+public interface ConfigFile {
 
   /**
-   * Construct a config file using the passed path.
+   * Check if the path is absolute and validates that the path is normalized
+   * @throws CannotResolveLabel if the path is not normalized
    */
-  public ConfigFile(String path) {
-    this.path = path;
-  }
-
-  /**
-   * Resolve {@code label} relative to the current config file.
-   *
-   * @throws CannotResolveLabel if the label cannot be resolved to a content
-   */
-  public final ConfigFile<T> resolve(String label) throws CannotResolveLabel {
-    boolean isAbsolute = label.startsWith("//");
+  static boolean isAbsolute(String path) throws CannotResolveLabel {
+    boolean isAbsolute = path.startsWith("//");
     // Remove '//' for absolute paths
-    checkNormalized(isAbsolute ? label.substring(2) : label);
-    return createConfigFile(label, isAbsolute
-        ? relativeToRoot(label.substring(2))
-        : relativeToCurrentPath(label));
+    String withoutPrefix = isAbsolute ? path.substring(2) : path;
+    try {
+      FileUtil.checkNormalizedRelative(withoutPrefix);
+      return isAbsolute;
+    } catch (IllegalArgumentException e) {
+      throw new CannotResolveLabel(String.format("Invalid path '%s': %s",
+          withoutPrefix, e.getMessage()));
+    }
   }
+
+  /**
+   * Resolve {@code path} relative to the current config file.
+   *
+   * @throws CannotResolveLabel if the path cannot be resolved to a content
+   */
+  ConfigFile resolve(String path) throws CannotResolveLabel;
 
   /**
    * Resolved, non-relative name of the config file.
    */
-  public final String path() {
-    return path;
-  }
+  String path();
 
   /**
    * Get the contents of the file.
@@ -64,21 +64,14 @@ public abstract class ConfigFile<T> {
    * method is call in order to allow the callers to check its own cache if they already have
    * {@link #path()} path.
    */
-  public abstract byte[] content() throws IOException;
+  byte[] readContentBytes() throws IOException, CannotResolveLabel;
 
   /**
-   * Resolves a label relative to the root config file, if present.
-   *
-   * @throws CannotResolveLabel if the root doesn't exist or the file cannot be resolved
+   * Utility function to read the content of the config file as String.
    */
-  protected abstract T relativeToRoot(String label) throws CannotResolveLabel;
-
-  /**
-   * Resolves a label relative to the current config file.
-   *
-   * @throws CannotResolveLabel if the root doesn't exist or the file cannot be resolved
-   */
-  protected abstract T relativeToCurrentPath(String label) throws CannotResolveLabel;
+  default String readContent() throws IOException, CannotResolveLabel {
+    return new String(readContentBytes(), UTF_8);
+  }
 
   /**
    * Return a {@code String} representing a stable identifier that works between different
@@ -88,26 +81,5 @@ public abstract class ConfigFile<T> {
    *
    * <p>Users of this method should not try to parse the string, since it is subject to change.
    */
-  public abstract String getIdentifier();
-
-  /**
-   * Perform additional validations and construct a ConfigFile object
-   */
-  protected abstract ConfigFile<T> createConfigFile(String label, T resolved)
-      throws CannotResolveLabel;
-
-  private void checkNormalized(String label) throws CannotResolveLabel {
-    try {
-      FileUtil.checkNormalizedRelative(label);
-    } catch (IllegalArgumentException e) {
-      throw new CannotResolveLabel(String.format("Invalid label '%s': %s", label, e.getMessage()));
-    }
-  }
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("path", path())
-        .toString();
-  }
+  String getIdentifier();
 }

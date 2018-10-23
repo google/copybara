@@ -86,8 +86,8 @@ public class Core implements LabelsAwareModule {
   private static final String CHECK_LAST_REV_STATE = "check_last_rev_state";
   private final GeneralOptions generalOptions;
   private final WorkflowOptions workflowOptions;
-  private ConfigFile<?> mainConfigFile;
-  private Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles;
+  private ConfigFile mainConfigFile;
+  private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
   private Supplier<Environment> dynamicEnvironment;
 
   public Core(GeneralOptions generalOptions, WorkflowOptions workflowOptions) {
@@ -939,13 +939,13 @@ public class Core implements LabelsAwareModule {
   }
 
   @Override
-  public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+  public void setConfigFile(ConfigFile mainConfigFile, ConfigFile currentConfigFile) {
     this.mainConfigFile = mainConfigFile;
   }
 
   @Override
   public void setAllConfigResources(
-      Supplier<ImmutableMap<String, ? extends ConfigFile<?>>> allConfigFiles) {
+      Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles) {
     this.allConfigFiles = allConfigFiles;
   }
 

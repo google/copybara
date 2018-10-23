@@ -17,7 +17,6 @@
 package com.google.copybara.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -65,7 +64,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SkylarkParserTest {
 
-  public static final String NON_IMPORTANT_WORKFLOW = "core.workflow(\n"
+  private static final String NON_IMPORTANT_WORKFLOW = "core.workflow(\n"
       + "   name = \"not_used\",\n"
       + "   origin = mock.origin(\n"
       + "      url = 'not_used',\n"
@@ -165,7 +164,7 @@ public class SkylarkParserTest {
   @Test
   public void testLoadImportsOfConfigFile() throws Exception {
     String configContent = setUpInclusionTest();
-    Map<String, ConfigFile<String>> includeMap = parser.getConfigMap(configContent);
+    Map<String, ConfigFile> includeMap = parser.getConfigMap(configContent);
     assertThat(includeMap).containsKey("copy.bara.sky");
     assertThat(includeMap).containsKey("foo/authoring.bara.sky");
     assertThat(includeMap).containsKey("foo/bar.bara.sky");
@@ -176,18 +175,18 @@ public class SkylarkParserTest {
   @Test
   public void testLoadImportsIdempotent() throws Exception {
     String configContent = setUpInclusionTest();
-    Map<String, ConfigFile<String>> includeMap = parser.getConfigMap(configContent);
+    Map<String, ConfigFile> includeMap = parser.getConfigMap(configContent);
     Map<String, byte[]> contentMap = new HashMap<>();
     Map<String, String> stringContentMap = new HashMap<>();
-    for (Entry<String, ConfigFile<String>> entry : includeMap.entrySet()) {
-      contentMap.put(entry.getKey(), entry.getValue().content());
-      stringContentMap.put(entry.getKey(), content(entry.getValue()));
+    for (Entry<String, ConfigFile> entry : includeMap.entrySet()) {
+      contentMap.put(entry.getKey(), entry.getValue().readContentBytes());
+      stringContentMap.put(entry.getKey(), entry.getValue().readContent());
     }
-    ConfigFile<String> derivedConfig =
+    ConfigFile derivedConfig =
         new MapConfigFile(ImmutableMap.copyOf(contentMap), "copy.bara.sky");
     Map<String, String> derivedContentMap = new HashMap<>();
-    for (Entry<String, ConfigFile<String>> entry : parser.getConfigMap(derivedConfig).entrySet()) {
-      derivedContentMap.put(entry.getKey(), content(entry.getValue()));
+    for (Entry<String, ConfigFile> entry : parser.getConfigMap(derivedConfig).entrySet()) {
+      derivedContentMap.put(entry.getKey(), entry.getValue().readContent());
     }
     assertThat(derivedContentMap).isEqualTo(stringContentMap);
   }
@@ -206,7 +205,7 @@ public class SkylarkParserTest {
     parseConfigCycleErrorTestHelper(() -> parser.getConfigMap("load('//foo','foo')"));
   }
 
-  public void parseConfigCycleErrorTestHelper(Callable<?> callable) throws Exception {
+  private void parseConfigCycleErrorTestHelper(Callable<?> callable) throws Exception {
     try {
       parser.addConfigFile("foo.bara.sky", "load('//bar', 'bar')");
       parser.addConfigFile("bar.bara.sky", "load('//copy', 'copy')");
@@ -305,10 +304,10 @@ public class SkylarkParserTest {
   @Test
   public void testResolveLabelDeps() throws Exception {
     String content = prepareResolveLabelTest();
-    Map<String, ConfigFile<String>> deps = parser.getConfigMap(content);
+    Map<String, ConfigFile> deps = parser.getConfigMap(content);
     assertThat(deps).hasSize(2);
-    assertThat(content(deps.get("copy.bara.sky"))).isEqualTo(content);
-    assertThat(content(deps.get("foo"))).isEqualTo("stuff_in_foo");
+    assertThat(deps.get("copy.bara.sky").readContent()).isEqualTo(content);
+    assertThat(deps.get("foo").readContent()).isEqualTo("stuff_in_foo");
   }
 
   @Test
@@ -357,10 +356,10 @@ public class SkylarkParserTest {
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
   public static class MockLabelsAwareModule implements LabelsAwareModule {
-    private ConfigFile<?> configFile;
+    private ConfigFile configFile;
 
     @Override
-    public void setConfigFile(ConfigFile<?> mainConfigFile, ConfigFile<?> currentConfigFile) {
+    public void setConfigFile(ConfigFile mainConfigFile, ConfigFile currentConfigFile) {
       this.configFile = currentConfigFile;
     }
 
@@ -375,7 +374,7 @@ public class SkylarkParserTest {
     public static final BuiltinFunction READ_FOO = new BuiltinFunction("read_foo") {
       public String invoke(MockLabelsAwareModule self) {
         try {
-          return new String(self.configFile.resolve("foo").content(), UTF_8);
+          return self.configFile.resolve("foo").readContent();
         } catch (CannotResolveLabel | IOException inconceivable) {
           throw new AssertionError(inconceivable);
         }
@@ -443,10 +442,6 @@ public class SkylarkParserTest {
             Type.STRING_LIST.convert(list, "list"));
       }
     };
-  }
-
-  private String content(ConfigFile<?> file) throws Exception {
-    return new String(file.content(), UTF_8);
   }
 
   public static class MockOrigin implements Origin<Revision> {

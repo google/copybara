@@ -53,26 +53,26 @@ public class PathBasedConfigFileTest {
     Files.write(fs.getPath("/baz/foo"), "bazfoo".getBytes(UTF_8));
     Files.write(fs.getPath("/baz/bar"), "bazbar".getBytes(UTF_8));
 
-    ConfigFile<Path> fooConfig = new PathBasedConfigFile(foo, /*rootPath=*/null,
+    ConfigFile fooConfig = new PathBasedConfigFile(foo, /*rootPath=*/null,
         /*identifierPrefix=*/null);
-    assertThat(fooConfig.content()).isEqualTo("foo".getBytes(UTF_8));
+    assertThat(fooConfig.readContent()).isEqualTo("foo");
     assertThat(fooConfig.path()).isEqualTo("/foo");
     assertThat(fooConfig.getIdentifier()).isEqualTo(fooConfig.path());
-    assertThat(fooConfig.resolve("bar").content()).isEqualTo("bar".getBytes(UTF_8));
+    assertThat(fooConfig.resolve("bar").readContent()).isEqualTo("bar");
 
     ConfigFile bazFooConfig = fooConfig.resolve("baz/foo");
-    assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes(UTF_8));
+    assertThat(bazFooConfig.readContent()).isEqualTo("bazfoo");
     // Checks that the correct bar is resolved.
-    assertThat(bazFooConfig.resolve("bar").content()).isEqualTo("bazbar".getBytes(UTF_8));
+    assertThat(bazFooConfig.resolve("bar").readContent()).isEqualTo("bazbar");
   }
 
   @Test
-  public void testResolveWithIdentity() throws IOException, CannotResolveLabel {
+  public void testResolveWithIdentity() throws IOException {
     Path root = fs.getPath("foo/bar/baz").toAbsolutePath();
     Files.createDirectories(root);
     Path foo = Files.write(root.resolve("file.txt"), "foo".getBytes(UTF_8));
 
-    ConfigFile<Path> fooConfig = new PathBasedConfigFile(foo, root, "PREFIX");
+    ConfigFile fooConfig = new PathBasedConfigFile(foo, root, "PREFIX");
     assertThat(fooConfig.getIdentifier()).isEqualTo("PREFIX/file.txt");
   }
 
@@ -86,12 +86,12 @@ public class PathBasedConfigFileTest {
     ConfigFile fooConfig = new PathBasedConfigFile(fs.getPath("/foo"),
         /*rootPath=*/fs.getPath("/"), /*identifierPrefix=*/null);
     assertThat(fooConfig.getIdentifier()).isEqualTo("foo");
-    assertThat(fooConfig.content()).isEqualTo("foo".getBytes(UTF_8));
+    assertThat(fooConfig.readContent()).isEqualTo("foo");
     assertThat(fooConfig.path()).isEqualTo("/foo");
 
     ConfigFile bazFooConfig = fooConfig.resolve("//baz/foo");
-    assertThat(bazFooConfig.content()).isEqualTo("bazfoo".getBytes(UTF_8));
-    assertThat(bazFooConfig.resolve("//baz/bar").content()).isEqualTo("bazbar".getBytes(UTF_8));
+    assertThat(bazFooConfig.readContent()).isEqualTo("bazfoo");
+    assertThat(bazFooConfig.resolve("//baz/bar").readContent()).isEqualTo("bazbar");
   }
 
   @Test

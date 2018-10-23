@@ -16,36 +16,41 @@
 
 package com.google.copybara.config;
 
+import static com.google.copybara.config.ConfigFile.isAbsolute;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.CannotResolveLabel;
-import java.io.IOException;
 
 /** A Config file implementation that uses a map for storing the internal data structure.
  *
  * <p>Assumes all paths to be absolute.
  */
-public class MapConfigFile extends ConfigFile<String> {
+public class MapConfigFile implements ConfigFile {
 
   private final ImmutableMap<String, byte[]> configFiles;
   private final String current;
 
   public MapConfigFile(ImmutableMap<String, byte[]> configFiles, String current) {
-    super(current);
     this.configFiles = configFiles;
     this.current = current;
   }
 
   @Override
-  protected String relativeToRoot(String label) throws CannotResolveLabel {
-    return containsLabel(label);
+  public final ConfigFile resolve(String path) throws CannotResolveLabel {
+    String resolved = isAbsolute(path)
+        ? containsLabel(path.substring(2))
+        : relativeToCurrentPath(path);
+    if (!configFiles.containsKey(resolved)) {
+      throw new CannotResolveLabel(
+          String.format("Cannot resolve '%s': '%s' does not exist.", path, resolved));
+    }
+    return new MapConfigFile(configFiles, resolved);
   }
 
   @Override
-  protected String relativeToCurrentPath(String label) throws CannotResolveLabel {
-    int i = current.lastIndexOf("/");
-    String resolved = i == -1 ? label : current.substring(0, i) + "/" + label;
-    return containsLabel(resolved);
+  public String path() {
+    return current;
   }
 
   @Override
@@ -53,27 +58,8 @@ public class MapConfigFile extends ConfigFile<String> {
     return path();
   }
 
-  private String containsLabel(String resolved) throws CannotResolveLabel {
-    if (!configFiles.containsKey(resolved)) {
-      throw new CannotResolveLabel(
-          String.format("Cannot resolve '%s': does not exist.", resolved));
-    }
-    return resolved;
-  }
-
-
   @Override
-  protected ConfigFile<String> createConfigFile(String label, String resolved)
-      throws CannotResolveLabel {
-    if (!configFiles.containsKey(resolved)) {
-      throw new CannotResolveLabel(
-          String.format("Cannot resolve '%s': '%s' does not exist.", label, resolved));
-    }
-    return new MapConfigFile(configFiles, resolved);
-  }
-
-  @Override
-  public byte[] content() throws IOException {
+  public byte[] readContentBytes() {
     return configFiles.get(current);
   }
 
@@ -83,5 +69,19 @@ public class MapConfigFile extends ConfigFile<String> {
         .add("current", current)
         .add("configFiles", configFiles.keySet())
         .toString();
+  }
+
+  private String relativeToCurrentPath(String label) throws CannotResolveLabel {
+    int i = current.lastIndexOf("/");
+    String resolved = i == -1 ? label : current.substring(0, i) + "/" + label;
+    return containsLabel(resolved);
+  }
+
+  private String containsLabel(String resolved) throws CannotResolveLabel {
+    if (!configFiles.containsKey(resolved)) {
+      throw new CannotResolveLabel(
+          String.format("Cannot resolve '%s': does not exist.", resolved));
+    }
+    return resolved;
   }
 }
