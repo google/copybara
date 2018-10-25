@@ -124,7 +124,11 @@ public class WorkflowOptions implements Option {
 
   @Parameter(
       names = READ_CONFIG_FROM_CHANGE,
-      description = "For each imported origin change, load the configuration from that change.")
+      description = "For each imported origin change, load the workflow's origin_files, "
+          + "destination_files and transformations from the config version of that change. The "
+          + "rest of the fields (more importantly, "
+          + "origin and destination) cannot change and the version from the first config will be "
+          + "used.")
   boolean readConfigFromChange = false;
 
   @Parameter(names = "--nosmart-prune",

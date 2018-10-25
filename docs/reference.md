@@ -902,7 +902,7 @@ Name | Type | Description
 <nobr>`--last-rev`</nobr> | *string* | Last revision that was migrated to the destination
 <nobr>`--nosmart-prune`</nobr> | *boolean* | Disable smart prunning
 <nobr>`--notransformation-join`</nobr> | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
-<nobr>`--read-config-from-change`</nobr> | *boolean* | For each imported origin change, load the configuration from that change.
+<nobr>`--read-config-from-change`</nobr> | *boolean* | For each imported origin change, load the workflow's origin_files, destination_files and transformations from the config version of that change. The rest of the fields (more importantly, origin and destination) cannot change and the version from the first config will be used.
 <nobr>`--squash-skip-history`</nobr> | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
 <nobr>`--threads`</nobr> | *int* | Number of threads to use when running transformations that change lot of files
 <nobr>`--threads-min-size`</nobr> | *int* | Minimum size of the lists to process to run them in parallel
