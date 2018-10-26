@@ -106,11 +106,17 @@ public class ConsoleTest {
   @Test
   public void progressPrefix() {
     TestingConsole delegate = new TestingConsole();
-    Console console = new ProgressPrefixConsole("FOO ", delegate);
+    Console console = new PrefixConsole("FOO ", delegate);
     console.progress("bar");
+    console.info("bar");
+    console.warn("bar");
+    console.error("bar");
 
     delegate.assertThat()
         .matchesNext(MessageType.PROGRESS, "FOO bar")
+        .matchesNext(MessageType.INFO, "FOO bar")
+        .matchesNext(MessageType.WARNING, "FOO bar")
+        .matchesNext(MessageType.ERROR, "FOO bar")
         .containsNoMoreMessages();
   }
 

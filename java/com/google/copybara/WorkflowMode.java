@@ -41,7 +41,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import com.google.copybara.util.console.ProgressPrefixConsole;
+import com.google.copybara.util.console.PrefixConsole;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -171,7 +171,7 @@ public enum WorkflowMode {
           result = migrator.migrate(
                       change.getRevision(),
                       lastRev,
-                      new ProgressPrefixConsole(prefix, runHelper.getConsole()),
+                      new PrefixConsole(prefix, runHelper.getConsole()),
               new Metadata(change.getMessage(), change.getAuthor(),
                   ImmutableSetMultimap.of()),
                       new Changes(current, migrated),

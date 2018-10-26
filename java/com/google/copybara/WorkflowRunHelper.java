@@ -48,7 +48,7 @@ import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.util.console.ProgressPrefixConsole;
+import com.google.copybara.util.console.PrefixConsole;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -233,7 +233,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                             migrator.doMigrate(
                                 lastRev,
                                 lastRev,
-                                new ProgressPrefixConsole(
+                                new PrefixConsole(
                                     "Validating last migration: ", workflow.getConsole()),
                                 metadata == null
                                     ? new Metadata(
@@ -595,7 +595,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   metadata,
                   // We don't care about the changes that are imported.
                   changes,
-                  new ProgressPrefixConsole("Migrating baseline for diff: ", workflow.getConsole()),
+                  new PrefixConsole("Migrating baseline for diff: ", workflow.getConsole()),
                   new MigrationInfo(workflow.getOrigin().getLabelName(), writer),
                   resolvedRef,
                   // Doesn't guarantee that we will not run a ignore_noop = False core.transform but
