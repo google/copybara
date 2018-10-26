@@ -45,7 +45,6 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
-import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
@@ -53,6 +52,7 @@ import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.RepositoryUtil;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -91,7 +91,7 @@ public class GitRepository {
 
   // TODO(malcon): Make this generic (Using URIish.java)
   private static final Pattern FULL_URI = Pattern.compile(
-      "([a-z][a-z0-9+-]+@github.com.*|^[a-z][a-z0-9+-]+://.*)$");
+      "([a-z][a-z0-9+-]+@[a-zA-Z0-9_.-]+(:.+)?|^[a-z][a-z0-9+-]+://.*)$");
 
   private static final Pattern LS_TREE_ELEMENT = Pattern.compile(
       "([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40})\t(.*)");
