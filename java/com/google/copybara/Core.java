@@ -550,6 +550,32 @@ public class Core implements LabelsAwareModule {
           + "    after = \"external\",\n"
           + "    paths = glob([\"**.java\"]),\n"
           + ")")
+  @Example(title = "Append some text at the end of files",
+      before = "",
+      code = "core.replace(\n"
+          + "   before = '${end}',\n"
+          + "   after  = 'Text to be added at the end',\n"
+          + "   multiline = True,\n"
+          + "   regex_groups = { 'end' : '\\z'},\n"
+          + ")")
+  @Example(title = "Append some text at the end of files reversible",
+      before = "Same as the above example but make the transformation reversible",
+      code = "core.transform([\n"
+          + "    core.replace(\n"
+          + "       before = '${end}',\n"
+          + "       after  = 'some append',\n"
+          + "       multiline = True,\n"
+          + "       regex_groups = { 'end' : '\\z'},\n"
+          + "    )\n"
+          + "],\n"
+          + "reversal = [\n"
+          + "    core.replace(\n"
+          + "       before = 'some append${end}',\n"
+          + "       after = '',\n"
+          + "       multiline = True,\n"
+          + "       regex_groups = { 'end' : '\\z'},\n"
+          + "    )"
+          + "])")
   @Example(title = "Replace using regex groups",
       before = "In this example we map some urls from the internal to the external version in"
           + " all the files of the project.",

@@ -21,6 +21,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.FileSubjects;
@@ -64,8 +65,8 @@ public final class ReplaceTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Replace replace) throws IOException, ValidationException {
-    replace.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+  private void transform(Transformation transformation) throws IOException, ValidationException {
+    transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
   @Test
@@ -114,6 +115,35 @@ public final class ReplaceTest {
 
     // No file modification is done if the match is not found
     assertThat(before.lastModifiedTime()).isEqualTo(after.lastModifiedTime());
+  }
+
+  @Test
+  public void testAppendFile() throws Exception {
+    Transformation transformation =
+        eval("core.transform([\n"
+            + "    core.replace(\n"
+            + "       before = '${end}',\n"
+            + "       after  = 'some append',\n"
+            + "       multiline = True,\n"
+            + "       regex_groups = { 'end' : '\\z'},\n"
+            + "    )\n"
+            + "],\n"
+            + "reversal = [\n"
+            + "    core.replace(\n"
+            + "       before = 'some append${end}',\n"
+            + "       after = '',\n"
+            + "       multiline = True,\n"
+            + "       regex_groups = { 'end' : '\\z'},\n"
+            + "    )"
+            + "])");
+
+    Path file1 = checkoutDir.resolve("file1.txt");
+    writeFile(file1, "foo\nbar\nbaz\n");
+    transform(transformation);
+
+    assertThatPath(checkoutDir).containsFile("file1.txt", "foo\nbar\nbaz\nsome append");
+    transform(transformation.reverse());
+    assertThatPath(checkoutDir).containsFile("file1.txt", "foo\nbar\nbaz\n");
   }
 
   @Test
@@ -788,7 +818,7 @@ public final class ReplaceTest {
         .containsFile("i-exist", "abc");
   }
 
-  private Replace eval(String replace) throws ValidationException {
+  private <T extends Transformation> T eval(String replace) throws ValidationException {
     return skylark.eval("r", "r = " + replace);
   }
 

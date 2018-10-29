@@ -688,6 +688,43 @@ core.replace(
 ```
 
 
+##### Append some text at the end of files:
+
+
+
+```python
+core.replace(
+   before = '${end}',
+   after  = 'Text to be added at the end',
+   multiline = True,
+   regex_groups = { 'end' : '\z'},
+)
+```
+
+
+##### Append some text at the end of files reversible:
+
+Same as the above example but make the transformation reversible
+
+```python
+core.transform([
+    core.replace(
+       before = '${end}',
+       after  = 'some append',
+       multiline = True,
+       regex_groups = { 'end' : '\z'},
+    )
+],
+reversal = [
+    core.replace(
+       before = 'some append${end}',
+       after = '',
+       multiline = True,
+       regex_groups = { 'end' : '\z'},
+    )])
+```
+
+
 ##### Replace using regex groups:
 
 In this example we map some urls from the internal to the external version in all the files of the project.
