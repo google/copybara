@@ -81,11 +81,11 @@ public final class GitDestination implements Destination<GitRevision> {
   private final GitOptions gitOptions;
   private final GeneralOptions generalOptions;
   // Whether the skip_push flag is set in copy.bara.sky
-  private final boolean skipPush;
+  private final boolean skipPushDEPRECATED;
 
   private final Iterable<GitIntegrateChanges> integrates;
   // Whether skip_push is set, either by command line or copy.bara.sky
-  private final boolean effectiveSkipPush;
+  private final boolean effectiveSkipPushDEPRECATED;
   private final WriteHook writerHook;
   private final LazyResourceLoader<GitRepository> localRepo;
 
@@ -105,9 +105,9 @@ public final class GitDestination implements Destination<GitRevision> {
     this.destinationOptions = checkNotNull(destinationOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
-    this.skipPush = skipPush;
+    this.skipPushDEPRECATED = skipPush;
     this.integrates = Preconditions.checkNotNull(integrates);
-    this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
+    this.effectiveSkipPushDEPRECATED = skipPush || destinationOptions.skipPush;
     this.writerHook = checkNotNull(writerHook);
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl));
   }
@@ -136,7 +136,8 @@ public final class GitDestination implements Destination<GitRevision> {
   @Override
   public Writer<GitRevision> newWriter(WriterContext writerContext) {
 
-    boolean effectiveSkipPush = GitDestination.this.effectiveSkipPush || writerContext.isDryRun();
+    boolean effectiveSkipPush = GitDestination.this.effectiveSkipPushDEPRECATED 
+        || writerContext.isDryRun();
 
     WriterState state = new WriterState(
               localRepo, destinationOptions.getLocalBranch(push, writerContext.isDryRun()));
@@ -633,7 +634,7 @@ public final class GitDestination implements Destination<GitRevision> {
         .add("repoUrl", repoUrl)
         .add("fetch", fetch)
         .add("push", push)
-        .add("skip_push", skipPush)
+        .add("skip_push", skipPushDEPRECATED)
         .toString();
   }
 
@@ -657,8 +658,8 @@ public final class GitDestination implements Destination<GitRevision> {
             .put("url", repoUrl)
             .put("fetch", fetch)
             .put("push", push);
-    if (skipPush) {
-      builder.put("skip_push", "" + skipPush);
+    if (skipPushDEPRECATED) {
+      builder.put("skip_push", "" + skipPushDEPRECATED);
     }
     return builder.build();
   }

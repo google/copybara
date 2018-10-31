@@ -94,7 +94,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean force;
   private final ConfigFile mainConfigFile;
   private final Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
-  private final boolean dryRunMode;
+  private final boolean effectiveDryRunMode;
+  private final boolean dryRunModeField;
   private final ImmutableList<Action> afterMigrationActions;
   private final ImmutableList<Token> changeIdentity;
   private final boolean setRevId;
@@ -119,7 +120,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean askForConfirmation,
       ConfigFile mainConfigFile,
       Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles,
-      boolean dryRunMode,
+      boolean dryRunModeField,
       boolean checkLastRevState,
       ImmutableList<Action> afterMigrationActions,
       ImmutableList<Token> changeIdentity,
@@ -146,7 +147,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.allConfigFiles = allConfigFiles;
     this.checkLastRevState = checkLastRevState;
-    this.dryRunMode = dryRunMode;
+    this.effectiveDryRunMode = dryRunModeField || generalOptions.dryRunMode;
+    this.dryRunModeField = dryRunModeField;
     this.afterMigrationActions = Preconditions.checkNotNull(afterMigrationActions);
     this.changeIdentity = Preconditions.checkNotNull(changeIdentity);
     this.setRevId = setRevId;
@@ -268,7 +270,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     WriterContext writerContext = new WriterContext(
             name,
             workflowOptions.workflowIdentityUser,
-            dryRunMode,
+        effectiveDryRunMode,
         resolvedRef);
     Writer<D> writer = getDestination().newWriter(writerContext);
     return new WorkflowRunHelper<>(this, workdir, resolvedRef, reader, writer, rawSourceRef);
@@ -410,7 +412,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   boolean isDryRunMode() {
-    return dryRunMode;
+    return effectiveDryRunMode;
+  }
+
+  public boolean isDryRunModeField() {
+    return dryRunModeField;
   }
 
   /**

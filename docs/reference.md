@@ -1414,7 +1414,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`gitDestination git.destination(url, push='master', fetch=None, skip_push=False, integrates=None)`
+`gitDestination git.destination(url, push='master', fetch=None, skip_push=None, integrates=None)`
 
 
 #### Parameters:
@@ -1424,7 +1424,7 @@ Parameter | Description
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-skip_push | `boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+skip_push | `boolean`<br><p>DEPRECATED - Use core.workflow(dry_run = True) instead</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 
 
@@ -1581,7 +1581,7 @@ checker | `checker`<br><p>A checker for the GitHub API transport.</p>
 
 Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
 
-`gitDestination git.github_destination(url, push='master', fetch=None, skip_push=False, integrates=None)`
+`gitDestination git.github_destination(url, push='master', fetch=None, skip_push=None, integrates=None)`
 
 
 #### Parameters:
@@ -1591,7 +1591,7 @@ Parameter | Description
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-skip_push | `boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+skip_push | `boolean`<br><p>DEPRECATED - Use core.workflow(dry_run = True) instead</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 
 
@@ -1635,7 +1635,7 @@ patch | `transformation`<br><p>Patch the checkout dir. The difference with `patc
 
 Creates changes in a new pull request in the destination.
 
-`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_branch=None, skip_push=False, title=None, body=None, integrates=None, api_checker=None)`
+`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_branch=None, skip_push=None, title=None, body=None, integrates=None, api_checker=None)`
 
 
 #### Parameters:
@@ -1645,7 +1645,7 @@ Parameter | Description
 url | `string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
 destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
 pr_branch | `string`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
-skip_push | `boolean`<br><p>If set, copybara will not actually push the result to the destination. This is meant for testing workflows and dry runs.</p>
+skip_push | `boolean`<br><p>DEPRECATED - Use core.workflow(dry_run = True) instead</p>
 title | `string`<br><p>When creating a pull request, use this title. By default it uses the change first line.</p>
 body | `string`<br><p>When creating a pull request, use this body. By default it uses the change summary.</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>

@@ -1304,7 +1304,7 @@ public class GitDestinationTest {
     checkLocalRepo(true);
   }
 
-  private GitRepository checkLocalRepo(boolean skipPushFlag)
+  private GitRepository checkLocalRepo(boolean dryRun)
       throws Exception {
     fetch = "master";
     push = "master";
@@ -1316,11 +1316,10 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).add().force().files("foo").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
 
-    options.gitDestination.skipPush = skipPushFlag;
     Path localPath = Files.createTempDirectory("local_repo");
 
     options.gitDestination.localRepoPath = localPath.toString();
-    Writer<GitRevision> writer = newWriter();
+    Writer<GitRevision> writer = newWriter(dryRun);
     process(writer, new DummyRevision("origin_ref1"));
 
     //    Path localPath = Files.createTempDirectory("local_repo");
@@ -1473,11 +1472,15 @@ public class GitDestinationTest {
   }
 
   private Writer<GitRevision> newWriter() throws ValidationException {
+    return newWriter(/*dryRun=*/false);
+  }
+
+  private Writer<GitRevision> newWriter(boolean dryRun) throws ValidationException {
     return destination().newWriter(
         new WriterContext(
             "piper_to_github",
             /*workflowIdentityUser=*/ "TEST",
-            false,
+            dryRun,
             new DummyRevision("test")));
   }
 

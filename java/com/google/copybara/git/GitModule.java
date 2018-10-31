@@ -101,9 +101,11 @@ public class GitModule implements LabelsAwareModule {
   private static final String GITHUB_TRIGGER = "github_trigger";
   private static final String GITHUB_API = "github_api";
   private static final String PATCH_FIELD = "patch";
-  public static final String PATCH_FIELD_DESC =
+  private static final String PATCH_FIELD_DESC =
       "Patch the checkout dir. The difference with `patch.apply` transformation is"
           + " that here we can apply it using three-way";
+  private static final String SKIP_PUSH_DEPRECATION_DOC =
+      "DEPRECATED - Use core.workflow(dry_run = True) instead";
 
   protected final Options options;
   private ConfigFile mainConfigFile;
@@ -539,9 +541,8 @@ public class GitModule implements LabelsAwareModule {
               doc = "Indicates the ref from which to get the parent commit. Defaults to push value"
                   + " if None",
               defaultValue = "None", noneable = true),
-          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False", named = true,
-              doc = "If set, copybara will not actually push the result to the destination. This is"
-                  + " meant for testing workflows and dry runs."),
+          @Param(name = "skip_push", type = Boolean.class, defaultValue = "None", named = true,
+              doc = SKIP_PUSH_DEPRECATION_DOC, noneable = true),
           @Param(name = "integrates", type = SkylarkList.class, named = true,
               generic1 = GitIntegrateChanges.class, defaultValue = "None",
               doc = "Integrate changes from a url present in the migrated change"
@@ -551,12 +552,13 @@ public class GitModule implements LabelsAwareModule {
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public GitDestination destination(String url, String push, Object fetch,
-      Boolean skipPush, Object integrates, Location location)
+      Object skipPush, Object integrates, Location location)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
         "push", location);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    warnDeprecation(skipPush, destinationOptions.skipPush);
     return new GitDestination(
         fixHttp(checkNotEmpty(
             firstNotNull(destinationOptions.url, url), "url", location), location),
@@ -569,10 +571,19 @@ public class GitModule implements LabelsAwareModule {
         destinationOptions,
         options.get(GitOptions.class),
         generalOptions,
-        skipPush,
+        convertFromNoneable(skipPush, Boolean.FALSE),
         new DefaultWriteHook(),
         SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"));
+  }
+
+  private void warnDeprecation(Object skipPushField, boolean skipPushFlag) {
+    Boolean fieldValue = convertFromNoneable(skipPushField, null);
+    if (fieldValue != null || skipPushFlag) {
+      getGeneralConsole().warn("'skip_push' field and '--git-destination-skip-push' flag are"
+          + " deprecated and will be removed soon. Use core.workflow(dry_run = True) or --dry-run"
+          + " instead");
+    }
   }
 
   @SuppressWarnings("unused")
@@ -590,9 +601,8 @@ public class GitModule implements LabelsAwareModule {
               doc = "Indicates the ref from which to get the parent commit. Defaults to push value"
                   + " if None",
               defaultValue = "None", noneable = true),
-          @Param(name = "skip_push", type = Boolean.class, defaultValue = "False", named = true,
-              doc = "If set, copybara will not actually push the result to the destination. This is"
-                  + " meant for testing workflows and dry runs."),
+          @Param(name = "skip_push", type = Boolean.class, defaultValue = "None", named = true,
+              noneable = true, doc = SKIP_PUSH_DEPRECATION_DOC),
           @Param(name = "integrates", type = SkylarkList.class, named = true,
               generic1 = GitIntegrateChanges.class, defaultValue = "None",
               doc = "Integrate changes from a url present in the migrated change"
@@ -602,12 +612,13 @@ public class GitModule implements LabelsAwareModule {
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public GitDestination gitHubDestination(String url, String push, Object fetch,
-      Boolean skipPush, Object integrates, Location location)
+      Object skipPush, Object integrates, Location location)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
         "push", location);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    warnDeprecation(skipPush, destinationOptions.skipPush);
     return new GitDestination(
         fixHttp(checkNotEmpty(
             firstNotNull(destinationOptions.url, url), "url", location), location),
@@ -620,7 +631,7 @@ public class GitModule implements LabelsAwareModule {
         destinationOptions,
         options.get(GitOptions.class),
         generalOptions,
-        skipPush,
+        convertFromNoneable(skipPush, Boolean.FALSE),
         new DefaultWriteHook(),
         SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"));
@@ -658,12 +669,11 @@ public class GitModule implements LabelsAwareModule {
         @Param(
             name = "skip_push",
             type = Boolean.class,
-            defaultValue = "False",
+            defaultValue = "None",
             named = true,
             positional = false,
-            doc =
-                "If set, copybara will not actually push the result to the destination. This is"
-                    + " meant for testing workflows and dry runs."),
+            noneable =  true,
+            doc = SKIP_PUSH_DEPRECATION_DOC),
         @Param(
             name = "title",
             type = String.class,
@@ -740,7 +750,7 @@ public class GitModule implements LabelsAwareModule {
       String url,
       String destinationRef,
       Object prBranch,
-      Boolean skipPush,
+      Object skipPush,
       Object title,
       Object body,
       Object integrates,
@@ -751,16 +761,18 @@ public class GitModule implements LabelsAwareModule {
     // This restricts to github.com, we will have to revisit this to support setups like GitHub
     // Enterprise.
     SkylarkUtil.check(location, GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
+    GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
+    warnDeprecation(skipPush, destinationOptions.skipPush);
     return new GitHubPrDestination(
         fixHttp(url, location),
         destinationRef,
         SkylarkUtil.convertFromNoneable(prBranch, null),
         generalOptions,
         options.get(GitHubOptions.class),
-        options.get(GitDestinationOptions.class),
+        destinationOptions,
         options.get(GitHubDestinationOptions.class),
         options.get(GitOptions.class),
-        skipPush,
+        convertFromNoneable(skipPush, Boolean.FALSE),
         new DefaultWriteHook(),
         SkylarkList.castList(
             SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
