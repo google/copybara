@@ -92,7 +92,9 @@ public class FeedbackTest {
   public void testNullSourceRef() throws Exception {
     Feedback feedback = loggingFeedback();
     feedback.run(workdir, ImmutableList.of());
-    console.assertThat().onceInLog(MessageType.INFO, "Ref: None");
+    console.assertThat()
+        .equalsNext(MessageType.INFO, "Action 'test_action' returned success")
+        .containsNoMoreMessages();
   }
 
   @Test
@@ -104,11 +106,46 @@ public class FeedbackTest {
         .matchesNext(MessageType.INFO, ".*Ref: 12345")
         .matchesNext(MessageType.INFO, ".*Feedback name: default")
         .matchesNext(MessageType.INFO, ".*Action name: test_action")
-        .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
         .matchesNext(MessageType.INFO, ".*Ref: 67890")
         .matchesNext(MessageType.INFO, ".*Feedback name: default")
         .matchesNext(MessageType.INFO, ".*Action name: test_action")
         .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*");
+  }
+
+  @Test
+  public void testRefReturnsFirst() throws Exception {
+    Feedback feedback =
+        feedback(
+            ""
+                + "def test_action(ctx):\n"
+                + "    ctx.console.info('Ref: ' + str(ctx.ref))\n"
+                + "    return ctx.success()\n"
+                + "\n",
+            "test_action");
+    feedback.run(workdir, ImmutableList.of("12345", "67890"));
+    console
+        .assertThat()
+        .matchesNext(MessageType.INFO, ".*Ref: 12345")
+        .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
+        .containsNoMoreMessages();
+  }
+
+  @Test
+  public void testRefReturnsNone() throws Exception {
+    Feedback feedback =
+        feedback(
+            ""
+                + "def test_action(ctx):\n"
+                + "    ctx.console.info('Ref: '+ str(ctx.ref))\n"
+                + "    return ctx.success()\n"
+                + "\n",
+            "test_action");
+    feedback.run(workdir, ImmutableList.of());
+    console
+        .assertThat()
+        .matchesNext(MessageType.INFO, ".*Ref: None")
+        .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
+        .containsNoMoreMessages();
   }
 
   @Test
@@ -372,12 +409,10 @@ public class FeedbackTest {
     return feedback(
         ""
             + "def test_action(ctx):\n"
-            + "    ref = 'None'\n"
-            + "    if ctx.ref:\n"
-            + "      ref = ctx.ref\n"
-            + "    ctx.console.info('Ref: ' + ref)\n"
-            + "    ctx.console.info('Feedback name: ' + ctx.feedback_name)\n"
-            + "    ctx.console.info('Action name: ' + ctx.action_name)\n"
+            + "    for ref in ctx.refs:\n"
+            + "      ctx.console.info('Ref: ' + ref)\n"
+            + "      ctx.console.info('Feedback name: ' + ctx.feedback_name)\n"
+            + "      ctx.console.info('Action name: ' + ctx.action_name)\n"
             + "    return ctx.success()\n"
             + "\n",
         "test_action");

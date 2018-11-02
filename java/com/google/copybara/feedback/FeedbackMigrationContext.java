@@ -20,6 +20,7 @@ import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.Endpoint;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.ValidationException;
@@ -29,6 +30,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import javax.annotation.Nullable;
 
 /**
@@ -44,23 +46,24 @@ import javax.annotation.Nullable;
 public class FeedbackMigrationContext extends FeedbackContext {
 
   private final Feedback feedback;
-  @Nullable private final String ref;
+  private final ImmutableList<String> refs;
   @Nullable private ActionResult actionResult;
 
 
-  FeedbackMigrationContext(Feedback feedback, Action currentAction, @Nullable String ref, SkylarkConsole console) {
-    this(feedback, currentAction, ref, console, SkylarkDict.empty());
+  FeedbackMigrationContext(
+      Feedback feedback, Action currentAction, ImmutableList<String> refs, SkylarkConsole console) {
+    this(feedback, currentAction, refs, console, SkylarkDict.empty());
   }
 
   private FeedbackMigrationContext(
       Feedback feedback,
       Action currentAction,
-      @Nullable String ref,
+      ImmutableList<String> refs,
       SkylarkConsole console,
       SkylarkDict<?, ?> params) {
     super(currentAction, console, params);
     this.feedback = Preconditions.checkNotNull(feedback);
-    this.ref = ref;
+    this.refs = ImmutableList.copyOf(refs);
   }
 
   @Override
@@ -81,10 +84,18 @@ public class FeedbackMigrationContext extends FeedbackContext {
     return feedback.getName();
   }
 
-  @SkylarkCallable(name = "ref", doc = "A string representation of the entity that triggered the"
-      + " event", structField = true, allowReturnNones = true)
+  @SkylarkCallable(name = "ref", doc = "DEPRECATED. Use refs instead.", structField = true, allowReturnNones = true)
   public String getRef() {
-    return ref;
+    if (refs.isEmpty()) {
+      return null;
+    }
+    return refs.get(0);
+  }
+
+  @SkylarkCallable(name = "refs", doc = "A list containing string representations of the entities "
+      + "that triggered the event", structField = true)
+  public SkylarkList<String> getRefs() {
+    return SkylarkList.createImmutable(refs);
   }
 
   @SkylarkCallable(name = "success", doc = "Returns a successful action result.")
@@ -119,7 +130,7 @@ public class FeedbackMigrationContext extends FeedbackContext {
 
   @Override
   public FeedbackContext withParams(SkylarkDict<?, ?> params) {
-    return new FeedbackMigrationContext(feedback, currentAction, ref, console, params);
+    return new FeedbackMigrationContext(feedback, currentAction, refs, console, params);
   }
 
   @Override
