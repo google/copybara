@@ -61,11 +61,12 @@ public class GitMirrorTest {
   @Before
   public void setup() throws Exception {
     workdir = Files.createTempDirectory("workdir");
-    options = new OptionsBuilder()
-        .setEnvironment(GitTestUtil.getGitEnv())
-        .setOutputRootToTmpDir()
-        .setWorkdirToRealTempDir()
-        .setConsole(new TestingConsole());
+    options =
+        new OptionsBuilder()
+            .setEnvironment(GitTestUtil.getGitEnv().getEnvironment())
+            .setOutputRootToTmpDir()
+            .setWorkdirToRealTempDir()
+            .setConsole(new TestingConsole());
     originRepo = newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(),
         /*verbose=*/true)
         .withWorkTree(Files.createTempDirectory("worktree"));
@@ -223,9 +224,9 @@ public class GitMirrorTest {
     checkRefDoesntExist("refs/heads/other");
   }
 
-  private GitRepository bareRepo(Path path) throws IOException {
-    return newBareRepo(path, options.general.getEnvironment(),
-        options.general.isVerbose());
+  private GitRepository bareRepo(Path path) {
+    return newBareRepo(
+        path, new GitEnvironment(options.general.getEnvironment()), options.general.isVerbose());
   }
 
   @Test
@@ -304,8 +305,8 @@ public class GitMirrorTest {
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
         + ")";
     Path otherRepoPath = Files.createTempDirectory("other_repo");
-    GitRepository other = newRepo(true, otherRepoPath,
-        options.general.getEnvironment()).init();
+    GitRepository other =
+        newRepo(true, otherRepoPath, new GitEnvironment(options.general.getEnvironment())).init();
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes());
     other.add().files("test2.txt").run();
     other.git(other.getWorkTree(), "commit", "-m", "another file");

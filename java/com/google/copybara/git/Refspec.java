@@ -21,7 +21,6 @@ import com.google.common.base.Splitter;
 import com.google.copybara.exception.ValidationException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Represents a git refspec.
@@ -112,15 +111,13 @@ public class Refspec {
     return new Refspec(destination, origin, allowNoFastForward);
   }
 
-  /**
-   * Same as {@see #create}, but does not provide Location data.
-   */
-  public static Refspec createBuiltin(Map<String, String> env, Path cwd, String refspecParam)
+  /** Same as {@see #create}, but does not provide Location data. */
+  public static Refspec createBuiltin(GitEnvironment gitEnv, Path cwd, String refspecParam)
       throws ValidationException {
-      return create(env, cwd, refspecParam);
+    return create(gitEnv, cwd, refspecParam);
   }
 
-  public static Refspec create(Map<String, String> env, Path cwd, String refspecParam)
+  public static Refspec create(GitEnvironment gitEnv, Path cwd, String refspecParam)
       throws InvalidRefspecException {
     if (refspecParam.isEmpty()) {
       throw new InvalidRefspecException("Empty refspec is not allowed");
@@ -137,10 +134,10 @@ public class Refspec {
     }
     String origin = elements.get(0);
     String destination = origin;
-    GitRepository.validateRefSpec(env, cwd, origin);
+    GitRepository.validateRefSpec(gitEnv, cwd, origin);
     if (elements.size() > 1) {
       destination = elements.get(1);
-      GitRepository.validateRefSpec(env, cwd, destination);
+      GitRepository.validateRefSpec(gitEnv, cwd, destination);
     }
     if (origin.contains("*") != destination.contains("*")) {
       throw new InvalidRefspecException(

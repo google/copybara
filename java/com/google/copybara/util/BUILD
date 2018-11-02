@@ -31,7 +31,7 @@ java_library(
     ],
     deps = [
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/git:exec_path",
+        "//java/com/google/copybara/git:environment",
         "//java/com/google/copybara/util/console",
         "//third_party:autovalue",
         "//third_party:flogger",

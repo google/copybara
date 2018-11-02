@@ -75,7 +75,7 @@ java_library(
     srcs = CORE,
     javacopts = JAVACOPTS,
     deps = [
-        ":exec_path",
+        ":environment",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/exception",
@@ -89,10 +89,11 @@ java_library(
 )
 
 java_library(
-    name = "exec_path",
-    srcs = ["GitExecPath.java"],
+    name = "environment",
+    srcs = ["GitEnvironment.java"],
     javacopts = JAVACOPTS,
     deps = [
+        "//third_party:guava",
         "//third_party:jsr305",
     ],
 )

@@ -61,7 +61,7 @@ public class DiffUtilTest {
   public void pathsAreNotSiblings_diff() throws Exception {
     Path foo = createDir(left, "foo");
     try {
-      DiffUtil.diff(left, foo, VERBOSE, /*environment=*/ null);
+      DiffUtil.diff(left, foo, VERBOSE, System.getenv());
       fail();
     } catch (IllegalArgumentException e) {
       assertThat(e).hasMessageThat().contains(
@@ -73,7 +73,7 @@ public class DiffUtilTest {
   public void pathsAreNotSiblings_diffFiles() throws Exception {
     Path foo = createDir(left, "foo");
     try {
-      DiffUtil.diffFiles(left, foo, VERBOSE, /*environment=*/ null);
+      DiffUtil.diffFiles(left, foo, VERBOSE, System.getenv());
       fail();
     } catch (IllegalArgumentException e) {
       assertThat(e).hasMessageThat().contains(
@@ -88,11 +88,11 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "foo");
     writeFile(right, "b/file2.txt", "bar");
 
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     assertThat(diffContents).isEmpty();
 
-    assertThat(DiffUtil.diffFiles(left, right, VERBOSE, /*environment=*/ null)).isEmpty();
+    assertThat(DiffUtil.diffFiles(left, right, VERBOSE, System.getenv())).isEmpty();
   }
 
   @Test
@@ -109,8 +109,7 @@ public class DiffUtilTest {
     writeFile(right, "modified.txt", "foo");
     writeFile(right, "added.txt", "");
 
-    ImmutableList<DiffFile> result = DiffUtil.diffFiles(left, right, VERBOSE,
-        /*environment=*/ null);
+    ImmutableList<DiffFile> result = DiffUtil.diffFiles(left, right, VERBOSE, System.getenv());
     ImmutableMap<String, DiffFile> byName = Maps.uniqueIndex(result, DiffFile::getName);
 
     assertThat(byName.get("deleted.txt").getOperation()).isEqualTo(Operation.DELETE);
@@ -135,9 +134,8 @@ public class DiffUtilTest {
     writeFile(left, "file1.txt", "foo");
     writeFile(right, "file1.txt", "foo");
 
-    assertThat(DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null)).isEmpty();
+    assertThat(DiffUtil.diff(left, right, VERBOSE, System.getenv())).isEmpty();
   }
-
 
   private Path createDir(Path parent, String name) throws IOException {
     Path path = parent.resolve(name);

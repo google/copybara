@@ -22,7 +22,6 @@ import static org.junit.Assert.fail;
 
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.DiffUtil;
@@ -92,7 +91,7 @@ public class PatchingOptionsTest {
     writeFile(destination, "file1.txt", "old text\n");
 
     // A very simple patch that we know it works even for old patch versions
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
 
@@ -109,7 +108,7 @@ public class PatchingOptionsTest {
     writeFile(destination, "file1.txt", "foo");
     writeFile(destination, "b/file2.txt", "bar");
 
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
 
@@ -178,7 +177,7 @@ public class PatchingOptionsTest {
     writeFile(destination, "other_excluded/file3.txt", "bar");
     ImmutableList<String> excludedPaths = ImmutableList.of("excluded/*", "other_excluded/*");
 
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, excludedPaths);
 
@@ -257,7 +256,7 @@ public class PatchingOptionsTest {
         + "foo\n"
         + "bar");
 
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
 
@@ -324,7 +323,7 @@ public class PatchingOptionsTest {
     writeFile(right, "file1.txt", "new foo\n");
     writeFile(destination, "file1.txt", "foo\nmore foo\n");
 
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     try {
       runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
@@ -370,7 +369,7 @@ public class PatchingOptionsTest {
             + "foo\n"
             + "bar");
 
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, /*environment=*/ null);
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
 
     runPatch(destination, diffContents, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
 

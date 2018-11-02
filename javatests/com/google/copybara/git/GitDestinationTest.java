@@ -118,10 +118,10 @@ public class GitDestinationTest {
     return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true);
   }
 
-  private Map<String, String> getEnv() {
-    Map<String, String> env = Maps.newHashMap(options.general.getEnvironment());
-    env.putAll(getGitEnv());
-    return env;
+  private GitEnvironment getEnv() {
+    Map<String, String> joinedEnv = Maps.newHashMap(options.general.getEnvironment());
+    joinedEnv.putAll(getGitEnv().getEnvironment());
+    return new GitEnvironment(joinedEnv);
   }
 
   private String git(String... argv) throws RepoException {

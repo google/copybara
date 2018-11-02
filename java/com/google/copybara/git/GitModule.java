@@ -254,29 +254,34 @@ public class GitModule implements LabelsAwareModule {
       SkylarkList<String> strRefSpecs, Boolean prune, Location location, Environment env)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    GitOptions gitOptions = options.get(GitOptions.class);
     List<Refspec> refspecs = new ArrayList<>();
 
     for (String refspec : SkylarkList.castList(strRefSpecs, String.class, "refspecs")) {
       try {
-        refspecs.add(Refspec.create(
-            generalOptions.getEnvironment(), generalOptions.getCwd(), refspec));
+        refspecs.add(
+            Refspec.create(
+                gitOptions.getGitEnvironment(generalOptions.getEnvironment()),
+                generalOptions.getCwd(),
+                refspec));
       } catch (InvalidRefspecException e) {
         throw new EvalException(location, e);
       }
     }
-    GlobalMigrations.getGlobalMigrations(env).addMigration(
-        location,
-        name,
-        new Mirror(
-            generalOptions,
-            options.get(GitOptions.class),
+    GlobalMigrations.getGlobalMigrations(env)
+        .addMigration(
+            location,
             name,
-            fixHttp(origin, location),
-            fixHttp(destination, location),
-            refspecs,
-            options.get(GitMirrorOptions.class),
-            prune,
-            mainConfigFile));
+            new Mirror(
+                generalOptions,
+                gitOptions,
+                name,
+                fixHttp(origin, location),
+                fixHttp(destination, location),
+                refspecs,
+                options.get(GitMirrorOptions.class),
+                prune,
+                mainConfigFile));
     return Runtime.NONE;
   }
 

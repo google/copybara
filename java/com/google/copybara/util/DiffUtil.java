@@ -17,7 +17,6 @@
 package com.google.copybara.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.copybara.git.GitExecPath.resolveGitBinary;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -29,11 +28,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
+import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -41,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 
 /**
  * Diff utilities that are repository-agnostic.
@@ -66,8 +67,9 @@ public class DiffUtil {
    *
    * <p>Each file name is relative to one/other paths.
    */
-  public static ImmutableList<DiffFile> diffFiles(Path one, Path other, boolean verbose,
-      Map<String, String> environment) throws IOException, InsideGitDirException {
+  public static ImmutableList<DiffFile> diffFiles(
+      Path one, Path other, boolean verbose, @Nullable Map<String, String> environment)
+      throws IOException, InsideGitDirException {
     String cmdResult = new String(new FoldersDiff(verbose, environment)
         .withZOption()
         .withNameStatus()
@@ -194,7 +196,8 @@ public class DiffUtil {
     private byte[] run(Path one, Path other) throws IOException, InsideGitDirException {
       Preconditions.checkArgument(one.getParent().equals(other.getParent()),
           "Paths 'one' and 'other' must be sibling directories.");
-      checkNotInsideGitRepo(one, verbose, environment);
+      GitEnvironment gitEnv = new GitEnvironment(environment);
+      checkNotInsideGitRepo(one, verbose, gitEnv);
       Path root = one.getParent();
       List<String> params = Lists.newArrayList("git", "diff", "--no-color");
       if (nameStatus) {
@@ -250,15 +253,17 @@ public class DiffUtil {
   }
 
   /**
-   * It is very common for users to have a git repo for their $HOME, so that they can version
-   * their configurations. Unfortunately this fails for the default output directory (inside
-   * $HOME).
+   * It is very common for users to have a git repo for their $HOME, so that they can version their
+   * configurations. Unfortunately this fails for the default output directory (inside $HOME).
    */
-  public static void checkNotInsideGitRepo(Path path, boolean verbose, Map<String, String> env)
+  public static void checkNotInsideGitRepo(Path path, boolean verbose, GitEnvironment gitEnv)
       throws IOException, InsideGitDirException {
     try {
-      Command cmd = new Command(new String[]{
-          resolveGitBinary(env), "rev-parse", "--git-dir"}, env, path.toFile());
+      Command cmd =
+          new Command(
+              new String[] {gitEnv.resolveGitBinary(), "rev-parse", "--git-dir"},
+              gitEnv.getEnvironment(),
+              path.toFile());
 
       String gitDir = new CommandRunner(cmd)
           .withVerbose(verbose)

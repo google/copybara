@@ -2348,7 +2348,7 @@ public class WorkflowTest {
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
-    options.setEnvironment(GitTestUtil.getGitEnv());
+    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
     options.setHomeDir(Files.createTempDirectory("home").toString());
     options.gitDestination.committerName = "Foo";
     options.gitDestination.committerEmail = "foo@foo.com";
@@ -2619,7 +2619,7 @@ public class WorkflowTest {
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
-    options.setEnvironment(GitTestUtil.getGitEnv());
+    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
     options.setHomeDir(Files.createTempDirectory("home").toString());
     options.gitDestination.committerName = "Foo";
     options.gitDestination.committerEmail = "foo@foo.com";

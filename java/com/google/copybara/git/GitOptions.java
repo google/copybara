@@ -28,6 +28,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.jcommander.GreaterThanZeroValidator;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -53,6 +54,13 @@ public class GitOptions implements Option {
           + "https://git-scm.com/docs/git-credential-store")
   boolean noCredentialHelperStore = false;
 
+  @Parameter(
+      names = "--nogit-prompt",
+      description =
+          "Disable username/password prompt and fail if no credentials are found. This "
+              + "flag sets the environment variable GIT_TERMINAL_PROMPT which is inteded for automated "
+              + "jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem")
+  boolean noGitPrompt = false;
 
   @Parameter(names = "--git-visit-changes-page-size",
       description = "Size of the git log page used for visiting changes.", hidden = true,
@@ -71,11 +79,15 @@ public class GitOptions implements Option {
   public final GitRepository cachedBareRepoForUrl(String url) throws RepoException {
     Preconditions.checkNotNull(url);
     try {
-      return createBareRepo(generalOptions,
-                            createDirInCache(url, getRepoStorage()));
+      return createBareRepo(generalOptions, createDirInCache(url, getRepoStorage()));
     } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);
     }
+  }
+
+  /** Returns a {@link GitEnvironment} configured for the given options. */
+  protected GitEnvironment getGitEnvironment(Map<String, String> env) {
+    return new GitEnvironment(env, noGitPrompt);
   }
 
   /**
@@ -85,8 +97,9 @@ public class GitOptions implements Option {
    */
   protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
       throws RepoException {
-    GitRepository repo = GitRepository.newBareRepo(path, generalOptions.getEnvironment(),
-                                                   generalOptions.isVerbose());
+    GitRepository repo =
+        GitRepository.newBareRepo(
+            path, getGitEnvironment(generalOptions.getEnvironment()), generalOptions.isVerbose());
     return initRepo(repo);
   }
 

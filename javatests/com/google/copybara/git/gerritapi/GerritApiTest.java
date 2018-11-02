@@ -39,7 +39,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.gerritapi.GerritApiException.ResponseCode;
@@ -78,10 +77,11 @@ public class GerritApiTest {
 
   @Before
   public void setUp() throws Exception {
-    OptionsBuilder options = new OptionsBuilder()
-        .setWorkdirToRealTempDir()
-        .setEnvironment(GitTestUtil.getGitEnv())
-        .setOutputRootToTmpDir();
+    OptionsBuilder options =
+        new OptionsBuilder()
+            .setWorkdirToRealTempDir()
+            .setEnvironment(GitTestUtil.getGitEnv().getEnvironment())
+            .setOutputRootToTmpDir();
 
     credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@copybara-not-real.com".getBytes(UTF_8));
@@ -90,45 +90,45 @@ public class GerritApiTest {
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
 
-
-    httpTransport = new MockHttpTransport() {
-      @Override
-      public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
-        String requestString = method + " " + url;
-        MockLowLevelHttpRequest request = new MockLowLevelHttpRequest();
-        MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
-        request.setResponse(response);
-        for (Entry<Predicate<String>, byte[]> entry : requestToResponse.entrySet()) {
-          if (entry.getKey().test(requestString)) {
-            byte[] content = entry.getValue();
-            assertWithMessage("'" + method + " " + url + "'").that(content).isNotNull();
-            if (content.length == 0) {
-              // No content
-              response.setStatusCode(204);
-              return request;
+    httpTransport =
+        new MockHttpTransport() {
+          @Override
+          public LowLevelHttpRequest buildRequest(String method, String url) {
+            String requestString = method + " " + url;
+            MockLowLevelHttpRequest request = new MockLowLevelHttpRequest();
+            MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
+            request.setResponse(response);
+            for (Entry<Predicate<String>, byte[]> entry : requestToResponse.entrySet()) {
+              if (entry.getKey().test(requestString)) {
+                byte[] content = entry.getValue();
+                assertWithMessage("'" + method + " " + url + "'").that(content).isNotNull();
+                if (content.length == 0) {
+                  // No content
+                  response.setStatusCode(204);
+                  return request;
+                }
+                response.setContent(content);
+                return request;
+              }
             }
-            response.setContent(content);
+            response.setStatusCode(404);
+            response.setContent(("NO BASE_URL MATCHED! (Returning 404) REQUEST: " + requestString));
             return request;
           }
-        }
-        response.setStatusCode(404);
-        response.setContent(("NO BASE_URL MATCHED! (Returning 404) REQUEST: " + requestString));
-        return request;
-      }
-    };
+        };
 
-    GerritOptions gerritOptions = new GerritOptions(
-        options.general, options.git) {
-      @Override
-      protected HttpTransport getHttpTransport() {
-        return httpTransport;
-      }
+    GerritOptions gerritOptions =
+        new GerritOptions(options.general, options.git) {
+          @Override
+          protected HttpTransport getHttpTransport() {
+            return httpTransport;
+          }
 
-      @Override
-      protected GitRepository getCredentialsRepo() throws RepoException {
-        return repo;
-      }
-    };
+          @Override
+          protected GitRepository getCredentialsRepo() {
+            return repo;
+          }
+        };
     gerritApi = gerritOptions.newGerritApi(getHost() + "/foo/bar/baz");
   }
 
@@ -522,7 +522,7 @@ public class GerritApiTest {
     assertThat(info.getAccountId()).isEqualTo(42);
   }
 
-  public void mockResponse(Predicate<String> filter, String response) throws Exception {
+  private void mockResponse(Predicate<String> filter, String response) {
     requestToResponse.put(filter, response.getBytes(StandardCharsets.UTF_8));
   }
 

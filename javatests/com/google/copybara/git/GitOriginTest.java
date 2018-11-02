@@ -62,7 +62,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -104,7 +103,7 @@ public class GitOriginTest {
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
     Path userHomeForTest = Files.createTempDirectory("home");
-    options.setEnvironment(GitTestUtil.getGitEnv());
+    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
     options.setHomeDir(userHomeForTest.toString());
 
     createTestRepo(Files.createTempDirectory("remote"));
@@ -126,8 +125,9 @@ public class GitOriginTest {
 
   private void createTestRepo(Path folder) throws Exception {
     remote = folder;
-    repo = GitRepository.newRepo(true, remote, options.general.getEnvironment()).init(
-    );
+    repo =
+        GitRepository.newRepo(true, remote, new GitEnvironment(options.general.getEnvironment()))
+            .init();
   }
 
   private Reader<GitRevision> newReader() {

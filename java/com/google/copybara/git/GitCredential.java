@@ -23,7 +23,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.BadExitStatusException;
@@ -47,12 +46,12 @@ public final class GitCredential {
 
   private final String gitBinary;
   private final Duration timeout;
-  private final Map<String, String> env;
+  private final GitEnvironment gitEnv;
 
-  GitCredential(String gitBinary, Duration timeout, Map<String, String> env) {
+  GitCredential(String gitBinary, Duration timeout, GitEnvironment gitEnv) {
     this.gitBinary = Preconditions.checkNotNull(gitBinary);
     this.timeout = Preconditions.checkNotNull(timeout);
-    this.env = Preconditions.checkNotNull(env);
+    this.gitEnv = Preconditions.checkNotNull(gitEnv);
   }
 
   /**
@@ -67,11 +66,8 @@ public final class GitCredential {
    */
   public UserPassword fill(Path cwd, String url)
       throws RepoException, ValidationException {
-    Map<String, String> env = Maps.newHashMap(this.env);
+    Map<String, String> env = gitEnv.withNoGitPrompt().getEnvironment();
 
-    // Prevent from asking user for the password (It goes directly to the terminal, not to the
-    // passed InputStream/OutputStream.
-    env.put("GIT_TERMINAL_PROMPT", "0");
     URI uri;
 
     try {
@@ -111,7 +107,7 @@ public final class GitCredential {
         throw new ValidationException("Interactive prompting of passwords for git is disabled,"
             + " use git credential store before calling Copybara.");
       }
-      throw new RepoException("Error getting credentials:\n" + errStr,e );
+      throw new RepoException("Error getting credentials:\n" + errStr, e);
     } catch (CommandException e) {
       throw new RepoException("Error getting credentials", e);
     }

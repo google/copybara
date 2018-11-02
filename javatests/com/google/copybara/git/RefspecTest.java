@@ -20,14 +20,14 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static junit.framework.TestCase.fail;
 
+import com.google.common.collect.Maps;
+import java.nio.file.FileSystems;
+import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.nio.file.FileSystems;
-import java.util.Map;
 
 @RunWith(JUnit4.class)
 public class RefspecTest {
@@ -136,12 +136,11 @@ public class RefspecTest {
   }
 
   @Test
-  public void testGitBinaryNotFound() throws Exception {
-    Map<String, String> gitEnv = getGitEnv();
-    gitEnv.put("GIT_EXEC_PATH", "some_non_existent_path");
+  public void testGitBinaryNotFound() {
+    Map<String, String> env = Maps.newHashMap(getGitEnv().getEnvironment());
+    env.put("GIT_EXEC_PATH", "some_non_existent_path");
     try {
-      Refspec.create(gitEnv, FileSystems.getDefault().getPath("/"), "master"
-          /*location=*/);
+      Refspec.create(new GitEnvironment(env), FileSystems.getDefault().getPath("/"), "master");
       fail();
     } catch (InvalidRefspecException e) {
       assertThat(e.getMessage()).contains("Cannot find git binary at 'some_non_existent_path/git'");

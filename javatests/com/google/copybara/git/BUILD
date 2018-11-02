@@ -30,7 +30,7 @@ DEPS = [
     "//java/com/google/copybara/git:core",
     "//java/com/google/copybara/git/github:api",
     "//java/com/google/copybara/git/github:util",
-    "//java/com/google/copybara/git:exec_path",
+    "//java/com/google/copybara/git:environment",
     "//java/com/google/copybara/authoring",
     "//java/com/google/copybara/checks",
     "//java/com/google/copybara/git/testing",

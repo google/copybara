@@ -40,6 +40,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.FetchResult;
 import com.google.copybara.git.GerritOptions;
+import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.git.GitHubOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
@@ -160,7 +161,8 @@ public class GitTestUtil {
 
   public GitRepository mockRemoteRepo(String url) throws RepoException {
     // If this cast fails, it means you didn't call mockRemoteGitRepos first.
-    return ((GitOptionsForTest) optionsBuilder.git).mockRemoteRepo(url, getGitEnv());
+    return ((GitOptionsForTest) optionsBuilder.git)
+        .mockRemoteRepo(url, getGitEnv().getEnvironment());
   }
 
   public MockHttpTransport httpTransport() {
@@ -179,23 +181,19 @@ public class GitTestUtil {
     return when.thenReturn(request);
   }
 
-  public Map<String, String> getGitEnvironment() {
-    return getGitEnv();
-  }
-
   /**
    * Returns an environment that contains the System environment and a set of variables needed so
    * that test don't crash in environments where the author is not set
    *
    * <p>TODO(malcon, danielromero): Remove once all tests use GitTestUtil and internal extension.
    */
-  public static Map<String, String> getGitEnv() {
+  public static GitEnvironment getGitEnv() {
     HashMap<String, String> values = new HashMap<>(System.getenv());
     values.put("GIT_AUTHOR_NAME", DEFAULT_AUTHOR.getName());
     values.put("GIT_AUTHOR_EMAIL", DEFAULT_AUTHOR.getEmail());
     values.put("GIT_COMMITTER_NAME", COMMITER.getName());
     values.put("GIT_COMMITTER_EMAIL", COMMITER.getEmail());
-    return values;
+    return new GitEnvironment(values);
   }
 
   public static void createFakeGerritNodeDbMeta(GitRepository repo, int change, String changeId)
@@ -272,7 +270,8 @@ public class GitTestUtil {
 
     public GitRepository mockRemoteRepo(String url, Map<String, String> env) throws RepoException {
       GitRepository repo =
-          GitRepository.newBareRepo(httpsRepos.resolve(url), env, generalOptions.isVerbose());
+          GitRepository.newBareRepo(
+              httpsRepos.resolve(url), new GitEnvironment(env), generalOptions.isVerbose());
       repo.init();
       return repo;
     }
@@ -311,7 +310,11 @@ public class GitTestUtil {
     public RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
         Path httpsRepos, Validator validator, Set<String> mappingPrefixes,
         @Nullable String forcePushForRefspec) {
-      super(gitDir, workTree, generalOptions.isVerbose(), generalOptions.getEnvironment());
+      super(
+          gitDir,
+          workTree,
+          generalOptions.isVerbose(),
+          new GitEnvironment(generalOptions.getEnvironment()));
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
       this.validator = validator;

@@ -170,10 +170,10 @@ public class GitHubDestinationTest {
     return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true);
   }
 
-  private Map<String, String> getEnv() {
+  private GitEnvironment getEnv() {
     Map<String, String> env = Maps.newHashMap(options.general.getEnvironment());
-    env.putAll(getGitEnv());
-    return env;
+    env.putAll(getGitEnv().getEnvironment());
+    return new GitEnvironment(env);
   }
 
   private void process(Writer<GitRevision> writer, Glob destinationFiles, DummyRevision originRef)

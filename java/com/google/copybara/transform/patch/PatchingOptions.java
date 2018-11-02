@@ -16,7 +16,6 @@
 
 package com.google.copybara.transform.patch;
 
-import static com.google.copybara.git.GitExecPath.resolveGitBinary;
 import static com.google.copybara.util.DiffUtil.checkNotInsideGitRepo;
 
 import com.beust.jcommander.Parameter;
@@ -28,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
@@ -190,13 +190,14 @@ public class PatchingOptions implements Option {
       Map<String, String> environment, @Nullable Path gitDir)
       throws IOException, InsideGitDirException {
 
+    GitEnvironment gitEnv = new GitEnvironment(environment);
     if (gitDir == null) {
-      checkNotInsideGitRepo(rootDir, verbose, environment);
+      checkNotInsideGitRepo(rootDir, verbose, gitEnv);
     }
     ImmutableList.Builder<String> params = ImmutableList.builder();
 
     // Show verbose output unconditionally since it is helpful for debugging issues with patches.
-    params.add(resolveGitBinary(environment));
+    params.add(gitEnv.resolveGitBinary());
     if (gitDir != null) {
       params.add("--git-dir=" + gitDir.normalize().toAbsolutePath());
     }

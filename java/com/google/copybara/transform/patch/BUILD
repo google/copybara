@@ -29,7 +29,7 @@ java_library(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/doc:annotations",  # Keep it, needed for doc generation
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/git:exec_path",
+        "//java/com/google/copybara/git:environment",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",

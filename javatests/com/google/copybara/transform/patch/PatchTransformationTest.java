@@ -92,7 +92,7 @@ public class PatchTransformationTest {
             "series", ("diff.patch\n").getBytes(UTF_8));
     patchFile = new MapConfigFile(configFiles , "diff.patch");
     seriesFile = new MapConfigFile(configFiles, "series");
-    options.setEnvironment(GitTestUtil.getGitEnv());
+    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
     // In preparation to switch to the new default. PatchingOptionsTest has more coverage on this.
     options.patch.useGitApply = false;
     options.patch.skipVersionCheck = false;
@@ -112,7 +112,7 @@ public class PatchTransformationTest {
 
   @Test
   public void insideGitFolderTest() throws Exception {
-    GitRepository.newRepo(/*verbose=*/false, checkoutDir, options.general.getEnvironment()).init();
+    GitRepository.newRepo(/*verbose=*/ false, checkoutDir, GitTestUtil.getGitEnv()).init();
 
     Path foo = Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));

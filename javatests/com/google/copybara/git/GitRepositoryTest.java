@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.git.GitExecPath.resolveGitBinary;
 import static com.google.copybara.git.GitRepository.StatusCode.DELETED;
 import static com.google.copybara.git.GitRepository.StatusCode.MODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
@@ -522,14 +521,6 @@ public class GitRepositoryTest {
   }
 
   @Test
-  public void testGitBinaryResolution() throws Exception {
-    assertThat(resolveGitBinary(ImmutableMap.of()))
-        .isEqualTo("git");
-    assertThat(resolveGitBinary(ImmutableMap.of("GIT_EXEC_PATH", "/some/path")))
-        .isEqualTo("/some/path/git");
-  }
-
-  @Test
   public void validateUrl() throws Exception {
     doValidateUrl("ssh://git@github.com:foo/foo.git");
     doValidateUrl("https://github.com/foo/foo");
@@ -587,8 +578,11 @@ public class GitRepositoryTest {
     repository.simpleCommand("branch", "b1");
 
     Map<String, String> refsToShas =
-        GitRepository.lsRemote("file://" + repository.getGitDir(), Collections.emptyList(),
-            System.getenv(), /*maxLogLines*/-1);
+        GitRepository.lsRemote(
+            "file://" + repository.getGitDir(),
+            Collections.emptyList(),
+            new GitEnvironment(System.getenv()), /*maxLogLines*/
+            -1);
     assertThat(refsToShas.size()).isEqualTo(3);
     String headSha = refsToShas.get("HEAD");
     assertThat(refsToShas.get("refs/heads/b1")).isEqualTo(headSha);
@@ -599,8 +593,11 @@ public class GitRepositoryTest {
     repository.add().files("boo.txt").run();
     repository.simpleCommand("commit", "boo.txt", "-m", "message");
     refsToShas =
-        GitRepository.lsRemote("file://" + repository.getGitDir(), Collections.emptyList(),
-            System.getenv(), /*maxLogLines*/-1);
+        GitRepository.lsRemote(
+            "file://" + repository.getGitDir(),
+            Collections.emptyList(),
+            new GitEnvironment(System.getenv()), /*maxLogLines*/
+            -1);
     assertThat(refsToShas.size()).isEqualTo(3);
     assertThat(refsToShas.get("refs/heads/b1")).isNotEqualTo(headSha);
   }

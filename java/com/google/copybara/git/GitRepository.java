@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.copybara.git.GitExecPath.resolveGitBinary;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -45,14 +44,14 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.RepositoryUtil;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -149,44 +148,45 @@ public class GitRepository {
   private final Path workTree;
 
   private final boolean verbose;
-  private final Map<String, String> environment;
+  private final GitEnvironment gitEnv;
 
   private static final Map<Character, StatusCode> CHAR_TO_STATUS_CODE =
       Arrays.stream(StatusCode.values())
           .collect(Collectors.toMap(StatusCode::getCode, Function.identity()));
 
-  protected GitRepository(Path gitDir, @Nullable Path workTree, boolean verbose, Map<String,
-      String> environment) {
+  protected GitRepository(
+      Path gitDir, @Nullable Path workTree, boolean verbose, GitEnvironment gitEnv) {
     this.gitDir = checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
-    this.environment = checkNotNull(environment);
+    this.gitEnv = checkNotNull(gitEnv);
+  }
+
+  /** Creates a new repository in the given directory. The new repo is not bare. */
+  public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv) {
+    return new GitRepository(path.resolve(".git"), path, verbose, gitEnv);
+  }
+
+  /** Create a new bare repository */
+  public static GitRepository newBareRepo(Path gitDir, GitEnvironment gitEnv, boolean verbose) {
+    return new GitRepository(gitDir, /*workTree=*/ null, verbose, gitEnv);
   }
 
   /**
-   * Creates a new repository in the given directory. The new repo is not bare.
+   * Get the version of git that will be used for running migrations. Returns empty if git cannot be
+   * found.
+   *
+   * @param gitEnv
    */
-  public static GitRepository newRepo(boolean verbose, Path path,
-      Map<String, String> environment) {
-    return new GitRepository(path.resolve(".git"), path, verbose, environment);
-  }
-
-  /**
-   * Create a new bare repository
-   */
-  public static GitRepository newBareRepo(Path gitDir, Map<String, String> environment,
-      boolean verbose) {
-    return new GitRepository(gitDir, /*workTree=*/null, verbose, environment);
-  }
-
-  /**
-   * Get the version of git that will be used for running migrations. Returns empty
-   * if git cannot be found.
-   */
-  static Optional<String> version(Map<String, String> environment) {
+  private static Optional<String> version(GitEnvironment gitEnv) {
     try {
-      String version = executeGit(Paths.get(StandardSystemProperty.USER_DIR.value()),
-          ImmutableList.of("version"), environment, /*verbose=*/false).getStdout();
+      String version =
+          executeGit(
+                  Paths.get(StandardSystemProperty.USER_DIR.value()),
+                  ImmutableList.of("version"),
+                  gitEnv,
+                  /*verbose=*/ false)
+              .getStdout();
       return Optional.of(version);
     } catch (CommandException e) {
       return Optional.empty();
@@ -198,20 +198,22 @@ public class GitRepository {
    *
    * @throws InvalidRefspecException if the refspec is not valid
    */
-  static void validateRefSpec(Map<String, String> env, Path cwd, String refspec)
+  static void validateRefSpec(GitEnvironment gitEnv, Path cwd, String refspec)
       throws InvalidRefspecException {
     try {
-      executeGit(cwd,
+      executeGit(
+          cwd,
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
-          env,
-          /*verbose=*/false);
+          gitEnv,
+          /*verbose=*/ false);
     } catch (CommandException e) {
-      Optional<String> version = version(env);
+      Optional<String> version = version(gitEnv);
       throw new InvalidRefspecException(
           version
               .map(s -> "Invalid refspec: " + refspec)
               .orElseGet(
-                  () -> String.format("Cannot find git binary at '%s'", resolveGitBinary(env))));
+                  () ->
+                      String.format("Cannot find git binary at '%s'", gitEnv.resolveGitBinary())));
     }
   }
 
@@ -301,7 +303,7 @@ public class GitRepository {
    */
   public Refspec createRefSpec(String ref) throws ValidationException {
     // Validate refspec
-    return Refspec.create(environment, gitDir, ref);
+    return Refspec.create(gitEnv, gitDir, ref);
   }
 
   @CheckReturnValue
@@ -321,12 +323,12 @@ public class GitRepository {
    *
    * @param url - see <repository> in git help ls-remote
    * @param refs - see <refs> in git help ls-remote
-   * @param env - determines where the Git binaries are
+   * @param gitEnv - determines where the Git binaries are
    * @param maxLogLines - Limit log lines to the number specified. -1 for unlimited
    * @return - a map of refs to sha1 from the git ls-remote output.
    */
   public static Map<String, String> lsRemote(
-      String url, Collection<String> refs, Map<String, String> env, int maxLogLines)
+      String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
       throws RepoException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
@@ -340,7 +342,7 @@ public class GitRepository {
 
     CommandOutputWithStatus output;
     try {
-      output = executeGit(FileSystems.getDefault().getPath("."), args, env, false, maxLogLines);
+      output = executeGit(FileSystems.getDefault().getPath("."), args, gitEnv, false, maxLogLines);
     } catch (BadExitStatusWithOutputException e) {
       throw new RepoException(
           String.format("Error running ls-remote for '%s' and refs '%s': Exit code %s, Output:\n%s",
@@ -366,10 +368,11 @@ public class GitRepository {
   }
 
   /**
-   * Same as {@link #lsRemote(String, Collection, Map, int)} but using this repository environment
+   * Same as {@link #lsRemote(String, Collection, GitEnvironment, int)} but using this repository
+   * environment
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs) throws RepoException {
-    return lsRemote(url, refs, environment, /*maxlogLines*/ -1);
+    return lsRemote(url, refs, gitEnv, /*maxlogLines*/ -1);
   }
 
   @CheckReturnValue
@@ -446,7 +449,7 @@ public class GitRepository {
    * initialize or alter the given work tree.
    */
   public GitRepository withWorkTree(Path newWorkTree) {
-    return new GitRepository(this.gitDir, newWorkTree, this.verbose, this.environment);
+    return new GitRepository(this.gitDir, newWorkTree, this.verbose, this.gitEnv);
   }
 
   /**
@@ -850,7 +853,7 @@ public class GitRepository {
   }
 
   public UserPassword credentialFill(String url) throws RepoException, ValidationException {
-    return new GitCredential(resolveGitBinary(environment), Duration.ofMinutes(1), environment)
+    return new GitCredential(gitEnv.resolveGitBinary(), Duration.ofMinutes(1), gitEnv)
         .fill(gitDir, url);
   }
 
@@ -874,7 +877,7 @@ public class GitRepository {
     Iterable<String> params = addGitDirAndWorkTreeParams(Arrays.asList(argv));
     try {
       // Use maxLoglines 0 and verbose=false to avoid redirection
-      return executeGit(getCwd(), params, environment, /*verbose*/ false, /*maxLoglines*/ 0);
+      return executeGit(getCwd(), params, gitEnv, /*verbose*/ false, /*maxLoglines*/ 0);
     } catch (BadExitStatusWithOutputException e) {
       CommandOutputWithStatus output = e.getOutput();
 
@@ -940,7 +943,7 @@ public class GitRepository {
    */
   private CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
     try {
-      return executeGit(cwd, params, environment, verbose);
+      return executeGit(cwd, params, gitEnv, verbose);
     } catch (BadExitStatusWithOutputException e) {
       CommandOutputWithStatus output = e.getOutput();
 
@@ -977,10 +980,13 @@ public class GitRepository {
       throws RepoException {
     try {
       List<String> allParams = new ArrayList<>();
-      allParams.add(resolveGitBinary(environment));
+      allParams.add(gitEnv.resolveGitBinary());
       allParams.addAll(addGitDirAndWorkTreeParams(params));
-      Command cmd = new Command(
-          Iterables.toArray(allParams, String.class), environment, getCwd().toFile());
+      Command cmd =
+          new Command(
+              Iterables.toArray(allParams, String.class),
+              gitEnv.getEnvironment(),
+              getCwd().toFile());
       return new CommandRunner(cmd)
           .withVerbose(verbose)
           .withInput(stdin)
@@ -997,18 +1003,21 @@ public class GitRepository {
     }
   }
 
-  private static CommandOutputWithStatus executeGit(Path cwd, Iterable<String> params,
-      Map<String, String> env, boolean verbose) throws CommandException {
-    return executeGit(cwd, params, env, verbose, DEFAULT_MAX_LOG_LINES);
+  private static CommandOutputWithStatus executeGit(
+      Path cwd, Iterable<String> params, GitEnvironment gitEnv, boolean verbose)
+      throws CommandException {
+    return executeGit(cwd, params, gitEnv, verbose, DEFAULT_MAX_LOG_LINES);
   }
 
-  private static CommandOutputWithStatus executeGit(Path cwd, Iterable<String> params,
-      Map<String, String> env, boolean verbose, int maxLogLines) throws CommandException {
+  private static CommandOutputWithStatus executeGit(
+      Path cwd, Iterable<String> params, GitEnvironment gitEnv, boolean verbose, int maxLogLines)
+      throws CommandException {
     List<String> allParams = new ArrayList<>(Iterables.size(params) + 1);
-    allParams.add(resolveGitBinary(env));
+    allParams.add(gitEnv.resolveGitBinary());
     Iterables.addAll(allParams, params);
-    Command cmd = new Command(
-        Iterables.toArray(allParams, String.class), env, cwd.toFile());
+    Command cmd =
+        new Command(
+            Iterables.toArray(allParams, String.class), gitEnv.getEnvironment(), cwd.toFile());
     CommandRunner runner = new CommandRunner(cmd).withVerbose(verbose);
     return
         maxLogLines >= 0 ? runner.withMaxStdOutLogLines(maxLogLines).execute() : runner.execute();
