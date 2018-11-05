@@ -48,10 +48,10 @@ public class MapAuthor implements Transformation {
   private final ImmutableMap<String, Author> mailToAuthor;
   private final ImmutableMap<String, Author> nameToAuthor;
   private final boolean reversible;
-  private boolean noopReverse;
+  private final boolean noopReverse;
   private final boolean failIfNotFound;
   private final boolean failIfNotFoundInReverse;
-  private boolean mapAll;
+  private final boolean mapAll;
   private final Location location;
 
   private MapAuthor(Location location, ImmutableMap<String, String> authorToAuthor,

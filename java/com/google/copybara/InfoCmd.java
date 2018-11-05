@@ -31,9 +31,9 @@ import java.util.function.Consumer;
  */
 public class InfoCmd implements CopybaraCmd {
 
-  private ConfigValidator configValidator;
-  private Consumer<Migration> migrationRanConsumer;
-  private ConfigLoaderProvider configLoaderProvider;
+  private final ConfigValidator configValidator;
+  private final Consumer<Migration> migrationRanConsumer;
+  private final ConfigLoaderProvider configLoaderProvider;
 
   InfoCmd(ConfigValidator configValidator, Consumer<Migration> migrationRanConsumer,
       ConfigLoaderProvider configLoaderProvider) {
