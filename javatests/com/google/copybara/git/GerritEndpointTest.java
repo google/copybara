@@ -446,7 +446,7 @@ public class GerritEndpointTest {
     return feedback(
         ""
             + "def test_action(ctx):\n"
-            + "  c = ctx.destination.get_change(ctx.ref, include_results = ['LABELS'])\n"
+            + "  c = ctx.destination.get_change(ctx.refs[0], include_results = ['LABELS'])\n"
             + "  if c != None and c.id != None:\n"
             + "    ctx.origin.message('Change number ' + str(c.id))\n"
             + "  return ctx.success()\n"

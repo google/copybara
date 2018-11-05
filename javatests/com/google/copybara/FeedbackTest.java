@@ -118,7 +118,7 @@ public class FeedbackTest {
         feedback(
             ""
                 + "def test_action(ctx):\n"
-                + "    ctx.console.info('Ref: ' + str(ctx.ref))\n"
+                + "    ctx.console.info('Ref: ' + str(ctx.refs[0]))\n"
                 + "    return ctx.success()\n"
                 + "\n",
             "test_action");
@@ -136,7 +136,10 @@ public class FeedbackTest {
         feedback(
             ""
                 + "def test_action(ctx):\n"
-                + "    ctx.console.info('Ref: '+ str(ctx.ref))\n"
+                + "    ref = None\n"
+                + "    if len(ctx.refs) > 0:\n"
+                + "      ref = ctx.refs[0]\n"
+                + "    ctx.console.info('Ref: '+ str(ref))\n"
                 + "    return ctx.success()\n"
                 + "\n",
             "test_action");
