@@ -1442,7 +1442,6 @@ Name | Type | Description
 <nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 <nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
 <nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
-<nobr>`--git-destination-skip-push`</nobr> | *boolean* | If set, the tool will not push to the remote destination
 <nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
 <nobr>`--nogit-destination-rebase`</nobr> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
@@ -1506,7 +1505,6 @@ Name | Type | Description
 <nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 <nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
 <nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
-<nobr>`--git-destination-skip-push`</nobr> | *boolean* | If set, the tool will not push to the remote destination
 <nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
 <nobr>`--nogit-destination-rebase`</nobr> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
@@ -1609,7 +1607,6 @@ Name | Type | Description
 <nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 <nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
 <nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
-<nobr>`--git-destination-skip-push`</nobr> | *boolean* | If set, the tool will not push to the remote destination
 <nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
 <nobr>`--nogit-destination-rebase`</nobr> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
@@ -1708,7 +1705,6 @@ Name | Type | Description
 <nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
 <nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
 <nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
-<nobr>`--git-destination-skip-push`</nobr> | *boolean* | If set, the tool will not push to the remote destination
 <nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
 <nobr>`--github-destination-pr-branch`</nobr> | *string* | If set, uses this branch for creating the pull request instead of using a generated one
 <nobr>`--github-destination-pr-create`</nobr> | *boolean* | If the pull request should be created

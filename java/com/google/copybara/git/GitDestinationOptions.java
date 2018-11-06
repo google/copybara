@@ -86,7 +86,7 @@ public final class GitDestinationOptions implements Option {
   String localRepoPath = null;
 
   @Parameter(names = "--git-destination-skip-push",
-      description = "If set, the tool will not push to the remote destination")
+      description = "If set, the tool will not push to the remote destination", hidden = true)
   public boolean skipPush = false;
 
   @Parameter(names = "--git-destination-last-rev-first-parent",
