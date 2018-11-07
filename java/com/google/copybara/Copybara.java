@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
@@ -32,6 +33,7 @@ import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
 /**
@@ -41,6 +43,23 @@ import java.util.function.Consumer;
  * (command-line, service).
  */
 public class Copybara {
+
+  private static final int DATE_LENGTH = 19;
+  private static final int REVISION_LENGTH = 15;
+  private static final int DESCRIPTION_LENGTH = 80;
+  private static final int AUTHOR_LENGTH = 40;
+  private static final int TOTAL_LENGTH =
+      DATE_LENGTH + REVISION_LENGTH + DESCRIPTION_LENGTH + AUTHOR_LENGTH + 13;
+  private static final String COLUMN_FORMAT =
+      "| %-"
+          + DATE_LENGTH
+          + "s | %-"
+          + REVISION_LENGTH
+          + "s | %-"
+          + DESCRIPTION_LENGTH
+          + "s | %-"
+          + AUTHOR_LENGTH
+          + "s |";
 
   private final ConfigValidator configValidator;
   private final Consumer<Migration> migrationRanConsumer;
@@ -111,16 +130,24 @@ public class Copybara {
                 ? ""
                 : String.format(
                     " (showing only first %d out of %d)", outputLimit, availableToMigrate.size()));
-        int changeNumber = 1;
+
+        console.info(Strings.repeat("-", TOTAL_LENGTH));
+        console.info(String.format(COLUMN_FORMAT, "Date", "Revision", "Description", "Author"));
+        console.info(Strings.repeat("-", TOTAL_LENGTH));
         for (Change<? extends Revision> change :
             Iterables.limit(availableToMigrate, outputLimit)) {
           outputSize++;
-          console.info(String.format("%d - %s %s by %s",
-              changeNumber++,
-              change.getRevision().asString(),
-              change.firstLineMessage(),
-              change.getAuthor()));
+          String revision = change.getRevision().asString();
+          if (revision.length() > REVISION_LENGTH) {
+            revision = revision.substring(0, REVISION_LENGTH);
+          }
+          console.info(String.format(COLUMN_FORMAT,
+              change.getDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")),
+              revision,
+              trim(change.firstLineMessage(), DESCRIPTION_LENGTH),
+              trim(change.getAuthor().toString(), AUTHOR_LENGTH)));
         }
+        console.info(Strings.repeat("-", TOTAL_LENGTH));
       }
       // TODO(danielromero): Check flag usage on 2018-06 and decide if we keep it
       if (outputSize > 100) {
@@ -129,6 +156,13 @@ public class Copybara {
       }
     }
     options.get(GeneralOptions.class).eventMonitor().onInfoFinished(new InfoFinishedEvent(info));
+  }
+
+  private static String trim(String text, int size) {
+    if (text.length() <= size) {
+      return text;
+    }
+    return text.substring(0, size - 3) + "...";
   }
 
   /** Returns the {@link Info} of the {@code migrationName}. */

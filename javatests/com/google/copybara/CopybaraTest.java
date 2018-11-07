@@ -32,6 +32,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.Before;
@@ -84,7 +85,17 @@ public class CopybaraTest {
         MigrationReference.create(
             "workflow",
             new DummyRevision("1111"),
-            ImmutableList.of(newChange("2222"), newChange("3333")));
+            ImmutableList.of(
+                newChange(
+                    "2222",
+                    "First change",
+                    ZonedDateTime.ofInstant(
+                        Instant.ofEpochSecond(1541631979), ZoneId.of("-08:00"))),
+                newChange(
+                    "3333",
+                    "Second change",
+                    ZonedDateTime.ofInstant(
+                        Instant.ofEpochSecond(1541639979), ZoneId.of("-08:00")))));
     Info<? extends Revision> mockedInfo = Info.create(ImmutableList.of(workflow));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
 
@@ -95,15 +106,19 @@ public class CopybaraTest {
     assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
     console
         .assertThat()
-        .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available 3333.*");
+        .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available 3333.*")
+        .onceInLog(MessageType.INFO, ".*Date.*Revision.*Description.*Author.*")
+        .onceInLog(MessageType.INFO, ".*2018-11-07 03:06:19.*2222.*First change.*Foo <Bar>.*")
+        .onceInLog(MessageType.INFO, ".*2018-11-07 05:19:39.*3333.*Second change.*Foo <Bar>.*");
   }
 
-  private Change<DummyRevision> newChange(String revision) {
+  private Change<DummyRevision> newChange(
+      String revision, String description, ZonedDateTime dateTime) {
     return new Change<>(
         new DummyRevision(revision),
         new Author("Foo", "Bar"),
-        "Lorem Ipsum",
-        ZonedDateTime.now(ZoneId.systemDefault()),
+        description,
+        dateTime,
         ImmutableListMultimap.of());
   }
 }

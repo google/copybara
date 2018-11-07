@@ -289,11 +289,11 @@ EOF
   copybara info copy.bara.sky default
   expect_log "'workflow_default': last_migrated None - last_available $commit_five"
   expect_log "Available changes:"
-  expect_log "1 - $commit_one commit one by Bara Kopi <bara@kopi.com>"
-  expect_log "2 - $commit_two commit two by Bara Kopi <bara@kopi.com>"
-  expect_log "3 - $commit_three commit three by Bara Kopi <bara@kopi.com>"
-  expect_log "4 - $commit_four commit four by Bara Kopi <bara@kopi.com>"
-  expect_log "5 - $commit_five commit five by Bara Kopi <bara@kopi.com>"
+  expect_log ".*${commit_one:0:10}.*commit one.*Bara Kopi <bara@kopi.com>.*"
+  expect_log ".*${commit_two:0:10}.*commit two.*Bara Kopi <bara@kopi.com>.*"
+  expect_log ".*${commit_three:0:10}.*commit three.*Bara Kopi <bara@kopi.com>.*"
+  expect_log ".*${commit_four:0:10}.*commit four.*Bara Kopi <bara@kopi.com>.*"
+  expect_log ".*${commit_five:0:10}.*commit five.*Bara Kopi <bara@kopi.com>.*"
 
   copybara copy.bara.sky default $commit_one --force
 
@@ -302,10 +302,10 @@ EOF
   copybara info copy.bara.sky default
   expect_log "'workflow_default': last_migrated $commit_one - last_available $commit_five"
   expect_log "Available changes:"
-  expect_log "1 - $commit_two commit two by Bara Kopi <bara@kopi.com>"
-  expect_log "2 - $commit_three commit three by Bara Kopi <bara@kopi.com>"
-  expect_log "3 - $commit_four commit four by Bara Kopi <bara@kopi.com>"
-  expect_log "4 - $commit_five commit five by Bara Kopi <bara@kopi.com>"
+  expect_log ".*${commit_two:0:10}.*commit two.*Bara Kopi <bara@kopi.com>.*"
+  expect_log ".*${commit_three:0:10}.*commit three.*Bara Kopi <bara@kopi.com>.*"
+  expect_log ".*${commit_four:0:10}.*commit four.*Bara Kopi <bara@kopi.com>.*"
+  expect_log ".*${commit_five:0:10}.*commit five.*Bara Kopi <bara@kopi.com>.*"
 
   ( cd $destination || return
     run_git log master~1..master > $TEST_log
@@ -319,7 +319,7 @@ EOF
   copybara info copy.bara.sky default
   expect_log "'workflow_default': last_migrated $commit_four - last_available $commit_five"
   expect_log "Available changes:"
-  expect_log "1 - $commit_five commit five by Bara Kopi <bara@kopi.com>"
+  expect_log ".*${commit_five:0:10}.*commit five.*Bara Kopi <bara@kopi.com>.*"
 
   check_copybara_rev_id "$destination" "$commit_four"
 
