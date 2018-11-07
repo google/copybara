@@ -18,28 +18,45 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.testing.git.GitTestUtil.mockNotFoundResponse;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
+import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static junit.framework.TestCase.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.copybara.Change;
+import com.google.copybara.Changes;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Map;
+import java.util.Map.Entry;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,11 +75,11 @@ public class GitHubDestinationTest {
   private String push;
   private boolean force;
 
-  private Path repoGitDir;
   private Glob destinationFiles;
   private Path workdir;
   private boolean skipPush;
-
+  private GitTestUtil gitUtil;
+  private GitRepository remote;
   @Before
   public void setup() throws Exception {
     console = new TestingConsole();
@@ -70,32 +87,32 @@ public class GitHubDestinationTest {
         new OptionsBuilder()
             .setConsole(console)
             .setOutputRootToTmpDir();
-    skylark = new SkylarkTestExecutor(options);
-    repoGitDir = Files.createTempDirectory("GitHubDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
-
-    git("init", "--bare", repoGitDir.toString());
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"));
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
+    remote = gitUtil.mockRemoteRepo("github.com/foo");
+    options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
-    destinationFiles = Glob.createGlob(ImmutableList.of("**"));
-
-    url = "file://" + repoGitDir;
-    skylark = new SkylarkTestExecutor(options);
+    url = "https://github.com/foo";
     force = false;
     skipPush = false;
+    fetch = "master";
+    push = "master";
+    skylark = new SkylarkTestExecutor(options);
   }
 
   @Test
   public void testDryRun() throws Exception {
     fetch = "master";
     push = "master";
-
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-
-    Path scratchTree = Files.createTempDirectory("GitHubDestinationTest-testLocalRepo");
-    Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
-    repo().withWorkTree(scratchTree).add().force().files("foo").run();
-    repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
+    addFiles(
+        remote,
+        "master",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+    remote.simpleCommand("branch", "other");
     WriterContext writerContext =
         new WriterContext(
             "piper_to_github",
@@ -105,15 +122,14 @@ public class GitHubDestinationTest {
     Writer<GitRevision> writer = destination().newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
 
-    GitTesting.assertThatCheckout(repo(), "master")
-        .containsFile("foo", "foo\n")
+    GitTesting.assertThatCheckout(remote, "master")
+        .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
-
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     // Run again without dry run
     writer = newWriter();
     process(writer, new DummyRevision("origin_ref1"));
-
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(remote, "master")
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
   }
@@ -124,6 +140,227 @@ public class GitHubDestinationTest {
         + "    url = 'http://github.com/foo', \n"
         + ")");
     assertThat(d.describe(Glob.ALL_FILES).get("url")).contains("https://github.com/foo");
+  }
+
+  @Test
+  public void testPrToUpdateWithRegularString() throws Exception {
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/git/refs/other",
+        mockResponse(
+            "{\n"
+                + "\"ref\" : \"refs/heads/test_existing_pr\",\n"
+                + "\"node_id\" : \"MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==\",\n"
+                + "\"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_pr\",\n"
+                + "\"object\" : {\n"
+                + "         \"type\" : \"commit\",\n"
+                + "         \"sha\" : \"aa218f56b14c9653891f9e74264a383fa43fefbd\",\n"
+                + "         \"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
+                + "       }\n"
+                + "}"));
+    addFiles(
+        remote,
+        "master",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+    remote.simpleCommand("branch", "other");
+    GitTesting.assertThatCheckout(remote, "master")
+        .containsFile("foo.txt", "foo")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(remote, "other")
+        .containsFile("foo.txt", "foo")
+        .containsNoMoreFiles();
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github",
+            "test",
+            /*dryRun=*/ false,
+            new DummyRevision("origin_ref1"));
+    writeFile(this.workdir, "test.txt", "some content");
+    Writer<GitRevision> writer =
+        destinationWithExistingPrBranch("other").newWriter(writerContext);
+    process(writer, new DummyRevision("origin_ref1"));
+    GitTesting.assertThatCheckout(remote, "master")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(remote, "other")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testPrToUpdateWithLabel() throws Exception {
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/git/refs/other_12345",
+        mockResponse(
+            "{\n"
+              + "\"ref\" : \"refs/heads/test_existing_12345_pr\",\n"
+              + "\"node_id\" : \"MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==\",\n"
+              + "\"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_12345_pr\",\n"
+              + "\"object\" : {\n"
+                + "         \"type\" : \"commit\",\n"
+                + "         \"sha\" : \"aa218f56b14c9653891f9e74264a383fa43fefbd\",\n"
+                + "         \"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
+                + "       }\n"
+            + "}"));
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/git/refs/other_6789",
+        mockResponse(
+            "{\n"
+                + "\"ref\" : \"refs/heads/test_existing_6789_pr\",\n"
+                + "\"node_id\" : \"MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==\",\n"
+                + "\"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_6789_pr\",\n"
+                + "\"object\" : {\n"
+                + "         \"type\" : \"commit\",\n"
+                + "         \"sha\" : \"aa218f56b14c9653891f9e74264a383fa43fefbd\",\n"
+                + "         \"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
+                + "       }\n"
+                + "}"));
+    addFiles(
+        remote,
+        "master",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+    remote.simpleCommand("branch", "other_12345");
+    remote.simpleCommand("branch", "other_6789");
+    GitTesting.assertThatCheckout(remote, "master")
+        .containsFile("foo.txt", "foo")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(remote, "other_12345")
+        .containsFile("foo.txt", "foo")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(remote, "other_6789")
+        .containsFile("foo.txt", "foo")
+        .containsNoMoreFiles();
+
+    writeFile(this.workdir, "test.txt", "some content");
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github",
+            "test",
+            /*dryRun=*/ false,
+            new DummyRevision("origin_ref1"));
+    Writer<GitRevision> writer = destinationWithExistingPrBranch("other_${my_label}").newWriter(writerContext);
+    process(writer, new DummyRevision("origin_ref1"));
+    GitTesting.assertThatCheckout(remote, "master")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(remote, "other_12345")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(remote, "other_6789")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testWithRefsNotFound() throws Exception {
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/git/refs/other_12345",
+        mockNotFoundResponse(
+            "{\n"
+                + "\"message\" : \"Not Found\",\n"
+                + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
+                + "}"));
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/git/refs/other_6789",
+        mockNotFoundResponse(
+            "{\n"
+                + "\"message\" : \"Not Found\",\n"
+                + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
+                + "}"));
+    addFiles(
+        remote,
+        "master",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+    GitTesting.assertThatCheckout(remote, "master")
+        .containsFile("foo.txt", "foo")
+        .containsNoMoreFiles();
+    writeFile(this.workdir, "test.txt", "some content");
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github",
+            "test",
+            /*dryRun=*/ false,
+            new DummyRevision("origin_ref1"));
+    Writer<GitRevision> writer = destinationWithExistingPrBranch("other_${my_label}").newWriter(writerContext);
+    process(writer, new DummyRevision("origin_ref1"));
+    GitTesting.assertThatCheckout(remote, "master")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+    console.assertThat().onceInLog(MessageType.INFO, "Branch other_12345 does not exist");
+    console.assertThat().onceInLog(MessageType.INFO, "Branch other_6789 does not exist");
+  }
+
+  @Test
+  public void testWithGitHubApiError() throws Exception {
+    try {
+      gitUtil.mockApi("GET",
+          "https://api.github.com/repos/foo/git/refs/other_12345",
+          mockResponseWithStatus("", 403, any -> true));
+      gitUtil.mockApi("GET",
+          "https://api.github.com/repos/foo/git/refs/other_6789",
+          mockResponseWithStatus("", 403, any -> true));
+      addFiles(
+          remote,
+          "master",
+          "first change",
+          ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+      WriterContext writerContext =
+          new WriterContext(
+              "piper_to_github",
+              "test",
+              /*dryRun=*/ false,
+              new DummyRevision("origin_ref1"));
+      Writer<GitRevision> writer = destinationWithExistingPrBranch("other_${my_label}").newWriter(writerContext);
+      process(writer, new DummyRevision("origin_ref1"));
+      fail();
+    } catch (GitHubApiException e) {
+      Assert.assertTrue(e.getHttpCode() == 403);
+    }
+  }
+
+  @Test
+  public void testWithLabelNotFound() throws Exception {
+    try {
+      addFiles(
+          remote,
+          "master",
+          "first change",
+          ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+      WriterContext writerContext =
+          new WriterContext(
+              "piper_to_github",
+              "test",
+              /*dryRun=*/ false,
+              new DummyRevision("origin_ref1"));
+      Writer<GitRevision> writer = destinationWithExistingPrBranch("other_${no_such_label}").newWriter(writerContext);
+      process(writer, new DummyRevision("origin_ref1"));
+      fail();
+    } catch (ValidationException e) {
+      Assert.assertTrue(e.getMessage().contains("Template 'other_${no_such_label}' has an error"));
+    }
+  }
+
+  private void addFiles(GitRepository remote, String branch, String msg, Map<String, String> files)
+      throws IOException, RepoException {
+    Path temp = Files.createTempDirectory("temp");
+    GitRepository tmpRepo = remote.withWorkTree(temp);
+    if (branch != null) {
+      if (tmpRepo.refExists(branch)) {
+        tmpRepo.simpleCommand("checkout", branch);
+      } else if (!branch.equals("master")) {
+        tmpRepo.simpleCommand("branch", branch);
+        tmpRepo.simpleCommand("checkout", branch);
+      }
+    }
+    for (Entry<String, String> entry : files.entrySet()) {
+      Path file = temp.resolve(entry.getKey());
+      Files.createDirectories(file.getParent());
+      Files.write(file, entry.getValue().getBytes(UTF_8));
+    }
+    tmpRepo.add().all().run();
+    tmpRepo.simpleCommand("commit", "-m", msg);
   }
 
   private void process(Writer<GitRevision> writer, DummyRevision ref)
@@ -156,18 +393,17 @@ public class GitHubDestinationTest {
     return evalDestination();
   }
 
-  private String git(String... argv) throws RepoException {
-    return repo()
-        .git(repoGitDir, argv)
-        .getStdout();
-  }
-
-  private GitRepository repo() {
-    return repoForPath(repoGitDir);
-  }
-
-  private GitRepository repoForPath(Path path) {
-    return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true);
+  private GitDestination destinationWithExistingPrBranch(String prBranchToUpdate)
+      throws ValidationException {
+    options.setForce(force);
+    return skylark.eval("result",
+        String.format("result = git.github_destination(\n"
+            + "    url = '%s',\n"
+            + "    fetch = '%s',\n"
+            + "    push = '%s',\n"
+            + "    skip_push = %s,\n"
+            + "    pr_branch_to_update = \'" + prBranchToUpdate + "\',\n"
+            + ")", url, fetch, push, skipPush ? "True" : "False"));
   }
 
   private GitEnvironment getEnv() {
@@ -200,6 +436,14 @@ public class GitHubDestinationTest {
     if (askForConfirmation) {
       result = result.withAskForConfirmation(true);
     }
+    Changes changes = new Changes(
+        ImmutableList.of(
+            new Change<>(originRef, new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "12345")),
+            new Change<>(originRef, new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "6789"))),
+        ImmutableList.of());
+    result = result.withChanges(changes);
     ImmutableList<DestinationEffect> destinationResult =
         writer.write(result, destinationFiles, console);
     assertThat(destinationResult).hasSize(1);

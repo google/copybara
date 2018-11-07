@@ -51,6 +51,7 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
+import com.google.copybara.git.GitHubWriteHook;
 import com.google.copybara.git.GitHubPROrigin.ReviewState;
 import com.google.copybara.git.GitHubPROrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
@@ -606,6 +607,17 @@ public class GitModule implements LabelsAwareModule {
               doc = "Indicates the ref from which to get the parent commit. Defaults to push value"
                   + " if None",
               defaultValue = "None", noneable = true),
+          @Param(name = "pr_branch_to_update", type = String.class, named = true,
+              doc = "A template string that refers to a pull request branch in the same repository "
+                  + "will be updated to current commit of this push branch only if "
+                  + "pr_branch_to_update exists. The reason behind this field is that presubmiting "
+                  + "changes creates and leaves a pull request open. By using this, we can "
+                  + "automerge/close this type of pull requests. As a result, users will see this "
+                  + "pr_branch_to_update as merged to this push branch. Usage: "
+                  + "Users can use a string or a string with a label. For instance "
+                  + "${label}_pr_branch_name. And the value of label must be in changes' label list. "
+                  + "Otherwise, nothing will happen.",
+              defaultValue = "None", noneable = true),
           @Param(name = "skip_push", type = Boolean.class, defaultValue = "None", named = true,
               noneable = true, doc = SKIP_PUSH_DEPRECATION_DOC),
           @Param(name = "integrates", type = SkylarkList.class, named = true,
@@ -617,16 +629,17 @@ public class GitModule implements LabelsAwareModule {
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public GitDestination gitHubDestination(String url, String push, Object fetch,
-      Object skipPush, Object integrates, Location location)
+      Object prBranchToUpdate, Object skipPush, Object integrates, Location location)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
         "push", location);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     warnDeprecation(skipPush, destinationOptions.skipPush);
+    String repoUrl = fixHttp(checkNotEmpty(
+        firstNotNull(destinationOptions.url, url), "url", location), location);
     return new GitDestination(
-        fixHttp(checkNotEmpty(
-            firstNotNull(destinationOptions.url, url), "url", location), location),
+        repoUrl,
         checkNotEmpty(
             firstNotNull(destinationOptions.fetch,
                 convertFromNoneable(fetch, null),
@@ -637,7 +650,12 @@ public class GitModule implements LabelsAwareModule {
         options.get(GitOptions.class),
         generalOptions,
         convertFromNoneable(skipPush, Boolean.FALSE),
-        new DefaultWriteHook(),
+        new GitHubWriteHook(
+            generalOptions,
+            repoUrl,
+            options.get(GitHubOptions.class),
+            convertFromNoneable(prBranchToUpdate, null),
+            getGeneralConsole()),
         SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"));
   }

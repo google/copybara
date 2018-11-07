@@ -79,6 +79,10 @@ public class GitTestUtil {
     return mockResponseWithStatus(responseContent, 200, requestValidator);
   }
 
+  public static LowLevelHttpRequest mockNotFoundResponse(String responseContent) {
+    return mockResponseWithStatus(responseContent, 404, any -> true);
+  }
+
   public static LowLevelHttpRequest mockResponseWithStatus(
       String responseContent, int status, Predicate<String> requestValidator) {
     return new MockLowLevelHttpRequest() {

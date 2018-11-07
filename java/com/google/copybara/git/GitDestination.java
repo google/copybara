@@ -352,8 +352,8 @@ public final class GitDestination implements Destination<GitRevision> {
        * git repo should keep current commit as HEAD or do the proper modifications to make HEAD to
        * point to a new/modified changes(s).
        */
-      default void beforePush(GitRepository repo, MessageInfo messageInfo, boolean skipPush)
-          throws RepoException, ValidationException { }
+      default void beforePush(GitRepository repo, MessageInfo messageInfo, boolean skipPush,
+          List<? extends Change<?>> originChanges) throws RepoException, ValidationException { }
 
       /**
        * Construct the reference to push based on the pushToRefsFor reference. Implementations of
@@ -369,6 +369,10 @@ public final class GitDestination implements Destination<GitRevision> {
 
       default Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         return Endpoint.NOOP_ENDPOINT;
+      }
+
+      default ImmutableSetMultimap<String, String> describe() {
+        return ImmutableSetMultimap.of();
       }
     }
 
@@ -509,13 +513,10 @@ public final class GitDestination implements Destination<GitRevision> {
         }
       }
 
-      // We run the hook before skip-push check so that we can do validations that should happen
-      // in dry-run mode.
-      writeHook.beforePush(scratchClone, messageInfo, skipPush);
-
       GitRevision head = scratchClone.resolveReference("HEAD");
-
       SkylarkList<? extends Change<?>> originChanges = transformResult.getChanges().getCurrent();
+      // BeforePush will update existing PRs in github if skip push is not true
+      writeHook.beforePush(scratchClone, messageInfo, skipPush, originChanges);
       if (skipPush) {
         console.infoFmt(
             "Git Destination: skipped push to remote. Check the local commits at %s",
@@ -661,6 +662,7 @@ public final class GitDestination implements Destination<GitRevision> {
     if (skipPushDEPRECATED) {
       builder.put("skip_push", "" + skipPushDEPRECATED);
     }
+    builder.putAll(writerHook.describe());
     return builder.build();
   }
 

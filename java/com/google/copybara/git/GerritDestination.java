@@ -174,8 +174,8 @@ public final class GerritDestination implements Destination<GitRevision> {
     }
 
     @Override
-    public void beforePush(GitRepository repo, MessageInfo messageInfo,
-        boolean skipPush) throws RepoException, ValidationException {
+    public void beforePush(GitRepository repo, MessageInfo messageInfo, boolean skipPush,
+        List<? extends Change<?>> originChanges) throws RepoException, ValidationException {
       GerritMessageInfo gerritMessageInfo = (GerritMessageInfo) messageInfo;
       if (allowEmptyDiffPatchSet || gerritMessageInfo.newReview) {
         return;
