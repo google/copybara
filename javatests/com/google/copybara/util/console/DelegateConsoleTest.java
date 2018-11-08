@@ -36,7 +36,7 @@ public class DelegateConsoleTest {
     DelegateConsole delegating =
         new DelegateConsole(delegate) {
           @Override
-          void handleMessage(MessageType type, String message) {
+          protected void handleMessage(MessageType type, String message) {
             messages.add(new Message(type, message));
           }
         };

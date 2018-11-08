@@ -71,7 +71,7 @@ public class CapturingConsole extends DelegateConsole {
   }
 
   @Override
-  synchronized void handleMessage(MessageType type, String message) {
+  protected synchronized void handleMessage(MessageType type, String message) {
     if (captureTypes.contains(type)) {
       messages.add(new Message(type, message));
     }

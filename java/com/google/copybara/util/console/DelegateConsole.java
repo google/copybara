@@ -31,7 +31,7 @@ public abstract class DelegateConsole implements Console {
 
   private final Console delegate;
 
-  DelegateConsole(Console delegate) {
+  protected DelegateConsole(Console delegate) {
     this.delegate = Preconditions.checkNotNull(delegate);
   }
 
@@ -92,5 +92,5 @@ public abstract class DelegateConsole implements Console {
   }
 
   /** Handle the message type and contents. */
-  abstract void handleMessage(MessageType info, String message);
+  abstract protected void handleMessage(MessageType info, String message);
 }
