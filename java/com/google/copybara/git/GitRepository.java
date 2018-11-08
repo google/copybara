@@ -264,6 +264,8 @@ public class GitRepository {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
     args.add("--verbose");
+    // This shows progress in the log if not attached to a terminal
+    args.add("--progress");
     if (prune) {
       args.add("-p");
     }
@@ -470,6 +472,9 @@ public class GitRepository {
    */
   protected String runPush(PushCmd pushCmd) throws RepoException, ValidationException {
     List<String> cmd = Lists.newArrayList("push");
+
+    // This shows progress in the log if not attached to a terminal
+    cmd.add("--progress");
 
     if (pushCmd.prune) {
       cmd.add("--prune");
