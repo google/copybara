@@ -962,7 +962,6 @@ destination | An object representing the destination. Can be used to query or mo
 feedback_name | The name of the Feedback migration calling this action.
 origin | An object representing the origin. Can be used to query about the ref or modifying the origin state
 params | Parameters for the function if created with core.dynamic_feedback
-ref | DEPRECATED. Use refs instead.
 refs | A list containing string representations of the entities that triggered the event
 
 <a id="feedback.context.error" aria-hidden="true"></a>

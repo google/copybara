@@ -84,14 +84,6 @@ public class FeedbackMigrationContext extends FeedbackContext {
     return feedback.getName();
   }
 
-  @SkylarkCallable(name = "ref", doc = "DEPRECATED. Use refs instead.", structField = true, allowReturnNones = true)
-  public String getRef() {
-    if (refs.isEmpty()) {
-      return null;
-    }
-    return refs.get(0);
-  }
-
   @SkylarkCallable(name = "refs", doc = "A list containing string representations of the entities "
       + "that triggered the event", structField = true)
   public SkylarkList<String> getRefs() {
