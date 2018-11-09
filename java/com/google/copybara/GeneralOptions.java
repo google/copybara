@@ -324,6 +324,17 @@ public final class GeneralOptions implements Option {
       description = "If set, write the console output also to the given file path.")
   String consoleFilePath;
 
+  static final String CONSOLE_FILE_FLUSH_RATE = "--console-file-flush-rate";
+
+  // This flag is read before we parse the arguments, because of the console lifecycle
+  @SuppressWarnings("unused")
+  @Parameter(
+      names = CONSOLE_FILE_FLUSH_RATE,
+      description =
+          "How often in number of lines to flush the console to the output file. "
+              + "If set to 0 console will be flushed only at the end.")
+  int consoleFileFlushRate = 100;
+
   @Parameter(names = DRY_RUN_FLAG,
       description = "Run the migration in dry-run mode. Some destination implementations might"
           + " have some side effects (like creating a code review), but never submit to a main"

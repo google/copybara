@@ -55,7 +55,7 @@ public class FileConsoleTest {
 
   private void runTest(Path file) throws IOException {
     TestingConsole delegate = new TestingConsole();
-    try (FileConsole fileConsole = new FileConsole(delegate, file)) {
+    try (FileConsole fileConsole = new FileConsole(delegate, file, /*consoleFlushRate*/ 0)) {
       fileConsole.startupMessage("v1");
       fileConsole.info("This is info");
       fileConsole.warn("This is warning");
@@ -82,5 +82,60 @@ public class FileConsoleTest {
         .matchesNext(MessageType.ERROR, "This is error")
         .matchesNext(MessageType.VERBOSE, "This is verbose")
         .matchesNext(MessageType.PROGRESS, "This is progress");
+  }
+
+  @Test
+  public void testFlushingFrequency() throws Exception {
+    TestingConsole delegate = new TestingConsole();
+    try (FileConsole fileConsole = new FileConsole(delegate, file, /*consoleFlushRate*/ 5)) {
+      fileConsole.startupMessage("v1");
+      fileConsole.info("This is info");
+      fileConsole.warn("This is warning");
+      assertThat(Files.readAllLines(file)).isEmpty();
+      fileConsole.error("This is error");
+      fileConsole.verbose("This is verbose");
+      assertThat(Files.readAllLines(file))
+          .containsExactly(
+              "INFO: Copybara source mover (Version: v1)",
+              "INFO: This is info",
+              "WARNING: This is warning",
+              "ERROR: This is error",
+              "VERBOSE: This is verbose");
+      fileConsole.progress("This is progress");
+    }
+
+    List<String> lines = Files.readAllLines(file);
+    assertThat(lines)
+        .containsExactly(
+            "INFO: Copybara source mover (Version: v1)",
+            "INFO: This is info",
+            "WARNING: This is warning",
+            "ERROR: This is error",
+            "VERBOSE: This is verbose",
+            "PROGRESS: This is progress");
+  }
+
+  @Test
+  public void testFlushingFrequency_disabled() throws Exception {
+    TestingConsole delegate = new TestingConsole();
+    try (FileConsole fileConsole = new FileConsole(delegate, file, /*consoleFlushRate*/ 0)) {
+      fileConsole.startupMessage("v1");
+      fileConsole.info("This is info");
+      fileConsole.warn("This is warning");
+      fileConsole.error("This is error");
+      fileConsole.verbose("This is verbose");
+      fileConsole.progress("This is progress");
+      assertThat(Files.readAllLines(file)).isEmpty();
+    }
+
+    List<String> lines = Files.readAllLines(file);
+    assertThat(lines)
+        .containsExactly(
+            "INFO: Copybara source mover (Version: v1)",
+            "INFO: This is info",
+            "WARNING: This is warning",
+            "ERROR: This is error",
+            "VERBOSE: This is verbose",
+            "PROGRESS: This is progress");
   }
 }

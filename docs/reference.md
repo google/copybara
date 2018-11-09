@@ -430,6 +430,7 @@ Core functionality for creating migrations, and basic transformations.
 Name | Type | Description
 ---- | ---- | -----------
 <nobr>`--config-root`</nobr> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
+<nobr>`--console-file-flush-rate`</nobr> | *int* | How often in number of lines to flush the console to the output file. If set to 0 console will be flushed only at the end.
 <nobr>`--console-file-path`</nobr> | *string* | If set, write the console output also to the given file path.
 <nobr>`--disable-reversible-check`</nobr> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <nobr>`--dry-run`</nobr> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.

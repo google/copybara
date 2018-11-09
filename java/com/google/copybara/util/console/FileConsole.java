@@ -43,19 +43,23 @@ public class FileConsole extends DelegateConsole {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   protected final Path filePath;
+  private final int consoleFlushRate;
 
+  private int messageCount = 0;
   private boolean failed = false;
   @Nullable private Writer writer;
 
   /**
    * Creates a new {@link FileConsole}.
    *
-   * @param delegate A delegate console
+   *  @param delegate A delegate console
    * @param filePath A file path to write to. The parent directories must be created in advance.
+   * @param consoleFlushRate How often (in number of messages) to flush this file console.
    */
-  public FileConsole(Console delegate, Path filePath) {
+  public FileConsole(Console delegate, Path filePath, int consoleFlushRate) {
     super(delegate);
     this.filePath = Preconditions.checkNotNull(filePath);
+    this.consoleFlushRate = consoleFlushRate;
   }
 
   @Override
@@ -63,6 +67,7 @@ public class FileConsole extends DelegateConsole {
     if (failed) {
       return;
     }
+    messageCount++;
 
     Writer writer = getWriter();
     if (writer == null) {
@@ -70,6 +75,9 @@ public class FileConsole extends DelegateConsole {
     }
     try {
       writer.append(String.format("%s: %s\n", type, message));
+      if (consoleFlushRate > 0 && messageCount % consoleFlushRate == 0) {
+        writer.flush();
+      }
     } catch (IOException e) {
       failed = true;
       logger.atSevere().withCause(e).log(

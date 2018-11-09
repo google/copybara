@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.flogger.FluentLogger;
+import com.google.common.primitives.Ints;
 import com.google.copybara.MainArguments.CommandWithArgs;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
@@ -380,7 +381,23 @@ public class Main {
           consoleFilePath);
       return console;
     }
-    return new FileConsole(console, consoleFilePath);
+    return new FileConsole(console, consoleFilePath, getConsoleFlushRate(args));
+  }
+
+  /**
+   * Returns the console flush rate from the flag, if present and valid, or 0 (no flush) otherwise.
+   */
+  protected int getConsoleFlushRate(String[] args) {
+    Optional<String> maybeConsoleFlushRate =
+        findFlagValue(args, GeneralOptions.CONSOLE_FILE_FLUSH_RATE);
+    int consoleFlushRate = 0;
+    if (maybeConsoleFlushRate.isPresent()) {
+      Integer parsed = Ints.tryParse(maybeConsoleFlushRate.get());
+      if (parsed != null && parsed >= 0) {
+        consoleFlushRate = parsed;
+      }
+    }
+    return consoleFlushRate;
   }
 
   protected void configureLog(FileSystem fs) throws IOException {
