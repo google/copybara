@@ -95,15 +95,27 @@ public class GlobTest {
     assertThat(matcher.matches(workdir.resolve("foo/bar/baz/a"))).isTrue();
   }
 
+  // TODO(malcon): Update to only the latter error message after CL/220352711.
   @Test
   public void errorForMissingInclude() throws Exception {
-    skylark.evalFails("glob(exclude = ['foo'])", "missing mandatory positional argument 'include'");
-    skylark.evalFails("glob()", "missing mandatory positional argument 'include'");
+    skylark.evalFails("glob(exclude = ['foo'])",
+        "((missing mandatory positional argument 'include')"
+            + "|(parameter 'include' has no default value))");
   }
 
+  // TODO(malcon): Update to only the latter error message after CL/220352711.
+  @Test
+  public void errorForMissingParams() throws Exception {
+    skylark.evalFails("glob()", "((insufficient arguments received by glob)"
+            + "|(parameter 'include' has no default value))");
+  }
+
+  // TODO(malcon): Update to only the latter error message after CL/220352711.
   @Test
   public void errorForNotNamingExclude() throws Exception {
-    skylark.evalFails("glob(['bar/*'], ['bar/foo'])", "too many [(]2[)] positional arguments");
+    skylark.evalFails("glob(['bar/*'], ['bar/foo'])",
+        "((too many [(]2[)] positional arguments)"
+            + "|(expected no more than 1 positional arguments, but got 2, in call to glob))");
   }
 
   @Test
