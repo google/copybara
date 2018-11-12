@@ -43,7 +43,16 @@ public class Scrubber implements Transformation {
   public void transform(TransformWork work)
       throws IOException, ValidationException {
     try {
-      work.setMessage(pattern.matcher(work.getMessage()).replaceAll(replacement));
+      String scrubbedMessage = pattern.matcher(work.getMessage()).replaceAll(replacement);
+      if (!work.getMessage().equals(scrubbedMessage)) {
+        work.getConsole()
+            .verboseFmt(
+                "Scrubbed change description '%s' by '%s'", work.getMessage(), scrubbedMessage);
+      } else {
+        work.getConsole()
+            .verboseFmt("Scrubber didn't match the change description: %s", work.getMessage());
+      }
+      work.setMessage(scrubbedMessage);
     } catch (IndexOutOfBoundsException e) {
       throw new ValidationException(
           e,
