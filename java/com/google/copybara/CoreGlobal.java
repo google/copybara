@@ -42,6 +42,7 @@ public class CoreGlobal {
           + " pattern in include and does not match any of the patterns in exclude.",
       parameters = {
           @Param(name = "include", type = SkylarkList.class,
+              named = true,
               generic1 = String.class, doc = "The list of glob patterns to include"),
           @Param(name = "exclude", type = SkylarkList.class,
               generic1 = String.class, doc = "The list of glob patterns to exclude",
