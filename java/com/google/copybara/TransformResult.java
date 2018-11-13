@@ -140,7 +140,9 @@ public final class TransformResult {
   @SuppressWarnings("unused")
   @CheckReturnValue
   public TransformResult withSummary(String summary) {
-    Preconditions.checkNotNull(summary);
+    Preconditions.checkArgument(!summary.trim().isEmpty(),
+        "Change description is empty: Check that the transformations are not scrubbing"
+            + " the whole message.");
     return new TransformResult(
         this.path,
         this.currentRevision,

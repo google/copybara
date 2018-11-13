@@ -285,6 +285,32 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testEmptyDescriptionInIterativeMode() throws Exception {
+    try {
+      origin.addSimpleChange(0).addSimpleChange(1, " \n ");
+      Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/ "0");
+      workflow.run(workdir, ImmutableList.of("HEAD"));
+      fail("should throw ValidationException");
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("Change description is empty");
+    }
+  }
+
+  @Test
+  public void testEmptyDescriptionInChangeRequestMode() throws Exception {
+    try {
+      origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "  \n\n ");
+      Workflow<?, ?> workflow = changeRequestWorkflow(null);
+      workflow.run(workdir, ImmutableList.of("HEAD"));
+      fail("should throw ValidationException");
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("Change description is empty");
+    }
+  }
+
+  @Test
   public void iterativeWorkflowTestRecordContextReference() throws Exception {
     for (int timestamp = 0; timestamp < 10; timestamp++) {
       origin.addSimpleChange(timestamp);
