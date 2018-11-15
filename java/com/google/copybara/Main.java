@@ -46,6 +46,7 @@ import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.FileConsole;
 import com.google.copybara.util.console.LogConsole;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -491,11 +492,18 @@ public class Main {
     StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
     Throwable cause = e.getCause();
     while (cause != null) {
-      error.append("  CAUSED BY: ").append(cause.getMessage()).append("\n");
+      error.append("  CAUSED BY: ").append(printException(cause)).append("\n");
       cause = cause.getCause();
     }
     console.error(error.toString());
     logger.at(level).withCause(e).log(formatLogError(e.getMessage(), args));
+  }
+
+  private String printException(Throwable t) {
+    if (t instanceof EvalException) {
+      return (((EvalException) t).print());
+    }
+    return t.getMessage();
   }
 
   private void handleUnexpectedError(Console console, String msg, String[] args, Throwable e) {
