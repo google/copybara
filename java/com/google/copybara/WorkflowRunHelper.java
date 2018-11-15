@@ -52,6 +52,7 @@ import com.google.copybara.util.console.PrefixConsole;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
@@ -502,7 +503,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         try (ProfilerTask ignored = profiler().start("reverse_copy")) {
           workflow.getConsole().progress("Making a copy or the workdir for reverse checking");
           originCopy = Files.createDirectories(workdir.resolve("origin"));
-          FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
+          try {
+            FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
+          } catch (NoSuchFileException e) {
+            throw new ValidationException(
+                String.format(""
+                    + "Failed to perform reversible check of transformations due to symlink '%s' "
+                    + "that points outside the checkout dir. Consider removing this symlink from "
+                    + "your origin_files or, alternatively, set reversible_check = False in your "
+                    + "workflow.", e.getFile()),
+                e);
+          }
         }
       }
 
@@ -526,7 +537,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Path reverse;
         try (ProfilerTask ignored = profiler().start("reverse_copy")) {
           reverse = Files.createDirectories(workdir.resolve("reverse"));
-          FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
+          try {
+            FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
+          } catch (NoSuchFileException e) {
+            throw new ValidationException(
+                ""
+                    + "Failed to perform reversible check of transformations due to a symlink that "
+                    + "points outside the checkout dir. Consider removing this symlink from your "
+                    + "origin_files or, alternatively, set reversible_check = False in your "
+                    + "workflow.",
+                e);
+          }
         }
 
         try (ProfilerTask ignored = profiler().start("reverse_transform")) {

@@ -92,6 +92,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -1520,7 +1521,53 @@ public class WorkflowTest {
     thrown.expectMessage(
         "doesn't include any change for origin_files = glob(include = [\"included/**\"])");
     workflow.run(workdir, ImmutableList.of());
+  }
 
+  @Test
+  public void reversibleCheckSymlinkError() throws Exception {
+    Path someRoot = Files.createTempDirectory("someRoot");
+    Path originPath = someRoot.resolve("origin");
+    Files.createDirectories(originPath);
+
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    options.setOutputRootToTmpDir();
+    String config = "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
+        + "    destination = testing.destination(),\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    origin_files = glob(['included/**']),\n"
+        + "    reversible_check = True,\n"
+        + "    mode = '" + WorkflowMode.SQUASH + "',\n"
+        + ")\n";
+
+
+    Migration workflow = loadConfig(config).getMigration("default");
+
+    Path included = originPath.resolve("included");
+    Files.createDirectory(included);
+    Files.write(originPath.resolve("included/foo.txt"), "a".getBytes(UTF_8));
+
+    Path fileOutsideCheckout = someRoot.resolve("file_outside_checkout");
+    Files.write(fileOutsideCheckout, "THE CONTENT".getBytes(UTF_8));
+    Files.createSymbolicLink(included.resolve("symlink"), included.relativize(fileOutsideCheckout));
+
+    origin.add().files("included/foo.txt").run();
+    origin.add().files("included/symlink").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "A commit");
+
+    try {
+      workflow.run(workdir, ImmutableList.of());
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected.getMessage()).matches(
+          ""
+              + "Failed to perform reversible check of transformations due to symlink '.*' that "
+              + "points outside the checkout dir. Consider removing this symlink from your "
+              + "origin_files or, alternatively, set reversible_check = False in your "
+              + "workflow.");
+
+    }
   }
 
   @Test
