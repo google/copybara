@@ -261,10 +261,16 @@ public enum WorkflowMode {
       for (O current : originBaselines) {
         originBaseline = current;
         String originRevision = revisionWithoutReviewInfo(originBaseline.asString());
+        runHelper.getConsole().progressFmt("Looking for a change in destination that contains"
+                + " origin baseline revision %s",
+            originRevision);
         destinationBaseline = getDestinationBaseline(runHelper, originRevision);
         if (destinationBaseline != null) {
           break;
         }
+        runHelper.getConsole().warnFmt(
+            "Couldn't find a change in the destination for origin baseline revision %s",
+            originBaseline.asString());
       }
 
       if (destinationBaseline == null) {
