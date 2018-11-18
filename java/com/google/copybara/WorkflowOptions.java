@@ -105,7 +105,7 @@ public class WorkflowOptions implements Option {
 
   @Parameter(names = "--threads",
       description = "Number of threads to use when running transformations that change lot of files")
-  public int threads = 1;
+  public int threads = Runtime.getRuntime().availableProcessors();
 
   @Parameter(names = CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG,
       description = "Number of origin baseline changes to use for trying to match one in the"
