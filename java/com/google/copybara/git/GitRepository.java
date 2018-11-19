@@ -110,7 +110,7 @@ public class GitRepository {
       Pattern.compile(
           ""
               // When fetching a ref like 'refs/foo' fails.
-              + "(fatal: Couldn't find remote ref"
+              + "(fatal: [Cc]ouldn't find remote ref"
               // When fetching a SHA-1 ref
               + "|no such remote ref"
               // New output for fetching (git version 2.17)
