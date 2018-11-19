@@ -153,7 +153,11 @@ public final class RenameDetector<I> {
         }
       }
       if (matchCount != 0 && !isEmpty(priorFile.hashes)) {
-        results.add(new Score<>(priorFile.key, matchCount * MAX_SCORE / priorFile.hashes.length));
+        int size =
+            (laterHashes.length > priorFile.hashes.length)
+                ? laterHashes.length
+                : priorFile.hashes.length;
+        results.add(new Score<>(priorFile.key, matchCount * MAX_SCORE / size));
       }
     }
 

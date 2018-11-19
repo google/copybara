@@ -233,4 +233,19 @@ public final class RenameDetectorTest {
     // FOO has 2 lines less than later file - slightly less score
     assertThat(result.get(1).getKey()).isEqualTo(TestKey.FOO);
   }
+
+  @Test
+  public void matchSmallSourceFile() throws Exception {
+    RenameDetector<TestKey> detector = new RenameDetector<>();
+
+    detector.addPriorFile(TestKey.FOO, new Bytes("aaaa\n"));
+
+    List<Score<TestKey>> result =
+        detector.scoresForLaterFile(new Bytes("aaaa\nbbbb\ncccc\ndddd\neeeee"));
+    assertThat(result).hasSize(1);
+    // BAR has only 1 line less than later file - it should have the highest score.
+    assertThat(result.get(0).getKey()).isEqualTo(TestKey.FOO);
+    assertThat(result.get(0).getScore()).isEqualTo(200);
+  }
+
 }
