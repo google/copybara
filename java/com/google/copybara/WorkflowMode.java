@@ -247,14 +247,16 @@ public enum WorkflowMode {
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
 
-      ImmutableList<O> originBaselines =
-          Strings.isNullOrEmpty(runHelper.workflowOptions().changeBaseline)
-              ? runHelper
-                  .getOriginReader()
-                  .findBaselinesWithoutLabel(runHelper.getResolvedRef(),
-                      runHelper.workflowOptions().changeRequestFromSotLimit)
-              : ImmutableList.of(
-                  runHelper.originResolve(runHelper.workflowOptions().changeBaseline));
+      ImmutableList<O> originBaselines;
+      if (Strings.isNullOrEmpty(runHelper.workflowOptions().changeBaseline)) {
+        originBaselines = runHelper
+            .getOriginReader()
+            .findBaselinesWithoutLabel(runHelper.getResolvedRef(),
+                runHelper.workflowOptions().changeRequestFromSotLimit);
+      } else {
+        originBaselines = ImmutableList.of(
+            runHelper.originResolve(runHelper.workflowOptions().changeBaseline));
+      }
 
       O originBaseline = null;
       String destinationBaseline = null;

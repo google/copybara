@@ -22,21 +22,19 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.ChangeVisitable.ChangesVisitor;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.util.Glob;
-import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 /** A visitor that finds all the parents that match the origin glob. */
 public class BaselinesWithoutLabelVisitor<T> implements ChangesVisitor {
 
-  private final PathMatcher pathMatcher;
   private final List<T> result = new ArrayList<>();
   private final int limit;
+  private final Glob originFiles;
   private boolean skipFirst;
 
   public BaselinesWithoutLabelVisitor(Glob originFiles, int limit, boolean skipFirst) {
-    this.pathMatcher = originFiles.relativeTo(Paths.get("/"));;
+    this.originFiles = Preconditions.checkNotNull(originFiles);
     Preconditions.checkArgument(limit > 0);
     this.limit = limit;
     this.skipFirst = skipFirst;
@@ -54,12 +52,11 @@ public class BaselinesWithoutLabelVisitor<T> implements ChangesVisitor {
       return VisitResult.CONTINUE;
     }
     ImmutableSet<String> files = change.getChangeFiles();
-    if (files != null
-        && files.stream().noneMatch(f -> pathMatcher.matches(Paths.get("/", f)))) {
-      // This change only contains files that are not exported
-      return VisitResult.CONTINUE;
+    if (Glob.affectsRoots(originFiles.roots(), files)) {
+      result.add((T) change.getRevision());
+      return result.size() < limit ? VisitResult.CONTINUE : VisitResult.TERMINATE;
     }
-    result.add((T) change.getRevision());
-    return result.size() < limit ? VisitResult.CONTINUE : VisitResult.TERMINATE;
+    // This change only contains files that are not exported
+    return VisitResult.CONTINUE;
   }
 }

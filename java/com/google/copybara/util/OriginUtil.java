@@ -19,8 +19,6 @@ package com.google.copybara.util;
 import static com.google.copybara.util.console.Consoles.logLines;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.shell.Command;
@@ -33,26 +31,6 @@ import java.nio.file.Path;
 public class OriginUtil {
 
   private OriginUtil() {}
-
-  /**
-   * Checks if the given {@code changedFiles} are or are descendants of the {@code roots}.
-   */
-  public static boolean affectsRoots(ImmutableSet<String> roots,
-      ImmutableCollection<String> changedFiles) {
-    if (changedFiles == null || Glob.isEmptyRoot(roots)) {
-      return true;
-    }
-    // This is O(changes * files * roots) in the worse case. roots shouldn't be big and
-    // files shouldn't be big for 99% of the changes.
-    for (String file : changedFiles) {
-      for (String root : roots) {
-        if (file.equals(root) || file.startsWith(root + "/")) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
 
   /**
    * A {@link CheckoutHook} executes a script on a checkout directory.

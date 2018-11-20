@@ -18,6 +18,7 @@ package com.google.copybara.util;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -63,6 +64,26 @@ public abstract class Glob implements Concatable {
     throw new EvalException(loc, "Cannot concatenate " + lval + " with " + rval + ". Only a glob"
         + " can be concatenated to a glob");
   };
+
+  /**
+   * Checks if the given {@code changedFiles} are or are descendants of the {@code roots}.
+   */
+  public static boolean affectsRoots(ImmutableSet<String> roots,
+      ImmutableCollection<String> changedFiles) {
+    if (changedFiles == null || isEmptyRoot(roots)) {
+      return true;
+    }
+    // This is O(changes * files * roots) in the worse case. roots shouldn't be big and
+    // files shouldn't be big for 99% of the changes.
+    for (String file : changedFiles) {
+      for (String root : roots) {
+        if (file.equals(root) || file.startsWith(root + "/")) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
   public abstract PathMatcher relativeTo(Path path);
 
