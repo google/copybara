@@ -21,6 +21,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
@@ -40,6 +41,7 @@ public class WorkflowOptions implements Option {
 
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
   static final String READ_CONFIG_FROM_CHANGE = "--read-config-from-change";
+  static final FluentLogger logger = FluentLogger.forEnclosingClass();
   protected static final String CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG = "--change-request-from-sot-limit";
 
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
@@ -165,7 +167,12 @@ public class WorkflowOptions implements Option {
   }
 
   private final Supplier<LocalParallelizer> parallelizerSupplier =
-      Suppliers.memoize(() -> new LocalParallelizer(threads, threadsMinSize));
+      Suppliers.memoize(() -> new LocalParallelizer(getThreads(), threadsMinSize));
+
+  private int getThreads() {
+    logger.atInfo().log("Using %d thread(s) for transformations", threads);
+    return threads;
+  }
 
   public LocalParallelizer parallelizer() {
     return parallelizerSupplier.get();
