@@ -883,7 +883,7 @@ function test_config_not_found() {
 #Verify that we instantiate LogConsole when System.console() is null
 function test_no_ansi_console() {
   copybara_with_exit_code $COMMAND_LINE_ERROR copy.bara.sky
-  expect_log "^20[0-9]\{6\} .*"
+  expect_log "^[0-9]\{4\} [0-2][0-9]:[0-5][0-9]:[0-5][0-9].*"
 }
 
 # Verify that Copybara fails if we try to read the input from the user from a writeOnly LogConsole

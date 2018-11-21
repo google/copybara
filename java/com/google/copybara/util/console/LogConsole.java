@@ -17,12 +17,11 @@
 package com.google.copybara.util.console;
 
 import com.google.common.base.Preconditions;
-
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import javax.annotation.Nullable;
 
 /**
@@ -30,7 +29,9 @@ import javax.annotation.Nullable;
  */
 public class LogConsole implements Console {
 
-  private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd HH:mm:ss.SSS");
+  private static final DateTimeFormatter DATE_PREFIX_FMT =
+      DateTimeFormatter.ofPattern("MMdd HH:mm:ss.SSS");
+  
   @Nullable
   private final InputStream input;
   private final PrintStream output;
@@ -93,7 +94,7 @@ public class LogConsole implements Console {
     Preconditions.checkState(input != null,
         "LogConsole cannot read user input if system console is not present.");
     return new ConsolePrompt(input,
-        msg -> output.print(dateFormat.format(new Date()) + " WARN: " + msg + " [y/n] "))
+        msg -> output.printf("%s WARN: %s [y/n] ", nowToString(), msg))
         .promptConfirmation(message);
   }
 
@@ -103,6 +104,10 @@ public class LogConsole implements Console {
   }
 
   private void printMessage(final String messageKind, String message) {
-    output.println(dateFormat.format(new Date()) + " " + messageKind + ": " + message);
+    output.printf("%s %s: %s%n", nowToString(), messageKind, message);
+  }
+
+  private String nowToString() {
+    return ZonedDateTime.now(ZoneId.systemDefault()).format(DATE_PREFIX_FMT);
   }
 }

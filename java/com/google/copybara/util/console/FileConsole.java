@@ -26,6 +26,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import javax.annotation.Nullable;
 
 /**
@@ -41,6 +44,8 @@ import javax.annotation.Nullable;
  */
 public class FileConsole extends DelegateConsole {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+  private static final DateTimeFormatter DATE_PREFIX_FMT =
+      DateTimeFormatter.ofPattern("MMdd HH:mm:ss.SSS");
 
   protected final Path filePath;
   private final int consoleFlushRate;
@@ -74,7 +79,10 @@ public class FileConsole extends DelegateConsole {
       return;
     }
     try {
-      writer.append(String.format("%s: %s\n", type, message));
+      writer.append(
+          String.format(
+              "%s %s: %s\n",
+              ZonedDateTime.now(ZoneId.systemDefault()).format(DATE_PREFIX_FMT), type, message));
       if (consoleFlushRate > 0 && messageCount % consoleFlushRate == 0) {
         writer.flush();
       }

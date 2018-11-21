@@ -65,14 +65,13 @@ public class FileConsoleTest {
     }
 
     List<String> lines = Files.readAllLines(file);
-    assertThat(lines)
-        .containsExactly(
-            "INFO: Copybara source mover (Version: v1)",
-            "INFO: This is info",
-            "WARNING: This is warning",
-            "ERROR: This is error",
-            "VERBOSE: This is verbose",
-            "PROGRESS: This is progress");
+    assertThat(lines).hasSize(6);
+    assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+    assertThat(lines.get(1)).contains("INFO: This is info");
+    assertThat(lines.get(2)).contains("WARNING: This is warning");
+    assertThat(lines.get(3)).contains("ERROR: This is error");
+    assertThat(lines.get(4)).contains("VERBOSE: This is verbose");
+    assertThat(lines.get(5)).contains("PROGRESS: This is progress");
 
     delegate
         .assertThat()
@@ -94,25 +93,24 @@ public class FileConsoleTest {
       assertThat(Files.readAllLines(file)).isEmpty();
       fileConsole.error("This is error");
       fileConsole.verbose("This is verbose");
-      assertThat(Files.readAllLines(file))
-          .containsExactly(
-              "INFO: Copybara source mover (Version: v1)",
-              "INFO: This is info",
-              "WARNING: This is warning",
-              "ERROR: This is error",
-              "VERBOSE: This is verbose");
+      List<String> lines = Files.readAllLines(file);
+      assertThat(lines).hasSize(5);
+      assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+      assertThat(lines.get(1)).contains("INFO: This is info");
+      assertThat(lines.get(2)).contains("WARNING: This is warning");
+      assertThat(lines.get(3)).contains("ERROR: This is error");
+      assertThat(lines.get(4)).contains("VERBOSE: This is verbose");
       fileConsole.progress("This is progress");
     }
 
     List<String> lines = Files.readAllLines(file);
-    assertThat(lines)
-        .containsExactly(
-            "INFO: Copybara source mover (Version: v1)",
-            "INFO: This is info",
-            "WARNING: This is warning",
-            "ERROR: This is error",
-            "VERBOSE: This is verbose",
-            "PROGRESS: This is progress");
+    assertThat(lines).hasSize(6);
+    assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+    assertThat(lines.get(1)).contains("INFO: This is info");
+    assertThat(lines.get(2)).contains("WARNING: This is warning");
+    assertThat(lines.get(3)).contains("ERROR: This is error");
+    assertThat(lines.get(4)).contains("VERBOSE: This is verbose");
+    assertThat(lines.get(5)).contains("PROGRESS: This is progress");
   }
 
   @Test
@@ -129,13 +127,12 @@ public class FileConsoleTest {
     }
 
     List<String> lines = Files.readAllLines(file);
-    assertThat(lines)
-        .containsExactly(
-            "INFO: Copybara source mover (Version: v1)",
-            "INFO: This is info",
-            "WARNING: This is warning",
-            "ERROR: This is error",
-            "VERBOSE: This is verbose",
-            "PROGRESS: This is progress");
+    assertThat(lines).hasSize(6);
+    assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+    assertThat(lines.get(1)).contains("INFO: This is info");
+    assertThat(lines.get(2)).contains("WARNING: This is warning");
+    assertThat(lines.get(3)).contains("ERROR: This is error");
+    assertThat(lines.get(4)).contains("VERBOSE: This is verbose");
+    assertThat(lines.get(5)).contains("PROGRESS: This is progress");
   }
 }
