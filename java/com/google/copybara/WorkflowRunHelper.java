@@ -586,7 +586,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       new ValidateDestinationFilesVisitor(getDestinationFiles(), checkoutDir)
           .verifyFilesToWrite();
 
-      ValidationException.checkCondition(!transformWork.getMessage().trim().isEmpty(),
+      ValidationException.checkCondition(
+          // We don't want to do this check for destinations like folder.destination.
+          !writer.supportsHistory()
+              || !transformWork.getMessage().trim().isEmpty(),
           "Change description is empty");
       // TODO(malcon): Pass metadata object instead
       TransformResult transformResult =

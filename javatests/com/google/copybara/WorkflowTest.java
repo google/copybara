@@ -92,7 +92,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
-import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -294,6 +293,23 @@ public class WorkflowTest {
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains("Change description is empty");
     }
+  }
+
+  @Test
+  public void testEmptyDescriptionForFolderDestination() throws Exception {
+    origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
+    options
+        .setWorkdirToRealTempDir()
+        .setHomeDir(StandardSystemProperty.USER_HOME.value());
+     new SkylarkTestExecutor(options).loadConfig("core.workflow(\n"
+        + "    name = 'foo',\n"
+        + "    origin = testing.origin(),\n"
+        + "    destination = folder.destination(),\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    transformations = [metadata.replace_message(''),],\n"
+        + ")\n")
+        .getMigration("foo")
+        .run(workdir, ImmutableList.of());
   }
 
   @Test
