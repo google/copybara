@@ -267,13 +267,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
     Reader<O> reader = getOrigin()
         .newReader(getOriginFiles(), getAuthoring());
-    WriterContext writerContext = new WriterContext(
-            name,
-            workflowOptions.workflowIdentityUser,
-        effectiveDryRunMode,
-        resolvedRef);
-    Writer<D> writer = getDestination().newWriter(writerContext);
-    return new WorkflowRunHelper<>(this, workdir, resolvedRef, reader, writer, rawSourceRef);
+    return new WorkflowRunHelper<>(
+        this, workdir, resolvedRef, reader, createWriter(resolvedRef), rawSourceRef);
   }
 
   /**
@@ -324,7 +319,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
               List<Change<O>> affectedChanges = new ArrayList<>();
               for (Change<O> change : allChanges) {
-                if (helper.getMigratorForChange(change, /*dryRun=*/true).shouldSkipChange(change)) {
+                if (helper.getMigratorForChange(change).shouldSkipChange(change)) {
                   continue;
                 }
                 affectedChanges.add(change);
@@ -338,16 +333,30 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Nullable
-  private DestinationStatus getDestinationStatus(O revision) throws RepoException, ValidationException {
+  private DestinationStatus getDestinationStatus(O revision)
+      throws RepoException, ValidationException {
     if (getLastRevisionFlag() != null) {
       return new DestinationStatus(getLastRevisionFlag(), ImmutableList.of());
     }
-    // TODO(malcon): Should be dryRun=true but some destinations are still not implemented.
-    // Should be K since info doesn't write but only read.
-    WriterContext writerContext = new WriterContext(
-        name, workflowOptions.workflowIdentityUser, /*dryRun=*/false, revision);
-    return destination.newWriter(writerContext)
+    return createDryRunWriter(revision)
         .getDestinationStatus(getDestinationFiles(), origin.getLabelName());
+  }
+
+  /** Create a writer that respects the effectiveDryRunMode value */
+  Writer<D> createWriter(O revision) throws ValidationException {
+    return destination.newWriter(new WriterContext(
+        name,
+        workflowOptions.workflowIdentityUser,
+        effectiveDryRunMode,
+        revision));
+  }
+
+  /** Create a writer in dry-run mode */
+  Writer<D> createDryRunWriter(O revision) throws ValidationException {
+    return destination.newWriter(new WriterContext(
+        name, workflowOptions.workflowIdentityUser,
+        /*dryRun=*/true,
+        revision));
   }
 
   @Override

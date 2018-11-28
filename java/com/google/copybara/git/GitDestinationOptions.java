@@ -83,7 +83,7 @@ public final class GitDestinationOptions implements Option {
       description = "If set, the tool will use this directory for the local repository."
           + " Note that if the directory exists it needs to be a git repository. Copybara will"
           + " revert any staged/unstaged changes.")
-  String localRepoPath = null;
+  public String localRepoPath = null;
 
   @Parameter(names = "--git-destination-skip-push",
       description = "If set, the tool will not push to the remote destination", hidden = true)

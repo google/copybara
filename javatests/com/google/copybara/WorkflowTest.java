@@ -1299,6 +1299,64 @@ public class WorkflowTest {
     }
   }
 
+  /**
+   * Regression test that checks that we reuse the same writer in dry-run mode for multiple
+   * invocations inside the same migration so that state is kept.
+   */
+  @Test
+  public void testDryRunWithLocalGitPath() throws Exception {
+    Path originPath = Files.createTempDirectory("origin");
+    Path destinationPath = Files.createTempDirectory("destination");
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    GitRepository destination = GitRepository.newBareRepo(destinationPath, getGitEnv(),
+        /*verbose=*/true).init();
+
+    String config = "core.workflow("
+        + "    name = 'default',\n"
+        + "    origin = git.origin(\n"
+        + "        url = 'file://" + origin.getWorkTree() + "',\n"
+        + "        ref = 'master',\n"
+        + "    ),\n"
+        + "    destination = git.destination("
+        + "        url = 'file://" + destination.getGitDir() + "',\n"
+        + "    ),\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    mode = 'SQUASH',\n"
+        + ")\n";
+
+    addGitFile(originPath, origin, "foo.txt", "not important");
+    commit(origin, "baseline");
+
+    options.setWorkdirToRealTempDir();
+    // Pass custom HOME directory so that we run an hermetic test and we
+    // can add custom configuration to $HOME/.gitconfig.
+    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
+    options.setHomeDir(Files.createTempDirectory("home").toString());
+    options.gitDestination.committerName = "Foo";
+    options.gitDestination.committerEmail = "foo@foo.com";
+    options.workflowOptions.initHistory = true;
+
+    loadConfig(config).getMigration("default")
+        .run(Files.createTempDirectory("workdir"), ImmutableList.of());
+
+    // Now run again with force and no changes so that it uses the default migrator (The affected
+    // path
+
+    options.gitDestination.localRepoPath = Files.createTempDirectory("temp").toString();
+    options.workflowOptions.initHistory = false;
+    options.general.dryRunMode = true;
+    options.setForce(true);
+
+    try {
+      loadConfig(config).getMigration("default")
+          .run(Files.createTempDirectory("workdir"), ImmutableList.of());
+      fail();
+    } catch (EmptyChangeException e) {
+      assertThat(e).hasMessageThat().contains(
+          "Migration of the revision resulted in an empty change");
+    }
+  }
+
   private void checkChangeRequest_sot_ahead_sot()
       throws IOException, ValidationException, RepoException {
     options.workflowOptions.changeRequestFromSotLimit = 1;

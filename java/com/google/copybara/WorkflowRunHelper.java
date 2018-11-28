@@ -101,45 +101,23 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   ChangeMigrator<O, D> getMigratorForChange(Change<?> change)
       throws RepoException, ValidationException {
-    return getMigratorForChange(change, /*dryRun=*/ false);
+    return getMigratorForChangeAndWriter(change, writer);
+  }
+
+  ChangeMigrator<O, D> getMigratorForChangeAndWriter(Change<?> change, Writer<D> writer)
+      throws ValidationException, RepoException {
+    return new ChangeMigrator<>(workflow, workdir, originReader, writer, resolvedRef, rawSourceRef);
   }
 
   /**
-   * Get a migrator for the current change.
+   * Get a default migrator for the current writer
    */
-  ChangeMigrator<O, D> getMigratorForChange(Change<?> change, boolean dryRun)
-      throws RepoException, ValidationException {
-    return getDefaultMigrator(dryRun);
-  }
-
-  /**
-   * Get a default migrator with the workflow dry-run mode
-   */
-  ChangeMigrator<O, D> getDefaultMigrator() throws ValidationException {
-    return getDefaultMigrator(workflow.isDryRunMode());
-  }
-
-  private ChangeMigrator<O, D> getDefaultMigrator(boolean dryRun) throws ValidationException {
-    return new ChangeMigrator<>(
-        workflow,
-        workdir,
-        originReader,
-        // Create a new writer if dryrun is requested
-        dryRun ? createDryRunWriter() : writer,
-        resolvedRef,
-        rawSourceRef);
+  ChangeMigrator<O, D> getDefaultMigrator() {
+    return new ChangeMigrator<>(workflow, workdir, originReader, writer, resolvedRef, rawSourceRef);
   }
 
   public Profiler profiler() {
     return workflow.profiler();
-  }
-
-  final Writer<D> createDryRunWriter() throws ValidationException {
-    return workflow.getDestination().newWriter(new WriterContext(
-        workflow.getName(),
-        workflow.getWorkflowOptions().workflowIdentityUser,
-        /*dryRun=*/ true,
-        resolvedRef));
   }
 
   protected Path getWorkdir() {
@@ -219,7 +197,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               }
               Change<O> change = originReader.change(lastRev);
               Changes changes = new Changes(ImmutableList.of(change), ImmutableList.of());
-              ChangeMigrator<O, D> migrator = getMigratorForChange(change, /*dryRun=*/ true);
+              // Create a new writer so that state is not shared with the regular writer.
+              // The current writer might have state from previous migrations, etc.
+              ChangeMigrator<O, D> migrator =
+                  getMigratorForChangeAndWriter(change, workflow.createDryRunWriter(resolvedRef));
 
               try {
                 workflow

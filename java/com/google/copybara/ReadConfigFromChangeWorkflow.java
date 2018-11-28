@@ -91,17 +91,12 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       String rawSourceRef)
       throws ValidationException, RepoException {
     Reader<O> reader = this.getOrigin().newReader(this.getOriginFiles(), this.getAuthoring());
-    WriterContext writerContext = new WriterContext(
-        getName(),
-        getWorkflowOptions().workflowIdentityUser,
-        isDryRunMode(),
-        resolvedRef);
     return new ReloadingRunHelper(
         this,
         getName(),
         workdir,
         resolvedRef,
-        getDestination().newWriter(writerContext),
+        createWriter(resolvedRef),
         reader,
         rawSourceRef);
   }
@@ -141,8 +136,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
     }
 
     @Override
-    protected ChangeMigrator<O, D> getMigratorForChange(Change<?> change, boolean dryRun)
-        throws RepoException, ValidationException {
+    ChangeMigrator<O, D> getMigratorForChangeAndWriter(Change<?> change, Writer<D> writer)
+        throws ValidationException, RepoException {
       Preconditions.checkNotNull(change);
 
       logger.info(String.format("Loading configuration for change '%s %s'",
@@ -178,7 +173,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
           workflowForChange,
           getWorkdir(),
           newReader,
-          dryRun ? createDryRunWriter() : writer,
+          writer,
           getResolvedRef(),
           rawSourceRef);
     }
