@@ -75,6 +75,7 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -108,6 +109,9 @@ public class WorkflowTest {
   private static final Author NOT_WHITELISTED_ORIGINAL_AUTHOR =
       new Author("Secret Coder", "secret@coder.com");
   private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
+  private static final String FORCED_MESSAGE = "Test forced message";
+  private static final Author FORCED_AUTHOR =
+      new Author("Forced Author", "<forcedauthor@google.com>");
 
   private DummyOrigin origin;
   private RecordsProcessCallDestination destination;
@@ -548,6 +552,63 @@ public class WorkflowTest {
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
     assertThat(destination.processed.get(1).getAuthor()).isEqualTo(
         AuthorParser.parse("From Flag <fromflag@google.com>"));
+  }
+
+  @Test
+  public void testForcedChangeMessageAndAuthorFlags_squash() throws Exception {
+    options.workflowOptions.forcedChangeMessage = FORCED_MESSAGE;
+    options.workflowOptions.forcedAuthor = FORCED_AUTHOR;
+    origin.addSimpleChange(/*timestamp*/ 1);
+    options.workflowOptions.lastRevision = resolveHead();
+    origin.addSimpleChange(/*timestamp*/ 2);
+    origin.addSimpleChange(/*timestamp*/ 3);
+
+    Workflow<?, ?> workflow = workflow();
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+    assertThat(destination.processed).hasSize(1);
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getChangesSummary()).isEqualTo(FORCED_MESSAGE);
+    assertThat(change.getAuthor()).isEqualTo(FORCED_AUTHOR);
+  }
+
+  @Test
+  public void testForcedChangeMessageAndAuthorFlags_iterative() throws Exception {
+    origin
+        .addSimpleChange(0)
+        .addSimpleChange(1)
+        .addSimpleChange(2);
+
+    options.workflowOptions.forcedChangeMessage = FORCED_MESSAGE;
+    options.workflowOptions.forcedAuthor = FORCED_AUTHOR;
+    whiteListAuthoring();
+
+    Workflow<?, ?> workflow = iterativeWorkflow("0");
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+    assertThat(destination.processed).hasSize(2);
+
+    assertThat(destination.processed.get(0).getChangesSummary()).isEqualTo(FORCED_MESSAGE);
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(FORCED_AUTHOR);
+    assertThat(destination.processed.get(1).getChangesSummary()).isEqualTo(FORCED_MESSAGE);
+    assertThat(destination.processed.get(1).getAuthor()).isEqualTo(FORCED_AUTHOR);
+  }
+
+  @Test
+  public void testForcedChangeMessageAndAuthorFlags_changeRequest() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
+        .addSimpleChange(1, "Second Change");
+
+    options.workflowOptions.forcedChangeMessage = FORCED_MESSAGE;
+    options.workflowOptions.forcedAuthor = FORCED_AUTHOR;
+
+    Workflow<?, ?> workflow = changeRequestWorkflow("0");
+    workflow.run(workdir, ImmutableList.of("1"));
+    assertThat(destination.processed).hasSize(1);
+
+    assertThat(destination.processed.get(0).getChangesSummary()).isEqualTo(FORCED_MESSAGE);
+    assertThat(destination.processed.get(0).getAuthor()).isEqualTo(FORCED_AUTHOR);
   }
 
   private void whiteListAuthoring() {

@@ -24,3 +24,13 @@ java_library(
         "//third_party:jcommander",
     ],
 )
+
+java_library(
+    name = "converters",
+    srcs = glob(["**/*Converter.java"]),
+    deps = [
+        "//java/com/google/copybara/authoring",
+        "//third_party:guava",
+        "//third_party:jcommander",
+    ],
+)

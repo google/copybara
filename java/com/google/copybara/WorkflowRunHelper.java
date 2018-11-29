@@ -29,6 +29,7 @@ import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.Reader.ChangesResponse;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
@@ -133,6 +134,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
    */
   Authoring getAuthoring() {
     return workflow.getAuthoring();
+  }
+
+  String getChangeMessage(String message) {
+    return workflow.getWorkflowOptions().forcedChangeMessage == null
+        ? message
+        : workflow.getWorkflowOptions().forcedChangeMessage;
+  }
+
+  public Author getFinalAuthor(Author author) {
+    return workflowOptions().forcedAuthor == null ? author : workflowOptions().forcedAuthor;
   }
 
   /**

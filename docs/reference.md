@@ -933,6 +933,8 @@ Name | Type | Description
 <nobr>`--change_request_parent`</nobr> | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 <nobr>`--check-last-rev-state`</nobr> | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 <nobr>`--default-author`</nobr> | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
+<nobr>`--force-author`</nobr> | *author* | Force the author to this. Note that this only changes the author before the transformations happen, you can still use the transformations to alter it.
+<nobr>`--force-message`</nobr> | *string* | Force the change description to this. Note that this only changes the message before the transformations happen, you can still use the transformations to alter it.
 <nobr>`--ignore-noop`</nobr> | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
 <nobr>`--import-noop-changes`</nobr> | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
 <nobr>`--init-history`</nobr> | *boolean* | Import all the changes from the beginning of the history up to the resolved ref. For 'ITERATIVE' workflows this will import individual changes since the first one. For 'SQUASH' it will import the squashed change up to the resolved ref. WARNING: Use with care, this flag should be used only for the very first run of Copybara for a workflow.
@@ -1113,8 +1115,8 @@ materialize_outside_symlinks | `boolean`<br><p>By default folder.origin will ref
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--folder-origin-author`</nobr> | *string* | Author of the change being migrated from folder.origin()
-<nobr>`--folder-origin-message`</nobr> | *string* | Message of the change being migrated from folder.origin()
+<nobr>`--folder-origin-author`</nobr> | *string* | Deprecated. Please use '--force-author'. Author of the change being migrated from folder.origin()
+<nobr>`--folder-origin-message`</nobr> | *string* | Deprecated. Please use '--force-message'. Message of the change being migrated from folder.origin()
 
 
 

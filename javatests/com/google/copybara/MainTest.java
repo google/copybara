@@ -109,4 +109,12 @@ public class MainTest {
     main.run(args);
     assertThat(called).isTrue();
   }
+
+  @Test
+  public void testInvalidForcedAuthor() throws IOException {
+    ImmutableMap<String, String> envWithHome =
+        ImmutableMap.of("HOME", Files.createTempDirectory("foo").toString());
+    assertThat(new Main(envWithHome).run(/*no arguments*/ new String[] {"--force-author='fdsfds'"}))
+        .isEqualTo(ExitCode.COMMAND_LINE_ERROR);
+  }
 }

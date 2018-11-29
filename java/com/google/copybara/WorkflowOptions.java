@@ -24,6 +24,7 @@ import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.VoidOperationException;
+import com.google.copybara.jcommander.AuthorConverter;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -153,6 +154,20 @@ public class WorkflowOptions implements Option {
       description = "Use this author as default instead of the one in the config file."
           + "Format should be 'Foo Bar <foobar@example.com>'")
   String defaultAuthor = null;
+
+  @Parameter(
+      names = "--force-message",
+      description = "Force the change description to this. Note that this only changes the message"
+          + " before the transformations happen, you can still use the transformations"
+          + " to alter it.")
+  String forcedChangeMessage = null;
+
+  @Parameter(
+      names = "--force-author",
+      description = "Force the author to this. Note that this only changes the author"
+          + " before the transformations happen, you can still use the transformations"
+          + " to alter it.", converter = AuthorConverter.class)
+  Author forcedAuthor = null;
 
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {

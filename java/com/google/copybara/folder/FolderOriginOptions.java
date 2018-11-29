@@ -28,12 +28,14 @@ import com.google.copybara.Option;
 public final class FolderOriginOptions implements Option {
 
   @Parameter(names = "--folder-origin-author",
-      description = "Author of the change being migrated from folder.origin()")
+      description = "Deprecated. Please use '--force-author'."
+          + " Author of the change being migrated from folder.origin()")
   @VisibleForTesting
   public String author = "Copybara <noreply@copybara.io>";
 
   @Parameter(names = "--folder-origin-message",
-      description = "Message of the change being migrated from folder.origin()")
+      description = "Deprecated. Please use '--force-message'. Message of the change being migrated"
+          + " from folder.origin()")
   @VisibleForTesting
   public String message = "Copybara code migration";
 }
