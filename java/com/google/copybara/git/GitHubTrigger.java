@@ -18,11 +18,14 @@ package com.google.copybara.git;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Trigger;
 import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.git.github.api.GitHubEventType;
 import com.google.copybara.util.console.Console;
 
 /**
@@ -32,11 +35,16 @@ public class GitHubTrigger implements Trigger {
 
   private final LazyResourceLoader<GitHubApi> apiSupplier;
   private final String url;
+  private final ImmutableSet<GitHubEventType> events;
   private final Console console;
 
-  GitHubTrigger(LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console) {
+  GitHubTrigger(LazyResourceLoader<GitHubApi> apiSupplier, String url,
+      ImmutableSet<GitHubEventType> events,
+      Console console) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
+    Preconditions.checkArgument(!events.isEmpty());
+    this.events = events;
     this.console = Preconditions.checkNotNull(console);
   }
 
@@ -47,7 +55,11 @@ public class GitHubTrigger implements Trigger {
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
-    return ImmutableSetMultimap.of("type", "github_trigger", "url", url);
+    ImmutableSetMultimap.Builder<String, String> builder = ImmutableSetMultimap.builder();
+    builder.put("type", "github_trigger");
+    builder.put("url", url);
+    builder.putAll("events", Iterables.transform(events, GitHubEventType::toString));
+    return builder.build();
   }
 
   @Override

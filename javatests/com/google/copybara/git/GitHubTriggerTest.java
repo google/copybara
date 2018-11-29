@@ -46,11 +46,36 @@ public class GitHubTriggerTest {
   public void testParsing() throws Exception {
     GitHubTrigger gitHubTrigger =
         skylarkTestExecutor.eval(
-            "e", "e = git.github_trigger(url = 'https://github.com/google/example'))");
-    assertThat(gitHubTrigger.describe())
-        .containsExactly("type", "github_trigger", "url", "https://github.com/google/example");
+            "e", "e = git.github_trigger("
+                + "url = 'https://github.com/google/example',"
+                + "events = ['STATUS', 'ISSUES'])");
+    assertThat(gitHubTrigger.describe()).containsExactly(
+        "type", "github_trigger",
+        "url", "https://github.com/google/example",
+        "events", "STATUS",
+        "events", "ISSUES").inOrder();
+
     assertThat(gitHubTrigger.getEndpoint().describe())
         .containsExactly("type", "github_api", "url", "https://github.com/google/example");
+  }
+
+  @Test
+  public void testInvalidEvent() {
+    skylarkTestExecutor.evalFails(
+        "git.github_trigger("
+            + "url = 'https://github.com/google/example',"
+            + "events = ['LABEL'])",
+        "LABEL is not a valid value. Values:"
+            + " \\[ISSUES, ISSUE_COMMENT, PULL_REQUEST, PUSH, STATUS\\]");
+  }
+
+  @Test
+  public void testEmptyEvents() {
+    skylarkTestExecutor.evalFails(
+        "git.github_trigger("
+            + "url = 'https://github.com/google/example',"
+            + "events = [])",
+        "events cannot be empty");
   }
 
   @Test
@@ -59,12 +84,17 @@ public class GitHubTriggerTest {
         skylarkTestExecutor.eval(
             "e",
             "e = git.github_trigger(\n"
-                + "url = 'https://github.com/google/example', \n"
-                + "checker = testing.dummy_checker(),\n"
+                + "  url = 'https://github.com/google/example', \n"
+                + "  checker = testing.dummy_checker(),\n"
+                + "  events = ['STATUS', 'ISSUES'],\n"
                 + ")\n");
 
-    assertThat(gitHubTrigger.describe())
-        .containsExactly("type", "github_trigger", "url", "https://github.com/google/example");
+    assertThat(gitHubTrigger.describe()).containsExactly(
+        "type", "github_trigger",
+        "url", "https://github.com/google/example",
+        "events", "STATUS",
+        "events", "ISSUES").inOrder();
+
     assertThat(gitHubTrigger.getEndpoint().describe())
         .containsExactly("type", "github_api", "url", "https://github.com/google/example");
   }

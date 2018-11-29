@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
@@ -32,6 +33,7 @@ import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
+import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -44,20 +46,19 @@ import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
 import com.google.copybara.config.LabelsAwareModule;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
-import com.google.copybara.git.GitHubWriteHook;
 import com.google.copybara.git.GitHubPROrigin.ReviewState;
 import com.google.copybara.git.GitHubPROrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
+import com.google.copybara.git.github.api.GitHubEventType;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
@@ -77,6 +78,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -174,7 +176,7 @@ public class GitModule implements LabelsAwareModule {
     if (EvalUtils.isNullOrNone(patch)) {
       return null;
     }
-    SkylarkUtil.check(location, patch instanceof PatchTransformation,
+    check(location, patch instanceof PatchTransformation,
         "'%s' is not a patch.apply(...) transformation", PATCH_FIELD);
     return  (PatchTransformation) patch;
   }
@@ -447,14 +449,14 @@ public class GitModule implements LabelsAwareModule {
     }
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
 
-    String reviewStateString = SkylarkUtil.convertFromNoneable(reviewStateParam, null);
+    String reviewStateString = convertFromNoneable(reviewStateParam, null);
     SkylarkList<String> reviewApproversStrings =
-        SkylarkUtil.convertFromNoneable(reviewApproversParam, null);
+        convertFromNoneable(reviewApproversParam, null);
     ReviewState reviewState;
     ImmutableSet<AuthorAssociation> reviewApprovers;
     if (reviewStateString == null) {
       reviewState = null;
-      SkylarkUtil.check(location, reviewApproversStrings == null,
+      check(location, reviewApproversStrings == null,
           "'review_approvers' cannot be set if `review_state` is not set");
       reviewApprovers = ImmutableSet.of();
     } else {
@@ -490,7 +492,7 @@ public class GitModule implements LabelsAwareModule {
         reviewApprovers,
         convertFromNoneable(checkerObj, null),
         patchTransformation,
-        SkylarkUtil.convertFromNoneable(branch, null));
+        convertFromNoneable(branch, null));
   }
 
   @SuppressWarnings("unused")
@@ -579,7 +581,7 @@ public class GitModule implements LabelsAwareModule {
         generalOptions,
         convertFromNoneable(skipPush, Boolean.FALSE),
         new DefaultWriteHook(),
-        SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+        SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"));
   }
 
@@ -656,7 +658,7 @@ public class GitModule implements LabelsAwareModule {
             options.get(GitHubOptions.class),
             convertFromNoneable(prBranchToUpdate, null),
             getGeneralConsole()),
-        SkylarkList.castList(SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+        SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"));
   }
 
@@ -783,13 +785,13 @@ public class GitModule implements LabelsAwareModule {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     // This restricts to github.com, we will have to revisit this to support setups like GitHub
     // Enterprise.
-    SkylarkUtil.check(location, GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
+    check(location, GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     warnDeprecation(skipPush, destinationOptions.skipPush);
     return new GitHubPrDestination(
         fixHttp(url, location),
         destinationRef,
-        SkylarkUtil.convertFromNoneable(prBranch, null),
+        convertFromNoneable(prBranch, null),
         generalOptions,
         options.get(GitHubOptions.class),
         destinationOptions,
@@ -798,11 +800,11 @@ public class GitModule implements LabelsAwareModule {
         convertFromNoneable(skipPush, Boolean.FALSE),
         new DefaultWriteHook(),
         SkylarkList.castList(
-            SkylarkUtil.convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+            convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class,
             "integrates"),
-        SkylarkUtil.convertFromNoneable(title, null),
-        SkylarkUtil.convertFromNoneable(body, null),
+        convertFromNoneable(title, null),
+        convertFromNoneable(body, null),
         mainConfigFile,
         convertFromNoneable(checkerObj, null));
   }
@@ -1004,18 +1006,33 @@ public class GitModule implements LabelsAwareModule {
             doc = "A checker for the GitHub API transport provided by this trigger.",
             named = true,
             noneable = true),
+          @Param(name = "events", type = SkylarkList.class, generic1 = String.class, named = true,
+              defaultValue = "[]",
+              doc = "Type of events to subscribe. Valid values are:"
+                  + " `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`, `'PUSH'`, `'STATUS'`, "),
       },
       useLocation = true, documented = false)
   @UsesFlags(GitHubOptions.class)
-  public GitHubTrigger gitHubTrigger(String url, Object checkerObj, Location location)
+  public GitHubTrigger gitHubTrigger(String url, Object checkerObj, SkylarkList<String> events,
+      Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
+    LinkedHashSet<GitHubEventType> eventBuilder = new LinkedHashSet<>();
+    for (String e : events) {
+      GitHubEventType event = stringToEnum(location, "events", e, GitHubEventType.class);
+      check(location, eventBuilder.add(event), "Repeated element %s", e);
+      check(location, WATCHABLE_EVENTS.contains(event),
+          "%s is not a valid value. Values: %s", event, WATCHABLE_EVENTS);
+    }
+    check(location, !eventBuilder.isEmpty(), "events cannot be empty");
+
+    ImmutableSet<GitHubEventType> parsedEvents = ImmutableSet.copyOf(eventBuilder);
     validateEndpointChecker(location, checker, GITHUB_TRIGGER);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     return new GitHubTrigger(gitHubOptions.newGitHubApiSupplier(url, checker), url,
-        getGeneralConsole());
+        parsedEvents, getGeneralConsole());
   }
 
   @SuppressWarnings("unused")
@@ -1040,7 +1057,7 @@ public class GitModule implements LabelsAwareModule {
   @UsesFlags(GerritOptions.class)
   public SetReviewInput reviewInput(SkylarkDict<String, Integer> labels, Object message,
       Location location) throws EvalException {
-    return SetReviewInput.create(SkylarkUtil.convertFromNoneable(message, null),
+    return SetReviewInput.create(convertFromNoneable(message, null),
         SkylarkDict.castSkylarkDictOrNoneToDict(
             labels, String.class, Integer.class, "Gerrit review labels"));
   }

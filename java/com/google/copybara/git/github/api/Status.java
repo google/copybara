@@ -61,8 +61,8 @@ public class Status {
     return ZonedDateTime.parse(createdAt);
   }
 
-  public ZonedDateTime getModifiedAt() {
-    return ZonedDateTime.parse(createdAt);
+  public ZonedDateTime getUpdatedAt() {
+    return ZonedDateTime.parse(updatedAt);
   }
 
   public State getState() {
