@@ -284,18 +284,6 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testEmptyDescriptionInIterativeMode() throws Exception {
-    try {
-      origin.addSimpleChange(0).addSimpleChange(1, " \n ");
-      Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/ "0");
-      workflow.run(workdir, ImmutableList.of("HEAD"));
-      fail("should throw ValidationException");
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("Change description is empty");
-    }
-  }
-
-  @Test
   public void testEmptyDescriptionForFolderDestination() throws Exception {
     origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
     options
@@ -310,20 +298,6 @@ public class WorkflowTest {
         + ")\n")
         .getMigration("foo")
         .run(workdir, ImmutableList.of());
-  }
-
-  @Test
-  public void testEmptyDescriptionInChangeRequestMode() throws Exception {
-    try {
-      origin
-        .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
-        .addSimpleChange(1, "  \n\n ");
-      Workflow<?, ?> workflow = changeRequestWorkflow(null);
-      workflow.run(workdir, ImmutableList.of("HEAD"));
-      fail("should throw ValidationException");
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("Change description is empty");
-    }
   }
 
   @Test
