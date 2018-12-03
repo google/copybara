@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
@@ -37,8 +36,9 @@ import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
-import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.metadata.MetadataModule;
+import com.google.copybara.transform.patch.PatchModule;
+import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import java.nio.file.FileSystem;
@@ -53,7 +53,6 @@ public class ModuleSupplier {
   private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
       CoreGlobal.class,
       Authoring.Module.class,
-      FolderModule.class,
       MetadataModule.class,
       PatchModule.class);
   private final Map<String, String> environment;
@@ -79,12 +78,17 @@ public class ModuleSupplier {
    * Get non-static modules available
    */
   public ImmutableSet<Object> getModules(Options options) {
+    GeneralOptions general = options.get(GeneralOptions.class);
     return ImmutableSet.of(
-        new Core(options.get(GeneralOptions.class), options.get(WorkflowOptions.class)),
-        new GitModule(options), new HgModule(options)
+        new Core(general, options.get(WorkflowOptions.class)),
+        new GitModule(options), new HgModule(options),
+        new FolderModule(
+            options.get(FolderOriginOptions.class),
+            options.get(FolderDestinationOptions.class),
+            general)
     );
   }
-  
+
   /** Returns a new list of {@link Option}s. */
   protected Options newOptions() {
     GeneralOptions generalOptions = new GeneralOptions(environment, fileSystem, console);
