@@ -72,7 +72,18 @@ public class GitHubEndpointTest {
         new GitApiMockHttpTransport() {
           @Override
           public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-            if (url.contains("/status")) {
+            if (method.equals("GET") && url.contains("master/status")) {
+              return ("{\n"
+                  + "    state : 'failure',\n"
+                  + "    total_count : 2,\n"
+                  + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
+                  + "    statuses : [\n"
+                  + "       { state : 'failure', context: 'some/context'},\n"
+                  + "       { state : 'success', context: 'other/context'}\n"
+                  + "    ]\n"
+                  + "}");
+            }
+            if (method.equals("POST") && url.contains("/status")) {
               return ("{\n"
                   + "    state : 'success',\n"
                   + "    target_url : 'https://github.com/google/example',\n"
@@ -254,6 +265,23 @@ public class GitHubEndpointTest {
             .put("target_url", "https://github.com/google/example")
             .put("description", "Observed foo")
             .put("context", "test")
+            .build();
+    skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testGetCombinedStatus() throws Exception {
+    String var = ""
+            + "git.github_api(url = 'https://github.com/google/example')"
+            + "  .get_combined_status(ref = 'master')";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("state", "failure")
+            .put("total_count", 2)
+            .put("statuses[0].context", "some/context")
+            .put("statuses[0].state", "failure")
+            .put("statuses[1].context", "other/context")
+            .put("statuses[1].state", "success")
             .build();
     skylark.verifyFields(var, expectedFieldValues);
   }

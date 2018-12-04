@@ -208,15 +208,15 @@ public class GitHubApi {
     }
   }
 
-  public CombinedStatus getCombinedStatus(String projectId, String sha1)
+  public CombinedStatus getCombinedStatus(String projectId, String ref)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_combined_status")) {
-      return transport.get(String.format("repos/%s/statuses/%s", projectId, sha1),
+      return transport.get(String.format("repos/%s/commits/%s/status", projectId, ref),
           CombinedStatus.class);
     }
   }
 
-  private RepoException treatGitHubException(GitHubApiException e, final String entity)
+  private RepoException treatGitHubException(GitHubApiException e, String entity)
       throws ValidationException, GitHubApiException {
     if (e.getResponseCode() == ResponseCode.NOT_FOUND) {
       throw new ValidationException(e, "%s not found: %s", entity, e.getRawError());

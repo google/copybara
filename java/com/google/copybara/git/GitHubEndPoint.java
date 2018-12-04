@@ -27,6 +27,7 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.Ref;
@@ -103,6 +104,24 @@ public class GitHubEndPoint implements Endpoint {
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
                                                  convertFromNoneable(targetUrl, null),
                                                  description, context));
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(location, e);
+    }
+  }
+
+  @SkylarkCallable(name = "get_combined_status",
+      doc = "Create or update a status for a commit. Returns the status created.",
+      parameters = {
+          @Param(name = "ref", type = String.class, named = true,
+              doc = "The SHA-1 or ref for which we want to get the combined status"),
+      },
+      useLocation = true
+  )
+  public CombinedStatus getCombinedStatus(String ref, Location location) throws EvalException {
+    try {
+      checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      return apiSupplier.load(console).getCombinedStatus(project, ref);
     } catch (RepoException | ValidationException e) {
       throw new EvalException(location, e);
     }
