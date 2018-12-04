@@ -1275,6 +1275,33 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testChangeDescriptionEmpty() throws Exception {
+    fetch = "master";
+    push = "master";
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-testLocalRepo");
+    Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree).add().force().files("foo").run();
+    repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    WriterContext writerContext =
+        new WriterContext(
+            "GitDestinationTest",
+            "test",
+            /*dryRun=*/ true,
+            new DummyRevision("origin_ref1"));
+    Writer<GitRevision> writer = destination().newWriter(writerContext);
+    try {
+      writer.write(
+          TransformResults.of(workdir, originRef).withSummary(" "),
+          Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("test.txt")),
+          console);
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e.getMessage()).isEqualTo("Change description is empty.");
+    }
+  }
+
+  @Test
   public void testLocalRepoSkipPushFlag() throws Exception {
     GitRepository localRepo = checkLocalRepo(true);
 

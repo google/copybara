@@ -477,7 +477,8 @@ public final class GitDestination implements Destination<GitRevision> {
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
           commitMessage);
-
+      ValidationException.checkCondition(!transformResult.getSummary().trim().isEmpty(),
+          "Change description is empty.");
       for (GitIntegrateChanges integrate : integrates) {
         integrate.run(alternate, generalOptions, messageInfo,
             path -> !pathMatcher.matches(scratchClone.getWorkTree().resolve(path)),
