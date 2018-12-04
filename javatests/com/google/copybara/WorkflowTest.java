@@ -75,7 +75,6 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
