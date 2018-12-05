@@ -27,6 +27,7 @@ java_library(
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/testing",
+        "//java/com/google/copybara/util",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
         "//third_party:guava",

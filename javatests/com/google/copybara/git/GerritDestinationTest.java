@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.matches;
@@ -155,7 +156,7 @@ public class GerritDestinationTest {
   }
 
   private GitRepository repo() {
-    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true);
+    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT);
   }
 
   private String git(String... argv) throws RepoException {

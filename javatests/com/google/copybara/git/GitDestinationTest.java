@@ -20,6 +20,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.ChangeMessage.parseMessage;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -115,7 +116,7 @@ public class GitDestinationTest {
   }
 
   private GitRepository repoForPath(Path path) {
-    return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true);
+    return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
   }
 
   private GitEnvironment getEnv() {
@@ -1350,7 +1351,8 @@ public class GitDestinationTest {
     process(writer, new DummyRevision("origin_ref1"));
 
     //    Path localPath = Files.createTempDirectory("local_repo");
-    GitRepository localRepo = GitRepository.newRepo(true, localPath, getEnv()).init(
+    GitRepository localRepo = GitRepository.newRepo(true, localPath, getEnv(), DEFAULT_TIMEOUT)
+        .init(
     );
 
     GitTesting.assertThatCheckout(localRepo, "master")

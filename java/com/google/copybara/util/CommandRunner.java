@@ -31,8 +31,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import javax.annotation.CheckReturnValue;
 
@@ -47,24 +47,30 @@ public final class CommandRunner {
    * No input for the command.
    */
   public static final byte[] NO_INPUT = new byte[]{};
-  // TODO(malcon): Make this a flag
-  // Kill the command after 15 minutes.
-  private static final long COMMAND_TIMEOUT = TimeUnit.MINUTES.toMillis(15);
+  // By default we kill the command after 15 minutes.
+  public static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(15);
 
   private final Command cmd;
   private final boolean verbose;
   private final byte[] input;
   private final int maxOutLogLines;
+  private final Duration timeout;
 
-  private CommandRunner(Command cmd, boolean verbose, byte[] input, int maxOutLogLines) {
+  private CommandRunner(Command cmd, boolean verbose, byte[] input, int maxOutLogLines,
+      Duration timeout) {
     this.cmd = Preconditions.checkNotNull(cmd);
     this.verbose = verbose;
     this.input = Preconditions.checkNotNull(input);
     this.maxOutLogLines = maxOutLogLines;
+    this.timeout = Preconditions.checkNotNull(timeout);
   }
 
   public CommandRunner(Command cmd) {
-    this(cmd, false, NO_INPUT, -1);
+    this(cmd, false, NO_INPUT, -1, DEFAULT_TIMEOUT);
+  }
+
+  public CommandRunner(Command cmd, Duration timeout) {
+    this(cmd, false, NO_INPUT, -1, timeout);
   }
 
   /**
@@ -72,7 +78,7 @@ public final class CommandRunner {
    */
   @CheckReturnValue
   public CommandRunner withVerbose(boolean verbose) {
-    return new CommandRunner(this.cmd, verbose, this.input, this.maxOutLogLines);
+    return new CommandRunner(this.cmd, verbose, this.input, this.maxOutLogLines, timeout);
   }
 
   /**
@@ -80,7 +86,7 @@ public final class CommandRunner {
    */
   @CheckReturnValue
   public CommandRunner withInput(byte[] input) {
-    return new CommandRunner(this.cmd, this.verbose, input, this.maxOutLogLines);
+    return new CommandRunner(this.cmd, this.verbose, input, this.maxOutLogLines, timeout);
   }
 
   /**
@@ -88,7 +94,7 @@ public final class CommandRunner {
    */
   @CheckReturnValue
   public CommandRunner withMaxStdOutLogLines(int lines) {
-    return new CommandRunner(this.cmd, this.verbose, this.input, lines);
+    return new CommandRunner(this.cmd, this.verbose, this.input, lines, timeout);
   }
 
   /**
@@ -113,7 +119,7 @@ public final class CommandRunner {
       CommandResult cmdResult =
           cmd.execute(
               input,
-              new TimeoutKillableObserver(COMMAND_TIMEOUT),
+              new TimeoutKillableObserver(timeout.toMillis()),
               stdoutStream, stderrStream, true);
       exitStatus = cmdResult.getTerminationStatus();
       return new CommandOutputWithStatus(

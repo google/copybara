@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.git.GitRepository.newRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -68,7 +69,7 @@ public class GitMirrorTest {
             .setWorkdirToRealTempDir()
             .setConsole(new TestingConsole());
     originRepo = newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(),
-        /*verbose=*/true)
+        /*verbose=*/true, DEFAULT_TIMEOUT)
         .withWorkTree(Files.createTempDirectory("worktree"));
     originRepo.init();
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
@@ -226,7 +227,8 @@ public class GitMirrorTest {
 
   private GitRepository bareRepo(Path path) {
     return newBareRepo(
-        path, new GitEnvironment(options.general.getEnvironment()), options.general.isVerbose());
+        path, new GitEnvironment(options.general.getEnvironment()), options.general.isVerbose(),
+        DEFAULT_TIMEOUT);
   }
 
   @Test
@@ -306,7 +308,8 @@ public class GitMirrorTest {
         + ")";
     Path otherRepoPath = Files.createTempDirectory("other_repo");
     GitRepository other =
-        newRepo(true, otherRepoPath, new GitEnvironment(options.general.getEnvironment())).init();
+        newRepo(true, otherRepoPath, new GitEnvironment(options.general.getEnvironment()),
+            DEFAULT_TIMEOUT).init();
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes());
     other.add().files("test2.txt").run();
     other.git(other.getWorkTree(), "commit", "-m", "another file");

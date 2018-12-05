@@ -155,6 +155,7 @@ java_library(
     deps = [
         ":base",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util",

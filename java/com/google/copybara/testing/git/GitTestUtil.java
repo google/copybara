@@ -18,6 +18,7 @@ package com.google.copybara.testing.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -275,7 +276,8 @@ public class GitTestUtil {
     public GitRepository mockRemoteRepo(String url, Map<String, String> env) throws RepoException {
       GitRepository repo =
           GitRepository.newBareRepo(
-              httpsRepos.resolve(url), new GitEnvironment(env), generalOptions.isVerbose());
+              httpsRepos.resolve(url), new GitEnvironment(env), generalOptions.isVerbose(),
+              DEFAULT_TIMEOUT);
       repo.init();
       return repo;
     }
@@ -318,7 +320,7 @@ public class GitTestUtil {
           gitDir,
           workTree,
           generalOptions.isVerbose(),
-          new GitEnvironment(generalOptions.getEnvironment()));
+          new GitEnvironment(generalOptions.getEnvironment()), generalOptions.fetchTimeout);
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
       this.validator = validator;

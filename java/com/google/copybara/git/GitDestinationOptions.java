@@ -131,7 +131,8 @@ public final class GitDestinationOptions implements Option {
             GitRepository.newRepo(
                 generalOptions.isVerbose(),
                 path,
-                gitOptions.getGitEnvironment(generalOptions.getEnvironment())));
+                gitOptions.getGitEnvironment(generalOptions.getEnvironment()),
+                generalOptions.fetchTimeout));
       }
       throw new RepoException(path + " is not empty and is not a git repository");
     } catch (IOException e) {
@@ -153,7 +154,7 @@ public final class GitDestinationOptions implements Option {
   /**
    * Returns the local branch that will be used for working on the change before pushing.
    */
-  public String getLocalBranch(String resolvedPush, boolean dryRun) {
+  String getLocalBranch(String resolvedPush, boolean dryRun) {
     return localRepoPath != null
         ? resolvedPush // This is nicer for the user
         : customLocalBranch != null

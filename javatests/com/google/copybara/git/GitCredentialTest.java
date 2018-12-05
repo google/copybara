@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.Iterables;
@@ -27,18 +28,20 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.testing.git.GitTestUtil;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 @RunWith(JUnit4.class)
 public class GitCredentialTest {
@@ -54,7 +57,7 @@ public class GitCredentialTest {
   public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("test_repo");
     credentialsFile = Files.createTempFile("credentials", "test");
-    newBareRepo(repoGitDir, getGitEnv(),/*verbose=*/true)
+    newBareRepo(repoGitDir, getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT)
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
 

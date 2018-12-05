@@ -36,6 +36,7 @@ import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformResults;
+import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -79,7 +80,7 @@ public class HgDestinationTest {
 
     hgDestPath = Files.createTempDirectory("HgDestinationTest-hgDestRepo");
     url = "file://" + hgDestPath;
-    remoteRepo = new HgRepository(hgDestPath, /*verbose*/ false);
+    remoteRepo = new HgRepository(hgDestPath, /*verbose*/ false, CommandRunner.DEFAULT_TIMEOUT);
     remoteRepo.init();
 
     Files.write(hgDestPath.resolve("file.txt"), "first write".getBytes());

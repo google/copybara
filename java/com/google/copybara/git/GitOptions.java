@@ -99,7 +99,8 @@ public class GitOptions implements Option {
       throws RepoException {
     GitRepository repo =
         GitRepository.newBareRepo(
-            path, getGitEnvironment(generalOptions.getEnvironment()), generalOptions.isVerbose());
+            path, getGitEnvironment(generalOptions.getEnvironment()),
+            generalOptions.isVerbose(), generalOptions.fetchTimeout);
     return initRepo(repo);
   }
 

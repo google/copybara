@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
@@ -78,7 +79,8 @@ public final class SubmodulesInDestinationTest {
     skylark = new SkylarkTestExecutor(options);
 
     submodule = GitRepository
-        .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true)
+        .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
+            DEFAULT_TIMEOUT)
         .withWorkTree(Files.createTempDirectory("worktree"))
         .init();
 
@@ -88,7 +90,7 @@ public final class SubmodulesInDestinationTest {
   }
 
   private GitRepository repo() {
-    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true);
+    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT);
   }
 
   private String git(String... argv) throws RepoException {

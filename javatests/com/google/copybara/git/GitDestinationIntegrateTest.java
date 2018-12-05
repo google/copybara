@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.FAKE_MERGE;
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.INCLUDE_FILES;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
@@ -123,7 +124,8 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testDefaultIntegration() throws ValidationException, IOException, RepoException {
     Path repoPath = Files.createTempDirectory("test");
-    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv())
+    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv(),
+        DEFAULT_TIMEOUT)
         .init();
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
     repo.simpleCommand("branch", "feature1");
@@ -183,7 +185,8 @@ public class GitDestinationIntegrateTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("foo/**"));
     Path gitDir = Files.createTempDirectory("gitdir");
     Path repoPath = Files.createTempDirectory("workdir");
-    GitRepository repo = GitRepository.newBareRepo(gitDir, getGitEnv(), /*verbose=*/ true)
+    GitRepository repo = GitRepository.newBareRepo(gitDir, getGitEnv(), /*verbose=*/ true,
+        DEFAULT_TIMEOUT)
         .init()
         .withWorkTree(repoPath);
 
@@ -219,7 +222,8 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testFakeMerge() throws ValidationException, IOException, RepoException {
     Path repoPath = Files.createTempDirectory("test");
-    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv())
+    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv(),
+        DEFAULT_TIMEOUT)
         .init();
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
     repo.simpleCommand("branch", "feature1");
@@ -277,7 +281,8 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testIncludeFiles() throws ValidationException, IOException, RepoException {
     Path repoPath = Files.createTempDirectory("test");
-    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv())
+    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv(),
+        DEFAULT_TIMEOUT)
         .init();
     singleChange(repoPath, repo, "ignore_me", "Feature1 change");
     repo.simpleCommand("branch", "feature1");
@@ -584,7 +589,7 @@ public class GitDestinationIntegrateTest {
   }
 
   private GitRepository repoForPath(Path path) {
-    return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true);
+    return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT);
   }
 
   private String git(String... argv) throws RepoException {

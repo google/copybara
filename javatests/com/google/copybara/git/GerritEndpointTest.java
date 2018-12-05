@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
@@ -77,7 +78,7 @@ public class GerritEndpointTest {
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, BASE_URL.getBytes(UTF_8));
     GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
-        getGitEnv(), /*verbose=*/true)
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT)
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
     gitUtil.mockRemoteGitRepos(new Validator(), repo);

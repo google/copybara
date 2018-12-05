@@ -28,16 +28,19 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.jcommander.DurationConverter;
 import com.google.copybara.monitor.ConsoleEventMonitor;
 import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
@@ -260,6 +263,12 @@ public final class GeneralOptions implements Option {
       names = {"-v", "--verbose"},
       description = "Verbose output.")
   boolean verbose;
+
+  @Parameter(
+      names = {"--fetch-timeout"},
+      description = "Fetch timeout",
+      converter = DurationConverter.class)
+  public Duration fetchTimeout = CommandRunner.DEFAULT_TIMEOUT;
 
   // We don't use JCommander for parsing this flag but we do it manually since
   // the parsing could fail and we need to report errors using one console

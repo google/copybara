@@ -25,6 +25,7 @@ import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_COMMIT;
 import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_REVISION;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_LABELS;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -86,7 +87,7 @@ public class GerritApiTest {
     credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@copybara-not-real.com".getBytes(UTF_8));
     GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
-                                     getGitEnv(), /*verbose=*/true)
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT)
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
 

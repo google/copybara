@@ -38,6 +38,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.Glob;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -78,7 +79,7 @@ public class HgOriginTest {
     configRef = "tip";
     origin = origin();
 
-    repository = new HgRepository(remotePath, /*verbose*/ false);
+    repository = new HgRepository(remotePath, /*verbose*/ false, CommandRunner.DEFAULT_TIMEOUT);
     repository.init();
   }
 
@@ -299,7 +300,8 @@ public class HgOriginTest {
     singleFileCommit(author, "hello", "foo.txt", "hello");
 
     Path otherDir = Files.createTempDirectory("otherdir");
-    HgRepository otherRepo = new HgRepository(otherDir, /*verbose*/ false);
+    HgRepository otherRepo = new HgRepository(otherDir, /*verbose*/ false,
+        CommandRunner.DEFAULT_TIMEOUT);
     otherRepo.init();
     Path newFile2 = Files.createTempFile(otherDir, "bar", ".txt");
     String fileName2 = newFile2.toString();

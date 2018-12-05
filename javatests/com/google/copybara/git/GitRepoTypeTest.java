@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
@@ -28,6 +29,7 @@ import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import org.junit.Before;
@@ -52,7 +54,8 @@ public class GitRepoTypeTest {
     repoGitDir = Files.createTempDirectory("testRepo");
     fileRepoDir = Files.createTempDirectory("fileRepo");
     // We mock by default to avoid accidental network calls.
-    testRepo = new GitRepository(repoGitDir, null, /*verbose=*/true, getGitEnv()) {
+    testRepo = new GitRepository(
+        repoGitDir, null, /*verbose=*/true, getGitEnv(), Duration.ofMinutes(1)) {
       @Override
       public GitRevision fetchSingleRef(String url, String ref) throws RepoException {
         interceptedFetches.add(new String[]{url, ref});
@@ -67,12 +70,13 @@ public class GitRepoTypeTest {
   }
 
   private void disableFetchMocks() throws RepoException {
-    testRepo = GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true);
+    testRepo = GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true,
+        DEFAULT_TIMEOUT);
     testRepo.init();
   }
 
   private void prepareFileRepo() throws Exception {
-    fileRepo = GitRepository.newRepo(true, fileRepoDir, getGitEnv()).init();
+    fileRepo = GitRepository.newRepo(true, fileRepoDir, getGitEnv(), DEFAULT_TIMEOUT).init();
     Files.write(fileRepoDir.resolve("foo"), new byte[]{});
 
     fileRepo.add().files("foo").run();

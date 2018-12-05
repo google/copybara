@@ -25,6 +25,7 @@ import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static com.google.copybara.util.DiffUtil.DiffFile.Operation.ADD;
 import static com.google.copybara.util.DiffUtil.DiffFile.Operation.DELETE;
 import static com.google.copybara.util.DiffUtil.DiffFile.Operation.MODIFIED;
@@ -1341,9 +1342,10 @@ public class WorkflowTest {
   public void testDryRunWithLocalGitPath() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
+        .init();
     GitRepository destination = GitRepository.newBareRepo(destinationPath, getGitEnv(),
-        /*verbose=*/true).init();
+        /*verbose=*/true, DEFAULT_TIMEOUT).init();
 
     String config = "core.workflow("
         + "    name = 'default',\n"
@@ -1625,7 +1627,8 @@ public class WorkflowTest {
   @Test
   public void changeRequestEmptyChanges() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
+        .init();
     options.setOutputRootToTmpDir();
     String config = "core.workflow("
         + "    name = 'default',"
@@ -1663,7 +1666,8 @@ public class WorkflowTest {
     Path originPath = someRoot.resolve("origin");
     Files.createDirectories(originPath);
 
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
+        .init();
     options.setOutputRootToTmpDir();
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
@@ -2383,7 +2387,7 @@ public class WorkflowTest {
   public void testNonReversibleInsideGit() throws IOException, ValidationException, RepoException {
     origin.singleFileChange(0, "one commit", "foo.txt", "foo\nbar\n");
 
-    GitRepository.newRepo(/*verbose=*/true, workdir, getGitEnv()).init();
+    GitRepository.newRepo(/*verbose=*/true, workdir, getGitEnv(), DEFAULT_TIMEOUT).init();
     Path subdir = Files.createDirectory(workdir.resolve("subdir"));
     String config = ""
         + "core.workflow(\n"
@@ -2496,8 +2500,10 @@ public class WorkflowTest {
   public void givenLastRevFlagInfoCommandUsesIt() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
-    GitRepository destination = GitRepository.newRepo(true, destinationPath, getGitEnv()).init();
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
+        .init();
+    GitRepository destination = GitRepository.newRepo(true, destinationPath, getGitEnv(),
+        DEFAULT_TIMEOUT).init();
 
     String config = "core.workflow("
         + "    name = '" + "default" + "',"
@@ -2544,11 +2550,11 @@ public class WorkflowTest {
   @Test
   public void testHgOriginNoFlags() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    HgRepository origin = HgRepository.newRepository(originPath, true).init();
+    HgRepository origin = new HgRepository(originPath, true, DEFAULT_TIMEOUT).init();
 
     Path destinationPath = Files.createTempDirectory("destination");
     GitRepository destRepo = GitRepository
-        .newBareRepo(destinationPath, getGitEnv(), true)
+        .newBareRepo(destinationPath, getGitEnv(), true, DEFAULT_TIMEOUT)
         .init();
 
     String config = "core.workflow("
@@ -2716,7 +2722,8 @@ public class WorkflowTest {
   @Test
   public void testFirstParentAlreadyImportedInNoFirstParent() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init();
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
+        .init();
     options.setOutputRootToTmpDir();
     options.setForce(false);
     options.workflowOptions.initHistory = true;
@@ -2773,10 +2780,11 @@ public class WorkflowTest {
       throws IOException, RepoException, ValidationException {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationWorkdir = Files.createTempDirectory("destination_workdir");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv()).init(
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
+        .init(
     );
     GitRepository destinationBare = newBareRepo(Files.createTempDirectory("destination"), getGitEnv(),
-                                             /*verbose=*/true);
+        /*verbose=*/true, DEFAULT_TIMEOUT);
     destinationBare.init();
     GitRepository destination = destinationBare.withWorkTree(destinationWorkdir);
 

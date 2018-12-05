@@ -17,6 +17,8 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
+import static com.google.copybara.util.CommandRunner.NO_INPUT;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -97,7 +99,7 @@ public class GitRepository {
 
   private static final Pattern LS_REMOTE_OUTPUT_LINE = Pattern.compile("([a-f0-9]{40})\t(.+)");
 
-  static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
+  private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
 
   private static final Pattern FAILED_REBASE = Pattern.compile("Failed to merge in the changes");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
@@ -149,27 +151,32 @@ public class GitRepository {
 
   private final boolean verbose;
   private final GitEnvironment gitEnv;
+  private final Duration fetchTimeout;
 
   private static final Map<Character, StatusCode> CHAR_TO_STATUS_CODE =
       Arrays.stream(StatusCode.values())
           .collect(Collectors.toMap(StatusCode::getCode, Function.identity()));
 
   protected GitRepository(
-      Path gitDir, @Nullable Path workTree, boolean verbose, GitEnvironment gitEnv) {
+      Path gitDir, @Nullable Path workTree, boolean verbose, GitEnvironment gitEnv,
+      Duration fetchTimeout) {
     this.gitDir = checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
     this.gitEnv = checkNotNull(gitEnv);
+    this.fetchTimeout = checkNotNull(fetchTimeout);
   }
 
   /** Creates a new repository in the given directory. The new repo is not bare. */
-  public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv) {
-    return new GitRepository(path.resolve(".git"), path, verbose, gitEnv);
+  public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv,
+      Duration fetchTimeout) {
+    return new GitRepository(path.resolve(".git"), path, verbose, gitEnv, fetchTimeout);
   }
 
   /** Create a new bare repository */
-  public static GitRepository newBareRepo(Path gitDir, GitEnvironment gitEnv, boolean verbose) {
-    return new GitRepository(gitDir, /*workTree=*/ null, verbose, gitEnv);
+  public static GitRepository newBareRepo(Path gitDir, GitEnvironment gitEnv, boolean verbose,
+      Duration fetchTimeout) {
+    return new GitRepository(gitDir, /*workTree=*/ null, verbose, gitEnv, fetchTimeout);
   }
 
   /**
@@ -278,7 +285,7 @@ public class GitRepository {
     }
 
     ImmutableMap<String, GitRevision> before = showRef();
-    CommandOutputWithStatus output = gitAllowNonZeroExit(CommandRunner.NO_INPUT, args);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(NO_INPUT, args, fetchTimeout);
     if (output.getTerminationStatus().success()) {
       ImmutableMap<String, GitRevision> after = showRef();
       return new FetchResult(before, after);
@@ -378,7 +385,7 @@ public class GitRepository {
   }
 
   @CheckReturnValue
-  protected static String validateUrl(String url) throws RepoException, ValidationException {
+  static String validateUrl(String url) throws RepoException, ValidationException {
     RepositoryUtil.validateNotHttp(url);
     if (FULL_URI.matcher(url).matches()) {
       return url;
@@ -395,11 +402,12 @@ public class GitRepository {
    * Execute show-ref git command in the local repository and returns a map from reference name to
    * GitReference(SHA-1).
    */
-  protected ImmutableMap<String, GitRevision> showRef(Iterable<String> refs)
+  private ImmutableMap<String, GitRevision> showRef(Iterable<String> refs)
       throws RepoException {
     ImmutableMap.Builder<String, GitRevision> result = ImmutableMap.builder();
-    CommandOutput commandOutput = gitAllowNonZeroExit(CommandRunner.NO_INPUT,
-        ImmutableList.<String>builder().add("show-ref").addAll(refs).build());
+    CommandOutput commandOutput = gitAllowNonZeroExit(NO_INPUT,
+        ImmutableList.<String>builder().add("show-ref").addAll(refs).build(),
+        DEFAULT_TIMEOUT);
 
     if (!commandOutput.getStderr().isEmpty()) {
       throw new RepoException(String.format(
@@ -424,19 +432,20 @@ public class GitRepository {
    * Execute show-ref git command in the local repository and returns a map from reference name to
    * GitReference(SHA-1).
    */
-  protected ImmutableMap<String, GitRevision> showRef() throws RepoException {
+  ImmutableMap<String, GitRevision> showRef() throws RepoException {
     return showRef(ImmutableList.of());
   }
 
-  protected String mergeBase(String commit1, String commit2) throws RepoException {
+  String mergeBase(String commit1, String commit2) throws RepoException {
     return simpleCommand("merge-base", commit1, commit2).getStdout().trim();
   }
 
   boolean isAncestor(String ancestor, String commit) throws RepoException {
     CommandOutputWithStatus result =
         gitAllowNonZeroExit(
-            CommandRunner.NO_INPUT,
-            ImmutableList.of("merge-base", "--is-ancestor", "--", ancestor, commit));
+            NO_INPUT,
+            ImmutableList.of("merge-base", "--is-ancestor", "--", ancestor, commit),
+            DEFAULT_TIMEOUT);
     if (result.getTerminationStatus().success()) {
       return true;
     }
@@ -451,7 +460,7 @@ public class GitRepository {
    * initialize or alter the given work tree.
    */
   public GitRepository withWorkTree(Path newWorkTree) {
-    return new GitRepository(this.gitDir, newWorkTree, this.verbose, this.gitEnv);
+    return new GitRepository(this.gitDir, newWorkTree, this.verbose, this.gitEnv, fetchTimeout);
   }
 
   /**
@@ -554,11 +563,6 @@ public class GitRepository {
     return new AddCmd(/*force*/false, /*all*/false, /*files*/ImmutableSet.of());
   }
 
-  // TODO(malcon): Refactor. See bellow.
-  String getConfigField(String field) throws RepoException {
-    return getConfigField(field, /*configFile=*/null);
-  }
-
   /**
    * Get a field from a configuration {@code configFile} relative to {@link #getWorkTree()}.
    *
@@ -566,7 +570,7 @@ public class GitRepository {
    * TODO(malcon): Refactor this to work similar to LogCmd.
    */
   @Nullable
-  String getConfigField(String field, @Nullable String configFile) throws RepoException {
+  private String getConfigField(String field, @Nullable String configFile) throws RepoException {
     ImmutableList.Builder<String> params = ImmutableList.builder();
     params.add("config");
     if (configFile != null) {
@@ -574,7 +578,8 @@ public class GitRepository {
     }
     params.add("--get");
     params.add(field);
-    CommandOutputWithStatus out = gitAllowNonZeroExit(CommandRunner.NO_INPUT, params.build());
+    CommandOutputWithStatus out = gitAllowNonZeroExit(NO_INPUT, params.build(),
+        DEFAULT_TIMEOUT);
     if (out.getTerminationStatus().success()) {
       return out.getStdout().trim();
     } else if (out.getTerminationStatus().getExitCode() == 1 && out.getStderr().isEmpty()) {
@@ -589,7 +594,7 @@ public class GitRepository {
   public String parseRef(String ref) throws RepoException, CannotResolveRevisionException {
     // Runs rev-list on the reference and remove the extra newline from the output.
     CommandOutputWithStatus result = gitAllowNonZeroExit(
-        CommandRunner.NO_INPUT, ImmutableList.of("rev-list", "-1", ref, "--"));
+        NO_INPUT, ImmutableList.of("rev-list", "-1", ref, "--"), DEFAULT_TIMEOUT);
     if (!result.getTerminationStatus().success()) {
       throw new CannotResolveRevisionException("Cannot find reference '" + ref + "'");
     }
@@ -598,7 +603,7 @@ public class GitRepository {
     return sha1;
   }
 
-  public boolean refExists(String ref) throws RepoException {
+  boolean refExists(String ref) throws RepoException {
     try {
       parseRef(ref);
       return true;
@@ -609,7 +614,8 @@ public class GitRepository {
 
   public void rebase(String newBaseline) throws RepoException, RebaseConflictException {
     CommandOutputWithStatus output = gitAllowNonZeroExit(
-        CommandRunner.NO_INPUT, ImmutableList.of("rebase", checkNotNull(newBaseline)));
+        NO_INPUT, ImmutableList.of("rebase", checkNotNull(newBaseline)),
+        DEFAULT_TIMEOUT);
 
     if (output.getTerminationStatus().success()) {
       return;
@@ -732,7 +738,7 @@ public class GitRepository {
    * @param currentRemoteUrl remote url associated with the repository. It will be used to
    * resolve relative URLs (for example: url = ../foo).
    */
-  public Iterable<Submodule> listSubmodules(String currentRemoteUrl) throws RepoException {
+  Iterable<Submodule> listSubmodules(String currentRemoteUrl) throws RepoException {
     ImmutableList.Builder<Submodule> result = ImmutableList.builder();
     String rawOutput = simpleCommand("submodule--helper", "list").getStdout();
     for (String line : Splitter.on('\n').split(rawOutput)) {
@@ -776,7 +782,7 @@ public class GitRepository {
     return result.build();
   }
 
-  public ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish)
+  ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish)
       throws RepoException {
     ImmutableList.Builder<TreeElement> result = ImmutableList.builder();
     String stdout = simpleCommand("ls-tree", reference.getSha1(), "--", treeish).getStdout();
@@ -853,7 +859,7 @@ public class GitRepository {
   public GitRepository withCredentialHelper(String credentialHelper)
       throws RepoException {
     git(gitDir, ImmutableList.of("config", "--local", "credential.helper",
-        Preconditions.checkNotNull(credentialHelper)));
+        checkNotNull(credentialHelper)));
     return this;
   }
 
@@ -878,7 +884,7 @@ public class GitRepository {
     return git(getCwd(), addGitDirAndWorkTreeParams(Arrays.asList(argv)));
   }
 
-  public CommandOutput simpleCommandNoRedirectOutput(String... argv) throws RepoException {
+  CommandOutput simpleCommandNoRedirectOutput(String... argv) throws RepoException {
     Iterable<String> params = addGitDirAndWorkTreeParams(Arrays.asList(argv));
     try {
       // Use maxLoglines 0 and verbose=false to avoid redirection
@@ -908,7 +914,8 @@ public class GitRepository {
    */
   public void apply(byte[] stdin, boolean index) throws RepoException, RebaseConflictException {
     CommandOutputWithStatus output = gitAllowNonZeroExit(stdin,
-        index ? ImmutableList.of("apply", "--index") : ImmutableList.of("apply"));
+        index ? ImmutableList.of("apply", "--index") : ImmutableList.of("apply"),
+        DEFAULT_TIMEOUT);
     if (output.getTerminationStatus().success()) {
       return;
     }
@@ -981,7 +988,8 @@ public class GitRepository {
    * (0-10. The upper bound is arbitrary). And will still fail for exit codes like 127 (Command not
    * found).
    */
-  private CommandOutputWithStatus gitAllowNonZeroExit(byte[] stdin, Iterable<String> params)
+  private CommandOutputWithStatus gitAllowNonZeroExit(byte[] stdin, Iterable<String> params,
+      Duration defaultTimeout)
       throws RepoException {
     try {
       List<String> allParams = new ArrayList<>();
@@ -992,7 +1000,7 @@ public class GitRepository {
               Iterables.toArray(allParams, String.class),
               gitEnv.getEnvironment(),
               getCwd().toFile());
-      return new CommandRunner(cmd)
+      return new CommandRunner(cmd, defaultTimeout)
           .withVerbose(verbose)
           .withInput(stdin)
           .execute();
@@ -1042,7 +1050,7 @@ public class GitRepository {
    *
    * @throws CannotResolveRevisionException if it cannot resolve the reference
    */
-  public GitRevision resolveReferenceWithContext(String reference, @Nullable String contextRef,
+  GitRevision resolveReferenceWithContext(String reference, @Nullable String contextRef,
       String url)
       throws RepoException, CannotResolveRevisionException {
     // Nothing needs to be resolved, since it is a complete SHA-1. But we
@@ -1082,7 +1090,8 @@ public class GitRepository {
    */
   private boolean checkSha1Exists(String reference) throws RepoException {
     ImmutableList<String> params = ImmutableList.of("cat-file", "-e", reference);
-    CommandOutputWithStatus output = gitAllowNonZeroExit(CommandRunner.NO_INPUT, params);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(NO_INPUT, params,
+        DEFAULT_TIMEOUT);
     if (output.getTerminationStatus().success()) {
       return true;
     }
@@ -1092,7 +1101,7 @@ public class GitRepository {
     throw throwUnknownGitError(output, params);
   }
 
-  public GitRevision commitTree(String message, String tree, List<GitRevision> parents)
+  GitRevision commitTree(String message, String tree, List<GitRevision> parents)
       throws RepoException {
     ImmutableList.Builder<String> args = ImmutableList.<String>builder().add("commit-tree", tree);
     for (GitRevision parent : parents) {
@@ -1107,7 +1116,7 @@ public class GitRepository {
   /**
    * Creates a reference from a complete SHA-1 string without any validation that it exists.
    */
-  GitRevision createReferenceFromCompleteSha1(String ref) {
+  private GitRevision createReferenceFromCompleteSha1(String ref) {
     return new GitRevision(this, ref);
   }
 
@@ -1234,11 +1243,11 @@ public class GitRepository {
     }
 
     @Nullable
-    public String getNewFileName() {
+    String getNewFileName() {
       return newFileName;
     }
 
-    public StatusCode getIndexStatus() {
+    StatusCode getIndexStatus() {
       return indexStatus;
     }
 
@@ -1325,9 +1334,9 @@ public class GitRepository {
     @CheckReturnValue
     public PushCmd(GitRepository repo, @Nullable String url, ImmutableList<Refspec> refspecs,
         boolean prune) {
-      this.repo = Preconditions.checkNotNull(repo);
+      this.repo = checkNotNull(repo);
       this.url = url;
-      this.refspecs = Preconditions.checkNotNull(refspecs);
+      this.refspecs = checkNotNull(refspecs);
       Preconditions.checkArgument(refspecs.isEmpty() || url != null, "refspec can only be"
           + " used when a url is passed");
       this.prune = prune;
@@ -1335,7 +1344,7 @@ public class GitRepository {
 
     @CheckReturnValue
     public PushCmd withRefspecs(String url, Iterable<Refspec> refspecs) {
-      return new PushCmd(repo, Preconditions.checkNotNull(url), ImmutableList.copyOf(refspecs),
+      return new PushCmd(repo, checkNotNull(url), ImmutableList.copyOf(refspecs),
           prune);
     }
 
@@ -1431,7 +1440,7 @@ public class GitRepository {
      * Skip the first {@code skip} commits. Should be >= 0.
      */
     @CheckReturnValue
-    public LogCmd withSkip(int skip) {
+    LogCmd withSkip(int skip) {
       Preconditions.checkArgument(skip >= 0);
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString, includeMergeDiff, skip);
@@ -1441,7 +1450,7 @@ public class GitRepository {
      * Only query for changes in {@code paths} paths.
      */
     @CheckReturnValue
-    public LogCmd withPaths(ImmutableCollection<String> paths) {
+    LogCmd withPaths(ImmutableCollection<String> paths) {
       Preconditions.checkArgument(paths.stream().noneMatch(s -> s.trim().equals("")));
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString, includeMergeDiff, skip);
@@ -1451,7 +1460,7 @@ public class GitRepository {
      * Set if --first-parent should be used in 'git log'.
      */
     @CheckReturnValue
-    public LogCmd firstParent(boolean firstParent) {
+    LogCmd firstParent(boolean firstParent) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString, includeMergeDiff, skip);
     }
@@ -1460,7 +1469,7 @@ public class GitRepository {
      * If files affected by the commit should be included in the response.
      */
     @CheckReturnValue
-    public LogCmd includeFiles(boolean includeStat) {
+    LogCmd includeFiles(boolean includeStat) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString, includeMergeDiff, skip);
     }
@@ -1469,7 +1478,7 @@ public class GitRepository {
      * If file diff should be shown for merges. Equivalent to 'git log -m' command.
      */
     @CheckReturnValue
-    public LogCmd includeMergeDiff(boolean includeMergeDiff) {
+    LogCmd includeMergeDiff(boolean includeMergeDiff) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString, includeMergeDiff, skip);
     }
@@ -1478,7 +1487,7 @@ public class GitRepository {
      * If the body (commit message) should be included in the response.
      */
     @CheckReturnValue
-    public LogCmd includeBody(boolean includeBody) {
+    LogCmd includeBody(boolean includeBody) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString, includeMergeDiff, skip);
     }
@@ -1602,7 +1611,7 @@ public class GitRepository {
     }
 
     private String getField(Map<String, String> fields, String field) {
-      return Preconditions.checkNotNull(fields.get(field), "%s not present", field);
+      return checkNotNull(fields.get(field), "%s not present", field);
     }
 
     /**
@@ -1680,7 +1689,7 @@ public class GitRepository {
       return authorDate;
     }
 
-    public ZonedDateTime getCommitDate() {
+    ZonedDateTime getCommitDate() {
       return commitDate;
     }
 
@@ -1712,6 +1721,8 @@ public class GitRepository {
     }
   }
 
+  // Used for debugging issues
+  @SuppressWarnings("unused")
   public String gitCmd() {
     return "git --git-dir=" + gitDir + (workTree != null ? " --work-tree=" + workTree : "");
   }

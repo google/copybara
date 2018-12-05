@@ -28,6 +28,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.util.CommandOutput;
+import com.google.copybara.util.CommandRunner;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,7 +51,7 @@ public class HgRepositoryTest {
   @Before
   public void setup() throws Exception {
     workDir = Files.createTempDirectory("workdir");
-    repository = new HgRepository(workDir, /*verbose*/ false);
+    repository = new HgRepository(workDir, /*verbose*/ false, CommandRunner.DEFAULT_TIMEOUT);
     repository.init();
   }
 
@@ -71,7 +72,8 @@ public class HgRepositoryTest {
     HgRevision beforeRev = new HgRevision(revIds.get(1));
 
     Path remoteDir = Files.createTempDirectory("remotedir");
-    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false);
+    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false,
+        CommandRunner.DEFAULT_TIMEOUT);
     remoteRepo.init();
     Path newFile2 = Files.createTempFile(remoteDir, "bar", ".txt");
     String fileName2 = newFile2.toString();
@@ -108,7 +110,8 @@ public class HgRepositoryTest {
     addAndCommitFile("foo");
 
     Path remoteDir = Files.createTempDirectory("remotedir");
-    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false);
+    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false,
+        CommandRunner.DEFAULT_TIMEOUT);
     remoteRepo.init();
     Path newFile2 = Files.createTempFile(remoteDir, "bar", ".txt");
     String fileName2 = newFile2.toString();
@@ -191,7 +194,8 @@ public class HgRepositoryTest {
     repository.hg(workDir, "commit", "-u", user, "-d", date2.toString(), "-m", desc2);
 
     Path remoteDir = Files.createTempDirectory("remotedir");
-    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/false);
+    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/false,
+        CommandRunner.DEFAULT_TIMEOUT);
     remoteRepo.init();
     Path newFile2 = Files.createTempFile(remoteDir, "bar", ".txt");
     String fileName2 = newFile2.toString();
@@ -251,7 +255,8 @@ public class HgRepositoryTest {
     Path newFile = addAndCommitFile("foo");
 
     Path remoteDir = Files.createTempDirectory("remotedir");
-    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false);
+    HgRepository remoteRepo = new HgRepository(remoteDir, /*verbose*/ false,
+        CommandRunner.DEFAULT_TIMEOUT);
     remoteRepo.init();
     Path newFile2 = Files.createTempFile(remoteDir, "foo", ".txt");
     String fileName2 = newFile2.toString();
@@ -406,7 +411,8 @@ public class HgRepositoryTest {
 
     Path subrepoPath = Files.createTempDirectory(workDir,"subrepo");
     String subrepoName = subrepoPath.toFile().getName();
-    HgRepository subrepo = new HgRepository(subrepoPath, /*verbose*/ true);
+    HgRepository subrepo = new HgRepository(subrepoPath, /*verbose*/ true,
+        CommandRunner.DEFAULT_TIMEOUT);
     subrepo.init();
 
     Path subFile = Files.createTempFile(subrepoPath, "bar", ".txt");
@@ -416,7 +422,8 @@ public class HgRepositoryTest {
     // this repository will not be added as a subrepo in .hgsub
     Path untrackedRepoPath = Files.createTempDirectory(workDir,"untracked");
     String untrackedName = untrackedRepoPath.toFile().getName();
-    HgRepository untrackedRepo = new HgRepository(untrackedRepoPath, /*verbose*/ true);
+    HgRepository untrackedRepo = new HgRepository(untrackedRepoPath, /*verbose*/ true,
+        CommandRunner.DEFAULT_TIMEOUT);
     untrackedRepo.init();
 
     Path untrackedFile = Files.createTempFile(untrackedRepoPath, "no", ".txt");

@@ -21,6 +21,7 @@ import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
 import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -250,7 +251,7 @@ public class GerritOriginTest {
 
   private void createTestRepo(Path folder) throws Exception {
     remote = folder;
-    repo = GitRepository.newRepo(true, remote, GitTestUtil.getGitEnv()).init();
+    repo = GitRepository.newRepo(true, remote, GitTestUtil.getGitEnv(), DEFAULT_TIMEOUT).init();
   }
 
   private String git(String... params) throws RepoException {

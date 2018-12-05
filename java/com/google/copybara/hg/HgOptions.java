@@ -18,12 +18,13 @@ package com.google.copybara.hg;
 
 import static com.google.copybara.util.FileUtil.createDirInCache;
 
-import com.beust.jcommander.Parameters;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
+
+import com.beust.jcommander.Parameters;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,8 +54,7 @@ public class HgOptions implements Option {
     Preconditions.checkNotNull(url);
     try {
       return createBareRepo(url, getRepoStorage());
-    }
-    catch (IOException e) {
+    } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);
     }
   }
@@ -63,12 +63,13 @@ public class HgOptions implements Option {
    * Returns an initialized repository in the {@code path} location. If an initialized
    * repository already exists in the location, returns that repository.
    */
-  protected HgRepository createBareRepo(String url, Path path)
+  private HgRepository createBareRepo(String url, Path path)
       throws RepoException {
     Path repoPath = createDirInCache(url, path);
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
-    HgRepository repo = HgRepository.newRepository(hgDir, generalOptions.isVerbose());
+    HgRepository repo =
+        new HgRepository(hgDir, generalOptions.isVerbose(), generalOptions.fetchTimeout);
     if (Files.notExists(hgDir)) {
       repo.init();
     }
@@ -77,7 +78,6 @@ public class HgOptions implements Option {
     return repo;
   }
 
-  @VisibleForTesting
   private Path getRepoStorage() throws IOException {
     return generalOptions.getDirFactory().getCacheDir("hg_repos");
   }

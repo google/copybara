@@ -16,6 +16,8 @@
 
 package com.google.copybara.hg;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static com.google.copybara.util.RepositoryUtil.validateNotHttp;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -27,8 +29,6 @@ import com.google.common.reflect.TypeToken;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
@@ -36,11 +36,14 @@ import com.google.copybara.util.CommandRunner;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.google.gson.annotations.SerializedName;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -58,7 +61,7 @@ public class HgRepository {
   /**
    * Label to mark the original revision id (Hg SHA-1) for migrated commits.
    */
-  public static final String HG_ORIGIN_REV_ID = "HgOrigin-RevId";
+  static final String HG_ORIGIN_REV_ID = "HgOrigin-RevId";
 
   private static final Pattern INVALID_HG_REPOSITORY =
       Pattern.compile("abort: repository .+ not found!");
@@ -74,16 +77,12 @@ public class HgRepository {
    */
   private final Path hgDir;
   private final boolean verbose;
+  private final Duration fetchTimeout;
 
-
-  protected HgRepository(Path hgDir, boolean verbose) {
-    this.hgDir = hgDir;
+  public HgRepository(Path hgDir, boolean verbose, Duration fetchTimeout) {
+    this.hgDir = checkNotNull(hgDir);
     this.verbose = verbose;
-  }
-
-
-  public static HgRepository newRepository(Path hgDir, boolean verbose) {
-    return new HgRepository(hgDir, verbose);
+    this.fetchTimeout = checkNotNull(fetchTimeout);
   }
 
   /**
@@ -97,7 +96,7 @@ public class HgRepository {
     } catch (IOException e) {
       throw new RepoException("Cannot create directory: " + e.getMessage(), e);
     }
-    hg(hgDir, ImmutableList.of("init"));
+    hg(hgDir, ImmutableList.of("init"), DEFAULT_TIMEOUT);
     return this;
   }
 
@@ -109,7 +108,7 @@ public class HgRepository {
    *
    * @param url remote hg repository url
    */
-  public void pullAll(String url) throws RepoException, ValidationException {
+  void pullAll(String url) throws RepoException, ValidationException {
     pull(url, /*force*/ true, /*ref*/ null);
   }
 
@@ -122,7 +121,7 @@ public class HgRepository {
    * @param url remote hg repository url
    * @param ref the remote revision to add
    */
-  public void pullFromRef(String url, String ref) throws RepoException, ValidationException {
+  void pullFromRef(String url, String ref) throws RepoException, ValidationException {
     pull(url, /*force*/ true, /*ref*/ ref);
   }
 
@@ -142,7 +141,7 @@ public class HgRepository {
     }
 
     try {
-      hg(hgDir, builder.build());
+      hg(hgDir, builder.build(), fetchTimeout);
     } catch (RepoException e) {
       if (INVALID_HG_REPOSITORY.matcher(e.getMessage()).find()){
         throw new ValidationException(
@@ -160,7 +159,7 @@ public class HgRepository {
    * Updates the working directory to the revision given at {@code ref} in the repository
    * and discards local changes.
    */
-  public CommandOutput cleanUpdate(String ref) throws RepoException {
+  CommandOutput cleanUpdate(String ref) throws RepoException {
       return hg(hgDir, "update", ref, "--clean");
   }
 
@@ -198,7 +197,7 @@ public class HgRepository {
    * Creates an unversioned archive of the current working directory and subrepositories
    * in the location {@code archivePath}.
    */
-  public void archive(String archivePath) throws RepoException {
+  void archive(String archivePath) throws RepoException {
     hg(hgDir, "archive", archivePath, "--type", "files", "--subrepos");
   }
 
@@ -220,16 +219,13 @@ public class HgRepository {
    */
   @VisibleForTesting
   public CommandOutput hg(Path cwd, String... params) throws RepoException {
-    return hg(cwd, Arrays.asList(params));
+    return hg(cwd, Arrays.asList(params), DEFAULT_TIMEOUT);
   }
 
-  public Path getHgDir() {
-    return hgDir;
-  }
-
-  private CommandOutput hg(Path cwd, Iterable<String> params) throws RepoException {
+  private CommandOutput hg(Path cwd, Iterable<String> params, Duration timeout)
+      throws RepoException {
     try {
-      return executeHg(cwd, params, -1);
+      return executeHg(cwd, params, -1, timeout);
     } catch (BadExitStatusWithOutputException e) {
       throw new RepoException(String.format("Error executing hg: %s", e.getOutput().getStderr()));
     } catch (CommandException e) {
@@ -237,15 +233,19 @@ public class HgRepository {
     }
   }
 
+  public Path getHgDir() {
+    return hgDir;
+  }
+
   private CommandOutputWithStatus executeHg(Path cwd, Iterable<String> params,
-      int maxLogLines) throws CommandException {
+      int maxLogLines, Duration timeout) throws CommandException {
     List<String> allParams = new ArrayList<>(Iterables.size(params) + 1);
     allParams.add("hg"); //TODO(jlliu): resolve Hg binary here
     Iterables.addAll(allParams, params);
     Command cmd = new Command(
         Iterables.toArray(allParams, String.class), null, cwd.toFile());
         //TODO(jlliu): have environment vars
-    CommandRunner runner = new CommandRunner(cmd).withVerbose(verbose);
+    CommandRunner runner = new CommandRunner(cmd, timeout).withVerbose(verbose);
     return
         maxLogLines >= 0 ? runner.withMaxStdOutLogLines(maxLogLines).execute() : runner.execute();
   }
@@ -281,7 +281,7 @@ public class HgRepository {
 
     static LogCmd create(HgRepository repo) {
       return new LogCmd(
-          Preconditions.checkNotNull(repo), /*limit*/0, /*branch*/null,
+          checkNotNull(repo), /*limit*/0, /*branch*/null,
           /*referenceExpression*/ null, /*keyword*/ null);
     }
 
@@ -292,7 +292,7 @@ public class HgRepository {
      * number of operators: for example, x::y represents all revisions that are descendants of x and
      * ancestors of y, including x and y.
      */
-    public LogCmd withReferenceExpression(String referenceExpression) throws RepoException{
+    LogCmd withReferenceExpression(String referenceExpression) throws RepoException {
       if (Strings.isNullOrEmpty(referenceExpression.trim())){
         throw new RepoException("Cannot log null or empty reference");
       }
@@ -311,14 +311,14 @@ public class HgRepository {
     /**
      * Only query for revisions from the branch {@code branch}.
      */
-    public LogCmd withBranch(String branch) {
+    LogCmd withBranch(String branch) {
       return new LogCmd(repo, limit, branch, referenceExpression, keyword);
     }
 
     /**
      * Only query for revisions with the keyword {@code keyword}.
      */
-    public LogCmd withKeyword(String keyword) {
+    LogCmd withKeyword(String keyword) {
       return new LogCmd(repo, limit, branch, referenceExpression, keyword);
     }
 
@@ -354,7 +354,7 @@ public class HgRepository {
 
       builder.add("-Tjson");
       try {
-        CommandOutput output = repo.hg(repo.getHgDir(), builder.build());
+        CommandOutput output = repo.hg(repo.getHgDir(), builder.build(), DEFAULT_TIMEOUT);
         return parseLog(output.getStdout());
       } catch (RepoException e) {
         if (UNKNOWN_REVISION.matcher(e.getMessage()).find()) {
@@ -401,7 +401,7 @@ public class HgRepository {
     HgLogEntry(String node, List<String> parents, String user,
         List<String> commitDate, String branch,
         String desc, List<String> files) {
-      this.globalId = Preconditions.checkNotNull(node);
+      this.globalId = checkNotNull(node);
       this.parents = ImmutableList.copyOf(parents);
       this.user = user;
       this.commitDate = commitDate;
@@ -418,11 +418,11 @@ public class HgRepository {
       return user;
     }
 
-    public String getGlobalId() {
+    String getGlobalId() {
       return globalId;
     }
 
-    public ZonedDateTime getZonedDate() {
+    ZonedDateTime getZonedDate() {
       Instant date = Instant.ofEpochSecond(
           Long.parseLong(commitDate.get(0)));
       ZoneOffset offset = ZoneOffset.ofTotalSeconds(-1 * Integer.parseInt(commitDate.get(1)));

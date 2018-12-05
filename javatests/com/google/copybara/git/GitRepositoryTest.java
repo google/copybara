@@ -22,6 +22,7 @@ import static com.google.copybara.git.GitRepository.StatusCode.MODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNMODIFIED;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -70,7 +71,8 @@ public class GitRepositoryTest {
   public void setup() throws Exception {
     workdir = Files.createTempDirectory("workdir");
     repository = GitRepository
-        .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true)
+        .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
+            DEFAULT_TIMEOUT)
         .withWorkTree(workdir);
     repository.init();
   }
@@ -124,7 +126,7 @@ public class GitRepositoryTest {
   @Test
   public void testStatus() throws RepoException, IOException {
     GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
-        getGitEnv(), /*verbose=*/true);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
     dest.init();
 
     Files.write(workdir.resolve("renamed"), "renamed".getBytes(UTF_8));
@@ -238,7 +240,7 @@ public class GitRepositoryTest {
       ValidationException {
     workdir = Files.createTempDirectory("workdir");
     this.repository = GitRepository.newBareRepo(Files.createTempDirectory("gitdir"),
-        getGitEnv(), /*verbose=*/true)
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT)
         .withWorkTree(workdir)
         .init();
 
@@ -426,7 +428,7 @@ public class GitRepositoryTest {
   @Test
   public void testFetch() throws Exception {
     GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
-        getGitEnv(), /*verbose=*/true);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
     dest.init();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
@@ -464,7 +466,7 @@ public class GitRepositoryTest {
     List<Iterable<String>> requestedFetches = new ArrayList<>();
 
     GitRepository dest = new GitRepository(Files.createTempDirectory("destDir"), /*workTree=*/null,
-        true, getGitEnv()) {
+        true, getGitEnv(), DEFAULT_TIMEOUT) {
 
       @Override
       public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
@@ -496,7 +498,7 @@ public class GitRepositoryTest {
   @Test
   public void testFetchInvalidGitRepo() throws Exception {
     GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
-        getGitEnv(), /*verbose=*/true);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
     dest.init();
 
     Path notAGitRepo = Files.createTempDirectory("not_a_git_repo");
@@ -641,7 +643,8 @@ public class GitRepositoryTest {
   @Test
   public void testPush() throws Exception {
     GitRepository remote = GitRepository
-        .newBareRepo(Files.createTempDirectory("remote"), getGitEnv(), /*verbose=*/true)
+        .newBareRepo(Files.createTempDirectory("remote"), getGitEnv(), /*verbose=*/true,
+            DEFAULT_TIMEOUT)
         .init();
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
@@ -697,7 +700,7 @@ public class GitRepositoryTest {
   @Test
   public void testPushPrune() throws Exception {
     GitRepository remote = GitRepository.newBareRepo(Files.createTempDirectory("remote"),
-        getGitEnv(), /*verbose=*/true);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
     remote.init();
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
