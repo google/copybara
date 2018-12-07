@@ -116,7 +116,7 @@ public class GitHubPrDestinationTest {
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
 
-    mockNoPullRequestsGet();
+    mockNoPullRequestsGet("feature");
 
     gitUtil.mockApi(
         "POST",
@@ -157,7 +157,7 @@ public class GitHubPrDestinationTest {
         TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
 
     verify(gitUtil.httpTransport(), times(1))
-        .buildRequest("GET", "https://api.github.com/repos/foo/pulls");
+        .buildRequest("GET", getPullRequestsUrl("feature"));
     verify(gitUtil.httpTransport(), times(1))
         .buildRequest("POST", "https://api.github.com/repos/foo/pulls");
   }
@@ -174,7 +174,7 @@ public class GitHubPrDestinationTest {
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
 
-    mockNoPullRequestsGet();
+    mockNoPullRequestsGet("feature");
 
     gitUtil.mockApi(
         "POST",
@@ -216,13 +216,13 @@ public class GitHubPrDestinationTest {
         console);
 
     verify(gitUtil.httpTransport(), times(1))
-        .buildRequest("GET", "https://api.github.com/repos/foo/pulls");
+        .buildRequest("GET", getPullRequestsUrl("feature"));
     verify(gitUtil.httpTransport(), times(1))
         .buildRequest("POST", "https://api.github.com/repos/foo/pulls");
   }
 
-  private void mockNoPullRequestsGet() throws IOException {
-    gitUtil.mockApi("GET", "https://api.github.com/repos/foo/pulls", mockResponse("[]"));
+  private void mockNoPullRequestsGet(String branchName) throws IOException {
+    gitUtil.mockApi("GET", getPullRequestsUrl(branchName), mockResponse("[]"));
   }
 
   @Test
@@ -237,7 +237,7 @@ public class GitHubPrDestinationTest {
 
   private void checkWrite(Revision revision)
       throws ValidationException, RepoException, IOException {
-    mockNoPullRequestsGet();
+    mockNoPullRequestsGet("feature");
 
     gitUtil.mockApi(
         "POST",
@@ -309,7 +309,7 @@ public class GitHubPrDestinationTest {
 
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/foo/pulls",
+        getPullRequestsUrl("feature"),
         mockResponse(
             ""
                 + "[{\n"
@@ -392,7 +392,7 @@ public class GitHubPrDestinationTest {
             "copy.bara.sky",
             writerContext.getWorkflowIdentityUser());
 
-    mockNoPullRequestsGet();
+    mockNoPullRequestsGet(branchName);
 
     gitUtil.mockApi(
         "POST",
@@ -457,7 +457,7 @@ public class GitHubPrDestinationTest {
                 + ")");
     DummyRevision dummyRevision = new DummyRevision("dummyReference", contextReference);
 
-    mockNoPullRequestsGet();
+    mockNoPullRequestsGet(expectedBranchName);
 
     gitUtil.mockApi(
         "POST",
@@ -579,5 +579,9 @@ public class GitHubPrDestinationTest {
 
   private GitRepository repoForPath(Path path) {
     return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT);
+  }
+
+  private static String getPullRequestsUrl(String branchName) {
+    return "https://api.github.com/repos/foo/pulls?per_page=100&head=foo:" + branchName;
   }
 }

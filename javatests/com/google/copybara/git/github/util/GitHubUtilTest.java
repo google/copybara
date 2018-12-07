@@ -18,6 +18,7 @@ package com.google.copybara.git.github.util;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.github.util.GitHubUtil.getProjectNameFromUrl;
+import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
 import static org.junit.Assert.fail;
 
 import com.google.copybara.exception.ValidationException;
@@ -52,6 +53,21 @@ public class GitHubUtilTest {
       fail();
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Empty url");
+    }
+  }
+
+  @Test
+  public void testGetUserNameFromUrl() throws Exception {
+    assertThat(getUserNameFromUrl("https://github.com/foo")).isEqualTo("foo");
+    assertThat(getUserNameFromUrl("https://github.com/foo/bar")).isEqualTo("foo");
+    assertThat(getUserNameFromUrl("ssh://git@github.com/foo/bar.git")).isEqualTo("foo");
+    assertThat(getUserNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo");
+    assertThat(getUserNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo");
+    try {
+      getUserNameFromUrl("foo@bar:baz");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e.getMessage()).contains("Cannot find project name");
     }
   }
 }

@@ -18,6 +18,7 @@ package com.google.copybara.git.github.api;
 
 import static com.google.copybara.git.github.api.GitHubApiException.ResponseCode.CONFLICT;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
@@ -28,6 +29,7 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.lang.reflect.Type;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * A mini API for getting and updating GitHub projects through the GitHub REST API.
@@ -49,17 +51,85 @@ public class GitHubApi {
    * Get all the pull requests for a project
    * @param projectId a project in the form of "google/copybara"
    */
-  public ImmutableList<PullRequest> getPullRequests(String projectId)
+  public ImmutableList<PullRequest> getPullRequests(
+      String projectId, PullRequestListParams params)
       throws RepoException, ValidationException {
-    try (ProfilerTask ignore = profiler.start("github_api_list_pulls")) {
-      List<PullRequest> result =
-          transport.get(String.format("repos/%s/pulls", projectId),
-              new TypeToken<List<PullRequest>>() {
-              }.getType());
+    Preconditions.checkNotNull(params);
+    return paginatedGet(String.format("repos/%s/pulls?per_page=%d%s",
+        projectId, MAX_PER_PAGE, params.toParams()),
+        "github_api_list_pulls",
+        new TypeToken<PaginatedList<PullRequest>>() {
+        }.getType(), "Project");
+  }
 
-      return ImmutableList.copyOf(result);
-    } catch (GitHubApiException e) {
-      throw treatGitHubException(e, "Project");
+  public static class PullRequestListParams {
+
+    public enum StateFilter {OPEN, CLOSED, ALL}
+
+    public enum SortFilter {CREATED, UPDATED, POPULARITY}
+
+    public enum DirectionFilter {ASC, DESC}
+
+    @Nullable private final StateFilter state;
+    @Nullable private final String head;
+    @Nullable private final String base;
+    @Nullable private final SortFilter sort;
+    @Nullable private final DirectionFilter direction;
+
+    public static final PullRequestListParams DEFAULT =
+        new PullRequestListParams(null, null, null, null, null);
+
+    private PullRequestListParams(
+        @Nullable StateFilter state,
+        @Nullable String head,
+        @Nullable String base,
+        @Nullable SortFilter sort,
+        @Nullable DirectionFilter direction) {
+      this.state = state;
+      this.head = head;
+      this.base = base;
+      this.sort = sort;
+      this.direction = direction;
+    }
+
+    public PullRequestListParams withState(@Nullable StateFilter state) {
+      return new PullRequestListParams(state, head, base, sort, direction);
+    }
+
+    public PullRequestListParams withHead(@Nullable String head) {
+      return new PullRequestListParams(state, head, base, sort, direction);
+    }
+
+    public PullRequestListParams withBase(@Nullable String base) {
+      return new PullRequestListParams(state, head, base, sort, direction);
+    }
+
+    public PullRequestListParams withSort(@Nullable SortFilter sort) {
+      return new PullRequestListParams(state, head, base, sort, direction);
+    }
+
+    public PullRequestListParams withDirection(@Nullable DirectionFilter direction) {
+      return new PullRequestListParams(state, head, base, sort, direction);
+    }
+
+    String toParams() {
+      StringBuilder result = new StringBuilder();
+      if (state != null) {
+        result.append("&state=").append(Ascii.toLowerCase(state.toString()));
+      }
+      if (head != null) {
+        result.append("&head=").append(head);
+      }
+      if (base != null) {
+        result.append("&base=").append(base);
+      }
+      if (sort != null) {
+        result.append("&sort=").append(Ascii.toLowerCase(sort.toString()));
+      }
+      if (direction != null) {
+        result.append("&direction=").append(Ascii.toLowerCase(direction.toString()));
+      }
+      return result.toString();
     }
   }
 
@@ -89,10 +159,12 @@ public class GitHubApi {
     return paginatedGet(String.format("repos/%s/pulls/%d/reviews?per_page=%d",
         projectId, number, MAX_PER_PAGE),
         "github_api_get_reviews",
-        new TypeToken<PaginatedList<Review>>() {}.getType());
+        new TypeToken<PaginatedList<Review>>() {
+        }.getType(), "Pull Request or project");
   }
 
-  private <T> ImmutableList<T> paginatedGet(String path, String profilerName, Type type)
+  private <T> ImmutableList<T> paginatedGet(String path, String profilerName, Type type,
+      String entity)
       throws RepoException, ValidationException {
     ImmutableList.Builder<T> builder = ImmutableList.builder();
     int pages = 0;
@@ -102,6 +174,8 @@ public class GitHubApi {
         builder.addAll(page);
         path = page.getNextUrl();
         pages++;
+      } catch (GitHubApiException e) {
+        throw treatGitHubException(e, entity);
       }
     }
     return builder.build();
@@ -192,9 +266,8 @@ public class GitHubApi {
   public Ref getReference(String projectId, String branchName)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_reference")) {
-      Ref result = transport.get(
+      return transport.get(
           String.format("repos/%s/git/refs/%s", projectId, branchName), Ref.class);
-      return result;
     }
   }
 
@@ -204,7 +277,8 @@ public class GitHubApi {
       return paginatedGet(String.format("repos/%s/git/refs?per_page=%d",
           projectId, MAX_PER_PAGE),
           "github_api_get_references",
-          new TypeToken<PaginatedList<Ref>>() {}.getType());
+          new TypeToken<PaginatedList<Ref>>() {
+          }.getType(), "Project");
     }
   }
 

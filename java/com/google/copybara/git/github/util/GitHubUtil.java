@@ -41,6 +41,16 @@ public class GitHubUtil {
   }
 
   /**
+   * Return the username part of a github url. For example in
+   * https://github.com/foo/bar/baz, 'foo' would be the user.
+   */
+  public static String getUserNameFromUrl(String url) throws ValidationException {
+    String project = getProjectNameFromUrl(url);
+    int i = project.indexOf("/");
+    return i == -1 ? project : project.substring(0, i);
+  }
+
+  /**
    * Given a url that represents a GitHub repository, return the project name.
    */
   public static String getProjectNameFromUrl(String url) throws ValidationException {

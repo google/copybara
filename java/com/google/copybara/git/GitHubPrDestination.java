@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.copybara.LazyResourceLoader.memoized;
+import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -41,6 +42,7 @@ import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.git.GitDestination.WriterState;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.transform.metadata.LabelTemplate;
@@ -184,8 +186,14 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
-        GitHubApi api = gitHubOptions.newGitHubApi(GitHubUtil.getProjectNameFromUrl(url));
-        for (PullRequest pr : api.getPullRequests(getProjectName())) {
+        GitHubApi api = gitHubOptions.newGitHubApi(getProjectName());
+
+        ImmutableList<PullRequest> pullRequests = api.getPullRequests(
+            getProjectName(),
+            PullRequestListParams.DEFAULT
+                .withHead(String.format("%s:%s", getUserNameFromUrl(url), prBranch)));
+
+        for (PullRequest pr : pullRequests) {
           if (pr.isOpen() && pr.getHead().getRef().equals(prBranch)) {
             console.infoFmt(
                 "Pull request for branch %s already exists as %s/pull/%s",

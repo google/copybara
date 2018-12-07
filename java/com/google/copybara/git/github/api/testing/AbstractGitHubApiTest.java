@@ -17,6 +17,8 @@
 package com.google.copybara.git.github.api.testing;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.DirectionFilter.ASC;
+import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.SortFilter.CREATED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
@@ -25,11 +27,15 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
+import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.DirectionFilter;
+import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.SortFilter;
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubApiTransport;
@@ -76,11 +82,26 @@ public abstract class AbstractGitHubApiTest {
 
   public abstract void trainMockPost(String apiPath, Predicate<String> validator, byte[] response);
 
-
   @Test
   public void testGetPulls() throws Exception {
-    trainMockGet("/repos/example/project/pulls", getResource("pulls_testdata.json"));
-    ImmutableList<PullRequest> pullRequests = api.getPullRequests("example/project");
+    checkGetPulls("/repos/example/project/pulls?per_page=100", PullRequestListParams.DEFAULT);
+
+    checkGetPulls("/repos/example/project/pulls?per_page=100&head=foo:bar",
+        PullRequestListParams.DEFAULT.withHead("foo:bar"));
+
+    checkGetPulls("/repos/example/project/pulls?per_page=100"
+            + "&head=user:branch&base=the_base&sort=created&direction=asc",
+        PullRequestListParams.DEFAULT
+            .withHead("user:branch")
+            .withBase("the_base")
+            .withDirection(ASC)
+            .withSort(CREATED));
+  }
+
+  private void checkGetPulls(String expectedUrl, PullRequestListParams params) throws IOException, RepoException, ValidationException {
+    trainMockGet(expectedUrl, getResource("pulls_testdata.json"));
+    ImmutableList<PullRequest> pullRequests = api.getPullRequests(
+        "example/project", params);
 
     assertThat(pullRequests).hasSize(2);
     assertThat(pullRequests.get(0).getNumber()).isEqualTo(12345);
