@@ -14,6 +14,8 @@
 
 workspace(name = "copybara")
 
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava",
@@ -125,14 +127,6 @@ maven_jar(
     name = "flogger_system_backend",
     artifact = "com.google.flogger:flogger-system-backend:0.1",
     sha1 = "051278e0c81e2eaf5e275e4275a8fb9ca5967695",
-)
-
-new_http_archive(
-    name = "cram",
-    build_file = "BUILD.cram",
-    sha256 = "7da7445af2ce15b90aad5ec4792f857cef5786d71f14377e9eb994d8b8337f2f",
-    strip_prefix = "cram-0.7/",
-    url = "https://pypi.python.org/packages/source/c/cram/cram-0.7.tar.gz",
 )
 
 # LICENSE: Common Public License 1.0
