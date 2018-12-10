@@ -294,8 +294,8 @@ Name | Description
 author | The author of the change
 date_time_iso_offset | Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'
 first_line_message | The message of the change
-labels | A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is an heuristic and it could include things that are not labels.
-labels_all_values | A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is an heuristic and it could include things that are not labels.
+labels | A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is a heuristic and it could include things that are not labels.
+labels_all_values | A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is a heuristic and it could include things that are not labels.
 merge | Returns true if the change represents a merge
 message | The message of the change
 original_author | The author of the change before any mapping

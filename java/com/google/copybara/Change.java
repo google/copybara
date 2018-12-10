@@ -124,7 +124,7 @@ public final class Change<R extends Revision> extends OriginRef {
   }
 
   @SkylarkCallable(name = "labels", doc = "A dictionary with the labels detected for the change."
-      + " If the label is present multiple times it returns the last value. Note that this is an"
+      + " If the label is present multiple times it returns the last value. Note that this is a"
       + " heuristic and it could include things that are not labels.",
       structField = true)
   public SkylarkDict<String, String> getLabelsForSkylark() {
@@ -136,7 +136,7 @@ public final class Change<R extends Revision> extends OriginRef {
   @SkylarkCallable(name = "labels_all_values", doc = "A dictionary with the labels detected for the"
       + " change. Note that the value is a collection of the values for each time the label was"
       + " found. Use 'labels' instead if you are only interested in the last value. Note that this"
-      + " is an heuristic and it could include things that are not labels.",
+      + " is a heuristic and it could include things that are not labels.",
       structField = true)
   public SkylarkDict<String, SkylarkList<String>> getLabelsAllForSkylark() {
     return SkylarkDict.copyOf(
