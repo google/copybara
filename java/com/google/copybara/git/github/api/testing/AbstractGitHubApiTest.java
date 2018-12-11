@@ -34,11 +34,10 @@ import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
-import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.DirectionFilter;
-import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.SortFilter;
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubApiTransport;
+import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.Label;
 import com.google.copybara.git.github.api.PullRequest;
@@ -52,6 +51,7 @@ import com.google.copybara.profiler.Profiler;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.function.Predicate;
 import org.junit.Before;
@@ -400,6 +400,42 @@ public abstract class AbstractGitHubApiTest {
     assertThat(response.getStatuses().get(0).getDescription())
         .isEqualTo("Build has completed successfully");
     assertThat(response.getStatuses().get(0).getState()).isEqualTo(State.SUCCESS);
+  }
+
+  @Test
+  public void testCommit() throws Exception {
+    trainMockGet(
+        "/repos/octocat/Hello-World/commits/604aa8e189a6fee605140ebbe4a3c34ad24619d1",
+        // normally we use GH documentation examples but the docs are different of the actual
+        // response
+        getResource("commit_response_testdata.json"));
+
+    GitHubCommit r = api.getCommit("octocat/Hello-World",
+        "604aa8e189a6fee605140ebbe4a3c34ad24619d1");
+
+    assertThat(r.getSha()).isEqualTo("604aa8e189a6fee605140ebbe4a3c34ad24619d1");
+    assertThat(r.getAuthor().getLogin()).isEqualTo("copybara-author");
+    assertThat(r.getCommitter().getLogin()).isEqualTo("copybara-committer");
+    assertThat(r.getHtmlUrl()).isEqualTo(
+        "https://github.com/google/copybara/commit/604aa8e189a6fee605140ebbe4a3c34ad24619d1");
+    assertThat(r.getCommit().getMessage()).isEqualTo(""
+        + "Temporal fix to the CI\n"
+        + "\n"
+        + "We use this deprecated flag until we migrate to the new\n"
+        + "non-native rule.\n"
+        + "\n"
+        + "Will properly fix on Monday.\n"
+        + "\n"
+        + "Change-Id: Ia3c35b8ece932b94e0aa4c7a28bd16d35a260970");
+    assertThat(r.getCommit().getAuthor().getName()).isEqualTo("The Author");
+    assertThat(r.getCommit().getAuthor().getEmail()).isEqualTo("theauthor@example.com");
+    assertThat(r.getCommit().getAuthor().getDate())
+        .isEqualTo(ZonedDateTime.parse("2018-12-07T23:36:45Z"));
+
+    assertThat(r.getCommit().getCommitter().getName()).isEqualTo("The Committer");
+    assertThat(r.getCommit().getCommitter().getEmail()).isEqualTo("thecommitter@example.com");
+    assertThat(r.getCommit().getCommitter().getDate())
+        .isEqualTo(ZonedDateTime.parse("2018-11-07T23:36:45Z"));
   }
 
 

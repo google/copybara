@@ -18,10 +18,17 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 
 /**
  * A user object returned as a field by many GitHub API responses.
  */
+@SkylarkModule(
+    name = "github_api_user_obj",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc = "An object representing a GitHub user")
 public class User {
 
   @Key
@@ -33,6 +40,7 @@ public class User {
   @Key("site_admin")
   private boolean siteAdmin;
 
+  @SkylarkCallable(name = "login", doc = "Login of the user", structField = true)
   public String getLogin() {
     return login;
   }

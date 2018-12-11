@@ -83,6 +83,19 @@ public class GitHubEndpointTest {
                   + "    ]\n"
                   + "}");
             }
+            if (method.equals("GET")
+                && url.contains("/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")) {
+              return ("{\n"
+                  + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
+                  + "    commit : {\n"
+                  + "       author: { name : 'theauthor', email: 'author@example.com'},\n"
+                  + "       committer: { name : 'thecommitter', email: 'committer@example.com'},\n"
+                  + "       message: \"This is a message\\n\\nWith body\\n\"\n"
+                  + "    },\n"
+                  + "    committer : { login : 'github_committer'},\n"
+                  + "    author : { login : 'github_author'}\n"
+                  + "}");
+            }
             if (method.equals("POST") && url.contains("/status")) {
               return ("{\n"
                   + "    state : 'success',\n"
@@ -282,6 +295,25 @@ public class GitHubEndpointTest {
             .put("statuses[0].state", "failure")
             .put("statuses[1].context", "other/context")
             .put("statuses[1].state", "success")
+            .build();
+    skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testGetCommit() throws Exception {
+    String var = ""
+        + "git.github_api(url = 'https://github.com/google/example')"
+        + "  .get_commit(ref = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("sha", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            .put("commit.author.name", "theauthor")
+            .put("commit.author.email", "author@example.com")
+            .put("commit.committer.name", "thecommitter")
+            .put("commit.committer.email", "committer@example.com")
+            .put("commit.message", "This is a message\n\nWith body\n")
+            .put("author.login", "github_author")
+            .put("committer.login", "github_committer")
             .build();
     skylark.verifyFields(var, expectedFieldValues);
   }

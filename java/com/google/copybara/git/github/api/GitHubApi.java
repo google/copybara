@@ -290,6 +290,14 @@ public class GitHubApi {
     }
   }
 
+  public GitHubCommit getCommit(String projectId, String ref)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_commit")) {
+      return transport.get(String.format("repos/%s/commits/%s", projectId, ref),
+          GitHubCommit.class);
+    }
+  }
+
   private RepoException treatGitHubException(GitHubApiException e, String entity)
       throws ValidationException, GitHubApiException {
     if (e.getResponseCode() == ResponseCode.NOT_FOUND) {

@@ -30,6 +30,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
@@ -109,8 +110,7 @@ public class GitHubEndPoint implements Endpoint {
     }
   }
 
-  @SkylarkCallable(name = "get_combined_status",
-      doc = "Create or update a status for a commit. Returns the status created.",
+  @SkylarkCallable(name = "get_combined_status", doc = "Get the combined status for a commit",
       parameters = {
           @Param(name = "ref", type = String.class, named = true,
               doc = "The SHA-1 or ref for which we want to get the combined status"),
@@ -122,6 +122,25 @@ public class GitHubEndPoint implements Endpoint {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCombinedStatus(project, ref);
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(location, e);
+    }
+  }
+
+  @SkylarkCallable(name = "get_commit",
+      doc = "Get information for a commit in GitHub",
+      parameters = {
+          @Param(name = "ref", type = String.class, named = true,
+              // Works for refs too but we don't want to publicize since GH API docs refers to sha
+              doc = "The SHA-1 for which we want to get the combined status"),
+      },
+      useLocation = true
+  )
+  public GitHubCommit getCommit(String ref, Location location) throws EvalException {
+    try {
+      checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      return apiSupplier.load(console).getCommit(project, ref);
     } catch (RepoException | ValidationException e) {
       throw new EvalException(location, e);
     }

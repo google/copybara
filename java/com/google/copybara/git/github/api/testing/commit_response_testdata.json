@@ -1,0 +1,70 @@
+{
+  "sha": "604aa8e189a6fee605140ebbe4a3c34ad24619d1",
+  "node_id": "MDY6Q29tbWl0Njc3MjIwMTc6NjA0YWE4ZTE4OWE2ZmVlNjA1MTQwZWJiZTRhM2MzNGFkMjQ2MTlkMQ==",
+  "commit": {
+    "author": {
+      "name": "The Author",
+      "email": "theauthor@example.com",
+      "date": "2018-12-07T23:36:45Z"
+    },
+    "committer": {
+      "name": "The Committer",
+      "email": "thecommitter@example.com",
+      "date": "2018-11-07T23:36:45Z"
+    },
+    "message": "Temporal fix to the CI\n\nWe use this deprecated flag until we migrate to the new\nnon-native rule.\n\nWill properly fix on Monday.\n\nChange-Id: Ia3c35b8ece932b94e0aa4c7a28bd16d35a260970",
+    "tree": {
+      "sha": "5bec5e7b6bb1e61270412b8b368b2dff842aacbf",
+      "url": "https://api.github.com/repos/google/copybara/git/trees/5bec5e7b6bb1e61270412b8b368b2dff842aacbf"
+    },
+    "url": "https://api.github.com/repos/google/copybara/git/commits/604aa8e189a6fee605140ebbe4a3c34ad24619d1",
+    "comment_count": 0,
+    "verification": {
+      "verified": false,
+      "reason": "unsigned",
+      "signature": null,
+      "payload": null
+    }
+  },
+  "url": "https://api.github.com/repos/google/copybara/commits/604aa8e189a6fee605140ebbe4a3c34ad24619d1",
+  "html_url": "https://github.com/google/copybara/commit/604aa8e189a6fee605140ebbe4a3c34ad24619d1",
+  "comments_url": "https://api.github.com/repos/google/copybara/commits/604aa8e189a6fee605140ebbe4a3c34ad24619d1/comments",
+  "author": {
+    "login": "copybara-author",
+    "id": 957248,
+    "type": "User",
+    "site_admin": false
+  },
+  "committer": {
+    "login": "copybara-committer",
+    "id": 957248,
+    "type": "User",
+    "site_admin": false
+  },
+  "parents": [
+    {
+      "sha": "851aedb3634eb0880d066bbfff722c9265697e02",
+      "url": "https://api.github.com/repos/google/copybara/commits/851aedb3634eb0880d066bbfff722c9265697e02",
+      "html_url": "https://github.com/google/copybara/commit/851aedb3634eb0880d066bbfff722c9265697e02"
+    }
+  ],
+  "stats": {
+    "total": 2,
+    "additions": 1,
+    "deletions": 1
+  },
+  "files": [
+    {
+      "sha": "161346e07ce6fd51a785103ea2df86be88993ab7",
+      "filename": "cloudbuild.yaml",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "changes": 2,
+      "blob_url": "https://github.com/google/copybara/blob/604aa8e189a6fee605140ebbe4a3c34ad24619d1/cloudbuild.yaml",
+      "raw_url": "https://github.com/google/copybara/raw/604aa8e189a6fee605140ebbe4a3c34ad24619d1/cloudbuild.yaml",
+      "contents_url": "https://api.github.com/repos/google/copybara/contents/cloudbuild.yaml?ref=604aa8e189a6fee605140ebbe4a3c34ad24619d1",
+      "patch": "@@ -3,6 +3,6 @@\n steps:\n - name: gcr.io/cloud-builders/bazel\n   entrypoint: \"bash\"\n-  args: [\"-c\", \"./cloudbuild.sh test ... --test_output=errors --sandbox_tmpfs_path=/tmp -j 1000\"]\n+  args: [\"-c\", \"./cloudbuild.sh test ... --test_output=errors --sandbox_tmpfs_path=/tmp -j 1000 --incompatible_remove_native_http_archive=false\"]\n options:\n   machine_type: N1_HIGHCPU_32"
+    }
+  ]
+}
