@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
-import static com.google.copybara.testing.git.GitTestUtil.mockNotFoundResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
@@ -256,18 +255,10 @@ public class GitHubDestinationTest {
   public void testWithRefsNotFound() throws Exception {
     gitUtil.mockApi("GET",
         "https://api.github.com/repos/foo/git/refs/other_12345",
-        mockNotFoundResponse(
-            "{\n"
-                + "\"message\" : \"Not Found\",\n"
-                + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
-                + "}"));
+        GitTestUtil.mockGitHubNotFound());
     gitUtil.mockApi("GET",
         "https://api.github.com/repos/foo/git/refs/other_6789",
-        mockNotFoundResponse(
-            "{\n"
-                + "\"message\" : \"Not Found\",\n"
-                + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
-                + "}"));
+        GitTestUtil.mockGitHubNotFound());
     addFiles(
         remote,
         "master",

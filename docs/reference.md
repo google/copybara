@@ -1908,7 +1908,7 @@ target_url | `string`<br><p>Url with expanded information about the event</p>
 <a id="github_api_obj.get_combined_status" aria-hidden="true"></a>
 ### github_api_obj.get_combined_status
 
-Get the combined status for a commit
+Get the combined status for a commit. Returns None if not found.
 
 `github_api_combined_status_obj github_api_obj.get_combined_status(ref)`
 
@@ -1922,7 +1922,7 @@ ref | `string`<br><p>The SHA-1 or ref for which we want to get the combined stat
 <a id="github_api_obj.get_commit" aria-hidden="true"></a>
 ### github_api_obj.get_commit
 
-Get information for a commit in GitHub
+Get information for a commit in GitHub. Returns None if not found.
 
 `github_api_github_commit_obj github_api_obj.get_commit(ref)`
 
@@ -1936,7 +1936,7 @@ ref | `string`<br><p>The SHA-1 for which we want to get the combined status</p>
 <a id="github_api_obj.get_reference" aria-hidden="true"></a>
 ### github_api_obj.get_reference
 
-Get a reference SHA-1 from GitHub
+Get a reference SHA-1 from GitHub. Returns None if not found.
 
 `github_api_ref_obj github_api_obj.get_reference(ref)`
 

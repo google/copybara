@@ -17,31 +17,35 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.git.GitTestUtil.mockGitHubNotFound;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.contains;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
-import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import com.google.copybara.testing.git.GitApiMockHttpTransport;
-import com.google.copybara.testing.git.GitApiMockHttpTransport.RequestRecord;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Iterator;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,13 +54,11 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitHubEndpointTest {
 
-  private static final String PROJECT = "google/example";
-
   private SkylarkTestExecutor skylark;
   private TestingConsole console;
   private DummyTrigger dummyTrigger;
   private Path workdir;
-  private GitApiMockHttpTransport gitApiMockHttpTransport;
+  private GitTestUtil gitUtil;
 
   @Before
   public void setup() throws Exception {
@@ -65,83 +67,65 @@ public class GitHubEndpointTest {
     OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console)
         .setOutputRootToTmpDir();
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
+
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
     options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
-    gitApiMockHttpTransport =
-        new GitApiMockHttpTransport() {
-          @Override
-          public String getContent(String method, String url, MockLowLevelHttpRequest request) {
-            if (method.equals("GET") && url.contains("master/status")) {
-              return ("{\n"
-                  + "    state : 'failure',\n"
-                  + "    total_count : 2,\n"
-                  + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
-                  + "    statuses : [\n"
-                  + "       { state : 'failure', context: 'some/context'},\n"
-                  + "       { state : 'success', context: 'other/context'}\n"
-                  + "    ]\n"
-                  + "}");
-            }
-            if (method.equals("GET")
-                && url.contains("/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")) {
-              return ("{\n"
-                  + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
-                  + "    commit : {\n"
-                  + "       author: { name : 'theauthor', email: 'author@example.com'},\n"
-                  + "       committer: { name : 'thecommitter', email: 'committer@example.com'},\n"
-                  + "       message: \"This is a message\\n\\nWith body\\n\"\n"
-                  + "    },\n"
-                  + "    committer : { login : 'github_committer'},\n"
-                  + "    author : { login : 'github_author'}\n"
-                  + "}");
-            }
-            if (method.equals("POST") && url.contains("/status")) {
-              return ("{\n"
-                  + "    state : 'success',\n"
-                  + "    target_url : 'https://github.com/google/example',\n"
-                  + "    description : 'Observed foo',\n"
-                  + "    context : 'test'\n"
-                  + "}");
-            }
-            if (url.contains("/git/refs/heads")) {
-              return ("{\n"
-                  + "    ref : 'refs/heads/test',\n"
-                  + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-                  + "    object : { \n"
-                  + "       type : 'commit',\n"
-                  + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-                  + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
-                  + "   } \n"
-                  + "}");
-            }
-            if (url.contains("git/refs?per_page=100")) {
-              return ("[{\n"
-                  + "    ref : 'refs/heads/test',\n"
-                  + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-                  + "    object : { \n"
-                  + "       type : 'commit',\n"
-                  + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-                  + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
-                  + "   } \n"
-                  + "}]");
-            }
-            throw new RuntimeException("Unexpected url: " + url);
-          }
-        };
 
-    options.github = new GitHubOptions(options.general, options.git) {
-      @Override
-      public GitHubApi newGitHubApi(String project) throws RepoException {
-        assertThat(project).isEqualTo(PROJECT);
-        return super.newGitHubApi(project);
-      }
+    gitUtil.mockApi(eq("GET"), contains("master/status"),
+        mockResponse("{\n"
+            + "    state : 'failure',\n"
+            + "    total_count : 2,\n"
+            + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
+            + "    statuses : [\n"
+            + "       { state : 'failure', context: 'some/context'},\n"
+            + "       { state : 'success', context: 'other/context'}\n"
+            + "    ]\n"
+            + "}"));
 
-      @Override
-      protected HttpTransport newHttpTransport() {
-        return gitApiMockHttpTransport;
-      }
-    };
+    gitUtil.mockApi(eq("GET"), contains("/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        mockResponse("{\n"
+            + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
+            + "    commit : {\n"
+            + "       author: { name : 'theauthor', email: 'author@example.com'},\n"
+            + "       committer: { name : 'thecommitter', email: 'committer@example.com'},\n"
+            + "       message: \"This is a message\\n\\nWith body\\n\"\n"
+            + "    },\n"
+            + "    committer : { login : 'github_committer'},\n"
+            + "    author : { login : 'github_author'}\n"
+            + "}"));
+
+    gitUtil.mockApi(eq("POST"), contains("/status"),
+        mockResponse("{\n"
+            + "    state : 'success',\n"
+            + "    target_url : 'https://github.com/google/example',\n"
+            + "    description : 'Observed foo',\n"
+            + "    context : 'test'\n"
+            + "}"));
+
+    gitUtil.mockApi(anyString(), contains("/git/refs/heads/test"),
+        mockResponse("{\n"
+            + "    ref : 'refs/heads/test',\n"
+            + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+            + "    object : { \n"
+            + "       type : 'commit',\n"
+            + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+            + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+            + "   } \n"
+            + "}"));
+
+    gitUtil.mockApi(eq("GET"), contains("git/refs?per_page=100"),
+        mockResponse("[{\n"
+            + "    ref : 'refs/heads/test',\n"
+            + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+            + "    object : { \n"
+            + "       type : 'commit',\n"
+            + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+            + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+            + "   } \n"
+            + "}]"));
 
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
@@ -252,13 +236,19 @@ public class GitHubEndpointTest {
                 + "      ctx.console.info('Created status')\n"
                 + "    return ctx.success()\n"
                 + "\n");
+    Iterator<String> createValues = ImmutableList.of("Observed Foo", "Observed Bar").iterator();
+    gitUtil.mockApi(eq("POST"), contains("/status"),
+        mockResponseAndValidateRequest("{\n"
+            + "    state : 'success',\n"
+            + "    target_url : 'https://github.com/google/example',\n"
+            + "    description : 'Observed foo',\n"
+            + "    context : 'test'\n"
+            + "}", content -> content.contains(createValues.next())));
+
     feedback.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
     console.assertThat().timesInLog(2, MessageType.INFO, "Created status");
 
-    List<RequestRecord> requests = gitApiMockHttpTransport.requests;
-    assertThat(requests).hasSize(2);
-    assertThat(requests.get(0).getRequest()).contains("Observed Foo");
-    assertThat(requests.get(1).getRequest()).contains("Observed Bar");
+    verify(gitUtil.httpTransport(), times(2)).buildRequest(eq("POST"), contains("/status"));
   }
 
   @Test
@@ -316,6 +306,42 @@ public class GitHubEndpointTest {
             .put("committer.login", "github_committer")
             .build();
     skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testGetCommitNotFound() throws Exception {
+    String var = ""
+        + "git.github_api(url = 'https://github.com/google/example')"
+        + "  .get_commit(ref = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')";
+    gitUtil.mockApi(eq("GET"), eq("https://api.github.com/repos/google/example/commits/"
+            + "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        mockGitHubNotFound());
+
+    skylark.verifyObject(var, Runtime.NONE);
+  }
+
+  @Test
+  public void testGetReferenceNotFound() throws Exception {
+    String var = ""
+        + "git.github_api(url = 'https://github.com/google/example')"
+        + "  .get_reference(ref = 'heads/not_found')";
+    gitUtil.mockApi(eq("GET"),
+        eq("https://api.github.com/repos/google/example/git/refs/heads/not_found"),
+        mockGitHubNotFound());
+
+    skylark.verifyObject(var, Runtime.NONE);
+  }
+
+  @Test
+  public void test() throws Exception {
+    String var = ""
+        + "git.github_api(url = 'https://github.com/google/example')"
+        + "  .get_combined_status(ref = 'heads/not_found')";
+    gitUtil.mockApi(eq("GET"),
+        eq("https://api.github.com/repos/google/example/commits/heads/not_found/status"),
+        mockGitHubNotFound());
+
+    skylark.verifyObject(var, Runtime.NONE);
   }
 
   /**

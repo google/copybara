@@ -102,6 +102,14 @@ public class GitTestUtil {
     };
   }
 
+  public static LowLevelHttpRequest mockGitHubNotFound() {
+    return mockNotFoundResponse(
+        "{\n"
+            + "\"message\" : \"Not Found\",\n"
+            + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
+            + "}");
+  }
+
   public void mockRemoteGitRepos() throws IOException {
     mockRemoteGitRepos(new Validator());
   }

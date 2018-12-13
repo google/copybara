@@ -30,6 +30,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.git.github.api.GitHubApiException;
+import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Status;
@@ -44,6 +46,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import javax.annotation.Nullable;
 
 /** GitHub specific class used in feedback mechanism and migration event hooks to access GitHub */
 @SuppressWarnings("unused")
@@ -110,37 +113,43 @@ public class GitHubEndPoint implements Endpoint {
     }
   }
 
-  @SkylarkCallable(name = "get_combined_status", doc = "Get the combined status for a commit",
+  @SkylarkCallable(name = "get_combined_status",
+      doc = "Get the combined status for a commit. Returns None if not found.",
       parameters = {
           @Param(name = "ref", type = String.class, named = true,
               doc = "The SHA-1 or ref for which we want to get the combined status"),
       },
-      useLocation = true
-  )
+      useLocation = true, allowReturnNones = true)
+  @Nullable
   public CombinedStatus getCombinedStatus(String ref, Location location) throws EvalException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCombinedStatus(project, ref);
+    } catch (GitHubApiException e) {
+      return returnNullOnNotFound(location, e);
     } catch (RepoException | ValidationException e) {
       throw new EvalException(location, e);
     }
   }
 
   @SkylarkCallable(name = "get_commit",
-      doc = "Get information for a commit in GitHub",
+      doc = "Get information for a commit in GitHub. Returns None if not found.",
       parameters = {
           @Param(name = "ref", type = String.class, named = true,
               // Works for refs too but we don't want to publicize since GH API docs refers to sha
               doc = "The SHA-1 for which we want to get the combined status"),
       },
-      useLocation = true
+      useLocation = true, allowReturnNones = true
   )
+  @Nullable
   public GitHubCommit getCommit(String ref, Location location) throws EvalException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCommit(project, ref);
+    } catch (GitHubApiException e) {
+      return returnNullOnNotFound(location, e);
     } catch (RepoException | ValidationException e) {
       throw new EvalException(location, e);
     }
@@ -178,22 +187,33 @@ public class GitHubEndPoint implements Endpoint {
   }
 
   @SkylarkCallable(name = "get_reference",
-      doc = "Get a reference SHA-1 from GitHub",
+      doc = "Get a reference SHA-1 from GitHub. Returns None if not found.",
       parameters = {
           @Param(name = "ref", type = String.class, named =  true,
               doc = "The name of the reference")
       },
-      useLocation = true
-  )
+      useLocation = true, allowReturnNones = true)
+  @Nullable
   public Ref getReference(String Ref, Location location) throws EvalException {
     try {
       checkCondition(!Strings.isNullOrEmpty(Ref), "Ref cannot be empty");
 
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getReference(project, Ref);
+    } catch (GitHubApiException e) {
+      return returnNullOnNotFound(location, e);
     } catch (RepoException | ValidationException e) {
       throw new EvalException(location, e);
     }
+  }
+
+  @Nullable
+  private <T> T returnNullOnNotFound(Location location, GitHubApiException e)
+      throws EvalException {
+    if (e.getResponseCode() == ResponseCode.NOT_FOUND) {
+      return null;
+    }
+    throw new EvalException(location, e);
   }
 
   @SkylarkCallable(

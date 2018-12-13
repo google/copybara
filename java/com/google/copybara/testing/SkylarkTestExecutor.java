@@ -133,6 +133,17 @@ public class SkylarkTestExecutor {
     }
   }
 
+  public void verifyObject(String var, Object expectedValue)
+      throws ValidationException {
+    // Empty fieldName == the object itself
+    // Support lists
+    Object result = eval("e", String.format("e = %s", var));
+    if (!result.equals(expectedValue)) {
+      throw new RuntimeException(
+          String.format("Unexpected value Got: %s. Want: %s", result, expectedValue));
+    }
+  }
+
   /**
    * Evaluates the given {@code config}. invoking each of the fields and verifying that the
    * returned value is equal to the expected one.
