@@ -183,10 +183,14 @@ public class GitTestUtil {
   }
 
   public OngoingStubbing<LowLevelHttpRequest> mockApi(
-      String method, String url, LowLevelHttpRequest request, LowLevelHttpRequest... rest)
-      throws IOException {
-    OngoingStubbing<LowLevelHttpRequest> when =
-        when(httpTransport().buildRequest(method, url)).thenReturn(request);
+      String method, String url, LowLevelHttpRequest request, LowLevelHttpRequest... rest) {
+    OngoingStubbing<LowLevelHttpRequest> when;
+    try {
+      when = when(httpTransport().buildRequest(method, url)).thenReturn(request);
+    } catch (IOException e) {
+      // Cannot happen as we are not really calling the method.
+      throw new AssertionError(e);
+    }
 
     for (LowLevelHttpRequest httpRequest : rest) {
       when = when.thenReturn(httpRequest);
