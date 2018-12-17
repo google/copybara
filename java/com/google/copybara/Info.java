@@ -69,7 +69,7 @@ public abstract class Info<O extends Revision> {
      * ever migrated.
      */
     @Nullable
-    abstract O getLastMigrated();
+    public abstract O getLastMigrated();
 
     /**
      * Returns the last available {@link Revision} to migrate from the origin, or {@code null} if
@@ -79,7 +79,7 @@ public abstract class Info<O extends Revision> {
      * recent change available at this moment.
      */
     @Nullable
-    O getLastAvailableToMigrate() {
+    public O getLastAvailableToMigrate() {
       Optional<O> lastAvailable =
           getAvailableToMigrate()
               .stream()
