@@ -232,7 +232,7 @@ public class GitHubPrDestinationTest {
         + "    title = 'custom title',\n"
         + "    body = 'custom body',\n"
         + ")");
-    assertThat(d.describe(Glob.ALL_FILES).get("name")).contains("https://github.com/foo");
+    assertThat(d.describe(Glob.ALL_FILES).get("url")).contains("https://github.com/foo");
   }
 
   private void checkWrite(Revision revision)

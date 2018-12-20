@@ -120,7 +120,6 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<String, String>()
             .put("type", getType())
-            .put("name", url)
             .put("url", url)
             .put("destination_ref", destinationRef);
     if (effectiveSkipPush) {
