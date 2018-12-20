@@ -125,11 +125,11 @@ public class Copybara {
       int outputLimit = options.get(GeneralOptions.class).getOutputLimit();
       if (!availableToMigrate.isEmpty()) {
         console.infoFmt(
-            "Available changes%s:",
+            "Available changes %s:",
             availableToMigrate.size() <= outputLimit
-                ? ""
+                ? String.format("(%d)", availableToMigrate.size())
                 : String.format(
-                    " (showing only first %d out of %d)", outputLimit, availableToMigrate.size()));
+                    "(showing only first %d out of %d)", outputLimit, availableToMigrate.size()));
 
         console.info(Strings.repeat("-", TOTAL_LENGTH));
         console.info(String.format(COLUMN_FORMAT, "Date", "Revision", "Description", "Author"));
