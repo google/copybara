@@ -475,7 +475,7 @@ public class Core implements LabelsAwareModule {
   @SkylarkCallable(
       name = "remove",
 
-      doc = "Remove files from the workdir. **This transformation is only mean to be used inside"
+      doc = "Remove files from the workdir. **This transformation is only meant to be used inside"
           + " core.transform for reversing core.copy like transforms**. For regular file filtering"
           + " use origin_files exclude mechanism.",
       parameters = {

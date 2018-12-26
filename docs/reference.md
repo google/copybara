@@ -614,7 +614,7 @@ In this example, `foo/bar` would be moved to `bar`.
 <a id="core.remove" aria-hidden="true"></a>
 ### core.remove
 
-Remove files from the workdir. **This transformation is only mean to be used inside core.transform for reversing core.copy like transforms**. For regular file filtering use origin_files exclude mechanism.
+Remove files from the workdir. **This transformation is only meant to be used inside core.transform for reversing core.copy like transforms**. For regular file filtering use origin_files exclude mechanism.
 
 `remove core.remove(paths)`
 
