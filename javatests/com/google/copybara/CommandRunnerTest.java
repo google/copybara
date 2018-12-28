@@ -17,19 +17,24 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static junit.framework.TestCase.fail;
 
 import com.beust.jcommander.internal.Lists;
 import com.google.common.base.Strings;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
+import com.google.copybara.util.CommandTimeoutException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
 import java.util.List;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -46,8 +51,8 @@ public class CommandRunnerTest {
 
   private static final int LINES_SIZE = 1000;
 
-  private ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-  private ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+  private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+  private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
   private final List<String> logLines = Lists.newLinkedList();
 
   @Test
@@ -63,13 +68,57 @@ public class CommandRunnerTest {
   }
 
   @Test
+  public void testTimeout() throws Exception {
+    Command command = bashCommand(""
+        + "echo stdout msg\n"
+        + ">&2 echo stderr msg\n"
+        + "sleep 10\n");
+    try {
+      runCommand(new CommandRunner(command, Duration.ofMillis(1)));
+      fail();
+    } catch (CommandTimeoutException e) {
+      assertThat(e.getOutput().getStdout()).contains("stdout msg");
+      assertThat(e.getOutput().getStderr()).contains("stderr msg");
+      assertThat(e.getMessage())
+          .containsMatch("Command '.*' killed by Copybara after timeout \\(0s\\)");
+      assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofMillis(1));
+    }
+  }
+
+  @Test
+  public void testTimeoutCustomExitCode() throws Exception {
+    Command command = bashCommand(""
+        + "trap 'exit 42' SIGTERM SIGINT\n"
+        + "echo stdout msg\n"
+        + ">&2 echo stderr msg\n"
+        + "sleep 10\n");
+    try {
+      runCommand(new CommandRunner(command, Duration.ofSeconds(1)));
+      fail();
+    } catch (CommandTimeoutException e) {
+      assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofSeconds(1));
+      assertThat(e.getOutput().getStderr()).contains("stderr msg");
+      assertThat(e.getMessage())
+          .containsMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
+      assertThat(e.getOutput().getStdout()).contains("stdout msg");
+    }
+  }
+
+  private Command bashCommand(String bashScript) throws IOException {
+    Path tempFile = Files.createTempFile("test", "file");
+    Files.write(tempFile, bashScript.getBytes(UTF_8));
+    Files.setPosixFilePermissions(tempFile, PosixFilePermissions.fromString("rwxr-xr--"));
+    return new Command(new String[]{tempFile.toAbsolutePath().toString()});
+  }
+
+  @Test
   public void testCommandWithVerbose() throws Exception {
     Command command = new Command(new String[]{"echo", "hello", "world"});
     CommandOutputWithStatus result = runCommand(new CommandRunner(command).withVerbose(true));
     assertThat(result.getTerminationStatus().success()).isTrue();
     assertThat(result.getStdout()).isEqualTo("hello world\n");
     assertThat(outContent.toByteArray()).isEmpty();
-    String stderr = new String(errContent.toByteArray(), StandardCharsets.UTF_8);
+    String stderr = new String(errContent.toByteArray(), UTF_8);
     // Using contains() because stderr also gets all the logs
     assertThat(stderr).contains("hello world\n");
     // Verify that logging is redirected, even with verbose
@@ -80,7 +129,8 @@ public class CommandRunnerTest {
   @Test
   public void testCommandWithMaxLogLines() throws Exception {
     Command command = new Command(new String[]{"echo", "hello\n", "world"});
-    CommandOutputWithStatus result = runCommand(new CommandRunner(command).withMaxStdOutLogLines(1));
+    CommandOutputWithStatus result =
+        runCommand(new CommandRunner(command).withMaxStdOutLogLines(1));
     assertThat(result.getTerminationStatus().success()).isTrue();
     assertThat(result.getStdout()).isEqualTo("hello\n world\n");
     assertThat(outContent.toByteArray()).isEmpty();

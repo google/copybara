@@ -16,10 +16,13 @@
 
 package com.google.copybara.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import com.google.common.flogger.FluentLogger;
+import com.google.copybara.shell.AbnormalTerminationException;
 import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
@@ -27,13 +30,14 @@ import com.google.copybara.shell.CommandResult;
 import com.google.copybara.shell.ShellUtils;
 import com.google.copybara.shell.TerminationStatus;
 import com.google.copybara.shell.TimeoutKillableObserver;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.logging.Level;
+
 import javax.annotation.CheckReturnValue;
 
 /**
@@ -115,11 +119,10 @@ public final class CommandRunner {
     OutputStream stdoutStream = commandOutputStream(stdoutCollector);
     OutputStream stderrStream = commandOutputStream(stderrCollector);
     TerminationStatus exitStatus = null;
+    TimeoutKillableObserver cmdMonitor = new TimeoutKillableObserver(timeout.toMillis());
     try {
-      CommandResult cmdResult =
-          cmd.execute(
-              input,
-              new TimeoutKillableObserver(timeout.toMillis()),
+      CommandResult cmdResult = cmd.execute(input,
+          cmdMonitor,
               stdoutStream, stderrStream, true);
       exitStatus = cmdResult.getTerminationStatus();
       return new CommandOutputWithStatus(
@@ -128,9 +131,13 @@ public final class CommandRunner {
           stderrCollector.toByteArray());
     } catch (BadExitStatusException e) {
       exitStatus = e.getResult().getTerminationStatus();
+      maybeTreatTimeout(stdoutCollector, stderrCollector, cmdMonitor, e);
       throw new BadExitStatusWithOutputException(e.getCommand(), e.getResult(), e.getMessage(),
           stdoutCollector.toByteArray(),
           stderrCollector.toByteArray());
+    } catch (AbnormalTerminationException e) {
+      maybeTreatTimeout(stdoutCollector, stderrCollector, cmdMonitor, e);
+      throw e;
     } finally {
       String commandName = cmd.getCommandLineElements()[0];
 
@@ -147,16 +154,43 @@ public final class CommandRunner {
             maxOutLogLines);
       }
 
-      String finishMsg =
-          String.format(
-              "Command '%s' finished in %s. %s",
-              commandName, stopwatch,
-              exitStatus != null ? exitStatus.toString() : "(No exit status)");
-      logger.atInfo().log(finishMsg);
+      String finishMsg;
+      if (cmdMonitor.hasTimedOut()) {
+        finishMsg = String.format(
+            "Command '%s' was killed after timeout. Execution time %s. %s",
+            commandName, stopwatch,
+            exitStatus != null ? exitStatus.toString() : "(No exit status)");
+        logger.atSevere().log(finishMsg);
+      } else {
+        finishMsg = String.format(
+            "Command '%s' finished in %s. %s",
+            commandName, stopwatch,
+            exitStatus != null ? exitStatus.toString() : "(No exit status)");
+        logger.atInfo().log(finishMsg);
+      }
       if (verbose) {
         System.err.println(finishMsg);
       }
     }
+  }
+
+  private void maybeTreatTimeout(ByteArrayOutputStream stdoutCollector,
+      ByteArrayOutputStream stderrCollector, TimeoutKillableObserver cmdMonitor,
+      AbnormalTerminationException e) throws CommandTimeoutException {
+    if (!cmdMonitor.hasTimedOut()) {
+      return;
+    }
+    String msg = String.format(
+        "Command '%s' killed by Copybara after timeout (%ds)."
+            + " If this fails during a fetch use --fetch-timeout flag.\n"
+            + "Exit info: %s",
+        cmd.getCommandLineElements()[0],
+        timeout.getSeconds(),
+        e.getResult().getTerminationStatus());
+    throw new CommandTimeoutException(e.getCommand(), e.getResult(), msg,
+        stdoutCollector.toByteArray(),
+        stderrCollector.toByteArray(),
+        timeout);
   }
 
   /**
@@ -181,14 +215,14 @@ public final class CommandRunner {
       logger.at(level).log(prefix + line);
       lines++;
       if (maxLogLines >= 0 && lines >= maxLogLines) {
-        logger.at(level).log( "%s... truncated after %d line(s)", prefix, maxLogLines);
+        logger.at(level).log("%s... truncated after %d line(s)", prefix, maxLogLines);
         break;
       }
     }
   }
 
   private static String asString(ByteArrayOutputStream outputBytes) {
-    return new String(outputBytes.toByteArray(), StandardCharsets.UTF_8);
+    return new String(outputBytes.toByteArray(), UTF_8);
   }
 
   /**
