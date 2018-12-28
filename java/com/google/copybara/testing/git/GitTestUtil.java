@@ -120,6 +120,9 @@ public class GitTestUtil {
 
   public void mockRemoteGitRepos(Validator validator, GitRepository credentialsRepo)
       throws IOException {
+    assertWithMessage("mockRemoteGitRepos() method called more than once in this test")
+        .that(mockHttpTransport)
+        .isNull();
     mockHttpTransport =
         mock(
             MockHttpTransport.class,
