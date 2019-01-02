@@ -640,7 +640,7 @@ public class GitRepository {
   // not deal with subseconds (see https://git-scm.com/docs/git-commit#git-commit-ISO8601).
   // We still want to stick to the default ISO format in Git, but don't add the subseconds.
   private static final DateTimeFormatter ISO_OFFSET_DATE_TIME_NO_SUBSECONDS =
-      DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ssZ");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssZ");
   // The effective bytes that can be used for command-line arguments is ~128k. Setting an arbitrary
   // max for the description of 64k
   private static final int ARBITRARY_MAX_ARG_SIZE = 64_000;
