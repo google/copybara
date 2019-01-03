@@ -107,8 +107,9 @@ public class GitHubWriteHook extends DefaultWriteHook {
 
   private String getUpdatedPrBranch(SkylarkDict<String, String> labelDict)
       throws ValidationException {
-    try{
-      return new LabelTemplate(prBranchToUpdate).resolve(e -> labelDict.get(e));
+    try {
+      return GitHubUtil.getValidBranchName(
+          new LabelTemplate(prBranchToUpdate).resolve(e -> labelDict.get(e)));
     } catch (LabelNotFoundException e) {
       throw new ValidationException(
           e,

@@ -95,6 +95,18 @@ public class GitHubUtil {
   }
 
   /**
+   * Returns a valid branch name by replacing invalid character with "_"
+   * throw ValidationException when branchName starts with "/" or "refs/"
+   */
+  public static String getValidBranchName(String branchName)
+      throws ValidationException {
+    if (branchName.startsWith("/") || branchName.startsWith("refs/")) {
+      throw new ValidationException("Branch name has invalid prefix: \"/\" or \"refs/\"");
+    }
+    return branchName.replaceAll("[^A-Za-z0-9/_-]", "_");
+  }
+
+  /**
    * Given a project name, like copybara/google, return the GitHub https url of it.
    */
   public static String asGithubUrl(String project) {

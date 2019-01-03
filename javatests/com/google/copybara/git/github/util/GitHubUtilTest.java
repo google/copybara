@@ -19,6 +19,7 @@ package com.google.copybara.git.github.util;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.github.util.GitHubUtil.getProjectNameFromUrl;
 import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
+import static com.google.copybara.git.github.util.GitHubUtil.getValidBranchName;
 import static org.junit.Assert.fail;
 
 import com.google.copybara.exception.ValidationException;
@@ -68,6 +69,28 @@ public class GitHubUtilTest {
       fail();
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("Cannot find project name");
+    }
+  }
+
+  @Test
+  public void testGetValidBranchName() throws ValidationException {
+    assertThat(getValidBranchName("test/cl_1234")).isEqualTo("test/cl_1234");
+    assertThat(getValidBranchName("test/cl*1234")).isEqualTo("test/cl_1234");
+    try {
+      getValidBranchName("/test/cl*1234");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .isEqualTo("Branch name has invalid prefix: \"/\" or \"refs/\"");
+    }
+    try {
+      getValidBranchName("refs/cl_1234");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .isEqualTo("Branch name has invalid prefix: \"/\" or \"refs/\"");
     }
   }
 }

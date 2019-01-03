@@ -289,7 +289,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 workflowName,
                 mainConfigFile.getIdentifier(),
                 workflowIdentityUser);
-    return branchName.replaceAll("[^A-Za-z0-9_-]", "_");
+    return GitHubUtil.getValidBranchName(branchName);
   }
 
   @Nullable
