@@ -144,7 +144,7 @@ public class GitHubDestinationTest {
   @Test
   public void testPrToUpdateWithRegularString() throws Exception {
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/other",
+        "https://api.github.com/repos/foo/git/refs/heads/other",
         mockResponse(
             "{\n"
                 + "\"ref\" : \"refs/heads/test_existing_pr\",\n"
@@ -189,7 +189,7 @@ public class GitHubDestinationTest {
   @Test
   public void testPrToUpdateWithLabel() throws Exception {
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/other_12345",
+        "https://api.github.com/repos/foo/git/refs/heads/other_12345",
         mockResponse(
             "{\n"
               + "\"ref\" : \"refs/heads/test_existing_12345_pr\",\n"
@@ -202,7 +202,7 @@ public class GitHubDestinationTest {
                 + "       }\n"
             + "}"));
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/other_6789",
+        "https://api.github.com/repos/foo/git/refs/heads/other_6789",
         mockResponse(
             "{\n"
                 + "\"ref\" : \"refs/heads/test_existing_6789_pr\",\n"
@@ -254,10 +254,10 @@ public class GitHubDestinationTest {
   @Test
   public void testWithRefsNotFound() throws Exception {
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/other_12345",
+        "https://api.github.com/repos/foo/git/refs/heads/other_12345",
         GitTestUtil.mockGitHubNotFound());
     gitUtil.mockApi("GET",
-        "https://api.github.com/repos/foo/git/refs/other_6789",
+        "https://api.github.com/repos/foo/git/refs/heads/other_6789",
         GitTestUtil.mockGitHubNotFound());
     addFiles(
         remote,
@@ -287,7 +287,7 @@ public class GitHubDestinationTest {
   public void testWithGitHubApiError() throws Exception {
     try {
       gitUtil.mockApi("GET",
-          "https://api.github.com/repos/foo/git/refs/other_12345",
+          "https://api.github.com/repos/foo/git/refs/heads/other_12345",
           mockResponseWithStatus("", 403, any -> true));
       gitUtil.mockApi("GET",
           "https://api.github.com/repos/foo/git/refs/other_6789",

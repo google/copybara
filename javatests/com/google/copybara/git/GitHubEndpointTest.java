@@ -324,7 +324,7 @@ public class GitHubEndpointTest {
   public void testGetReferenceNotFound() throws Exception {
     String var = ""
         + "git.github_api(url = 'https://github.com/google/example')"
-        + "  .get_reference(ref = 'heads/not_found')";
+        + "  .get_reference(ref = 'refs/heads/not_found')";
     gitUtil.mockApi(eq("GET"),
         eq("https://api.github.com/repos/google/example/git/refs/heads/not_found"),
         mockGitHubNotFound());
@@ -370,7 +370,7 @@ public class GitHubEndpointTest {
   public void testGetReference() throws Exception{
     String var =
         "git.github_api(url = 'https://github.com/google/example')"
-            + ".get_reference('heads/test')";
+            + ".get_reference('refs/heads/test')";
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.<String, Object>builder()
             .put("ref", "refs/heads/test")

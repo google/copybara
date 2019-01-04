@@ -76,7 +76,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
       String updatedPrBranchName = getUpdatedPrBranch(labelDict);
       try {
         //fails with NOT_FOUND if doesn't exist
-        api.getReference(configProjectName, updatedPrBranchName);
+        api.getReference(configProjectName, String.format("refs/heads/%s", updatedPrBranchName));
         generalOptions.repoTask(
             "push current commit to the head of pr_branch_to_update",
             () ->

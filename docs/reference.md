@@ -1945,7 +1945,7 @@ Get a reference SHA-1 from GitHub. Returns None if not found.
 
 Parameter | Description
 --------- | -----------
-ref | `string`<br><p>The name of the reference</p>
+ref | `string`<br><p>The name of the reference. For example: "refs/heads/branchName".</p>
 
 <a id="github_api_obj.get_references" aria-hidden="true"></a>
 ### github_api_obj.get_references

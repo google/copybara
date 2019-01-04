@@ -190,16 +190,16 @@ public class GitHubEndPoint implements Endpoint {
       doc = "Get a reference SHA-1 from GitHub. Returns None if not found.",
       parameters = {
           @Param(name = "ref", type = String.class, named =  true,
-              doc = "The name of the reference")
+              doc = "The name of the reference. For example: \"refs/heads/branchName\".")
       },
       useLocation = true, allowReturnNones = true)
   @Nullable
-  public Ref getReference(String Ref, Location location) throws EvalException {
+  public Ref getReference(String ref, Location location) throws EvalException {
     try {
-      checkCondition(!Strings.isNullOrEmpty(Ref), "Ref cannot be empty");
+      checkCondition(!Strings.isNullOrEmpty(ref), "Ref cannot be empty");
 
       String project = GitHubUtil.getProjectNameFromUrl(url);
-      return apiSupplier.load(console).getReference(project, Ref);
+      return apiSupplier.load(console).getReference(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(location, e);
     } catch (RepoException | ValidationException e) {

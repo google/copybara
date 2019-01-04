@@ -16,6 +16,7 @@
 
 package com.google.copybara.git.github.api;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.api.GitHubApiException.ResponseCode.CONFLICT;
 
 import com.google.common.base.Ascii;
@@ -263,11 +264,12 @@ public class GitHubApi {
     }
   }
 
-  public Ref getReference(String projectId, String branchName)
+  public Ref getReference(String projectId, String ref)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_reference")) {
+      checkCondition(ref.startsWith("refs/"), "Ref must start with \"refs/\"");
       return transport.get(
-          String.format("repos/%s/git/refs/%s", projectId, branchName), Ref.class);
+          String.format("repos/%s/git/%s", projectId, ref), Ref.class);
     }
   }
 

@@ -352,12 +352,22 @@ public abstract class AbstractGitHubApiTest {
         "/repos/octocat/Hello-World/git/refs/heads/g3",
         getResource("get_reference_response_testdata.json"));
 
-    Ref response = api.getReference("octocat/Hello-World","heads/g3");
+    Ref response = api.getReference("octocat/Hello-World","refs/heads/g3");
 
     assertThat(response.getRef()).isEqualTo("refs/heads/g3");
     assertThat(response.getSha()).isEqualTo("9a2f372a62761ac378a62935c44cfcb9695d0661");
     assertThat(response.getUrl()).isEqualTo(
         "https://api.github.com/repos/octocat/Hello-World/git/refs/heads/g3");
+  }
+
+  @Test
+  public void testInvalidParameterWhenGetReference() throws Exception {
+    try {
+      api.getReference("octocat/Hello-World", "heads/g3");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("Ref must start with \"refs/\"");
+    }
   }
 
   @Test
