@@ -596,8 +596,6 @@ public final class GitDestination implements Destination<GitRevision> {
     private void configForPush(GitRepository repo, String repoUrl, String push)
         throws RepoException, ValidationException {
 
-      // TODO: Change to "copybara/<version>"
-      repo.simpleCommand("config", "http.userAgent", "copybara");
       if (localRepoPath != null) {
         // Configure the local repo to allow pushing to the ref manually outside of Copybara
         repo.simpleCommand("config", "remote.copybara_remote.url", repoUrl);
