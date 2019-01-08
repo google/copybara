@@ -104,6 +104,9 @@ class ChangeReader {
             .firstParent(false)
             .run();
 
+    if (entries.isEmpty()) {
+      return "";
+    }
     // Remove the merge commit. Since we already have that in the body.
     entries = entries.subList(1, entries.size());
 

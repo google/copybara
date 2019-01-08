@@ -731,6 +731,27 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testIncludeBranchCommitLogNoCommitsInMerge() throws Exception {
+
+    String author = "John Name <john@name.com>";
+    git("branch", "feature");
+    git("checkout", "feature");
+    singleFileCommit(author, "change1", "exclude/test2.txt", "some content2");
+    git("checkout", "master");
+    singleFileCommit(author, "master1", "include/test.txt", "some content2");
+    git("merge", "master", "feature");
+    // Change merge author
+    git("commit", "--amend", "--author=" + author, "--no-edit");
+    originFiles = Glob.createGlob(ImmutableList.of("include/**"));
+    moreOriginArgs = "include_branch_commit_logs = True";
+    origin = origin();
+    ImmutableList<Change<GitRevision>> changes = newReader()
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
+    assertThat(changes).hasSize(2);
+    assertThat(changes.get(1).getMessage()).isEqualTo("Merge branch 'feature'\n");
+  }
+
+  @Test
   public void testChangesMergeNoop() throws Exception {
     ImmutableList<? extends Change<?>> includedChanges = checkChangesMergeNoop(false);
     assertThat(includedChanges.stream().map(Change::getMessage).collect(Collectors.toList()))
