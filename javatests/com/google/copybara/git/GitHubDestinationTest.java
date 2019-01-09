@@ -76,7 +76,6 @@ public class GitHubDestinationTest {
 
   private Glob destinationFiles;
   private Path workdir;
-  private boolean skipPush;
   private GitTestUtil gitUtil;
   private GitRepository remote;
   @Before
@@ -96,7 +95,6 @@ public class GitHubDestinationTest {
     options.gitDestination.committerName = "Bara Kopi";
     url = "https://github.com/foo";
     force = false;
-    skipPush = false;
     fetch = "master";
     push = "master";
     skylark = new SkylarkTestExecutor(options);
@@ -375,8 +373,7 @@ public class GitHubDestinationTest {
             + "    url = '%s',\n"
             + "    fetch = '%s',\n"
             + "    push = '%s',\n"
-            + "    skip_push = %s,\n"
-            + ")", url, fetch, push, skipPush ? "True" : "False"));
+            + ")", url, fetch, push));
   }
 
   private GitDestination destination() throws ValidationException {
@@ -392,9 +389,8 @@ public class GitHubDestinationTest {
             + "    url = '%s',\n"
             + "    fetch = '%s',\n"
             + "    push = '%s',\n"
-            + "    skip_push = %s,\n"
-            + "    pr_branch_to_update = \'" + prBranchToUpdate + "\',\n"
-            + ")", url, fetch, push, skipPush ? "True" : "False"));
+            + "    pr_branch_to_update = '%s',\n"
+            + ")", url, fetch, push, prBranchToUpdate));
   }
 
   private void process(Writer<GitRevision> writer, Glob destinationFiles, DummyRevision originRef)

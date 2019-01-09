@@ -71,7 +71,6 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final Iterable<GitIntegrateChanges> integrates;
   @Nullable private final String title;
   @Nullable private final String body;
-  private final boolean effectiveSkipPush;
   private final LazyResourceLoader<GitRepository> localRepo;
   private final ConfigFile mainConfigFile;
   @Nullable private final Checker endpointChecker;
@@ -85,7 +84,6 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       GitDestinationOptions destinationOptions,
       GitHubDestinationOptions gitHubDestinationOptions,
       GitOptions gitOptions,
-      boolean skipPush,
       WriteHook writeHook,
       Iterable<GitIntegrateChanges> integrates,
       @Nullable String title,
@@ -104,7 +102,6 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.integrates = Preconditions.checkNotNull(integrates);
     this.title = title;
     this.body = body;
-    this.effectiveSkipPush = skipPush || destinationOptions.skipPush;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.endpointChecker = endpointChecker;
@@ -122,17 +119,11 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             .put("type", getType())
             .put("url", url)
             .put("destination_ref", destinationRef);
-    if (effectiveSkipPush) {
-      builder.put("skip_push", "True");
-    }
     return builder.build();
   }
 
   @Override
   public Writer<GitRevision> newWriter(WriterContext writerContext) throws ValidationException {
-
-    boolean effectiveSkipPush =
-        GitHubPrDestination.this.effectiveSkipPush || writerContext.isDryRun();
 
     String prBranch =
         getPullRequestBranchName(
@@ -149,7 +140,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 + (writerContext.isDryRun() ? "-dryrun" : ""));
 
     return new WriterImpl<GitHubWriterState>(
-        effectiveSkipPush,
+        writerContext.isDryRun(),
         url,
         destinationRef,
         prBranch,
@@ -172,7 +163,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         ImmutableList.Builder<DestinationEffect> result =
             ImmutableList.<DestinationEffect>builder()
                 .addAll(super.write(transformResult, destinationFiles, console));
-        if (effectiveSkipPush || state.pullRequestNumber != null) {
+        if (writerContext.isDryRun() || state.pullRequestNumber != null) {
           return result.build();
         }
 

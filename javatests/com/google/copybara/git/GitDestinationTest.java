@@ -74,7 +74,6 @@ public class GitDestinationTest {
   private String url;
   private String fetch;
   private String push;
-  private boolean skipPush;
   private boolean force;
 
   private Path repoGitDir;
@@ -174,8 +173,7 @@ public class GitDestinationTest {
             + "    url = '%s',\n"
             + "    fetch = '%s',\n"
             + "    push = '%s',\n"
-            + "    skip_push = %s,\n"
-            + ")", url, fetch, push, skipPush ? "True" : "False"));
+            + ")", url, fetch, push));
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {
@@ -1219,23 +1217,6 @@ public class GitDestinationTest {
   @Test
   public void testLocalRepo() throws Exception {
     checkLocalRepo(false);
-
-    GitTesting.assertThatCheckout(repo(), "master")
-        .containsFile("test.txt", "another content")
-        .containsNoMoreFiles();
-  }
-
-  @Test
-  public void testLocalRepoSkipPush() throws Exception {
-    skipPush = true;
-    GitRepository localRepo = checkLocalRepo(false);
-
-    GitTesting.assertThatCheckout(repo(), "master")
-        .containsFile("foo", "foo\n")
-        .containsNoMoreFiles();
-
-    // A simple push without origin is able to update the correct destination reference
-    localRepo.push().run();
 
     GitTesting.assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "another content")

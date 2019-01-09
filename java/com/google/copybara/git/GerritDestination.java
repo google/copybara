@@ -431,7 +431,6 @@ public final class GerritDestination implements Destination<GitRevision> {
             destinationOptions,
             options.get(GitOptions.class),
             generalOptions,
-            /*skipPush=*/ false,
             new GerritWriteHook(
                 generalOptions,
                 gerritOptions,
