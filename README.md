@@ -30,6 +30,8 @@ Examples uses of Copybara include:
 Currently, the only supported type of repository is Git. Copybara also supports reading from Mercurial repositories, but the feature is still experimental.
 Support for other repositories types will be added in the future.
 
+TEST
+
 ## Example
 
 ```python
