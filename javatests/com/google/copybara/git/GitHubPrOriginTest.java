@@ -63,6 +63,7 @@ import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -107,21 +108,7 @@ public class GitHubPrOriginTest {
         .setConsole(console)
         .setOutputRootToTmpDir();
     gitUtil = new GitTestUtil(options);
-    gitUtil.mockRemoteGitRepos(
-        new Validator() {
-          @Override
-          public void validateFetch(
-              String url, boolean prune, boolean force, Iterable<String> refspecs) {
-            for (String refspec : refspecs) {
-              // WARNING! This check is important. While using short names like
-              // 'master' in git fetch works for local git invocations, other
-              // implementations of GitRepository might have problems if we don't
-              // pass the whole reference.
-              assertThat(refspec).startsWith("refs/");
-              assertThat(refspec).contains(":refs/");
-            }
-          }
-        });
+    gitUtil.mockRemoteGitRepos(new CompleteRefValidator());
 
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));

@@ -74,9 +74,10 @@ public class GitHubWriteHook extends DefaultWriteHook {
     for (Change<?> change : originChanges) {
       SkylarkDict<String, String> labelDict = change.getLabelsForSkylark();
       String updatedPrBranchName = getUpdatedPrBranch(labelDict);
+      String completeRef = String.format("refs/heads/%s", updatedPrBranchName);
       try {
         //fails with NOT_FOUND if doesn't exist
-        api.getReference(configProjectName, String.format("refs/heads/%s", updatedPrBranchName));
+        api.getReference(configProjectName, completeRef);
         generalOptions.repoTask(
             "push current commit to the head of pr_branch_to_update",
             () ->
@@ -85,7 +86,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
                     .withRefspecs(
                         repoUrl,
                         ImmutableList.of(
-                            scratchClone.createRefSpec("+HEAD:" + updatedPrBranchName)))
+                            scratchClone.createRefSpec("+HEAD:" + completeRef)))
                     .run());
       } catch (GitHubApiException e) {
         if (e.getResponseCode() == ResponseCode.NOT_FOUND) {

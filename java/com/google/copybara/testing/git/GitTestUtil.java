@@ -17,6 +17,7 @@
 package com.google.copybara.testing.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -45,11 +46,14 @@ import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.git.GitHubOptions;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.GitRepository.PushCmd;
+import com.google.copybara.git.InvalidRefspecException;
 import com.google.copybara.git.Refspec;
 import com.google.copybara.testing.OptionsBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -260,10 +264,42 @@ public class GitTestUtil {
     repo.simpleCommand("update-ref", "HEAD", head);
   }
 
+  // fetch and push refs should be complete (refs/heads/master vs master). Our
+  // internal implementation requires it.
+  public static class CompleteRefValidator extends Validator {
+
+    @Override
+    public void validateFetch(String url, boolean prune, boolean force, Iterable<String> refspecs) {
+      for (String refspec : refspecs) {
+        try {
+          assertThat(Refspec.create(getGitEnv(),
+              Paths.get("/tmp"), refspec).getOrigin()).startsWith("refs/");
+        } catch (InvalidRefspecException e) {
+          throw new AssertionError(e);
+        }
+      }
+
+    }
+
+    @Override
+    public void validatePush(PushCmd pushCmd) {
+      for (Refspec refspec : pushCmd.getRefspecs()) {
+        // Destination push refs should be complete (refs/heads/master vs master). Our
+        // internal implementation requires it.
+        assertThat(refspec.getDestination()).startsWith("refs/");
+      }
+
+    }
+  }
+
   public static class Validator {
 
     public void validateFetch(String url, boolean prune, boolean force,
         Iterable<String> refspecs) {
+      // Intended to be empty
+    }
+
+    public void validatePush(PushCmd pushCmd) {
       // Intended to be empty
     }
   }
@@ -352,6 +388,7 @@ public class GitTestUtil {
 
     @Override
     protected String runPush(PushCmd pushCmd) throws RepoException, ValidationException {
+      validator.validatePush(pushCmd);
       if (pushCmd.getUrl() != null) {
         pushCmd = pushCmd.withRefspecs(mapUrl(pushCmd.getUrl()),
             pushCmd.getRefspecs());

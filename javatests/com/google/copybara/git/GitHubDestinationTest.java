@@ -17,7 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.git.github.api.GitHubApiException.ResponseCode.FORBIDDEN;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
@@ -27,7 +27,6 @@ import static junit.framework.TestCase.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
 import com.google.copybara.Destination.Writer;
@@ -45,6 +44,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -89,7 +89,7 @@ public class GitHubDestinationTest {
     workdir = Files.createTempDirectory("workdir");
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
     gitUtil = new GitTestUtil(options);
-    gitUtil.mockRemoteGitRepos();
+    gitUtil.mockRemoteGitRepos(new CompleteRefValidator());
     remote = gitUtil.mockRemoteRepo("github.com/foo");
     options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
@@ -307,7 +307,7 @@ public class GitHubDestinationTest {
       process(writer, new DummyRevision("origin_ref1"));
       fail();
     } catch (GitHubApiException e) {
-      Assert.assertTrue(e.getHttpCode() == 403);
+      Assert.assertSame(e.getResponseCode(), FORBIDDEN);
     }
   }
 
@@ -395,12 +395,6 @@ public class GitHubDestinationTest {
             + "    skip_push = %s,\n"
             + "    pr_branch_to_update = \'" + prBranchToUpdate + "\',\n"
             + ")", url, fetch, push, skipPush ? "True" : "False"));
-  }
-
-  private GitEnvironment getEnv() {
-    Map<String, String> env = Maps.newHashMap(options.general.getEnvironment());
-    env.putAll(getGitEnv().getEnvironment());
-    return new GitEnvironment(env);
   }
 
   private void process(Writer<GitRevision> writer, Glob destinationFiles, DummyRevision originRef)

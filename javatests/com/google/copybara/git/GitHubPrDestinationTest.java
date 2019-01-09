@@ -45,6 +45,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Message.MessageType;
@@ -86,7 +87,7 @@ public class GitHubPrDestinationTest {
         .setOutputRootToTmpDir();
 
     gitUtil = new GitTestUtil(options);
-    gitUtil.mockRemoteGitRepos();
+    gitUtil.mockRemoteGitRepos(new CompleteRefValidator());
 
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
