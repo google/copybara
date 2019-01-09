@@ -74,14 +74,14 @@ public class CommandRunnerTest {
         + ">&2 echo stderr msg\n"
         + "sleep 10\n");
     try {
-      runCommand(new CommandRunner(command, Duration.ofMillis(1)));
+      runCommand(new CommandRunner(command, Duration.ofSeconds(1)));
       fail();
     } catch (CommandTimeoutException e) {
       assertThat(e.getOutput().getStdout()).contains("stdout msg");
       assertThat(e.getOutput().getStderr()).contains("stderr msg");
       assertThat(e.getMessage())
-          .containsMatch("Command '.*' killed by Copybara after timeout \\(0s\\)");
-      assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofMillis(1));
+          .containsMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
+      assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofSeconds(1));
     }
   }
 
