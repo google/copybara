@@ -19,8 +19,14 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava",
-    artifact = "com.google.guava:guava:25.1-jre",
-    sha1 = "6c57e4b22b44e89e548b5c9f70f0c45fe10fb0b4",
+    artifact = "com.google.guava:guava:27.0.1-jre",
+    sha1 = "bd41a290787b5301e63929676d792c507bbc00ae",
+)
+
+maven_jar(
+    name = "failureaccess",
+    artifact = "com.google.guava:failureaccess:1.0.1",
+    sha1 = "1dcf1de382a0bf95a3d8b0849546c88bac1292c9",
 )
 
 # LICENSE: The Apache Software License, Version 2.0

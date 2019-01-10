@@ -15,6 +15,7 @@ package(
 java_library(
     name = "guava",
     exports = [
+	"@failureaccess//jar",
         "@guava//jar",
     ],
 )
