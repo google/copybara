@@ -36,7 +36,6 @@ import com.google.devtools.build.lib.syntax.Environment.GlobalFrame;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
-import com.google.devtools.build.lib.syntax.SkylarkSemantics;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
 import com.google.devtools.build.lib.syntax.StringLiteral;
 import com.google.devtools.build.lib.vfs.PathFragment;
@@ -273,7 +272,7 @@ public class SkylarkParser {
   private static Environment createEnvironment(EventHandler eventHandler, GlobalFrame globals,
       Map<String, Extension> imports) {
     return Environment.builder(Mutability.create("CopybaraModules"))
-        .setSemantics(SkylarkSemantics.DEFAULT_SEMANTICS)
+        .useDefaultSemantics()
         .setGlobals(globals)
         .setImportedExtensions(imports)
         .setEventHandler(eventHandler)
@@ -295,7 +294,7 @@ public class SkylarkParser {
         ((LabelsAwareModule) module).setConfigFile(mainConfigFile, currentConfigFile);
         ((LabelsAwareModule) module)
             .setDynamicEnvironment(() -> Environment.builder(Mutability.create("dynamic_action"))
-                .setSemantics(SkylarkSemantics.DEFAULT_SEMANTICS)
+                .useDefaultSemantics()
                 .setEventHandler(eventHandler)
                 .build());
       }
@@ -308,7 +307,7 @@ public class SkylarkParser {
             .setConfigFile(mainConfigFile, currentConfigFile);
         ((LabelsAwareModule) getModuleGlobal(env, module))
             .setDynamicEnvironment(() -> Environment.builder(Mutability.create("dynamic_action"))
-                    .setSemantics(SkylarkSemantics.DEFAULT_SEMANTICS)
+                    .useDefaultSemantics()
                     .setEventHandler(eventHandler)
                     .build());
       }

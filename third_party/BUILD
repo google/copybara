@@ -39,6 +39,7 @@ java_plugin(
     processor_class = "com.google.auto.value.processor.AutoValueProcessor",
     deps = [
         "@autovalue//jar",
+        "@autovalueannotations//jar",
     ],
 )
 
@@ -51,6 +52,7 @@ java_library(
     # without depending on the processor at runtime?
     exports = [
         "@autovalue//jar",
+        "@autovalueannotations//jar",
     ],
 )
 
@@ -93,6 +95,7 @@ java_library(
     name = "truth",
     testonly = 1,
     exports = [
+        "@diffutils//jar",
         "@truth//jar",
     ],
 )
@@ -103,6 +106,7 @@ java_library(
         "@google_http_client//jar",
         "@google_http_client_gson//jar",
         "@gson//jar",
+	"@commonscodec//jar",
     ],
 )
 
