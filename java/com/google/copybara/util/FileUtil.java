@@ -114,8 +114,8 @@ public final class FileUtil {
    */
   public static void copyFilesRecursively(Path from, Path to,
       CopySymlinkStrategy symlinkStrategy, Glob glob) throws IOException {
-    checkArgument(Files.isDirectory(from), "%s (from) is not a directory");
-    checkArgument(Files.isDirectory(to), "%s (to) is not a directory");
+    checkArgument(Files.isDirectory(from), "%s (from) is not a directory", from);
+    checkArgument(Files.isDirectory(to), "%s (to) is not a directory", to);
 
     // Optimization to skip folders that will be skipped. This works well for huge file trees
     // where we have a very specific Glob ( foo/bar/**).
@@ -266,7 +266,8 @@ public final class FileUtil {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      Path destFile = to.resolve(from.relativize(file)).normalize();
+      // using from...toString to allow crossing from one filesystem into another
+      Path destFile = to.resolve(from.relativize(file).toString()).normalize();
       if (!destPathMatcher.matches(destFile)) {
         return FileVisitResult.CONTINUE;
       }
