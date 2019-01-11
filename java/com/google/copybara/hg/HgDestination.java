@@ -175,7 +175,7 @@ public class HgDestination implements Destination<HgRevision> {
         TransformResult transformResult, String originLabelSeparator) {
       MessageInfo messageInfo = new MessageInfo(transformResult.isSetRevId()
           ? ImmutableList.of(new LabelFinder(
-              transformResult.getCurrentRevision().getLabelName() + originLabelSeparator
+              transformResult.getRevIdLabel() + originLabelSeparator
               + transformResult.getCurrentRevision().asString()))
           : ImmutableList.of());
       ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());

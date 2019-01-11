@@ -230,7 +230,7 @@ public enum WorkflowMode {
       checkCondition(runHelper.destinationSupportsPreviousRef(),
           "'%s' is incompatible with destinations that don't support history"
               + " (For example folder.destination)", CHANGE_REQUEST);
-      String originLabelName = runHelper.getDestination().getLabelNameWhenOrigin();
+      String originLabelName = runHelper.getLabelNameWhenOrigin();
       Optional<Baseline<O>> baseline;
       /*originRevision=*/
       baseline = Strings.isNullOrEmpty(runHelper.workflowOptions().changeBaseline)

@@ -323,7 +323,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       Revision rev = result.getCurrentRevision();
       ImmutableList.Builder<LabelFinder> labels = ImmutableList.builder();
       if (result.isSetRevId()) {
-        labels.add(new LabelFinder(rev.getLabelName() + ": " + rev.asString()));
+        labels.add(new LabelFinder(result.getRevIdLabel() + ": " + rev.asString()));
       }
       String existingChangeId = getExistingChangeId(result.getSummary());
       String effectiveChangeId = existingChangeId;

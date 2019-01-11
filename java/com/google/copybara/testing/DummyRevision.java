@@ -160,11 +160,6 @@ public class DummyRevision implements Revision {
     return reference;
   }
 
-  @Override
-  public String getLabelName() {
-    return DummyOrigin.LABEL_NAME;
-  }
-
   public Change<DummyRevision> toChange(Authoring authoring) {
     Author safeAuthor = authoring.useAuthor(this.author.getEmail())
         ? this.author

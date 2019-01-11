@@ -515,7 +515,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               metadata,
               changes,
               workflow.getConsole(),
-              new MigrationInfo(workflow.getOrigin().getLabelName(), writer),
+              new MigrationInfo(workflow.getRevIdLabel(), writer),
               resolvedRef,
               /*ignoreNoop=*/ false)
               .withLastRev(lastRev)
@@ -590,7 +590,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               changes,
               rawSourceRef,
               workflow.isSetRevId(),
-              transformWork::getAllLabels);
+              transformWork::getAllLabels,
+              workflow.getRevIdLabel());
 
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline.getBaseline());
@@ -609,7 +610,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   // We don't care about the changes that are imported.
                   changes,
                   new PrefixConsole("Migrating baseline for diff: ", workflow.getConsole()),
-                  new MigrationInfo(workflow.getOrigin().getLabelName(), writer),
+                  new MigrationInfo(workflow.getRevIdLabel(), writer),
                   resolvedRef,
                   // Doesn't guarantee that we will not run a ignore_noop = False core.transform but
                   // reduces the chances.
@@ -665,7 +666,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   }
 
   String getOriginLabelName() {
-    return workflow.getOrigin().getLabelName();
+    return workflow.getRevIdLabel();
+  }
+
+  String getLabelNameWhenOrigin() throws ValidationException {
+    return workflow.customRevId() == null
+        ? workflow.getDestination().getLabelNameWhenOrigin()
+        : workflow.customRevId();
   }
 
   /**

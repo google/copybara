@@ -304,6 +304,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       return transformResult.isSetRevId();
     }
 
+    public String getRevIdLabel() {
+      return transformResult.getRevIdLabel();
+    }
+
     @Nullable
     public ImmutableList<DiffFile> getAffectedFilesForSmartPrune() {
       return transformResult.getAffectedFilesForSmartPrune();

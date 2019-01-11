@@ -32,6 +32,7 @@ import static com.google.copybara.util.DiffUtil.DiffFile.Operation.MODIFIED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -132,6 +133,7 @@ public class WorkflowTest {
   private boolean setRevId;
   private boolean smartPrune;
   private boolean migrateNoopChangesField;
+  private ImmutableList<String> extraWorkflowFields = ImmutableList.of();
 
   @Before
   public void setup() throws Exception {
@@ -166,6 +168,7 @@ public class WorkflowTest {
     setRevId = true;
     smartPrune = false;
     migrateNoopChangesField = false;
+    extraWorkflowFields = ImmutableList.of();
   }
 
   private TestingConsole console() {
@@ -196,6 +199,10 @@ public class WorkflowTest {
         + "    smart_prune = " + (smartPrune ? "True" : "False") + ",\n"
         + "    migrate_noop_changes = " + (migrateNoopChangesField ? "True" : "False") + ",\n"
         + "    mode = '" + mode + "',\n"
+        + (extraWorkflowFields.isEmpty()
+            ? ""
+            : "    " + Joiner.on(",\n    ").join(extraWorkflowFields) + ",\n"
+          )
         + ")\n";
     System.err.println(config);
     return (Workflow<?, ?>) loadConfig(config).getMigration(name);
@@ -570,6 +577,42 @@ public class WorkflowTest {
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary()).isEqualTo(FORCED_MESSAGE);
     assertThat(change.getAuthor()).isEqualTo(FORCED_AUTHOR);
+  }
+
+  @Test
+  public void testSquashCustomLabel() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 0);
+    origin.addSimpleChange(/*timestamp*/ 1);
+    options.workflowOptions.lastRevision = resolveHead();
+    origin.addSimpleChange(/*timestamp*/ 2);
+    origin.addSimpleChange(/*timestamp*/ 3);
+
+    extraWorkflowFields = ImmutableList.of("experimental_custom_rev_id = \"CUSTOM_REV_ID\"");
+
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+    assertThat(destination.processed).hasSize(1);
+    ProcessedChange change = Iterables.getOnlyElement(destination.processed);
+    assertThat(change.getRevIdLabel()).isEqualTo("CUSTOM_REV_ID");
+    assertThat(change.getOriginRef().asString()).isEqualTo("3");
+
+    options.workflowOptions.lastRevision = null;
+
+    workflow = skylarkWorkflow("default", SQUASH);
+
+    assertThat(
+        Iterables.getOnlyElement(
+            workflow.getInfo().migrationReferences()).getLastMigrated().asString()).isEqualTo("3");
+
+    origin.addSimpleChange(/*timestamp*/ 4);
+    origin.addSimpleChange(/*timestamp*/ 5);
+
+    workflow.run(workdir, ImmutableList.of(HEAD));
+    ProcessedChange last = Iterables.getLast(destination.processed);
+    assertThat(last.getOriginChanges()).hasSize(2);
+    assertThat(last.getOriginChanges().get(0).getRevision().asString()).isEqualTo("5");
+    assertThat(last.getOriginChanges().get(1).getRevision().asString()).isEqualTo("4");
   }
 
   @Test
@@ -1265,6 +1308,39 @@ public class WorkflowTest {
     assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
     console().assertThat()
         .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
+  }
+
+  @Test
+  public void changeRequest_customRevIdLabel() throws Exception {
+    origin
+        .addSimpleChange(0, "One Change\n\nCUSTOM_REV_ID=42")
+        .addSimpleChange(1, "Second Change");
+
+    extraWorkflowFields = ImmutableList.of("experimental_custom_rev_id = \"CUSTOM_REV_ID\"");
+    setRevId = false;
+    Workflow<?, ?> workflow = changeRequestWorkflow(null);
+    workflow.run(workdir, ImmutableList.of("1"));
+    ProcessedChange change = destination.processed.get(0);
+
+    assertThat(change.getBaseline()).isEqualTo("42");
+    assertThat(change.getAuthor()).isEqualTo(DEFAULT_AUTHOR);
+    console().assertThat()
+        .onceInLog(MessageType.PROGRESS, ".*Checking that the transformations can be reverted");
+
+  }
+
+  @Test
+  public void changeRequest_customRevIdLabelWithSetRevId() throws Exception {
+    extraWorkflowFields = ImmutableList.of("experimental_custom_rev_id = \"CUSTOM_REV_ID\"");
+    setRevId = true;
+    try {
+      changeRequestWorkflow(null);
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e.getMessage()).containsMatch(
+          "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if "
+              + "set_rev_id is set to true. experimental_custom_rev_id is used");
+    }
   }
 
   @Test

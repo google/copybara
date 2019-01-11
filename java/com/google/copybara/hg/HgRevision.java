@@ -58,11 +58,6 @@ public class HgRevision implements Revision {
     return globalId;
   }
 
-  @Override
-  public String getLabelName() {
-    return HgRepository.HG_ORIGIN_REV_ID;
-  }
-
   @Nullable
   @Override
   public String contextReference() {

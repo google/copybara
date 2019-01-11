@@ -17,8 +17,8 @@
 package com.google.copybara.testing;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.TransformResult;
+import com.google.copybara.exception.RepoException;
 import java.nio.file.Path;
 
 /**
@@ -37,7 +37,7 @@ public class TransformResults {
     return new TransformResult(
         path, originRef, originRef.getAuthor(), "test summary\n", originRef, workflowName,
         TransformWorks.EMPTY_CHANGES, originRef.contextReference(),  /*setRevId=*/ true,
-        ImmutableList::of)
+        ImmutableList::of, DummyOrigin.LABEL_NAME)
         .withIdentity(originRef.asString());
   }
 }

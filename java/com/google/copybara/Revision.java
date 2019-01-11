@@ -45,12 +45,6 @@ public interface Revision {
   String asString();
 
   /**
-   * Label name to be used in when creating a commit message in the destination to refer to a
-   * revision. For example "Git-RevId".
-   */
-  String getLabelName();
-
-  /**
    * If not null, returns a stable name representing the reference from where this {@code Revision}
    * was created.
    *

@@ -17,8 +17,8 @@
 package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.Revision;
+import com.google.copybara.exception.RepoException;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 
@@ -29,13 +29,11 @@ public class FolderRevision implements Revision {
 
   final Path path;
   private final ZonedDateTime timestamp;
-  private final String labelName;
 
-  FolderRevision(Path path, ZonedDateTime timestamp, String labelName) {
+  FolderRevision(Path path, ZonedDateTime timestamp) {
     Preconditions.checkState(path.isAbsolute());
     this.path = path;
     this.timestamp = Preconditions.checkNotNull(timestamp);
-    this.labelName = Preconditions.checkNotNull(labelName);
   }
 
   @Override
@@ -46,10 +44,5 @@ public class FolderRevision implements Revision {
   @Override
   public ZonedDateTime readTimestamp() throws RepoException {
     return timestamp;
-  }
-
-  @Override
-  public String getLabelName() {
-    return labelName;
   }
 }

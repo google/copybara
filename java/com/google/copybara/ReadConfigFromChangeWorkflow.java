@@ -81,7 +81,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.getChangeIdentity(),
         workflow.isSetRevId(),
         workflow.isSmartPrune(),
-        workflow.isMigrateNoopChanges());
+        workflow.isMigrateNoopChanges(),
+        workflow.customRevId());
     this.configLoader = checkNotNull(configLoader, "configLoaderProvider");
     this.configValidator = checkNotNull(configValidator, "configValidator");
   }

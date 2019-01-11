@@ -28,6 +28,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -60,6 +61,7 @@ import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
+import com.google.re2j.Pattern;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -83,6 +85,8 @@ import java.util.function.Supplier;
 @UsesFlags(GeneralOptions.class)
 public class Core implements LabelsAwareModule {
 
+  // Restrict for label ids like 'BAZEL_REV_ID'. More strict than our current revId.
+  private static final Pattern CUSTOM_REVID_FORMAT = Pattern.compile("[A-Z][A-Z_0-9]{1,30}_REV_ID");
   private static final String CHECK_LAST_REV_STATE = "check_last_rev_state";
   private final GeneralOptions generalOptions;
   private final WorkflowOptions workflowOptions;
@@ -248,6 +252,10 @@ public class Core implements LabelsAwareModule {
                   + " if some transformation is validating the message (Like has to contain 'PUBLIC'"
                   + " and the change doesn't contain it because it is internal).",
               defaultValue = "False", positional = false),
+          @Param(name = "experimental_custom_rev_id", named = true, type = String.class,
+              doc = "Use this label name instead of the one provided by the origin. This is subject"
+                  + " to change and there is no guarantee.",
+              defaultValue = "None", positional = false, noneable = true),
       },
       useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -272,6 +280,7 @@ public class Core implements LabelsAwareModule {
       Boolean setRevId,
       Boolean smartPrune,
       Boolean migrateNoopChanges,
+      Object customRevIdField,
       Location location,
       Environment env)
       throws EvalException {
@@ -292,7 +301,17 @@ public class Core implements LabelsAwareModule {
 
     ImmutableList<Token> changeIdentity = getChangeIdentity(changeIdentityObj, location);
 
-    if (!setRevId) {
+    String customRevId = convertFromNoneable(customRevIdField, null);
+    SkylarkUtil.check(location,
+        customRevId == null || CUSTOM_REVID_FORMAT.matches(customRevId),
+        "Invalid experimental_custom_rev_id format. Format: %s", CUSTOM_REVID_FORMAT.pattern());
+
+    if (setRevId) {
+      check(location, mode != WorkflowMode.CHANGE_REQUEST || customRevId == null,
+          "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if"
+              + " set_rev_id is set to true. experimental_custom_rev_id is used for looking"
+              + " for the baseline in the origin. No revId is stored in the destination.");
+    } else {
       check(location, mode == WorkflowMode.CHANGE_REQUEST, "Disabling RevId is only supported"
           + " for CHANGE_REQUEST mode.");
     }
@@ -337,7 +356,8 @@ public class Core implements LabelsAwareModule {
         changeIdentity,
         setRevId,
         smartPrune,
-        workflowOptions.migrateNoopChanges || migrateNoopChanges));
+        workflowOptions.migrateNoopChanges || migrateNoopChanges,
+        customRevId));
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj, Location location)

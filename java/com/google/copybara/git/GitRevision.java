@@ -124,11 +124,6 @@ public final class GitRevision implements Revision {
   }
 
   @Override
-  public String getLabelName() {
-    return GitRepository.GIT_ORIGIN_REV_ID;
-  }
-
-  @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .omitNullValues()

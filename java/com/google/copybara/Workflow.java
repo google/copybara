@@ -102,6 +102,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean smartPrune;
   private final boolean migrateNoopChanges;
   private final boolean checkLastRevState;
+  @Nullable private final String customRevId;
 
   public Workflow(
       String name,
@@ -126,7 +127,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       ImmutableList<Token> changeIdentity,
       boolean setRevId,
       boolean smartPrune,
-      boolean migrateNoopChanges) {
+      boolean migrateNoopChanges,
+      @Nullable String customRevId) {
     this.name = Preconditions.checkNotNull(name);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -147,6 +149,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.allConfigFiles = allConfigFiles;
     this.checkLastRevState = checkLastRevState;
+    this.customRevId = customRevId;
     this.effectiveDryRunMode = dryRunModeField || generalOptions.dryRunMode;
     this.dryRunModeField = dryRunModeField;
     this.afterMigrationActions = Preconditions.checkNotNull(afterMigrationActions);
@@ -339,7 +342,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       return new DestinationStatus(getLastRevisionFlag(), ImmutableList.of());
     }
     return createDryRunWriter(revision)
-        .getDestinationStatus(getDestinationFiles(), origin.getLabelName());
+        .getDestinationStatus(getDestinationFiles(), getRevIdLabel());
+  }
+
+  String getRevIdLabel() {
+    return customRevId != null ? customRevId : origin.getLabelName();
   }
 
   /** Create a writer that respects the effectiveDryRunMode value */
@@ -524,5 +531,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   boolean isMigrateNoopChanges() {
     return migrateNoopChanges;
+  }
+
+  @Nullable
+  public String customRevId() {
+    return customRevId;
   }
 }

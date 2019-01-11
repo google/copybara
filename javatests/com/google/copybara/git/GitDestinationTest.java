@@ -522,11 +522,11 @@ public class GitDestinationTest {
     assertThat(
             destination()
                 .newWriter(writerContext)
-                .getDestinationStatus(firstGlob, ref1.getLabelName())
+                .getDestinationStatus(firstGlob, DummyOrigin.LABEL_NAME)
                 .getBaseline())
         .isEqualTo(ref1.asString());
     assertThat(writer.getDestinationStatus(Glob.createGlob(ImmutableList.of("baz/**")),
-        ref2.getLabelName()).getBaseline())
+        DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo(ref2.asString());
   }
 
@@ -1377,7 +1377,7 @@ public class GitDestinationTest {
     writer.write(
         new TransformResult(workdir, rev, rev.getAuthor(), msg, rev, /*workflowName*/ "default",
                             TransformWorks.EMPTY_CHANGES, "first_commit", /*setRevId=*/ true,
-                            ImmutableList::of),
+                            ImmutableList::of, DummyOrigin.LABEL_NAME),
         destinationFiles,
         console);
 
@@ -1506,7 +1506,7 @@ public class GitDestinationTest {
       throws RepoException, ValidationException {
     assertThat(
         newWriter()
-            .getDestinationStatus(destinationFiles, revision.getLabelName()).getBaseline())
+            .getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo(revision.asString());
   }
 

@@ -377,7 +377,7 @@ public final class GitDestination implements Destination<GitRevision> {
           return new MessageInfo(
               transformResult.isSetRevId()
                   ? ImmutableList.of(new LabelFinder(
-                  rev.getLabelName() + ORIGIN_LABEL_SEPARATOR + rev.asString()))
+                  transformResult.getRevIdLabel() + ORIGIN_LABEL_SEPARATOR + rev.asString()))
                   : ImmutableList.of());
       }
 

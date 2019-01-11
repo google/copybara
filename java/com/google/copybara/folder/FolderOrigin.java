@@ -85,7 +85,7 @@ public class FolderOrigin implements Origin<FolderRevision> {
       throw new ValidationException(path + " is not readable/executable");
     }
 
-    return new FolderRevision(path, ZonedDateTime.now(ZoneId.systemDefault()), LABEL_NAME);
+    return new FolderRevision(path, ZonedDateTime.now(ZoneId.systemDefault()));
   }
 
   @Override

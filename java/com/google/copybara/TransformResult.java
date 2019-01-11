@@ -51,16 +51,25 @@ public final class TransformResult {
   private final boolean setRevId;
   @Nullable private final ImmutableList<DiffFile> affectedFilesForSmartPrune;
   private final Function<String, Collection<String>> labelFinder;
+  private final String revIdLabel;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
     return (refTimestamp != null) ? refTimestamp : ZonedDateTime.now(ZoneId.systemDefault());
   }
 
-  public TransformResult(Path path, Revision currentRevision, Author author, String summary,
-      Revision requestedRevision, String workflowName, Changes changes,
-      @Nullable String rawSourceRef, boolean setRevId,
-      Function<String, Collection<String>> labelFinder)
+  public TransformResult(
+      Path path,
+      Revision currentRevision,
+      Author author,
+      String summary,
+      Revision requestedRevision,
+      String workflowName,
+      Changes changes,
+      @Nullable String rawSourceRef,
+      boolean setRevId,
+      Function<String, Collection<String>> labelFinder,
+      String revIdLabel)
       throws RepoException {
     this(
         path,
@@ -77,7 +86,8 @@ public final class TransformResult {
         rawSourceRef,
         setRevId,
         /*affectedFilesForSmartPrune=*/ null,
-        labelFinder);
+        labelFinder,
+        revIdLabel);
   }
 
   private TransformResult(
@@ -95,7 +105,8 @@ public final class TransformResult {
       @Nullable String rawSourceRef,
       boolean setRevId,
       @Nullable ImmutableList<DiffFile> affectedFilesForSmartPrune,
-      Function<String, Collection<String>> labelFinder) {
+      Function<String, Collection<String>> labelFinder,
+      String revIdLabel) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -111,6 +122,7 @@ public final class TransformResult {
     this.setRevId = setRevId;
     this.affectedFilesForSmartPrune = affectedFilesForSmartPrune;
     this.labelFinder = Preconditions.checkNotNull(labelFinder);
+    this.revIdLabel = Preconditions.checkNotNull(revIdLabel);
   }
 
   @CheckReturnValue
@@ -131,7 +143,8 @@ public final class TransformResult {
         this.rawSourceRef,
         this.setRevId,
         this.affectedFilesForSmartPrune,
-        this.labelFinder);
+        this.labelFinder,
+        this.revIdLabel);
   }
 
   /**
@@ -155,7 +168,8 @@ public final class TransformResult {
         this.rawSourceRef,
         this.setRevId,
         this.affectedFilesForSmartPrune,
-        this.labelFinder);
+        this.labelFinder,
+        this.revIdLabel);
   }
 
   @CheckReturnValue
@@ -175,7 +189,8 @@ public final class TransformResult {
         this.rawSourceRef,
         setRevId,
         this.affectedFilesForSmartPrune,
-        this.labelFinder);
+        this.labelFinder,
+        this.revIdLabel);
   }
 
   @CheckReturnValue
@@ -195,7 +210,8 @@ public final class TransformResult {
         this.rawSourceRef,
         this.setRevId,
         this.affectedFilesForSmartPrune,
-        this.labelFinder);
+        this.labelFinder,
+        this.revIdLabel);
   }
 
   @CheckReturnValue
@@ -215,7 +231,8 @@ public final class TransformResult {
         this.rawSourceRef,
         this.setRevId,
         this.affectedFilesForSmartPrune,
-        this.labelFinder);
+        this.labelFinder,
+        this.revIdLabel);
   }
 
   @CheckReturnValue
@@ -235,7 +252,8 @@ public final class TransformResult {
         this.rawSourceRef,
         setRevId,
         this.affectedFilesForSmartPrune,
-        this.labelFinder);
+        this.labelFinder,
+        this.revIdLabel);
   }
 
   @CheckReturnValue
@@ -257,7 +275,8 @@ public final class TransformResult {
         this.rawSourceRef,
         this.setRevId,
         affectedFilesForSmartPrune,
-        this.labelFinder);
+        this.labelFinder,
+        this.revIdLabel);
   }
 
   @CheckReturnValue
@@ -277,7 +296,8 @@ public final class TransformResult {
         this.rawSourceRef,
         this.setRevId,
         this.affectedFilesForSmartPrune,
-        Preconditions.checkNotNull(labelMapper));
+        Preconditions.checkNotNull(labelMapper),
+        this.revIdLabel);
   }
 
   /**
@@ -400,6 +420,13 @@ public final class TransformResult {
    */
   public boolean isSetRevId() {
     return setRevId;
+  }
+
+  /**
+   * The label to use for storing the current migration state
+   */
+  public String getRevIdLabel() {
+    return revIdLabel;
   }
 
   /**
