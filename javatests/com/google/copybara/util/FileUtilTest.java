@@ -21,6 +21,9 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -30,12 +33,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Matchers;
 
 @RunWith(JUnit4.class)
 public class FileUtilTest {
@@ -297,6 +302,7 @@ public class FileUtilTest {
 
   @Test
   public void testCopyWithGlob_oneRootNotPresent() throws Exception {
+
     Path one = Files.createDirectory(temp.resolve("one"));
     Path two = Files.createDirectory(temp.resolve("two"));
     // We don't create 'bar' directory.
@@ -310,4 +316,18 @@ public class FileUtilTest {
         .containsNoMoreFiles();
   }
 
+  @Test
+  public void testCopyWithGlob_validatorCalled() throws Exception {
+    FileUtil.CopyVisitorValidator validator = mock(FileUtil.CopyVisitorValidator.class);
+    Path one = Files.createDirectory(temp.resolve("one"));
+    Path two = Files.createDirectory(temp.resolve("two"));
+    // We don't create 'bar' directory.
+    Files.createDirectories(one.resolve("foo"));
+    touch(one.resolve("foo/include.txt"));
+
+    FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS,
+        Glob.createGlob(ImmutableList.of("foo/**", "bar/**")), Optional.of(validator));
+    verify(validator).validate(Matchers.eq(one.resolve("foo/include.txt")));
+    verifyNoMoreInteractions(validator);
+   }
 }

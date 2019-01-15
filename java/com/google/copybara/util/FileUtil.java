@@ -42,6 +42,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -114,6 +115,18 @@ public final class FileUtil {
    */
   public static void copyFilesRecursively(Path from, Path to,
       CopySymlinkStrategy symlinkStrategy, Glob glob) throws IOException {
+    copyFilesRecursively(from, to, symlinkStrategy, glob, Optional.empty());
+  }
+
+  /**
+   * Same as copyFilesRecursively, but with an optional callback that is called for each file
+   * Copies files from {@code from} directory to {@code to} directory. If any file exist in the
+   * destination it fails instead of overwriting.
+   *
+   */
+  public static void copyFilesRecursively(Path from, Path to,
+      CopySymlinkStrategy symlinkStrategy, Glob glob, Optional<CopyVisitorValidator> validator)
+      throws IOException {
     checkArgument(Files.isDirectory(from), "%s (from) is not a directory", from);
     checkArgument(Files.isDirectory(to), "%s (to) is not a directory", to);
 
@@ -127,11 +140,12 @@ public final class FileUtil {
       Files.walkFileTree(
           rootElement,
           new CopyVisitor(rootElement, to.resolve(root), symlinkStrategy,
-                          glob.relativeTo(from.normalize()),
-                          // The PathMatcher matches destination files so that it can work with
-                          // absolute symlink materialization (We create a new CopyVisitor with the
-                          // resolved symlink as origin.
-                          glob.relativeTo(to.normalize())));
+              glob.relativeTo(from.normalize()),
+              // The PathMatcher matches destination files so that it can work with
+              // absolute symlink materialization (We create a new CopyVisitor with the
+              // resolved symlink as origin.
+              glob.relativeTo(to.normalize()),
+              validator));
     }
   }
 
@@ -227,6 +241,9 @@ public final class FileUtil {
     };
   }
 
+  /**
+   * How to handle symlinks
+   */
   public enum CopySymlinkStrategy {
     /**
      * Materialize any symlink found in a new file.
@@ -253,15 +270,28 @@ public final class FileUtil {
     private final CopySymlinkStrategy symlinkStrategy;
     private final PathMatcher originPathMatcher;
     private final PathMatcher destPathMatcher;
+    private final Optional<CopyVisitorValidator> additonalValidator;
 
-    CopyVisitor(Path from, Path to, CopySymlinkStrategy symlinkStrategy,
+    CopyVisitor(Path from,
+        Path to,
+        CopySymlinkStrategy symlinkStrategy,
         PathMatcher originPathMatcher,
-        PathMatcher destPathMatcher) {
+        PathMatcher destPathMatcher,
+        Optional<CopyVisitorValidator> additonalValidator) {
       this.to = to;
       this.from = from;
       this.symlinkStrategy = symlinkStrategy;
       this.originPathMatcher = originPathMatcher;
       this.destPathMatcher = destPathMatcher;
+      this.additonalValidator = additonalValidator;
+    }
+
+    CopyVisitor(Path from,
+        Path to,
+        CopySymlinkStrategy symlinkStrategy,
+        PathMatcher originPathMatcher,
+        PathMatcher destPathMatcher) {
+      this(to, from, symlinkStrategy, originPathMatcher, destPathMatcher, Optional.empty());
     }
 
     @Override
@@ -270,6 +300,9 @@ public final class FileUtil {
       Path destFile = to.resolve(from.relativize(file).toString()).normalize();
       if (!destPathMatcher.matches(destFile)) {
         return FileVisitResult.CONTINUE;
+      }
+      if (additonalValidator.isPresent()) {
+        additonalValidator.get().validate(file);
       }
       Files.createDirectories(destFile.getParent());
 
@@ -296,7 +329,8 @@ public final class FileUtil {
             Files.createDirectory(destFile);
             Files.walkFileTree(resolvedSymlink.regularFile,
                 new CopyVisitor(resolvedSymlink.regularFile, destFile,
-                    CopySymlinkStrategy.MATERIALIZE_ALL, originPathMatcher, destPathMatcher));
+                    CopySymlinkStrategy.MATERIALIZE_ALL, originPathMatcher, destPathMatcher,
+                    additonalValidator));
             return FileVisitResult.CONTINUE;
           }
         } else {
@@ -312,6 +346,13 @@ public final class FileUtil {
       }
       return FileVisitResult.CONTINUE;
     }
+  }
+
+  /**
+   * Additional checks to run while copying files.
+   */
+  public interface CopyVisitorValidator {
+    void validate(Path from) throws IOException;
   }
 
   /**
@@ -349,7 +390,7 @@ public final class FileUtil {
     checkArgument(matcher.matches(path), "%s doesn't match %s", path, matcher);
 
     Set<Path> visited = new LinkedHashSet<>();
-    while(Files.isSymbolicLink(path)) {
+    while (Files.isSymbolicLink(path)) {
       visited.add(path);
       // Avoid 'dot' -> . like traps by capping to a sane limit
       if (visited.size() > 50) {
