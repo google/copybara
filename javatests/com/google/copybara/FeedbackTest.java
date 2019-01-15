@@ -335,7 +335,7 @@ public class FeedbackTest {
       fail();
     } catch (ValidationException expected) {
       assertThat(expected.getMessage())
-          .matches(".*parameter 'msg' has no default value, in method.*error\\(\\).*");
+          .matches(".*parameter 'msg' has no default value, .*method.*error\\(.*\\).*");
     }
   }
 
